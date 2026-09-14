@@ -219,10 +219,11 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", {
           name: /操作与异常日志|Operations and Issues/i,
+          level: 1,
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: /应用筛选|Apply filters/i }),
+        page.getByRole("button", { name: /筛选操作|Filter operations/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-audit");
       return;

@@ -3,7 +3,10 @@ import { stringify, unflatten } from "devalue";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
+import {
+  capturePageScreenshot,
+  captureStepScreenshot,
+} from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const ids = Array.from({ length: 70 }, () => crypto.randomUUID());
@@ -69,6 +72,18 @@ test("统计曲线支持筛选、图例与键盘，切换周期后同步更新",
   await chart.focus();
   await chart.press("End");
   await expect(chart).toHaveAttribute("aria-valuenow", "29");
+  const panel = page.locator(
+    'section[aria-labelledby="telemetry-operations-title"]',
+  );
+  const tableToggle = panel.getByRole("button", {
+    name: /每日数据|Daily data/i,
+  });
+  await tableToggle.click();
+  await expect(panel.getByRole("table")).toBeVisible();
+  await expect(panel.getByRole("table").locator("tbody tr")).toHaveCount(30);
+  await expect(chart).toHaveCount(0);
+  await tableToggle.click();
+  await expect(chart).toBeVisible();
   await page.locator("#experience-feature").selectOption("catalog.search");
   await page
     .getByRole("button", { name: /应用筛选|Apply filters/i, exact: true })
@@ -96,12 +111,67 @@ test("统计曲线支持筛选、图例与键盘，切换周期后同步更新",
       url.searchParams.get("feature") === "catalog.search",
   );
   await expect(chart).toHaveAttribute("aria-valuemax", "6");
+  await tableToggle.click();
+  const counts = await panel
+    .getByRole("table")
+    .locator("tbody tr")
+    .evaluateAll((rows) =>
+      rows.map((row) =>
+        Number(row.lastElementChild?.textContent?.replaceAll(",", "")),
+      ),
+    );
+  expect(counts).toHaveLength(7);
+  expect(counts.reduce((sum, value) => sum + value, 0)).toBe(10);
+  await tableToggle.click();
+  const matrix = page.locator(
+    'section[aria-labelledby="experience-matrix-title"]',
+  );
+  await expect(matrix.getByRole("table")).toHaveCount(0);
+  await matrix.locator('[data-slot="collapsible-trigger"]').click();
+  await expect(matrix.getByRole("table")).toBeVisible();
+  await expect(matrix.getByRole("table").locator("tbody tr")).toHaveCount(2);
+  await matrix.locator('[data-slot="collapsible-trigger"]').click();
+  await expect(matrix.getByRole("table")).toHaveCount(0);
   await page.locator("#telemetry-operations-title").scrollIntoViewIfNeeded();
   await captureStepScreenshot(
     page,
     testInfo,
     "admin-statistics/operation-trends",
   );
+});
+
+test("切换统计面板不重复查询，切换周期仍保留当前面板", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/analytics");
+  await expect(page.locator("#admin-user-trends-chart-title")).toHaveCount(0);
+  await expect(page.locator("#analytics-operation-trend-title")).toHaveCount(0);
+  const dataRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/admin/analytics/__data.json"))
+      dataRequests.push(request.url());
+  });
+  await page.getByRole("tab", { name: /^用户$|^Users$/i }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("panel") === "users",
+  );
+  await expect(page.locator("#admin-user-trends-chart-title")).toBeVisible();
+  await expect(page.locator("#telemetry-operations-title")).toHaveCount(0);
+  await page.getByRole("tab", { name: /审计统计|Audit statistics/i }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("panel") === "history",
+  );
+  expect(dataRequests).toEqual([]);
+  await page
+    .getByRole("link", { name: /最近 7 天|Last 7 days/i, exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("days") === "7" &&
+      url.searchParams.get("panel") === "history",
+  );
+  await expect(
+    page.getByRole("tab", { name: /审计统计|Audit statistics/i }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#analytics-operation-trend-title")).toBeVisible();
 });
 
 test("公共查询无需 Analytics 凭据即可写入 PostgreSQL 并在日志查看", async ({
@@ -169,21 +239,84 @@ test("日志显示异常分组和明细，审计与操作筛选互不混淆", as
   await expect(page).toHaveURL(
     (url) => url.searchParams.get("issue_protocol") === "rest",
   );
+  await page.getByRole("tab", { name: /^审计$|^Audit$/i, exact: true }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("admin_tab") === "audit",
+  );
   await page.locator("#audit-outcome").selectOption("denied");
   await page
     .getByRole("button", { name: /应用筛选|Apply filters/i, exact: true })
     .click();
   await expect(page).toHaveURL(
     (url) =>
+      url.searchParams.get("admin_tab") === "audit" &&
       url.searchParams.get("outcome") === "denied" &&
       url.searchParams.get("issue_feature") === "catalog.teacher" &&
       url.searchParams.get("issue_protocol") === "rest",
   );
+  await expect(
+    page.getByRole("tab", { name: /^审计$|^Audit$/i, exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   await captureStepScreenshot(
     page,
     testInfo,
     "admin-operations/grouped-issues",
   );
+});
+
+test("操作视图可切换全部事件并保留高级筛选", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/audit?issue_feature=catalog.search");
+  const timeline = page.locator(
+    'section[aria-labelledby="issue-timeline-title"]',
+  );
+  await expect(timeline.locator("details")).toHaveCount(0);
+  await page
+    .getByRole("radio", { name: /全部功能事件|All feature events/i })
+    .click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("issue_view") === "all",
+  );
+  await expect(timeline.locator("details")).toHaveCount(10);
+  const allEvents = page.getByRole("radio", {
+    name: /全部功能事件|All feature events/i,
+  });
+  await allEvents.click();
+  await expect(allEvents).toBeChecked();
+  await page
+    .getByRole("button", { name: /更多筛选条件|More filters/i, exact: true })
+    .click();
+  await page.locator("#issue-operation").selectOption("search");
+  await page
+    .getByRole("button", { name: /筛选操作|Filter operations/i, exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("issue_view") === "all" &&
+      url.searchParams.get("issue_operation") === "search" &&
+      url.searchParams.get("admin_tab") === "operations",
+  );
+  await expect(timeline.locator("details")).toHaveCount(10);
+  await page
+    .getByRole("button", { name: /更多筛选条件|More filters/i, exact: true })
+    .click();
+  await expect(page.locator("#issue-operation")).toBeHidden();
+  await page.locator("#issue-protocol").selectOption("rest");
+  await page
+    .getByRole("button", { name: /筛选操作|Filter operations/i, exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("issue_operation") === "search" &&
+      url.searchParams.get("issue_protocol") === "rest",
+  );
+  await expect(timeline.locator("details")).toHaveCount(5);
+  await page.getByRole("tab", { name: /^运行异常$|^Runtime$/i }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("admin_tab") === "runtime",
+  );
+  await expect(page.locator("#runtime-issues-title")).toBeVisible();
+  await page.getByRole("tab", { name: /^操作$|^Operations$/i }).click();
+  await expect(page.locator("#issue-operation")).toHaveValue("search");
 });
 
 test("数据库读取失败有明确状态，历史统计仍可查看", async ({ page }) => {
@@ -232,3 +365,52 @@ test("移动端曲线与操作时间线无横向溢出", async ({ page }, testIn
 test("统计数据页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/admin/analytics", testInfo });
 });
+
+for (const theme of ["light", "dark"] as const) {
+  test(`面板在 ${theme} 主题下保持紧凑且支持移动端`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.addInitScript(
+      (mode) => localStorage.setItem("life-ustc-theme", mode),
+      theme,
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signInAsDevAdmin(page, "/admin/analytics");
+    await expect(page.locator("#telemetry-operations-title")).toBeInViewport();
+    await expect(page.locator("[data-dashboard-panel]").first()).toBeVisible();
+    await capturePageScreenshot(page, testInfo, {
+      url: `admin-panels/statistics-${theme}`,
+    });
+    await gotoAndWaitForReady(
+      page,
+      "/admin/audit?issue_feature=catalog.teacher",
+    );
+    await capturePageScreenshot(page, testInfo, {
+      url: `admin-panels/logs-${theme}`,
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const route of [
+      "/admin/analytics",
+      "/admin/audit?issue_feature=catalog.teacher",
+    ]) {
+      await gotoAndWaitForReady(page, route, { uiQuality: {} });
+      const statistics = page.getByRole("region", {
+        name: /已记录使用量|Recorded usage/i,
+      });
+      await statistics.focus();
+      await statistics.press("ArrowRight");
+      await expect
+        .poll(() => statistics.evaluate((element) => element.scrollLeft))
+        .toBeGreaterThan(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await capturePageScreenshot(page, testInfo, {
+        url: `admin-panels/mobile-${route.includes("analytics") ? "statistics" : "logs"}-${theme}`,
+      });
+    }
+  });
+}

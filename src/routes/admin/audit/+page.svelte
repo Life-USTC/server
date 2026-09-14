@@ -11,15 +11,22 @@ import {
   auditTargetLabel,
 } from "@/features/admin/lib/admin-audit-display";
 import { buildAdminAuditHref } from "@/features/admin/lib/audit-page-hrefs";
+import { replaceState } from "$app/navigation";
+import { page as appPage } from "$app/stores";
+import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import * as Tabs from "$lib/components/ui/tabs/index.js";
 import type { PageData } from "./$types";
+
+type AdminTab = "operations" | "runtime" | "audit";
 
 export let data: PageData;
 
@@ -28,6 +35,24 @@ const formatDate = new Intl.DateTimeFormat(data.locale, {
   timeStyle: "short",
   timeZone: "Asia/Shanghai",
 });
+
+let auditFiltersOpen = false;
+
+$: requestedTab =
+  $appPage.state.adminAuditTab ?? $appPage.url.searchParams.get("admin_tab");
+$: activeTab = isAdminTab(requestedTab) ? requestedTab : "operations";
+$: hasAdvancedAuditFilters = Boolean(
+  data.filters.actor ||
+    data.filters.subject ||
+    data.filters.client ||
+    data.filters.targetType ||
+    data.filters.targetId,
+);
+$: if (hasAdvancedAuditFilters) auditFiltersOpen = true;
+
+function isAdminTab(value: string | null): value is AdminTab {
+  return value === "operations" || value === "runtime" || value === "audit";
+}
 
 function identity(
   value: { id: string; name: string | null; username: string | null } | null,
@@ -50,6 +75,7 @@ function issueQuery(issues: PageData["issues"]) {
     issue_view: issues.view,
   };
 }
+
 function auditHref(current: PageData, cursor?: string) {
   const url = new URL(
     buildAdminAuditHref(current.filters, cursor),
@@ -58,14 +84,28 @@ function auditHref(current: PageData, cursor?: string) {
   for (const [key, value] of Object.entries(issueQuery(current.issues))) {
     if (value) url.searchParams.set(key, value);
   }
+  url.searchParams.set("admin_tab", "audit");
   return `${url.pathname}${url.search}`;
 }
+
 function auditClearHref(current: PageData) {
   const url = new URL("/admin/audit", "https://admin.local");
   for (const [key, value] of Object.entries(issueQuery(current.issues))) {
     if (value) url.searchParams.set(key, value);
   }
+  url.searchParams.set("admin_tab", "audit");
   return `${url.pathname}${url.search}`;
+}
+
+function tabHref(tab: AdminTab) {
+  const url = new URL($appPage.url);
+  url.searchParams.set("admin_tab", tab);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function selectTab(value: string) {
+  if (isAdminTab(value))
+    replaceState(tabHref(value), { ...$appPage.state, adminAuditTab: value });
 }
 
 function pageLabel() {
@@ -83,203 +123,243 @@ function displayValue(value: unknown) {
 
 <svelte:head><title>{data.copy.audit.title} - Life@USTC</title></svelte:head>
 
-<AdminWorkspace>
+<AdminWorkspace compact>
   {#snippet header()}
     <PageHeader
+      class="py-0 md:py-0"
       title={data.copy.audit.title}
-      description={data.copy.audit.subtitle}
-      eyebrow={data.copy.admin.title}
+      titleClass="text-xl sm:text-2xl"
     />
   {/snippet}
 
-  {#snippet controls()}
-<AdminFeatureIssues data={data.issues} copy={data.copy.telemetry} locale={data.locale} auditFilters={data.filters} />
-    <section aria-labelledby="audit-filters-title" class="grid gap-4 border-y py-4">
-      <h2 id="audit-filters-title" class="text-base font-semibold">
-        {data.copy.audit.filters}
-      </h2>
-      <form method="GET">
-{#each Object.entries(issueQuery(data.issues)) as [key,value]}{#if value}<input type="hidden" name={key} value={value} />{/if}{/each}
-        <Field.Group class="gap-4">
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <Field.Field>
-              <Field.Label for="audit-action">{data.copy.audit.action}</Field.Label>
-              <NativeSelect.Root class="w-full" id="audit-action" name="action">
-                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
-                {#each data.actions as action}
-                  <NativeSelect.Option value={action} selected={data.filters.action === action}>
-                    {auditActionLabel(data.locale, action)}
-                  </NativeSelect.Option>
-                {/each}
-              </NativeSelect.Root>
-            </Field.Field>
-            <Field.Field>
-              <Field.Label for="audit-outcome">{data.copy.audit.outcome}</Field.Label>
-              <NativeSelect.Root class="w-full" id="audit-outcome" name="outcome">
-                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
-                {#each data.outcomes as outcome}
-                  <NativeSelect.Option value={outcome} selected={data.filters.outcome === outcome}>
-                    {auditOutcomeLabel(data.locale, outcome)}
-                  </NativeSelect.Option>
-                {/each}
-              </NativeSelect.Root>
-            </Field.Field>
-            <Field.Field>
-              <Field.Label for="audit-channel">{data.copy.audit.channel}</Field.Label>
-              <NativeSelect.Root class="w-full" id="audit-channel" name="channel">
-                <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
-                {#each data.channels as channel}
-                  <NativeSelect.Option value={channel} selected={data.filters.channel === channel}>
-                    {auditChannelLabel(data.locale, channel)}
-                  </NativeSelect.Option>
-                {/each}
-              </NativeSelect.Root>
-            </Field.Field>
-            <Field.Field>
-              <Field.Label for="audit-from">{data.copy.audit.from}</Field.Label>
-              <Input id="audit-from" type="date" name="from" value={data.filters.from ?? ""} />
-            </Field.Field>
-            <Field.Field>
-              <Field.Label for="audit-to">{data.copy.audit.to}</Field.Label>
-              <Input id="audit-to" type="date" name="to" value={data.filters.to ?? ""} />
-            </Field.Field>
+  <Tabs.Root
+    aria-label={data.copy.audit.title}
+    value={activeTab}
+    onValueChange={selectTab}
+    class="min-w-0 gap-4"
+  >
+    <Tabs.List aria-label={data.copy.audit.title} class="grid w-full grid-cols-3" variant="line">
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="operations">{data.copy.audit.operationsTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="runtime">{data.copy.audit.runtimeTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="audit">{data.copy.audit.auditTab}</Tabs.Trigger>
+    </Tabs.List>
+
+    <Tabs.Content value="operations" class="m-0 min-w-0">
+      {#if activeTab === "operations"}
+      <AdminFeatureIssues
+        data={data.issues}
+        copy={data.copy.telemetry}
+        locale={data.locale}
+        auditFilters={data.filters}
+        advancedFiltersLabel={data.copy.audit.advancedFilters}
+        adminTab="operations"
+        section="operations"
+      />
+      {/if}
+    </Tabs.Content>
+
+    <Tabs.Content value="runtime" class="m-0 min-w-0">
+      {#if activeTab === "runtime"}
+      <AdminFeatureIssues
+        data={data.issues}
+        copy={data.copy.telemetry}
+        locale={data.locale}
+        auditFilters={data.filters}
+        advancedFiltersLabel={data.copy.audit.advancedFilters}
+        adminTab="runtime"
+        section="runtime"
+      />
+      {/if}
+    </Tabs.Content>
+
+    <Tabs.Content value="audit" class="m-0 min-w-0">
+      {#if activeTab === "audit"}
+      <div class="grid min-w-0 gap-4">
+        <DashboardPanel id="audit-filters" title={data.copy.audit.filters}>
+          <form method="GET">
+            {#each Object.entries(issueQuery(data.issues)) as [key, value]}
+              {#if value}<input type="hidden" name={key} value={value} />{/if}
+            {/each}
+            <input type="hidden" name="admin_tab" value="audit" />
+            <Field.Group class="gap-3">
+              <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
+                <Field.Field>
+                  <Field.Label for="audit-action">{data.copy.audit.action}</Field.Label>
+                  <NativeSelect.Root class="w-full" id="audit-action" name="action">
+                    <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                    {#each data.actions as action}
+                      <NativeSelect.Option value={action} selected={data.filters.action === action}>
+                        {auditActionLabel(data.locale, action)}
+                      </NativeSelect.Option>
+                    {/each}
+                  </NativeSelect.Root>
+                </Field.Field>
+                <Field.Field>
+                  <Field.Label for="audit-outcome">{data.copy.audit.outcome}</Field.Label>
+                  <NativeSelect.Root class="w-full" id="audit-outcome" name="outcome">
+                    <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                    {#each data.outcomes as outcome}
+                      <NativeSelect.Option value={outcome} selected={data.filters.outcome === outcome}>
+                        {auditOutcomeLabel(data.locale, outcome)}
+                      </NativeSelect.Option>
+                    {/each}
+                  </NativeSelect.Root>
+                </Field.Field>
+                <Field.Field>
+                  <Field.Label for="audit-channel">{data.copy.audit.channel}</Field.Label>
+                  <NativeSelect.Root class="w-full" id="audit-channel" name="channel">
+                    <NativeSelect.Option value="">{data.copy.audit.all}</NativeSelect.Option>
+                    {#each data.channels as channel}
+                      <NativeSelect.Option value={channel} selected={data.filters.channel === channel}>
+                        {auditChannelLabel(data.locale, channel)}
+                      </NativeSelect.Option>
+                    {/each}
+                  </NativeSelect.Root>
+                </Field.Field>
+                <Field.Field>
+                  <Field.Label for="audit-from">{data.copy.audit.from}</Field.Label>
+                  <Input id="audit-from" type="date" name="from" value={data.filters.from ?? ""} />
+                </Field.Field>
+                <Field.Field>
+                  <Field.Label for="audit-to">{data.copy.audit.to}</Field.Label>
+                  <Input id="audit-to" type="date" name="to" value={data.filters.to ?? ""} />
+                </Field.Field>
+              </div>
+
+              <Collapsible.Root bind:open={auditFiltersOpen} class="rounded-md border bg-muted/20">
+                <Collapsible.Trigger class="group flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40">
+                  <span>{data.copy.audit.advancedFilters}</span>
+                  <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform group-data-[state=open]:rotate-90" />
+                </Collapsible.Trigger>
+                <Collapsible.Content forceMount class="border-t p-3 data-[state=closed]:hidden">
+                  <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
+                    <Field.Field>
+                      <Field.Label for="audit-actor">{data.copy.audit.actor}</Field.Label>
+                      <Input id="audit-actor" name="actor" value={data.filters.actor ?? ""} />
+                    </Field.Field>
+                    <Field.Field>
+                      <Field.Label for="audit-subject">{data.copy.audit.subject}</Field.Label>
+                      <Input id="audit-subject" name="subject" value={data.filters.subject ?? ""} />
+                    </Field.Field>
+                    <Field.Field>
+                      <Field.Label for="audit-client">{data.copy.audit.client}</Field.Label>
+                      <Input id="audit-client" name="client" value={data.filters.client ?? ""} />
+                    </Field.Field>
+                    <Field.Field>
+                      <Field.Label for="audit-target-type">{data.copy.audit.targetType}</Field.Label>
+                      <Input id="audit-target-type" name="targetType" value={data.filters.targetType ?? ""} />
+                    </Field.Field>
+                    <Field.Field>
+                      <Field.Label for="audit-target-id">{data.copy.audit.targetId}</Field.Label>
+                      <Input id="audit-target-id" name="targetId" value={data.filters.targetId ?? ""} />
+                    </Field.Field>
+                  </div>
+                </Collapsible.Content>
+              </Collapsible.Root>
+
+              <Field.Field orientation="horizontal" class="gap-2">
+                <Button type="submit">{data.copy.audit.apply}</Button>
+                <Button href={auditClearHref(data)} variant="outline">{data.copy.audit.clear}</Button>
+              </Field.Field>
+            </Field.Group>
+          </form>
+        </DashboardPanel>
+
+        <DashboardPanel id="audit-records" title={data.copy.audit.records}>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs text-muted-foreground">{pageLabel()}</p>
           </div>
 
-          <details>
-            <summary class="cursor-pointer py-1 text-sm font-medium">
-              {data.copy.audit.advancedFilters}
-            </summary>
-            <div class="grid gap-4 pt-4 sm:grid-cols-2 xl:grid-cols-5">
-              <Field.Field>
-                <Field.Label for="audit-actor">{data.copy.audit.actor}</Field.Label>
-                <Input id="audit-actor" name="actor" value={data.filters.actor ?? ""} />
-              </Field.Field>
-              <Field.Field>
-                <Field.Label for="audit-subject">{data.copy.audit.subject}</Field.Label>
-                <Input id="audit-subject" name="subject" value={data.filters.subject ?? ""} />
-              </Field.Field>
-              <Field.Field>
-                <Field.Label for="audit-client">{data.copy.audit.client}</Field.Label>
-                <Input id="audit-client" name="client" value={data.filters.client ?? ""} />
-              </Field.Field>
-              <Field.Field>
-                <Field.Label for="audit-target-type">{data.copy.audit.targetType}</Field.Label>
-                <Input id="audit-target-type" name="targetType" value={data.filters.targetType ?? ""} />
-              </Field.Field>
-              <Field.Field>
-                <Field.Label for="audit-target-id">{data.copy.audit.targetId}</Field.Label>
-                <Input id="audit-target-id" name="targetId" value={data.filters.targetId ?? ""} />
-              </Field.Field>
-            </div>
-          </details>
-
-          <Field.Field orientation="horizontal" class="gap-2">
-            <Button class="flex-1 sm:flex-none" type="submit">{data.copy.audit.apply}</Button>
-            <Button class="flex-1 sm:flex-none" href={auditClearHref(data)} variant="outline">{data.copy.audit.clear}</Button>
-          </Field.Field>
-        </Field.Group>
-      </form>
-    </section>
-  {/snippet}
-
-  <section aria-labelledby="audit-records-title" class="grid gap-3">
-    <div class="flex flex-wrap items-end justify-between gap-2">
-      <div class="grid gap-1">
-        <h2 id="audit-records-title" class="text-lg font-semibold">{data.copy.audit.records}</h2>
-        <p class="text-sm text-muted-foreground">{pageLabel()}</p>
-      </div>
-    </div>
-
-    <div class="min-w-0">
-      {#if data.rows.length === 0}
-        <Empty.Root class="items-start px-0 text-left">
-          <Empty.Header class="items-start text-left">
-            <Empty.Title>{data.copy.audit.noRecords}</Empty.Title>
-          </Empty.Header>
-        </Empty.Root>
-      {:else}
-        <ol class="grid max-h-[36rem] min-w-0 gap-2 overflow-y-auto rounded-lg border p-2 xl:hidden" aria-label={data.copy.audit.records}>
-          {#each data.rows as row (row.id)}
-            {@const actor = identity(row.user)}
-            {@const subject = identity(row.subjectUser)}
-            <li class="min-w-0 rounded-md border">
-              <details name="audit-record">
-                <summary class="cursor-pointer px-3 py-3 text-sm">
-                  <span class="inline-flex w-[calc(100%-1.5rem)] flex-wrap items-center justify-between gap-2 align-middle">
-                    <span class="grid min-w-0 gap-1">
-                      <span class="font-medium">{auditActionLabel(data.locale, row.action)}</span>
-                      <span class="text-xs text-muted-foreground">{formatDate.format(new Date(row.createdAt))} · {auditChannelLabel(data.locale, row.channel)}</span>
-                    </span>
-                    <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
-                  </span>
-                </summary>
-                <dl class="grid min-w-0 gap-3 border-t p-3 text-xs [&>div]:min-w-0">
-                  {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd class="break-all">{actor.label}<span class="block font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
-                  {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd class="break-all">{subject.label}<span class="block font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
-                  {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd class="break-all">{row.clientName ?? row.oauthClientId}</dd></div>{/if}
-                  {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd class="break-all">{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
-                  {#if row.metadata}{#each Object.entries(row.metadata) as [key,value]}<div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale,key)}</dt><dd class="break-all">{displayValue(value)}</dd></div>{/each}{/if}
-                </dl>
-              </details>
-            </li>
-          {/each}
-        </ol>
-
-        <AdminTableShell class="hidden xl:block" label={data.copy.audit.records}>
-          <Table.Root class="min-w-[72rem]">
-            <Table.Caption class="sr-only">{data.copy.audit.records}</Table.Caption>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{data.copy.audit.time}</Table.Head>
-                <Table.Head>{data.copy.audit.action}</Table.Head>
-                <Table.Head>{data.copy.audit.actorColumn}</Table.Head>
-                <Table.Head>{data.copy.audit.subjectColumn}</Table.Head>
-                <Table.Head>{data.copy.audit.clientColumn}</Table.Head>
-                <Table.Head class="text-center">{data.copy.audit.channel}</Table.Head>
-                <Table.Head class="text-center">{data.copy.audit.outcome}</Table.Head>
-                <Table.Head>{data.copy.audit.target}</Table.Head>
-                <Table.Head>{data.copy.audit.details}</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          {#if data.rows.length === 0}
+            <Empty.Root class="items-start px-0 text-left">
+              <Empty.Header class="items-start text-left">
+                <Empty.Title>{data.copy.audit.noRecords}</Empty.Title>
+              </Empty.Header>
+            </Empty.Root>
+          {:else}
+            <ol class="grid max-h-[36rem] min-w-0 gap-1 overflow-y-auto rounded-md border p-1 xl:hidden" aria-label={data.copy.audit.records}>
               {#each data.rows as row (row.id)}
                 {@const actor = identity(row.user)}
                 {@const subject = identity(row.subjectUser)}
-                <Table.Row class="align-top">
-                  <Table.Cell class="whitespace-nowrap">{formatDate.format(new Date(row.createdAt))}</Table.Cell>
-                  <Table.Cell>{auditActionLabel(data.locale, row.action)}</Table.Cell>
-                  <Table.Cell class="max-w-0">{actor?.label ?? "—"}{#if actor}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={actor.id}>{actor.id}</span>{/if}</Table.Cell>
-                  <Table.Cell class="max-w-0">{subject?.label ?? "—"}{#if subject}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={subject.id}>{subject.id}</span>{/if}</Table.Cell>
-                  <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.clientName ?? row.oauthClientId ?? "—"}>{row.clientName ?? row.oauthClientId ?? "—"}</span></Table.Cell>
-                  <Table.Cell class="text-center">{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
-                  <Table.Cell class="text-center"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
-                  <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.targetType ? `${auditTargetLabel(data.locale, row.targetType)}${row.targetId ? ` · ${row.targetId}` : ""}` : "—"}>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</span></Table.Cell>
-                  <Table.Cell class="max-w-72 text-xs">
-                    {#if row.metadata}
-                      <details>
-                        <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
-                        <dl class="grid gap-1 pt-2">
-                          {#each Object.entries(row.metadata) as [key, value]}
-                            <div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>
-                          {/each}
-                        </dl>
-                      </details>
-                    {:else}—{/if}
-                  </Table.Cell>
-                </Table.Row>
+                <li class="min-w-0 rounded-sm border bg-card">
+                  <details name="audit-record">
+                    <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm">
+                      <span class="grid min-w-0 gap-0.5">
+                        <span class="font-medium">{auditActionLabel(data.locale, row.action)}</span>
+                        <span class="text-xs text-muted-foreground">{formatDate.format(new Date(row.createdAt))} · {auditChannelLabel(data.locale, row.channel)}</span>
+                      </span>
+                      <Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge>
+                    </summary>
+                    <dl class="grid min-w-0 gap-3 border-t bg-muted/20 p-3 text-xs [&>div]:min-w-0">
+                      {#if actor}<div><dt class="text-muted-foreground">{data.copy.audit.actorColumn}</dt><dd class="break-all">{actor.label}<span class="block font-mono text-muted-foreground">{actor.id}</span></dd></div>{/if}
+                      {#if subject}<div><dt class="text-muted-foreground">{data.copy.audit.subjectColumn}</dt><dd class="break-all">{subject.label}<span class="block font-mono text-muted-foreground">{subject.id}</span></dd></div>{/if}
+                      {#if row.oauthClientId}<div><dt class="text-muted-foreground">{data.copy.audit.clientColumn}</dt><dd class="break-all">{row.clientName ?? row.oauthClientId}</dd></div>{/if}
+                      {#if row.targetType}<div><dt class="text-muted-foreground">{data.copy.audit.target}</dt><dd class="break-all">{auditTargetLabel(data.locale, row.targetType)}{row.targetId ? ` · ${row.targetId}` : ""}</dd></div>{/if}
+                      {#if row.metadata}{#each Object.entries(row.metadata) as [key,value]}<div><dt class="text-muted-foreground">{auditMetadataLabel(data.locale,key)}</dt><dd class="break-all">{displayValue(value)}</dd></div>{/each}{/if}
+                    </dl>
+                  </details>
+                </li>
               {/each}
-            </Table.Body>
-          </Table.Root>
-        </AdminTableShell>
-      {/if}
-    </div>
+            </ol>
 
-    <footer class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
-      <span class="text-sm text-muted-foreground">{pageLabel()}</span>
-      <div class="flex gap-2">
-        {#if data.pagination.hasCursor}<Button class="flex-1" href={auditHref(data)} variant="ghost">{data.copy.audit.newest}</Button>{/if}
-        {#if data.pagination.nextCursor}<Button class="flex-1" href={auditHref(data, data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
+            <AdminTableShell class="hidden xl:block" label={data.copy.audit.records}>
+              <Table.Root class="min-w-[72rem]">
+                <Table.Caption class="sr-only">{data.copy.audit.records}</Table.Caption>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.Head>{data.copy.audit.time}</Table.Head>
+                    <Table.Head>{data.copy.audit.action}</Table.Head>
+                    <Table.Head>{data.copy.audit.actorColumn}</Table.Head>
+                    <Table.Head>{data.copy.audit.subjectColumn}</Table.Head>
+                    <Table.Head>{data.copy.audit.clientColumn}</Table.Head>
+                    <Table.Head class="text-center">{data.copy.audit.channel}</Table.Head>
+                    <Table.Head class="text-center">{data.copy.audit.outcome}</Table.Head>
+                    <Table.Head>{data.copy.audit.target}</Table.Head>
+                    <Table.Head>{data.copy.audit.details}</Table.Head>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {#each data.rows as row (row.id)}
+                    {@const actor = identity(row.user)}
+                    {@const subject = identity(row.subjectUser)}
+                    <Table.Row class="align-top">
+                      <Table.Cell class="whitespace-nowrap">{formatDate.format(new Date(row.createdAt))}</Table.Cell>
+                      <Table.Cell>{auditActionLabel(data.locale, row.action)}</Table.Cell>
+                      <Table.Cell class="max-w-0">{actor?.label ?? "—"}{#if actor}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={actor.id}>{actor.id}</span>{/if}</Table.Cell>
+                      <Table.Cell class="max-w-0">{subject?.label ?? "—"}{#if subject}<span class="block max-w-full truncate font-mono text-xs text-muted-foreground" title={subject.id}>{subject.id}</span>{/if}</Table.Cell>
+                      <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.clientName ?? row.oauthClientId ?? "—"}>{row.clientName ?? row.oauthClientId ?? "—"}</span></Table.Cell>
+                      <Table.Cell class="text-center">{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
+                      <Table.Cell class="text-center"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
+                      <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.targetType ? `${auditTargetLabel(data.locale, row.targetType)}${row.targetId ? ` · ${row.targetId}` : ""}` : "—"}>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</span></Table.Cell>
+                      <Table.Cell class="max-w-72 text-xs">
+                        {#if row.metadata}
+                          <details>
+                            <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
+                            <dl class="grid gap-1 pt-2">
+                              {#each Object.entries(row.metadata) as [key, value]}
+                                <div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>
+                              {/each}
+                            </dl>
+                          </details>
+                        {:else}—{/if}
+                      </Table.Cell>
+                    </Table.Row>
+                  {/each}
+                </Table.Body>
+              </Table.Root>
+            </AdminTableShell>
+          {/if}
+
+          <footer class="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span class="text-xs text-muted-foreground">{pageLabel()}</span>
+            <div class="flex gap-2">
+              {#if data.pagination.hasCursor}<Button class="flex-1" href={auditHref(data)} variant="ghost">{data.copy.audit.newest}</Button>{/if}
+              {#if data.pagination.nextCursor}<Button class="flex-1" href={auditHref(data, data.pagination.nextCursor)} variant="outline">{data.copy.audit.next}</Button>{/if}
+            </div>
+          </footer>
+        </DashboardPanel>
       </div>
-    </footer>
-  </section>
+      {/if}
+    </Tabs.Content>
+  </Tabs.Root>
 </AdminWorkspace>

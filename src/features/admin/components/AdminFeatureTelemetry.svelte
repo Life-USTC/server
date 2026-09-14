@@ -1,14 +1,19 @@
 <script lang="ts">
+import HelpIcon from "@lucide/svelte/icons/circle-question-mark";
 import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
+import type { DailySeries } from "$lib/components/charts/daily-series";
+import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
+import StatPanels from "$lib/components/dashboard/StatPanels.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import * as Popover from "$lib/components/ui/popover/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type messages from "../../../../messages/en-us.json";
 import type { readAdminFeatureTelemetry } from "../server/admin-experience-page-data";
@@ -17,11 +22,6 @@ type BackendTelemetry = Awaited<ReturnType<typeof readAdminFeatureTelemetry>>;
 type PageData = BackendTelemetry & {
   locale: string;
   copy: { experience: typeof messages.adminExperience };
-};
-type DailySeries = {
-  key: string;
-  label: string;
-  values: readonly (number | null)[];
 };
 
 export let data: PageData;
@@ -62,6 +62,39 @@ $: protocolSeries = buildSeries(
   page.copy.experience.protocols,
   page.copy.experience.operations,
 );
+$: selectedAdvancedFilters = [
+  {
+    name: page.copy.experience.operation,
+    group: "operations",
+    value: page.filters.operation,
+  },
+  {
+    name: page.copy.experience.protocol,
+    group: "protocols",
+    value: page.filters.protocol,
+  },
+  {
+    name: page.copy.experience.surface,
+    group: "surfaces",
+    value: page.filters.surface,
+  },
+  {
+    name: page.copy.experience.authMode,
+    group: "authModes",
+    value: page.filters.authMode,
+  },
+  {
+    name: page.copy.experience.outcome,
+    group: "outcomes",
+    value: page.filters.outcome,
+  },
+].filter((filter) => filter.value);
+$: activeAdvancedFilterSummary = selectedAdvancedFilters
+  .map(
+    (filter) =>
+      `${filter.name}: ${label(filter.group, filter.value as string)}`,
+  )
+  .join(" · ");
 
 function label(group: string, value: string) {
   const labels = (page.copy.experience as Record<string, unknown>)[group];
@@ -188,31 +221,55 @@ function outcomeVariant(outcome: string) {
 }
 </script>
 
-<section aria-labelledby="experience-window-title" class="grid gap-4 border-y py-4">
-  <div class="flex flex-wrap items-baseline justify-between gap-3">
-    <div class="grid gap-1">
-      <h2 id="experience-window-title" class="text-base font-semibold">{page.copy.experience.window}</h2>
-      <p class="text-sm text-muted-foreground">{coverageLabel()}</p>
-      <p class="text-xs text-muted-foreground">{firstRecordedLabel()}</p>
-    </div>
-  </div>
+<form method="GET" class="grid min-w-0 gap-2 border-b pb-2">
+  <input type="hidden" name="days" value={page.days} />
+  <input type="hidden" name="panel" value="feature" />
+  <Field.Group class="grid gap-2">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
 
-  <form method="GET">
-    <input type="hidden" name="days" value={page.days} />
-    <Field.Group class="gap-4">
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Field.Field>
-          <Field.Label for="experience-feature">{page.copy.experience.feature}</Field.Label>
-          <NativeSelect.Root class="w-full" id="experience-feature" name="feature">
-            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
-            {#each page.catalog.features as feature}
-              <NativeSelect.Option value={feature} selected={page.filters.feature === feature}>{label("features", feature)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </Field.Field>
+      <Field.Field class="min-w-48 flex-1 sm:max-w-sm">
+        <Field.Label for="experience-feature">{page.copy.experience.feature}</Field.Label>
+        <NativeSelect.Root class="w-full" id="experience-feature" name="feature">
+          <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+          {#each page.catalog.features as feature}
+            <NativeSelect.Option value={feature} selected={page.filters.feature === feature}>{label("features", feature)}</NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
+      </Field.Field>
+      <Field.Field orientation="horizontal" class="gap-2 sm:w-auto">
+        <Button class="flex-1 sm:flex-none" type="submit">{page.copy.experience.apply}</Button>
+        <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{page.copy.experience.clear}</Button>
+      <Popover.Root>
+        <Popover.Trigger
+          class={buttonVariants({ variant: "ghost", size: "icon-xs" })}
+          aria-label={page.copy.experience.window}
+        >
+          <HelpIcon aria-hidden="true" />
+        </Popover.Trigger>
+        <Popover.Content align="start" class="max-w-[calc(100vw-2rem)]">
+          <div class="grid gap-1 text-sm text-muted-foreground">
+            <p>{coverageLabel()}</p>
+            <p>{firstRecordedLabel()}</p>
+          </div>
+        </Popover.Content>
+      </Popover.Root>
+      </Field.Field>
+    </div>
+
+    <details class="grid gap-3 rounded-md border px-3 py-2">
+      <summary class="cursor-pointer text-sm font-medium">
+        <span>{page.copy.experience.advancedFilters}</span>
+        {#if activeAdvancedFilterSummary}<span class="ml-2 text-xs font-normal text-muted-foreground">{activeAdvancedFilterSummary}</span>{/if}
+      </summary>
+      <Field.Group class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Field.Field>
           <Field.Label for="experience-operation">{page.copy.experience.operation}</Field.Label>
-          <NativeSelect.Root id="experience-operation" name="operation"><NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={page.filters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
+          <NativeSelect.Root id="experience-operation" name="operation">
+            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+            {#each page.catalog.operations as operation}
+              <NativeSelect.Option value={operation} selected={page.filters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
         </Field.Field>
         <Field.Field>
           <Field.Label for="experience-protocol">{page.copy.experience.protocol}</Field.Label>
@@ -250,14 +307,10 @@ function outcomeVariant(outcome: string) {
             {/each}
           </NativeSelect.Root>
         </Field.Field>
-      </div>
-      <Field.Field orientation="horizontal" class="gap-2">
-        <Button class="flex-1 sm:flex-none" type="submit">{page.copy.experience.apply}</Button>
-        <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{page.copy.experience.clear}</Button>
-      </Field.Field>
-    </Field.Group>
-  </form>
-</section>
+      </Field.Group>
+    </details>
+  </Field.Group>
+</form>
 
 {#if page.status.state === "unavailable"}
   <Alert.Root variant="destructive">
@@ -272,54 +325,66 @@ function outcomeVariant(outcome: string) {
     </Empty.Header>
   </Empty.Root>
 {:else}
-  <section aria-labelledby="experience-summary-title" class="grid gap-3">
-    <div class="flex flex-wrap items-end justify-between gap-2">
-      <div class="grid gap-1">
-        <h2 id="experience-summary-title" class="text-lg font-semibold">{page.copy.experience.summary}</h2>
-        <p class="text-sm text-muted-foreground">{page.copy.experience.summaryDescription}</p>
-      </div>
-    </div>
-    <dl class="grid grid-cols-2 gap-x-6 gap-y-5 border-y py-4 sm:grid-cols-3 xl:grid-cols-5">
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.total}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.total)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.rejected}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.rejected)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.errors}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.errors)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.unknown}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.unknown)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.identifiedUsers}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.activeUsers)}</dd><dd class="text-xs text-muted-foreground">{page.copy.experience.identifiedUsersDescription}</dd></div>
-    </dl>
-  </section>
+  <StatPanels label={page.copy.experience.summary}
+    items={[
+      {
+        label: page.copy.experience.total,
+        value: numberFormatter.format(page.summary.total),
+        hint: page.copy.experience.summaryDescription,
+      },
+      {
+        label: page.copy.experience.rejected,
+        value: numberFormatter.format(page.summary.rejected),
+        hint: page.copy.experience.summaryDescription,
+      },
+      {
+        label: page.copy.experience.errors,
+        value: numberFormatter.format(page.summary.errors),
+        hint: page.copy.experience.summaryDescription,
+      },
+      {
+        label: page.copy.experience.unknown,
+        value: numberFormatter.format(page.summary.unknown),
+        hint: page.copy.experience.summaryDescription,
+      },
+      {
+        label: page.copy.experience.identifiedUsers,
+        value: numberFormatter.format(page.summary.activeUsers),
+        hint: page.copy.experience.identifiedUsersDescription,
+      },
+    ]}
+  />
 
-  <section aria-labelledby="experience-trends-title" class="grid min-w-0 gap-5">
-    <header class="grid gap-1">
-      <h2 id="experience-trends-title" class="text-lg font-semibold">{page.copy.experience.trends}</h2>
-      <p class="text-sm text-muted-foreground">{page.copy.experience.trendsDescription}</p>
-    </header>
-    <div class="grid min-w-0 gap-6 lg:grid-cols-2">
-      <DailySeriesChart
-        id="telemetry-operations"
-        days={chartDays}
-        series={operationSeries}
-        partialDays={partialDays}
-        title={page.copy.experience.operationTrend}
-        description={page.copy.experience.operationTrendDescription}
-        locale={page.locale}
-        labels={{ legend: page.copy.experience.chartLegend, inspect: page.copy.experience.chartInspect, dataTable: page.copy.experience.chartDataTable, noData: page.copy.experience.chartNoData, value: page.copy.experience.chartValue, day: page.copy.experience.chartDay, partial: page.copy.experience.chartPartial }}
-      />
-      <DailySeriesChart
-        id="telemetry-protocols"
-        days={chartDays}
-        series={protocolSeries}
-        partialDays={partialDays}
-        title={page.copy.experience.protocolTrend}
-        description={page.copy.experience.protocolTrendDescription}
-        locale={page.locale}
-        labels={{ legend: page.copy.experience.chartLegend, inspect: page.copy.experience.chartInspect, dataTable: page.copy.experience.chartDataTable, noData: page.copy.experience.chartNoData, value: page.copy.experience.chartValue, day: page.copy.experience.chartDay, partial: page.copy.experience.chartPartial }}
-      />
-    </div>
-  </section>
+  <div class="grid min-w-0 gap-4 lg:grid-cols-2">
+    <DailySeriesChart
+      id="telemetry-operations"
+      days={chartDays}
+      series={operationSeries}
+      partialDays={partialDays}
+      title={page.copy.experience.operationTrend}
+      description={page.copy.experience.operationTrendDescription}
+      locale={page.locale}
+      labels={{ legend: page.copy.experience.chartLegend, inspect: page.copy.experience.chartInspect, dataTable: page.copy.experience.chartDataTable, noData: page.copy.experience.chartNoData, value: page.copy.experience.chartValue, day: page.copy.experience.chartDay, partial: page.copy.experience.chartPartial }}
+    />
+    <DailySeriesChart
+      id="telemetry-protocols"
+      days={chartDays}
+      series={protocolSeries}
+      partialDays={partialDays}
+      title={page.copy.experience.protocolTrend}
+      description={page.copy.experience.protocolTrendDescription}
+      locale={page.locale}
+      labels={{ legend: page.copy.experience.chartLegend, inspect: page.copy.experience.chartInspect, dataTable: page.copy.experience.chartDataTable, noData: page.copy.experience.chartNoData, value: page.copy.experience.chartValue, day: page.copy.experience.chartDay, partial: page.copy.experience.chartPartial }}
+    />
+  </div>
 
-  <details class="grid min-w-0 gap-3 rounded-lg border p-4">
-    <summary class="cursor-pointer font-semibold">{page.copy.experience.matrix}</summary>
-    <div class="grid gap-3 pt-2">
+  <DashboardPanel
+    collapsible
+    id="experience-matrix"
+    title={page.copy.experience.matrix}
+    description={page.copy.experience.matrixDescription}
+  >
+      <div class="grid gap-3 pt-1">
       <p class="text-sm text-muted-foreground">{page.copy.experience.matrixDescription}</p>
       {#if page.rowsTruncated}<p class="text-sm text-muted-foreground">{page.copy.experience.matrixPartial}</p>{/if}
 
@@ -386,18 +451,17 @@ function outcomeVariant(outcome: string) {
           </Table.Body>
         </Table.Root>
       </AdminTableShell>
-    </div>
-  </details>
+      </div>
+  </DashboardPanel>
 {/if}
 
-<section class="grid gap-3 border-t pt-4" aria-labelledby="experience-notes-title">
-  <h2 id="experience-notes-title" class="text-lg font-semibold">{page.copy.experience.notes}</h2>
-  <ul class="grid gap-2 text-sm text-muted-foreground">
-    <li>{page.copy.experience.recordedCountsNote}</li>
-    <li>{page.copy.experience.backgroundDeliveryNote}</li>
-    <li>{page.copy.experience.noHistoricalBackfillNote}</li>
-    <li>{page.copy.experience.currentDayPartialNote}</li>
-    <li>{page.copy.experience.retentionNote}</li>
-    <li>{page.copy.experience.identityNote}</li>
-  </ul>
-</section>
+<DashboardPanel collapsible id="experience-notes" title={page.copy.experience.notes}>
+    <ul class="grid gap-2 pt-1 text-sm text-muted-foreground">
+      <li>{page.copy.experience.recordedCountsNote}</li>
+      <li>{page.copy.experience.backgroundDeliveryNote}</li>
+      <li>{page.copy.experience.noHistoricalBackfillNote}</li>
+      <li>{page.copy.experience.currentDayPartialNote}</li>
+      <li>{page.copy.experience.retentionNote}</li>
+      <li>{page.copy.experience.identityNote}</li>
+    </ul>
+</DashboardPanel>

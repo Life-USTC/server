@@ -632,7 +632,10 @@
     "cannotDeleteActiveVersion": "Cannot delete active version"
   },
   "adminAudit": {
-    "title": "Operations and issue review",
+    "operationsTab": "Operations",
+    "runtimeTab": "Runtime",
+    "auditTab": "Audit",
+    "title": "Operations and Issues",
     "subtitle": "Review recorded audit operations, feature issue events, and runtime issue signals. This view is not a per-user browsing history.",
     "filters": "Filters",
     "advancedFilters": "More filters",
@@ -663,6 +666,9 @@
     "page": "Showing {shown} · {total} records total"
   },
   "adminAnalytics": {
+    "featureTab": "Features",
+    "usersTab": "Users",
+    "historyTab": "Audit statistics",
     "title": "Usage Statistics",
     "subtitle": "Daily trends, feature and channel breakdowns, and observed feature usage and latency. No per-user browsing trails.",
     "window": "Reporting window",
@@ -705,6 +711,7 @@
     "noData": "No aggregate data is available for this period."
   },
   "adminExperience": {
+    "advancedFilters": "More filters",
     "title": "Feature Experience",
     "subtitle": "Recorded feature operations by protocol, surface, authentication mode, and outcome.",
     "window": "Reporting window",
