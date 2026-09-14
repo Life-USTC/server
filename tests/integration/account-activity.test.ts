@@ -3,12 +3,10 @@ import {
   listOAuthClientActivity,
   listOwnAccountSecurityActivity,
 } from "@/features/settings/server/account-activity";
-import { prisma } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const fixturePrisma = createFixturePrisma();
 
 describe.sequential("account activity isolation", () => {
   const marker = crypto.randomUUID();
@@ -21,14 +19,14 @@ describe.sequential("account activity isolation", () => {
 
   beforeAll(async () => {
     const [user, otherUser] = await Promise.all([
-      adminPrisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: `activity-${marker}@example.test`,
           name: "Activity user",
         },
         select: { id: true },
       }),
-      adminPrisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: `activity-other-${marker}@example.test`,
           name: "Other activity user",
@@ -39,7 +37,7 @@ describe.sequential("account activity isolation", () => {
     userId = user.id;
     otherUserId = otherUser.id;
 
-    await adminPrisma.oAuthClient.createMany({
+    await fixturePrisma.oAuthClient.createMany({
       data: [
         {
           clientId,
@@ -54,7 +52,7 @@ describe.sequential("account activity isolation", () => {
       ],
     });
 
-    await adminPrisma.auditLog.createMany({
+    await fixturePrisma.auditLog.createMany({
       data: [
         {
           action: "account_sign_in",
@@ -112,18 +110,18 @@ describe.sequential("account activity isolation", () => {
   });
 
   afterAll(async () => {
-    await adminPrisma.auditLog.deleteMany({
+    await fixturePrisma.auditLog.deleteMany({
       where: { subjectUserId: { in: [userId, otherUserId] } },
     });
-    await adminPrisma.oAuthClient.deleteMany({
+    await fixturePrisma.oAuthClient.deleteMany({
       where: { clientId: { in: [clientId, otherClientId] } },
     });
-    await adminPrisma.user.deleteMany({
+    await fixturePrisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },
     });
     await Promise.all([
-      prisma.$disconnect(),
-      disconnectTestPrisma(adminPrisma),
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(fixturePrisma),
     ]);
   });
 

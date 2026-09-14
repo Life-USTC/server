@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { afterAll, describe, expect, it } from "vitest";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import { DEV_SEED } from "../fixtures/dev-seed";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const prisma = createFixturePrisma();
 
 afterAll(() => disconnectTestPrisma(prisma));
 

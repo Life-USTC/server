@@ -3,9 +3,10 @@ import {
   buildUserProfileContributions,
   loadUserProfileContributionDays,
 } from "@/features/profile/server/user-profile-contributions";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const fixturePrisma = createFixturePrisma();
 const referenceNow = new Date("2026-03-02T01:30:00+08:00");
 const startAt = new Date("2025-03-02T16:00:00.000Z");
 
@@ -13,7 +14,7 @@ describe.sequential("public profile contribution aggregation", () => {
   let userId = "";
 
   beforeAll(async () => {
-    const section = await prisma.section.findFirst({
+    const section = await fixturePrisma.section.findFirst({
       orderBy: { id: "asc" },
       select: { id: true },
     });
@@ -24,7 +25,7 @@ describe.sequential("public profile contribution aggregation", () => {
     }
 
     const marker = crypto.randomUUID();
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `profile-contributions-${marker}@example.test`,
         name: "Profile contribution integration",
@@ -34,7 +35,7 @@ describe.sequential("public profile contribution aggregation", () => {
     });
     userId = user.id;
 
-    await prisma.comment.createMany({
+    await fixturePrisma.comment.createMany({
       data: [
         {
           body: "included active comment",
@@ -67,7 +68,7 @@ describe.sequential("public profile contribution aggregation", () => {
       ],
     });
 
-    await prisma.upload.createMany({
+    await fixturePrisma.upload.createMany({
       data: [
         {
           createdAt: startAt,
@@ -93,7 +94,7 @@ describe.sequential("public profile contribution aggregation", () => {
       ],
     });
 
-    const includedHomework = await prisma.homework.create({
+    const includedHomework = await fixturePrisma.homework.create({
       data: {
         createdAt: new Date("2026-03-01T18:00:00.000Z"),
         createdById: userId,
@@ -103,7 +104,7 @@ describe.sequential("public profile contribution aggregation", () => {
       select: { id: true },
     });
     await Promise.all([
-      prisma.homework.create({
+      fixturePrisma.homework.create({
         data: {
           createdAt: new Date("2026-03-01T19:00:00.000Z"),
           createdById: userId,
@@ -112,7 +113,7 @@ describe.sequential("public profile contribution aggregation", () => {
           title: "excluded deleted homework",
         },
       }),
-      prisma.homeworkCompletion.create({
+      fixturePrisma.homeworkCompletion.create({
         data: {
           completedAt: new Date("2026-03-01T20:00:00.000Z"),
           homeworkId: includedHomework.id,
@@ -124,18 +125,23 @@ describe.sequential("public profile contribution aggregation", () => {
 
   afterAll(async () => {
     if (userId) {
-      await prisma.homeworkCompletion.deleteMany({ where: { userId } });
-      await prisma.comment.deleteMany({ where: { userId } });
-      await prisma.upload.deleteMany({ where: { userId } });
-      await prisma.homework.deleteMany({ where: { createdById: userId } });
-      await prisma.user.deleteMany({ where: { id: userId } });
+      await fixturePrisma.homeworkCompletion.deleteMany({ where: { userId } });
+      await fixturePrisma.comment.deleteMany({ where: { userId } });
+      await fixturePrisma.upload.deleteMany({ where: { userId } });
+      await fixturePrisma.homework.deleteMany({
+        where: { createdById: userId },
+      });
+      await fixturePrisma.user.deleteMany({ where: { id: userId } });
     }
-    await disconnectTestPrisma(prisma);
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(fixturePrisma),
+    ]);
   });
 
   it("returns one aggregate row per Shanghai day across public contribution sources", async () => {
     await expect(
-      loadUserProfileContributionDays(prisma, userId, startAt),
+      loadUserProfileContributionDays(runtimePrisma, userId, startAt),
     ).resolves.toEqual([
       { count: 1, date: "2025-03-03" },
       { count: 1, date: "2026-03-01" },
@@ -146,7 +152,7 @@ describe.sequential("public profile contribution aggregation", () => {
 
   it("preserves the week grid and totals events beyond its visible end", async () => {
     const result = await buildUserProfileContributions(
-      prisma,
+      runtimePrisma,
       userId,
       referenceNow,
     );

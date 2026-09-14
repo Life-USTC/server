@@ -1,16 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
 import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma } from "@/lib/db/prisma";
 import {
   oauthGrantUsageKey,
   recordOAuthGrantUsage,
 } from "@/lib/oauth/grant-usage";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 describe.sequential("OAuth authorization usage summary", () => {
   const marker = crypto.randomUUID();
@@ -50,7 +47,6 @@ describe.sequential("OAuth authorization usage summary", () => {
     await adminPrisma.oAuthClient.deleteMany({ where: { clientId } });
     await adminPrisma.user.deleteMany({ where: { id: userId } });
     await Promise.all([
-      prisma.$disconnect(),
       authPrisma.$disconnect(),
       disconnectTestPrisma(adminPrisma),
     ]);

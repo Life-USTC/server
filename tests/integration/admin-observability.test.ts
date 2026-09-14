@@ -4,11 +4,10 @@ import {
   readAdminFeatureTelemetry,
 } from "@/features/admin/server/admin-experience-page-data";
 import { readAdminUserTrends } from "@/features/admin/server/admin-user-trends";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const db = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const db = createFixturePrisma();
 const ids = Array.from({ length: 56 }, () => crypto.randomUUID());
 const now = new Date("2030-01-08T12:00:00Z");
 let adminId = "";
@@ -62,7 +61,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.featureOperationEvent.deleteMany({ where: { id: { in: ids } } });
   await db.user.deleteMany({ where: { id: { in: [adminId, userId] } } });
-  await disconnectTestPrisma(db);
+  await Promise.all([runtimePrisma.$disconnect(), disconnectTestPrisma(db)]);
 });
 describe.sequential("admin platform metrics query correctness", () => {
   it("counts registrations by retained account creation and deduplicates active users across days", async () => {

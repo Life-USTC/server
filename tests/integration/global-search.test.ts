@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import * as catalogQueries from "@/features/search/server/global-search-catalog-queries";
 import { searchGlobally } from "@/features/search/server/global-search-service";
-import { prisma } from "@/lib/db/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma } from "../shared/prisma";
 
 const ORIGIN = "http://localhost:3000";
+const fixturePrisma = createFixturePrisma();
 
 function clearPublicRuntimeCache() {
   delete (
@@ -18,7 +20,7 @@ describe("global search integration", () => {
   const marker = crypto.randomUUID();
 
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `integration-search-${marker}@example.test`,
         name: "Search Integration User",
@@ -29,9 +31,13 @@ describe("global search integration", () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({
+    await fixturePrisma.user.deleteMany({
       where: { email: `integration-search-${marker}@example.test` },
     });
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      fixturePrisma.$disconnect(),
+    ]);
   });
 
   it("returns catalog matches for Chinese queries", async () => {
@@ -54,7 +60,7 @@ describe("global search integration", () => {
   it("matches section terms across course and teacher fields", async () => {
     clearPublicRuntimeCache();
     const uniqueBase = -1_500_000_000 - Number.parseInt(marker.slice(0, 6), 16);
-    const course = await prisma.course.create({
+    const course = await fixturePrisma.course.create({
       data: {
         jwId: uniqueBase,
         code: `SEARCH-${marker}`,
@@ -62,7 +68,7 @@ describe("global search integration", () => {
       },
       select: { id: true },
     });
-    const teacher = await prisma.teacher.create({
+    const teacher = await fixturePrisma.teacher.create({
       data: {
         jwId: uniqueBase + 1,
         code: `TEACHER-${marker}`,
@@ -72,7 +78,7 @@ describe("global search integration", () => {
     });
 
     try {
-      const section = await prisma.section.create({
+      const section = await fixturePrisma.section.create({
         data: {
           jwId: uniqueBase + 2,
           code: "000-SEARCH-INTEGRATION",
@@ -94,16 +100,18 @@ describe("global search integration", () => {
           ?.items.some((item) => item.id === `section:${section.jwId}`),
       ).toBe(true);
     } finally {
-      await prisma.section.deleteMany({ where: { courseId: course.id } });
-      await prisma.teacher.deleteMany({ where: { id: teacher.id } });
-      await prisma.course.deleteMany({ where: { id: course.id } });
+      await fixturePrisma.section.deleteMany({
+        where: { courseId: course.id },
+      });
+      await fixturePrisma.teacher.deleteMany({ where: { id: teacher.id } });
+      await fixturePrisma.course.deleteMany({ where: { id: course.id } });
     }
   });
 
   it("returns catalog results for signed-in users and can include workspace groups", async () => {
     clearPublicRuntimeCache();
 
-    const subscribedUser = await prisma.user.findFirst({
+    const subscribedUser = await fixturePrisma.user.findFirst({
       where: {
         sectionSubscriptions: { some: {} },
       },

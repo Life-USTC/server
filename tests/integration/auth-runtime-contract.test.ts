@@ -1,15 +1,19 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import {
+  createFixturePrisma,
+  createTestPrisma,
+  disconnectTestPrisma,
+} from "../shared/prisma";
 
 const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
-const authPrisma = createTestPrisma(
-  authDatabaseUrl ?? process.env.DATABASE_URL,
-  { user: { calendarFeedToken: true } },
-);
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+if (!authDatabaseUrl) {
+  throw new Error("AUTH_DATABASE_URL is required for auth role tests");
+}
+const authPrisma = createTestPrisma(authDatabaseUrl, {
+  user: { calendarFeedToken: true },
+});
+const adminPrisma = createFixturePrisma();
 
 const expectedTablePrivileges = [
   "Account:DELETE",

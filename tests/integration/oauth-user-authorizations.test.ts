@@ -7,9 +7,13 @@ import {
   rotateOAuthUserGrantAfterConsent,
   updateUserOAuthAuthorizationScopes,
 } from "@/features/oauth/server/user-authorizations.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { createFixturePrisma } from "../shared/prisma";
+
+// Direct database access arranges and verifies fixtures; the OAuth services use authPrisma.
+const prisma = createFixturePrisma();
 
 describe.sequential("OAuth user authorization management", () => {
   const marker = crypto.randomUUID();
@@ -172,7 +176,7 @@ describe.sequential("OAuth user authorization management", () => {
     await prisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },
     });
-    await prisma.$disconnect();
+    await Promise.all([prisma.$disconnect(), authPrisma.$disconnect()]);
   });
 
   it("lists one safe, grouped row per authorized client", async () => {

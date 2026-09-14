@@ -1,8 +1,10 @@
 import { makeSignature } from "better-auth/crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { authPostRoute } from "@/lib/api/routes/auth";
-import { prisma } from "@/lib/db/prisma";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const { authHandlerMock, authSecret, getSessionFromHeadersMock } = vi.hoisted(
   () => ({
@@ -57,7 +59,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
   }
 
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `oauth-continuation-${marker}@example.test`,
         name: "OAuth continuation user",
@@ -65,7 +67,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       select: { id: true },
     });
     userId = user.id;
-    await prisma.oAuthClient.create({
+    await fixturePrisma.oAuthClient.create({
       data: {
         clientId,
         name: "OAuth continuation client",
@@ -73,7 +75,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
         scopes: ["profile"],
       },
     });
-    const consent = await prisma.oAuthConsent.create({
+    const consent = await fixturePrisma.oAuthConsent.create({
       data: {
         clientId,
         scopes: ["profile"],
@@ -96,7 +98,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       const code = `continuation-${state}-${marker}`;
       const identifier = await hashOAuthClientSecretForDbStorage(code);
       verificationIdentifiers.push(identifier);
-      await prisma.verificationToken.create({
+      await fixturePrisma.verificationToken.create({
         data: {
           identifier,
           token: JSON.stringify({
@@ -116,12 +118,12 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
   });
 
   afterAll(async () => {
-    await prisma.verificationToken.deleteMany({
+    await fixturePrisma.verificationToken.deleteMany({
       where: { identifier: { in: verificationIdentifiers } },
     });
-    await prisma.oAuthClient.deleteMany({ where: { clientId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    await fixturePrisma.oAuthClient.deleteMany({ where: { clientId } });
+    await fixturePrisma.user.deleteMany({ where: { id: userId } });
+    await fixturePrisma.$disconnect();
   });
 
   it.each([
@@ -167,7 +169,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       });
 
       const code = `continuation-${state}-${marker}`;
-      const row = await prisma.verificationToken.findFirstOrThrow({
+      const row = await fixturePrisma.verificationToken.findFirstOrThrow({
         where: {
           identifier: await hashOAuthClientSecretForDbStorage(code),
         },
@@ -199,7 +201,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
     const response = await authPostRoute(request);
     expect(response.status).toBe(200);
     const code = `continuation-${state}-${marker}`;
-    const row = await prisma.verificationToken.findFirstOrThrow({
+    const row = await fixturePrisma.verificationToken.findFirstOrThrow({
       where: {
         identifier: await hashOAuthClientSecretForDbStorage(code),
       },

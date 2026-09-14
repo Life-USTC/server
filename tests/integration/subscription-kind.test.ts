@@ -8,9 +8,9 @@ import { createSectionCalendar } from "@/features/calendar/server/ical";
 import { getUserCalendarSubscription } from "@/features/subscriptions/server/subscription-calendar-read-model";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { appendUserSectionSubscriptions } from "@/features/subscriptions/server/subscription-write-model";
-import { createTestPrisma } from "../shared/prisma";
+import { createFixturePrisma } from "../shared/prisma";
 
-const db = createTestPrisma();
+const db = createFixturePrisma();
 const userIds = [crypto.randomUUID(), crypto.randomUUID()];
 let sectionId: number;
 let sectionJwId: number;

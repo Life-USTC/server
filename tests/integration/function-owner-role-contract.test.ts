@@ -1,10 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const functionOwnerRole = "life_ustc_function_owner";
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 const expectedFunctions = [
   {
