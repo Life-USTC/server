@@ -148,6 +148,7 @@ describe("feature operation recording", () => {
         "/api/graphql",
         "/api/mcp",
         "/api/health",
+        "/api/community/section-homeworks/audit",
         "/api/catalog/courses/not-an-id",
       ])
         await observeHttpFeature(
@@ -171,6 +172,8 @@ describe("feature operation recording", () => {
     expect(writeDataPoint).not.toHaveBeenCalled();
   });
   it.each([
+    ["/api/catalog/sections/match-codes", "POST", "catalog.section", "match"],
+    ["/workspace", "GET", "workspace.overview", "view"],
     [
       "/api/workspace/homeworks/12/completion",
       "PUT",
@@ -196,7 +199,7 @@ describe("feature operation recording", () => {
       "list",
     ],
     [
-      "/api/community/section-homeworks/12",
+      "/api/community/section-homeworks/cmmj1abc",
       "DELETE",
       "community.section-homework",
       "delete",

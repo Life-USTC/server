@@ -20,6 +20,8 @@ export function resolveHttpFeatureOperation(
   const read = method === "GET";
   if (read && path === "/api/search")
     return { feature: "catalog.search", operation: "search" };
+  if (method === "POST" && path === "/api/catalog/sections/match-codes")
+    return { feature: "catalog.section", operation: "match" };
   const catalog =
     /^\/api\/catalog\/(courses|sections|teachers)(?:\/([^/]+))?$/.exec(path);
   if (read && catalog) {
@@ -63,10 +65,10 @@ export function resolveHttpFeatureOperation(
     if (suffix && /^\d+$/.test(suffix) && method === "PATCH")
       return { feature: "workspace.subscription", operation: "update" };
   }
-  const homework = /^\/api\/community\/section-homeworks(?:\/(\d+))?$/.exec(
+  const homework = /^\/api\/community\/section-homeworks(?:\/([^/]+))?$/.exec(
     path,
   );
-  if (homework) {
+  if (homework && homework[1] !== "audit") {
     const operation = read
       ? homework[1]
         ? "get"
@@ -91,7 +93,7 @@ export function resolveHttpFeatureOperation(
       feature: CATALOG[page[1] as keyof typeof CATALOG],
       operation: "view",
     };
-  if (read && path === "/workspace/overview")
+  if (read && (path === "/workspace" || path === "/workspace/overview"))
     return { feature: "workspace.overview", operation: "view" };
   if (read && /^\/workspace\/subscriptions(?:\/sections)?$/.test(path))
     return { feature: "workspace.subscription", operation: "view" };

@@ -36,17 +36,29 @@ export const GRAPHQL_FEATURE_RESOLVER_MAPPINGS = {
       feature: "catalog.course",
       operation: catalogListOperation,
     },
-    course: { feature: "catalog.course", operation: "get" },
+    course: {
+      feature: "catalog.course",
+      operation: "get",
+      classify: classifyCatalogDetail,
+    },
     sections: {
       feature: "catalog.section",
       operation: catalogListOperation,
     },
-    section: { feature: "catalog.section", operation: "get" },
+    section: {
+      feature: "catalog.section",
+      operation: "get",
+      classify: classifyCatalogDetail,
+    },
     teachers: {
       feature: "catalog.teacher",
       operation: catalogListOperation,
     },
-    teacher: { feature: "catalog.teacher", operation: "get" },
+    teacher: {
+      feature: "catalog.teacher",
+      operation: "get",
+      classify: classifyCatalogDetail,
+    },
   },
   Workspace: {
     overview: { feature: "workspace.overview", operation: "get" },
@@ -100,6 +112,12 @@ export const GRAPHQL_FEATURE_RESOLVER_MAPPINGS = {
   string,
   Record<string, GraphqlFeatureResolverMapping>
 >;
+
+function classifyCatalogDetail(value: unknown): FeatureOperationResult {
+  return value == null
+    ? { outcome: "rejected", errorClass: "not_found" }
+    : { outcome: "success", errorClass: "none" };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

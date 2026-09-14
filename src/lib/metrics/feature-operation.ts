@@ -24,6 +24,7 @@ export type ExperienceOperation =
   | "list"
   | "get"
   | "search"
+  | "match"
   | "create"
   | "update"
   | "delete"

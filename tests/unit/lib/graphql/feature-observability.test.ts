@@ -50,6 +50,7 @@ const catalogResolvers = observeGraphqlResolverMap(
           extensions: { code: "BAD_USER_INPUT" },
         });
       }
+      if (info.path.key === "missing") return null;
       return "course";
     },
   },
@@ -365,4 +366,12 @@ describe("GraphQL feature operation observability", () => {
       ],
     ]);
   });
+});
+
+it("classifies a missing catalog detail consistently with REST and MCP without changing GraphQL null", async () => {
+  const { points, result } = await execute(
+    "{ catalog { missing: course(jwId: 999) } }",
+  );
+  expect(result).toEqual({ data: { catalog: { missing: null } } });
+  expect(pointBlobs(points)[0].slice(6, 8)).toEqual(["rejected", "not_found"]);
 });

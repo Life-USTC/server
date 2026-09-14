@@ -9,6 +9,10 @@ const TOOL_OPERATIONS: Readonly<Record<string, FeatureOperation>> = {
   catalog_course_search: { feature: "catalog.course", operation: "search" },
   catalog_course_get: { feature: "catalog.course", operation: "get" },
   catalog_section_search: { feature: "catalog.section", operation: "search" },
+  catalog_section_match_preview: {
+    feature: "catalog.section",
+    operation: "match",
+  },
   catalog_section_get: { feature: "catalog.section", operation: "get" },
   catalog_teacher_search: { feature: "catalog.teacher", operation: "search" },
   catalog_teacher_get: { feature: "catalog.teacher", operation: "get" },
