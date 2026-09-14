@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { stringify, unflatten } from "devalue";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 
@@ -12,7 +12,7 @@ type ExperienceDataPatch = {
 };
 
 const readyRow = {
-  authMode: "session",
+  authMode: "unknown",
   errorCount: 0,
   feature: "catalog.search",
   operation: "view",
@@ -29,12 +29,12 @@ const readyRow = {
 const issueSample = {
   authMode: "unknown",
   errorClass: "unknown",
-  feature: "catalog.search",
+  feature: "workspace.homework",
   occurredAt: "2026-09-14T01:23:45.000Z",
-  operation: "view",
+  operation: "list",
   outcome: "unknown",
   protocol: "mcp",
-  requestId: "req_e2e_issue",
+  requestId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
   surface: "unknown",
 };
 
@@ -54,9 +54,7 @@ function readyData(
 
 async function installExperienceFixture(
   page: Page,
-  fixture:
-    | ExperienceDataPatch
-    | ((requestUrl: URL) => ExperienceDataPatch),
+  fixture: ExperienceDataPatch | ((requestUrl: URL) => ExperienceDataPatch),
 ) {
   await page.route("**/admin/experience/__data.json*", async (route) => {
     const response = await route.fetch();
@@ -80,9 +78,7 @@ async function installExperienceFixture(
 
 async function openExperiencePage(
   page: Page,
-  fixture:
-    | ExperienceDataPatch
-    | ((requestUrl: URL) => ExperienceDataPatch),
+  fixture: ExperienceDataPatch | ((requestUrl: URL) => ExperienceDataPatch),
 ) {
   await signInAsDevAdmin(page, "/admin/analytics");
   await installExperienceFixture(page, fixture);
@@ -96,24 +92,24 @@ async function openExperiencePage(
 }
 
 test("7/30 天切换保留功能、协议和近期问题参数", async ({ page }) => {
-  await openExperiencePage(
-    page,
-    (requestUrl) =>
-      readyData({
-        showErrors: requestUrl.searchParams.get("errors") === "1",
-        errorSamples:
-          requestUrl.searchParams.get("errors") === "1" ? [issueSample] : [],
-        errorsStatus:
-          requestUrl.searchParams.get("errors") === "1"
-            ? { state: "ready" }
-            : { state: "empty" },
-      }),
+  await openExperiencePage(page, (requestUrl) =>
+    readyData({
+      showErrors: requestUrl.searchParams.get("errors") === "1",
+      errorSamples:
+        requestUrl.searchParams.get("errors") === "1" ? [issueSample] : [],
+      errorsStatus:
+        requestUrl.searchParams.get("errors") === "1"
+          ? { state: "ready" }
+          : { state: "empty" },
+    }),
   );
 
   await page
-    .getByLabel(/功能|Feature/)
+    .getByRole("combobox", { name: /^(功能|Feature)$/i })
     .selectOption("catalog.search");
-  await page.getByLabel(/协议|Protocol/).selectOption("rest");
+  await page
+    .getByRole("combobox", { name: /^(协议|Protocol)$/i })
+    .selectOption("rest");
   await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
   await expect(page).toHaveURL(/feature=catalog.search/);
 
@@ -144,9 +140,13 @@ test("7/30 天切换保留功能、协议和近期问题参数", async ({ page }
 test("GET 筛选提交并可清除", async ({ page }) => {
   await openExperiencePage(page, readyData());
 
-  await page.getByLabel(/功能|Feature/).selectOption("workspace.homework");
-  await page.getByLabel(/操作|Operation/).fill("list");
-  await page.getByLabel(/协议|Protocol/).selectOption("mcp");
+  await page
+    .getByRole("combobox", { name: /^(功能|Feature)$/i })
+    .selectOption("workspace.homework");
+  await page.getByRole("textbox", { name: /^(操作|Operation)$/i }).fill("list");
+  await page
+    .getByRole("combobox", { name: /^(协议|Protocol)$/i })
+    .selectOption("mcp");
   await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
 
   let url = new URL(page.url());
@@ -168,7 +168,7 @@ test("区分尚未观测与遥测不可用", async ({ page }) => {
     readyData({ rows: [], status: { state: "empty" } }),
   );
   await expect(
-    page.getByRole("heading", { name: /尚未观测到|Not yet observed/i }),
+    page.getByText(/^(尚未观测到|Not yet observed)$/i),
   ).toBeVisible();
   await expect(
     page.getByText(/不能据此判断使用量为零|does not establish zero usage/i),
@@ -187,9 +187,9 @@ test("区分尚未观测与遥测不可用", async ({ page }) => {
       hasText: /使用遥测不可用|Usage telemetry unavailable/i,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /尚未观测到|Not yet observed/i }),
-  ).toHaveCount(0);
+  await expect(page.getByText(/^(尚未观测到|Not yet observed)$/i)).toHaveCount(
+    0,
+  );
 });
 
 test("显示近期问题样本及截断提示", async ({ page }) => {
@@ -206,7 +206,11 @@ test("显示近期问题样本及截断提示", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: /近期问题样本|Recent issue samples/i }),
   ).toBeVisible();
-  await expect(page.getByText("req_e2e_issue", { exact: true }).first()).toBeVisible();
+  await expect(
+    page
+      .getByText("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", { exact: true })
+      .first(),
+  ).toBeVisible();
   await expect(page.getByText(/未知|Unknown/i).first()).toBeVisible();
   await expect(
     page.getByText(
