@@ -85,6 +85,9 @@ jobs:
         run: |
           bun run app:prepare
           source tests/ci/setup-runtime-database.sh
-          for variable in DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL; do
+          for variable in DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE; do
             printf '%s=%s\n' "$variable" "${!variable}" >> "$GITHUB_ENV"
           done
