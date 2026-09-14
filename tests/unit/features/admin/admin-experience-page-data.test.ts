@@ -274,6 +274,7 @@ describe("admin feature experience read model", () => {
     expect(query).toContain("blob7 IN ('rejected', 'error', 'unknown')");
     expect(query).toContain("blob9 != ''");
     expect(query).toContain("LIMIT 21");
+    expect(query).toContain("blob8 != 'none'");
     expect(query).toContain("timestamp < toDateTime('2026-09-14 15:30:00')");
     expect(query).not.toContain("exception");
     expect(query).not.toContain("stack");

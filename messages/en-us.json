@@ -733,7 +733,7 @@
     "unavailableQuery": "The analytics query could not be completed. Try again later or check the Cloudflare Analytics dashboard.",
     "notes": "Coverage and interpretation",
     "estimateNote": "Counts are weighted estimates from best-effort telemetry, not guaranteed complete totals. Sampling is accounted for; failed delivery and per-request limits can omit observations.",
-    "durationNote": "Wall time measures the observed server operation for each protocol and operation. It is not an end-to-end page or client latency measure.",
+    "durationNote": "Wall time measures the observed server operation for each protocol and operation. It is not an end-to-end page or client latency measure. Successful HTTP data envelopes with uninspected application outcomes are classified as unknown and excluded from issue samples.",
     "coverageNote": "Usage totals cover completed Shanghai calendar days. Recent issue samples also include today.",
     "identityNote": "Unique users are not collected. Protocol and surface do not identify a human, CLI, or bot, and existing OAuth or audit totals are not this denominator.",
     "retentionNote": "Cloudflare Analytics Engine retention and availability limits apply. This view reads newly emitted telemetry and does not backfill history.",

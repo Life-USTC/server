@@ -135,12 +135,19 @@ export function observeHttpFeature(
   run: () => Response | Promise<Response>,
 ): Promise<Response> | Response {
   const context = httpFeatureContext(request, requestId);
+  // SvelteKit can encode load errors and redirects in an HTTP 200 response.
+  // Leave application outcomes unknown rather than reading or buffering its stream.
+  const dataEnvelope =
+    context?.protocol === "web" &&
+    new URL(request.url).pathname.endsWith("/__data.json");
   return context
     ? observeFeatureOperation(context, run, (response) =>
-        response.ok &&
-        (context.operation === "batch" || context.operation === "import")
-          ? { outcome: "unknown", errorClass: "unknown" }
-          : classifyFeatureStatus(response.status),
+        response.ok && dataEnvelope
+          ? { outcome: "unknown", errorClass: "none" }
+          : response.ok &&
+              (context.operation === "batch" || context.operation === "import")
+            ? { outcome: "unknown", errorClass: "unknown" }
+            : classifyFeatureStatus(response.status),
       )
     : run();
 }

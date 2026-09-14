@@ -244,3 +244,41 @@ it("reports lost telemetry coverage once per request and preserves all operation
       .mock.calls.filter((call) => call[1] === "feature.telemetry.failure"),
   ).toHaveLength(1);
 });
+
+it.each([
+  { type: "data", nodes: [] },
+  {
+    type: "data",
+    nodes: [
+      { type: "error", status: 404, error: { message: "private load error" } },
+    ],
+  },
+])(
+  "does not infer application success or an issue from a 200 page data envelope",
+  async (payload) => {
+    vi.mocked(logAppEvent).mockClear();
+    const response = Response.json(payload);
+    const clone = vi.spyOn(response, "clone");
+    const result = await run(() =>
+      observeHttpFeature(
+        new Request(
+          "https://example.com/catalog/courses/__data.json?x-sveltekit-invalidated=01",
+        ),
+        requestId,
+        () => response,
+      ),
+    );
+    expect(result).toBe(response);
+    expect(response.bodyUsed).toBe(false);
+    expect(clone).not.toHaveBeenCalled();
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+    expect(writeDataPoint.mock.calls[0][0].blobs.slice(6, 8)).toEqual([
+      "unknown",
+      "none",
+    ]);
+    expect(logAppEvent).not.toHaveBeenCalled();
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "private load error",
+    );
+  },
+);

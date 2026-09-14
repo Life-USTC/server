@@ -161,7 +161,10 @@ export function recordFeatureOperation(
       doubles: [duration],
     });
     written = true;
-    if (result.outcome === "error" || result.outcome === "unknown") {
+    if (
+      result.outcome === "error" ||
+      (result.outcome === "unknown" && result.errorClass !== "none")
+    ) {
       logAppEvent(
         result.outcome === "error" ? "error" : "warn",
         "feature.operation.finish",

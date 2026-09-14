@@ -213,6 +213,7 @@ export function buildAdminExperienceErrorQuery(
           // Unknown outcomes are included as explicitly unclassified issue
           // samples. They must not be presented as confirmed failures.
           "blob7 IN ('rejected', 'error', 'unknown')",
+          "blob8 != 'none'",
           "blob9 != ''",
         ],
       )}
