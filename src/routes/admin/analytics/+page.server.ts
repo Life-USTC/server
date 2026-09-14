@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ locals, request, url }) => ({
   ...(await getAdminAnalyticsPage(request, url)),
   copy: {
     admin: messages[locals.locale].admin,
+    telemetry: messages[locals.locale].adminExperience,
     analytics: messages[locals.locale].adminAnalytics,
     audit: messages[locals.locale].adminAudit,
   },

@@ -8,6 +8,10 @@ import { authPrisma } from "@/lib/db/auth-prisma";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { optionalValue } from "@/lib/load-data-utils";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import {
+  readAdminFeatureIssues,
+  readAdminFeatureTelemetry,
+} from "./admin-experience-page-data";
 import { requireAdminPage } from "./admin-page-auth";
 
 export const ADMIN_AUDIT_PAGE_SIZE = 50;
@@ -197,8 +201,7 @@ export function adminAuditCursorWhere(cursor: AdminAuditCursor) {
   } satisfies Prisma.AuditLogWhereInput;
 }
 
-export async function getAdminAuditPage(request: Request, url: URL) {
-  const admin = await requireAdminPage(request);
+async function readAdminAuditData(adminId: string, url: URL) {
   const cursor = decodeAdminAuditCursor(
     optionalValue(url.searchParams.get("cursor")),
   );
@@ -244,7 +247,7 @@ export async function getAdminAuditPage(request: Request, url: URL) {
   const where: Prisma.AuditLogWhereInput = cursor
     ? { AND: [filterWhere, adminAuditCursorWhere(cursor)] }
     : filterWhere;
-  const [rawRows, total] = await withUserDbContext(admin.id, (tx) =>
+  const [rawRows, total] = await withUserDbContext(adminId, (tx) =>
     Promise.all([
       tx.auditLog.findMany({
         where,
@@ -321,8 +324,7 @@ function analyticsFeature(action: AuditAction, targetType: string | null) {
   return action.split("_")[0] ?? "unknown";
 }
 
-export async function getAdminAnalyticsPage(request: Request, url: URL) {
-  const admin = await requireAdminPage(request);
+async function readAdminAnalyticsData(adminId: string, url: URL) {
   const requestedDays = Number(url.searchParams.get("days"));
   const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
   const startDay = shanghaiDayjs()
@@ -331,7 +333,7 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const from = new Date(`${startDay}T00:00:00.000+08:00`);
   const fromDay = new Date(`${startDay}T00:00:00.000Z`);
   const [grouped, oauthUsage, dailyRows] = await withUserDbContext(
-    admin.id,
+    adminId,
     (tx) =>
       Promise.all([
         tx.auditLog.groupBy({
@@ -578,4 +580,22 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
     },
     total,
   };
+}
+
+export async function getAdminAnalyticsPage(request: Request, url: URL) {
+  const admin = await requireAdminPage(request);
+  const [analytics, telemetry] = await Promise.all([
+    readAdminAnalyticsData(admin.id, url),
+    readAdminFeatureTelemetry(url),
+  ]);
+  return { ...analytics, telemetry };
+}
+
+export async function getAdminAuditPage(request: Request, url: URL) {
+  const admin = await requireAdminPage(request);
+  const [audit, issues] = await Promise.all([
+    readAdminAuditData(admin.id, url),
+    readAdminFeatureIssues(url),
+  ]);
+  return { ...audit, issues };
 }

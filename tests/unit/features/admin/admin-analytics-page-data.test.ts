@@ -6,16 +6,23 @@ const {
   dailyQueryMock,
   requireAdminPageMock,
   usageGroupByMock,
+  telemetryReadMock,
 } = vi.hoisted(() => ({
   auditGroupByMock: vi.fn(),
   clientFindManyMock: vi.fn(),
   dailyQueryMock: vi.fn(),
   requireAdminPageMock: vi.fn(),
   usageGroupByMock: vi.fn(),
+  telemetryReadMock: vi.fn(),
 }));
 
 vi.mock("@/features/admin/server/admin-page-auth", () => ({
   requireAdminPage: requireAdminPageMock,
+}));
+
+vi.mock("@/features/admin/server/admin-experience-page-data", () => ({
+  readAdminFeatureTelemetry: telemetryReadMock,
+  readAdminFeatureIssues: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -47,6 +54,10 @@ describe("admin analytics aggregation", () => {
     usageGroupByMock.mockResolvedValue([]);
     clientFindManyMock.mockResolvedValue([]);
     dailyQueryMock.mockResolvedValue([]);
+    telemetryReadMock.mockResolvedValue({
+      status: { state: "unavailable", reason: "not_configured" },
+      rows: [],
+    });
   });
 
   it("merges bounded OAuth usage and separates success from errors", async () => {
@@ -67,6 +78,9 @@ describe("admin analytics aggregation", () => {
       new URL("https://life.example/admin/analytics?days=7"),
     );
 
+    expect(requireAdminPageMock).toHaveBeenCalledTimes(1);
+    expect(telemetryReadMock).toHaveBeenCalledTimes(1);
+    expect(result.telemetry.status.state).toBe("unavailable");
     expect(result.total).toBe(6);
     expect(result.summary).toEqual({
       activeClients: 1,
@@ -120,4 +134,18 @@ describe("admin analytics aggregation", () => {
     expect(result.rankings.clients).toHaveLength(2);
     expect(result.total).toBe(3);
   });
+});
+
+it("rejects unauthorized readers before either statistics source is accessed", async () => {
+  vi.clearAllMocks();
+  const denial = new Error("Forbidden");
+  requireAdminPageMock.mockRejectedValueOnce(denial);
+  await expect(
+    getAdminAnalyticsPage(
+      new Request("https://life.example/admin/analytics"),
+      new URL("https://life.example/admin/analytics"),
+    ),
+  ).rejects.toBe(denial);
+  expect(auditGroupByMock).not.toHaveBeenCalled();
+  expect(telemetryReadMock).not.toHaveBeenCalled();
 });

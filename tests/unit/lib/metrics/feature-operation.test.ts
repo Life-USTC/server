@@ -142,10 +142,25 @@ describe("feature operation recording", () => {
       surface: "unknown",
     });
   });
+  it.each([
+    ["NEXT_LOCALE=zh-cn", "anonymous"],
+    ["ui-mode=dark", "anonymous"],
+    ["better-auth.session_token=session-token", "unknown"],
+    ["sessionToken=session-token", "unknown"],
+  ])(
+    "classifies cookie %s as %s without looking up a session",
+    (cookie, authMode) => {
+      const request = new Request("https://example.com/api/catalog/courses", {
+        headers: { cookie },
+      });
+      expect(httpFeatureContext(request)).toMatchObject({ authMode });
+    },
+  );
   it("excludes prefetch, HEAD, telemetry/admin, and transport envelopes", async () => {
     await run(async () => {
       for (const path of [
-        "/admin/experience",
+        "/admin/analytics",
+        "/admin/audit",
         "/api/graphql",
         "/api/mcp",
         "/api/health",

@@ -52,8 +52,8 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
-    { path: "/admin/audit", name: /审计日志|Audit Log/i },
-    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
+    { path: "/admin/audit", name: /操作与异常日志|Operations and Issues/i },
+    { path: "/admin/analytics", name: /统计数据|Usage Statistics/i },
   ] as const;
 
   for (const { path, name } of paths) {
@@ -119,12 +119,12 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
       shot: "admin/navigate-bus",
     },
     {
-      name: /审计日志|Audit Log/i,
+      name: /操作与异常日志|Operations and Issues/i,
       url: /\/admin\/audit(?:\?.*)?$/,
       shot: "admin/navigate-audit",
     },
     {
-      name: /聚合分析|Aggregate Analytics/i,
+      name: /统计数据|Usage Statistics/i,
       url: /\/admin\/analytics(?:\?.*)?$/,
       shot: "admin/navigate-analytics",
     },
@@ -152,8 +152,8 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
-    { path: "/admin/audit", name: /审计日志|Audit Log/i },
-    { path: "/admin/analytics", name: /聚合分析|Aggregate Analytics/i },
+    { path: "/admin/audit", name: /操作与异常日志|Operations and Issues/i },
+    { path: "/admin/analytics", name: /统计数据|Usage Statistics/i },
   ] as const;
 
   const mobileNavigation = page.getByTestId("admin-mobile-navigation");

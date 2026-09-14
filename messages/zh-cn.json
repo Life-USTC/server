@@ -571,9 +571,9 @@
     "oauthDescription": "OAuth 应用",
     "busTitle": "校车管理",
     "busDescription": "校车时刻表",
-    "auditTitle": "审计日志",
+    "auditTitle": "操作与异常日志",
     "auditDescription": "敏感操作记录",
-    "analyticsTitle": "聚合分析",
+    "analyticsTitle": "统计数据",
     "analyticsDescription": "功能使用趋势",
     "workspace": {
       "active": "活跃",
@@ -632,8 +632,8 @@
     "cannotDeleteActiveVersion": "不能删除当前激活版本"
   },
   "adminAudit": {
-    "title": "审计日志",
-    "subtitle": "按行为主体、对象、客户端、操作、结果、通道和时间筛选敏感操作。正文、IP 地址和完整设备信息不会在此页面展示。",
+    "title": "操作与异常日志",
+    "subtitle": "查看所有账户已记录的审计操作，以及近期功能异常样本；不包含完整浏览记录或所有运行时日志。",
     "filters": "筛选条件",
     "advancedFilters": "更多筛选条件",
     "actor": "操作人 ID",
@@ -663,8 +663,8 @@
     "page": "本批 {shown} 条，共 {total} 条"
   },
   "adminAnalytics": {
-    "title": "聚合分析",
-    "subtitle": "按功能、通道、结果和 OAuth 客户端汇总操作量，不提供逐用户浏览轨迹。",
+    "title": "统计数据",
+    "subtitle": "每日趋势、功能与渠道细分，以及已观测功能的使用次数和延迟。不提供逐用户浏览轨迹。",
     "window": "统计周期",
     "days": "最近 {days} 天",
     "total": "操作总数",
@@ -689,8 +689,7 @@
     "outcome": "结果",
     "client": "客户端",
     "count": "次数",
-    "noData": "所选周期内暂无聚合数据。",
-    "featureExperienceLink": "查看功能体验"
+    "noData": "所选周期内暂无聚合数据。"
   },
   "adminExperience": {
     "title": "功能体验",
@@ -718,10 +717,8 @@
     "matrixDescription": "只有在统计周期内实际观测到的维度组合才会显示为行。",
     "p50": "服务耗时 p50（毫秒）",
     "p95": "服务耗时 p95（毫秒）",
-    "showErrors": "查看近期问题",
-    "hideErrors": "隐藏近期问题",
-    "recentErrors": "近期问题样本",
-    "recentErrorsDescription": "展示所选周期内被拒绝、服务错误和明确标记为未分类的问题样本，包含今天截至查询时刻的数据。这里只展示抽样请求 ID 与错误类别，不采集原始异常或堆栈。",
+    "recentErrors": "近期功能异常样本",
+    "recentErrorsDescription": "包含今天、截至查询时刻的最近样本，最多 20 条；可能采样，不包含全部运行时异常或原始堆栈。未知结果不等于确认失败。",
     "requestId": "请求 ID",
     "time": "时间",
     "moreIssues": "这里只显示最新的 20 条问题样本；请缩小筛选范围查看其他问题。",
@@ -781,7 +778,9 @@
       "dependency": "依赖失败",
       "internal": "内部错误",
       "unknown": "未知"
-    }
+    },
+    "issueApply": "筛选异常",
+    "issueDays": "最近 {days} 个完整日及今天"
   },
   "adminUsers": {
     "title": "用户管理",
