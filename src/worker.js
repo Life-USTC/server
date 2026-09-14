@@ -63,6 +63,7 @@ import {
   resolveWorkerQueue,
   setTrustedRequestIdHeader,
 } from "./lib/log/worker-entrypoint-observability";
+import { observeHttpFeature } from "./lib/metrics/feature-http-operation";
 import { buildContentSecurityPolicy } from "./lib/security/csp";
 import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 
@@ -523,7 +524,9 @@ export default {
               new URL(request.url).pathname,
             ),
           });
-          return handleFetch(request, env, context, requestId, edgeObservation);
+          return observeHttpFeature(request, requestId, () =>
+            handleFetch(request, env, context, requestId, edgeObservation),
+          );
         },
         context,
       );

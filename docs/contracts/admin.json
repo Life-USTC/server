@@ -22,6 +22,9 @@
     "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
     "audit-safe-projection": "The admin audit list uses stable (createdAt,id) cursor pagination and exposes allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed.",
     "aggregate-only-analytics": "Admin analytics combines first-party audit events with content-free OAuth daily usage counters, aggregated by feature, channel, outcome, and first-party/OAuth client. External OAuth mutations are excluded from the event source to prevent double counting. It never exposes per-user browsing trails.",
+    "feature-experience-telemetry": "Feature experience reads feature_operation_v1 aggregates by feature, operation, protocol, surface, authentication mode, and outcome. Counts use _sample_interval weights; wall p50/p95 use quantileExactWeighted. Aggregates cover completed Shanghai days; issue samples also include today through read time. Missing telemetry differs from zero usage. It does not infer people or client identity, or use audit/OAuth totals as a denominator.",
+    "feature-experience-outcomes": "Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no identified error. They contribute to usage but not issue samples or warning logs.",
+    "feature-experience-retention": "Feature experience is a best-effort estimate subject to Cloudflare Analytics Engine sampling, retention, write failures, and per-request write quotas. It reads newly emitted telemetry without historical backfill; recent issue drilldown is separately bounded and exposes only safe request IDs, timestamps, error classes, and explicitly unclassified outcomes, with no raw exception or stack.",
     "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation."
   },
   "capabilities": {
@@ -223,6 +226,35 @@
           "client",
           "count",
           "time window: 7, 30, or 90 days"
+        ]
+      }
+    },
+    "feature-experience": {
+      "title": "Feature Experience",
+      "auth": "admin",
+      "web": {
+        "pages": ["/admin/experience"]
+      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "completed Shanghai-day window: 7, 30, or 90 days",
+          "feature × operation × protocol × surface × authentication mode × outcome matrix",
+          "weighted estimated totals, rejected, errors, unknown outcomes",
+          "weighted wall-time p50 and p95 when Analytics Engine query succeeds",
+          "available cells reflect observed telemetry only",
+          "bounded recent error samples on explicit drilldown: timestamp, error class, safe request ID",
+          "coverage, sampling, retention, and no-unique-users explanation"
+        ],
+        "filters": [
+          "feature",
+          "operation",
+          "protocol",
+          "surface",
+          "authentication mode",
+          "outcome"
         ]
       }
     }

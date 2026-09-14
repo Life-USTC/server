@@ -238,6 +238,20 @@ export async function assertPageContract(
       return;
     }
 
+    case "/admin/experience": {
+      await signInAsDevAdmin(page, "/admin/experience");
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /功能体验|Feature Experience/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /应用筛选|Apply filters/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "admin-experience");
+      return;
+    }
+
     case "/admin/bus": {
       await signInAsDevAdmin(page, "/admin/bus");
       await gotoContractPage(page, routePath, testInfo);

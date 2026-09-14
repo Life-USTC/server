@@ -35,6 +35,7 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { getTrustedRequestId } from "@/lib/log/worker-entrypoint-observability";
+import { observeHttpFeature } from "@/lib/metrics/feature-http-operation";
 import {
   type PageAuthMode,
   recordPageRequestError,
@@ -387,7 +388,12 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 export const handle: Handle = async (input) =>
   await runWithCloudflareRuntimeEnv(
     (input.event.platform as { env?: unknown } | undefined)?.env,
-    () => handleWithRuntimeEnv(input),
+    () =>
+      getCloudflareRequestContext() || getTrustedRequestId(input.event.request)
+        ? handleWithRuntimeEnv(input)
+        : observeHttpFeature(input.event.request, undefined, () =>
+            handleWithRuntimeEnv(input),
+          ),
     (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
       ?.ctx ??
       (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)

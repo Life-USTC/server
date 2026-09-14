@@ -304,6 +304,35 @@ function errorOutcome(returned: unknown): AuditOutcome {
     : "failure";
 }
 
+function isSuccessfulOAuthRedirect(
+  context: GenericEndpointContext,
+  returned: unknown,
+) {
+  if (
+    !context.path.startsWith("/callback/") ||
+    !isAPIError(returned) ||
+    returned.statusCode !== 302
+  ) {
+    return false;
+  }
+
+  const responseHeaders = (context.context as { responseHeaders?: Headers })
+    .responseHeaders;
+  const location =
+    responseHeaders?.get("location") ??
+    new Headers(returned.headers).get("location");
+  if (!location) return false;
+
+  try {
+    return !new URL(
+      location,
+      context.context.baseURL || "http://localhost",
+    ).searchParams.has("error");
+  } catch {
+    return false;
+  }
+}
+
 function safeEndpointTargetId(
   context: GenericEndpointContext,
   returned: unknown,
@@ -347,7 +376,8 @@ async function auditEndpointResult(context: GenericEndpointContext) {
   const action = actionForPath(path);
   if (!action) return;
   const returned = (context.context as { returned?: unknown }).returned;
-  const failed = isAPIError(returned);
+  const failed =
+    isAPIError(returned) && !isSuccessfulOAuthRedirect(context, returned);
 
   // Successful core mutations are emitted by committed database after hooks.
   // Passkey rows are plugin-owned and therefore need the final endpoint hook.

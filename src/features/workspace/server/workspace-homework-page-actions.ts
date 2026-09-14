@@ -1,4 +1,4 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail, isRedirect, redirect } from "@sveltejs/kit";
 import {
   getHomeworkDescriptionValidationError,
   getHomeworkTitleValidationError,
@@ -11,6 +11,12 @@ import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import { parseOptionalLocalDateTime } from "@/features/workspace/server/workspace-form-dates";
 import { getWorkspaceUserId } from "@/features/workspace/server/workspace-page-server";
 import type { AppLocale } from "@/i18n/config";
+import {
+  classifyFeatureError,
+  classifyFeatureStatus,
+  type FeatureOperationContext,
+  observeFeatureOperation,
+} from "@/lib/metrics/feature-operation";
 import { getWorkspaceActionCopy } from "./workspace-action-copy";
 
 type WorkspaceActionEvent = {
@@ -18,12 +24,11 @@ type WorkspaceActionEvent = {
   request: Request;
 };
 
-export async function createHomeworkWorkspaceAction({
-  locals,
-  request,
-}: WorkspaceActionEvent) {
+async function runCreateHomeworkWorkspaceAction(
+  { locals, request }: WorkspaceActionEvent,
+  userId: string | null,
+) {
   const copy = getWorkspaceActionCopy(locals.locale).homeworks;
-  const userId = await getWorkspaceUserId(request);
   if (!userId) return fail(401, { error: copy.errorUnauthorized });
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
@@ -83,4 +88,30 @@ export async function createHomeworkWorkspaceAction({
   }
 
   throw redirect(303, "/workspace/homeworks");
+}
+
+/** Form actions encode redirects inside enhanced responses, so observe the action result. */
+export function createHomeworkWorkspaceAction(event: WorkspaceActionEvent) {
+  const observation: FeatureOperationContext = {
+    feature: "community.section-homework",
+    operation: "create",
+    protocol: "web",
+    surface: "web",
+    authMode: "unknown",
+  };
+  return observeFeatureOperation(
+    observation,
+    async () => {
+      const userId = await getWorkspaceUserId(event.request);
+      observation.authMode = userId ? "session" : "anonymous";
+      return runCreateHomeworkWorkspaceAction(event, userId);
+    },
+    (failure) => classifyFeatureStatus(failure.status),
+    (error) =>
+      isRedirect(error) &&
+      error.status === 303 &&
+      error.location === "/workspace/homeworks"
+        ? { outcome: "success", errorClass: "none" }
+        : classifyFeatureError(error),
+  );
 }

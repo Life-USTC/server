@@ -4,14 +4,24 @@ import { prisma } from "@/lib/db/prisma";
 const authOrigin = "http://localhost:3000";
 const createdUserIds: string[] = [];
 const createdAuditTargetIds: string[] = [];
-const verificationCleanupStartedAt = new Date(Date.now() - 1_000);
+const createdVerificationIdentifiers = new Set<string>();
 const encoder = new TextEncoder();
 
 async function authRequest(path: string, init?: RequestInit) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
-  return betterAuthInstance.handler(
+  const response = await betterAuthInstance.handler(
     new Request(`${authOrigin}/api/auth${path}`, init),
   );
+  // Each signed challenge cookie identifies a verification row owned by this test.
+  // A time-based cleanup also deletes authorization codes from parallel suites.
+  for (const cookie of response.headers.getSetCookie()) {
+    const match = /^(?:__Secure-)?better-auth-passkey=([^;]+)/.exec(cookie);
+    if (match) {
+      const identifier = decodeURIComponent(match[1]).split(".")[0];
+      if (identifier) createdVerificationIdentifiers.add(identifier);
+    }
+  }
+  return response;
 }
 
 function base64(bytes: Uint8Array) {
@@ -64,7 +74,7 @@ describe.sequential("Better Auth passkey integration", () => {
       });
     }
     await prisma.verificationToken.deleteMany({
-      where: { createdAt: { gte: verificationCleanupStartedAt } },
+      where: { identifier: { in: [...createdVerificationIdentifiers] } },
     });
     if (createdUserIds.length > 0) {
       await prisma.user.deleteMany({

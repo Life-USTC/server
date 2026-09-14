@@ -76,9 +76,14 @@ function failureLabel(count: number) {
 
   {#snippet controls()}
     <section aria-labelledby="analytics-window-title" class="grid gap-3 border-y py-4 sm:grid-cols-[1fr_auto] sm:items-center">
-      <h2 id="analytics-window-title" class="text-base font-semibold">
-        {data.copy.analytics.window}
-      </h2>
+      <div class="grid gap-3">
+        <h2 id="analytics-window-title" class="text-base font-semibold">
+          {data.copy.analytics.window}
+        </h2>
+        <Button class="w-fit" href="/admin/experience" variant="outline">
+          {data.copy.analytics.featureExperienceLink}
+        </Button>
+      </div>
       <nav class="flex flex-wrap gap-2" aria-label={data.copy.analytics.window}>
         {#each [7, 30, 90] as days}
           <Button
