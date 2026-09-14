@@ -36,18 +36,10 @@ worker_failure_is_confirmed() {
 }
 
 reset_database_for_retry() {
-  # seed.sql intentionally preserves unrelated local rows and uses
-  # conflict-tolerant inserts. That makes it safe to run repeatedly, but not
-  # a complete reset after a shard has mutated its fixtures. CI owns a fresh
-  # database service, so recreate that database before the whole-shard replay;
-  # explicitly run the configured seed after the reset. Never drop a
-  # developer's local database just because a local shard failed.
-  if [[ "${CI:-}" == "true" || "${CI:-}" == "1" ]]; then
-    echo "Resetting the CI E2E database before replaying shard ${shard}." >&2
-    source tests/ci/setup-runtime-database.sh reset
-  else
-    source tests/ci/setup-runtime-database.sh
-  fi
+  # This entry point requires an explicitly disposable owner database. Restore
+  # both fixtures and deployment grants; seed alone preserves mutated rows.
+  echo "Resetting the disposable E2E database before replaying shard ${shard}." >&2
+  source tests/ci/setup-runtime-database.sh reset
 }
 
 for attempt in $(seq 1 "$e2e_infra_retry_attempts"); do

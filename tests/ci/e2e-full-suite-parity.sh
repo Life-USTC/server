@@ -22,8 +22,8 @@ if [[ "${ALLOW_DATABASE_SEED:-}" != "true" ]]; then
   exit 1
 fi
 
-bun run app:prepare
-bun run build
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run app:prepare
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run build
 
 failed_shards=()
 
@@ -33,7 +33,8 @@ for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   # non-production sync previously retargeted Kit aliases to prisma-node and
   # wrangler then rebundled a broken worker for Playwright.
   bun run app:prepare
-  source tests/ci/setup-runtime-database.sh
+  # Each shard starts from a fresh schema, just like its separate CI service.
+  source tests/ci/setup-runtime-database.sh reset
   if ! bash tests/ci/e2e-run-shard.sh "${shard}/${E2E_SHARD_TOTAL}"; then
     failed_shards+=("${shard}/${E2E_SHARD_TOTAL}")
   fi

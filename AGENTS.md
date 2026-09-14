@@ -96,7 +96,7 @@ source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 
-# E2E — script prepares, builds, migrates, and reseeds per shard
+# E2E — resets the disposable database before each shard
 ALLOW_DATABASE_SEED=true bun run e2e:test
 # FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
 
