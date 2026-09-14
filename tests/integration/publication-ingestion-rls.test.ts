@@ -1,11 +1,9 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const databaseUrl =
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL;
-const adminPrisma = databaseUrl ? createTestPrisma(databaseUrl) : null;
+const adminPrisma = createFixturePrisma();
 
 const publicationIngestionTables = [
   "IngestionBatch",
@@ -35,7 +33,6 @@ describe.skipIf(
   };
 
   async function deleteFixture(ids: FixtureIds) {
-    if (!adminPrisma) return;
     await adminPrisma.$transaction(async (tx) => {
       await tx.publication.deleteMany({ where: { id: ids.publicationId } });
       await tx.publicationObject.deleteMany({ where: { id: ids.objectId } });
@@ -60,12 +57,11 @@ describe.skipIf(
   afterAll(async () => {
     await Promise.all([
       prisma.$disconnect(),
-      adminPrisma ? disconnectTestPrisma(adminPrisma) : undefined,
+      disconnectTestPrisma(adminPrisma),
     ]);
   });
 
   it("keeps ingestion tables behind the app runtime policy and write grant", async () => {
-    if (!adminPrisma) throw new Error("DATABASE_URL is required");
     const rows = await adminPrisma.$queryRaw<
       Array<{
         deleteGranted: boolean;
@@ -131,8 +127,6 @@ describe.skipIf(
   });
 
   it("allows runtime SELECT/INSERT/UPDATE and rejects runtime DELETE", async () => {
-    if (!adminPrisma) throw new Error("DATABASE_URL is required");
-
     const suffix = crypto.randomUUID();
     const ids: FixtureIds = {
       batchId: `rls-publication-batch-${suffix}`,

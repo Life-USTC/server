@@ -1,12 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { syncUstcOidcIdentity } from "@/lib/auth/ustc-oidc-identity-sync";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
-const fixturePrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const fixturePrisma = createFixturePrisma();
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "UserUstcIdentity PostgreSQL row security",

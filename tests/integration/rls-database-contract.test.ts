@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 function loadPrivilegeAllowlist(
   client: PrismaClient,
@@ -21,9 +21,7 @@ function loadPrivilegeAllowlist(
   });
 }
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 const protectedTables = [
   "BusUserPreference",

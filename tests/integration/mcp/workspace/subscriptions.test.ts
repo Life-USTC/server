@@ -1,7 +1,10 @@
 // Merged from mcp-12-subscriptions + mcp-18-calendar-subscriptions
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestPrisma, disconnectTestPrisma } from "../../../shared/prisma";
+import {
+  createFixturePrisma,
+  disconnectTestPrisma,
+} from "../../../shared/prisma";
 import {
   assertSubscriptionAction,
   assertSubscriptionBrief,
@@ -81,16 +84,9 @@ const context = fixtures.createSubscribedIsolatedMcpToolTestContext({
   name: "MCP Calendar Subscriptions",
 });
 
-const rlsFixtureDatabaseUrl =
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL;
-const rlsFixturePrisma =
-  process.env.RLS_TEST_ENABLED === "true" && rlsFixtureDatabaseUrl
-    ? createTestPrisma(rlsFixtureDatabaseUrl)
-    : null;
+const rlsFixturePrisma = createFixturePrisma();
 
-describe.skipIf(
-  process.env.RLS_TEST_ENABLED !== "true" || rlsFixturePrisma === null,
-)("workspace subscriptions through the restricted MCP runtime", () => {
+describe("workspace subscriptions through the restricted MCP runtime", () => {
   let client: Awaited<ReturnType<typeof createMcpHarness>> | undefined;
   let userId = "";
   let otherUserId = "";
@@ -102,7 +98,6 @@ describe.skipIf(
   let semesterId = 0;
 
   beforeAll(async () => {
-    if (!rlsFixturePrisma) throw new Error("DATABASE_URL is required");
     const suffix = crypto.randomUUID();
     // Keep custom catalog rows isolated from shared seed rows. The fixture
     // client is the function-owner connection; MCP itself uses DATABASE_URL.
@@ -194,24 +189,21 @@ describe.skipIf(
 
   afterAll(async () => {
     await client?.close();
-    if (rlsFixturePrisma) {
-      await rlsFixturePrisma.$transaction(async (tx) => {
-        await tx.user.deleteMany({
-          where: { id: { in: [userId, otherUserId] } },
-        });
-        await tx.section.deleteMany({
-          where: { id: { in: [activeSectionId, retiredSectionId] } },
-        });
-        await tx.course.deleteMany({ where: { id: courseId } });
-        await tx.semester.deleteMany({ where: { id: semesterId } });
+    await rlsFixturePrisma.$transaction(async (tx) => {
+      await tx.user.deleteMany({
+        where: { id: { in: [userId, otherUserId] } },
       });
-      await disconnectTestPrisma(rlsFixturePrisma);
-    }
+      await tx.section.deleteMany({
+        where: { id: { in: [activeSectionId, retiredSectionId] } },
+      });
+      await tx.course.deleteMany({ where: { id: courseId } });
+      await tx.semester.deleteMany({ where: { id: semesterId } });
+    });
+    await disconnectTestPrisma(rlsFixturePrisma);
   });
 
   it("runs subscribe/list/remove/list under RLS and preserves other owners", async () => {
-    if (!client || !rlsFixturePrisma)
-      throw new Error("MCP fixture is not ready");
+    if (!client) throw new Error("MCP fixture is not ready");
 
     const add = await client.call<{
       action?: string;
