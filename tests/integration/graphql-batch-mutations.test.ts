@@ -275,7 +275,7 @@ describe("GraphQL batch mutations", () => {
           todoId: otherTodoId,
           completed: true,
           todo: null,
-          error: { code: "FORBIDDEN", message: "forbidden" },
+          error: { code: "NOT_FOUND", message: "not_found" },
         },
       ],
     });
@@ -313,10 +313,25 @@ describe("GraphQL batch mutations", () => {
         {
           success: false,
           id: otherTodoId,
-          error: { code: "FORBIDDEN" },
+          error: { code: "NOT_FOUND" },
         },
       ],
     });
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: otherTodoId },
+        select: { userId: true, completed: true },
+      }),
+    ).resolves.toEqual({ userId: userBId, completed: false });
+    await expect(
+      fixturePrisma.todo.findUnique({ where: { id: ownedDeleteTodoId } }),
+    ).resolves.toBeNull();
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: ownedCompletionTodoId },
+        select: { completed: true },
+      }),
+    ).resolves.toEqual({ completed: true });
   });
 
   it("rejects duplicate, extra, and null inputs before writing", async () => {

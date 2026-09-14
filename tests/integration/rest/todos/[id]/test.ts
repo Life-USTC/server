@@ -5,20 +5,21 @@
  * - Body: { title?, content?, priority?, completed?, dueAt? }
  * - Response: { success: true, todo: TodoItem }
  * - Auth required (401 if unauthenticated)
- * - Ownership check: returns 403 if todo belongs to another user
+ * - Ownership check: returns 404 if RLS hides another user's todo
  * - Returns 404 for non-existent todo
  *
  * ## DELETE /api/workspace/todos/[id]
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
- * - Ownership check: returns 403 if todo belongs to another user
+ * - Ownership check: returns 404 if RLS hides another user's todo
  * - Permanently deletes the todo from the database
  *
  * ## Edge cases
- * - Non-owner PATCH → 403
+ * - Non-owner PATCH/DELETE → 404, with the owner's todo unchanged
  * - Creates temporary todos for mutation tests (cleanup via DELETE)
  */
 import { type APIRequestContext, expect, test } from "@playwright/test";
+import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -100,27 +101,36 @@ test("/api/workspace/todos/[id] PATCH 登录后可更新待办", async ({
   }
 });
 
-test("/api/workspace/todos/[id] PATCH 非所有者返回 403", async ({
+test("/api/workspace/todos/[id] 非所有者 PATCH/DELETE 返回 404 且保留数据", async ({
   playwright,
 }) => {
   const debugContext = await playwright.request.newContext();
   const adminContext = await playwright.request.newContext();
+  let todoId: string | undefined;
+  const title = `e2e-api-todo-forbidden-${Date.now()}`;
   try {
     await signInAsDebugUserApi(debugContext, "/");
-    const todoId = await createTodo(
-      debugContext,
-      `e2e-api-todo-forbidden-${Date.now()}`,
-    );
-
+    todoId = await createTodo(debugContext, title);
     await signInAsDevAdminApi(adminContext, "/");
     const patchResponse = await adminContext.patch(
       `/api/workspace/todos/${todoId}`,
       { data: { completed: true } },
     );
-    expect(patchResponse.status()).toBe(403);
-
-    await debugContext.delete(`/api/workspace/todos/${todoId}`);
+    expect(patchResponse.status()).toBe(404);
+    const deleteResponse = await adminContext.delete(
+      `/api/workspace/todos/${todoId}`,
+    );
+    expect(deleteResponse.status()).toBe(404);
+    await expect(
+      withE2ePrisma((prisma) =>
+        prisma.todo.findUnique({
+          where: { id: todoId },
+          select: { title: true, completed: true },
+        }),
+      ),
+    ).resolves.toEqual({ title, completed: false });
   } finally {
+    if (todoId) await debugContext.delete(`/api/workspace/todos/${todoId}`);
     await debugContext.dispose();
     await adminContext.dispose();
   }

@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 
+import { parseConfigFileTextToJson } from "typescript";
 import { describe, expect, it } from "vitest";
+
+function parseConfig(source: string) {
+  const result = parseConfigFileTextToJson("wrangler.jsonc", source);
+  expect(result.error).toBeUndefined();
+  return result.config;
+}
 
 type RateLimitBinding = {
   name: string;
@@ -12,7 +19,7 @@ async function readRateLimits(fileName: string): Promise<RateLimitBinding[]> {
   const source = await readFile(
     new URL(`../../../../${fileName}`, import.meta.url),
   );
-  const config = JSON.parse(source.toString()) as {
+  const config = parseConfig(source.toString()) as {
     ratelimits?: RateLimitBinding[];
   };
   return config.ratelimits ?? [];
@@ -26,7 +33,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
         new URL(`../../../../${fileName}`, import.meta.url),
         "utf8",
       );
-      const config = JSON.parse(source) as {
+      const config = parseConfig(source) as {
         assets?: { run_worker_first?: string[] };
       };
 
@@ -45,7 +52,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
       new URL("../../../../wrangler.jsonc", import.meta.url),
       "utf8",
     );
-    const config = JSON.parse(source) as {
+    const config = parseConfig(source) as {
       observability?: {
         logs?: {
           enabled?: boolean;
@@ -74,7 +81,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
       new URL("../../../../wrangler.jsonc", import.meta.url),
       "utf8",
     );
-    const config = JSON.parse(source) as { upload_source_maps?: boolean };
+    const config = parseConfig(source) as { upload_source_maps?: boolean };
 
     expect(config.upload_source_maps).toBe(true);
   });
@@ -84,7 +91,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
       new URL("../../../../wrangler.jsonc", import.meta.url),
       "utf8",
     );
-    const config = JSON.parse(source) as {
+    const config = parseConfig(source) as {
       queues?: {
         consumers?: {
           dead_letter_queue?: string;
@@ -116,7 +123,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
       new URL("../../../../wrangler.jsonc", import.meta.url),
       "utf8",
     );
-    const config = JSON.parse(source) as { compatibility_flags?: string[] };
+    const config = parseConfig(source) as { compatibility_flags?: string[] };
 
     expect(config.compatibility_flags).toContain(
       "global_fetch_strictly_public",

@@ -313,7 +313,13 @@ describe("GraphQL authenticated mutations", () => {
       },
       tokenB,
     );
-    expectErrorCode(otherUser.payload, "FORBIDDEN");
+    expectErrorCode(otherUser.payload, "NOT_FOUND");
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: todoId },
+        select: { completed: true, userId: true },
+      }),
+    ).resolves.toEqual({ completed: false, userId: userAId });
 
     const deleted = await execute(
       {
