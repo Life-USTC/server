@@ -2,9 +2,9 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/calendar-export-data";
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
-import { createTestPrisma } from "../shared/prisma";
+import { createFixturePrisma } from "../shared/prisma";
 
-const db = createTestPrisma();
+const db = createFixturePrisma();
 const users = [crypto.randomUUID(), crypto.randomUUID()];
 const ids = Array.from({ length: 4 }, () => crypto.randomUUID());
 const now = new Date("2026-09-13T08:00:00Z");

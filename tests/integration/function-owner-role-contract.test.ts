@@ -1,10 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const functionOwnerRole = "life_ustc_function_owner";
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 const expectedFunctions = [
   {
@@ -58,6 +56,13 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature: "public.find_downloadable_upload(p_upload_id text)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone)",
     volatility: "STABLE",
   },
   {

@@ -4,11 +4,9 @@ import {
   removeUserSectionSubscriptions,
 } from "@/features/subscriptions/server/subscription-write-model";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
-import { createTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "subscription batch removal under PostgreSQL row security",
@@ -56,7 +54,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     afterAll(async () => {
-      await Promise.all([prisma.$disconnect(), adminPrisma.$disconnect()]);
+      await Promise.all([
+        prisma.$disconnect(),
+        disconnectTestPrisma(adminPrisma),
+      ]);
     });
 
     it("removes an owner subscription and reports truthful counts", async () => {

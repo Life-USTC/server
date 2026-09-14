@@ -1,11 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-batches-${Date.now()}`;
@@ -62,7 +66,7 @@ async function execute(body: unknown, token?: string) {
 }
 
 async function signToken(userId: string, scopes: string[]) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -90,7 +94,7 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
 }
 
 beforeAll(async () => {
-  const section = await prisma.section.findUniqueOrThrow({
+  const section = await fixturePrisma.section.findUniqueOrThrow({
     where: { jwId: DEV_SEED.section.jwId },
     select: { id: true, semesterId: true },
   });
@@ -101,14 +105,14 @@ beforeAll(async () => {
   semesterId = section.semesterId;
 
   const [userA, userB] = await Promise.all([
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-a@example.test`,
         name: "GraphQL Batch A",
       },
       select: { id: true },
     }),
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-b@example.test`,
         name: "GraphQL Batch B",
@@ -121,19 +125,19 @@ beforeAll(async () => {
 
   const [ownedCompletionTodo, ownedDeleteTodo, otherTodo, active, deleted] =
     await Promise.all([
-      prisma.todo.create({
+      fixturePrisma.todo.create({
         data: { userId: userAId, title: `${marker} completion` },
         select: { id: true },
       }),
-      prisma.todo.create({
+      fixturePrisma.todo.create({
         data: { userId: userAId, title: `${marker} delete` },
         select: { id: true },
       }),
-      prisma.todo.create({
+      fixturePrisma.todo.create({
         data: { userId: userBId, title: `${marker} other` },
         select: { id: true },
       }),
-      prisma.homework.create({
+      fixturePrisma.homework.create({
         data: {
           createdById: userAId,
           sectionId,
@@ -141,7 +145,7 @@ beforeAll(async () => {
         },
         select: { id: true },
       }),
-      prisma.homework.create({
+      fixturePrisma.homework.create({
         data: {
           createdById: userAId,
           deletedAt: new Date("2026-07-20T00:00:00.000Z"),
@@ -150,7 +154,7 @@ beforeAll(async () => {
         },
         select: { id: true },
       }),
-      prisma.oAuthClient.create({
+      fixturePrisma.oAuthClient.create({
         data: {
           clientId: oauthClientId,
           consents: {
@@ -169,17 +173,23 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
-  await prisma.homework.deleteMany({
+  await fixturePrisma.oAuthClient.deleteMany({
+    where: { clientId: oauthClientId },
+  });
+  await fixturePrisma.homework.deleteMany({
     where: { id: { in: [activeHomeworkId, deletedHomeworkId] } },
   });
-  await prisma.todo.deleteMany({
+  await fixturePrisma.todo.deleteMany({
     where: { userId: { in: [userAId, userBId] } },
   });
-  await prisma.user.deleteMany({
+  await fixturePrisma.user.deleteMany({
     where: { id: { in: [userAId, userBId] } },
   });
-  await prisma.$disconnect();
+  await Promise.all([
+    fixturePrisma.$disconnect(),
+    authPrisma.$disconnect(),
+    runtimePrisma.$disconnect(),
+  ]);
 });
 
 describe("GraphQL batch mutations", () => {
@@ -210,7 +220,7 @@ describe("GraphQL batch mutations", () => {
       "workspace.todo:write",
     ]);
     await expect(
-      prisma.todo.findUniqueOrThrow({
+      fixturePrisma.todo.findUniqueOrThrow({
         where: { id: ownedCompletionTodoId },
         select: { completed: true },
       }),
@@ -265,7 +275,7 @@ describe("GraphQL batch mutations", () => {
           todoId: otherTodoId,
           completed: true,
           todo: null,
-          error: { code: "FORBIDDEN", message: "forbidden" },
+          error: { code: "NOT_FOUND", message: "not_found" },
         },
       ],
     });
@@ -303,15 +313,30 @@ describe("GraphQL batch mutations", () => {
         {
           success: false,
           id: otherTodoId,
-          error: { code: "FORBIDDEN" },
+          error: { code: "NOT_FOUND" },
         },
       ],
     });
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: otherTodoId },
+        select: { userId: true, completed: true },
+      }),
+    ).resolves.toEqual({ userId: userBId, completed: false });
+    await expect(
+      fixturePrisma.todo.findUnique({ where: { id: ownedDeleteTodoId } }),
+    ).resolves.toBeNull();
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: ownedCompletionTodoId },
+        select: { completed: true },
+      }),
+    ).resolves.toEqual({ completed: true });
   });
 
   it("rejects duplicate, extra, and null inputs before writing", async () => {
     const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
-    await prisma.todo.update({
+    await fixturePrisma.todo.update({
       where: { id: ownedCompletionTodoId },
       data: { completed: false },
     });
@@ -349,7 +374,7 @@ describe("GraphQL batch mutations", () => {
     }
 
     await expect(
-      prisma.todo.findUniqueOrThrow({
+      fixturePrisma.todo.findUniqueOrThrow({
         where: { id: ownedCompletionTodoId },
         select: { completed: true },
       }),
@@ -459,7 +484,7 @@ describe("GraphQL batch mutations", () => {
       removedCount: 0,
     });
     await expect(
-      prisma.user.findUniqueOrThrow({
+      fixturePrisma.user.findUniqueOrThrow({
         where: { id: userAId },
         select: {
           sectionSubscriptions: {
@@ -494,7 +519,7 @@ describe("GraphQL batch mutations", () => {
       total: 1,
     });
     await expect(
-      prisma.user.findUniqueOrThrow({
+      fixturePrisma.user.findUniqueOrThrow({
         where: { id: userAId },
         select: {
           sectionSubscriptions: {

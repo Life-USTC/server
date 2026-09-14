@@ -1,14 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { authPostRoute } from "@/lib/api/routes/auth";
 import { authPrisma } from "@/lib/db/auth-prisma";
-import { createTestPrisma } from "../shared/prisma";
+import { createFixturePrisma } from "../shared/prisma";
 
 const authOrigin = "http://localhost:3000";
 const encoder = new TextEncoder();
 const createdUserIds: string[] = [];
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 function base64(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes));
@@ -16,7 +14,7 @@ function base64(bytes: Uint8Array) {
 
 async function createSessionCookie(userId: string) {
   const token = crypto.randomUUID();
-  await authPrisma.session.create({
+  await adminPrisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
@@ -71,7 +69,7 @@ describe.sequential("Better Auth update-user field security", () => {
     const marker = crypto.randomUUID();
     const usernameSuffix = marker.slice(0, 8);
     const originalPictures: string[] = [];
-    const user = await authPrisma.user.create({
+    const user = await adminPrisma.user.create({
       data: {
         email: `better-auth-update-${marker}@example.test`,
         name: "Original Name",
@@ -90,7 +88,7 @@ describe.sequential("Better Auth update-user field security", () => {
       message: "isAdmin is not allowed to be set",
     });
     await expect(
-      authPrisma.user.findUniqueOrThrow({
+      adminPrisma.user.findUniqueOrThrow({
         where: { id: user.id },
         select: { isAdmin: true, profilePictures: true },
       }),
@@ -108,7 +106,7 @@ describe.sequential("Better Auth update-user field security", () => {
       message: "profilePictures is not allowed to be set",
     });
     await expect(
-      authPrisma.user.findUniqueOrThrow({
+      adminPrisma.user.findUniqueOrThrow({
         where: { id: user.id },
         select: { profilePictures: true },
       }),
@@ -132,7 +130,7 @@ describe.sequential("Better Auth update-user field security", () => {
 
     expect(profileResponse.status).toBe(200);
     await expect(
-      authPrisma.user.findUniqueOrThrow({
+      adminPrisma.user.findUniqueOrThrow({
         where: { id: user.id },
         select: { isAdmin: true, name: true, username: true },
       }),

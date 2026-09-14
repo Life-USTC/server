@@ -13,6 +13,9 @@
     }
   },
   "vars": {
+    // This disposable Worker keeps the production auth gate active: debug
+    // credentials are enabled only by the explicit E2E_DEBUG_AUTH flag, and
+    // auth-config rejects that flag when NODE_ENV is production.
     "NODE_ENV": "test",
     "APP_PUBLIC_ORIGIN": "http://localhost:3000",
     "AUTH_SECRET": "e2e-dev-secret-not-for-production",
@@ -52,18 +55,15 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "local",
-      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+      "id": "local"
     },
     {
       "binding": "HYPERDRIVE_AUTH",
-      "id": "local-auth",
-      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+      "id": "local-auth"
     },
     {
       "binding": "HYPERDRIVE_MAINTENANCE",
-      "id": "local-maintenance",
-      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+      "id": "local-maintenance"
     }
   ],
   "kv_namespaces": [

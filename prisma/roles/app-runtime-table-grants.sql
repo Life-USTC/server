@@ -63,6 +63,10 @@ GRANT INSERT ON TABLE
   "RuntimeIssueEvent"
 TO life_ustc_runtime;
 
+-- The weather writer upserts hourly observations through the app runtime.
+GRANT SELECT, INSERT, UPDATE ON TABLE "WeatherObservation"
+TO life_ustc_runtime;
+
 GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
 GRANT SELECT, INSERT, UPDATE ON TABLE
   "PublicationSource",

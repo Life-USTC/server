@@ -1,12 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 import { writeObservabilityBatch } from "@/lib/db/feature-event-store";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const fixturePrisma = createFixturePrisma();
 const marker = `feature-event-${crypto.randomUUID()}`;
 
 describe.sequential("self-hosted observability event store", () => {
@@ -20,7 +18,7 @@ describe.sequential("self-hosted observability event store", () => {
 
   beforeAll(async () => {
     const [admin, regular] = await Promise.all([
-      adminPrisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: `${marker}-admin@example.test`,
           isAdmin: true,
@@ -28,7 +26,7 @@ describe.sequential("self-hosted observability event store", () => {
         },
         select: { id: true },
       }),
-      adminPrisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: `${marker}-user@example.test`,
           name: `${marker}-user`,
@@ -41,18 +39,18 @@ describe.sequential("self-hosted observability event store", () => {
   });
 
   afterAll(async () => {
-    await adminPrisma.featureOperationEvent.deleteMany({
+    await fixturePrisma.featureOperationEvent.deleteMany({
       where: { id: { in: featureEventIds } },
     });
-    await adminPrisma.runtimeIssueEvent.deleteMany({
+    await fixturePrisma.runtimeIssueEvent.deleteMany({
       where: { id: issueEventId },
     });
-    await adminPrisma.user.deleteMany({
+    await fixturePrisma.user.deleteMany({
       where: { id: { in: [adminUserId, regularUserId] } },
     });
     await Promise.all([
-      prisma.$disconnect(),
-      disconnectTestPrisma(adminPrisma),
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(fixturePrisma),
     ]);
   });
 
@@ -81,12 +79,12 @@ describe.sequential("self-hosted observability event store", () => {
     await writeObservabilityBatch({ features: [feature], issues: [issue] });
 
     await expect(
-      adminPrisma.featureOperationEvent.count({
+      fixturePrisma.featureOperationEvent.count({
         where: { id: feature.id },
       }),
     ).resolves.toBe(1);
     await expect(
-      adminPrisma.runtimeIssueEvent.count({ where: { id: issue.id } }),
+      fixturePrisma.runtimeIssueEvent.count({ where: { id: issue.id } }),
     ).resolves.toBe(1);
   });
 
@@ -104,17 +102,17 @@ describe.sequential("self-hosted observability event store", () => {
     };
 
     await expect(
-      adminPrisma.featureOperationEvent.create({
+      fixturePrisma.featureOperationEvent.create({
         data: { ...base, feature: "not-a-feature" },
       }),
     ).rejects.toThrow();
     await expect(
-      adminPrisma.featureOperationEvent.create({
+      fixturePrisma.featureOperationEvent.create({
         data: { ...base, durationMs: -1 },
       }),
     ).rejects.toThrow();
     await expect(
-      adminPrisma.featureOperationEvent.create({
+      fixturePrisma.featureOperationEvent.create({
         data: { ...base, durationMs: Number.NaN },
       }),
     ).rejects.toThrow();
@@ -124,7 +122,7 @@ describe.sequential("self-hosted observability event store", () => {
     const oldFeatureId = crypto.randomUUID();
     const oldIssueId = crypto.randomUUID();
     const old = new Date("2025-01-01T00:00:00.000Z");
-    await adminPrisma.featureOperationEvent.create({
+    await fixturePrisma.featureOperationEvent.create({
       data: {
         id: oldFeatureId,
         occurredAt: old,
@@ -138,7 +136,7 @@ describe.sequential("self-hosted observability event store", () => {
         durationMs: 1,
       },
     });
-    await adminPrisma.runtimeIssueEvent.create({
+    await fixturePrisma.runtimeIssueEvent.create({
       data: {
         id: oldIssueId,
         occurredAt: old,
@@ -147,7 +145,7 @@ describe.sequential("self-hosted observability event store", () => {
       },
     });
 
-    const [report] = await adminPrisma.$queryRaw<
+    const [report] = await fixturePrisma.$queryRaw<
       Array<{ feature_rows_deleted: bigint; issue_rows_deleted: bigint }>
     >(Prisma.sql`
       SELECT * FROM public.maintain_observability_event_retention(
@@ -176,7 +174,7 @@ describe.sequential("self-hosted observability event store", () => {
           select: { id: true },
         }),
       );
-      const anonymousRows = await prisma.featureOperationEvent.findMany({
+      const anonymousRows = await runtimePrisma.featureOperationEvent.findMany({
         where: { id: featureEventIds[0] },
         select: { id: true },
       });

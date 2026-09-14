@@ -229,6 +229,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "VerifiedEmail"
 TO life_ustc_auth_runtime;
 GRANT USAGE, SELECT ON SEQUENCE "VerifiedEmail_id_seq"
 TO life_ustc_auth_runtime;
+GRANT INSERT ON TABLE "AuditLog" TO life_ustc_auth_runtime;
 
 GRANT USAGE ON SCHEMA public TO life_ustc_function_owner;
 GRANT SELECT ON TABLE
@@ -299,6 +300,10 @@ ALTER FUNCTION public.find_downloadable_upload(text)
 ALTER FUNCTION public.comment_attachment_summaries(text[])
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.get_public_profile_upload_stats(
+  text,
+  timestamp without time zone
+) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.get_public_profile_comment_contribution_days(
   text,
   timestamp without time zone
 ) OWNER TO life_ustc_function_owner;
@@ -411,6 +416,7 @@ GRANT EXECUTE ON FUNCTION
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
   public.comment_hidden_root_count(integer, integer, integer, text, integer),
+  public.get_public_profile_comment_contribution_days(text, timestamp without time zone),
   public.get_public_profile_section_subscription_count(text),
   public.claim_upload_pending_storage_cleanup(
     timestamp without time zone,

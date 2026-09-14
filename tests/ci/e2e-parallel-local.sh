@@ -23,7 +23,7 @@ if ! [[ "$inspector_base_port" =~ ^[0-9]+$ ]] ||
   exit 1
 fi
 
-for command in docker bun setsid; do
+for command in docker bun psql setsid; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1

@@ -59,6 +59,10 @@ for (const width of [1280, 390]) {
   test(`逐小时预报支持边缘悬停和键盘浏览 ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const snapshot = await showWeatherFixture(page);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new URL("/catalog/weather", page.url()).href,
+    );
     const chart = page.getByTestId("weather-hourly-chart").first();
     const slider = chart.getByRole("slider");
     const tooltip = chart.getByRole("tooltip");

@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 function loadPrivilegeAllowlist(
   client: PrismaClient,
@@ -21,9 +21,7 @@ function loadPrivilegeAllowlist(
   });
 }
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 const protectedTables = [
   "BusUserPreference",
@@ -33,6 +31,8 @@ const protectedTables = [
   "Todo",
   "Upload",
   "UploadPending",
+  "UserSectionSubscription",
+  "UserUstcIdentity",
   "WorkspaceLinkPin",
 ] as const;
 
@@ -43,6 +43,7 @@ const expectedRuntimeFunctionPrivileges = [
   "public.comment_reaction_summaries(comment_ids text[]):EXECUTE",
   "public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE",
   "public.find_downloadable_upload(p_upload_id text):EXECUTE",
+  "public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE",
   "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",

@@ -2,11 +2,15 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-links";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-mutations-${Date.now()}`;
@@ -72,7 +76,7 @@ async function execute(
 }
 
 async function signToken(userId: string, scopes: string[]) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -101,25 +105,25 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
 
 beforeAll(async () => {
   const [userA, userB, homework, campuses] = await Promise.all([
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-a@example.test`,
         name: "GraphQL Mutation A",
       },
       select: { id: true },
     }),
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-b@example.test`,
         name: "GraphQL Mutation B",
       },
       select: { id: true },
     }),
-    prisma.homework.findFirstOrThrow({
+    fixturePrisma.homework.findFirstOrThrow({
       where: { deletedAt: null },
       select: { id: true },
     }),
-    prisma.busCampus.findMany({
+    fixturePrisma.busCampus.findMany({
       orderBy: { id: "asc" },
       take: 2,
       select: { id: true },
@@ -135,7 +139,7 @@ beforeAll(async () => {
   originCampusId = campuses[0].id;
   destinationCampusId = campuses[1].id;
 
-  await prisma.oAuthClient.create({
+  await fixturePrisma.oAuthClient.create({
     data: {
       clientId: oauthClientId,
       consents: {
@@ -151,20 +155,26 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
-  await prisma.auditLog.deleteMany({
+  await fixturePrisma.oAuthClient.deleteMany({
+    where: { clientId: oauthClientId },
+  });
+  await fixturePrisma.auditLog.deleteMany({
     where: { targetId: { in: createdCommentIds } },
   });
-  await prisma.comment.deleteMany({
+  await fixturePrisma.comment.deleteMany({
     where: { id: { in: createdCommentIds } },
   });
-  await prisma.userSuspension.deleteMany({
+  await fixturePrisma.userSuspension.deleteMany({
     where: { userId: { in: [userAId, userBId] } },
   });
-  await prisma.user.deleteMany({
+  await fixturePrisma.user.deleteMany({
     where: { id: { in: [userAId, userBId] } },
   });
-  await prisma.$disconnect();
+  await Promise.all([
+    fixturePrisma.$disconnect(),
+    authPrisma.$disconnect(),
+    runtimePrisma.$disconnect(),
+  ]);
 });
 
 describe("GraphQL authenticated mutations", () => {
@@ -190,7 +200,7 @@ describe("GraphQL authenticated mutations", () => {
     ).toEqual(["workspace.todo:write"]);
 
     await expect(
-      prisma.todo.count({
+      fixturePrisma.todo.count({
         where: { userId: userAId, title: { in: ["anonymous", "read only"] } },
       }),
     ).resolves.toBe(0);
@@ -232,7 +242,7 @@ describe("GraphQL authenticated mutations", () => {
     expect(todoId).toEqual(expect.any(String));
 
     await expect(
-      prisma.todo.findUniqueOrThrow({
+      fixturePrisma.todo.findUniqueOrThrow({
         where: { id: todoId },
         select: { content: true, dueAt: true, priority: true, title: true },
       }),
@@ -286,7 +296,7 @@ describe("GraphQL authenticated mutations", () => {
       data: { todoUpdate: { id: todoId } },
     });
     await expect(
-      prisma.todo.findUniqueOrThrow({
+      fixturePrisma.todo.findUniqueOrThrow({
         where: { id: todoId },
         select: { content: true, dueAt: true },
       }),
@@ -303,7 +313,13 @@ describe("GraphQL authenticated mutations", () => {
       },
       tokenB,
     );
-    expectErrorCode(otherUser.payload, "FORBIDDEN");
+    expectErrorCode(otherUser.payload, "NOT_FOUND");
+    await expect(
+      fixturePrisma.todo.findUniqueOrThrow({
+        where: { id: todoId },
+        select: { completed: true, userId: true },
+      }),
+    ).resolves.toEqual({ completed: false, userId: userAId });
 
     const deleted = await execute(
       {
@@ -322,17 +338,17 @@ describe("GraphQL authenticated mutations", () => {
     const [todoToken, commentToken, section] = await Promise.all([
       signToken(userAId, [restWriteScope("workspace.todo")]),
       signToken(userAId, [restWriteScope("community.comment")]),
-      prisma.section.findUniqueOrThrow({
+      fixturePrisma.section.findUniqueOrThrow({
         where: { jwId: DEV_SEED.section.jwId },
         select: { id: true },
       }),
     ]);
     const [todo, comment] = await Promise.all([
-      prisma.todo.create({
+      fixturePrisma.todo.create({
         data: { userId: userAId, title: `${marker} null guard todo` },
         select: { id: true },
       }),
-      prisma.comment.create({
+      fixturePrisma.comment.create({
         data: {
           body: `${marker} null guard comment`,
           isAnonymous: false,
@@ -427,7 +443,7 @@ describe("GraphQL authenticated mutations", () => {
     }
 
     await expect(
-      prisma.todo.findUniqueOrThrow({
+      fixturePrisma.todo.findUniqueOrThrow({
         where: { id: todo.id },
         select: { completed: true, priority: true, title: true },
       }),
@@ -437,7 +453,7 @@ describe("GraphQL authenticated mutations", () => {
       title: `${marker} null guard todo`,
     });
     await expect(
-      prisma.comment.findUniqueOrThrow({
+      fixturePrisma.comment.findUniqueOrThrow({
         where: { id: comment.id },
         select: { body: true, isAnonymous: true, visibility: true },
       }),
@@ -447,12 +463,12 @@ describe("GraphQL authenticated mutations", () => {
       visibility: "public",
     });
     await expect(
-      prisma.todo.count({
+      fixturePrisma.todo.count({
         where: { userId: userAId, title: `${marker} invalid create` },
       }),
     ).resolves.toBe(0);
     await expect(
-      prisma.comment.count({
+      fixturePrisma.comment.count({
         where: { body: `${marker} invalid comment create`, userId: userAId },
       }),
     ).resolves.toBe(0);
@@ -461,7 +477,7 @@ describe("GraphQL authenticated mutations", () => {
   it("rejects non-positive numeric comment selectors even with a valid targetId", async () => {
     const [token, section] = await Promise.all([
       signToken(userAId, [restWriteScope("community.comment")]),
-      prisma.section.findUniqueOrThrow({
+      fixturePrisma.section.findUniqueOrThrow({
         where: { jwId: DEV_SEED.section.jwId },
         select: { id: true },
       }),
@@ -503,7 +519,7 @@ describe("GraphQL authenticated mutations", () => {
     }
 
     await expect(
-      prisma.comment.count({
+      fixturePrisma.comment.count({
         where: { body: { in: bodies }, userId: userAId },
       }),
     ).resolves.toBe(0);
@@ -594,7 +610,7 @@ describe("GraphQL authenticated mutations", () => {
       },
     });
     await expect(
-      prisma.user.findUniqueOrThrow({
+      fixturePrisma.user.findUniqueOrThrow({
         where: { id: userAId },
         select: {
           calendarFeedToken: true,
@@ -609,7 +625,9 @@ describe("GraphQL authenticated mutations", () => {
       sectionSubscriptions: [],
     });
     await expect(
-      prisma.workspaceLinkPin.count({ where: { userId: userAId, slug } }),
+      fixturePrisma.workspaceLinkPin.count({
+        where: { userId: userAId, slug },
+      }),
     ).resolves.toBe(0);
   });
 
@@ -651,7 +669,7 @@ describe("GraphQL authenticated mutations", () => {
     createdCommentIds.push(commentId as string);
 
     await expect(
-      prisma.auditLog.findFirstOrThrow({
+      fixturePrisma.auditLog.findFirstOrThrow({
         where: { action: "comment_create", targetId: commentId },
         select: { ipAddress: true, metadata: true, userAgent: true },
       }),
@@ -721,7 +739,7 @@ describe("GraphQL authenticated mutations", () => {
     expectErrorCode(locked.payload, "FORBIDDEN");
     expect(locked.payload.errors?.[0]?.message).toBe("Comment is locked.");
 
-    await prisma.userSuspension.create({
+    await fixturePrisma.userSuspension.create({
       data: { userId: userBId, reason: marker },
     });
     const personalWrite = await execute(

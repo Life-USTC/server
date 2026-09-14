@@ -4,9 +4,9 @@ import {
   recordStaticImportState,
   STATIC_IMPORT_TRANSFORM_REVISION,
 } from "@/static-loader/import-state";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const prisma = createFixturePrisma();
 
 afterAll(() => disconnectTestPrisma(prisma));
 

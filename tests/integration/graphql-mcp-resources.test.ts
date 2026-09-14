@@ -3,7 +3,6 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
-import { prisma } from "@/lib/db/prisma";
 import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
@@ -536,7 +535,7 @@ describe("GraphQL MCP operations", () => {
           requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
-      expect(await prisma.todo.count({ where: { title } })).toBe(0);
+      expect(await fixtures.prisma.todo.count({ where: { title } })).toBe(0);
     } finally {
       await todoOnlyMcp.close();
     }
@@ -609,9 +608,9 @@ describe("GraphQL MCP operations", () => {
           requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
-      expect(await prisma.todo.count({ where: { title: blockedTitle } })).toBe(
-        0,
-      );
+      expect(
+        await fixtures.prisma.todo.count({ where: { title: blockedTitle } }),
+      ).toBe(0);
     } finally {
       await todoOnlyMcp.close();
     }

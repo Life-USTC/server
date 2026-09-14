@@ -2,7 +2,7 @@
 
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { ScheduleBuild } from "@/static-loader/mappers";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 vi.mock("bun:sqlite", () => ({ Database: class {} }));
 const { upsertAdminClasses } = await import("@/static-loader/import");
@@ -14,7 +14,7 @@ const { bulkUpsert, syncJoinPairs } = await import(
   "@/static-loader/database-writes"
 );
 
-const prisma = createTestPrisma();
+const prisma = createFixturePrisma();
 
 afterAll(async () => {
   await disconnectTestPrisma(prisma);

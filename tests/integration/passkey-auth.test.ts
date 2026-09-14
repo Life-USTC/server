@@ -1,5 +1,9 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const authOrigin = "http://localhost:3000";
 const createdUserIds: string[] = [];
@@ -30,7 +34,7 @@ function base64(bytes: Uint8Array) {
 
 async function createSessionCookie(userId: string, createdAt?: Date) {
   const token = crypto.randomUUID();
-  await prisma.session.create({
+  await fixturePrisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
@@ -69,24 +73,28 @@ async function repeatRequest(count: number, request: () => Promise<Response>) {
 describe.sequential("Better Auth passkey integration", () => {
   afterAll(async () => {
     if (createdAuditTargetIds.length > 0) {
-      await prisma.auditLog.deleteMany({
+      await fixturePrisma.auditLog.deleteMany({
         where: { targetId: { in: createdAuditTargetIds } },
       });
     }
-    await prisma.verificationToken.deleteMany({
+    await fixturePrisma.verificationToken.deleteMany({
       where: { identifier: { in: [...createdVerificationIdentifiers] } },
     });
     if (createdUserIds.length > 0) {
-      await prisma.user.deleteMany({
+      await fixturePrisma.user.deleteMany({
         where: { id: { in: createdUserIds } },
       });
     }
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
   it("keeps the Better Auth Passkey and legacy Authenticator models separate", async () => {
     const marker = crypto.randomUUID();
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `passkey-integration-${marker}@example.test`,
         name: "Passkey Integration",
@@ -98,7 +106,7 @@ describe.sequential("Better Auth passkey integration", () => {
     const passkeyId = `passkey-${marker}`;
     const passkeyCredentialId = `better-auth-credential-${marker}`;
     const legacyCredentialId = `legacy-credential-${marker}`;
-    await prisma.passkey.create({
+    await fixturePrisma.passkey.create({
       data: {
         id: passkeyId,
         name: "Integration passkey",
@@ -113,7 +121,7 @@ describe.sequential("Better Auth passkey integration", () => {
         aaguid: "00000000-0000-0000-0000-000000000000",
       },
     });
-    await prisma.authenticator.create({
+    await fixturePrisma.authenticator.create({
       data: {
         credentialID: legacyCredentialId,
         userId: user.id,
@@ -126,7 +134,7 @@ describe.sequential("Better Auth passkey integration", () => {
       },
     });
 
-    const storedUser = await prisma.user.findUniqueOrThrow({
+    const storedUser = await fixturePrisma.user.findUniqueOrThrow({
       where: { id: user.id },
       include: {
         passkeys: true,
@@ -142,18 +150,20 @@ describe.sequential("Better Auth passkey integration", () => {
     expect(storedUser.Authenticator).toHaveLength(1);
     expect(storedUser.Authenticator[0].credentialID).toBe(legacyCredentialId);
 
-    await prisma.user.delete({ where: { id: user.id } });
+    await fixturePrisma.user.delete({ where: { id: user.id } });
     createdUserIds.splice(createdUserIds.indexOf(user.id), 1);
-    expect(await prisma.passkey.count({ where: { id: passkeyId } })).toBe(0);
     expect(
-      await prisma.authenticator.count({
+      await fixturePrisma.passkey.count({ where: { id: passkeyId } }),
+    ).toBe(0);
+    expect(
+      await fixturePrisma.authenticator.count({
         where: { credentialID: legacyCredentialId },
       }),
     ).toBe(0);
   });
 
   it("matches the official Better Auth Passkey columns, indexes, and owner FK", async () => {
-    const columns = await prisma.$queryRaw<
+    const columns = await fixturePrisma.$queryRaw<
       Array<{
         columnName: string;
         dataType: string;
@@ -186,7 +196,7 @@ describe.sequential("Better Auth passkey integration", () => {
       { columnName: "aaguid", dataType: "text", nullable: "YES" },
     ]);
 
-    const indexes = await prisma.$queryRaw<Array<{ indexName: string }>>`
+    const indexes = await fixturePrisma.$queryRaw<Array<{ indexName: string }>>`
       SELECT indexname AS "indexName"
       FROM pg_indexes
       WHERE schemaname = 'public' AND tablename = 'Passkey'
@@ -198,7 +208,7 @@ describe.sequential("Better Auth passkey integration", () => {
       "Passkey_userId_idx",
     ]);
 
-    const foreignKeys = await prisma.$queryRaw<
+    const foreignKeys = await fixturePrisma.$queryRaw<
       Array<{ deleteAction: string; name: string; targetTable: string }>
     >`
       SELECT
@@ -248,7 +258,7 @@ describe.sequential("Better Auth passkey integration", () => {
 
   it("allows registration options only with an existing trusted session", async () => {
     const marker = crypto.randomUUID();
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `passkey-session-${marker}@example.test`,
         name: "Passkey Session",
@@ -297,7 +307,7 @@ describe.sequential("Better Auth passkey integration", () => {
 
   it("requires an authoritative recent session for passkey rename and delete", async () => {
     const marker = crypto.randomUUID();
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `passkey-sensitive-${marker}@example.test`,
         name: "Passkey Sensitive",
@@ -307,7 +317,7 @@ describe.sequential("Better Auth passkey integration", () => {
     createdUserIds.push(user.id);
     const passkeyId = `passkey-sensitive-${marker}`;
     createdAuditTargetIds.push(passkeyId);
-    await prisma.passkey.create({
+    await fixturePrisma.passkey.create({
       data: {
         id: passkeyId,
         name: "Original",
@@ -337,7 +347,7 @@ describe.sequential("Better Auth passkey integration", () => {
     });
     expect(staleRename.status).toBe(403);
     await expect(
-      prisma.passkey.findUniqueOrThrow({ where: { id: passkeyId } }),
+      fixturePrisma.passkey.findUniqueOrThrow({ where: { id: passkeyId } }),
     ).resolves.toMatchObject({ name: "Original" });
 
     const freshCookie = await createSessionCookie(user.id);
@@ -362,7 +372,9 @@ describe.sequential("Better Auth passkey integration", () => {
       body: JSON.stringify({ id: passkeyId }),
     });
     expect(staleDelete.status).toBe(403);
-    expect(await prisma.passkey.count({ where: { id: passkeyId } })).toBe(1);
+    expect(
+      await fixturePrisma.passkey.count({ where: { id: passkeyId } }),
+    ).toBe(1);
 
     const deletion = await authRequest("/passkey/delete-passkey", {
       method: "POST",
@@ -374,9 +386,11 @@ describe.sequential("Better Auth passkey integration", () => {
       body: JSON.stringify({ id: passkeyId }),
     });
     expect(deletion.status).toBe(200);
-    expect(await prisma.passkey.count({ where: { id: passkeyId } })).toBe(0);
+    expect(
+      await fixturePrisma.passkey.count({ where: { id: passkeyId } }),
+    ).toBe(0);
 
-    const audit = await prisma.auditLog.findMany({
+    const audit = await fixturePrisma.auditLog.findMany({
       where: { targetId: passkeyId },
       orderBy: { createdAt: "asc" },
       select: { action: true, outcome: true, targetId: true },

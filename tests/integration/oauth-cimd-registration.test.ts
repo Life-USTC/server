@@ -1,10 +1,13 @@
 import { resolve4, resolve6 } from "node:dns/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   restReadScope,
 } from "@/lib/oauth/constants";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 vi.mock("node:dns/promises", () => ({
   resolve4: vi.fn(),
@@ -73,11 +76,11 @@ describe.sequential("Better Auth CIMD registration", () => {
   });
 
   afterAll(async () => {
-    await prisma.oAuthClient.deleteMany({
+    await fixturePrisma.oAuthClient.deleteMany({
       where: { clientId: { in: createdClientIds } },
     });
     vi.unstubAllGlobals();
-    await prisma.$disconnect();
+    await Promise.all([fixturePrisma.$disconnect(), authPrisma.$disconnect()]);
   });
 
   it("rejects missing client_name without persisting the client", async () => {
@@ -95,7 +98,7 @@ describe.sequential("Better Auth CIMD registration", () => {
       error: "invalid_client",
     });
     await expect(
-      prisma.oAuthClient.findUnique({ where: { clientId } }),
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
     ).resolves.toBeNull();
   });
 
@@ -118,7 +121,7 @@ describe.sequential("Better Auth CIMD registration", () => {
         "DPoP-bound access tokens are not supported by this Bearer-only resource server",
     });
     await expect(
-      prisma.oAuthClient.findUnique({ where: { clientId } }),
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
     ).resolves.toBeNull();
   });
 
@@ -138,7 +141,7 @@ describe.sequential("Better Auth CIMD registration", () => {
     expect(response.status).toBe(400);
     expect(fetchMock).toHaveBeenCalledTimes(fetchCallsBefore);
     await expect(
-      prisma.oAuthClient.findUnique({ where: { clientId } }),
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
     ).resolves.toBeNull();
   });
 
@@ -167,7 +170,7 @@ describe.sequential("Better Auth CIMD registration", () => {
     expect(response.status, JSON.stringify(errorBody)).toBe(302);
     expect(response.headers.get("location")).toContain("/account/sign-in");
     await expect(
-      prisma.oAuthClient.findUnique({ where: { clientId } }),
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
     ).resolves.toMatchObject({
       applicationType: null,
       clientId,
@@ -212,7 +215,9 @@ describe.sequential("Better Auth CIMD registration", () => {
     }
     createdClientIds.push(body.client_id);
     await expect(
-      prisma.oAuthClient.findUnique({ where: { clientId: body.client_id } }),
+      fixturePrisma.oAuthClient.findUnique({
+        where: { clientId: body.client_id },
+      }),
     ).resolves.toMatchObject({
       applicationType: "web",
       clientId: body.client_id,

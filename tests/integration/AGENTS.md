@@ -4,7 +4,9 @@ MCP in-process harness + REST Playwright contracts. Full recipes: root
 `AGENTS.md` (same shape as CI `ci:integration`).
 
 ```bash
-bun run db:migrate:deploy && bunx prisma db seed
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
+export ALLOW_DATABASE_SEED=true
+source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 ```
@@ -31,7 +33,10 @@ tests/integration/mcp/
   `context.client` / `context.userId` at call time (don't destructure early)
 - `createSubscribedIsolatedMcpToolTestContext()` — isolated + seed section
 - `createEphemeralMcpUser()` — single-`it` user; call `close()` after cleanup
-- Non-MCP DB tests: `createTestPrisma()` from `tests/shared/prisma.ts`
+- App queries: `createTestPrisma()` from `tests/shared/prisma.ts` (restricted role).
+- Fixture setup, cleanup, and authoritative DB assertions: `createFixturePrisma()`.
+  Never pass that owner client into application services or add user context around
+  a service call to compensate for missing context inside the application.
 
 `fileParallelism` is off — auth row-count tests flake under concurrent session
 writes. Prefer file-level isolation for mutating suites.

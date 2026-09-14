@@ -39,7 +39,8 @@ write_status() {
   local outcome="$1"
   local exit_code="$2"
   local detail="$3"
-  local temporary_status="${worker_status}.tmp"
+  local temporary_status
+  temporary_status="$(mktemp "${worker_status}.XXXXXX")"
 
   {
     printf 'outcome=%s\n' "$outcome"
@@ -80,6 +81,8 @@ stop_health_monitor() {
 }
 
 request_worker_shutdown() {
+  # Process-tree shutdown can deliver TERM more than once.
+  trap '' INT TERM
   shutdown_requested=true
   # Playwright may terminate the webServer process tree while the child is
   # still unwinding. Record the expected teardown immediately so a forced

@@ -1,7 +1,10 @@
 import { expect, type Page } from "@playwright/test";
-import { stringify, unflatten } from "devalue";
+import { stringify } from "devalue";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { WEATHER_LOCATIONS } from "@/features/weather/server/weather-types";
+import { buildSocialMetadata } from "@/lib/social-metadata";
+import enUsMessages from "../../../messages/en-us.json" with { type: "json" };
+import zhCnMessages from "../../../messages/zh-cn.json" with { type: "json" };
 import { gotoAndWaitForReady } from "./page-ready";
 
 export async function showWeatherFixture(page: Page) {
@@ -48,20 +51,45 @@ export async function showWeatherFixture(page: Page) {
   });
 
   await gotoAndWaitForReady(page, "/");
-  // Replace the weather page read model only; keep real routing, shell, and components.
+  const locale =
+    (await page.locator("html").getAttribute("lang"))?.toLowerCase() === "en-us"
+      ? "en-us"
+      : "zh-cn";
+  const messages = locale === "en-us" ? enUsMessages : zhCnMessages;
+  const weatherCopy = messages.weather;
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: "/catalog/weather",
+    origin: new URL(page.url()).origin,
+    locale,
+    title: `${weatherCopy.title} - Life@USTC`,
+    description: weatherCopy.description,
+    imageAlt: messages.metadata.social.imageAlt,
+    card: { label: locale === "zh-cn" ? "CAMPUS · 天气" : "WEATHER" },
+  });
+  // The root layout is already loaded. Supply only the weather page's data
+  // node; chart interaction tests must not wait for real weather providers.
+  // The separate page contract tests exercise the real server load.
   await page.route("**/catalog/weather/__data.json*", async (route) => {
-    const response = await route.fetch();
-    const payload = await response.json();
-    let replaced = false;
-    for (const node of payload.nodes ?? []) {
-      if (node?.type !== "data" || !Array.isArray(node.data)) continue;
-      const data = unflatten(node.data) as Record<string, unknown>;
-      if (!("locations" in data)) continue;
-      node.data = JSON.parse(stringify({ ...data, locations }));
-      replaced = true;
-    }
-    expect(replaced).toBe(true);
-    await route.fulfill({ response, json: payload });
+    await route.fulfill({
+      json: {
+        type: "data",
+        nodes: [
+          { type: "skip" },
+          {
+            type: "data",
+            data: JSON.parse(
+              stringify({
+                copy: { weather: weatherCopy },
+                locale,
+                locations,
+                socialMetadata,
+              }),
+            ),
+            uses: { parent: 1 },
+          },
+        ],
+      },
+    });
   });
   if ((page.viewportSize()?.width ?? 1280) < 768) {
     await page.locator('[data-slot="sidebar-trigger"]').click();

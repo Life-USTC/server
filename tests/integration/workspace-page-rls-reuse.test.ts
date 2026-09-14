@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadSignedWorkspacePageData } from "@/features/workspace/server/workspace-page-load-signed";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import {
-  createTestPrisma,
+  createFixturePrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../shared/prisma";
@@ -10,11 +11,14 @@ describe("signed workspace independent RLS contexts", () => {
   let testPrisma: TestPrismaClient;
 
   beforeAll(() => {
-    testPrisma = createTestPrisma();
+    testPrisma = createFixturePrisma();
   });
 
   afterAll(async () => {
-    await disconnectTestPrisma(testPrisma);
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(testPrisma),
+    ]);
   });
 
   it("keeps overview and calendar data semantics across short RLS reads", async () => {

@@ -29,35 +29,45 @@ export async function loadUserProfileContributionDays(
   startAt: Date,
 ) {
   const rows = await prisma.$queryRaw<ContributionDayRow[]>`
-    SELECT
-      to_char(
-        (events."eventAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai',
-        'YYYY-MM-DD'
-      ) AS "date",
-      COUNT(*) AS "count"
-    FROM (
-      SELECT "createdAt" AS "eventAt"
-      FROM "Comment"
-      WHERE "userId" = ${userId}
-        AND "createdAt" >= ${startAt}
-        AND "status" IN ('active', 'softbanned')
+    WITH contribution_days AS (
+      SELECT comment_stats."date", comment_stats."count"
+      FROM public.get_public_profile_comment_contribution_days(
+        ${userId},
+        ${startAt}
+      ) AS comment_stats
 
       UNION ALL
 
-      SELECT upload_stats."createdAt" AS "eventAt"
+      SELECT
+        to_char(
+          (upload_stats."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai',
+          'YYYY-MM-DD'
+        ) AS "date",
+        COUNT(*)::bigint AS "count"
       FROM public.get_public_profile_upload_stats(${userId}, ${startAt}) AS upload_stats
       WHERE upload_stats."createdAt" IS NOT NULL
+      GROUP BY 1
 
       UNION ALL
 
-      SELECT "createdAt" AS "eventAt"
-      FROM "Homework"
-      WHERE "createdById" = ${userId}
-        AND "createdAt" >= ${startAt}
-        AND "deletedAt" IS NULL
-    ) AS events
-    GROUP BY 1
-    ORDER BY 1
+      SELECT
+        to_char(
+          (homework."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Shanghai',
+          'YYYY-MM-DD'
+        ) AS "date",
+        COUNT(*)::bigint AS "count"
+      FROM "Homework" AS homework
+      WHERE homework."createdById" = ${userId}
+        AND homework."createdAt" >= ${startAt}
+        AND homework."deletedAt" IS NULL
+      GROUP BY 1
+    )
+    SELECT
+      "date",
+      SUM("count")::bigint AS "count"
+    FROM contribution_days
+    GROUP BY "date"
+    ORDER BY "date"
   `;
 
   return rows.map(({ count, date }) => ({ count: Number(count), date }));

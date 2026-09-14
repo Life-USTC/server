@@ -1,6 +1,10 @@
 // Merged from mcp-12-subscriptions + mcp-18-calendar-subscriptions
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  createFixturePrisma,
+  disconnectTestPrisma,
+} from "../../../shared/prisma";
 import {
   assertSubscriptionAction,
   assertSubscriptionBrief,
@@ -78,6 +82,262 @@ describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
 const context = fixtures.createSubscribedIsolatedMcpToolTestContext({
   emailPrefix: "mcp-calendar-subscriptions",
   name: "MCP Calendar Subscriptions",
+});
+
+const rlsFixturePrisma = createFixturePrisma();
+
+describe("workspace subscriptions through the restricted MCP runtime", () => {
+  let client: Awaited<ReturnType<typeof createMcpHarness>> | undefined;
+  let userId = "";
+  let otherUserId = "";
+  let activeSectionId = 0;
+  let activeSectionJwId = 0;
+  let retiredSectionId = 0;
+  let retiredSectionJwId = 0;
+  let courseId = 0;
+  let semesterId = 0;
+
+  beforeAll(async () => {
+    const suffix = crypto.randomUUID();
+    // Keep custom catalog rows isolated from shared seed rows. The fixture
+    // client is the function-owner connection; MCP itself uses DATABASE_URL.
+    const numericMarker =
+      2_000_000_000 +
+      (Date.now() % 10_000_000) * 2 +
+      Math.trunc(Math.random() * 1_000);
+    const fixture = await rlsFixturePrisma.$transaction(async (tx) => {
+      const semester = await tx.semester.create({
+        data: {
+          jwId: numericMarker,
+          code: `[integration-test] mcp-rls-semester-${suffix}`,
+          nameCn: `[integration-test] MCP RLS semester ${suffix}`,
+          startDate: new Date("2026-01-01T00:00:00.000Z"),
+          endDate: new Date("2027-01-01T00:00:00.000Z"),
+        },
+        select: { id: true },
+      });
+      const course = await tx.course.create({
+        data: {
+          jwId: numericMarker + 1,
+          code: `[integration-test] MCP-RLS-${suffix}`,
+          nameCn: `[integration-test] MCP RLS course ${suffix}`,
+        },
+        select: { id: true },
+      });
+      const [activeSection, retiredSection] = await Promise.all([
+        tx.section.create({
+          data: {
+            jwId: numericMarker + 2,
+            code: `[integration-test] MCP-RLS-active-${suffix}`,
+            courseId: course.id,
+            semesterId: semester.id,
+          },
+          select: { id: true, jwId: true },
+        }),
+        tx.section.create({
+          data: {
+            jwId: numericMarker + 3,
+            code: `[integration-test] MCP-RLS-retired-${suffix}`,
+            courseId: course.id,
+            semesterId: semester.id,
+            retiredAt: new Date("2026-09-01T00:00:00.000Z"),
+          },
+          select: { id: true, jwId: true },
+        }),
+      ]);
+      const user = await tx.user.create({
+        data: {
+          email: `integration-mcp-subscription-rls-${suffix}@example.test`,
+          name: "MCP subscription RLS owner",
+        },
+        select: { id: true },
+      });
+      const otherUser = await tx.user.create({
+        data: {
+          email: `integration-mcp-subscription-rls-other-${suffix}@example.test`,
+          name: "MCP subscription RLS other owner",
+        },
+        select: { id: true },
+      });
+      await tx.userSectionSubscription.create({
+        data: {
+          userId: otherUser.id,
+          sectionId: activeSection.id,
+          kind: "teaching_assistant",
+        },
+      });
+      return {
+        activeSection,
+        courseId: course.id,
+        otherUserId: otherUser.id,
+        retiredSection,
+        semesterId: semester.id,
+        userId: user.id,
+      };
+    });
+
+    activeSectionId = fixture.activeSection.id;
+    activeSectionJwId = fixture.activeSection.jwId;
+    courseId = fixture.courseId;
+    otherUserId = fixture.otherUserId;
+    retiredSectionId = fixture.retiredSection.id;
+    retiredSectionJwId = fixture.retiredSection.jwId;
+    semesterId = fixture.semesterId;
+    userId = fixture.userId;
+    client = await createMcpHarness(userId);
+  });
+
+  afterAll(async () => {
+    await client?.close();
+    await rlsFixturePrisma.$transaction(async (tx) => {
+      await tx.user.deleteMany({
+        where: { id: { in: [userId, otherUserId] } },
+      });
+      await tx.section.deleteMany({
+        where: { id: { in: [activeSectionId, retiredSectionId] } },
+      });
+      await tx.course.deleteMany({ where: { id: courseId } });
+      await tx.semester.deleteMany({ where: { id: semesterId } });
+    });
+    await disconnectTestPrisma(rlsFixturePrisma);
+  });
+
+  it("runs subscribe/list/remove/list under RLS and preserves other owners", async () => {
+    if (!client) throw new Error("MCP fixture is not ready");
+
+    const add = await client.call<{
+      action?: string;
+      sectionJwId?: number;
+      success?: boolean;
+      subscription?: {
+        sections?: Array<{ jwId?: number; kind?: string }>;
+      } | null;
+    }>("workspace_subscription_add", {
+      jwId: activeSectionJwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+    expect(add).toMatchObject({
+      action: "subscribed",
+      sectionJwId: activeSectionJwId,
+      success: true,
+      subscription: {
+        sections: [
+          expect.objectContaining({
+            jwId: activeSectionJwId,
+            kind: "regular",
+          }),
+        ],
+      },
+    });
+
+    await rlsFixturePrisma.userSectionSubscription.create({
+      data: {
+        userId,
+        sectionId: retiredSectionId,
+        kind: "teaching_assistant",
+      },
+    });
+
+    const listBeforeRemove = await client.call<{
+      sections?: Array<{ jwId?: number; kind?: string }>;
+      success?: boolean;
+    }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
+    expect(listBeforeRemove.success).toBe(true);
+    expect(
+      listBeforeRemove.sections
+        ?.map(({ jwId, kind }) => ({ jwId, kind }))
+        .sort((left, right) => (left.jwId ?? 0) - (right.jwId ?? 0)),
+    ).toEqual([
+      { jwId: activeSectionJwId, kind: "regular" },
+      { jwId: retiredSectionJwId, kind: "teaching_assistant" },
+    ]);
+
+    const removeActive = await client.call<{
+      action?: string;
+      sectionJwId?: number;
+      success?: boolean;
+      subscription?: {
+        sections?: Array<{ jwId?: number; kind?: string }>;
+      } | null;
+    }>("workspace_subscription_remove", {
+      jwId: activeSectionJwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+    expect(removeActive).toMatchObject({
+      action: "unsubscribed",
+      sectionJwId: activeSectionJwId,
+      success: true,
+      subscription: {
+        sections: [
+          expect.objectContaining({
+            jwId: retiredSectionJwId,
+            kind: "teaching_assistant",
+          }),
+        ],
+      },
+    });
+
+    const repeatedRemove = await client.call<{
+      action?: string;
+      sectionJwId?: number;
+      success?: boolean;
+    }>("workspace_subscription_remove", {
+      jwId: activeSectionJwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+    expect(repeatedRemove).toMatchObject({
+      action: "not_subscribed",
+      sectionJwId: activeSectionJwId,
+      success: true,
+    });
+
+    const listAfterActiveRemove = await client.call<{
+      sections?: Array<{ jwId?: number; kind?: string }>;
+    }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
+    expect(
+      listAfterActiveRemove.sections?.map(({ jwId, kind }) => ({
+        jwId,
+        kind,
+      })),
+    ).toEqual([{ jwId: retiredSectionJwId, kind: "teaching_assistant" }]);
+
+    const removeRetired = await client.call<{
+      action?: string;
+      sectionJwId?: number;
+      success?: boolean;
+    }>("workspace_subscription_remove", {
+      jwId: retiredSectionJwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+    expect(removeRetired).toMatchObject({
+      action: "unsubscribed",
+      sectionJwId: retiredSectionJwId,
+      success: true,
+    });
+
+    const listAfterAllRemoves = await client.call<{
+      sections?: unknown[];
+    }>("workspace_subscription_list", { locale: "zh-cn", mode: "full" });
+    expect(listAfterAllRemoves.sections).toEqual([]);
+
+    await expect(
+      rlsFixturePrisma.userSectionSubscription.findMany({
+        where: { userId },
+      }),
+    ).resolves.toEqual([]);
+    await expect(
+      rlsFixturePrisma.userSectionSubscription.findMany({
+        where: { userId: otherUserId },
+        select: { sectionId: true, kind: true },
+      }),
+    ).resolves.toEqual([
+      { sectionId: activeSectionId, kind: "teaching_assistant" },
+    ]);
+  });
 });
 
 describe("个人日历订阅 — 读取与批量订阅", () => {

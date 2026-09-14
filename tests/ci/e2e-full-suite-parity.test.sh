@@ -52,10 +52,8 @@ grep -q '"e2e:visual": "VISUAL_REGRESSION=1 playwright test visual-matrix"' \
   "${repo_root}/package.json" ||
   fail 'package.json e2e:visual must remain a direct local Playwright command'
 
-grep -q 'bun run db:migrate:deploy' "$orchestration_script" ||
-  fail "orchestration script must migrate before each shard"
-grep -q 'bunx prisma db seed' "$orchestration_script" ||
-  fail "orchestration script must seed before each shard"
+grep -q 'source tests/ci/setup-runtime-database.sh' "$orchestration_script" ||
+  fail "orchestration script must prepare restricted roles before each shard"
 grep -q 'bash tests/ci/e2e-run-shard.sh' "$orchestration_script" ||
   fail "orchestration script must use the infrastructure-aware shard runner"
 
@@ -69,7 +67,7 @@ grep -q 'E2E_REPORT_ROOT=' "$parallel_shard_script" ||
   fail "parallel runner must isolate Playwright reports per shard"
 grep -q 'PLAYWRIGHT_BASE_URL=' "$parallel_shard_script" ||
   fail "parallel runner must expose its shard URL to E2E helpers"
-grep -q 'CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=' "$parallel_shard_script" ||
+grep -q 'source tests/ci/setup-runtime-database.sh' "$parallel_shard_script" ||
   fail "parallel runner must route the Worker to its shard database"
 grep -q 'bash tests/ci/e2e-run-shard.sh' "$parallel_shard_script" ||
   fail "parallel runner must use the infrastructure-aware shard runner"
@@ -93,10 +91,8 @@ fi
 
 job_phase_script="${repo_root}/.github/workflows/db-backed-bun-job.yml"
 visual_script="${repo_root}/tests/ci/visual-regression.test.sh"
-grep -q 'bun run db:migrate:deploy' "$job_phase_script" ||
-  fail "db-backed-bun-job.yml must migrate before E2E shards"
-grep -q 'bunx prisma db seed' "$job_phase_script" ||
-  fail "db-backed-bun-job.yml must seed before E2E shards"
+grep -q 'source tests/ci/setup-runtime-database.sh' "$job_phase_script" ||
+  fail "DB-backed jobs must prepare restricted runtime roles"
 grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD"' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must use the infrastructure-aware shard runner"
 grep -q 'bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts' \
@@ -128,10 +124,8 @@ grep -Fq 'outcome=(startup_failure|worker_crash|health_failure)' "$shard_runner_
   fail "shard runner must classify only confirmed Worker failures"
 grep -q 'playwright test --shard=' "$shard_runner_script" ||
   fail "shard runner must execute the requested Playwright shard"
-grep -q 'prisma migrate reset --force' "$shard_runner_script" ||
-  fail "CI shard retries must reset the disposable database before replay"
-grep -q 'prisma db seed' "$shard_runner_script" ||
-  fail "CI shard retries must seed the reset database before replay"
+grep -q 'source tests/ci/setup-runtime-database.sh reset' "$shard_runner_script" ||
+  fail "CI retries must restore data and restricted roles before replay"
 grep -q 'wrangler.log' "$worker_server_script" ||
   fail "Worker wrapper must capture Wrangler logs"
 grep -q 'bash tests/ci/e2e-worker-server.test.sh' "$job_phase_script" ||

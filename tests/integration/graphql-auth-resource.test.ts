@@ -3,7 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { revokeUserOAuthAuthorization } from "@/features/oauth/server/user-authorizations.server";
 import { resolveScopedApiUserId } from "@/lib/auth/api-auth";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { resolveGraphqlPrincipal } from "@/lib/graphql/auth";
 import { authorizeVerifiedMcpAccessToken } from "@/lib/mcp/auth-token-verification";
 import {
@@ -12,6 +13,9 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/oauth/resource-urls";
 import { restReadScope } from "@/lib/oauth/scope-registry";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const marker = crypto.randomUUID();
 const clientId = `graphql-auth-${marker}`;
@@ -43,7 +47,7 @@ function authorizeMcpToken(token: string) {
 
 describe.sequential("GraphQL OAuth resource isolation", () => {
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `graphql-auth-${marker}@example.test`,
         name: "GraphQL auth integration",
@@ -51,7 +55,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
       select: { id: true },
     });
     userId = user.id;
-    const client = await prisma.oAuthClient.create({
+    const client = await fixturePrisma.oAuthClient.create({
       data: {
         clientId,
         consents: {
@@ -77,9 +81,13 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
   });
 
   afterAll(async () => {
-    await prisma.oAuthClient.deleteMany({ where: { clientId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    await fixturePrisma.oAuthClient.deleteMany({ where: { clientId } });
+    await fixturePrisma.user.deleteMany({ where: { id: userId } });
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
   it("接受 GraphQL-bound JWT principal", async () => {
@@ -144,7 +152,7 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
     await expect(
       revokeUserOAuthAuthorization(userId, consentId),
     ).resolves.toMatchObject({ ok: true });
-    const replacementConsent = await prisma.oAuthConsent.create({
+    const replacementConsent = await fixturePrisma.oAuthConsent.create({
       data: {
         clientId,
         scopes: [restReadScope("account.profile")],

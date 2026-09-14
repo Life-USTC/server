@@ -6,12 +6,10 @@ import {
 import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "personal preference PostgreSQL row security",

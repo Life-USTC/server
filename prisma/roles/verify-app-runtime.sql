@@ -31,7 +31,8 @@ WITH protected(table_name) AS (
     ('HomeworkCompletion'),
     ('Upload'),
     ('UploadPending'),
-    ('UserSectionSubscription')
+    ('UserSectionSubscription'),
+    ('UserUstcIdentity')
 ),
 audited_schemas AS (
   SELECT oid, nspname, nspowner, nspacl
@@ -533,6 +534,7 @@ checks(name, passed) AS (
     AND NOT EXISTS (SELECT 1 FROM public."Upload" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UploadPending" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UserSectionSubscription" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."UserUstcIdentity" LIMIT 1)
 )
 SELECT
   jsonb_object_agg(name, COALESCE(passed, false) ORDER BY name)::text AS report,

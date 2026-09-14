@@ -7,12 +7,16 @@ import {
 } from "@/features/uploads/server/upload-service";
 import type { CloudflareR2Bucket } from "@/lib/adapters/cloudflare-runtime";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
 import { createMcpHarness, type McpHarness } from "./mcp/_harness";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-remaining-${Date.now()}`;
@@ -85,11 +89,17 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required for GraphQL integration tests");
 }
+const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
+if (!authDatabaseUrl) {
+  throw new Error(
+    "AUTH_DATABASE_URL is required for GraphQL integration tests",
+  );
+}
 const runtimeEnv = {
   APP_PUBLIC_ORIGIN: "http://localhost:3000",
   DATABASE_URL: databaseUrl,
   HYPERDRIVE: { connectionString: databaseUrl },
-  HYPERDRIVE_AUTH: { connectionString: databaseUrl },
+  HYPERDRIVE_AUTH: { connectionString: authDatabaseUrl },
   NODE_ENV: "test",
   R2_UPLOADS: bucket,
   USER_BATCH_WRITE_RATE_LIMITER: allowMutation,
@@ -150,19 +160,19 @@ async function signToken(scopes: string[]) {
 }
 
 beforeAll(async () => {
-  const section = await prisma.section.findUniqueOrThrow({
+  const section = await fixturePrisma.section.findUniqueOrThrow({
     where: { jwId: DEV_SEED.section.jwId },
     select: { id: true },
   });
   const [user, otherUser] = await Promise.all([
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-owner@example.test`,
         name: "GraphQL Remaining Owner",
       },
       select: { id: true },
     }),
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-other@example.test`,
         name: "GraphQL Remaining Other",
@@ -173,7 +183,7 @@ beforeAll(async () => {
   userId = user.id;
   otherUserId = otherUser.id;
 
-  const oauthClient = await prisma.oAuthClient.create({
+  const oauthClient = await fixturePrisma.oAuthClient.create({
     data: {
       clientId: oauthClientId,
       consents: {
@@ -195,7 +205,7 @@ beforeAll(async () => {
   if (!grantId) throw new Error("Expected an OAuth consent fixture");
 
   const [ownedComment, otherComment, mcpComment] = await Promise.all([
-    prisma.comment.create({
+    fixturePrisma.comment.create({
       data: {
         body: `${marker} owned`,
         sectionId: section.id,
@@ -203,7 +213,7 @@ beforeAll(async () => {
       },
       select: { id: true },
     }),
-    prisma.comment.create({
+    fixturePrisma.comment.create({
       data: {
         body: `${marker} other`,
         sectionId: section.id,
@@ -211,7 +221,7 @@ beforeAll(async () => {
       },
       select: { id: true },
     }),
-    prisma.comment.create({
+    fixturePrisma.comment.create({
       data: {
         body: `${marker} mcp`,
         sectionId: section.id,
@@ -230,7 +240,7 @@ afterAll(async () => {
   try {
     await mcp?.close();
   } finally {
-    await prisma.auditLog.deleteMany({
+    await fixturePrisma.auditLog.deleteMany({
       where: {
         targetId: {
           in: [
@@ -241,17 +251,23 @@ afterAll(async () => {
         },
       },
     });
-    await prisma.comment.deleteMany({
+    await fixturePrisma.comment.deleteMany({
       where: { id: { in: [ownedCommentId, otherCommentId, mcpCommentId] } },
     });
-    await prisma.uploadPending.deleteMany({ where: { userId } });
-    await prisma.upload.deleteMany({ where: { userId } });
-    await prisma.workspaceLinkPin.deleteMany({ where: { userId } });
-    await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
-    await prisma.user.deleteMany({
+    await fixturePrisma.uploadPending.deleteMany({ where: { userId } });
+    await fixturePrisma.upload.deleteMany({ where: { userId } });
+    await fixturePrisma.workspaceLinkPin.deleteMany({ where: { userId } });
+    await fixturePrisma.oAuthClient.deleteMany({
+      where: { clientId: oauthClientId },
+    });
+    await fixturePrisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },
     });
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   }
 });
 
@@ -505,7 +521,7 @@ describe.sequential("remaining GraphQL and MCP mutation parity", () => {
     });
     expect(bucket.deletedKeys).toContain(session.key);
     await expect(
-      prisma.upload.findUnique({ where: { id: completedUploadId } }),
+      fixturePrisma.upload.findUnique({ where: { id: completedUploadId } }),
     ).resolves.toBeNull();
   });
 });

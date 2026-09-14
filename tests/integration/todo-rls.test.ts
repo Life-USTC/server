@@ -39,15 +39,45 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("defaults to no rows when user context is missing", async () => {
-      await expect(prisma.todo.findMany()).resolves.toEqual([]);
-      await expect(
-        prisma.todo.create({
-          data: {
-            title: "[rls-test] missing context",
-            userId: firstUserId,
-          },
+      const title = `[rls-test] missing context ${crypto.randomUUID()}`;
+      const created = await withUserDbContext(firstUserId, (tx) =>
+        tx.todo.create({
+          data: { title, userId: firstUserId },
+          select: { id: true },
         }),
-      ).rejects.toThrow();
+      );
+
+      try {
+        await expect(
+          withUserDbContext(firstUserId, (tx) =>
+            tx.todo.findUnique({
+              where: { id: created.id },
+              select: { id: true, userId: true },
+            }),
+          ),
+        ).resolves.toEqual({ id: created.id, userId: firstUserId });
+        await expect(
+          prisma.todo.findMany({ where: { id: created.id } }),
+        ).resolves.toEqual([]);
+        await expect(
+          prisma.todo.updateMany({
+            where: { id: created.id },
+            data: { completed: true },
+          }),
+        ).resolves.toEqual({ count: 0 });
+        await expect(
+          prisma.todo.deleteMany({ where: { id: created.id } }),
+        ).resolves.toEqual({ count: 0 });
+        await expect(
+          prisma.todo.create({
+            data: { title: `${title} direct`, userId: firstUserId },
+          }),
+        ).rejects.toThrow();
+      } finally {
+        await withUserDbContext(firstUserId, (tx) =>
+          tx.todo.deleteMany({ where: { title: { startsWith: title } } }),
+        );
+      }
     });
 
     it("rolls back a failed action and returns the pooled client to fail-closed state", async () => {

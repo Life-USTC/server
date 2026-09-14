@@ -173,7 +173,7 @@
             "method": "PATCH",
             "returns": "{ success: Boolean, todo: TodoItem }",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {
@@ -188,7 +188,10 @@
           {
             "path": "/api/workspace/todos/[id]",
             "method": "DELETE",
-            "returns": "{ success: Boolean }"
+            "returns": "{ success: Boolean }",
+            "notes": [
+              "Missing todos and other users' todos hidden by row security return 404, including for admin callers."
+            ]
           },
           {
             "path": "/api/workspace/todos/batch",
@@ -213,7 +216,7 @@
             "returns": "{ success: Boolean, todo: TodoItem }",
             "rest_equivalent": "PATCH /api/workspace/todos/[id]",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {
