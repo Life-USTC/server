@@ -40,12 +40,15 @@ function label(group: string, value: string) {
   return typeof translated === "string" ? translated : value;
 }
 
-function queryHref(overrides: Record<string, string | undefined> = {}) {
+function queryHref(
+  currentData: PageData,
+  overrides: Record<string, string | undefined> = {},
+) {
   const params = new URLSearchParams();
-  params.set("days", String(data.days));
+  params.set("days", String(currentData.days));
   for (const [key, value] of Object.entries({
-    ...data.filters,
-    errors: data.showErrors ? "1" : undefined,
+    ...currentData.filters,
+    errors: currentData.showErrors ? "1" : undefined,
     ...overrides,
   })) {
     if (value) params.set(key, value);
@@ -53,8 +56,8 @@ function queryHref(overrides: Record<string, string | undefined> = {}) {
   return `/admin/experience?${params.toString()}`;
 }
 
-function windowLabel(days: number) {
-  return data.copy.experience.days.replace("{days}", String(days));
+function windowLabel(days: number, template: string) {
+  return template.replace("{days}", String(days));
 }
 
 function metric(value: number | null) {
@@ -95,10 +98,10 @@ function dateLabel(value: string) {
         <nav class="flex flex-wrap gap-2" aria-label={data.copy.experience.window}>
           {#each [7, 30, 90] as days}
             <Button
-              href={queryHref({ days: String(days) })}
+              href={queryHref(data, { days: String(days) })}
               aria-current={data.days === days ? "page" : undefined}
               variant={data.days === days ? "default" : "outline"}
-            >{windowLabel(days)}</Button>
+            >{windowLabel(days, data.copy.experience.days)}</Button>
           {/each}
         </nav>
       </div>
@@ -185,7 +188,7 @@ function dateLabel(value: string) {
     </Empty.Root>
     <Button
       class="w-fit"
-      href={queryHref({ errors: data.showErrors ? undefined : "1" })}
+      href={queryHref(data, { errors: data.showErrors ? undefined : "1" })}
       variant="outline"
     >
       {data.showErrors
@@ -209,7 +212,7 @@ function dateLabel(value: string) {
           <h2 id="experience-matrix-title" class="text-lg font-semibold">{data.copy.experience.matrix}</h2>
           <p class="text-sm text-muted-foreground">{data.copy.experience.matrixDescription}</p>
         </div>
-        <Button href={queryHref({ errors: data.showErrors ? undefined : "1" })} variant="outline">
+        <Button href={queryHref(data, { errors: data.showErrors ? undefined : "1" })} variant="outline">
           {data.showErrors ? data.copy.experience.hideErrors : data.copy.experience.showErrors}
         </Button>
       </div>
