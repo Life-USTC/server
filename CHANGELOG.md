@@ -1,3 +1,10 @@
+## [1.109.1](https://github.com/Life-USTC/server/compare/v1.109.0...v1.109.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* align client contracts and MCP calendar scopes ([#1040](https://github.com/Life-USTC/server/issues/1040)) ([5a67ad8](https://github.com/Life-USTC/server/commit/5a67ad82451830574917a572e0b32409578b3f02))
+
 # [1.109.0](https://github.com/Life-USTC/server/compare/v1.108.0...v1.109.0) (2026-09-13)
 
 
