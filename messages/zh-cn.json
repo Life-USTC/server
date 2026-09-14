@@ -632,6 +632,9 @@
     "cannotDeleteActiveVersion": "不能删除当前激活版本"
   },
   "adminAudit": {
+    "operationsTab": "操作",
+    "runtimeTab": "运行异常",
+    "auditTab": "审计",
     "title": "操作与异常审查",
     "subtitle": "查看已记录的审计操作、功能异常事件和运行时异常信号。本页不是逐用户浏览历史。",
     "filters": "筛选条件",
@@ -663,6 +666,9 @@
     "page": "本批 {shown} 条，共 {total} 条"
   },
   "adminAnalytics": {
+    "featureTab": "功能使用",
+    "usersTab": "用户",
+    "historyTab": "审计统计",
     "title": "统计数据",
     "subtitle": "每日趋势、功能与渠道细分，以及已观测功能的使用次数和延迟。不提供逐用户浏览轨迹。",
     "window": "统计周期",
@@ -705,6 +711,7 @@
     "noData": "所选周期内暂无聚合数据。"
   },
   "adminExperience": {
+    "advancedFilters": "高级筛选",
     "title": "功能体验",
     "subtitle": "按协议、界面、认证方式和结果查看已记录的功能操作。",
     "window": "统计周期",

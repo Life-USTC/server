@@ -22,10 +22,11 @@ for (const path of ["/admin/audit", "/admin/analytics"] as const) {
 test("/admin/audit 支持安全字段筛选且不显示网络或会话字段", async ({
   page,
 }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/audit");
+  await signInAsDevAdmin(page, "/admin/audit?admin_tab=audit");
   await expect(
     page.getByRole("heading", {
       name: /操作与异常日志|Operations and Issues/i,
+      level: 1,
     }),
   ).toBeVisible();
   await expect(
@@ -34,8 +35,8 @@ test("/admin/audit 支持安全字段筛选且不显示网络或会话字段", a
       .locator("tbody"),
   ).not.toContainText(/session \/ [A-Za-z0-9_-]+/);
   await page
-    .getByText(/更多筛选|More filters|高级筛选|Advanced filters/i, {
-      exact: true,
+    .getByRole("button", {
+      name: /更多筛选|More filters|高级筛选|Advanced filters/i,
     })
     .click();
   await page.getByLabel(/操作人 ID|Actor ID/i).fill("e2e-user-admin");
@@ -53,9 +54,10 @@ test("/admin/analytics 只展示聚合维度并支持统计周期", async ({
   await signInAsDevAdmin(page, "/admin/analytics");
   await page.getByRole("link", { name: /最近 7 天|Last 7 days/i }).click();
   await expect(page).toHaveURL(/days=7/);
+  await expect(page.locator("#telemetry-operations-title")).toBeVisible();
   await expect(
-    page.getByText(/逐用户浏览轨迹|per-user browsing trails/i),
-  ).toBeVisible();
+    page.getByRole("tab", { name: /功能使用|Features/i }),
+  ).toHaveAttribute("aria-selected", "true");
   await captureStepScreenshot(page, testInfo, "admin-analytics/window");
 });
 

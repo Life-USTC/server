@@ -38,7 +38,8 @@ const formatDate = new Intl.DateTimeFormat(data.locale, {
 
 let auditFiltersOpen = false;
 
-$: requestedTab = $appPage.url.searchParams.get("admin_tab");
+$: requestedTab =
+  $appPage.state.adminAuditTab ?? $appPage.url.searchParams.get("admin_tab");
 $: activeTab = isAdminTab(requestedTab) ? requestedTab : "operations";
 $: hasAdvancedAuditFilters = Boolean(
   data.filters.actor ||
@@ -83,7 +84,7 @@ function auditHref(current: PageData, cursor?: string) {
   for (const [key, value] of Object.entries(issueQuery(current.issues))) {
     if (value) url.searchParams.set(key, value);
   }
-  url.searchParams.set("admin_tab", activeTab);
+  url.searchParams.set("admin_tab", "audit");
   return `${url.pathname}${url.search}`;
 }
 
@@ -92,7 +93,7 @@ function auditClearHref(current: PageData) {
   for (const [key, value] of Object.entries(issueQuery(current.issues))) {
     if (value) url.searchParams.set(key, value);
   }
-  url.searchParams.set("admin_tab", activeTab);
+  url.searchParams.set("admin_tab", "audit");
   return `${url.pathname}${url.search}`;
 }
 
@@ -103,7 +104,8 @@ function tabHref(tab: AdminTab) {
 }
 
 function selectTab(value: string) {
-  if (isAdminTab(value)) replaceState(tabHref(value), {});
+  if (isAdminTab(value))
+    replaceState(tabHref(value), { ...$appPage.state, adminAuditTab: value });
 }
 
 function pageLabel() {
@@ -137,9 +139,9 @@ function displayValue(value: unknown) {
     class="min-w-0 gap-4"
   >
     <Tabs.List class="grid w-full grid-cols-3" variant="line">
-      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="operations">{data.copy.telemetry.recentErrors}</Tabs.Trigger>
-      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="runtime">{data.copy.telemetry.runtimeIssues}</Tabs.Trigger>
-      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="audit">{data.copy.audit.records}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="operations">{data.copy.audit.operationsTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="runtime">{data.copy.audit.runtimeTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0 truncate px-2 sm:px-3" value="audit">{data.copy.audit.auditTab}</Tabs.Trigger>
     </Tabs.List>
 
     <Tabs.Content value="operations" class="m-0 min-w-0">
@@ -220,9 +222,9 @@ function displayValue(value: unknown) {
               </div>
 
               <Collapsible.Root bind:open={auditFiltersOpen} class="rounded-md border bg-muted/20">
-                <Collapsible.Trigger class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40">
+                <Collapsible.Trigger class="group flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40">
                   <span>{data.copy.audit.advancedFilters}</span>
-                  <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform data-[state=open]:rotate-90" />
+                  <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform group-data-[state=open]:rotate-90" />
                 </Collapsible.Trigger>
                 <Collapsible.Content class="border-t p-3 data-[state=closed]:hidden">
                   <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">

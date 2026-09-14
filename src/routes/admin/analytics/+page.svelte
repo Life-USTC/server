@@ -32,7 +32,8 @@ const analyticsPanels: readonly AnalyticsPanel[] = [
   "history",
 ];
 
-$: requestedPanel = $page.url.searchParams.get("panel");
+$: requestedPanel =
+  $page.state.adminAnalyticsPanel ?? $page.url.searchParams.get("panel");
 $: activePanel = isAnalyticsPanel(requestedPanel) ? requestedPanel : "feature";
 
 $: numberFormatter = new Intl.NumberFormat(data.locale);
@@ -123,17 +124,15 @@ function selectPanel(value: string) {
   const url = new URL($page.url);
   if (value === "feature") url.searchParams.delete("panel");
   else url.searchParams.set("panel", value);
-  void replaceState(url, {});
+  replaceState(url, { ...$page.state, adminAnalyticsPanel: value });
 }
 
-function periodHref(current: PageData, days: number) {
+function periodHref(current: PageData, days: number, panel: AnalyticsPanel) {
   const params = new URLSearchParams({ days: String(days) });
   for (const [key, value] of Object.entries(current.telemetry.filters)) {
     if (value) params.set(key, value);
   }
-  if (isAnalyticsPanel($page.url.searchParams.get("panel"))) {
-    params.set("panel", $page.url.searchParams.get("panel") as AnalyticsPanel);
-  }
+  if (panel !== "feature") params.set("panel", panel);
   return `/admin/analytics?${params}`;
 }
 </script>
@@ -142,13 +141,13 @@ function periodHref(current: PageData, days: number) {
 
 <AdminWorkspace compact>
   {#snippet header()}
-    <PageHeader title={data.copy.analytics.title}>
+    <PageHeader title={data.copy.analytics.title} titleClass="text-xl sm:text-2xl" class="py-0 md:py-0">
       {#snippet actions()}
         <nav class="flex flex-wrap gap-2" aria-label={data.copy.analytics.window}>
           {#each [7, 30, 90] as days}
             <Button
               size="sm"
-              href={periodHref(data, days)}
+              href={periodHref(data, days, activePanel)}
               aria-current={data.days === days ? "page" : undefined}
               variant={data.days === days ? "default" : "outline"}
             >{daysLabel(days)}</Button>
@@ -159,10 +158,10 @@ function periodHref(current: PageData, days: number) {
   {/snippet}
 
   <Tabs.Root value={activePanel} onValueChange={selectPanel} class="min-w-0 gap-4">
-    <Tabs.List aria-label={data.copy.analytics.title} class="w-full sm:w-fit">
-      <Tabs.Trigger value="feature">{data.copy.telemetry.title}</Tabs.Trigger>
-      <Tabs.Trigger value="users">{data.copy.userTrends.title}</Tabs.Trigger>
-      <Tabs.Trigger value="history">{data.copy.analytics.trend}</Tabs.Trigger>
+    <Tabs.List aria-label={data.copy.analytics.title} class="grid w-full grid-cols-3 sm:w-fit">
+      <Tabs.Trigger class="min-w-0" value="feature">{data.copy.analytics.featureTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0" value="users">{data.copy.analytics.usersTab}</Tabs.Trigger>
+      <Tabs.Trigger class="min-w-0" value="history">{data.copy.analytics.historyTab}</Tabs.Trigger>
     </Tabs.List>
 
     <Tabs.Content value="feature" class="grid min-w-0 gap-4">
@@ -268,9 +267,7 @@ function periodHref(current: PageData, days: number) {
           </div>
         </section>
 
-        <DashboardPanel id="analytics-daily-details" title={data.copy.analytics.dailyDetails}>
-          <details class="grid gap-3">
-            <summary class="cursor-pointer text-sm font-medium">{data.copy.analytics.dailyDetails}</summary>
+        <DashboardPanel collapsible id="analytics-daily-details" title={data.copy.analytics.dailyDetails}>
             <div class="max-h-72 overflow-auto">
               <Table.Root>
                 <Table.Caption class="sr-only">{data.copy.analytics.dailyDetails}</Table.Caption>
@@ -292,7 +289,6 @@ function periodHref(current: PageData, days: number) {
                 </Table.Body>
               </Table.Root>
             </div>
-          </details>
         </DashboardPanel>
 
         <section aria-labelledby="analytics-rankings-title" class="grid min-w-0 gap-3">

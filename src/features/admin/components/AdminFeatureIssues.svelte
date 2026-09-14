@@ -300,7 +300,7 @@ function selectView(value: string) {
           <ToggleGroup.Item value="issues">{copy.issuesOnly}</ToggleGroup.Item>
           <ToggleGroup.Item value="all">{copy.allEvents}</ToggleGroup.Item>
         </ToggleGroup.Root>
-        <span class="text-xs text-muted-foreground">{copy.issueSummaryDescription}</span>
+
       </div>
 
       <form method="GET" aria-label={copy.recentErrors}>
@@ -310,8 +310,8 @@ function selectView(value: string) {
         <input type="hidden" name="admin_tab" value={adminTab} />
         <input type="hidden" name="issue_view" value={activeView} />
         <Field.Group class="gap-3">
-          <div class="grid min-w-0 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
-            <Field.Field>
+          <div class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
+            <Field.Field class="col-span-2 sm:col-span-1">
               <Field.Label for="issue-days">{copy.window}</Field.Label>
               <NativeSelect.Root class="w-full min-w-0" id="issue-days" name="issue_days">
                 {#each [7, 30, 90] as days}
@@ -340,9 +340,9 @@ function selectView(value: string) {
           </div>
 
           <Collapsible.Root bind:open={filtersOpen} class="rounded-md border bg-muted/20">
-            <Collapsible.Trigger class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40">
+            <Collapsible.Trigger class="group flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40">
               <span>{advancedFiltersLabel ?? copy.moreIssues}</span>
-              <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform data-[state=open]:rotate-90" />
+              <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform group-data-[state=open]:rotate-90" />
             </Collapsible.Trigger>
             <Collapsible.Content class="border-t p-3 data-[state=closed]:hidden">
               <div class="grid min-w-0 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
@@ -413,7 +413,7 @@ function selectView(value: string) {
               </Empty.Header>
             </Empty.Root>
           {:else}
-            <div class="grid divide-y rounded-md border">
+            <div class="grid max-h-64 divide-y overflow-y-auto rounded-md border">
               {#each page.groups as group}
                 <a class="group grid min-w-0 gap-2 px-3 py-3 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none" href={groupHref(group)}>
                   <div class="flex min-w-0 items-start justify-between gap-3">

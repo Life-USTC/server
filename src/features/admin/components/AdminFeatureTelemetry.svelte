@@ -1,5 +1,5 @@
 <script lang="ts">
-import InfoIcon from "@lucide/svelte/icons/info";
+import HelpIcon from "@lucide/svelte/icons/circle-question-mark";
 import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
@@ -226,22 +226,7 @@ function outcomeVariant(outcome: string) {
   <input type="hidden" name="panel" value="feature" />
   <Field.Group class="grid gap-2">
     <div class="flex min-w-0 flex-wrap items-center gap-2">
-      <span class="shrink-0 text-sm font-medium">{page.copy.experience.window}</span>
-      <span class="min-w-0 truncate text-xs text-muted-foreground">{coverageLabel()}</span>
-      <Popover.Root>
-        <Popover.Trigger
-          class={buttonVariants({ variant: "ghost", size: "icon-xs" })}
-          aria-label={page.copy.experience.window}
-        >
-          <InfoIcon aria-hidden="true" />
-        </Popover.Trigger>
-        <Popover.Content align="start" class="max-w-[calc(100vw-2rem)]">
-          <div class="grid gap-1 text-sm text-muted-foreground">
-            <p>{coverageLabel()}</p>
-            <p>{firstRecordedLabel()}</p>
-          </div>
-        </Popover.Content>
-      </Popover.Root>
+
       <Field.Field class="min-w-48 flex-1 sm:max-w-sm">
         <Field.Label for="experience-feature">{page.copy.experience.feature}</Field.Label>
         <NativeSelect.Root class="w-full" id="experience-feature" name="feature">
@@ -251,16 +236,30 @@ function outcomeVariant(outcome: string) {
           {/each}
         </NativeSelect.Root>
       </Field.Field>
-      <Field.Field orientation="horizontal" class="gap-2">
+      <Field.Field orientation="horizontal" class="gap-2 sm:w-auto">
         <Button class="flex-1 sm:flex-none" type="submit">{page.copy.experience.apply}</Button>
         <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{page.copy.experience.clear}</Button>
+      <Popover.Root>
+        <Popover.Trigger
+          class={buttonVariants({ variant: "ghost", size: "icon-xs" })}
+          aria-label={page.copy.experience.window}
+        >
+          <HelpIcon aria-hidden="true" />
+        </Popover.Trigger>
+        <Popover.Content align="start" class="max-w-[calc(100vw-2rem)]">
+          <div class="grid gap-1 text-sm text-muted-foreground">
+            <p>{coverageLabel()}</p>
+            <p>{firstRecordedLabel()}</p>
+          </div>
+        </Popover.Content>
+      </Popover.Root>
       </Field.Field>
     </div>
 
     <details class="grid gap-3 rounded-md border px-3 py-2">
-      <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-        <span>{page.copy.experience.operation} · {page.copy.experience.protocol} · {page.copy.experience.surface} · {page.copy.experience.authMode} · {page.copy.experience.outcome}</span>
-        <span class="text-xs font-normal text-muted-foreground">{activeAdvancedFilterSummary || page.copy.experience.all}</span>
+      <summary class="cursor-pointer text-sm font-medium">
+        <span>{page.copy.experience.advancedFilters}</span>
+        {#if activeAdvancedFilterSummary}<span class="ml-2 text-xs font-normal text-muted-foreground">{activeAdvancedFilterSummary}</span>{/if}
       </summary>
       <Field.Group class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Field.Field>
@@ -380,12 +379,11 @@ function outcomeVariant(outcome: string) {
   </div>
 
   <DashboardPanel
+    collapsible
     id="experience-matrix"
     title={page.copy.experience.matrix}
     description={page.copy.experience.matrixDescription}
   >
-    <details class="grid min-w-0 gap-3">
-      <summary class="cursor-pointer text-sm font-medium">{page.copy.experience.matrix}</summary>
       <div class="grid gap-3 pt-1">
       <p class="text-sm text-muted-foreground">{page.copy.experience.matrixDescription}</p>
       {#if page.rowsTruncated}<p class="text-sm text-muted-foreground">{page.copy.experience.matrixPartial}</p>{/if}
@@ -454,13 +452,10 @@ function outcomeVariant(outcome: string) {
         </Table.Root>
       </AdminTableShell>
       </div>
-    </details>
   </DashboardPanel>
 {/if}
 
-<DashboardPanel id="experience-notes" title={page.copy.experience.notes}>
-  <details class="grid gap-2">
-    <summary class="cursor-pointer text-sm font-medium">{page.copy.experience.notes}</summary>
+<DashboardPanel collapsible id="experience-notes" title={page.copy.experience.notes}>
     <ul class="grid gap-2 pt-1 text-sm text-muted-foreground">
       <li>{page.copy.experience.recordedCountsNote}</li>
       <li>{page.copy.experience.backgroundDeliveryNote}</li>
@@ -469,5 +464,4 @@ function outcomeVariant(outcome: string) {
       <li>{page.copy.experience.retentionNote}</li>
       <li>{page.copy.experience.identityNote}</li>
     </ul>
-  </details>
 </DashboardPanel>
