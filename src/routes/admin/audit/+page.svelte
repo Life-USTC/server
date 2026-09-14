@@ -43,9 +43,13 @@ function identity(
 
 function issueQuery(issues: PageData["issues"]) {
   return {
+    issue_actor: issues.filters.actor,
     issue_days: String(issues.days),
     issue_feature: issues.filters.feature,
+    issue_operation: issues.filters.operation,
+    issue_outcome: issues.filters.outcome,
     issue_protocol: issues.filters.protocol,
+    issue_view: issues.view,
   };
 }
 function auditHref(current: PageData, cursor?: string) {
@@ -53,6 +57,13 @@ function auditHref(current: PageData, cursor?: string) {
     buildAdminAuditHref(current.filters, cursor),
     "https://admin.local",
   );
+  for (const [key, value] of Object.entries(issueQuery(current.issues))) {
+    if (value) url.searchParams.set(key, value);
+  }
+  return `${url.pathname}${url.search}`;
+}
+function auditClearHref(current: PageData) {
+  const url = new URL("/admin/audit", "https://admin.local");
   for (const [key, value] of Object.entries(issueQuery(current.issues))) {
     if (value) url.searchParams.set(key, value);
   }
@@ -166,7 +177,7 @@ function displayValue(value: unknown) {
 
           <Field.Field orientation="horizontal" class="gap-2">
             <Button class="flex-1 sm:flex-none" type="submit">{data.copy.audit.apply}</Button>
-            <Button class="flex-1 sm:flex-none" href="/admin/audit" variant="outline">{data.copy.audit.clear}</Button>
+            <Button class="flex-1 sm:flex-none" href={auditClearHref(data)} variant="outline">{data.copy.audit.clear}</Button>
           </Field.Field>
         </Field.Group>
       </form>
@@ -261,7 +272,18 @@ function displayValue(value: unknown) {
                   <Table.Cell class="text-center">{auditChannelLabel(data.locale, row.channel)}</Table.Cell>
                   <Table.Cell class="text-center"><Badge variant={row.outcome === "success" ? "secondary" : "destructive"}>{auditOutcomeLabel(data.locale, row.outcome)}</Badge></Table.Cell>
                   <Table.Cell class="max-w-0"><span class="block max-w-full truncate" title={row.targetType ? `${auditTargetLabel(data.locale, row.targetType)}${row.targetId ? ` · ${row.targetId}` : ""}` : "—"}>{row.targetType ? auditTargetLabel(data.locale, row.targetType) : "—"}{row.targetId ? ` · ${row.targetId}` : ""}</span></Table.Cell>
-                  <Table.Cell class="max-w-72 text-xs">{#if row.metadata}<dl class="grid gap-1">{#each Object.entries(row.metadata) as [key, value]}<div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>{/each}</dl>{:else}—{/if}</Table.Cell>
+                  <Table.Cell class="max-w-72 text-xs">
+                    {#if row.metadata}
+                      <details>
+                        <summary class="cursor-pointer font-medium">{data.copy.audit.details}</summary>
+                        <dl class="grid gap-1 pt-2">
+                          {#each Object.entries(row.metadata) as [key, value]}
+                            <div><dt class="inline text-muted-foreground">{auditMetadataLabel(data.locale, key)}: </dt><dd class="inline break-words">{displayValue(value)}</dd></div>
+                          {/each}
+                        </dl>
+                      </details>
+                    {:else}—{/if}
+                  </Table.Cell>
                 </Table.Row>
               {/each}
             </Table.Body>
