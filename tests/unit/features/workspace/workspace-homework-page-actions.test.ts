@@ -1,8 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
-const createHomeworkForSectionMock = vi.fn();
-const getSessionFromHeadersMock = vi.fn();
+const {
+  collectFeatureEventMock,
+  createHomeworkForSectionMock,
+  getSessionFromHeadersMock,
+} = vi.hoisted(() => ({
+  collectFeatureEventMock: vi.fn(),
+  createHomeworkForSectionMock: vi.fn(),
+  getSessionFromHeadersMock: vi.fn(),
+}));
+
+vi.mock("@/lib/db/observability-context", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/db/observability-context")>(
+    "@/lib/db/observability-context",
+  )),
+  collectFeatureEvent: collectFeatureEventMock,
+}));
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
   createHomeworkForSection: createHomeworkForSectionMock,
@@ -11,6 +25,12 @@ vi.mock("@/features/homeworks/server/homework-create", () => ({
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
+
+beforeEach(() => {
+  createHomeworkForSectionMock.mockReset();
+  getSessionFromHeadersMock.mockReset();
+  collectFeatureEventMock.mockReset();
+});
 
 function actionRequest() {
   const body = new FormData();
@@ -28,11 +48,6 @@ function actionRequest() {
 }
 
 describe("仪表盘作业页面操作", () => {
-  beforeEach(() => {
-    createHomeworkForSectionMock.mockReset();
-    getSessionFromHeadersMock.mockReset();
-  });
-
   it("映射被停用账户的仪表盘作业创建失败", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "suspended-user" },
@@ -73,37 +88,34 @@ describe("homework action metric boundary", () => {
         .mockReset()
         .mockResolvedValue({ user: { id: "user" } });
       createHomeworkForSectionMock.mockReset().mockResolvedValue(result);
-      const writeDataPoint = vi.fn();
       const { createHomeworkWorkspaceAction } = await import(
         "@/features/workspace/server/workspace-homework-page-actions"
       );
-      await runWithCloudflareRuntimeEnv(
-        { ANALYTICS: { writeDataPoint } },
-        async () => {
-          const action = createHomeworkWorkspaceAction({
-            locals: { locale: "en-us" },
-            request: actionRequest(),
+      await runWithCloudflareRuntimeEnv({}, async () => {
+        const action = createHomeworkWorkspaceAction({
+          locals: { locale: "en-us" },
+          request: actionRequest(),
+        });
+        if (outcome === "success")
+          await expect(action).rejects.toMatchObject({
+            status: 303,
+            location: "/workspace/homeworks",
           });
-          if (outcome === "success")
-            await expect(action).rejects.toMatchObject({
-              status: 303,
-              location: "/workspace/homeworks",
-            });
-          else await expect(action).resolves.toMatchObject({ status: 403 });
-        },
-      );
+        else await expect(action).resolves.toMatchObject({ status: 403 });
+      });
       expect(getSessionFromHeadersMock).toHaveBeenCalledTimes(1);
       expect(createHomeworkForSectionMock).toHaveBeenCalledTimes(1);
-      expect(writeDataPoint).toHaveBeenCalledTimes(1);
-      expect(writeDataPoint.mock.calls[0][0].blobs.slice(1, 8)).toEqual([
-        "community.section-homework",
-        "create",
-        "web",
-        "web",
-        "session",
+      expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
+      expect(collectFeatureEventMock.mock.calls[0]?.[0]).toMatchObject({
+        feature: "community.section-homework",
+        operation: "create",
+        protocol: "web",
+        surface: "web",
+        authMode: "session",
         outcome,
         errorClass,
-      ]);
+        userId: "user",
+      });
     },
   );
 });
@@ -111,27 +123,28 @@ describe("homework action metric boundary", () => {
 it("records an unauthenticated action without attempting a write", async () => {
   getSessionFromHeadersMock.mockReset().mockResolvedValue(null);
   createHomeworkForSectionMock.mockReset();
-  const writeDataPoint = vi.fn();
   const { createHomeworkWorkspaceAction } = await import(
     "@/features/workspace/server/workspace-homework-page-actions"
   );
-  await runWithCloudflareRuntimeEnv(
-    { ANALYTICS: { writeDataPoint } },
-    async () => {
-      await expect(
-        createHomeworkWorkspaceAction({
-          locals: { locale: "en-us" },
-          request: actionRequest(),
-        }),
-      ).resolves.toMatchObject({ status: 401 });
-    },
-  );
+  await runWithCloudflareRuntimeEnv({}, async () => {
+    await expect(
+      createHomeworkWorkspaceAction({
+        locals: { locale: "en-us" },
+        request: actionRequest(),
+      }),
+    ).resolves.toMatchObject({ status: 401 });
+  });
   expect(getSessionFromHeadersMock).toHaveBeenCalledTimes(1);
   expect(createHomeworkForSectionMock).not.toHaveBeenCalled();
-  expect(writeDataPoint).toHaveBeenCalledTimes(1);
-  expect(writeDataPoint.mock.calls[0][0].blobs.slice(5, 8)).toEqual([
-    "anonymous",
-    "rejected",
-    "unauthorized",
-  ]);
+  expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
+  expect(collectFeatureEventMock.mock.calls[0]?.[0]).toMatchObject({
+    feature: "community.section-homework",
+    operation: "create",
+    protocol: "web",
+    surface: "web",
+    authMode: "anonymous",
+    outcome: "rejected",
+    errorClass: "unauthorized",
+    userId: null,
+  });
 });

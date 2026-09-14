@@ -4,8 +4,15 @@ import { INTERNAL_REQUEST_ID_HEADER } from "@/lib/log/worker-entrypoint-observab
 import worker from "@/worker";
 
 vi.mock("cloudflare:workers", () => ({ WorkerEntrypoint: class {} }));
-const { appFetch } = vi.hoisted(() => ({ appFetch: vi.fn() }));
+const { appFetch, writeObservabilityBatch, waitUntil } = vi.hoisted(() => ({
+  appFetch: vi.fn(),
+  waitUntil: vi.fn(),
+  writeObservabilityBatch: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("life-ustc-sveltekit-worker", () => ({ default: { fetch: appFetch } }));
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch,
+}));
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
   logApiRequest: vi.fn(),
@@ -16,12 +23,16 @@ vi.mock("@/app-env", async (importOriginal) => ({
   loadEnv: vi.fn(),
 }));
 
-const writeDataPoint = vi.fn();
-const env = { ANALYTICS: { writeDataPoint } };
+const env = {};
 const featureEvents = () =>
-  writeDataPoint.mock.calls
-    .map(([event]) => event)
-    .filter((event) => event.blobs?.[0] === "feature_operation_v1");
+  writeObservabilityBatch.mock.calls.flatMap(([batch]) => batch.features ?? []);
+async function flushObservability() {
+  await Promise.resolve();
+  await Promise.resolve();
+  const tasks = waitUntil.mock.calls.map(([task]) => task);
+  if (tasks.length > 0) await Promise.all(tasks);
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
 function appHandle(request: Request) {
   return handle({
     event: {
@@ -40,7 +51,8 @@ function appHandle(request: Request) {
   } as unknown as Parameters<typeof handle>[0]);
 }
 afterEach(() => {
-  writeDataPoint.mockReset();
+  writeObservabilityBatch.mockReset().mockResolvedValue(undefined);
+  waitUntil.mockReset();
   appFetch.mockReset();
   vi.unstubAllGlobals();
 });
@@ -48,19 +60,21 @@ afterEach(() => {
 it("records a dynamic REST request once across actual Worker and application hooks", async () => {
   appFetch.mockImplementation(appHandle);
   const request = new Request("https://example.com/api/catalog/courses");
-  const response = await worker.fetch(request, env, { waitUntil: vi.fn() });
+  const response = await worker.fetch(request, env, { waitUntil });
   expect(response.status).toBe(200);
   expect(await response.text()).toBe("payload");
   expect(appFetch).toHaveBeenCalledTimes(1);
+  await flushObservability();
   expect(featureEvents()).toHaveLength(1);
-  expect(featureEvents()[0].blobs.slice(1, 7)).toEqual([
-    "catalog.course",
-    "list",
-    "rest",
-    "unknown",
-    "anonymous",
-    "success",
-  ]);
+  expect(featureEvents()[0]).toMatchObject({
+    feature: "catalog.course",
+    operation: "list",
+    protocol: "rest",
+    surface: "unknown",
+    authMode: "anonymous",
+    outcome: "success",
+    errorClass: "none",
+  });
 });
 
 it.each(["HIT", "MISS"])(
@@ -91,18 +105,20 @@ it.each(["HIT", "MISS"])(
       }),
       env,
       {
-        waitUntil: vi.fn(),
+        waitUntil,
         exports: { PublicSsr: () => ({ fetch: cachedFetch }) },
       },
     );
     expect(await response.text()).toBe("cached");
+    await flushObservability();
     expect(featureEvents()).toHaveLength(1);
-    expect(featureEvents()[0].blobs.slice(1, 5)).toEqual([
-      "catalog.course",
-      "view",
-      "web",
-      "web",
-    ]);
+    expect(featureEvents()[0]).toMatchObject({
+      feature: "catalog.course",
+      operation: "view",
+      protocol: "web",
+      surface: "web",
+      authMode: "anonymous",
+    });
     expect(cachedFetch.mock.calls[0][1]).toEqual({
       cf: { cacheKey: "/catalog/courses?__life_locale=zh-cn&__life_mode=page" },
     });
@@ -118,10 +134,12 @@ it("does not count an internal cache-origin request a second time", async () => 
       },
     }),
   );
+  await flushObservability();
   expect(featureEvents()).toHaveLength(0);
 });
 
 it("records a standalone local application request once", async () => {
   await appHandle(new Request("https://example.com/api/catalog/courses"));
+  await flushObservability();
   expect(featureEvents()).toHaveLength(1);
 });

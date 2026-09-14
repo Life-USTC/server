@@ -12,19 +12,27 @@ import {
   GraphQLString,
   graphql,
 } from "graphql";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
+import { runWithObservability } from "@/lib/db/observability-context";
 import type { GraphqlPrincipal } from "@/lib/graphql/auth";
 import {
   GRAPHQL_FEATURE_RESOLVER_MAPPINGS,
   observeGraphqlResolverMap,
 } from "@/lib/graphql/feature-observability";
 
+const { writeObservabilityBatchMock } = vi.hoisted(() => ({
+  writeObservabilityBatchMock: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: writeObservabilityBatchMock,
+}));
+
 type TestContext = { principal: GraphqlPrincipal };
-type DataPoint = { blobs?: unknown[]; doubles?: number[]; indexes?: unknown[] };
 
 const requestId = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -166,35 +174,58 @@ const mutationType = new GraphQLObjectType({
 
 const schema = new GraphQLSchema({ mutation: mutationType, query: queryType });
 
-function pointBlobs(points: DataPoint[]) {
-  return points.map((point) => point.blobs ?? []);
+function featureEvents() {
+  return writeObservabilityBatchMock.mock.calls.flatMap(
+    ([batch]) => batch.features ?? [],
+  );
+}
+
+function featureTuples() {
+  return featureEvents().map((event) => [
+    event.feature,
+    event.operation,
+    event.protocol,
+    event.surface,
+    event.authMode,
+    event.outcome,
+    event.errorClass,
+  ]);
+}
+
+async function flushObservability() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 async function execute(
   source: string,
   principal: GraphqlPrincipal = { kind: "anonymous" },
 ) {
-  const writeDataPoint = vi.fn<(point: DataPoint) => void>();
-  const result = await runWithCloudflareRuntimeEnv(
-    { ANALYTICS: { writeDataPoint } },
-    async () => {
-      setCloudflareRequestContext({
-        method: "POST",
-        requestId,
-        route: "/api/graphql",
-      });
-      return graphql({
+  const result = await runWithCloudflareRuntimeEnv({}, async () => {
+    setCloudflareRequestContext({
+      method: "POST",
+      requestId,
+      route: "/api/graphql",
+    });
+    return runWithObservability(() =>
+      graphql({
         contextValue: { principal },
         schema,
         source,
-      });
-    },
-  );
+      }),
+    );
+  });
+  await flushObservability();
   return {
-    points: writeDataPoint.mock.calls.map(([point]) => point),
+    features: featureEvents(),
     result,
   };
 }
+
+beforeEach(() => {
+  writeObservabilityBatchMock.mockReset().mockResolvedValue(undefined);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -202,7 +233,7 @@ afterEach(() => {
 
 describe("GraphQL feature operation observability", () => {
   it("records aliases independently and derives anonymous catalog search", async () => {
-    const { points, result } = await execute(/* GraphQL */ `
+    const { features, result } = await execute(/* GraphQL */ `
       {
         catalog {
           listed: courses
@@ -219,34 +250,42 @@ describe("GraphQL feature operation observability", () => {
         },
       },
     });
-    expect(pointBlobs(points)).toEqual([
-      [
-        "feature_operation_v1",
-        "catalog.course",
-        "list",
-        "graphql",
-        "unknown",
-        "anonymous",
-        "success",
-        "none",
+    expect(features).toHaveLength(2);
+    expect(
+      features.map((event) => ({
+        ...event,
+        id: expect.any(String),
+        occurredAt: expect.any(Date),
+        durationMs: expect.any(Number),
+      })),
+    ).toEqual([
+      expect.objectContaining({
+        feature: "catalog.course",
+        operation: "list",
+        protocol: "graphql",
+        surface: "unknown",
+        authMode: "anonymous",
+        outcome: "success",
+        errorClass: "none",
         requestId,
-      ],
-      [
-        "feature_operation_v1",
-        "catalog.course",
-        "search",
-        "graphql",
-        "unknown",
-        "anonymous",
-        "success",
-        "none",
+        userId: null,
+      }),
+      expect.objectContaining({
+        feature: "catalog.course",
+        operation: "search",
+        protocol: "graphql",
+        surface: "unknown",
+        authMode: "anonymous",
+        outcome: "success",
+        errorClass: "none",
         requestId,
-      ],
+        userId: null,
+      }),
     ]);
   });
 
   it("rethrows one resolver error while preserving an independent sibling", async () => {
-    const { points, result } = await execute(/* GraphQL */ `
+    const { features, result } = await execute(/* GraphQL */ `
       {
         catalog {
           broken: course(jwId: 1)
@@ -261,9 +300,8 @@ describe("GraphQL feature operation observability", () => {
       message: "invalid course input",
       path: ["catalog", "broken"],
     });
-    expect(pointBlobs(points)).toEqual([
+    expect(featureTuples()).toEqual([
       [
-        "feature_operation_v1",
         "catalog.course",
         "get",
         "graphql",
@@ -271,10 +309,8 @@ describe("GraphQL feature operation observability", () => {
         "anonymous",
         "rejected",
         "invalid_input",
-        requestId,
       ],
       [
-        "feature_operation_v1",
         "catalog.course",
         "get",
         "graphql",
@@ -282,9 +318,9 @@ describe("GraphQL feature operation observability", () => {
         "anonymous",
         "success",
         "none",
-        requestId,
       ],
     ]);
+    expect(features.every((event) => event.requestId === requestId)).toBe(true);
   });
 
   it("marks a verified MCP OAuth principal and does not instrument introspection", async () => {
@@ -300,25 +336,25 @@ describe("GraphQL feature operation observability", () => {
     expect(mcp.result).toEqual({
       data: { workspace: { overview: "overview" } },
     });
-    expect(pointBlobs(mcp.points)).toEqual([
-      [
-        "feature_operation_v1",
-        "workspace.overview",
-        "get",
-        "graphql",
-        "mcp",
-        "oauth",
-        "success",
-        "none",
-        requestId,
-      ],
-    ]);
+    expect(mcp.features).toHaveLength(1);
+    expect(mcp.features[0]).toMatchObject({
+      feature: "workspace.overview",
+      operation: "get",
+      protocol: "graphql",
+      surface: "mcp",
+      authMode: "oauth",
+      outcome: "success",
+      errorClass: "none",
+      requestId,
+      userId: "user",
+    });
 
+    writeObservabilityBatchMock.mockReset().mockResolvedValue(undefined);
     const introspection = await execute("{ catalog { __typename } }");
     expect(introspection.result).toEqual({
       data: { catalog: { __typename: "Catalog" } },
     });
-    expect(introspection.points).toHaveLength(0);
+    expect(introspection.features).toHaveLength(0);
     const mappedFields = Object.values(
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS,
     ).flatMap((fields) => Object.keys(fields));
@@ -326,7 +362,7 @@ describe("GraphQL feature operation observability", () => {
   });
 
   it("does not turn a mixed batch payload into a success", async () => {
-    const { points, result } = await execute(/* GraphQL */ `
+    const { features, result } = await execute(/* GraphQL */ `
       mutation {
         homeworkCompletionsSet {
           results {
@@ -352,26 +388,28 @@ describe("GraphQL feature operation observability", () => {
         },
       },
     });
-    expect(pointBlobs(points)).toEqual([
-      [
-        "feature_operation_v1",
-        "workspace.homework",
-        "batch",
-        "graphql",
-        "unknown",
-        "anonymous",
-        "unknown",
-        "unknown",
-        requestId,
-      ],
-    ]);
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      feature: "workspace.homework",
+      operation: "batch",
+      protocol: "graphql",
+      surface: "unknown",
+      authMode: "anonymous",
+      outcome: "unknown",
+      errorClass: "unknown",
+      requestId,
+      userId: null,
+    });
   });
 });
 
 it("classifies a missing catalog detail consistently with REST and MCP without changing GraphQL null", async () => {
-  const { points, result } = await execute(
+  const { features, result } = await execute(
     "{ catalog { missing: course(jwId: 999) } }",
   );
   expect(result).toEqual({ data: { catalog: { missing: null } } });
-  expect(pointBlobs(points)[0].slice(6, 8)).toEqual(["rejected", "not_found"]);
+  expect(features[0]).toMatchObject({
+    outcome: "rejected",
+    errorClass: "not_found",
+  });
 });
