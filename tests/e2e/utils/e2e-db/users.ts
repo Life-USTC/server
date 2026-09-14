@@ -1,6 +1,73 @@
+import { createLocalAccountIssuer } from "@better-auth/core/db";
+import { hashPassword } from "better-auth/crypto";
 import { deleteAuditLogsForUsersAndTargetsUntilStable } from "../../../shared/audit-cleanup";
+import { DEV_SEED } from "../dev-seed";
 import { generateToken } from "./core";
 import { withE2ePrisma } from "./prisma";
+
+const DEBUG_USER_ID = "cmqw1sr9g0001bqt44c3s0kqa";
+const DEBUG_USER_EMAIL = "dev-user@debug.local";
+const DEBUG_USER_PASSWORD = "dev-debug-password";
+
+/**
+ * Restore the named debug fixture after the destructive account-deletion E2E.
+ * This is an owner-side test operation; the Worker auth role never provisions
+ * users or credentials.
+ */
+export async function restoreDebugUserFixture() {
+  const image = `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.debugAvatarSeed}`;
+  const password = await hashPassword(DEBUG_USER_PASSWORD);
+  const credentialIssuer = createLocalAccountIssuer("credential");
+
+  await withE2ePrisma(async (prisma) => {
+    await prisma.user.upsert({
+      where: { id: DEBUG_USER_ID },
+      update: {
+        email: DEBUG_USER_EMAIL,
+        emailVerified: true,
+        name: DEV_SEED.debugName,
+        image,
+        profilePictures: [image],
+        username: DEV_SEED.debugUsername,
+        isAdmin: false,
+      },
+      create: {
+        id: DEBUG_USER_ID,
+        email: DEBUG_USER_EMAIL,
+        emailVerified: true,
+        name: DEV_SEED.debugName,
+        image,
+        profilePictures: [image],
+        username: DEV_SEED.debugUsername,
+        isAdmin: false,
+      },
+    });
+
+    await prisma.account.upsert({
+      where: {
+        issuer_providerAccountId: {
+          issuer: credentialIssuer,
+          providerAccountId: DEBUG_USER_ID,
+        },
+      },
+      update: {
+        userId: DEBUG_USER_ID,
+        type: "credential",
+        provider: "credential",
+        issuer: credentialIssuer,
+        password,
+      },
+      create: {
+        userId: DEBUG_USER_ID,
+        type: "credential",
+        provider: "credential",
+        issuer: credentialIssuer,
+        providerAccountId: DEBUG_USER_ID,
+        password,
+      },
+    });
+  });
+}
 
 function buildUserCalendarFeedPath(userId: string, token: string): string {
   return `/api/calendar-feeds/${userId}:${token}.ics`;
