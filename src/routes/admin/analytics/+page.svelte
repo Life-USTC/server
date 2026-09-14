@@ -2,12 +2,16 @@
 import AdminFeatureTelemetry from "@/features/admin/components/AdminFeatureTelemetry.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import {
+  auditActionLabel,
   auditChannelLabel,
   auditFeatureLabel,
 } from "@/features/admin/lib/admin-audit-display";
+import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
+import type { DailySeries } from "$lib/components/charts/daily-series";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import { Progress } from "$lib/components/ui/progress/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type { PageData } from "./$types";
@@ -19,43 +23,61 @@ $: percentFormatter = new Intl.NumberFormat(data.locale, {
   maximumFractionDigits: 1,
   style: "percent",
 });
-$: dayFormatter = new Intl.DateTimeFormat(data.locale, {
-  day: "numeric",
-  month: "short",
-  timeZone: "Asia/Shanghai",
-});
 
 $: attention = data.summary.denied + data.summary.failure;
 $: failureRate = data.summary.total > 0 ? attention / data.summary.total : 0;
 $: externalShare =
   data.summary.total > 0 ? data.summary.external / data.summary.total : 0;
-$: chartMax = Math.max(1, ...data.daily.map((entry) => entry.total));
-$: totalPoints = chartPoints(data.daily, chartMax, (entry) => entry.total);
-$: riskPoints = chartPoints(
-  data.daily,
-  chartMax,
-  (entry) => entry.denied + entry.failure,
-);
+
+let selectedTrendFeature = "";
+$: trendFeatureOptions = [
+  ...new Set(data.trends.map((entry) => entry.feature)),
+].sort();
+$: if (
+  selectedTrendFeature &&
+  !trendFeatureOptions.includes(selectedTrendFeature)
+) {
+  selectedTrendFeature = "";
+}
+$: filteredTrendRows = selectedTrendFeature
+  ? data.trends.filter((entry) => entry.feature === selectedTrendFeature)
+  : data.trends;
+$: operationSeries = buildTrendSeries("operation");
+$: channelSeries = buildTrendSeries("channel");
 
 function daysLabel(days: number) {
   return data.copy.analytics.days.replace("{days}", String(days));
 }
 
-function chartPoints(
-  daily: PageData["daily"],
-  maximum: number,
-  value: (entry: PageData["daily"][number]) => number,
-) {
-  const width = 720;
-  const height = 160;
-  const denominator = Math.max(daily.length - 1, 1);
-  return daily
-    .map((entry, index) => {
-      const x = (index / denominator) * width;
-      const y = height - (value(entry) / maximum) * (height - 12);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+function trendLabel(kind: "operation" | "channel", label: string) {
+  if (kind === "channel") return auditChannelLabel(data.locale, label);
+  if (label === "read") return data.copy.analytics.readOperation;
+  if (label === "write") return data.copy.analytics.writeOperation;
+  return auditActionLabel(data.locale, label);
+}
+
+function buildTrendSeries(kind: "operation" | "channel"): DailySeries[] {
+  const totals = new Map<string, number>();
+  for (const entry of filteredTrendRows) {
+    totals.set(entry[kind], (totals.get(entry[kind]) ?? 0) + entry.count);
+  }
+  const keys = [...new Set(filteredTrendRows.map((entry) => entry[kind]))].sort(
+    (left, right) =>
+      (totals.get(right) ?? 0) - (totals.get(left) ?? 0) ||
+      left.localeCompare(right),
+  );
+  return keys.map((key) => {
+    const byDay = new Map<string, number>();
+    for (const entry of filteredTrendRows) {
+      if (entry[kind] !== key) continue;
+      byDay.set(entry.day, (byDay.get(entry.day) ?? 0) + entry.count);
+    }
+    return {
+      key,
+      label: trendLabel(kind, key),
+      values: data.daily.map((entry) => byDay.get(entry.day) ?? 0),
+    };
+  });
 }
 
 function rankingLabel(kind: "channel" | "client" | "feature", label: string) {
@@ -143,64 +165,79 @@ function periodHref(current: PageData, days: number) {
         <h2 id="analytics-trend-heading" class="text-lg font-semibold">{data.copy.analytics.trend}</h2>
         <p class="text-sm text-muted-foreground">{data.copy.analytics.trendDescription}</p>
       </header>
-      <div class="grid gap-4">
-        <figure class="grid gap-3">
-          <div class="flex flex-wrap gap-4 text-xs text-muted-foreground" aria-hidden="true">
-            <span class="flex items-center gap-2"><span class="h-0.5 w-6 bg-primary"></span>{data.copy.analytics.totalSeries}</span>
-            <span class="flex items-center gap-2"><span class="h-0.5 w-6 border-destructive border-t-2 border-dashed"></span>{data.copy.analytics.riskSeries}</span>
-          </div>
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-            <div class="flex h-44 flex-col justify-between text-right text-xs tabular-nums text-muted-foreground" aria-hidden="true">
-              <span>{numberFormatter.format(chartMax)}</span>
-              <span>{numberFormatter.format(Math.round(chartMax / 2))}</span>
-              <span>0</span>
-            </div>
-            <svg
-              class="h-44 w-full overflow-visible"
-              viewBox="0 0 720 170"
-              role="img"
-              aria-labelledby="analytics-trend-title analytics-trend-description"
-              preserveAspectRatio="none"
-            >
-              <title id="analytics-trend-title">{data.copy.analytics.trend}</title>
-              <desc id="analytics-trend-description">{data.copy.analytics.trendDescription}</desc>
-              <line x1="0" x2="720" y1="12" y2="12" class="stroke-border" />
-              <line x1="0" x2="720" y1="86" y2="86" class="stroke-border" />
-              <line x1="0" x2="720" y1="160" y2="160" class="stroke-border" />
-              <polyline points={totalPoints} fill="none" class="stroke-primary" stroke-width="3" vector-effect="non-scaling-stroke" />
-              <polyline points={riskPoints} fill="none" class="stroke-destructive" stroke-width="2" stroke-dasharray="6 5" vector-effect="non-scaling-stroke" />
-            </svg>
-          </div>
-          <figcaption class="flex justify-between text-xs text-muted-foreground">
-            <span>{dayFormatter.format(new Date(`${data.daily[0].day}T00:00:00+08:00`))}</span>
-            <span>{dayFormatter.format(new Date(`${data.daily.at(-1)?.day}T00:00:00+08:00`))}</span>
-          </figcaption>
-        </figure>
-        <details class="rounded-md border px-3 py-2 text-sm">
-          <summary class="cursor-pointer font-medium">{data.copy.analytics.dailyDetails}</summary>
-          <div class="mt-3 max-h-72 overflow-auto">
-            <Table.Root>
-              <Table.Caption class="sr-only">{data.copy.analytics.dailyDetails}</Table.Caption>
-              <Table.Header>
-                <Table.Row>
-                  <Table.Head>{data.copy.audit.time}</Table.Head>
-                  <Table.Head class="text-right">{data.copy.analytics.total}</Table.Head>
-                  <Table.Head class="text-right">{data.copy.analytics.attention}</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {#each data.daily as entry}
-                  <Table.Row>
-                    <Table.Cell>{entry.day}</Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.total)}</Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.denied + entry.failure)}</Table.Cell>
-                  </Table.Row>
-                {/each}
-              </Table.Body>
-            </Table.Root>
-          </div>
-        </details>
+      <div class="grid gap-5">
+        <div class="grid gap-2 sm:max-w-sm">
+          <label for="analytics-trend-feature" class="text-sm font-medium">{data.copy.analytics.featureFilter}</label>
+          <NativeSelect.Root id="analytics-trend-feature" bind:value={selectedTrendFeature}>
+            <NativeSelect.Option value="">{data.copy.analytics.allFeatures}</NativeSelect.Option>
+            {#each trendFeatureOptions as feature}
+              <NativeSelect.Option value={feature}>{auditFeatureLabel(data.locale, feature)}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </div>
+        <div class="grid gap-8 xl:grid-cols-2">
+          <DailySeriesChart
+            id="analytics-operation-trend"
+            days={data.daily.map((entry) => entry.day)}
+            series={operationSeries}
+            partialDays={data.daily.map((entry) => entry.partial)}
+            locale={data.locale}
+            title={data.copy.analytics.operationTrend}
+            description={data.copy.analytics.operationTrendDescription}
+            labels={{
+              dataTable: data.copy.analytics.chartDataTable,
+              day: data.copy.analytics.chartDay,
+              inspect: data.copy.analytics.chartInspect,
+              legend: data.copy.analytics.chartLegend,
+              noData: data.copy.analytics.chartNoData,
+              partial: data.copy.analytics.partialDay,
+              value: data.copy.analytics.chartValue,
+            }}
+          />
+          <DailySeriesChart
+            id="analytics-channel-trend"
+            days={data.daily.map((entry) => entry.day)}
+            series={channelSeries}
+            partialDays={data.daily.map((entry) => entry.partial)}
+            locale={data.locale}
+            title={data.copy.analytics.channelTrend}
+            description={data.copy.analytics.channelTrendDescription}
+            labels={{
+              dataTable: data.copy.analytics.chartDataTable,
+              day: data.copy.analytics.chartDay,
+              inspect: data.copy.analytics.chartInspect,
+              legend: data.copy.analytics.chartLegend,
+              noData: data.copy.analytics.chartNoData,
+              partial: data.copy.analytics.partialDay,
+              value: data.copy.analytics.chartValue,
+            }}
+          />
+        </div>
       </div>
+      <details class="rounded-md border px-3 py-2 text-sm">
+        <summary class="cursor-pointer font-medium">{data.copy.analytics.dailyDetails}</summary>
+        <div class="mt-3 max-h-72 overflow-auto">
+          <Table.Root>
+            <Table.Caption class="sr-only">{data.copy.analytics.dailyDetails}</Table.Caption>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>{data.copy.audit.time}</Table.Head>
+                <Table.Head class="text-right">{data.copy.analytics.total}</Table.Head>
+                <Table.Head class="text-right">{data.copy.analytics.attention}</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each data.daily as entry}
+                <Table.Row>
+                  <Table.Cell>{entry.day}{entry.partial ? ` (${data.copy.analytics.partialDay})` : ""}</Table.Cell>
+                  <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.total)}</Table.Cell>
+                  <Table.Cell class="text-right tabular-nums">{numberFormatter.format(entry.denied + entry.failure)}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        </div>
+      </details>
     </section>
 
     <section aria-labelledby="analytics-rankings-title" class="grid min-w-0 gap-3">
