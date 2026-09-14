@@ -1,3 +1,10 @@
+## [1.112.1](https://github.com/Life-USTC/server/compare/v1.112.0...v1.112.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **subscriptions:** enforce owner RLS context for removals ([#1046](https://github.com/Life-USTC/server/issues/1046)) ([5f377e6](https://github.com/Life-USTC/server/commit/5f377e6f8e053b9c6b2e7fdd9ea154c0a8f7e86e))
+
 # [1.112.0](https://github.com/Life-USTC/server/compare/v1.111.0...v1.112.0) (2026-09-14)
 
 
