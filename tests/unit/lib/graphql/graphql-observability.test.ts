@@ -112,7 +112,7 @@ function installAnalytics() {
 }
 
 function graphqlOperationDataPoints(writeDataPoint: {
-  mock: { calls: Array<[unknown, ...unknown[]]> };
+  mock: { calls: readonly unknown[][] };
 }) {
   return writeDataPoint.mock.calls
     .map(([point]) => point)
