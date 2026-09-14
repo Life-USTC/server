@@ -61,6 +61,7 @@ describe("Playwright configuration", () => {
     if (!webServer || Array.isArray(webServer)) {
       throw new Error("Expected a single Playwright webServer configuration");
     }
+    expect(webServer.command).toContain("env -u FUNCTION_OWNER_DATABASE_URL");
     expect(webServer.env).toMatchObject({
       DATABASE_URL: workerDatabaseEnvironment.DATABASE_URL,
       AUTH_DATABASE_URL: workerDatabaseEnvironment.AUTH_DATABASE_URL,
@@ -93,5 +94,6 @@ describe("Playwright configuration", () => {
     }
 
     expect(webServer.reuseExistingServer).toBe(false);
+    expect(webServer.command).toContain("env -u FUNCTION_OWNER_DATABASE_URL");
   });
 });

@@ -22,7 +22,7 @@ export default defineConfig({
   },
   globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
-    command: "bun run e2e:server",
+    command: "env -u FUNCTION_OWNER_DATABASE_URL bun run e2e:server",
     url: baseURL,
     reuseExistingServer: false,
     gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },

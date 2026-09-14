@@ -55,7 +55,7 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
     command:
-      `E2E_PORT=${e2ePort} E2E_APP_PUBLIC_ORIGIN=${JSON.stringify(baseURL)} ` +
+      `env -u FUNCTION_OWNER_DATABASE_URL E2E_PORT=${e2ePort} E2E_APP_PUBLIC_ORIGIN=${JSON.stringify(baseURL)} ` +
       `bun run e2e:server`,
     url: baseURL,
     reuseExistingServer: false,

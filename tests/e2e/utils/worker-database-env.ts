@@ -41,8 +41,8 @@ function requireEnvironmentValue(
 
 /**
  * Resolve the only database topology accepted by REST and browser Worker
- * tests. The owner URL is deliberately returned for the test process, but is
- * removed by getWorkerProcessEnvironment before Wrangler starts.
+ * tests. The owner URL is deliberately retained for the test process and
+ * omitted from the environment passed to the Worker launcher.
  */
 export function resolveWorkerDatabaseEnvironment(
   input: NodeJS.ProcessEnv = process.env,
@@ -131,8 +131,5 @@ export function getWorkerProcessEnvironment(
   const { [OWNER_DATABASE_ENV]: _owner, ...withoutOwner } = input;
   const { [OWNER_DATABASE_ENV]: _resolvedOwner, ...runtimeEnvironment } =
     environment;
-  return {
-    ...withoutOwner,
-    ...runtimeEnvironment,
-  };
+  return { ...withoutOwner, ...runtimeEnvironment };
 }

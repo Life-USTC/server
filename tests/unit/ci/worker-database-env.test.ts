@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
 import {
   getWorkerProcessEnvironment,
@@ -98,5 +99,31 @@ describe("real Worker database environment", () => {
       EXTRA_TEST_VARIABLE: "preserved",
     });
     expect(environment).not.toHaveProperty("FUNCTION_OWNER_DATABASE_URL");
+  });
+
+  test("removes the owner URL from the actual spawned Worker environment", () => {
+    const workerEnvironment = getWorkerProcessEnvironment(validEnvironment);
+    const parentEnvironment = {
+      ...process.env,
+      FUNCTION_OWNER_DATABASE_URL: ownerUrl,
+    };
+    // Playwright merges its webServer env over the parent env. The launch
+    // command then removes the inherited owner before starting Wrangler.
+    const mergedEnvironment = { ...parentEnvironment, ...workerEnvironment };
+    const child = spawnSync(
+      "env",
+      [
+        "-u",
+        "FUNCTION_OWNER_DATABASE_URL",
+        process.execPath,
+        "-e",
+        'process.stdout.write(process.env.FUNCTION_OWNER_DATABASE_URL ?? "absent")',
+      ],
+      { encoding: "utf8", env: mergedEnvironment },
+    );
+
+    expect(child.error).toBeUndefined();
+    expect(child.status).toBe(0);
+    expect(child.stdout).toBe("absent");
   });
 });
