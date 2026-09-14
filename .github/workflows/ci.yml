@@ -15,22 +15,56 @@ jobs:
     with:
       database-name: life_ustc_ci
       job-phase: ci:verify
+
+  test-unit:
+    name: Unit test coverage
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_unit
+      job-phase: ci:unit
       upload-artifact-name: vitest-coverage
       upload-artifact-path: coverage
       upload-artifact-no-files-found: warn
 
   test-integration:
-    name: MCP Integration Test
-    needs: check
+    name: MCP Integration Test (${{ matrix.index }}/4)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - index: 1
+            database: life_ustc_integration_1
+          - index: 2
+            database: life_ustc_integration_2
+          - index: 3
+            database: life_ustc_integration_3
+          - index: 4
+            database: life_ustc_integration_4
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       # Runtime connection URLs are derived from this disposable database.
-      database-name: life_ustc_dev
-      install-playwright: true
+      database-name: ${{ matrix.database }}
       job-phase: ci:integration
+      vitest-shard: ${{ matrix.index }}/4
       timeout-minutes: 60
+
+  test-rest:
+    name: REST API Test
+    needs: build-e2e-artifacts
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_rest
+      install-playwright: true
+      job-phase: ci:rest
+      timeout-minutes: 60
+      download-artifact-name: e2e-svelte-kit
+      download-artifact-path: .svelte-kit
       upload-artifact-name: playwright-report-integration
       # Keep API Playwright and Worker-supervisor diagnostics when integration
       # infrastructure fails before a report can be rendered.
@@ -39,7 +73,6 @@ jobs:
       upload-artifact-always: true
   test-rls:
     name: PostgreSQL RLS Isolation Test
-    needs: check
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
@@ -49,12 +82,11 @@ jobs:
 
   build-e2e-artifacts:
     name: Build E2E artifacts
-    needs: check
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_e2e
+      database-name: life_ustc_e2e_build
       webhook-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts
@@ -65,7 +97,6 @@ jobs:
 
   static-loader-image:
     name: Static Loader Image
-    needs: check
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -153,27 +184,28 @@ jobs:
 
   test-e2e:
     name: E2E Test (${{ matrix.shard }})
-    needs:
-      - check
-      - build-e2e-artifacts
-      - test-integration
+    needs: build-e2e-artifacts
     strategy:
       fail-fast: false
       matrix:
         include:
           - shard: 1/4
             artifact: shard-1
+            database: life_ustc_e2e_1
           - shard: 2/4
             artifact: shard-2
+            database: life_ustc_e2e_2
           - shard: 3/4
             artifact: shard-3
+            database: life_ustc_e2e_3
           - shard: 4/4
             artifact: shard-4
+            database: life_ustc_e2e_4
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_dev
+      database-name: ${{ matrix.database }}
       install-playwright: true
       webhook-secret: e2e-ci-secret
       extra-env: |
@@ -193,14 +225,12 @@ jobs:
   test-visual-regression:
     name: Visual regression (opt-in)
     if: ${{ vars.VISUAL_REGRESSION == '1' }}
-    needs:
-      - check
-      - build-e2e-artifacts
+    needs: build-e2e-artifacts
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_dev
+      database-name: life_ustc_visual
       install-playwright: true
       webhook-secret: e2e-ci-secret
       extra-env: |

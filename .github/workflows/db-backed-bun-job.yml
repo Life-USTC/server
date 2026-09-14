@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: ""
+      vitest-shard:
+        required: false
+        type: string
+        default: ""
       timeout-minutes:
         required: false
         type: number
@@ -121,7 +125,7 @@ jobs:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
       - name: Install PostgreSQL client
-        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
+        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rest' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
         shell: bash
         run: |
           sudo apt-get update
@@ -138,6 +142,7 @@ jobs:
         shell: bash
         env:
           E2E_SHARD: ${{ inputs.e2e-shard }}
+          VITEST_SHARD: ${{ inputs.vitest-shard }}
           JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           run_e2e_test_phase() {
@@ -157,6 +162,7 @@ jobs:
               bash tests/ci/seed-guard.test.sh
               bash tests/ci/runtime-database-parity.test.sh
               bash tests/ci/e2e-full-suite-parity.test.sh
+              bash tests/ci/integration-parallel-local.test.sh
               bash tests/ci/e2e-worker-server.test.sh
               bash tests/ci/worker-request-id-platform.test.sh
               bun run app:prepare
@@ -166,9 +172,29 @@ jobs:
               bunx tsc --noEmit -p tsconfig.typecheck.json
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json
               bunx tsc --noEmit -p tsconfig.typecheck.operational.json
+              ;;
+            ci:unit)
+              bun run app:prepare
               bunx vitest run --coverage
               ;;
             ci:integration)
+              if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
+                echo "::error::ci:integration requires vitest-shard in current/total format."
+                exit 1
+              fi
+
+              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
+              # the integration suite exercises the same auth configuration.
+              export AUTH_SECRET=e2e-dev-secret-not-for-production
+              bun run app:prepare
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                --shard="$VITEST_SHARD"
+              ;;
+            ci:rest)
               # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
               # the Playwright API suite starts `bun run e2e:server`.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
@@ -176,8 +202,6 @@ jobs:
               source tests/ci/setup-runtime-database.sh
               # Verify setup remains safe to repeat, including grants.
               source tests/ci/setup-runtime-database.sh
-              bunx vitest run --config vitest.integration.config.ts
-              bun run build
               bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
               ;;
             ci:rls)
