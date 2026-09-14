@@ -24,6 +24,11 @@ export class PublicationIngestionConflictError extends Error {
   readonly code = "publication_ingestion_conflict";
 }
 
+export type PublicationIngestionObjectUploadRequirement = {
+  kind: "body_html" | "body_markdown" | "media" | "asset" | "raw_page";
+  sha256: string;
+};
+
 export type PublicationIngestionItemResult = {
   canonicalUrl: string;
   revisionHash: string;
@@ -32,6 +37,12 @@ export type PublicationIngestionItemResult = {
   publicationId: string | null;
   revisionId: string | null;
   status: "created" | "updated" | "unchanged" | "rejected";
+  /**
+   * Present only on unchanged results whose re-registered object claims lack
+   * verified bytes in storage. The client should plan and upload these
+   * objects against the current batch even though the item is unchanged.
+   */
+  objectsNeedingUpload?: PublicationIngestionObjectUploadRequirement[];
 };
 
 export type PublicationIngestionBatchResult = {

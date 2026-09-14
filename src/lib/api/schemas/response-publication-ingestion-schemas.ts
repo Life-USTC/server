@@ -1,5 +1,12 @@
 import * as z from "zod";
 
+export const publicationIngestionObjectUploadRequirementSchema = z.strictObject(
+  {
+    kind: z.enum(["body_html", "body_markdown", "media", "asset", "raw_page"]),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  },
+);
+
 export const publicationIngestionItemResultSchema = z.strictObject({
   canonicalUrl: z.string().url(),
   sourceId: z.string().min(1),
@@ -8,6 +15,9 @@ export const publicationIngestionItemResultSchema = z.strictObject({
   publicationId: z.string().nullable(),
   revisionId: z.string().nullable(),
   error: z.string().optional(),
+  objectsNeedingUpload: z
+    .array(publicationIngestionObjectUploadRequirementSchema)
+    .optional(),
 });
 
 export const publicationIngestionBatchResponseSchema = z.strictObject({

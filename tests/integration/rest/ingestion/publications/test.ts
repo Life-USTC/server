@@ -14,6 +14,10 @@ const OBJECT_PLAN = "/api/ingestion/publications/objects/plan";
 const SECRET = "e2e-publication-ingestion-secret";
 const SHA256_OF_ABC =
   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+// A second content address keeps the redelivery test's R2 bytes isolated from
+// the streaming test, which expects its own object to start missing.
+const SHA256_OF_XYZ =
+  "3608bca1e44ea6c4d268eb6db02260269892c0b42b86bbf1e77a6fa16c3c9282";
 
 function payloadFor(suffix: string) {
   const sourceId = `e2e-publication-${suffix}`;
@@ -136,6 +140,95 @@ test("ingestion accepts the service secret and scopes ownership to its stable ke
     });
   } finally {
     await cleanup(payload);
+  }
+});
+
+test("unchanged redelivery re-registers claims so missing bytes can be planned and uploaded", async ({
+  request,
+}) => {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const base = payloadFor(suffix);
+  const headers = { "X-Publication-Ingestion-Secret": SECRET };
+  const firstPayload = {
+    ...base,
+    batchId: `batch-${suffix}-first`,
+    items: [
+      {
+        ...base.items[0],
+        objects: [
+          {
+            contentType: "text/plain",
+            kind: "body_html" as const,
+            sha256: SHA256_OF_XYZ,
+            size: 3,
+          },
+        ],
+      },
+    ],
+  };
+  const retryPayload = { ...firstPayload, batchId: `batch-${suffix}-retry` };
+  const finalPayload = { ...firstPayload, batchId: `batch-${suffix}-final` };
+
+  await cleanup(firstPayload);
+  await cleanup(retryPayload);
+  await cleanup(finalPayload);
+  try {
+    const first = await request.post(BASE, { data: firstPayload, headers });
+    expect(first.status()).toBe(200);
+    await expect(first.json()).resolves.toMatchObject({
+      results: [{ status: "created" }],
+    });
+
+    // The crawler crashed after the batch was accepted but before the object
+    // bytes were uploaded, so the event is redelivered under a new batchId.
+    const retry = await request.post(BASE, { data: retryPayload, headers });
+    expect(retry.status()).toBe(200);
+    const retryBody = await retry.json();
+    expect(retryBody.results[0]).toMatchObject({
+      status: "unchanged",
+      objectsNeedingUpload: [{ kind: "body_html", sha256: SHA256_OF_XYZ }],
+    });
+
+    // The plan endpoint accepts the retry batchId for the re-registered claim.
+    const plan = await request.post(OBJECT_PLAN, {
+      data: {
+        batchId: retryPayload.batchId,
+        objects: [{ kind: "body_html", sha256: SHA256_OF_XYZ }],
+      },
+      headers,
+    });
+    expect(plan.status()).toBe(200);
+    const planBody = await plan.json();
+    const object = planBody.objects[0];
+    expect(object).toMatchObject({ status: "upload_required" });
+    expect(object.uploadUrl).toContain(retryPayload.batchId);
+
+    const upload = await request.put(object.uploadUrl, {
+      data: Buffer.from("xyz"),
+      headers: {
+        ...headers,
+        ...object.requiredHeaders,
+        "Content-Length": "3",
+      },
+    });
+    expect(upload.status()).toBe(200);
+    await expect(upload.json()).resolves.toMatchObject({ status: "linked" });
+
+    // Once the bytes are linked, a further redelivery stays a plain unchanged.
+    const final = await request.post(BASE, { data: finalPayload, headers });
+    expect(final.status()).toBe(200);
+    const finalBody = await final.json();
+    expect(finalBody.results[0].status).toBe("unchanged");
+    expect(finalBody.results[0]).not.toHaveProperty("objectsNeedingUpload");
+  } finally {
+    await cleanup(firstPayload);
+    await cleanup(retryPayload);
+    await cleanup(finalPayload);
+    await withE2ePrisma(async (prisma) => {
+      await prisma.publicationObject.deleteMany({
+        where: { kind: "body_html", sha256: SHA256_OF_XYZ },
+      });
+    });
   }
 });
 

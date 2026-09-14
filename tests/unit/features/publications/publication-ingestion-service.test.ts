@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
 import { Prisma } from "@/generated/prisma/client";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
+import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
 import fixture from "../../../../docs/contracts/fixtures/publication-batch.json";
 
@@ -873,5 +874,93 @@ describe("publication ingestion transaction", () => {
     expect(replayed).toEqual(committed);
     expect(fake.prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(fake.state.batches.size).toBe(1);
+  });
+});
+
+describe("publication ingestion unchanged redelivery", () => {
+  beforeEach(() => fake.clear());
+
+  const bodyObject = {
+    kind: "body_html" as const,
+    sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    size: 4,
+    contentType: "text/html",
+  };
+
+  it("re-registers the claim and flags missing object bytes on an unchanged redelivery", async () => {
+    const first = await ingestPublicationBatch({
+      payload: payloadFor(
+        { objects: [bodyObject] },
+        "batch-redelivery-initial",
+      ),
+      principal,
+    });
+    expect(first.results[0].status).toBe("created");
+    expect(fake.state.claims.size).toBe(1);
+
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-redelivery-retry"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(second.results[0].objectsNeedingUpload).toEqual([
+      { kind: bodyObject.kind, sha256: bodyObject.sha256 },
+    ]);
+    expect(() =>
+      publicationIngestionBatchResponseSchema.parse(second),
+    ).not.toThrow();
+    // The retry batch owns a claim so the object plan endpoint accepts its
+    // batchId, while the revision keeps a single object link.
+    expect(fake.state.claims.size).toBe(2);
+    expect(fake.state.links.size).toBe(1);
+    const claimBatchIds = [...fake.state.claims.values()].map((claim) =>
+      String(claim.batchId),
+    );
+    expect(new Set(claimBatchIds).size).toBe(2);
+  });
+
+  it("does not flag an unchanged object whose bytes are already linked", async () => {
+    await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-linked-initial"),
+      principal,
+    });
+    for (const object of fake.state.objects.values()) {
+      object.status = "linked";
+    }
+
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-linked-retry"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(second.results[0]).not.toHaveProperty("objectsNeedingUpload");
+    expect(fake.state.claims.size).toBe(2);
+  });
+
+  it("keeps repeated unchanged redeliveries idempotent", async () => {
+    await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-1"),
+      principal,
+    });
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-2"),
+      principal,
+    });
+    const third = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-3"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(third.results[0].status).toBe("unchanged");
+    expect(third.results[0].objectsNeedingUpload).toEqual([
+      { kind: bodyObject.kind, sha256: bodyObject.sha256 },
+    ]);
+    expect(fake.state.objects.size).toBe(1);
+    expect(fake.state.revisions.size).toBe(1);
+    expect(fake.state.links.size).toBe(1);
+    expect(fake.state.claims.size).toBe(3);
   });
 });
