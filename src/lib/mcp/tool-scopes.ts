@@ -81,7 +81,6 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   ],
   workspace_calendar_timeline_get: [
     { feature: "workspace.calendar", action: "read" },
-    { feature: "workspace.overview", action: "read" },
   ],
 
   // Comments

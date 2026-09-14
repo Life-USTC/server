@@ -127,6 +127,26 @@ describe("MCP tool descriptors", () => {
     });
   });
 
+  it("advertises only the calendar scope for the calendar timeline", async () => {
+    const result = await listTools();
+    const tool = result.tools.find(
+      (item) => item.name === "workspace_calendar_timeline_get",
+    );
+
+    expect(tool).toMatchObject({
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        securitySchemes: [
+          { type: "oauth2", scopes: [restReadScope("workspace.calendar")] },
+        ],
+      },
+    });
+  });
+
   it("advertises public catalog tools as noauth", async () => {
     const result = await listTools();
     const tool = result.tools.find(
