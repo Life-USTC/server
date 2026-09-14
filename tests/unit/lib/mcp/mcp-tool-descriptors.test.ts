@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import * as z from "zod";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
@@ -95,6 +95,12 @@ function inputSchema(result: ToolListResult, name: string) {
 }
 
 describe("MCP tool descriptors", () => {
+  let toolList: ToolListResult;
+  beforeAll(async () => {
+    // One real protocol round trip supplies the immutable descriptor fixture.
+    // Each assertion gets a copy; custom-server behavior tests remain isolated.
+    toolList = await listTools();
+  });
   it("tracks the registered tool count without reading SDK private fields", async () => {
     const server = createMcpServer();
 
@@ -106,7 +112,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("exposes OpenAI-compatible auth metadata and read annotations", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const tool = result.tools.find(
       (item) => item.name === "workspace_todo_list",
     );
@@ -131,7 +137,7 @@ describe("MCP tool descriptors", () => {
     ["workspace_calendar_timeline_get", restReadScope("workspace.calendar")],
     ["workspace_calendar_feed_get", restReadScope("workspace.subscription")],
   ])("advertises the feature scope for %s", async (name, scope) => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const tool = result.tools.find((item) => item.name === name);
 
     expect(tool).toMatchObject({
@@ -147,7 +153,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises public catalog tools as noauth", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const tool = result.tools.find(
       (item) => item.name === "catalog_course_search",
     );
@@ -207,7 +213,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("marks personal overwrite tools as closed-world writes", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const tool = result.tools.find(
       (item) => item.name === "workspace_todo_update",
     );
@@ -228,7 +234,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("marks collaborative publish tools as open-world writes", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const tool = result.tools.find(
       (item) => item.name === "community_comment_create",
     );
@@ -249,7 +255,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises an object output schema on every registered tool", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
 
     expect(result.tools.length).toBeGreaterThan(0);
     for (const tool of result.tools) {
@@ -271,7 +277,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises useful top-level structured content keys", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
 
     expect(outputSchemaKeys(result, "workspace_todo_list")).toEqual(
       expect.arrayContaining(["counts", "todos", "success", "message"]),
@@ -326,7 +332,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises the shared bus versionKey boundary", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
 
     for (const name of [
       "catalog_bus_timetable_get",
@@ -342,7 +348,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises how to recover past-term personal data", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const description = (name: string) =>
       result.tools.find((tool) => tool.name === name)?.description ?? "";
 
@@ -358,7 +364,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises assistant workspace tool hierarchy", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const description = (name: string) =>
       result.tools.find((tool) => tool.name === name)?.description ?? "";
 
@@ -370,7 +376,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("describes personal calendar subscription without exposing a private feed URL", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const description =
       result.tools.find((tool) => tool.name === "workspace_calendar_feed_get")
         ?.description ?? "";
@@ -390,7 +396,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises the advisory homework writing convention", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
 
     for (const name of [
       "community_section_homework_create",
@@ -408,7 +414,7 @@ describe("MCP tool descriptors", () => {
   });
 
   it("advertises shared nested schemas for stable structured outputs", async () => {
-    const result = await listTools();
+    const result = structuredClone(toolList);
     const todoSchema = outputSchema(result, "workspace_todo_list");
     const uploadSchema = outputSchema(result, "workspace_upload_list");
     const courseSearchSchema = outputSchema(result, "catalog_course_search");

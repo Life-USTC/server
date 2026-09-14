@@ -23,7 +23,10 @@ describe("SchemaCollector", () => {
 
 describe("route collector", () => {
   it("builds an operation from JSDoc tags", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/workspace/todos/+server.ts",
       `
@@ -68,7 +71,10 @@ export const GET = () => new Response();
   });
 
   it("handles response shortcuts", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/health/+server.ts",
       `
@@ -93,7 +99,10 @@ export const GET = () => new Response();
   });
 
   it("documents a relative Location header for 201 responses", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/workspace/todos/+server.ts",
       `
@@ -122,7 +131,10 @@ export const POST = () => new Response();
   });
 
   it("documents Retry-After for mutation throttle responses", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/workspace/todos/+server.ts",
       `
@@ -152,7 +164,10 @@ export const POST = () => new Response();
   });
 
   it("documents dedicated ingestion secret authentication", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/ingestion/publications/batches/+server.ts",
       `
@@ -178,7 +193,10 @@ export const POST = () => new Response();
   });
 
   it("parses path parameters and request body", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/workspace/todos/[id]/+server.ts",
       `
@@ -219,7 +237,10 @@ export const PATCH = () => new Response();
   });
 
   it("collects .well-known routes including nested paths", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
 
     project.createSourceFile(
       "src/routes/.well-known/openid-configuration/+server.ts",
@@ -261,7 +282,10 @@ export function GET() {
   });
 
   it("includes Location header for .well-known 307 redirects", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/.well-known/oauth-authorization-server/+server.ts",
       `
@@ -293,7 +317,10 @@ export const { GET, OPTIONS } = { GET: () => new Response(), OPTIONS: () => new 
   });
 
   it("collects function-declaration handlers", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/health/+server.ts",
       `
@@ -326,7 +353,10 @@ export function GET() {
   });
 
   it("uses object items for the array response shortcut", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
     project.createSourceFile(
       "src/routes/api/catalog/sections/[jwId]/schedules/+server.ts",
       `

@@ -96,6 +96,9 @@ source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 
+# Parallel integration: provisions and cleans up four isolated databases
+bun run integration:test:parallel
+
 # E2E — resets the disposable database before each shard
 ALLOW_DATABASE_SEED=true bun run e2e:test
 # FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.

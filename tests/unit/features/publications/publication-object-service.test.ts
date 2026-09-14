@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => {
   };
   return {
     bucket,
-    getBucket: vi.fn(() => bucket),
+    getBucket: vi.fn<() => typeof bucket | undefined>(() => bucket),
     batchFindUnique: vi.fn(),
     batchObjectFindFirst: vi.fn(),
     objectUpdate: vi.fn(),
@@ -33,6 +33,9 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import {
+  PublicationObjectBadRequestError,
+  PublicationObjectNotFoundError,
+  PublicationObjectStorageUnavailableError,
   planPublicationObjects,
   uploadPublicationObject,
 } from "@/features/publications/server/publication-object-service";
@@ -410,5 +413,332 @@ describe("publication object upload", () => {
     });
     expect(maxActiveHeads).toBeGreaterThan(1);
     expect(maxActiveHeads).toBeLessThanOrEqual(8);
+  });
+
+  it("rejects duplicate object manifests before looking up batch ownership", async () => {
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-duplicate",
+          objects: [
+            { kind: "body_html", sha256: sha256OfAbc },
+            { kind: "body_html", sha256: sha256OfAbc },
+          ],
+        },
+      }),
+    ).rejects.toBeInstanceOf(PublicationObjectBadRequestError);
+    expect(mocks.batchFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes a missing batch from an object absent from a batch", async () => {
+    mocks.batchFindUnique.mockResolvedValueOnce(null);
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-missing",
+          objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+        },
+      }),
+    ).rejects.toBeInstanceOf(PublicationObjectNotFoundError);
+
+    mocks.batchFindUnique.mockResolvedValueOnce({ objects: [] });
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-without-object",
+          objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_not_found",
+      message: "Object is not in this batch",
+    });
+  });
+
+  it("rejects a stored key that is no longer content addressed", async () => {
+    const claim = {
+      expectedContentType: "text/plain",
+      expectedSha256: sha256OfAbc,
+      expectedSize: 3,
+      object: {
+        id: "object-1",
+        kind: "body_html" as const,
+        r2Key: "publications/body_html/not-the-digest",
+        sha256: sha256OfAbc,
+        status: "pending" as const,
+      },
+    };
+    mocks.batchFindUnique.mockResolvedValueOnce({ objects: [claim] });
+
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-bad-key",
+          objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_bad_request",
+      message: "Stored object key does not match its content address",
+    });
+    expect(mocks.getBucket).not.toHaveBeenCalled();
+  });
+
+  it("reports storage binding and upload failures without claiming the object", async () => {
+    mocks.getBucket.mockReturnValueOnce(undefined);
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-no-storage",
+          objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+        },
+      }),
+    ).rejects.toBeInstanceOf(PublicationObjectStorageUnavailableError);
+
+    mocks.bucket.put.mockRejectedValueOnce(new Error("R2 unavailable"));
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-put-failed",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_storage_unavailable",
+      message: "R2 publication object upload failed",
+    });
+    expect(mocks.objectUpdate).not.toHaveBeenCalled();
+  });
+
+  it("verifies metadata and hashes object bytes when R2 omits a checksum", async () => {
+    mocks.bucket.head.mockResolvedValue({
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "text/plain" },
+      size: 3,
+    });
+    mocks.bucket.get.mockResolvedValue({ body: body("abc") });
+
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-byte-verified",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).resolves.toMatchObject({ status: "linked" });
+    expect(mocks.bucket.get).toHaveBeenCalledWith(
+      `publications/body_html/sha256/ba/${sha256OfAbc}`,
+    );
+
+    mocks.bucket.head.mockResolvedValueOnce({
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "text/plain" },
+      size: 3,
+    });
+    mocks.bucket.get.mockResolvedValueOnce({ body: body("bad") });
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-byte-mismatch",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_bad_request",
+      message: "object content does not match manifest",
+    });
+    expect(mocks.objectUpdate).toHaveBeenLastCalledWith({
+      where: { id: "object-1" },
+      data: {
+        status: "failed",
+        lastError: "object content does not match manifest",
+      },
+    });
+  });
+
+  it("rejects metadata mismatches and missing objects during verification", async () => {
+    mocks.bucket.head.mockResolvedValueOnce({
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "application/json" },
+      size: 3,
+    });
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-mime-mismatch",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toThrow("object content type does not match manifest");
+
+    mocks.bucket.head.mockResolvedValueOnce({
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "text/plain" },
+      size: 3,
+    });
+    mocks.bucket.get.mockResolvedValueOnce(null);
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-body-missing",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toThrow("object is missing");
+    expect(mocks.objectUpdate).toHaveBeenLastCalledWith({
+      where: { id: "object-1" },
+      data: { status: "failed", lastError: "object is missing" },
+    });
+  });
+
+  it("marks an object for upload when its stored size is stale", async () => {
+    mocks.bucket.head.mockResolvedValueOnce({
+      customMetadata: { kind: "body_html", sha256: sha256OfAbc },
+      httpMetadata: { contentType: "text/plain" },
+      size: 4,
+    });
+
+    await expect(
+      planPublicationObjects({
+        origin: "https://life.example",
+        principal,
+        payload: {
+          batchId: "batch-size-mismatch",
+          objects: [{ kind: "body_html", sha256: sha256OfAbc }],
+        },
+      }),
+    ).resolves.toMatchObject({
+      objects: [
+        expect.objectContaining({
+          status: "upload_required",
+          uploadUrl: expect.stringContaining("batch-size-mismatch"),
+        }),
+      ],
+    });
+  });
+
+  it("rejects an upload claim that is missing or points at a non-canonical key", async () => {
+    mocks.batchObjectFindFirst.mockResolvedValueOnce(null);
+    mocks.batchFindUnique.mockResolvedValueOnce({ id: "batch-1" });
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-claim-missing",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_not_found",
+      message: "Object is not in this batch",
+    });
+
+    mocks.batchObjectFindFirst.mockResolvedValueOnce(null);
+    mocks.batchFindUnique.mockResolvedValueOnce(null);
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-claim-batch-missing",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_not_found",
+      message: "Ingestion batch not found",
+    });
+
+    const badClaim = {
+      expectedContentType: "text/plain",
+      expectedSha256: sha256OfAbc,
+      expectedSize: 3,
+      object: {
+        id: "object-1",
+        kind: "body_html" as const,
+        r2Key: "publications/body_html/not-content-addressed",
+        sha256: sha256OfAbc,
+        status: "pending" as const,
+      },
+    };
+    mocks.batchObjectFindFirst.mockResolvedValueOnce(badClaim);
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-claim-bad-key",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toMatchObject({
+      code: "publication_object_bad_request",
+      message: "Stored object key does not match its content address",
+    });
+  });
+
+  it("records a failed verification when object metadata does not match", async () => {
+    mocks.bucket.head.mockResolvedValueOnce({
+      customMetadata: { kind: "body_html", sha256: "0".repeat(64) },
+      httpMetadata: { contentType: "text/plain" },
+      size: 3,
+    });
+
+    await expect(
+      uploadPublicationObject({
+        body: body("abc"),
+        principal,
+        payload: {
+          batchId: "batch-metadata-mismatch",
+          kind: "body_html",
+          sha256: sha256OfAbc,
+        },
+        size: 3,
+      }),
+    ).rejects.toThrow("object metadata does not match manifest");
+    expect(mocks.objectUpdate).toHaveBeenLastCalledWith({
+      where: { id: "object-1" },
+      data: {
+        status: "failed",
+        lastError: "object metadata does not match manifest",
+      },
+    });
   });
 });

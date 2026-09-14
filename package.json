@@ -46,7 +46,8 @@
     "check": "bun run app:prepare && bunx wrangler types --include-runtime=false --check && bunx biome check && bunx svelte-check --tsconfig ./tsconfig.json && bunx tsc --noEmit -p tsconfig.typecheck.json && bunx tsc --noEmit -p tsconfig.typecheck.tests.json && bunx tsc --noEmit -p tsconfig.typecheck.operational.json && bunx vitest run && bun run openapi:check && bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts",
     "openapi:generate": "bun run scripts/openapi/generate.ts",
     "openapi:check": "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "integration:test:parallel": "bash tests/ci/integration-parallel-local.sh"
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.2",
@@ -125,6 +126,7 @@
     "vite": "8.2.2",
     "vitest": "4.1.11",
     "wrangler": "4.129.1",
+    "yaml": "2.9.0",
     "zod-openapi": "^6.0.1"
   },
   "patchedDependencies": {
