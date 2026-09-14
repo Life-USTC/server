@@ -1,3 +1,10 @@
+# [1.111.0](https://github.com/Life-USTC/server/compare/v1.110.0...v1.111.0) (2026-09-14)
+
+
+### Features
+
+* **admin:** consolidate statistics and operation issues ([#1043](https://github.com/Life-USTC/server/issues/1043)) ([cad45aa](https://github.com/Life-USTC/server/commit/cad45aabc6806c088c9972f3248ceb51b32a2db0))
+
 # [1.110.0](https://github.com/Life-USTC/server/compare/v1.109.1...v1.110.0) (2026-09-14)
 
 
