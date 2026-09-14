@@ -1,3 +1,15 @@
+# [1.112.0](https://github.com/Life-USTC/server/compare/v1.111.0...v1.112.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* **publications:** re-register object claims on unchanged ingestion redelivery ([#1044](https://github.com/Life-USTC/server/issues/1044)) ([6b1f16c](https://github.com/Life-USTC/server/commit/6b1f16c2ee2b3d2a9dade7fdb4ea73dc275fa608))
+
+
+### Features
+
+* **admin:** make statistics and operation logs self-hosted ([#1045](https://github.com/Life-USTC/server/issues/1045)) ([55b781a](https://github.com/Life-USTC/server/commit/55b781afd9741944e0c6ecca7ad26cbba1276050))
+
 # [1.111.0](https://github.com/Life-USTC/server/compare/v1.110.0...v1.111.0) (2026-09-14)
 
 
