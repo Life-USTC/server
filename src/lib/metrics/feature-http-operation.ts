@@ -1,3 +1,4 @@
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   classifyFeatureStatus,
   type FeatureOperation,
@@ -121,10 +122,7 @@ export function httpFeatureContext(
     protocol: web ? "web" : "rest",
     surface: web ? "web" : "unknown",
     // A credential signal is not proof of authentication. Never add a session lookup for telemetry.
-    authMode:
-      request.headers.has("authorization") || request.headers.has("cookie")
-        ? "unknown"
-        : "anonymous",
+    authMode: hasRequestAuthSignal(request.headers) ? "unknown" : "anonymous",
     requestId,
   };
 }
