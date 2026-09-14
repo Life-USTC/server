@@ -862,6 +862,31 @@
       "batch": "批量操作"
     }
   },
+  "adminUserTrends": {
+    "title": "用户增长与活跃度",
+    "subtitle": "按上海自然日查看当前保留账号和可识别的功能使用情况。",
+    "window": "统计周期",
+    "days": "最近 {days} 天",
+    "currentUsers": "当前保留用户",
+    "periodRegisteredUsers": "新增注册",
+    "periodActiveUsers": "可识别活跃用户",
+    "registrationsSeries": "注册",
+    "activeUsersSeries": "可识别活跃用户",
+    "trendDescription": "注册数统计周期内创建且仍保留的账号。活跃用户是产生功能事件的去重可识别用户，不是每日人数相加。",
+    "retainedAccountsNote": "注册历史基于当前仍保留的账号；已删除账号无法从这段历史中恢复。",
+    "identifiedActivityNote": "只有带用户身份的功能事件计入活跃用户；匿名事件不计入。",
+    "partialDay": "部分时段",
+    "dailyDetails": "查看每日数据",
+    "chartDataTable": "查看用户趋势数据表",
+    "chartDay": "日期",
+    "chartValue": "人数",
+    "chartLegend": "序列",
+    "chartInspect": "使用方向键逐日查看数据。",
+    "noData": "所选周期内暂无用户趋势数据。",
+    "noActivity": "尚未观测到可识别的活跃行为。",
+    "unavailable": "用户趋势暂不可用",
+    "unavailableDescription": "暂时无法读取用户注册或功能活动数据，请稍后重试。"
+  },
   "adminUsers": {
     "title": "用户管理",
     "subtitle": "搜索账号、更新资料字段、授予管理员权限并创建封禁。",

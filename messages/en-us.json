@@ -862,6 +862,31 @@
       "batch": "Batch"
     }
   },
+  "adminUserTrends": {
+    "title": "User growth and activity",
+    "subtitle": "Current retained accounts and identified feature activity by Shanghai calendar day.",
+    "window": "Reporting window",
+    "days": "Last {days} days",
+    "currentUsers": "Current retained users",
+    "periodRegisteredUsers": "New registrations",
+    "periodActiveUsers": "Identified active users",
+    "registrationsSeries": "Registrations",
+    "activeUsersSeries": "Identified active users",
+    "trendDescription": "Registrations are retained accounts created during the window. Active users are distinct identified users with feature events; they are not a sum of daily counts.",
+    "retainedAccountsNote": "Registration history uses current retained accounts. Deleted accounts cannot be recovered from this history.",
+    "identifiedActivityNote": "Only feature events with a user identity count as active users; anonymous events are excluded.",
+    "partialDay": "partial",
+    "dailyDetails": "View daily data",
+    "chartDataTable": "View user trend data table",
+    "chartDay": "Day",
+    "chartValue": "People",
+    "chartLegend": "Series",
+    "chartInspect": "Use the arrow keys to inspect one day at a time.",
+    "noData": "No user trend data is available for this period.",
+    "noActivity": "No identified activity has been observed yet.",
+    "unavailable": "User trends unavailable",
+    "unavailableDescription": "User registration or feature activity data could not be read. Try again later."
+  },
   "adminUsers": {
     "title": "User Management",
     "subtitle": "Search accounts, update profile fields, grant admin access, and create suspensions.",
