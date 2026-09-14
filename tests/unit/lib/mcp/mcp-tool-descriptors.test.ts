@@ -127,6 +127,25 @@ describe("MCP tool descriptors", () => {
     });
   });
 
+  it.each([
+    ["workspace_calendar_timeline_get", restReadScope("workspace.calendar")],
+    ["workspace_calendar_feed_get", restReadScope("workspace.subscription")],
+  ])("advertises the feature scope for %s", async (name, scope) => {
+    const result = await listTools();
+    const tool = result.tools.find((item) => item.name === name);
+
+    expect(tool).toMatchObject({
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        securitySchemes: [{ type: "oauth2", scopes: [scope] }],
+      },
+    });
+  });
+
   it("advertises public catalog tools as noauth", async () => {
     const result = await listTools();
     const tool = result.tools.find(

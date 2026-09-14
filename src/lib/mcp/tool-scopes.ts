@@ -56,7 +56,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Section subscriptions
   workspace_calendar_feed_get: [
-    { feature: "workspace.calendar", action: "read" },
+    { feature: "workspace.subscription", action: "read" },
   ],
   workspace_subscription_list: [
     { feature: "workspace.subscription", action: "read" },
@@ -81,7 +81,6 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   ],
   workspace_calendar_timeline_get: [
     { feature: "workspace.calendar", action: "read" },
-    { feature: "workspace.overview", action: "read" },
   ],
 
   // Comments

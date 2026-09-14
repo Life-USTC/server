@@ -13,7 +13,7 @@
     "public": "Lookup is public and does not disclose personal schedules.",
     "calendar": "Course and exam iCalendar events attach public image URLs, preferring highlighted room maps. Every mapped exam room contributes an attachment, deduplicated by URL. Descriptions include room-labeled map links. Missing maps never suppress events.",
     "web": "Room labels support lazy hover/focus preview and click/tap expansion, with keyboard access and full-size image viewing.",
-    "bot": "Explicit room queries return a map and a short description. Do not attach every room map to ordinary timetable replies. Resolve ambiguous class references before querying a map."
+    "bot": "Explicit room queries and recognized bare room codes return the available map image without a caption. When image responses are disabled, return map text and the available public image URL; unavailable maps return an explanatory message. Public room queries are available in shared conversations; private AI conversations can also use catalog_rooms_map. Do not attach every room map to ordinary timetable replies. Resolve ambiguous class references before querying a map."
   },
   "capabilities": {
     "room-map": {

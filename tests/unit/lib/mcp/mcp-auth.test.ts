@@ -32,6 +32,7 @@ vi.mock("@/lib/mcp/urls", () => ({
 
 const TODO_READ_SCOPE = restReadScope("workspace.todo");
 const TODO_WRITE_SCOPE = restWriteScope("workspace.todo");
+const CALENDAR_READ_SCOPE = restReadScope("workspace.calendar");
 const GRANT_ID_CLAIM = "urn:life-ustc:oauth:grant-id";
 
 type UpstreamMode =
@@ -382,6 +383,52 @@ describe("MCP per-tool scope enforcement", () => {
     if ("response" in result) {
       expect(result.response.headers.get("WWW-Authenticate")).toContain(
         restReadScope("workspace.overview"),
+      );
+    }
+  });
+
+  it("allows the calendar timeline with only the calendar read scope", async () => {
+    await expect(
+      authenticate([CALENDAR_READ_SCOPE], "workspace_calendar_timeline_get"),
+    ).resolves.toMatchObject({
+      authInfo: { scopes: [CALENDAR_READ_SCOPE] },
+    });
+  });
+
+  it("gates credential-free feed information on subscription access", async () => {
+    const scope = restReadScope("workspace.subscription");
+    await expect(
+      authenticate([scope], "workspace_calendar_feed_get"),
+    ).resolves.toMatchObject({ authInfo: { scopes: [scope] } });
+    const result = await authenticate(
+      [CALENDAR_READ_SCOPE, restReadScope("workspace.calendar-feed")],
+      "workspace_calendar_feed_get",
+    );
+    expect(result).toMatchObject({
+      authFailureDiagnostics: {
+        authFailureKind: "missing_required_tool_scope",
+      },
+      response: expect.objectContaining({ status: 403 }),
+    });
+  });
+
+  it("rejects the calendar timeline when the calendar read scope is missing", async () => {
+    const result = await authenticate(
+      [restReadScope("workspace.overview")],
+      "workspace_calendar_timeline_get",
+    );
+
+    expect(result).toMatchObject({
+      authFailureDiagnostics: {
+        authFailureKind: "missing_required_tool_scope",
+        requiredScopeCount: 1,
+        toolNameCount: 1,
+      },
+      response: expect.objectContaining({ status: 403 }),
+    });
+    if ("response" in result) {
+      expect(result.response.headers.get("WWW-Authenticate")).toContain(
+        CALENDAR_READ_SCOPE,
       );
     }
   });

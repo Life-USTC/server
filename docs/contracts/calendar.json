@@ -4,7 +4,7 @@
     "anon": "Can browse calendar information on public section detail pages.",
     "user": "Can browse the personal calendar view.",
     "admin": "Has no special calendar view separate from regular users.",
-    "agent": "Can read timeline information with the same semantics through OAuth REST and MCP."
+    "agent": "Can read the unified personal calendar through MCP. REST provides source data and bounded workspace summaries, not the unified timeline."
   },
   "rules": {
     "views": "Provides selectable semester, month, and week views.",
@@ -39,7 +39,10 @@
           },
           {
             "name": "workspace_calendar_timeline_get",
-            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
+            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
+            "notes": [
+              "Requires workspace.calendar:read, matching workspace_calendar_event_list; workspace.overview:read is not required."
+            ]
           },
           {
             "name": "workspace_schedule_list",
