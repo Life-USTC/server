@@ -22,6 +22,7 @@
     "batch-size": "A publication ingestion batch accepts 1-100 items. Larger batches are rejected by the request schema and must be split by the crawler before submission.",
     "partial-item-rejection": "A source or item validation error is returned as a per-item rejected result and does not roll back other valid items in the batch. Batch-level identity, manifest, and database failures remain errors.",
     "objects": "The server generates content-addressed keys; clients cannot choose keys or metadata. Manifests are at most 32 MiB. Metadata ingestion may precede the R2 object. Planning verifies size, content type, kind, SHA-256 metadata, and bytes (or a provider checksum), and immediately links an already-present object. An uploaded object must be verified and linked through complete.",
+    "unchanged-objects": "An unchanged item still re-registers its object claims against the current batch so a redelivery under a new batchId can plan uploads. When a claimed object has no verified bytes (status other than verified or linked), the item result carries objectsNeedingUpload entries ({ kind, sha256 }) and the client must plan and upload those objects against the new batchId; the field is absent when every claimed object is already verified.",
     "outbox": "Accepted revisions write a durable PublicationEventOutbox row in the same transaction. A future Queue consumer may derive work from this outbox; the ingestion path does not claim delivery until a real publisher exists.",
     "content-type": "Manifests require bare MIME types (for example text/html or image/png); parameters such as charset are rejected. For each (kind, sha256), the first PublicationObject contentType is canonical. Later manifests with the same kind, sha256, and size may use a MIME alias; r2Key and size stay strict. Batch claims, upload plans, presigned PUTs, and completion checks use canonical contentType. Revision replay compares object identity, size, role/order, and alt text, ignoring MIME aliases.",
     "required-upload-headers": "An upload plan returns the exact required Content-Type, x-amz-meta-kind, and x-amz-meta-sha256 headers. Presigned URLs are short-lived and no R2 credentials are returned."
@@ -86,7 +87,8 @@
             "returns": "{ batchId, clientRunId, payloadDigest, results[] }",
             "notes": [
               "Request and response use the shared camelCase fixture shape in docs/contracts/fixtures/publication-batch.json.",
-              "Each result includes sourceId, canonicalUrl, and revisionHash so repeated URLs or revisions remain unambiguous. Status is created, updated, unchanged, or rejected; rejected results include an error and nullable publicationId/revisionId."
+              "Each result includes sourceId, canonicalUrl, and revisionHash so repeated URLs or revisions remain unambiguous. Status is created, updated, unchanged, or rejected; rejected results include an error and nullable publicationId/revisionId.",
+              "An unchanged result may include objectsNeedingUpload ({ kind, sha256 }[]) listing claimed objects whose bytes were never verified; the client plans and uploads those objects against the response batchId."
             ]
           },
           {
