@@ -2,6 +2,9 @@
 import AdminListShell from "@/features/admin/components/AdminListShell.svelte";
 import AdminTableShell from "@/features/admin/components/AdminTableShell.svelte";
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
+import type { DailySeries } from "$lib/components/charts/daily-series";
+import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
+import StatPanels from "$lib/components/dashboard/StatPanels.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -17,11 +20,6 @@ type BackendTelemetry = Awaited<ReturnType<typeof readAdminFeatureTelemetry>>;
 type PageData = BackendTelemetry & {
   locale: string;
   copy: { experience: typeof messages.adminExperience };
-};
-type DailySeries = {
-  key: string;
-  label: string;
-  values: readonly (number | null)[];
 };
 
 export let data: PageData;
@@ -62,6 +60,39 @@ $: protocolSeries = buildSeries(
   page.copy.experience.protocols,
   page.copy.experience.operations,
 );
+$: selectedAdvancedFilters = [
+  {
+    name: page.copy.experience.operation,
+    group: "operations",
+    value: page.filters.operation,
+  },
+  {
+    name: page.copy.experience.protocol,
+    group: "protocols",
+    value: page.filters.protocol,
+  },
+  {
+    name: page.copy.experience.surface,
+    group: "surfaces",
+    value: page.filters.surface,
+  },
+  {
+    name: page.copy.experience.authMode,
+    group: "authModes",
+    value: page.filters.authMode,
+  },
+  {
+    name: page.copy.experience.outcome,
+    group: "outcomes",
+    value: page.filters.outcome,
+  },
+].filter((filter) => filter.value);
+$: activeAdvancedFilterSummary = selectedAdvancedFilters
+  .map(
+    (filter) =>
+      `${filter.name}: ${label(filter.group, filter.value as string)}`,
+  )
+  .join(" · ");
 
 function label(group: string, value: string) {
   const labels = (page.copy.experience as Record<string, unknown>)[group];
@@ -188,19 +219,20 @@ function outcomeVariant(outcome: string) {
 }
 </script>
 
-<section aria-labelledby="experience-window-title" class="grid gap-4 border-y py-4">
-  <div class="flex flex-wrap items-baseline justify-between gap-3">
-    <div class="grid gap-1">
-      <h2 id="experience-window-title" class="text-base font-semibold">{page.copy.experience.window}</h2>
-      <p class="text-sm text-muted-foreground">{coverageLabel()}</p>
-      <p class="text-xs text-muted-foreground">{firstRecordedLabel()}</p>
-    </div>
+<DashboardPanel
+  id="experience-window"
+  title={page.copy.experience.window}
+  description={page.copy.experience.subtitle}
+>
+  <div class="grid gap-1 text-xs text-muted-foreground">
+    <p>{coverageLabel()}</p>
+    <p>{firstRecordedLabel()}</p>
   </div>
 
-  <form method="GET">
+  <form method="GET" class="grid gap-3">
     <input type="hidden" name="days" value={page.days} />
-    <Field.Group class="gap-4">
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <Field.Group class="grid gap-3">
+      <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <Field.Field>
           <Field.Label for="experience-feature">{page.copy.experience.feature}</Field.Label>
           <NativeSelect.Root class="w-full" id="experience-feature" name="feature">
@@ -210,54 +242,68 @@ function outcomeVariant(outcome: string) {
             {/each}
           </NativeSelect.Root>
         </Field.Field>
-        <Field.Field>
-          <Field.Label for="experience-operation">{page.copy.experience.operation}</Field.Label>
-          <NativeSelect.Root id="experience-operation" name="operation"><NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>{#each page.catalog.operations as operation}<NativeSelect.Option value={operation} selected={page.filters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>{/each}</NativeSelect.Root>
-        </Field.Field>
-        <Field.Field>
-          <Field.Label for="experience-protocol">{page.copy.experience.protocol}</Field.Label>
-          <NativeSelect.Root class="w-full" id="experience-protocol" name="protocol">
-            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
-            {#each page.catalog.protocols as protocol}
-              <NativeSelect.Option value={protocol} selected={page.filters.protocol === protocol}>{label("protocols", protocol)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </Field.Field>
-        <Field.Field>
-          <Field.Label for="experience-surface">{page.copy.experience.surface}</Field.Label>
-          <NativeSelect.Root class="w-full" id="experience-surface" name="surface">
-            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
-            {#each page.catalog.surfaces as surface}
-              <NativeSelect.Option value={surface} selected={page.filters.surface === surface}>{label("surfaces", surface)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </Field.Field>
-        <Field.Field>
-          <Field.Label for="experience-auth">{page.copy.experience.authMode}</Field.Label>
-          <NativeSelect.Root class="w-full" id="experience-auth" name="authMode">
-            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
-            {#each page.catalog.authModes as authMode}
-              <NativeSelect.Option value={authMode} selected={page.filters.authMode === authMode}>{label("authModes", authMode)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </Field.Field>
-        <Field.Field>
-          <Field.Label for="experience-outcome">{page.copy.experience.outcome}</Field.Label>
-          <NativeSelect.Root class="w-full" id="experience-outcome" name="outcome">
-            <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
-            {#each page.catalog.outcomes as outcome}
-              <NativeSelect.Option value={outcome} selected={page.filters.outcome === outcome}>{label("outcomes", outcome)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
+        <Field.Field orientation="horizontal" class="gap-2">
+          <Button class="flex-1 sm:flex-none" type="submit">{page.copy.experience.apply}</Button>
+          <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{page.copy.experience.clear}</Button>
         </Field.Field>
       </div>
-      <Field.Field orientation="horizontal" class="gap-2">
-        <Button class="flex-1 sm:flex-none" type="submit">{page.copy.experience.apply}</Button>
-        <Button class="flex-1 sm:flex-none" href="/admin/analytics" variant="outline">{page.copy.experience.clear}</Button>
-      </Field.Field>
+
+      <details class="grid gap-3 rounded-md border px-3 py-2">
+        <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span>{page.copy.experience.operation} · {page.copy.experience.protocol} · {page.copy.experience.surface} · {page.copy.experience.authMode} · {page.copy.experience.outcome}</span>
+          <span class="text-xs font-normal text-muted-foreground">{activeAdvancedFilterSummary || page.copy.experience.all}</span>
+        </summary>
+        <Field.Group class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <Field.Field>
+            <Field.Label for="experience-operation">{page.copy.experience.operation}</Field.Label>
+            <NativeSelect.Root id="experience-operation" name="operation">
+              <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+              {#each page.catalog.operations as operation}
+                <NativeSelect.Option value={operation} selected={page.filters.operation === operation}>{label("operations", operation)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="experience-protocol">{page.copy.experience.protocol}</Field.Label>
+            <NativeSelect.Root class="w-full" id="experience-protocol" name="protocol">
+              <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+              {#each page.catalog.protocols as protocol}
+                <NativeSelect.Option value={protocol} selected={page.filters.protocol === protocol}>{label("protocols", protocol)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="experience-surface">{page.copy.experience.surface}</Field.Label>
+            <NativeSelect.Root class="w-full" id="experience-surface" name="surface">
+              <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+              {#each page.catalog.surfaces as surface}
+                <NativeSelect.Option value={surface} selected={page.filters.surface === surface}>{label("surfaces", surface)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="experience-auth">{page.copy.experience.authMode}</Field.Label>
+            <NativeSelect.Root class="w-full" id="experience-auth" name="authMode">
+              <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+              {#each page.catalog.authModes as authMode}
+                <NativeSelect.Option value={authMode} selected={page.filters.authMode === authMode}>{label("authModes", authMode)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="experience-outcome">{page.copy.experience.outcome}</Field.Label>
+            <NativeSelect.Root class="w-full" id="experience-outcome" name="outcome">
+              <NativeSelect.Option value="">{page.copy.experience.all}</NativeSelect.Option>
+              {#each page.catalog.outcomes as outcome}
+                <NativeSelect.Option value={outcome} selected={page.filters.outcome === outcome}>{label("outcomes", outcome)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </Field.Field>
+        </Field.Group>
+      </details>
     </Field.Group>
   </form>
-</section>
+</DashboardPanel>
 
 {#if page.status.state === "unavailable"}
   <Alert.Root variant="destructive">
@@ -272,28 +318,32 @@ function outcomeVariant(outcome: string) {
     </Empty.Header>
   </Empty.Root>
 {:else}
-  <section aria-labelledby="experience-summary-title" class="grid gap-3">
-    <div class="flex flex-wrap items-end justify-between gap-2">
-      <div class="grid gap-1">
-        <h2 id="experience-summary-title" class="text-lg font-semibold">{page.copy.experience.summary}</h2>
-        <p class="text-sm text-muted-foreground">{page.copy.experience.summaryDescription}</p>
-      </div>
-    </div>
-    <dl class="grid grid-cols-2 gap-x-6 gap-y-5 border-y py-4 sm:grid-cols-3 xl:grid-cols-5">
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.total}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.total)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.rejected}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.rejected)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.errors}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.errors)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.unknown}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.unknown)}</dd></div>
-      <div class="grid content-start gap-1"><dt class="text-sm text-muted-foreground">{page.copy.experience.identifiedUsers}</dt><dd class="text-2xl font-semibold tabular-nums">{numberFormatter.format(page.summary.activeUsers)}</dd><dd class="text-xs text-muted-foreground">{page.copy.experience.identifiedUsersDescription}</dd></div>
-    </dl>
-  </section>
+  <DashboardPanel
+    id="experience-summary"
+    title={page.copy.experience.summary}
+    description={page.copy.experience.summaryDescription}
+  >
+    <StatPanels
+      items={[
+        { label: page.copy.experience.total, value: numberFormatter.format(page.summary.total) },
+        { label: page.copy.experience.rejected, value: numberFormatter.format(page.summary.rejected) },
+        { label: page.copy.experience.errors, value: numberFormatter.format(page.summary.errors) },
+        { label: page.copy.experience.unknown, value: numberFormatter.format(page.summary.unknown) },
+        {
+          label: page.copy.experience.identifiedUsers,
+          value: numberFormatter.format(page.summary.activeUsers),
+          hint: page.copy.experience.identifiedUsersDescription,
+        },
+      ]}
+    />
+  </DashboardPanel>
 
-  <section aria-labelledby="experience-trends-title" class="grid min-w-0 gap-5">
+  <section aria-labelledby="experience-trends-title" class="grid min-w-0 gap-3">
     <header class="grid gap-1">
-      <h2 id="experience-trends-title" class="text-lg font-semibold">{page.copy.experience.trends}</h2>
+      <h2 id="experience-trends-title" class="text-base font-semibold">{page.copy.experience.trends}</h2>
       <p class="text-sm text-muted-foreground">{page.copy.experience.trendsDescription}</p>
     </header>
-    <div class="grid min-w-0 gap-6 lg:grid-cols-2">
+    <div class="grid min-w-0 gap-4 lg:grid-cols-2">
       <DailySeriesChart
         id="telemetry-operations"
         days={chartDays}
@@ -317,9 +367,14 @@ function outcomeVariant(outcome: string) {
     </div>
   </section>
 
-  <details class="grid min-w-0 gap-3 rounded-lg border p-4">
-    <summary class="cursor-pointer font-semibold">{page.copy.experience.matrix}</summary>
-    <div class="grid gap-3 pt-2">
+  <DashboardPanel
+    id="experience-matrix"
+    title={page.copy.experience.matrix}
+    description={page.copy.experience.matrixDescription}
+  >
+    <details class="grid min-w-0 gap-3">
+      <summary class="cursor-pointer text-sm font-medium">{page.copy.experience.matrix}</summary>
+      <div class="grid gap-3 pt-1">
       <p class="text-sm text-muted-foreground">{page.copy.experience.matrixDescription}</p>
       {#if page.rowsTruncated}<p class="text-sm text-muted-foreground">{page.copy.experience.matrixPartial}</p>{/if}
 
@@ -386,18 +441,21 @@ function outcomeVariant(outcome: string) {
           </Table.Body>
         </Table.Root>
       </AdminTableShell>
-    </div>
-  </details>
+      </div>
+    </details>
+  </DashboardPanel>
 {/if}
 
-<section class="grid gap-3 border-t pt-4" aria-labelledby="experience-notes-title">
-  <h2 id="experience-notes-title" class="text-lg font-semibold">{page.copy.experience.notes}</h2>
-  <ul class="grid gap-2 text-sm text-muted-foreground">
-    <li>{page.copy.experience.recordedCountsNote}</li>
-    <li>{page.copy.experience.backgroundDeliveryNote}</li>
-    <li>{page.copy.experience.noHistoricalBackfillNote}</li>
-    <li>{page.copy.experience.currentDayPartialNote}</li>
-    <li>{page.copy.experience.retentionNote}</li>
-    <li>{page.copy.experience.identityNote}</li>
-  </ul>
-</section>
+<DashboardPanel id="experience-notes" title={page.copy.experience.notes}>
+  <details class="grid gap-2">
+    <summary class="cursor-pointer text-sm font-medium">{page.copy.experience.notes}</summary>
+    <ul class="grid gap-2 pt-1 text-sm text-muted-foreground">
+      <li>{page.copy.experience.recordedCountsNote}</li>
+      <li>{page.copy.experience.backgroundDeliveryNote}</li>
+      <li>{page.copy.experience.noHistoricalBackfillNote}</li>
+      <li>{page.copy.experience.currentDayPartialNote}</li>
+      <li>{page.copy.experience.retentionNote}</li>
+      <li>{page.copy.experience.identityNote}</li>
+    </ul>
+  </details>
+</DashboardPanel>

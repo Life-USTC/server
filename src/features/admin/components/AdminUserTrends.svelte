@@ -1,6 +1,8 @@
 <script lang="ts">
 import DailySeriesChart from "$lib/components/charts/DailySeriesChart.svelte";
 import type { DailySeries } from "$lib/components/charts/daily-series";
+import DashboardPanel from "$lib/components/dashboard/DashboardPanel.svelte";
+import StatPanels from "$lib/components/dashboard/StatPanels.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import type messages from "../../../../messages/en-us.json";
@@ -44,40 +46,34 @@ function count(value: number | null) {
 }
 </script>
 
-<section aria-labelledby="admin-user-trends-title" class="grid min-w-0 gap-4 border-y py-5">
-  <header class="grid gap-1">
-    <h2 id="admin-user-trends-title" class="text-lg font-semibold">{copy.title}</h2>
-    <p class="text-sm text-muted-foreground">{copy.subtitle}</p>
-  </header>
-
+<DashboardPanel id="admin-user-trends" title={copy.title} description={copy.subtitle}>
   {#if data.status.state === "unavailable"}
     <Alert.Root variant="destructive">
       <Alert.Title>{copy.unavailable}</Alert.Title>
       <Alert.Description>{copy.unavailableDescription}</Alert.Description>
     </Alert.Root>
   {:else}
-    <div class="grid gap-2 text-sm text-muted-foreground">
-      <p>{copy.retainedAccountsNote}</p>
-      <p>{copy.identifiedActivityNote}</p>
-    </div>
+    <div class="grid gap-3">
+      <div class="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2 sm:gap-4">
+        <p>{copy.retainedAccountsNote}</p>
+        <p>{copy.identifiedActivityNote}</p>
+      </div>
 
-    <dl class="grid grid-cols-1 gap-x-6 gap-y-5 border-y py-4 sm:grid-cols-3">
-      <div class="grid content-start gap-1">
-        <dt class="text-sm text-muted-foreground">{copy.currentUsers}</dt>
-        <dd class="text-2xl font-semibold tabular-nums">{count(data.summary.currentUsers)}</dd>
-      </div>
-      <div class="grid content-start gap-1">
-        <dt class="text-sm text-muted-foreground">{copy.periodRegisteredUsers}</dt>
-        <dd class="text-2xl font-semibold tabular-nums">{count(data.summary.periodRegisteredUsers)}</dd>
-      </div>
-      <div class="grid content-start gap-1">
-        <dt class="text-sm text-muted-foreground">{copy.periodActiveUsers}</dt>
-        <dd class="text-2xl font-semibold tabular-nums">{count(data.summary.periodActiveUsers)}</dd>
-        {#if data.summary.periodActiveUsers === null}
-          <dd class="text-xs text-muted-foreground">{copy.noActivity}</dd>
-        {/if}
-      </div>
-    </dl>
+      <StatPanels
+        items={[
+          { label: copy.currentUsers, value: count(data.summary.currentUsers) },
+          {
+            label: copy.periodRegisteredUsers,
+            value: count(data.summary.periodRegisteredUsers),
+          },
+          {
+            label: copy.periodActiveUsers,
+            value: count(data.summary.periodActiveUsers),
+            hint: data.summary.periodActiveUsers === null ? copy.noActivity : undefined,
+          },
+        ]}
+      />
+    </div>
 
     {#if data.daily.every((entry) => entry.registeredUsers === 0 && entry.activeUsers === null)}
       <Empty.Root class="items-start border-y px-0 text-left">
@@ -106,4 +102,4 @@ function count(value: number | null) {
       />
     {/if}
   {/if}
-</section>
+</DashboardPanel>
