@@ -33,6 +33,8 @@ const protectedTables = [
   "Todo",
   "Upload",
   "UploadPending",
+  "UserSectionSubscription",
+  "UserUstcIdentity",
   "WorkspaceLinkPin",
 ] as const;
 
