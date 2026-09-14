@@ -81,14 +81,14 @@ export INTEGRATION_REPORT_ROOT="$test_dir/reports"
 bash tests/ci/integration-parallel-local.sh test-filter --reporter=dot >"$test_dir/success.log" 2>&1
 [[ "$(wc -l < "$test_dir/tests.log")" == 2 ]]
 [[ "$(sort -u "$test_dir/bootstrap.log" | wc -l)" == 2 ]]
-[[ "$(rg -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 2 ]]
+[[ "$(grep -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 2 ]]
 export PARALLEL_FAIL_SHARD=2/2
 if bash tests/ci/integration-parallel-local.sh test-filter --reporter=dot >"$test_dir/failure.log" 2>&1; then
   echo 'A failed shard was incorrectly reported as success.' >&2
   exit 1
 fi
 [[ -s "$INTEGRATION_REPORT_ROOT/shard-2.log" ]]
-[[ "$(rg -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 4 ]]
+[[ "$(grep -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 4 ]]
 rm "$test_dir/started-1" "$test_dir/started-2"
 PARALLEL_HANG=true bash tests/ci/integration-parallel-local.sh test-filter --reporter=dot >"$test_dir/interrupted.log" 2>&1 &
 runner_pid="$!"
@@ -107,7 +107,7 @@ for shard in 1 2; do
     exit 1
   fi
 done
-[[ "$(rg -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 6 ]]
+[[ "$(grep -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 6 ]]
 if INTEGRATION_SHARDS=0 bash tests/ci/integration-parallel-local.sh >/dev/null 2>&1; then
   echo 'Invalid shard count was accepted.' >&2
   exit 1
