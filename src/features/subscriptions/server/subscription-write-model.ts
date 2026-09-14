@@ -226,11 +226,6 @@ async function removeUserSectionIdsInTransaction(
     return null;
   }
 
-  const user = await getMutableUserSubscriptions(userId, tx);
-  if (!user) {
-    return null;
-  }
-
   const targetIds = uniqueSectionIds(sectionIds);
   await lockSubscriptionSections(tx, targetIds);
 
