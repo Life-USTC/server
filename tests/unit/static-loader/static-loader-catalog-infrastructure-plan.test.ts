@@ -8,7 +8,7 @@ import {
 } from "@/static-loader/catalog-plan";
 import { loadScheduleInfrastructure } from "@/static-loader/infrastructure-plan";
 import type { Snapshot } from "@/static-loader/snapshot";
-import type { SnapshotRow } from "@/static-loader/snapshot-values";
+import { asInt, type SnapshotRow } from "@/static-loader/snapshot-values";
 
 function fakeSnapshot(tables: Record<string, SnapshotRow[]>): Snapshot {
   return {
@@ -16,8 +16,8 @@ function fakeSnapshot(tables: Record<string, SnapshotRow[]>): Snapshot {
     queryGrouped: (table: string, parentColumn = "parent_store_id") => {
       const grouped = new Map<number, SnapshotRow[]>();
       for (const row of tables[table] ?? []) {
-        const parent = Number(row[parentColumn]);
-        if (!Number.isFinite(parent)) continue;
+        const parent = asInt(row[parentColumn]);
+        if (parent == null) continue;
         const rows = grouped.get(parent) ?? [];
         rows.push(row);
         grouped.set(parent, rows);
@@ -124,7 +124,7 @@ describe("static catalog plan", () => {
     const snapshot = fakeSnapshot({
       catalog_teach_lesson_list_for_teach: [
         { store_id: "100", semester_id: "401" },
-        { store_id: 100, semester_id: 421 },
+        { store_id: 101, semester_id: 421 },
         { semester_id: 421 },
         { store_id: 200, semester_id: 421 },
       ],
@@ -133,28 +133,41 @@ describe("static catalog plan", () => {
           parent_store_id: 100,
           id: 10,
           code: "MATH101",
-          cn: "高等数学",
-          en: "Calculus",
+          cn: "旧高等数学",
+          en: "Old Calculus",
+        },
+        {
+          parent_store_id: 101,
+          id: 10,
+          code: "MATH101",
+          cn: "新高等数学",
+          en: "New Calculus",
         },
         { parent_store_id: 200, id: 20, code: "BAD", cn: null },
       ],
       catalog_teach_lesson_list_for_teach_courseType: [
-        { parent_store_id: 100, cn: "必修" },
+        { parent_store_id: 100, cn: "旧必修" },
+        { parent_store_id: 101, cn: "新必修" },
       ],
       catalog_teach_lesson_list_for_teach_courseCategory: [
-        { parent_store_id: 100, cn: "数学", en: "Mathematics" },
+        { parent_store_id: 100, cn: "旧数学", en: "Old Mathematics" },
+        { parent_store_id: 101, cn: "新数学", en: "New Mathematics" },
       ],
       catalog_teach_lesson_list_for_teach_courseGradation: [
-        { parent_store_id: 100, cn: "本科" },
+        { parent_store_id: 100, cn: "旧本科" },
+        { parent_store_id: 101, cn: "新本科" },
       ],
       catalog_teach_lesson_list_for_teach_courseClassify: [
-        { parent_store_id: 100, cn: "基础课" },
+        { parent_store_id: 100, cn: "旧基础课" },
+        { parent_store_id: 101, cn: "新基础课" },
       ],
       catalog_teach_lesson_list_for_teach_classType: [
-        { parent_store_id: 100, cn: "理论" },
+        { parent_store_id: 100, cn: "旧理论" },
+        { parent_store_id: 101, cn: "新理论" },
       ],
       catalog_teach_lesson_list_for_teach_education: [
-        { parent_store_id: 100, cn: "本科生" },
+        { parent_store_id: 100, cn: "旧本科生" },
+        { parent_store_id: 101, cn: "新本科生" },
       ],
     });
 
@@ -163,17 +176,20 @@ describe("static catalog plan", () => {
         {
           jwId: 10,
           code: "MATH101",
-          nameCn: "高等数学",
-          nameEn: "Calculus",
-          typeName: "必修",
-          categoryName: "数学",
-          gradationName: "本科",
-          classifyName: "基础课",
-          classTypeName: "理论",
-          educationLevelName: "本科生",
+          nameCn: "新高等数学",
+          nameEn: "New Calculus",
+          typeName: "新必修",
+          categoryName: "新数学",
+          gradationName: "新本科",
+          classifyName: "新基础课",
+          classTypeName: "新理论",
+          educationLevelName: "新本科生",
         },
       ],
-      courseJwIdByParentId: new Map([[100, 10]]),
+      courseJwIdByParentId: new Map([
+        [100, 10],
+        [101, 10],
+      ]),
     });
   });
 
@@ -345,19 +361,41 @@ describe("static schedule infrastructure plan", () => {
 
   it("prefers the latest catalog campus and selects valid latest admin classes", () => {
     const snapshot = fakeSnapshot({
-      jw_ws_schedule_table_datum_result_scheduleList_room_building: [],
-      jw_ws_schedule_table_datum_result_scheduleList_room_building_campus: [],
+      jw_ws_schedule_table_datum_result_scheduleList_room_building: [
+        {
+          parent_store_id: 301,
+          id: 301,
+          store_id: 401,
+          nameZh: "教学楼",
+          code: "B301",
+        },
+      ],
+      jw_ws_schedule_table_datum_result_scheduleList_room_building_campus: [
+        {
+          parent_store_id: 401,
+          id: 401,
+          nameZh: "旧东校区",
+          nameEn: "Old East",
+          code: "E",
+          semester_id: 401,
+        },
+      ],
       jw_ws_schedule_table_datum_result_scheduleList_room_roomType: [],
-      jw_ws_schedule_table_datum_result_scheduleList_room: [],
+      jw_ws_schedule_table_datum_result_scheduleList_room: [
+        { store_id: 301, id: 501, nameZh: "东区 101", code: "E101" },
+      ],
       jw_ws_schedule_table_datum_result_lessonList: [
         { id: 9001, campusId: 401 },
+        { id: 9002, campusId: 401 },
         { id: null, campusId: 402 },
       ],
       catalog_teach_lesson_list_for_teach_campus: [
-        { parent_store_id: 1001, cn: "东校区", en: "East" },
+        { parent_store_id: 1001, cn: "旧东校区", en: "Old East" },
+        { parent_store_id: 1002, cn: "新东校区", en: "New East" },
       ],
       catalog_teach_lesson_list_for_teach: [
-        { id: 9001, store_id: 1001, semester_id: 421 },
+        { id: 9001, store_id: 1001, semester_id: 401 },
+        { id: 9002, store_id: 1002, semester_id: 421 },
         { id: null, store_id: 1001, semester_id: 421 },
         { id: 9002, semester_id: 421 },
       ],
@@ -386,7 +424,7 @@ describe("static schedule infrastructure plan", () => {
     const result = loadScheduleInfrastructure(snapshot);
 
     expect(result.campuses).toEqual([
-      { jwId: 401, nameCn: "东校区", nameEn: "East", code: undefined },
+      { jwId: 401, nameCn: "新东校区", nameEn: "New East", code: "E" },
     ]);
     expect(result.adminClasses).toEqual([
       {
