@@ -42,6 +42,15 @@ test("/admin/audit 支持安全字段筛选且不显示网络或会话字段", a
   await page.getByLabel(/操作人 ID|Actor ID/i).fill("e2e-user-admin");
   await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
   await expect(page).toHaveURL(/actor=e2e-user-admin/);
+  await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
+  await expect(page.locator("#audit-actor")).toBeHidden();
+  await page.locator("#audit-outcome").selectOption("success");
+  await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("actor") === "e2e-user-admin" &&
+      url.searchParams.get("outcome") === "success",
+  );
   await expect(page.getByText(/sessionId|requestId|oauthGrantId/i)).toHaveCount(
     0,
   );

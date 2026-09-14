@@ -277,6 +277,11 @@ test("操作视图可切换全部事件并保留高级筛选", async ({ page }) 
     (url) => url.searchParams.get("issue_view") === "all",
   );
   await expect(timeline.locator("details")).toHaveCount(10);
+  const allEvents = page.getByRole("radio", {
+    name: /全部功能事件|All feature events/i,
+  });
+  await allEvents.click();
+  await expect(allEvents).toBeChecked();
   await page
     .getByRole("button", { name: /更多筛选条件|More filters/i, exact: true })
     .click();
@@ -291,6 +296,20 @@ test("操作视图可切换全部事件并保留高级筛选", async ({ page }) 
       url.searchParams.get("admin_tab") === "operations",
   );
   await expect(timeline.locator("details")).toHaveCount(10);
+  await page
+    .getByRole("button", { name: /更多筛选条件|More filters/i, exact: true })
+    .click();
+  await expect(page.locator("#issue-operation")).toBeHidden();
+  await page.locator("#issue-protocol").selectOption("rest");
+  await page
+    .getByRole("button", { name: /筛选操作|Filter operations/i, exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("issue_operation") === "search" &&
+      url.searchParams.get("issue_protocol") === "rest",
+  );
+  await expect(timeline.locator("details")).toHaveCount(5);
   await page.getByRole("tab", { name: /^运行异常$|^Runtime$/i }).click();
   await expect(page).toHaveURL(
     (url) => url.searchParams.get("admin_tab") === "runtime",

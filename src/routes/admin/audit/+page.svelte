@@ -231,7 +231,7 @@ function displayValue(value: unknown) {
                   <span>{data.copy.audit.advancedFilters}</span>
                   <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform group-data-[state=open]:rotate-90" />
                 </Collapsible.Trigger>
-                <Collapsible.Content class="border-t p-3 data-[state=closed]:hidden">
+                <Collapsible.Content forceMount class="border-t p-3 data-[state=closed]:hidden">
                   <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
                     <Field.Field>
                       <Field.Label for="audit-actor">{data.copy.audit.actor}</Field.Label>

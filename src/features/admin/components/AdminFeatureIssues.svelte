@@ -238,7 +238,7 @@ function groupHref(group: PageData["groups"][number]) {
 }
 
 function selectView(value: string) {
-  if (value === "issues" || value === "all") {
+  if ((value === "issues" || value === "all") && value !== activeView) {
     void goto(issueHref(value), { keepFocus: true });
   }
 }
@@ -293,9 +293,8 @@ function selectView(value: string) {
         <ToggleGroup.Root
           aria-label={copy.issueView}
           type="single"
-          value={activeView}
+          bind:value={() => activeView, selectView}
           variant="outline"
-          onValueChange={selectView}
         >
           <ToggleGroup.Item value="issues">{copy.issuesOnly}</ToggleGroup.Item>
           <ToggleGroup.Item value="all">{copy.allEvents}</ToggleGroup.Item>
@@ -344,7 +343,7 @@ function selectView(value: string) {
               <span>{advancedFiltersLabel ?? copy.moreIssues}</span>
               <ChevronRightIcon aria-hidden="true" class="shrink-0 transition-transform group-data-[state=open]:rotate-90" />
             </Collapsible.Trigger>
-            <Collapsible.Content class="border-t p-3 data-[state=closed]:hidden">
+            <Collapsible.Content forceMount class="border-t p-3 data-[state=closed]:hidden">
               <div class="grid min-w-0 gap-3 sm:grid-cols-3 [&>*]:min-w-0">
                 <Field.Field>
                   <Field.Label for="issue-operation">{copy.operation}</Field.Label>
