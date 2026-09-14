@@ -29163,6 +29163,33 @@
                 },
                 "error": {
                   "type": "string"
+                },
+                "objectsNeedingUpload": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "body_html",
+                          "body_markdown",
+                          "media",
+                          "asset",
+                          "raw_page"
+                        ]
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "sha256"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [

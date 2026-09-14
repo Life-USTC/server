@@ -289,12 +289,27 @@ export async function ingestItem(
   }
 
   if (!shouldApply) {
-    return result(
+    const unchanged = result(
       item,
       "unchanged",
       publication.id,
       currentRevision?.id ?? null,
     );
+    // A redelivery with a new batchId re-registers the item's object claims
+    // so the object plan endpoint accepts this batch, and surfaces claims
+    // whose bytes were never uploaded (e.g. an earlier batch crashed between
+    // claiming and uploading).
+    if (!item.tombstone && existingRevision) {
+      const linked = await linkObjects(
+        tx,
+        batchId,
+        existingRevision.id,
+        item.objects,
+      );
+      const missing = objectsNeedingUpload(linked);
+      if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
+    }
+    return unchanged;
   }
 
   const revision =
@@ -333,7 +348,23 @@ export async function ingestItem(
     existingRevision &&
     existingRevision.observedAt.getTime() > observedAt.getTime()
   ) {
-    return result(item, "unchanged", publication.id, existingRevision.id);
+    const unchanged = result(
+      item,
+      "unchanged",
+      publication.id,
+      existingRevision.id,
+    );
+    if (!item.tombstone) {
+      const linked = await linkObjects(
+        tx,
+        batchId,
+        existingRevision.id,
+        item.objects,
+      );
+      const missing = objectsNeedingUpload(linked);
+      if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
+    }
+    return unchanged;
   }
 
   if (
@@ -390,13 +421,30 @@ export async function ingestItem(
   return result(item, "updated", publication.id, revision.id);
 }
 
+type LinkedObject = {
+  kind: PublicationObjectManifest["kind"];
+  sha256: string;
+  status: string;
+};
+
+function objectsNeedingUpload(linked: LinkedObject[]) {
+  // "linked" and "verified" are the only states reached after strict byte
+  // verification, matching the trust model of the object plan endpoint.
+  return linked
+    .filter(
+      (object) => object.status !== "linked" && object.status !== "verified",
+    )
+    .map(({ kind, sha256 }) => ({ kind, sha256 }));
+}
+
 async function linkObjects(
   tx: TransactionClient,
   batchId: string,
   revisionId: string,
   manifests: PublicationObjectManifest[],
-) {
+): Promise<LinkedObject[]> {
   const seen = new Set<string>();
+  const linked: LinkedObject[] = [];
   for (const manifest of manifests) {
     const key = `${manifest.kind}:${manifest.sha256}`;
     if (seen.has(key)) {
@@ -426,7 +474,13 @@ async function linkObjects(
         altText: manifest.altText ?? null,
       },
     });
+    linked.push({
+      kind: manifest.kind,
+      sha256: manifest.sha256,
+      status: object.status,
+    });
   }
+  return linked;
 }
 
 async function writePublicationEvent(
