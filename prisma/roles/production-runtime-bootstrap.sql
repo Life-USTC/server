@@ -303,6 +303,10 @@ ALTER FUNCTION public.get_public_profile_upload_stats(
   text,
   timestamp without time zone
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.get_public_profile_comment_contribution_days(
+  text,
+  timestamp without time zone
+) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.comment_reaction_summaries(text[])
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.comment_hidden_root_count(
@@ -412,6 +416,7 @@ GRANT EXECUTE ON FUNCTION
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
   public.comment_hidden_root_count(integer, integer, integer, text, integer),
+  public.get_public_profile_comment_contribution_days(text, timestamp without time zone),
   public.get_public_profile_section_subscription_count(text),
   public.claim_upload_pending_storage_cleanup(
     timestamp without time zone,

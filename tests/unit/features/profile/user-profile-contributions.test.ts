@@ -68,13 +68,13 @@ describe("用户主页贡献", () => {
     const sql = queryParts ? Array.from(queryParts).join("?") : "";
 
     expect(queryRaw).toHaveBeenCalledOnce();
-    expect(sql).toContain('FROM "Comment"');
+    expect(sql).toContain("get_public_profile_comment_contribution_days");
+    expect(sql).not.toContain('FROM "Comment"');
     expect(sql).toContain("get_public_profile_upload_stats");
     expect(sql).not.toContain("get_public_profile_homework_completions");
     expect(sql).toContain('FROM "Homework"');
     expect(sql).toContain("AT TIME ZONE 'UTC'");
     expect(sql).toContain("AT TIME ZONE 'Asia/Shanghai'");
-    expect(sql).toContain("\"status\" IN ('active', 'softbanned')");
     expect(sql).toContain('"deletedAt" IS NULL');
     expect(sql).not.toContain('"createdAt" <=');
     expect(sql).not.toContain('"completedAt" <=');
