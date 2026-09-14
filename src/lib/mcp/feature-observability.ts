@@ -105,6 +105,13 @@ export function observeMcpFeature<T>(
       operation,
       protocol: "mcp",
       surface: "mcp",
+      userId:
+        isRecord(extra) &&
+        isRecord(extra.authInfo) &&
+        isRecord(extra.authInfo.extra) &&
+        typeof extra.authInfo.extra.userId === "string"
+          ? extra.authInfo.extra.userId
+          : null,
       authMode:
         isRecord(extra) && isRecord(extra.authInfo) ? "oauth" : "anonymous",
     },

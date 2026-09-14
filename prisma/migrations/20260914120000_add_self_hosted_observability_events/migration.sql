@@ -228,7 +228,7 @@ REVOKE EXECUTE ON FUNCTION public.maintain_observability_event_retention(
 DO $roles$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_runtime') THEN
-    EXECUTE 'GRANT INSERT ON TABLE public."FeatureOperationEvent", public."RuntimeIssueEvent" TO life_ustc_runtime';
+    EXECUTE 'GRANT SELECT, INSERT ON TABLE public."FeatureOperationEvent", public."RuntimeIssueEvent" TO life_ustc_runtime';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner') THEN
     EXECUTE 'GRANT SELECT, UPDATE, DELETE ON TABLE public."FeatureOperationEvent", public."RuntimeIssueEvent" TO life_ustc_function_owner';

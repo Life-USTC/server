@@ -449,6 +449,13 @@ GRANT EXECUTE ON FUNCTION public.maintain_audit_log_retention(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;
+DROP POLICY IF EXISTS "FeatureOperationEvent_function_owner" ON "FeatureOperationEvent";
+CREATE POLICY "FeatureOperationEvent_function_owner" ON "FeatureOperationEvent"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent";
+CREATE POLICY "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+
 GRANT EXECUTE ON FUNCTION public.maintain_observability_event_retention(
   timestamp without time zone,
   integer

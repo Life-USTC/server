@@ -13,6 +13,7 @@ import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
   getCloudflareRequestContext,
+  getCloudflareRuntimeTaskScheduler,
   runCloudflareTraceSpan,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -25,6 +26,10 @@ import {
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
 } from "@/lib/cloudflare/public-ssr-gateway";
+import {
+  identifyObservedUser,
+  runWithObservability,
+} from "@/lib/db/observability-context";
 import {
   recordObservedApiError,
   recordObservedApiResponse,
@@ -298,6 +303,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     const session = sessionResult?.session ?? null;
     authIoObservedDurationMs = elapsedMs(authStartMs);
     event.locals.authUser = session?.user ?? null;
+    if (session?.user?.id) identifyObservedUser(session.user.id, "session");
     pageAuthMode = session?.user.id ? "authenticated" : "anonymous";
     if (
       shouldRedirectIncompleteProfileToWelcome({
@@ -389,11 +395,16 @@ export const handle: Handle = async (input) =>
   await runWithCloudflareRuntimeEnv(
     (input.event.platform as { env?: unknown } | undefined)?.env,
     () =>
-      getCloudflareRequestContext() || getTrustedRequestId(input.event.request)
-        ? handleWithRuntimeEnv(input)
-        : observeHttpFeature(input.event.request, undefined, () =>
-            handleWithRuntimeEnv(input),
-          ),
+      runWithObservability(
+        () =>
+          getCloudflareRequestContext() ||
+          getTrustedRequestId(input.event.request)
+            ? handleWithRuntimeEnv(input)
+            : observeHttpFeature(input.event.request, undefined, () =>
+                handleWithRuntimeEnv(input),
+              ),
+        getCloudflareRuntimeTaskScheduler(),
+      ),
     (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
       ?.ctx ??
       (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)

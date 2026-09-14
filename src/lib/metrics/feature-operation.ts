@@ -1,8 +1,8 @@
+import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import {
-  getCloudflareAnalyticsEngineDataset,
-  getCloudflareRequestContext,
-  getCloudflareRuntimeContext,
-} from "@/lib/adapters/cloudflare-runtime";
+  collectFeatureEvent,
+  safeObservabilityRequestId,
+} from "@/lib/db/observability-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 
@@ -53,13 +53,12 @@ export type FeatureOperationContext = FeatureOperation & {
   surface: ExperienceSurface;
   authMode: ExperienceAuth;
   requestId?: string;
+  userId?: string | null;
 };
 export type FeatureOperationResult = {
   outcome: ExperienceOutcome;
   errorClass: ExperienceError;
 };
-
-const TELEMETRY_FAILURE_REPORTED = Symbol("feature.telemetry.failure");
 
 const SUCCESS: FeatureOperationResult = {
   outcome: "success",
@@ -125,42 +124,26 @@ export function classifyFeatureError(error: unknown): FeatureOperationResult {
   return { outcome: "error", errorClass: "internal" };
 }
 
-/** No messages, payloads, URLs, actor IDs, or client-supplied names enter the sink. */
+/** Content-free, unsampled events; persistence is detached from the business result. */
 export function recordFeatureOperation(
   context: FeatureOperationContext,
   result: FeatureOperationResult,
   durationMs: number,
 ) {
-  let written = false;
   try {
-    const dataset = getCloudflareAnalyticsEngineDataset();
-    if (!dataset || typeof dataset.writeDataPoint !== "function") return;
-    const candidateId =
-      context.requestId ?? getCloudflareRequestContext()?.requestId;
-    const requestId =
-      candidateId &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        candidateId,
-      )
-        ? candidateId
-        : "";
+    const requestId = safeObservabilityRequestId(
+      context.requestId ?? getCloudflareRequestContext()?.requestId,
+    );
     const duration = Number.isFinite(durationMs) ? Math.max(0, durationMs) : 0;
-    dataset.writeDataPoint({
-      indexes: [`feature:${context.feature}`],
-      blobs: [
-        "feature_operation_v1",
-        context.feature,
-        context.operation,
-        context.protocol,
-        context.surface,
-        context.authMode,
-        result.outcome,
-        result.errorClass,
-        requestId,
-      ],
-      doubles: [duration],
+    collectFeatureEvent({
+      ...context,
+      ...result,
+      id: crypto.randomUUID(),
+      occurredAt: new Date(),
+      requestId,
+      userId: context.userId ?? null,
+      durationMs: duration,
     });
-    written = true;
     if (
       result.outcome === "error" ||
       (result.outcome === "unknown" && result.errorClass !== "none")
@@ -173,8 +156,6 @@ export function recordFeatureOperation(
           feature: context.feature,
           operation: context.operation,
           protocol: context.protocol,
-          surface: context.surface,
-          authMode: context.authMode,
           outcome: result.outcome,
           errorClass: result.errorClass,
           requestId,
@@ -183,20 +164,7 @@ export function recordFeatureOperation(
       );
     }
   } catch {
-    if (written) return;
-    // Report lost coverage once per request without retrying on the business path.
-    try {
-      const cache = getCloudflareRuntimeContext()?.cache;
-      if (!cache?.has(TELEMETRY_FAILURE_REPORTED)) {
-        cache?.set(TELEMETRY_FAILURE_REPORTED, true);
-        logAppEvent("warn", "feature.telemetry.failure", {
-          event: "feature.telemetry.failure",
-          reason: "write_failed",
-        });
-      }
-    } catch {
-      /* Telemetry must never replace a business result. */
-    }
+    /* Observation must preserve the original response or exception. */
   }
 }
 

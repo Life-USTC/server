@@ -104,6 +104,7 @@ export function createHomeworkWorkspaceAction(event: WorkspaceActionEvent) {
     async () => {
       const userId = await getWorkspaceUserId(event.request);
       observation.authMode = userId ? "session" : "anonymous";
+      observation.userId = userId;
       return runCreateHomeworkWorkspaceAction(event, userId);
     },
     (failure) => classifyFeatureStatus(failure.status),

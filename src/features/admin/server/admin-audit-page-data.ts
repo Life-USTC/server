@@ -586,7 +586,7 @@ export async function getAdminAnalyticsPage(request: Request, url: URL) {
   const admin = await requireAdminPage(request);
   const [analytics, telemetry] = await Promise.all([
     readAdminAnalyticsData(admin.id, url),
-    readAdminFeatureTelemetry(url),
+    readAdminFeatureTelemetry(admin.id, url),
   ]);
   return { ...analytics, telemetry };
 }
@@ -595,7 +595,7 @@ export async function getAdminAuditPage(request: Request, url: URL) {
   const admin = await requireAdminPage(request);
   const [audit, issues] = await Promise.all([
     readAdminAuditData(admin.id, url),
-    readAdminFeatureIssues(url),
+    readAdminFeatureIssues(admin.id, url),
   ]);
   return { ...audit, issues };
 }

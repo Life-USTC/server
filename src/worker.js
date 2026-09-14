@@ -1,8 +1,10 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
+import { runWithObservability } from "@/lib/db/observability-context";
 import {
   maintainAuditLogRetention,
   maintainOAuthGrantUsageRetention,
+  maintainObservabilityRetention,
 } from "./features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "./features/auth/server/auth-record-cleanup";
 import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
@@ -524,8 +526,12 @@ export default {
               new URL(request.url).pathname,
             ),
           });
-          return observeHttpFeature(request, requestId, () =>
-            handleFetch(request, env, context, requestId, edgeObservation),
+          return runWithObservability(
+            () =>
+              observeHttpFeature(request, requestId, () =>
+                handleFetch(request, env, context, requestId, edgeObservation),
+              ),
+            (task) => context.waitUntil(task),
           );
         },
         context,
@@ -613,17 +619,20 @@ export default {
 
           if (controller.cron === AUTH_RECORD_CLEANUP_CRON) {
             task = "auth-and-audit-retention";
-            const [authRecords, auditLog, oauthUsage] = await Promise.all([
-              cleanupExpiredAuthRecords(maintenancePrisma),
-              maintainAuditLogRetention(maintenancePrisma),
-              maintainOAuthGrantUsageRetention(maintenancePrisma),
-            ]);
+            const [authRecords, auditLog, oauthUsage, observability] =
+              await Promise.all([
+                cleanupExpiredAuthRecords(maintenancePrisma),
+                maintainAuditLogRetention(maintenancePrisma),
+                maintainOAuthGrantUsageRetention(maintenancePrisma),
+                maintainObservabilityRetention(maintenancePrisma),
+              ]);
             logScheduledTaskFinish(
               task,
               {
                 ...authRecords,
                 ...auditLog,
                 ...oauthUsage,
+                ...observability,
               },
               elapsedMs(startMs),
             );

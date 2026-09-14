@@ -3,6 +3,7 @@ import {
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
+import { identifyObservedUser } from "@/lib/db/observability-context";
 import {
   getJwksUrlForOAuthVerification,
   getOAuthRestAudienceUrls,
@@ -97,6 +98,7 @@ export async function resolveApiPrincipal(
         feature: requirement.feature,
         action: requirement.action,
       });
+      identifyObservedUser(verified.sub, "oauth");
       return {
         kind: "oauth",
         userId: verified.sub,
@@ -115,6 +117,7 @@ export async function resolveApiPrincipal(
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
   if (!session?.user?.id) return null;
+  identifyObservedUser(session.user.id, "session");
   return {
     kind: "session",
     userId: session.user.id,
