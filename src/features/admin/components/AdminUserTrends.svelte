@@ -63,7 +63,7 @@ function count(value: number | null) {
         <p>{copy.identifiedActivityNote}</p>
       </div>
 
-      <StatPanels
+      <StatPanels label={copy.title}
         items={[
           { label: copy.currentUsers, value: count(data.summary.currentUsers) },
           {

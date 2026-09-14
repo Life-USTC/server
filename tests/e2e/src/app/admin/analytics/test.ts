@@ -394,7 +394,15 @@ for (const theme of ["light", "dark"] as const) {
       "/admin/analytics",
       "/admin/audit?issue_feature=catalog.teacher",
     ]) {
-      await gotoAndWaitForReady(page, route);
+      await gotoAndWaitForReady(page, route, { uiQuality: {} });
+      const statistics = page.getByRole("region", {
+        name: /已记录使用量|Recorded usage/i,
+      });
+      await statistics.focus();
+      await statistics.press("ArrowRight");
+      await expect
+        .poll(() => statistics.evaluate((element) => element.scrollLeft))
+        .toBeGreaterThan(0);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,

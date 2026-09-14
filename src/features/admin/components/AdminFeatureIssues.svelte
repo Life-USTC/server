@@ -385,7 +385,7 @@ function selectView(value: string) {
         <Alert.Description>{copy.unavailableQuery}</Alert.Description>
       </Alert.Root>
     {:else}
-      <StatPanels items={issueStats} />
+      <StatPanels label={copy.summary} items={issueStats} />
 
       <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
         <DailySeriesChart

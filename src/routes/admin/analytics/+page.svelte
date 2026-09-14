@@ -178,7 +178,7 @@ function periodHref(current: PageData, days: number, panel: AnalyticsPanel) {
 
     <Tabs.Content value="history" class="grid min-w-0 gap-4">
       {#if activePanel === "history"}
-      <StatPanels
+      <StatPanels label={data.copy.analytics.title}
         items={[
           {
             label: data.copy.analytics.total,

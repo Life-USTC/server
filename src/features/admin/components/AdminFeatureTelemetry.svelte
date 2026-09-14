@@ -325,7 +325,7 @@ function outcomeVariant(outcome: string) {
     </Empty.Header>
   </Empty.Root>
 {:else}
-  <StatPanels
+  <StatPanels label={page.copy.experience.summary}
     items={[
       {
         label: page.copy.experience.total,
