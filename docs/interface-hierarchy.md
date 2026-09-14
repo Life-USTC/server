@@ -284,8 +284,13 @@ OAuth feature scopes use the complete canonical feature name, for example
 Contract `required_scopes` are checked against the OAuth registry and native
 MCP equivalents by `graphql-contract-parity.test.ts`.
 
-Public courses and sections use `jwId` at external boundaries. Internal
-database IDs are not accepted by GraphQL, MCP, Bot, or ordinary CLI commands.
+Public course/section lookups and subscription-kind updates use `jwId` at
+external boundaries. CLI subscription `add`, `remove`, and `preview` still
+interpret numeric references as database section IDs, as does their REST batch
+payload's `sectionIds`. Use section/course codes for these CLI commands to
+avoid confusing those IDs with the JW IDs used by `subscription kind` and
+catalog detail commands. GraphQL and native MCP subscription add/remove use
+JW IDs; Bot add/remove use section codes.
 
 ## Locale, Caching, and SEO
 
