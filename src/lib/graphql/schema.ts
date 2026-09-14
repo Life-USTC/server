@@ -31,6 +31,10 @@ import {
 import type { GraphqlContext, GraphqlServerContext } from "./context";
 import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
+  GRAPHQL_FEATURE_RESOLVER_MAPPINGS,
+  observeGraphqlResolverMap,
+} from "./feature-observability";
+import {
   requireGraphqlId,
   requireGraphqlYoungEventId,
   validateGraphqlIdList,
@@ -417,6 +421,14 @@ export const graphqlSchema = createSchema<
     YoungEventPage: graphqlPageResolvers,
     ...graphqlScopeResolvers,
     ...graphqlMutationResolvers,
+    Workspace: observeGraphqlResolverMap(
+      graphqlScopeResolvers.Workspace,
+      GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Workspace,
+    ),
+    Mutation: observeGraphqlResolverMap(
+      graphqlMutationResolvers.Mutation,
+      GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Mutation,
+    ),
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;
@@ -436,222 +448,225 @@ export const graphqlSchema = createSchema<
         return getPublicUserIdentityByIdentifier(args.identifier);
       },
     },
-    Catalog: {
-      semesters(_parent, args: { page?: GraphqlPageInput | null }) {
-        const pagination = normalizeGraphqlPage(args.page);
-        return listSemesters(pagination);
-      },
-      currentSemester() {
-        return getCachedCurrentSemester(new Date());
-      },
-      courses(
-        _parent,
-        args: {
-          filter?: {
-            search?: string | null;
-            educationLevelId?: number | null;
-            categoryId?: number | null;
-            classTypeId?: number | null;
-          } | null;
-          page?: GraphqlPageInput | null;
+    Catalog: observeGraphqlResolverMap(
+      {
+        semesters(_parent, args: { page?: GraphqlPageInput | null }) {
+          const pagination = normalizeGraphqlPage(args.page);
+          return listSemesters(pagination);
         },
-        context,
-      ) {
-        const filter = args.filter;
-        return listCourseSummaries({
-          filters: {
-            search: validateGraphqlSearch(filter?.search),
-            educationLevelId: validateOptionalGraphqlId(
-              filter?.educationLevelId,
-              "educationLevelId",
-            ),
-            categoryId: validateOptionalGraphqlId(
-              filter?.categoryId,
-              "categoryId",
-            ),
-            classTypeId: validateOptionalGraphqlId(
-              filter?.classTypeId,
-              "classTypeId",
-            ),
+        currentSemester() {
+          return getCachedCurrentSemester(new Date());
+        },
+        courses(
+          _parent,
+          args: {
+            filter?: {
+              search?: string | null;
+              educationLevelId?: number | null;
+              categoryId?: number | null;
+              classTypeId?: number | null;
+            } | null;
+            page?: GraphqlPageInput | null;
           },
-          locale: context.locale,
-          pagination: normalizeGraphqlPage(args.page),
-        });
-      },
-      course(_parent, args: { jwId: number }, context) {
-        return context.loaders.courseByJwId.load(
-          requireGraphqlId(args.jwId, "jwId"),
-        );
-      },
-      sections(
-        _parent,
-        args: {
-          filter?: {
-            courseId?: number | null;
-            courseJwId?: number | null;
-            semesterId?: number | null;
-            semesterJwId?: number | null;
-            campusId?: number | null;
-            departmentId?: number | null;
-            teacherId?: number | null;
-            teacherCode?: string | null;
-            ids?: number[] | null;
-            jwIds?: number[] | null;
-            search?: string | null;
-          } | null;
-          page?: GraphqlPageInput | null;
+          context,
+        ) {
+          const filter = args.filter;
+          return listCourseSummaries({
+            filters: {
+              search: validateGraphqlSearch(filter?.search),
+              educationLevelId: validateOptionalGraphqlId(
+                filter?.educationLevelId,
+                "educationLevelId",
+              ),
+              categoryId: validateOptionalGraphqlId(
+                filter?.categoryId,
+                "categoryId",
+              ),
+              classTypeId: validateOptionalGraphqlId(
+                filter?.classTypeId,
+                "classTypeId",
+              ),
+            },
+            locale: context.locale,
+            pagination: normalizeGraphqlPage(args.page),
+          });
         },
-        context,
-      ) {
-        const filter = args.filter;
-        return listSections({
-          filters: {
-            courseId: validateOptionalGraphqlId(filter?.courseId, "courseId"),
-            courseJwId: validateOptionalGraphqlId(
-              filter?.courseJwId,
-              "courseJwId",
-            ),
-            semesterId: validateOptionalGraphqlId(
-              filter?.semesterId,
-              "semesterId",
-            ),
-            semesterJwId: validateOptionalGraphqlId(
-              filter?.semesterJwId,
-              "semesterJwId",
-            ),
-            campusId: validateOptionalGraphqlId(filter?.campusId, "campusId"),
-            departmentId: validateOptionalGraphqlId(
-              filter?.departmentId,
-              "departmentId",
-            ),
-            teacherId: validateOptionalGraphqlId(
-              filter?.teacherId,
-              "teacherId",
-            ),
-            teacherCode: validateGraphqlTeacherCode(filter?.teacherCode),
-            ids: validateGraphqlIdList(filter?.ids, "ids"),
-            jwIds: validateGraphqlIdList(filter?.jwIds, "jwIds"),
-            search: validateGraphqlSearch(filter?.search),
+        course(_parent, args: { jwId: number }, context) {
+          return context.loaders.courseByJwId.load(
+            requireGraphqlId(args.jwId, "jwId"),
+          );
+        },
+        sections(
+          _parent,
+          args: {
+            filter?: {
+              courseId?: number | null;
+              courseJwId?: number | null;
+              semesterId?: number | null;
+              semesterJwId?: number | null;
+              campusId?: number | null;
+              departmentId?: number | null;
+              teacherId?: number | null;
+              teacherCode?: string | null;
+              ids?: number[] | null;
+              jwIds?: number[] | null;
+              search?: string | null;
+            } | null;
+            page?: GraphqlPageInput | null;
           },
-          locale: context.locale,
-          pagination: normalizeGraphqlPage(args.page),
-        });
-      },
-      section(_parent, args: { jwId: number }, context) {
-        return context.loaders.sectionByJwId.load(
-          requireGraphqlId(args.jwId, "jwId"),
-        );
-      },
-      teachers(
-        _parent,
-        args: {
-          filter?: {
-            departmentId?: number | null;
-            search?: string;
-          } | null;
-          page?: GraphqlPageInput | null;
+          context,
+        ) {
+          const filter = args.filter;
+          return listSections({
+            filters: {
+              courseId: validateOptionalGraphqlId(filter?.courseId, "courseId"),
+              courseJwId: validateOptionalGraphqlId(
+                filter?.courseJwId,
+                "courseJwId",
+              ),
+              semesterId: validateOptionalGraphqlId(
+                filter?.semesterId,
+                "semesterId",
+              ),
+              semesterJwId: validateOptionalGraphqlId(
+                filter?.semesterJwId,
+                "semesterJwId",
+              ),
+              campusId: validateOptionalGraphqlId(filter?.campusId, "campusId"),
+              departmentId: validateOptionalGraphqlId(
+                filter?.departmentId,
+                "departmentId",
+              ),
+              teacherId: validateOptionalGraphqlId(
+                filter?.teacherId,
+                "teacherId",
+              ),
+              teacherCode: validateGraphqlTeacherCode(filter?.teacherCode),
+              ids: validateGraphqlIdList(filter?.ids, "ids"),
+              jwIds: validateGraphqlIdList(filter?.jwIds, "jwIds"),
+              search: validateGraphqlSearch(filter?.search),
+            },
+            locale: context.locale,
+            pagination: normalizeGraphqlPage(args.page),
+          });
         },
-        context,
-      ) {
-        return listTeacherSummaries({
-          filters: {
-            departmentId: validateOptionalGraphqlId(
-              args.filter?.departmentId,
-              "departmentId",
-            ),
-            search: validateGraphqlSearch(args.filter?.search),
+        section(_parent, args: { jwId: number }, context) {
+          return context.loaders.sectionByJwId.load(
+            requireGraphqlId(args.jwId, "jwId"),
+          );
+        },
+        teachers(
+          _parent,
+          args: {
+            filter?: {
+              departmentId?: number | null;
+              search?: string;
+            } | null;
+            page?: GraphqlPageInput | null;
           },
-          locale: context.locale,
-          pagination: normalizeGraphqlPage(args.page),
-        });
-      },
-      teacher(_parent, args: { id: number }, context) {
-        return context.loaders.teacherById.load(
-          requireGraphqlId(args.id, "id"),
-        );
-      },
-      async busRoutes(
-        _parent,
-        args: { page?: GraphqlPageInput | null },
-        context,
-      ) {
-        const { routes, campuses } = await listBusRoutes(context.locale);
-        return {
-          ...paginateGraphqlArray(routes.map(capGraphqlBusRoute), args.page),
-          campuses: capGraphqlBusCampuses(campuses),
-        };
-      },
-      async busTimetable(
-        _parent,
-        args: {
-          routeId: number;
-          page?: GraphqlPageInput | null;
-          now?: string | null;
-          versionKey?: string | null;
+          context,
+        ) {
+          return listTeacherSummaries({
+            filters: {
+              departmentId: validateOptionalGraphqlId(
+                args.filter?.departmentId,
+                "departmentId",
+              ),
+              search: validateGraphqlSearch(args.filter?.search),
+            },
+            locale: context.locale,
+            pagination: normalizeGraphqlPage(args.page),
+          });
         },
-        context,
-      ) {
-        const routeId = requireGraphqlId(args.routeId, "routeId");
-        const result = await getBusRouteTimetable({
-          routeId,
-          locale: context.locale,
-          now: args.now ?? undefined,
-          versionKey: validateGraphqlVersionKey(args.versionKey),
-        });
-        if (!result) return null;
+        teacher(_parent, args: { id: number }, context) {
+          return context.loaders.teacherById.load(
+            requireGraphqlId(args.id, "id"),
+          );
+        },
+        async busRoutes(
+          _parent,
+          args: { page?: GraphqlPageInput | null },
+          context,
+        ) {
+          const { routes, campuses } = await listBusRoutes(context.locale);
+          return {
+            ...paginateGraphqlArray(routes.map(capGraphqlBusRoute), args.page),
+            campuses: capGraphqlBusCampuses(campuses),
+          };
+        },
+        async busTimetable(
+          _parent,
+          args: {
+            routeId: number;
+            page?: GraphqlPageInput | null;
+            now?: string | null;
+            versionKey?: string | null;
+          },
+          context,
+        ) {
+          const routeId = requireGraphqlId(args.routeId, "routeId");
+          const result = await getBusRouteTimetable({
+            routeId,
+            locale: context.locale,
+            now: args.now ?? undefined,
+            versionKey: validateGraphqlVersionKey(args.versionKey),
+          });
+          if (!result) return null;
 
-        const weekdayPage = paginateGraphqlArray(result.weekday, args.page);
-        const saturdayPage = paginateGraphqlArray(result.saturday, args.page);
-        const sundayPage = paginateGraphqlArray(result.sunday, args.page);
-        return {
-          route: capGraphqlBusRoute(result.route),
-          weekday: capGraphqlBusTripSlots(weekdayPage.data),
-          saturday: capGraphqlBusTripSlots(saturdayPage.data),
-          sunday: capGraphqlBusTripSlots(sundayPage.data),
-          weekdayPageInfo: weekdayPage.pagination,
-          saturdayPageInfo: saturdayPage.pagination,
-          sundayPageInfo: sundayPage.pagination,
-          alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
-        };
-      },
-      links(_parent, args: { query?: string | null }, context) {
-        const links = getPublicCatalogLinksData(context.locale).catalogLinks;
-        const query = args.query?.trim();
-        if (!query) return links;
-        const tokens = searchQueryToTokens(query);
-        return links.filter((link) => linkMatchesTokens(link, tokens));
-      },
-      roomMap(_parent, args: { code: string }) {
-        return getRoomMap(validateGraphqlRoomCode(args.code));
-      },
-      weather(_parent, args: { locationKey: string }) {
-        return getWeatherSnapshot(
-          validateGraphqlWeatherLocationKey(args.locationKey),
-        );
-      },
-      youngEvents(
-        _parent,
-        args: {
-          filter?: {
-            active?: boolean | null;
-            category?: string | null;
-            search?: string | null;
-          } | null;
-          page?: GraphqlPageInput | null;
+          const weekdayPage = paginateGraphqlArray(result.weekday, args.page);
+          const saturdayPage = paginateGraphqlArray(result.saturday, args.page);
+          const sundayPage = paginateGraphqlArray(result.sunday, args.page);
+          return {
+            route: capGraphqlBusRoute(result.route),
+            weekday: capGraphqlBusTripSlots(weekdayPage.data),
+            saturday: capGraphqlBusTripSlots(saturdayPage.data),
+            sunday: capGraphqlBusTripSlots(sundayPage.data),
+            weekdayPageInfo: weekdayPage.pagination,
+            saturdayPageInfo: saturdayPage.pagination,
+            sundayPageInfo: sundayPage.pagination,
+            alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
+          };
         },
-      ) {
-        const pagination = normalizeGraphqlPage(args.page);
-        return listYoungEvents({
-          active: args.filter?.active ?? undefined,
-          category: validateGraphqlSearch(args.filter?.category),
-          search: validateGraphqlSearch(args.filter?.search),
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-        });
+        links(_parent, args: { query?: string | null }, context) {
+          const links = getPublicCatalogLinksData(context.locale).catalogLinks;
+          const query = args.query?.trim();
+          if (!query) return links;
+          const tokens = searchQueryToTokens(query);
+          return links.filter((link) => linkMatchesTokens(link, tokens));
+        },
+        roomMap(_parent, args: { code: string }) {
+          return getRoomMap(validateGraphqlRoomCode(args.code));
+        },
+        weather(_parent, args: { locationKey: string }) {
+          return getWeatherSnapshot(
+            validateGraphqlWeatherLocationKey(args.locationKey),
+          );
+        },
+        youngEvents(
+          _parent,
+          args: {
+            filter?: {
+              active?: boolean | null;
+              category?: string | null;
+              search?: string | null;
+            } | null;
+            page?: GraphqlPageInput | null;
+          },
+        ) {
+          const pagination = normalizeGraphqlPage(args.page);
+          return listYoungEvents({
+            active: args.filter?.active ?? undefined,
+            category: validateGraphqlSearch(args.filter?.category),
+            search: validateGraphqlSearch(args.filter?.search),
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+          });
+        },
+        async youngEvent(_parent, args: { youngId: string }) {
+          return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
+        },
       },
-      async youngEvent(_parent, args: { youngId: string }) {
-        return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
-      },
-    },
+      GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Catalog,
+    ),
   },
 });
