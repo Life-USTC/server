@@ -130,11 +130,13 @@ test("7/30 天切换保留功能、协议和近期问题参数", async ({ page }
         ),
       })
       .click();
-    const url = new URL(page.url());
-    expect(url.searchParams.get("days")).toBe(String(days));
-    expect(url.searchParams.get("feature")).toBe("catalog.search");
-    expect(url.searchParams.get("protocol")).toBe("rest");
-    expect(url.searchParams.get("errors")).toBe("1");
+    await expect(page).toHaveURL(
+      (url) =>
+        url.searchParams.get("days") === String(days) &&
+        url.searchParams.get("feature") === "catalog.search" &&
+        url.searchParams.get("protocol") === "rest" &&
+        url.searchParams.get("errors") === "1",
+    );
   }
 });
 
@@ -150,17 +152,19 @@ test("GET 筛选提交并可清除", async ({ page }) => {
     .selectOption("mcp");
   await page.getByRole("button", { name: /应用筛选|Apply filters/i }).click();
 
-  let url = new URL(page.url());
-  expect(url.pathname).toBe("/admin/experience");
-  expect(url.searchParams.get("days")).toBe("30");
-  expect(url.searchParams.get("feature")).toBe("workspace.homework");
-  expect(url.searchParams.get("operation")).toBe("list");
-  expect(url.searchParams.get("protocol")).toBe("mcp");
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/admin/experience" &&
+      url.searchParams.get("days") === "30" &&
+      url.searchParams.get("feature") === "workspace.homework" &&
+      url.searchParams.get("operation") === "list" &&
+      url.searchParams.get("protocol") === "mcp",
+  );
 
   await page.getByRole("link", { name: /清除|Clear/i }).click();
-  url = new URL(page.url());
-  expect(url.pathname).toBe("/admin/experience");
-  expect(url.search).toBe("");
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/admin/experience" && url.search === "",
+  );
 });
 
 test("区分尚未观测与遥测不可用", async ({ page }) => {
@@ -212,11 +216,33 @@ test("显示近期问题样本及截断提示", async ({ page }, testInfo) => {
       .getByText("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", { exact: true })
       .first(),
   ).toBeVisible();
-  await expect(page.getByText(/未知|Unknown/i).first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("table", { name: /近期问题样本|Recent issue samples/i })
+      .getByRole("cell", { name: /^(未知|Unknown)$/i })
+      .first(),
+  ).toBeVisible();
   await expect(
     page.getByText(
       /这里只显示最新的 20 条问题样本|Only the 20 latest sampled issues are shown/i,
     ),
   ).toBeVisible();
+  await page
+    .getByRole("heading", { name: /近期问题样本|Recent issue samples/i })
+    .scrollIntoViewIfNeeded();
   await captureStepScreenshot(page, testInfo, "admin-experience/issues");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileRow = page.getByText("catalog.search · view", { exact: true });
+  await expect(mobileRow).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true);
+  await mobileRow.scrollIntoViewIfNeeded();
+  await captureStepScreenshot(page, testInfo, "admin-experience/mobile");
 });
