@@ -112,6 +112,8 @@ describe("GraphQL MCP operations", () => {
     if (guidance?.type !== "text") {
       throw new Error("Expected GraphQL planning guidance text");
     }
+    expect(guidance.text).toContain("graphql_operation_run");
+    expect(guidance.text).not.toContain("run_graphql_operation");
     expect(guidance.text).toContain("confirmed=true");
     expect(guidance.text).toContain("insufficient_scope");
     expect(prompt.messages).toEqual(
