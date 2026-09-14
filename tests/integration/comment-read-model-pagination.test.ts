@@ -671,7 +671,12 @@ describe("comment root pagination read model", () => {
       const loadedDeletedParent = replies.find(
         (reply) => reply.id === deletedParent.id,
       );
-      expect(loadedDeletedParent).toMatchObject({ status: "deleted" });
+      expect(loadedDeletedParent).toMatchObject({
+        body: "",
+        isAncestryPlaceholder: true,
+        status: "active",
+        visibility: "public",
+      });
       expect(loadedDeletedParent?.replies).toEqual([
         expect.objectContaining({
           body: `${previewMarker}-visible-child`,

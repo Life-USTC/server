@@ -40,9 +40,15 @@ export async function loadCommentReplies(input: {
         where: { id: input.commentId },
         select: { id: true, rootId: true },
       });
-      if (!anchor) return null;
+      const hiddenRootDescendant = anchor
+        ? null
+        : await client.comment.findFirst({
+            where: { rootId: input.commentId },
+            select: { rootId: true },
+          });
+      if (!anchor && !hiddenRootDescendant) return null;
 
-      const rootId = anchor.rootId ?? anchor.id;
+      const rootId = anchor?.rootId ?? anchor?.id ?? input.commentId;
       if (input.cursor && (!decodedCursor || decodedCursor.rootId !== rootId)) {
         return { invalidCursor: true as const };
       }
@@ -50,7 +56,6 @@ export async function loadCommentReplies(input: {
         where: { id: rootId },
         include: commentThreadInclude,
       });
-      if (!root) return null;
       const counter = createCommentStageCounter({
         dbContext: input.viewerUserId ? "rls" : "none",
         dbLabel: "app",
@@ -64,7 +69,7 @@ export async function loadCommentReplies(input: {
         counter,
       );
       return {
-        comments: [root, ...replyWindow.comments],
+        comments: root ? [root, ...replyWindow.comments] : replyWindow.comments,
         nextCursor: replyWindow.nextCursor,
         rootId,
       };
