@@ -1,3 +1,15 @@
+# [1.110.0](https://github.com/Life-USTC/server/compare/v1.109.1...v1.110.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* **mcp:** align GraphQL prompt and full Bot integration docs ([#1041](https://github.com/Life-USTC/server/issues/1041)) ([def06d7](https://github.com/Life-USTC/server/commit/def06d7ece0e4afe5de880621c5b3c27e759c095))
+
+
+### Features
+
+* **admin:** show feature usage and recent issues ([#1042](https://github.com/Life-USTC/server/issues/1042)) ([9875388](https://github.com/Life-USTC/server/commit/98753883cb44ca90252ad775b6d8efa943c492e6))
+
 ## [1.109.1](https://github.com/Life-USTC/server/compare/v1.109.0...v1.109.1) (2026-09-14)
 
 
