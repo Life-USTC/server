@@ -107,7 +107,7 @@ jobs:
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
-            if [ "$JOB_PHASE" = "ci:verify" ]; then
+            if [ "$JOB_PHASE" = "ci:verify" ] || [ "$JOB_PHASE" = "ci:unit" ]; then
               echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
             fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then

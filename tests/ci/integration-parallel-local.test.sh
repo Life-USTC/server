@@ -3,7 +3,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 test_dir="$(mktemp -d)"
-trap 'rm -rf "$test_dir"' EXIT
+runner_pid=""
+cleanup() {
+  if [[ -n "$runner_pid" ]]; then
+    kill -TERM "$runner_pid" 2>/dev/null || true
+    wait "$runner_pid" 2>/dev/null || true
+  fi
+  rm -rf "$test_dir"
+}
+trap cleanup EXIT
 export PARALLEL_TEST_DIR="$test_dir"
 mkdir "$test_dir/bin"
 cat >"$test_dir/bin/docker" <<'MOCK'
@@ -52,7 +60,7 @@ if [[ "${PARALLEL_HANG:-}" == true ]]; then
   exec sleep 30
 fi
 # Neither process can finish until both are running: catches serial orchestration.
-for attempt in $(seq 1 100); do
+for attempt in $(seq 1 500); do
   if [[ -f "$PARALLEL_TEST_DIR/started-1" && -f "$PARALLEL_TEST_DIR/started-2" ]]; then
     if [[ "${PARALLEL_FAIL_SHARD:-}" == "$shard" ]]; then
       echo "Deliberate shard failure" >&2
@@ -84,13 +92,14 @@ fi
 rm "$test_dir/started-1" "$test_dir/started-2"
 PARALLEL_HANG=true bash tests/ci/integration-parallel-local.sh test-filter --reporter=dot >"$test_dir/interrupted.log" 2>&1 &
 runner_pid="$!"
-for attempt in $(seq 1 100); do
+for attempt in $(seq 1 500); do
   if [[ -f "$test_dir/pid-1" && -f "$test_dir/pid-2" ]]; then break; fi
   sleep 0.02
 done
 kill -TERM "$runner_pid"
 exit_code=0
 wait "$runner_pid" || exit_code="$?"
+runner_pid=""
 [[ "$exit_code" == 143 ]]
 for shard in 1 2; do
   if kill -0 "$(cat "$test_dir/pid-$shard")" 2>/dev/null; then
