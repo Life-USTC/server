@@ -126,3 +126,5 @@ GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
 TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
+
+REVOKE ALL ON public."PrometheusCounter",public."PrometheusCounterEpoch" FROM life_ustc_runtime;

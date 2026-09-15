@@ -51,7 +51,13 @@ test.describe("GET /metrics", () => {
       headers: { authorization },
     });
     expect(second.status()).toBe(200);
-    expect(await second.text()).toBe(body);
+    expect(await second.text()).toContain(
+      "# TYPE life_ustc_user_registrations_total counter\n",
+    );
+    expect(body).toContain(
+      "# TYPE life_ustc_feature_operation_duration_seconds histogram\n",
+    );
+    expect(body).not.toMatch(/^life_ustc_feature_operations\{/m);
   });
 
   test("does not accept writes", async ({ request }) => {

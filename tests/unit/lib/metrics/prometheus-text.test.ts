@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { renderPrometheusGauges } from "@/lib/metrics/prometheus-text";
+import { renderPrometheusMetricsText } from "@/lib/metrics/prometheus-text";
 
 describe("Prometheus text exposition", () => {
   it("escapes labels and help, sorts labels, and retains fractional seconds and zero", () => {
     expect(
-      renderPrometheusGauges([
+      renderPrometheusMetricsText([
         {
           name: "test_seconds",
+          type: "gauge",
           help: "Line\nwith\\slash",
           samples: [
             { labels: { z: 'quote"\nslash\\', a: "first" }, value: 0.125 },
@@ -23,8 +24,13 @@ describe("Prometheus text exposition", () => {
     "rejects unavailable numeric values %s instead of a misleading sample",
     (value) => {
       expect(() =>
-        renderPrometheusGauges([
-          { name: "test", help: "test", samples: [{ value }] },
+        renderPrometheusMetricsText([
+          {
+            type: "gauge" as const,
+            name: "test",
+            help: "test",
+            samples: [{ value }],
+          },
         ]),
       ).toThrow();
     },
@@ -32,9 +38,10 @@ describe("Prometheus text exposition", () => {
 
   it("rejects duplicate series even when label insertion order differs", () => {
     expect(() =>
-      renderPrometheusGauges([
+      renderPrometheusMetricsText([
         {
           name: "test",
+          type: "gauge",
           help: "test",
           samples: [
             { labels: { a: "1", b: "2" }, value: 1 },
@@ -46,15 +53,86 @@ describe("Prometheus text exposition", () => {
   });
 
   it("rejects duplicate metric names and invalid names", () => {
-    const gauge = { name: "test", help: "test", samples: [] };
-    expect(() => renderPrometheusGauges([gauge, gauge])).toThrow();
+    const gauge = {
+      type: "gauge" as const,
+      name: "test",
+      help: "test",
+      samples: [],
+    };
+    expect(() => renderPrometheusMetricsText([gauge, gauge])).toThrow();
     expect(() =>
-      renderPrometheusGauges([{ ...gauge, name: "bad name" }]),
+      renderPrometheusMetricsText([{ ...gauge, name: "bad name" }]),
     ).toThrow();
     expect(() =>
-      renderPrometheusGauges([
+      renderPrometheusMetricsText([
         { ...gauge, samples: [{ labels: { "bad label": "x" }, value: 1 }] },
       ]),
     ).toThrow();
+  });
+});
+
+describe("Counter and histogram validation", () => {
+  it("rejects negative counters and family name collisions", () => {
+    expect(() =>
+      renderPrometheusMetricsText([
+        {
+          type: "counter",
+          name: "events_total",
+          help: "events",
+          samples: [{ value: -1 }],
+        },
+      ]),
+    ).toThrow();
+    expect(() =>
+      renderPrometheusMetricsText([
+        {
+          type: "histogram",
+          name: "duration_seconds",
+          help: "duration",
+          samples: [],
+        },
+        {
+          type: "gauge",
+          name: "duration_seconds_count",
+          help: "collision",
+          samples: [],
+        },
+      ]),
+    ).toThrow();
+  });
+  it.each([
+    [
+      { upperBound: 0.1, count: 2 },
+      { upperBound: 1, count: 1 },
+    ],
+    [
+      { upperBound: 1, count: 1 },
+      { upperBound: 0.1, count: 2 },
+    ],
+    [{ upperBound: 1, count: 4 }],
+    [{ upperBound: Infinity, count: 3 }],
+  ])("rejects malformed cumulative buckets", (...buckets) => {
+    expect(() =>
+      renderPrometheusMetricsText([
+        {
+          type: "histogram",
+          name: "duration_seconds",
+          help: "duration",
+          samples: [{ count: 3, sum: 1, buckets }],
+        },
+      ]),
+    ).toThrow();
+  });
+  it("emits zero histograms with an explicit infinite bucket and newline", () => {
+    const text = renderPrometheusMetricsText([
+      {
+        type: "histogram",
+        name: "duration_seconds",
+        help: "duration",
+        samples: [{ count: 0, sum: 0, buckets: [{ upperBound: 1, count: 0 }] }],
+      },
+    ]);
+    expect(text).toContain('duration_seconds_bucket{le="+Inf"} 0\n');
+    expect(text).toContain("duration_seconds_count 0\n");
   });
 });

@@ -37,11 +37,13 @@ describe("Prometheus shared snapshot cache", () => {
 
   it("reuses a fresh snapshot and refreshes expired snapshots", async () => {
     const first = await readPrometheusMetrics();
-    expect(await readPrometheusMetrics()).toEqual(first);
+    expect((await readPrometheusMetrics()).activityGeneratedAt).toEqual(
+      first.activityGeneratedAt,
+    );
     await expireCache(61);
     const refreshed = await readPrometheusMetrics();
-    expect(Date.parse(refreshed.generatedAt)).toBeGreaterThan(
-      Date.parse(first.generatedAt),
+    expect(Date.parse(refreshed.activityGeneratedAt)).toBeGreaterThan(
+      Date.parse(first.activityGeneratedAt),
     );
     expect(refreshed.summary).toEqual(first.summary);
   });
@@ -54,7 +56,9 @@ describe("Prometheus shared snapshot cache", () => {
     >`SELECT "generatedAt" FROM public."PrometheusMetricsCache"`;
     await whileRefreshLocked(async () => {
       const snapshot = await readPrometheusMetrics();
-      expect(snapshot.generatedAt).toBe(cached.generatedAt.toISOString());
+      expect(snapshot.activityGeneratedAt).toBe(
+        cached.generatedAt.toISOString(),
+      );
     });
   });
 
