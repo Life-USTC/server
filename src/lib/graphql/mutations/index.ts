@@ -49,6 +49,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     TEACHER
     SECTION_TEACHER
     HOMEWORK
+    YOUNG_EVENT
   }
 
   enum BatchMutationErrorCode {
@@ -157,6 +158,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     courseJwId: Int
     teacherId: ID
     homeworkId: ID
+    youngId: String
     sectionTeacherId: Int
     body: String!
     visibility: CommentVisibility = PUBLIC

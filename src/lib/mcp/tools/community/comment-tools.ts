@@ -55,7 +55,7 @@ export function registerCommentTools(server: McpServer) {
     "community_comment_list",
     {
       description:
-        "List visible comments for one course, section, teacher, homework, or section-teacher target. " +
+        "List visible comments for one course, section, teacher, homework, section-teacher, or young-event target. " +
         "Use page/limit to paginate root comments; each selected root includes a bounded reply preview and repliesNextCursor when more replies are available. " +
         "Returns the same data/pagination/meta envelope, threaded nodes, hidden count, viewer state, reactions, attachments, and action flags as the REST comment list.",
       inputSchema: commentsTargetInputSchema.shape,
@@ -75,6 +75,7 @@ export function registerCommentTools(server: McpServer) {
             sectionTeacherId: args.sectionTeacherId,
             targetType: args.targetType,
             teacherId: args.teacherId,
+            youngId: args.youngId,
             verifyExistence: true,
             includeTargetMetadata: true,
           }),
@@ -222,7 +223,7 @@ export function registerCommentTools(server: McpServer) {
     "community_comment_create",
     {
       description:
-        "Create a comment or reply on one course, section, teacher, homework, or section-teacher target. " +
+        "Create a comment or reply on one course, section, teacher, homework, section-teacher, or young-event target. " +
         "Requires the authenticated user to be unsuspended and returns the new comment id.",
       inputSchema: commentCreateInputSchema.shape,
     },

@@ -136,6 +136,48 @@ export async function resolveCommentListTargetReference(
   courseJwId: number | null,
   counter: CommentStageCounter,
 ): Promise<ResolvedCommentTargetReference | null> {
+  if (input.targetType === "young-event") {
+    if (
+      input.rawTargetId !== undefined &&
+      input.rawTargetId !== null &&
+      String(input.rawTargetId).trim().length > 0
+    ) {
+      return invalidTarget("young-event");
+    }
+    if (
+      typeof input.youngId !== "string" ||
+      input.youngId.trim().length === 0
+    ) {
+      return invalidTarget("young-event");
+    }
+    countCommentStageQuery(counter);
+    const youngEvent = await prisma.youngEvent.findUnique({
+      where: { youngId: input.youngId.trim() },
+      select: { id: true, name: true, youngId: true },
+    });
+    if (!youngEvent) return targetNotFound("young-event", input.youngId);
+    const target = await resolveCommentTarget({
+      rawTargetId: youngEvent.id,
+      targetType: "young-event",
+      verifyExistence: false,
+      youngId: youngEvent.youngId,
+    });
+    if (!target) return invalidTarget("young-event");
+    return {
+      ok: true,
+      target: {
+        ...target,
+        targetMetadata: {
+          youngEvent: {
+            name: youngEvent.name,
+            youngId: youngEvent.youngId,
+          },
+        },
+      },
+      targetType: "young-event",
+    };
+  }
+
   if (input.targetType === "section" && sectionJwId) {
     countCommentStageQuery(counter);
     const section = await prisma.section.findUnique({

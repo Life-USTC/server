@@ -27,6 +27,8 @@ const emptyPublicCommentTargetMetadataFields = {
   sectionTeacherTeacherId: null,
   sectionTeacherTeacherName: null,
   teacherName: null,
+  youngEventName: null,
+  youngId: null,
 } as const;
 
 function publicCommentTargetMetadataPayload(
@@ -53,6 +55,8 @@ function publicCommentTargetMetadataPayload(
     sectionTeacherTeacherId: source?.sectionTeacher?.teacherId ?? null,
     sectionTeacherTeacherName: source?.sectionTeacher?.teacher?.nameCn ?? null,
     teacherName: source?.teacher?.nameCn ?? null,
+    youngEventName: source?.youngEvent?.name ?? null,
+    youngId: source?.youngEvent?.youngId ?? null,
   };
 }
 
@@ -67,6 +71,7 @@ function baseCommentListTargetPayload(
     teacherId: target.teacherId,
     sectionTeacherId: target.sectionTeacherId,
     homeworkId: target.homeworkId,
+    youngEventId: target.youngEventId ?? null,
   };
 }
 
@@ -169,6 +174,21 @@ async function loadCommentListTargetPayload(
     };
   }
 
+  if (
+    targetType === "young-event" &&
+    typeof target.whereTarget.youngEventId === "number"
+  ) {
+    countCommentStageQuery(counter);
+    const youngEvent = await prisma.youngEvent.findUnique({
+      where: { id: target.whereTarget.youngEventId },
+      select: { name: true, youngId: true },
+    });
+    return {
+      ...base,
+      ...publicCommentTargetMetadataPayload({ youngEvent }),
+    };
+  }
+
   if (targetType === "section-teacher") {
     if (target.sectionTeacherId) {
       countCommentStageQuery(counter);
@@ -237,6 +257,7 @@ export function commentThreadTargetPayload(comment: CommentTargetLookupRecord) {
     teacherId: comment.teacherId ?? null,
     sectionTeacherId: comment.sectionTeacherId ?? null,
     homeworkId: comment.homework?.id ?? null,
+    youngEventId: comment.youngEventId ?? null,
     ...publicCommentTargetMetadataPayload(comment),
   };
 }

@@ -8,6 +8,8 @@ export const commentListTargetSchema = z.object({
   teacherId: z.number().int().nullable(),
   sectionTeacherId: z.number().int().nullable(),
   homeworkId: z.string().nullable(),
+  youngEventId: z.number().int().nullable(),
+  youngId: z.string().nullable(),
   sectionTeacherSectionId: z.number().int().nullable(),
   sectionTeacherTeacherId: z.number().int().nullable(),
   sectionTeacherSectionJwId: z.number().int().nullable(),
@@ -23,6 +25,7 @@ export const commentListTargetSchema = z.object({
   courseJwId: z.number().int().nullable(),
   courseName: z.string().nullable(),
   teacherName: z.string().nullable(),
+  youngEventName: z.string().nullable(),
 });
 
 export const commentThreadTargetSchema = z.object({
@@ -38,6 +41,8 @@ export const commentThreadTargetSchema = z.object({
   sectionTeacherCourseJwId: z.number().int().nullable(),
   sectionTeacherCourseName: z.string().nullable(),
   homeworkId: z.string().nullable(),
+  youngEventId: z.number().int().nullable(),
+  youngId: z.string().nullable(),
   homeworkTitle: z.string().nullable(),
   homeworkSectionJwId: z.number().int().nullable(),
   homeworkSectionCode: z.string().nullable(),
@@ -46,4 +51,5 @@ export const commentThreadTargetSchema = z.object({
   courseJwId: z.number().int().nullable(),
   courseName: z.string().nullable(),
   teacherName: z.string().nullable(),
+  youngEventName: z.string().nullable(),
 });

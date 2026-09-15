@@ -1,17 +1,49 @@
 <script lang="ts">
+import { onMount } from "svelte";
+import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
 import type { YoungEventDetail } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 
 type Props = {
+  commentsData?: CommentsInitialData | null;
   copy: AppPageCopy;
   event: YoungEventDetail;
 };
 
-let { copy, event }: Props = $props();
+let { commentsData = null, copy, event }: Props = $props();
+
+let CommentsPanel = $state<
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null
+>(null);
+let commentsLoadError = $state(false);
+let detailModulesLoading = $state(true);
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  commentsLoadError = false;
+  try {
+    const result = await import(
+      "@/features/comments/components/CommentsPanel.svelte"
+    );
+    CommentsPanel = result.default;
+  } catch {
+    commentsLoadError = true;
+  } finally {
+    detailModulesLoading = false;
+  }
+}
+
+onMount(() => {
+  void loadDetailModules();
+});
 
 const youngCopy = $derived(copy.youngEvents);
 
@@ -88,5 +120,36 @@ const fields = $derived(
         {youngCopy.backToList}
       </Button>
     </div>
+
+    <section id="comments" class="scroll-mt-4">
+      {#key `comments:young-event:${event.youngId}`}
+        {#if CommentsPanel}
+          <CommentsPanel
+            heading={copy.comments.title}
+            initialData={commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              type: "young-event",
+              youngId: event.youngId,
+            })}
+            targetType="young-event"
+            youngId={event.youngId}
+          />
+        {:else if commentsLoadError}
+          <Alert.Root variant="destructive">
+            <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+            <Alert.Action>
+              <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                {copy.comments.retry}
+              </Button>
+            </Alert.Action>
+          </Alert.Root>
+        {:else if detailModulesLoading}
+          <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
+            <Skeleton class="h-5 w-24" />
+            <Skeleton class="h-16 w-full" />
+          </div>
+        {/if}
+      {/key}
+    </section>
   </div>
 </PageLayout>

@@ -2347,7 +2347,8 @@
                 "course",
                 "teacher",
                 "section-teacher",
-                "homework"
+                "homework",
+                "young-event"
               ]
             },
             "required": true
@@ -2357,6 +2358,14 @@
             "name": "targetId",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1
             }
           },
           {
@@ -11188,6 +11197,12 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "youngEventId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "user": {
                   "nullable": true,
                   "type": "object",
@@ -11379,6 +11394,29 @@
                     "teacher"
                   ],
                   "additionalProperties": false
+                },
+                "youngEvent": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "youngId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "youngId"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -11402,12 +11440,14 @@
                 "teacherId",
                 "sectionTeacherId",
                 "homeworkId",
+                "youngEventId",
                 "user",
                 "section",
                 "course",
                 "teacher",
                 "homework",
-                "sectionTeacher"
+                "sectionTeacher",
+                "youngEvent"
               ],
               "additionalProperties": false
             }
@@ -15426,6 +15466,16 @@
                     "nullable": true,
                     "type": "string"
                   },
+                  "youngEventId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "youngId": {
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "sectionTeacherSectionId": {
                     "nullable": true,
                     "type": "integer",
@@ -15499,6 +15549,10 @@
                   "teacherName": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "youngEventName": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -15509,6 +15563,8 @@
                   "teacherId",
                   "sectionTeacherId",
                   "homeworkId",
+                  "youngEventId",
+                  "youngId",
                   "sectionTeacherSectionId",
                   "sectionTeacherTeacherId",
                   "sectionTeacherSectionJwId",
@@ -15523,7 +15579,8 @@
                   "sectionCode",
                   "courseJwId",
                   "courseName",
-                  "teacherName"
+                  "teacherName",
+                  "youngEventName"
                 ],
                 "additionalProperties": false
               }
@@ -15553,7 +15610,8 @@
               "course",
               "teacher",
               "section-teacher",
-              "homework"
+              "homework",
+              "young-event"
             ]
           },
           "targetId": {
@@ -15565,6 +15623,10 @@
                 "type": "number"
               }
             ]
+          },
+          "youngId": {
+            "type": "string",
+            "minLength": 1
           },
           "sectionId": {
             "anyOf": [
@@ -23088,6 +23150,12 @@
               "homeworkId": {
                 "nullable": true,
                 "type": "string"
+              },
+              "youngEventId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [
@@ -23110,7 +23178,8 @@
               "courseId",
               "teacherId",
               "sectionTeacherId",
-              "homeworkId"
+              "homeworkId",
+              "youngEventId"
             ],
             "additionalProperties": false
           }
@@ -28152,6 +28221,16 @@
                 "nullable": true,
                 "type": "string"
               },
+              "youngEventId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "youngId": {
+                "nullable": true,
+                "type": "string"
+              },
               "homeworkTitle": {
                 "nullable": true,
                 "type": "string"
@@ -28189,6 +28268,10 @@
               "teacherName": {
                 "nullable": true,
                 "type": "string"
+              },
+              "youngEventName": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -28204,6 +28287,8 @@
               "sectionTeacherCourseJwId",
               "sectionTeacherCourseName",
               "homeworkId",
+              "youngEventId",
+              "youngId",
               "homeworkTitle",
               "homeworkSectionJwId",
               "homeworkSectionCode",
@@ -28211,7 +28296,8 @@
               "sectionCode",
               "courseJwId",
               "courseName",
-              "teacherName"
+              "teacherName",
+              "youngEventName"
             ],
             "additionalProperties": false
           }

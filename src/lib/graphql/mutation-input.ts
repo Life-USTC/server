@@ -31,6 +31,7 @@ export const commentTargetTypeResolver = {
   TEACHER: "teacher",
   SECTION_TEACHER: "section-teacher",
   HOMEWORK: "homework",
+  YOUNG_EVENT: "young-event",
 } as const;
 
 export function requireMutationId(value: string, label: string) {

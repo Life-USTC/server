@@ -446,6 +446,11 @@ function focusedTargetMatches(
       return sameTargetId(target.targetId, focused.teacherId);
     case "homework":
       return sameTargetId(target.targetId, focused.homeworkId);
+    case "young-event":
+      return (
+        sameTargetId(target.youngId, focused.youngId) ||
+        sameTargetId(target.targetId, focused.youngEventId)
+      );
     case "section-teacher":
       return (
         sameTargetId(target.targetId, focused.sectionTeacherId) ||
@@ -458,6 +463,9 @@ function focusedTargetMatches(
 function focusedCommentTargetType(
   focused: FocusedCommentTarget,
 ): CommentTargetType | null {
+  if (focused.youngEventId !== null || focused.youngId !== null) {
+    return "young-event";
+  }
   if (
     focused.sectionTeacherId !== null ||
     focused.sectionTeacherSectionId !== null ||

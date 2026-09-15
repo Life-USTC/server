@@ -1275,12 +1275,14 @@ model Comment {
   teacherId        Int?
   sectionTeacherId Int?
   homeworkId       String?
+  youngEventId     Int?
 
   section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   course         Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher        Teacher?        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
   homework       Homework?       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  youngEvent     YoungEvent?     @relation(fields: [youngEventId], references: [id], onDelete: Cascade)
 
   attachments CommentAttachment[]
   reactions   CommentReaction[]
@@ -1294,6 +1296,8 @@ model Comment {
   @@index([sectionTeacherId])
   @@index([homeworkId])
   @@index([homeworkId, status])
+  @@index([youngEventId])
+  @@index([youngEventId, status])
   @@index([status])
   @@index([visibility])
   @@index([userId, status])
@@ -1955,6 +1959,8 @@ model YoungEvent {
   createdAt          DateTime  @default(now())
 
   organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+
+  comments Comment[]
 
   @@index([isActive, startAt])
   @@index([category])

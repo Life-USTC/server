@@ -65,6 +65,10 @@ export type CommentPermalinkTarget =
       homeworkId: PermalinkPathValue;
       sectionJwId: PermalinkPathValue;
       type: "homework";
+    }
+  | {
+      type: "young-event";
+      youngId: PermalinkPathValue;
     };
 
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
@@ -78,6 +82,9 @@ export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
     return sectionDetailHomeworkPath(target.sectionJwId, {
       homeworkId: target.homeworkId,
     });
+  }
+  if (target.type === "young-event") {
+    return `/catalog/young-events/${encodeURIComponent(String(target.youngId))}#comments`;
   }
   return sectionDetailPagePath(target.sectionJwId, "comments");
 }

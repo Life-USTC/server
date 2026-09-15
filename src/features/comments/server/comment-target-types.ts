@@ -4,6 +4,7 @@ export type CommentTargetReferenceInput = {
   allowDirectSectionTeacherId?: boolean;
   courseJwId?: unknown;
   homeworkId?: string;
+  youngId?: unknown;
   rawTargetId?: unknown;
   sectionId?: unknown;
   sectionJwId?: unknown;

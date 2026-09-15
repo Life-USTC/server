@@ -52,6 +52,7 @@ describe("GET /api/community/comments (anonymous)", () => {
       `targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
       `targetType=course&courseJwId=${DEV_SEED.course.jwId}`,
       `targetType=teacher&teacherId=${teacher.id}`,
+      `targetType=young-event&youngId=${DEV_SEED.youngEvent.youngId}`,
     ]) {
       const response = await getAnonymously(query);
       expect(response.status, query).toBe(200);

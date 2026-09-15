@@ -668,6 +668,39 @@ describe("GraphQL authenticated mutations", () => {
     expect(commentId).toEqual(expect.any(String));
     createdCommentIds.push(commentId as string);
 
+    const youngEventComment = await execute(
+      {
+        query: /* GraphQL */ `
+          mutation CreateYoungEventComment($youngId: String!) {
+            commentCreate(
+              input: {
+                targetType: YOUNG_EVENT
+                youngId: $youngId
+                body: "${marker} young event comment"
+              }
+            ) {
+              id
+            }
+          }
+        `,
+        variables: { youngId: DEV_SEED.youngEvent.youngId },
+      },
+      tokenA,
+    );
+    const youngEventCommentId = (
+      youngEventComment.payload.data?.commentCreate as
+        | { id?: string }
+        | undefined
+    )?.id;
+    expect(youngEventCommentId).toEqual(expect.any(String));
+    createdCommentIds.push(youngEventCommentId as string);
+    await expect(
+      fixturePrisma.comment.findUniqueOrThrow({
+        where: { id: youngEventCommentId },
+        select: { youngEventId: true },
+      }),
+    ).resolves.toMatchObject({ youngEventId: expect.any(Number) });
+
     await expect(
       fixturePrisma.auditLog.findFirstOrThrow({
         where: { action: "comment_create", targetId: commentId },

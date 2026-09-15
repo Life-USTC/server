@@ -8,7 +8,7 @@
   },
   "rules": {
     "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
-    "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
+    "attached-object-types": "Attached objects include courses, sections, teachers, homework, section-teacher relationships, and young events.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
     "server-rendered-markdown": "Visible comment nodes include body as the source Markdown and renderedBody as sanitized server-rendered HTML. Web read surfaces consume renderedBody without rerunning the Markdown pipeline during hydration; REST and MCP full mode keep the shared serialized comment-node shape, while MCP compact modes omit renderedBody to avoid repeating the source Markdown in AI context.",
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
@@ -106,7 +106,7 @@
             "path": "/api/community/comments",
             "returns": "{ data: Comment[] (including body and renderedBody), pagination, meta: { hiddenCount: Int, viewer, target } }",
             "notes": [
-              "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
+              "Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event targets require a validated public youngId.",
               "Returns 404 when the attached target entity does not exist.",
               "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
             ]
@@ -118,7 +118,7 @@
             "returns": "{ id: String }",
             "auth": "user",
             "notes": [
-              "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
+              "Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event targets require a validated public youngId.",
               "visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.",
               "Provided sectionJwId and courseJwId values must be valid positive integers; malformed values return 400 even when targetId is also supplied.",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a comment."
@@ -190,7 +190,8 @@
             "auth": "user",
             "rest_equivalent": "GET /api/community/comments",
             "notes": [
-              "Accepts page and limit; each paged root contains a bounded reply preview and repliesNextCursor when continuation is available."
+              "Accepts page and limit; each paged root contains a bounded reply preview and repliesNextCursor when continuation is available.",
+              "Pass youngId when targetType is young-event; young-event target resolution never accepts an arbitrary targetId."
             ]
           },
           {
@@ -217,7 +218,8 @@
             "auth": "user",
             "rest_equivalent": "POST /api/community/comments",
             "notes": [
-              "Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and attachment validation as REST; MCP audit metadata records source=mcp."
+              "Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and attachment validation as REST; MCP audit metadata records source=mcp.",
+              "Pass youngId when targetType is young-event; writes require an authenticated, unsuspended user."
             ]
           },
           {

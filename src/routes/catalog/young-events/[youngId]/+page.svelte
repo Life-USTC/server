@@ -10,5 +10,9 @@ let { data }: { data: PageData } = $props();
 </svelte:head>
 
 {#if data.event}
-  <YoungEventDetailPage copy={data.copy} event={data.event} />
+  <YoungEventDetailPage
+    commentsData={data.commentsData}
+    copy={data.copy}
+    event={data.event}
+  />
 {/if}

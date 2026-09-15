@@ -166,6 +166,7 @@ enum CommentTargetType {
   SECTION
   SECTION_TEACHER
   TEACHER
+  YOUNG_EVENT
 }
 
 enum CommentVisibility {
@@ -231,6 +232,7 @@ input CreateCommentInput {
   targetType: CommentTargetType!
   teacherId: ID
   visibility: CommentVisibility = PUBLIC
+  youngId: String
 }
 
 input CreateHomeworkInput {

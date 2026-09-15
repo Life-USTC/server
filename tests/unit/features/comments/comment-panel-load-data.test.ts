@@ -46,6 +46,9 @@ const targetMetadata = {
   teacherId: null,
   teacherName: null,
   type: "section",
+  youngEventId: null,
+  youngEventName: null,
+  youngId: null,
 };
 
 const targets: CommentTargetOption[] = [

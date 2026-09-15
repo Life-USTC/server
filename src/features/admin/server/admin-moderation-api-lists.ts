@@ -57,6 +57,9 @@ export async function listAdminModerationComments({
               teacher: { select: { nameCn: true } },
             },
           },
+          youngEvent: {
+            select: { id: true, name: true, youngId: true },
+          },
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip,

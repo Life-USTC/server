@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   courseFindUniqueMock,
   homeworkFindUniqueMock,
+  youngEventFindUniqueMock,
   sectionFindUniqueMock,
   sectionTeacherFindFirstMock,
   teacherFindUniqueMock,
@@ -10,6 +11,7 @@ const {
 } = vi.hoisted(() => ({
   courseFindUniqueMock: vi.fn(),
   homeworkFindUniqueMock: vi.fn(),
+  youngEventFindUniqueMock: vi.fn(),
   sectionFindUniqueMock: vi.fn(),
   sectionTeacherFindFirstMock: vi.fn(),
   teacherFindUniqueMock: vi.fn(),
@@ -20,6 +22,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     course: { findUnique: courseFindUniqueMock },
     homework: { findUnique: homeworkFindUniqueMock },
+    youngEvent: { findUnique: youngEventFindUniqueMock },
     section: { findUnique: sectionFindUniqueMock },
     sectionTeacher: { findFirst: sectionTeacherFindFirstMock },
     teacher: { findUnique: teacherFindUniqueMock },
@@ -162,5 +165,76 @@ describe("comment list target resolution", () => {
       targetType: "section-teacher",
     });
     expect(sectionFindUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves young-event comments by public youngId and includes metadata", async () => {
+    youngEventFindUniqueMock.mockResolvedValue({
+      id: 42,
+      name: "Volunteer orientation",
+      youngId: "young-42",
+    });
+
+    const { resolveCommentTargetReference } = await import(
+      "@/features/comments/server/comment-target-resolution"
+    );
+    const { commentListTargetPayload } = await import(
+      "@/features/comments/server/comment-target-payload"
+    );
+
+    const resolved = await resolveCommentTargetReference({
+      includeTargetMetadata: true,
+      targetType: "young-event",
+      youngId: " young-42 ",
+      verifyExistence: true,
+    });
+
+    expect(resolved).toMatchObject({
+      ok: true,
+      target: {
+        targetId: 42,
+        youngEventId: 42,
+        youngId: "young-42",
+        whereTarget: { youngEventId: 42 },
+        targetMetadata: {
+          youngEvent: { name: "Volunteer orientation", youngId: "young-42" },
+        },
+      },
+    });
+    expect(youngEventFindUniqueMock).toHaveBeenCalledWith({
+      where: { youngId: "young-42" },
+      select: { id: true, name: true, youngId: true },
+    });
+
+    if (!resolved.ok) throw new Error("target should resolve");
+    await expect(
+      commentListTargetPayload("young-event", resolved.target),
+    ).resolves.toMatchObject({
+      type: "young-event",
+      targetId: 42,
+      youngEventId: 42,
+      youngEventName: "Volunteer orientation",
+      youngId: "young-42",
+    });
+  });
+
+  it("rejects young-event targetId without a public youngId", async () => {
+    const { resolveCommentTargetReference } = await import(
+      "@/features/comments/server/comment-target-resolution"
+    );
+
+    await expect(
+      resolveCommentTargetReference({
+        includeTargetMetadata: true,
+        rawTargetId: "42",
+        targetType: "young-event",
+        verifyExistence: true,
+      }),
+    ).resolves.toEqual({
+      error: "invalid_target",
+      ok: false,
+      targetId: undefined,
+      targetType: "young-event",
+    });
+    expect(youngEventFindUniqueMock).not.toHaveBeenCalled();
   });
 });

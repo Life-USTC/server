@@ -57,6 +57,7 @@ export let initialData: CommentsInitialData | null = null;
 export let permalinkBaseHref: string | null = null;
 export let targets: CommentTargetOption[] = [];
 export let teacherId: number | null = null;
+export let youngId: string | null = null;
 /** When set, composer primary action sits on the same row as this heading. */
 export let heading: string | null = null;
 
@@ -129,6 +130,7 @@ $: _resolvedTargets = resolveCommentTargets({
   targets,
   targetType,
   teacherId,
+  youngId,
 });
 $: if (
   _resolvedTargets[0] &&

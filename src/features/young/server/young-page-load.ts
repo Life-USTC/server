@@ -63,5 +63,6 @@ export async function loadYoungEventDetailPage({
     copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     event,
+    commentsData: null,
   });
 }
