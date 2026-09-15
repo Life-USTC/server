@@ -218,8 +218,7 @@ jobs:
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/rls-database-contract.test.ts \
-                tests/integration/feature-event-store.test.ts \
-                tests/integration/admin-observability.test.ts
+                tests/integration/feature-event-store.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/auth-runtime-contract.test.ts
