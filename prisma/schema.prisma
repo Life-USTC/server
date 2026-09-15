@@ -799,6 +799,16 @@ model RuntimeIssueEvent {
   @@index([event, occurredAt], map: "RuntimeIssueEvent_event_occurredAt_idx")
 }
 
+/// One sanitized aggregate snapshot shared by Prometheus scrapes. The table is
+/// readable only through the SECURITY DEFINER snapshot function.
+model PrometheusMetricsCache {
+  id          Int      @id
+  generatedAt DateTime
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model DescriptionEdit {
   id String @id @default(cuid())
 

@@ -1,19 +1,11 @@
+import * as z from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import * as z from "zod";
 
-export const PROMETHEUS_METRICS_WINDOWS = [
-  "5m",
-  "today",
-  "7d",
-  "30d",
-] as const;
+export const PROMETHEUS_METRICS_WINDOWS = ["5m", "today", "7d", "30d"] as const;
 export type PrometheusMetricsWindow =
   (typeof PROMETHEUS_METRICS_WINDOWS)[number];
-export type PrometheusCalendarWindow = Exclude<
-  PrometheusMetricsWindow,
-  "5m"
->;
+export type PrometheusCalendarWindow = Exclude<PrometheusMetricsWindow, "5m">;
 
 export type PrometheusMetricsSnapshot = {
   generatedAt: string;
@@ -157,16 +149,23 @@ export type PrometheusMetricsPayload = z.infer<typeof metricsPayloadSchema>;
  * impersonate an admin RLS context or receive raw identifiers.
  */
 export async function readPrometheusMetrics(): Promise<PrometheusMetricsSnapshot> {
-  const row = await prisma.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe("SET LOCAL statement_timeout = '10s'");
-    const [snapshot] = await tx.$queryRaw<PrometheusMetricsSnapshotRow[]>(
-      Prisma.sql`
-        SELECT "generatedAt", payload
-        FROM public.read_prometheus_metrics_snapshot()
-      `,
-    );
-    return snapshot;
-  });
+  const row = await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL statement_timeout = '10s'");
+      const [snapshot] = await tx.$queryRaw<PrometheusMetricsSnapshotRow[]>(
+        Prisma.sql`
+          SELECT "generatedAt", payload
+          FROM public.read_prometheus_metrics_snapshot()
+        `,
+      );
+      return snapshot;
+    },
+    {
+      isolationLevel: "RepeatableRead",
+      maxWait: 2_000,
+      timeout: 15_000,
+    },
+  );
   if (!row || !(row.generatedAt instanceof Date)) {
     throw new Error("Prometheus metrics snapshot is unavailable");
   }

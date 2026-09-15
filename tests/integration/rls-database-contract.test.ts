@@ -46,6 +46,7 @@ const expectedRuntimeFunctionPrivileges = [
   "public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone):EXECUTE",
   "public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE",
   "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE",
+  "public.read_prometheus_metrics_snapshot():EXECUTE",
   "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
 ] as const;
 
