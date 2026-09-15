@@ -2,7 +2,10 @@
 import type { WeatherHourly } from "@/features/weather/server/weather-types";
 import { buildHourlyChartGeometry } from "@/features/weather/weather-ui";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { formatShanghaiTime } from "$lib/time/shanghai-format";
+import {
+  formatShanghaiDate,
+  formatShanghaiTime,
+} from "$lib/time/shanghai-format";
 import WeatherConditionIcon from "./WeatherConditionIcon.svelte";
 
 let {
@@ -33,7 +36,7 @@ function hourLabel(hour: WeatherHourly) {
           "{value}",
           String(hour.precipitationProbability),
         );
-  return `${formatShanghaiTime(hour.at)} · ${Math.round(hour.temperature)}°C · ${hour.condition?.text ?? ""} ${rain}`;
+  return `${formatShanghaiDate(hour.at)} ${formatShanghaiTime(hour.at)} · ${Math.round(hour.temperature)}°C · ${hour.condition?.text ?? ""} ${rain}`;
 }
 function inspectPointer(event: PointerEvent) {
   if (event.pointerType === "touch" && event.type === "pointermove") return;
@@ -110,7 +113,7 @@ function inspectKeyboard(event: KeyboardEvent) {
         class="bg-popover text-popover-foreground pointer-events-none absolute top-0 grid w-36 max-w-full gap-1 rounded-md border p-2 text-xs shadow-md"
         style:left="{tooltipLeft}px"
       >
-        <p class="font-medium">{formatShanghaiTime(activeHour.at)}</p>
+        <p class="font-medium">{formatShanghaiDate(activeHour.at)} {formatShanghaiTime(activeHour.at)}</p>
         {#if activeHour.condition}
           <p class="flex items-center gap-1.5"><WeatherConditionIcon condition={activeHour.condition} class="size-5 shrink-0" />{activeHour.condition.text}</p>
         {/if}
