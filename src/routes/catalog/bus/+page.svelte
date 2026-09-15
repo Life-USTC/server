@@ -1,5 +1,5 @@
 <script lang="ts">
-import BusTab from "@/features/dashboard/components/BusTab.svelte";
+import BusTab from "@/features/workspace/components/BusTab.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";
 
@@ -7,13 +7,13 @@ export let data: PageData;
 </script>
 
 <svelte:head>
-  <title>{data.copy.dashboard.nav.bus.title} - Life@USTC</title>
+  <title>{data.copy.workspace.nav.bus.title} - Life@USTC</title>
 </svelte:head>
 
 <section class="grid gap-5">
   <PageHeader
-    description={data.copy.dashboard.nav.bus.description}
-    title={data.copy.dashboard.nav.bus.title}
+    description={data.copy.workspace.nav.bus.description}
+    title={data.copy.workspace.nav.bus.title}
   />
 
   <BusTab

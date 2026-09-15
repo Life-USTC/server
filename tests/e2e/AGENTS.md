@@ -4,7 +4,10 @@ Playwright browser tests against the Cloudflare Worker. Full recipes: root
 `AGENTS.md`.
 
 ```bash
-ALLOW_DATABASE_SEED=true bun run e2e:test   # CI parity (four shards + reseed)
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
+export ALLOW_DATABASE_SEED=true
+source tests/ci/setup-runtime-database.sh
+bun run e2e:test   # resets this disposable database before each of eight shards
 bunx playwright test path/to/test          # focused (free localhost:3000 first)
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
@@ -12,18 +15,22 @@ CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
 R2 uses local `R2_UPLOADS`.
 
+CI uses eight browser shards. The local parallel runner executes the same eight
+partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
+available memory. Every partition retains its own database and Worker state.
+
 CI and shard scripts run `tests/ci/e2e-run-shard.sh`, which allows one bounded
 retry only after `tests/ci/e2e-worker-server.sh` records a startup failure,
 health failure, or child-process exit. Individual Playwright assertions are
 not retried. Wrangler output, child status, and health probes are retained
 under `playwright-report/worker/` for CI artifact inspection.
 
-The seed SQL is deliberately conflict-tolerant and preserves unrelated local
-rows, so it is not a complete reset after a partially executed shard. Before
-the bounded retry, CI therefore runs `prisma migrate reset --force` against
-its disposable PostgreSQL service, then explicitly runs the configured seed.
-Local retries keep the non-destructive migrate-and-seed path and never drop a
-developer database.
+Fixtures use FUNCTION_OWNER_DATABASE_URL; the Worker uses separate restricted
+app/auth/maintenance URLs. The setup script applies the same permission script
+as production. Every full-suite shard and confirmed infrastructure retry starts
+with a reset of the explicitly disposable test database, followed by seed and
+runtime-role setup. Never point these commands at a development or production
+database containing data you need to retain.
 
 ## Seed
 
@@ -36,10 +43,15 @@ change scenarios.
 ```text
 tests/e2e/fixtures/             scenario.json
 tests/e2e/src/app/**/test.ts    Route tests (browser UI)
-tests/e2e/src/app/dashboard/**  Covers /workspace/* UI (feature still named dashboard)
+tests/e2e/src/app/workspace/**  Covers /workspace/* UI
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
 tests/integration/rest/         REST contracts — not browser E2E
 ```
+
+Mobile route checks are split by public, authenticated, and admin access.
+Workspace homework checks are split by creation, completion, list state, and
+mobile behavior so file-based shards can distribute them independently. Keep
+shared-user mutations serial within each database and restore their fixtures.
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
@@ -48,7 +60,7 @@ Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 - Prefer role/label selectors; never `waitForTimeout` or `networkidle`.
 - One worker per shard; shared-state files use
   `test.describe.configure({ mode: "serial" })` and restore seed in `finally`
-  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `dashboard/**`, MCP UI).
+  (e.g. `tests/e2e/src/app/test.ts`, welcome/settings, `workspace/**`, MCP UI).
 
 
 ## Unified UI contract (L0-L4)

@@ -1,4 +1,4 @@
-import { getCloudflareWeatherNamespace } from "@/lib/adapters/cloudflare-runtime";
+import { getCloudflareWeatherNamespace } from "@/lib/ports/runtime";
 import type { WeatherSnapshot } from "./weather-types";
 
 const WEATHER_CACHE_TTL_SECONDS = 15 * 60;

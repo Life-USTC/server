@@ -24,14 +24,15 @@ BEGIN READ ONLY;
 WITH protected(table_name) AS (
   VALUES
     ('Todo'),
-    ('DashboardLinkClick'),
-    ('DashboardLinkPin'),
+    ('CatalogLinkClick'),
+    ('WorkspaceLinkPin'),
     ('BusUserPreference'),
     ('CommentReaction'),
     ('HomeworkCompletion'),
     ('Upload'),
     ('UploadPending'),
-    ('UserSectionSubscription')
+    ('UserSectionSubscription'),
+    ('UserUstcIdentity')
 ),
 audited_schemas AS (
   SELECT oid, nspname, nspowner, nspacl
@@ -525,14 +526,15 @@ checks(name, passed) AS (
     'missing_context_default_deny',
     NULLIF(current_setting('app.user_id', true), '') IS NULL
     AND NOT EXISTS (SELECT 1 FROM public."Todo" LIMIT 1)
-    AND NOT EXISTS (SELECT 1 FROM public."DashboardLinkClick" LIMIT 1)
-    AND NOT EXISTS (SELECT 1 FROM public."DashboardLinkPin" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."CatalogLinkClick" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."WorkspaceLinkPin" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."BusUserPreference" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."CommentReaction" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."HomeworkCompletion" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."Upload" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UploadPending" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UserSectionSubscription" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."UserUstcIdentity" LIMIT 1)
 )
 SELECT
   jsonb_object_agg(name, COALESCE(passed, false) ORDER BY name)::text AS report,

@@ -93,12 +93,42 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("fails closed when the user context is missing", async () => {
-      await expect(prisma.homeworkCompletion.findMany()).resolves.toEqual([]);
-      await expect(
-        prisma.homeworkCompletion.create({
+      await withUserDbContext(ownerUserId, (tx) =>
+        tx.homeworkCompletion.create({
           data: { userId: ownerUserId, homeworkId },
         }),
-      ).rejects.toThrow();
+      );
+
+      try {
+        await expect(
+          withUserDbContext(ownerUserId, (tx) =>
+            tx.homeworkCompletion.findUnique({
+              where: {
+                userId_homeworkId: { userId: ownerUserId, homeworkId },
+              },
+              select: { userId: true, homeworkId: true },
+            }),
+          ),
+        ).resolves.toEqual({ userId: ownerUserId, homeworkId });
+        await expect(
+          prisma.homeworkCompletion.findMany({
+            where: { userId: ownerUserId, homeworkId },
+          }),
+        ).resolves.toEqual([]);
+        await expect(
+          prisma.homeworkCompletion.updateMany({
+            where: { userId: ownerUserId, homeworkId },
+            data: { completedAt: new Date() },
+          }),
+        ).resolves.toEqual({ count: 0 });
+        await expect(
+          prisma.homeworkCompletion.deleteMany({
+            where: { userId: ownerUserId, homeworkId },
+          }),
+        ).resolves.toEqual({ count: 0 });
+      } finally {
+        await clearCompletion(ownerUserId);
+      }
     });
 
     it("keeps service reads and writes isolated to the owner", async () => {

@@ -19,51 +19,6 @@ export function expectCalendarDtstampsAreUtc(calendar: string) {
   }
 }
 
-const probeOnlyRoutes = new Set([
-  "/api/admin/comments",
-  "/api/admin/comments/[id]",
-  "/api/admin/descriptions",
-  "/api/admin/descriptions/[id]",
-  "/api/admin/homeworks",
-  "/api/admin/homeworks/[id]",
-  "/api/admin/suspensions",
-  "/api/admin/suspensions/[id]",
-  "/api/admin/users",
-  "/api/admin/users/[id]",
-  "/api/auth/oauth2/device-authorization",
-  "/api/auth/oauth2/token",
-  "/api/auth/.well-known/openid-configuration",
-  "/api/catalog/bus",
-  "/api/catalog/weather",
-  "/api/workspace/bus-preferences",
-  "/api/workspace/subscriptions",
-  "/api/workspace/subscriptions/current",
-  "/api/workspace/subscriptions/import-codes",
-  "/api/workspace/link-pins",
-  "/api/catalog/links/resolve",
-  "/api/health",
-  "/api/community/section-homeworks",
-  "/api/community/section-homeworks/audit",
-  "/api/workspace/homeworks/completions",
-  "/api/community/section-homeworks/[id]",
-  "/api/workspace/homeworks/[id]/completion",
-  "/api/mcp",
-  "/api/mcp/.well-known/oauth-authorization-server",
-  "/api/mcp/.well-known/openid-configuration",
-  "/api/account/profile",
-  "/api/community/users/[identifier]",
-  "/api/workspace/overview",
-  "/api/workspace/homeworks",
-  "/api/workspace/schedules",
-  "/api/workspace/todos/[id]",
-  "/api/workspace/uploads",
-  "/api/workspace/uploads/complete",
-  "/api/workspace/uploads/[id]",
-  "/api/workspace/uploads/[id]/download",
-  "/api/workspace/uploads/object",
-  "/api/calendar-feeds/[credential].ics",
-]);
-
 function expectSuccessfulResponse(
   response: Awaited<ReturnType<APIRequestContext["get"]>>,
 ) {
@@ -81,18 +36,19 @@ async function expectCalendarResponse(
   expectCalendarDtstampsAreUtc(calendar);
 }
 
-async function expectProbeRoute(
-  request: APIRequestContext,
-  routePath: string,
-  expectedStatuses: number[] = [400, 401, 403, 404, 405],
+async function expectUnauthorizedJson(
+  response: Awaited<ReturnType<APIRequestContext["get"]>>,
 ) {
-  const probePath = routePath
+  expect(response.status()).toBe(401);
+  const body = (await response.json()) as { error?: string };
+  expect(typeof body.error).toBe("string");
+}
+
+function probePath(routePath: string) {
+  return routePath
     .replace("[id]", "invalid-e2e")
     .replace("[userId]", "invalid-e2e")
     .replace("[jwId]", String(DEV_SEED.section.jwId));
-  const response = await request.get(probePath);
-  expectSuccessfulResponse(response);
-  expect(expectedStatuses).toContain(response.status());
 }
 
 export async function assertApiContract(
@@ -525,12 +481,205 @@ export async function assertApiContract(
       return;
     }
 
-    default: {
-      if (probeOnlyRoutes.has(routePath)) {
-        await expectProbeRoute(request, routePath);
-        return;
-      }
+    case "/api/admin/comments":
+    case "/api/admin/descriptions":
+    case "/api/admin/homeworks":
+    case "/api/admin/suspensions":
+    case "/api/admin/users": {
+      await expectUnauthorizedJson(await request.get(routePath));
+      return;
+    }
 
+    case "/api/admin/comments/[id]":
+    case "/api/admin/descriptions/[id]":
+    case "/api/admin/suspensions/[id]":
+    case "/api/admin/users/[id]": {
+      await expectUnauthorizedJson(
+        await request.patch(probePath(routePath), { data: {} }),
+      );
+      return;
+    }
+
+    case "/api/admin/homeworks/[id]": {
+      await expectUnauthorizedJson(await request.delete(probePath(routePath)));
+      return;
+    }
+
+    case "/api/workspace/overview":
+    case "/api/workspace/schedules":
+    case "/api/workspace/homeworks":
+    case "/api/workspace/bus-preferences":
+    case "/api/account/profile": {
+      await expectUnauthorizedJson(await request.get(routePath));
+      return;
+    }
+
+    case "/api/workspace/homeworks/completions": {
+      await expectUnauthorizedJson(await request.put(routePath, { data: {} }));
+      return;
+    }
+
+    case "/api/workspace/todos/[id]":
+    case "/api/workspace/uploads/[id]": {
+      await expectUnauthorizedJson(
+        await request.patch(probePath(routePath), { data: {} }),
+      );
+      return;
+    }
+
+    case "/api/workspace/uploads/[id]/download": {
+      await expectUnauthorizedJson(await request.get(probePath(routePath)));
+      return;
+    }
+
+    case "/api/workspace/homeworks/[id]/completion": {
+      await expectUnauthorizedJson(
+        await request.put(probePath(routePath), { data: {} }),
+      );
+      return;
+    }
+
+    case "/api/workspace/uploads/complete":
+    case "/api/workspace/subscriptions/import-codes": {
+      await expectUnauthorizedJson(await request.post(routePath, { data: {} }));
+      return;
+    }
+
+    case "/api/workspace/subscriptions": {
+      await expectUnauthorizedJson(
+        await request.patch(routePath, { data: { sectionIds: [1] } }),
+      );
+      return;
+    }
+
+    case "/api/workspace/uploads/object": {
+      await expectUnauthorizedJson(await request.put(routePath, { data: {} }));
+      return;
+    }
+
+    case "/api/workspace/subscriptions/current": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(401);
+      const body = (await response.json()) as { error?: string };
+      expect(typeof body.error).toBe("string");
+      return;
+    }
+
+    case "/api/community/section-homeworks": {
+      const response = await request.get(`${routePath}?sectionId=1&limit=5`);
+      expect([200, 400, 401, 404]).toContain(response.status());
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/community/section-homeworks/audit": {
+      const response = await request.get(routePath);
+      expect([200, 400, 401, 404, 405]).toContain(response.status());
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/community/section-homeworks/[id]": {
+      const response = await request.get(
+        routePath.replace("[id]", "invalid-e2e"),
+      );
+      expect([400, 401, 404]).toContain(response.status());
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/calendar-feeds/[credential].ics": {
+      const response = await request.get(
+        routePath.replace("[credential]", "invalid-e2e"),
+      );
+      expect([400, 401, 403, 404]).toContain(response.status());
+      return;
+    }
+
+    case "/api/auth/oauth2/device-authorization": {
+      const response = await request.get(routePath);
+      expect([400, 401, 404, 405]).toContain(response.status());
+      return;
+    }
+
+    case "/api/auth/oauth2/token": {
+      const response = await request.post(routePath, { data: {} });
+      expect([400, 401]).toContain(response.status());
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/auth/.well-known/openid-configuration": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as { issuer?: string };
+      expect(typeof body.issuer).toBe("string");
+      return;
+    }
+
+    case "/api/mcp": {
+      const response = await request.get(routePath);
+      expect([200, 401, 405, 406]).toContain(response.status());
+      return;
+    }
+
+    case "/api/mcp/.well-known/oauth-authorization-server":
+    case "/api/mcp/.well-known/openid-configuration": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(body).toEqual(expect.any(Object));
+      expect(Object.keys(body).length).toBeGreaterThan(0);
+      return;
+    }
+
+    case "/api/catalog/links/resolve": {
+      const response = await request.get(
+        `${routePath}?url=https://example.com`,
+      );
+      expect([200, 400, 404]).toContain(response.status());
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/health": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as { status?: string };
+      expect(typeof body.status).toBe("string");
+      return;
+    }
+
+    case "/api/catalog/bus":
+    case "/api/catalog/weather": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"] ?? "").toContain(
+        "application/json",
+      );
+      return;
+    }
+
+    case "/api/workspace/uploads":
+    case "/api/workspace/link-pins": {
+      const response = await request.get(routePath);
+      expect(response.status()).toBe(401);
+      const body = (await response.json()) as { error?: string };
+      expect(typeof body.error).toBe("string");
+      return;
+    }
+
+    default: {
       throw new Error(`No API contract assertion registered for ${routePath}`);
     }
   }

@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import {
+  validateCreateHomeworkForm,
+  validateTodoForm,
+} from "@/features/workspace/lib/forms";
+
+const todoCopy = {
+  errorContentTooLong: "content too long",
+  errorInvalidDueAt: "invalid due date",
+  errorTitleRequired: "title required",
+  errorTitleTooLong: "title too long",
+  saveFailed: "save failed",
+};
+
+const homeworkCopy = {
+  createFailed: "create failed",
+  errorDescriptionTooLong: "description too long",
+  errorInvalidSubmissionDue: "invalid submission due",
+  errorSectionNotFound: "section not found",
+  errorTitleRequired: "title required",
+  errorTitleTooLong: "title too long",
+};
+
+describe("仪表盘表单验证", () => {
+  it("对 todo 截止日期使用严格解析", () => {
+    const formData = new FormData();
+    formData.set("title", "Read Chapter 1");
+    formData.set("dueAt", "2026-02-30T10:00");
+
+    expect(validateTodoForm(formData, todoCopy)).toBe("invalid due date");
+  });
+
+  it("对作业日期使用严格解析", () => {
+    const formData = new FormData();
+    formData.set("sectionId", "1");
+    formData.set("title", "Project 1");
+    formData.set("submissionDueAt", "2026-02-30T10:00");
+
+    expect(validateCreateHomeworkForm(formData, homeworkCopy)).toBe(
+      "invalid submission due",
+    );
+  });
+});

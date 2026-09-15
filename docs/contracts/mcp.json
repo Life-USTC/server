@@ -9,7 +9,7 @@
   "rules": {
     "personal-workspace-focus": "MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.",
     "text-formatted-json": "Every tool result is one object with a required success boolean. The text JSON and structuredContent representations are identical; non-object domain payloads are nested under result.",
-    "output-modes": "MCP has one canonical compact response structure in default mode and an opt-in full mode that adds raw fields without changing top-level collection types. The legacy summary input remains accepted as a deprecated alias for default and never introduces summary wrapper objects.",
+    "output-modes": "MCP has one canonical compact response structure in default mode and an opt-in full mode that adds raw fields without changing top-level collection types. The legacy summary input remains accepted as a deprecated alias for default and never introduces summary wrapper objects. workspace_subscription_kind_update edits only an existing owner subscription. Personal subscription read outputs include kind in compact and full modes.",
     "coverage": "The checked tool list below is the MCP contract surface; implementation parity is enforced through integration tests and $life-ustc-implement. Public catalog list tools accept page and limit between 1 and 100, while course, section, and teacher search strings accept 2-200 characters, matching Web, REST, and GraphQL.",
     "aggregate-before-fanout": "Prefer assistant-oriented aggregate or filtered tools first; start with workspace_snapshot_get, then workspace_schedule_next for next-class-only prompts and workspace_deadline_list for merged deadlines. Default mode compacts schedule payloads and redacts low-value nested fields; full mode is the explicit escape hatch. Raw dataset tools remain available for power clients that need local post-processing.",
     "privacy-safe-default": "Default output may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the explicit escape hatch when exact raw values are required, except workspace_calendar_feed_get never returns the private personal iCal feed URL, calendar path, credential, or token in any mode.",
@@ -30,7 +30,8 @@
     "time-override": "Time-sensitive tools (workspace_snapshot_get, workspace_schedule_next, workspace_calendar_timeline_get, workspace_deadline_list, workspace_overview_get, catalog_bus_departure_next) accept an optional atTime parameter to anchor their internal clock to a caller-supplied moment instead of the server clock, enabling reproducible queries and future-scenario planning.",
     "openai-compatible-descriptors": "Every registered tool advertises a title, a closed top-level object outputSchema with a required success boolean and typed known fields, MCP annotations for read-only/destructive/open-world hints, top-level securitySchemes, and _meta.securitySchemes. Ordinary tools declare fixed OAuth feature scopes; graphql_operation_run uses conservative static safety hints and delegates exact scopes to each manifest entry. Default and full results keep the same top-level key and collection types.",
     "single-tools-list-compatibility-wrapper": "The SDK compatibility handler that hoists _meta.securitySchemes onto each tools/list descriptor is installed exactly once after all application tools are registered, rather than nesting one full-list wrapper per tool.",
-    "tool-registry-completeness": "Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output schema, so tool registration cannot silently fall back to generic metadata."
+    "tool-registry-completeness": "Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output schema, so tool registration cannot silently fall back to generic metadata.",
+    "room-maps": "catalog_rooms_map is public, accepts code and mode, and returns room map coverage and public image URLs."
   },
   "capabilities": {
     "protocol-endpoint": {
@@ -103,7 +104,7 @@
             "tools": ["graphql_operation_run"]
           },
           {
-            "name": "Dashboard & Overview",
+            "name": "Workspace & Overview",
             "tools": [
               "workspace_snapshot_get",
               "workspace_overview_get",
@@ -162,6 +163,7 @@
               "workspace_subscription_list",
               "workspace_subscription_add",
               "workspace_subscription_remove",
+              "workspace_subscription_kind_update",
               "catalog_section_calendar_feed_get",
               "workspace_subscription_import"
             ]
@@ -195,8 +197,8 @@
             ]
           },
           {
-            "name": "Weather",
-            "tools": ["catalog_weather_get"]
+            "name": "Weather and room maps",
+            "tools": ["catalog_weather_get", "catalog_rooms_map"]
           },
           {
             "name": "Young Events",

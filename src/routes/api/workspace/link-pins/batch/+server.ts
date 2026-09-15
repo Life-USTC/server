@@ -1,4 +1,4 @@
-import { postDashboardLinkPinBatchRoute } from "@/lib/api/routes/dashboard-link-pin-route";
+import { postWorkspaceLinkPinBatchRoute } from "@/lib/api/routes/workspace-link-pin-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
@@ -13,5 +13,5 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 503:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(
-  observedApiRoute(postDashboardLinkPinBatchRoute),
+  observedApiRoute(postWorkspaceLinkPinBatchRoute),
 );

@@ -28,6 +28,7 @@ import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionId } from "../../../e2e/utils/seed-lookups";
 import { createUploadedFileViaApi } from "../../../e2e/utils/uploads";
+import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
 import { signInAsDebugUserApi } from "../_harness/auth";
 import { assertApiContract } from "../_shared/api-contract";
 
@@ -181,11 +182,7 @@ test("/api/community/comments GET 接受公开 section JW id", async ({
   expect(body.meta?.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
   expect(body.meta?.target?.courseJwId).toBe(DEV_SEED.course.jwId);
   expect(body.meta?.target?.courseName).toBe(DEV_SEED.course.nameCn);
-  expect(
-    body.data?.some((comment) =>
-      comment.body?.includes(DEV_SEED.comments.sectionRootBody),
-    ),
-  ).toBe(true);
+  assertCommentThreadFound(body, DEV_SEED.comments.sectionRootBody);
 });
 
 test("/api/community/comments GET 无效 targetType 返回 400", async ({

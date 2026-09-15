@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 export const sectionCalendarInclude = {
@@ -26,20 +27,49 @@ export const sectionCalendarInclude = {
 export async function getIncompleteHomeworkCalendarItems(
   userId: string,
   sectionIds: number[],
+  now = new Date(),
 ) {
   if (sectionIds.length === 0) return [];
+
+  const teachingAssistantSubscription = {
+    kind: "teaching_assistant",
+    userId,
+  } satisfies Prisma.UserSectionSubscriptionWhereInput;
 
   return withUserDbContext(userId, (tx) =>
     tx.homework.findMany({
       where: {
-        deletedAt: null,
-        sectionId: { in: sectionIds },
-        submissionDueAt: { not: null },
-        homeworkCompletions: {
-          none: {
-            userId,
+        AND: [
+          {
+            deletedAt: null,
+            sectionId: { in: sectionIds },
+            submissionDueAt: { not: null },
+            homeworkCompletions: {
+              none: {
+                userId,
+              },
+            },
           },
-        },
+          {
+            OR: [
+              {
+                section: {
+                  sectionSubscriptions: {
+                    none: teachingAssistantSubscription,
+                  },
+                },
+              },
+              {
+                section: {
+                  sectionSubscriptions: {
+                    some: teachingAssistantSubscription,
+                  },
+                },
+                submissionDueAt: { gt: now },
+              },
+            ],
+          },
+        ],
       },
       include: {
         description: {

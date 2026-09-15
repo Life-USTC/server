@@ -29,12 +29,22 @@ const titleId = "bulk-import-title";
 </script>
 
 <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
-  <Dialog.Content class="max-w-lg sm:max-w-lg" aria-labelledby={titleId}>
-    <Dialog.Header>
+  <Dialog.Content class="flex max-w-lg flex-col overflow-hidden sm:max-w-lg" aria-labelledby={titleId}>
+    <Dialog.Header class="shrink-0">
       <Dialog.Title id={titleId}>{copy.title}</Dialog.Title>
-      <Dialog.Description>{copy.description}</Dialog.Description>
+      <Dialog.Description>
+        {copy.descriptionPrefix}{" "}<a
+          href="https://jw.ustc.edu.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+        >{copy.undergraduateSystem}</a>{" "}{copy.descriptionConjunction}{" "}<a
+          href="https://yjs1.ustc.edu.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+        >{copy.graduateSystem}</a>{copy.description}
+      </Dialog.Description>
     </Dialog.Header>
-    <Field.Group class="gap-4 px-5 py-4">
+    <Field.Group class="min-h-0 gap-4 overflow-y-auto px-5 py-4">
       {#if error}
         <Alert.Root variant="destructive">
           <Alert.Description>{error}</Alert.Description>
@@ -68,7 +78,7 @@ const titleId = "bulk-import-title";
         />
       </Field.Field>
     </Field.Group>
-    <Dialog.Footer>
+    <Dialog.Footer class="shrink-0">
       <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
       <Button disabled={!canMatch} type="button" onclick={match}>
         {#if isMatching}

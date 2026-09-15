@@ -105,7 +105,9 @@
           {
             "name": "teacher",
             "parent": "Catalog",
-            "arguments": { "id": "Int!" },
+            "arguments": {
+              "id": "Int!"
+            },
             "returns": "Teacher",
             "rest_equivalent": "GET /api/catalog/teachers/[id]",
             "mcp_equivalent": "catalog_teacher_get"

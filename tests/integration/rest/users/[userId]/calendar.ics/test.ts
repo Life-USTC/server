@@ -105,7 +105,7 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
     }
 
     try {
-      await request.post("/api/workspace/subscriptions", {
+      await request.patch("/api/workspace/subscriptions", {
         data: { sectionIds: [seedSection.id] },
       });
 
@@ -128,7 +128,10 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
       expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
       expect(unfoldedBody).not.toContain("已删除作业");
     } finally {
-      await request.post("/api/workspace/subscriptions", {
+      await request.delete("/api/workspace/subscriptions", {
+        data: { sectionIds: [seedSection.id] },
+      });
+      await request.patch("/api/workspace/subscriptions", {
         data: { sectionIds: originalIds },
       });
     }

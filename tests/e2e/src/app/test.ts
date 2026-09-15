@@ -20,7 +20,7 @@ test("/", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/", testInfo });
 });
 
-test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async ({ page }) => {
+test("/ 登录用户的旧 tab 永久重定向至语义 workspace 路径", async ({ page }) => {
   await signInAsDebugUser(page, "/workspace");
 
   const response = await page.request.get(
@@ -351,7 +351,7 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
   }
 
   await expect(
-    navigation.getByRole("link", { name: /^(仪表盘|Dashboard)$/i }),
+    navigation.getByRole("link", { name: /^(工作区|Workspace)$/i }),
   ).toHaveCount(0);
   await expect(
     navigation.getByRole("button", { name: /^Toggle /i }),
@@ -708,7 +708,7 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
       page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
     ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
+    await captureStepScreenshot(page, testInfo, "workspace-overview-empty");
   } finally {
     await updateUserProfileById(sessionUser.id, originalProfile);
     await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
@@ -792,7 +792,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       ]),
     );
 
-    await captureStepScreenshot(page, testInfo, "dashboard-history-recovery");
+    await captureStepScreenshot(page, testInfo, "workspace-history-recovery");
     await page
       .getByRole("link", { name: /查看往期作业|View Past Homework/i })
       .click();

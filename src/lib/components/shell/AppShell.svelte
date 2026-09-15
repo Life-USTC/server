@@ -4,7 +4,6 @@ import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import ChartBarIcon from "@lucide/svelte/icons/chart-bar";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
@@ -15,6 +14,7 @@ import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
+import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
@@ -200,6 +200,11 @@ function buildShellNavGroups(
         : undefined,
     },
     {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
+    },
+    {
       href: "/catalog/bus",
       icon: BusFrontIcon,
       label: copy.nav.bus,
@@ -341,16 +346,6 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
       icon: BusFrontIcon,
       label: copy.nav.admin.bus,
     },
-    {
-      href: "/admin/audit",
-      icon: ScrollTextIcon,
-      label: copy.nav.admin.audit,
-    },
-    {
-      href: "/admin/analytics",
-      icon: ChartBarIcon,
-      label: copy.nav.admin.analytics,
-    },
   ];
 }
 
@@ -434,6 +429,11 @@ function buildMobileSecondaryNavGroups(
         : undefined,
       label: copy.nav.teachers,
     },
+    {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
+    },
   ];
   return [
     {
@@ -507,9 +507,12 @@ function isActiveLink(link: ShellLink) {
     return pathname === target.pathname;
   }
   if (
-    ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].includes(
-      target.pathname,
-    )
+    [
+      "/catalog/courses",
+      "/catalog/sections",
+      "/catalog/teachers",
+      "/catalog/rooms",
+    ].includes(target.pathname)
   ) {
     return (
       pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
@@ -549,11 +552,19 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   }
   if (link.href === "/catalog/courses") {
     return (
-      ["/catalog/bus", "/catalog/links", "/catalog/bus/map"].includes(
-        pathname,
-      ) ||
+      [
+        "/catalog/bus",
+        "/catalog/links",
+        "/catalog/bus/map",
+        "/catalog/rooms",
+      ].includes(pathname) ||
       pathname.startsWith("/usage/") ||
-      ["/catalog/courses", "/catalog/sections", "/catalog/teachers"].some(
+      [
+        "/catalog/courses",
+        "/catalog/sections",
+        "/catalog/teachers",
+        "/catalog/rooms",
+      ].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )
     );

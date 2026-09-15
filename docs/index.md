@@ -22,6 +22,7 @@ Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
 | GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
 | MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
 | Data shape | `prisma/schema.prisma` + migrations |
+| Weather / young events / news | Module contracts `weather.json`, `young-event.json`, `publications.json` |
 | Env / CI | `.env.example`, `.github/workflows/AGENTS.md` |
 
 ## Keep in sync

@@ -1,4 +1,4 @@
-import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+import { getPublicCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
 import { jsonResponse } from "@/lib/api/helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 
@@ -8,9 +8,9 @@ export function getCatalogLinksRoute(request: Request) {
 
   return jsonResponse(
     {
-      links: getPublicDashboardLinksData(
+      links: getPublicCatalogLinksData(
         localeResolution.locale,
-      ).dashboardLinks.map(({ clickCount: _, isPinned: __, ...link }) => link),
+      ).catalogLinks.map(({ clickCount: _, isPinned: __, ...link }) => link),
     },
     {
       headers: localeResolution.cacheHeaders,

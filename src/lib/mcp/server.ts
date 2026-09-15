@@ -6,6 +6,7 @@ import {
 import { registerGraphqlResources } from "@/lib/graphql/resources";
 import { registerBusTools } from "@/lib/mcp/tools/bus/bus-tools";
 import { registerCourseTools } from "@/lib/mcp/tools/catalog/course-tools";
+import { registerRoomMapTools } from "@/lib/mcp/tools/catalog/room-map-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/catalog/section-data-tools";
 import { registerWeatherTools } from "@/lib/mcp/tools/catalog/weather-tools";
 import { registerYoungEventTools } from "@/lib/mcp/tools/catalog/young-event-tools";
@@ -14,9 +15,9 @@ import { registerDescriptionTools } from "@/lib/mcp/tools/community/description-
 import { registerGraphqlOperationTool } from "@/lib/mcp/tools/graphql/graphql-operation-tool";
 import { registerUploadTools } from "@/lib/mcp/tools/uploads/upload-tools";
 import { registerCalendarTools } from "@/lib/mcp/tools/workspace/calendar-tools";
-import { registerDashboardTools } from "@/lib/mcp/tools/workspace/dashboard-tools";
-import { registerMyDataTools } from "@/lib/mcp/tools/workspace/my-data-tools";
 import { registerProfileTools } from "@/lib/mcp/tools/workspace/profile-tools";
+import { registerWorkspaceDataTools } from "@/lib/mcp/tools/workspace/workspace-data-tools";
+import { registerWorkspaceTools } from "@/lib/mcp/tools/workspace/workspace-tools";
 import {
   assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
@@ -50,11 +51,12 @@ export function createMcpServer() {
   registerProfileTools(server);
   registerUploadTools(server);
   registerCourseTools(server);
-  registerDashboardTools(server);
+  registerWorkspaceTools(server);
   registerSectionDataTools(server);
   registerWeatherTools(server);
+  registerRoomMapTools(server);
   registerYoungEventTools(server);
-  registerMyDataTools(server);
+  registerWorkspaceDataTools(server);
   registerCalendarTools(server);
   registerGraphqlOperationTool(server);
   registerGraphqlResources(server);

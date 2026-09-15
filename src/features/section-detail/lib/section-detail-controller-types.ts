@@ -1,6 +1,7 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { AppLocale } from "@/i18n/config";
 
 type SectionDetailHomeworkMessages = Record<string, string> &
@@ -26,6 +27,7 @@ export type SectionDetailSemester = {
 };
 
 export type SectionDetailScheduleRoom = SectionDetailNamed & {
+  code?: string | null;
   building?:
     | (SectionDetailNamed & {
         campus?: SectionDetailNamed | null;
@@ -177,19 +179,25 @@ export type SectionDetailCopy = {
     descriptionLabel: string;
     descriptionPlaceholder: string;
     dueDateShortcuts: string;
+    timeShortcuts: string;
     editAction: string;
     helperClear: string;
+    helperBeforeMonday: string;
     helperMonth: string;
+    helperNextClass: string;
+    helperNextWeek: string;
     helperPublishNow: string;
     helperSemesterEnd: string;
     helperSemesterStart: string;
     helperStartNow: string;
+    helperThisWeek: string;
     helperWeek: string;
     loginToCreate: string;
     markComplete: string;
     markIncomplete: string;
     moreDetails: string;
     pendingLabel: string;
+    noCompletionRequired: string;
     publishedAt: string;
     relativeTime: string;
     saveChanges: string;
@@ -323,6 +331,7 @@ export type SectionDetailCopy = {
     viewAllSubscriptions: string;
     yes: string;
   };
+  roomMap: RoomMapCopy;
   metadata: {
     pages: {
       sectionDetail: string;
@@ -388,6 +397,7 @@ export type SectionDetailActionData =
 
 export type SectionHomework = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   commentCount?: number;
   createdById?: string | null;
   description?: { content?: string | null; renderedHtml?: string } | null;

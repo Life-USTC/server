@@ -6,7 +6,7 @@
  * - Response: { thread: CommentNode[], focusId: string, hiddenCount: number, viewer, target }
  * - target includes resolved section/course/teacher metadata (jwId, code, nameCn, etc.)
  * - Returns 404 if comment does not exist
- * - Returns 403 if the focused comment is hidden from the viewer
+ * - Returns 404 if RLS hides the focused comment from the viewer
  * - Public endpoint (no auth required)
  *
  * ## PATCH /api/community/comments/{id}
@@ -106,7 +106,7 @@ test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
+test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露是否存在", async ({
   request,
   playwright,
 }) => {
@@ -130,7 +130,7 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   }
 
   try {
-    // Focus GET for logged_in_only must stay forbidden for anonymous viewers.
+    // RLS hides the row, so anonymous callers cannot distinguish it from a missing ID.
     const anonymous = await playwright.request.newContext({
       baseURL: "http://localhost:3000",
     });
@@ -138,7 +138,25 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 403", async ({
       const response = await anonymous.get(
         `/api/community/comments/${commentId}`,
       );
-      expect(response.status()).toBe(403);
+      expect(response.status()).toBe(404);
+      const missing = await anonymous.get(
+        "/api/community/comments/missing-private-comment",
+      );
+      expect(missing.status()).toBe(404);
+      expect(await response.json()).toEqual(await missing.json());
+      const ownerView = await request.get(
+        `/api/community/comments/${commentId}`,
+      );
+      expect(ownerView.status()).toBe(200);
+      expect((await ownerView.json()).focusId).toBe(commentId);
+      await expect(
+        withE2ePrisma((prisma) =>
+          prisma.comment.findUnique({
+            where: { id: commentId },
+            select: { body: true, visibility: true },
+          }),
+        ),
+      ).resolves.toEqual({ body: content, visibility: "logged_in_only" });
     } finally {
       await anonymous.dispose();
     }

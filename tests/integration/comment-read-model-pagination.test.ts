@@ -5,8 +5,9 @@ import {
   loadFocusedCommentThread,
 } from "@/features/comments/server/comment-read-model";
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import {
-  createTestPrisma,
+  createFixturePrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../shared/prisma";
@@ -20,7 +21,7 @@ describe("comment root pagination read model", () => {
   const marker = `[integration-test] comment-root-pagination-${Date.now()}`;
 
   beforeAll(async () => {
-    testPrisma = createTestPrisma();
+    testPrisma = createFixturePrisma();
     const [course, semester] = await Promise.all([
       testPrisma.course.findFirstOrThrow({ select: { id: true } }),
       testPrisma.semester.findFirstOrThrow({ select: { id: true } }),
@@ -118,7 +119,10 @@ describe("comment root pagination read model", () => {
     await testPrisma.user.deleteMany({
       where: { id: { in: [ownerId, otherUserId, adminId] } },
     });
-    await disconnectTestPrisma(testPrisma);
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(testPrisma),
+    ]);
   });
 
   it("returns one exact total with a paged root scan and visible-child roots", async () => {
@@ -667,7 +671,12 @@ describe("comment root pagination read model", () => {
       const loadedDeletedParent = replies.find(
         (reply) => reply.id === deletedParent.id,
       );
-      expect(loadedDeletedParent).toMatchObject({ status: "deleted" });
+      expect(loadedDeletedParent).toMatchObject({
+        body: "",
+        isAncestryPlaceholder: true,
+        status: "active",
+        visibility: "public",
+      });
       expect(loadedDeletedParent?.replies).toEqual([
         expect.objectContaining({
           body: `${previewMarker}-visible-child`,

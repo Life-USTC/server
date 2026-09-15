@@ -1,4 +1,4 @@
-import { getWorkspaceNavigationSummary } from "@/features/dashboard/server/workspace-navigation-summary";
+import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
 import { jsonResponse } from "@/lib/api/responses";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { layoutUserSummary } from "@/lib/shell/layout-server-data";

@@ -1,4 +1,3 @@
-export type { Pos } from "./bus-transit-map-campus-layout";
 export {
   computeMapViewBox,
   layoutCampuses,
@@ -10,3 +9,4 @@ export {
   pointsToPath,
   segmentKey,
 } from "./bus-transit-map-routes";
+export type { Pos } from "./bus-transit-map-types";

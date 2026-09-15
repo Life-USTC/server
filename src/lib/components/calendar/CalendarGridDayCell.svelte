@@ -35,6 +35,7 @@ export let variant: "week" | "month" = "week";
       <CalendarEventChip
         href={event.href}
         label={event.label}
+            badge={event.badge}
         title={event.title}
         tooltip={event.tooltip}
         tooltipDetail={event.tooltipDetail}

@@ -10,6 +10,8 @@
     "attached-to-section": "Homework is attached to a section, not a personal user todo.",
     "no-subscription-required": "Creating homework does not require the user to be subscribed to the section first.",
     "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'.",
+    "completed-deadline-display": "Completed homework hides overdue and remaining-time reminders in workspace lists, cards, and shared detail dialogs. Keep the submission due date, completion status, and attribute badges visible; restoring incomplete status restores deadline reminders.",
+    "teaching-assistant-completion": "For a viewer subscribed to a section as a teaching assistant, homework completion is never required and every homework surface displays 无需完成 / No completion required. The completionRequired field is derived from the current subscription kind; actual completion records remain preserved. TA homework with no due date remains in pending scopes, while TA homework is excluded from pending scopes at or after its due instant.",
     "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged.",
     "compact-card-list-surface": "In card and list views, the default homework surface only shows title, subtitle (course name when useful plus non-default attribute badges), submission due date, relative due label, and a small completion action. Standard/default homework is not shown as a separate badge. Course/section context, description, homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens on click and closes via outside click or Escape.",
     "homework-style-guide-advisory": "Create and edit surfaces expose a collapsible homework style guide. Titles use 第{N}次作业 or {主题}作业 without course name/code, and explicitly avoid chapter-only titles such as 第一章作业. Descriptions list 题目, 提交方式, 提交地址, and 备注 in that order; 题目 uses 未记录 when unknown and unknown optional fields are omitted. The guide is advisory only and never blocks otherwise valid writes."
@@ -81,7 +83,9 @@
           "mobile compact toolbar with direct completion filters and overflow display-mode control",
           "cards/list view mode persisted in browser storage",
           "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details",
-          "create form exposes the collapsible advisory homework title and description style guide"
+          "create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style guide, and uses aligned date inputs with adjacent shortcut menus",
+          "create dialog uses a wider desktop layout with section, title, and timestamps on the left and description editing with simultaneous live Markdown preview on the right; mobile stacks the fields",
+          "create section options identify course, teachers, and semester; common deadlines include the selected section's next classes and future this/next-week weekend cutoffs in Asia/Shanghai"
         ]
       }
     },
@@ -154,7 +158,9 @@
         "mutations": [
           {
             "name": "homeworkCreate",
-            "arguments": { "input": "CreateHomeworkInput!" },
+            "arguments": {
+              "input": "CreateHomeworkInput!"
+            },
             "returns": "HomeworkMutationPayload!",
             "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "POST /api/community/section-homeworks",
@@ -180,7 +186,9 @@
           },
           {
             "name": "homeworkDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "HomeworkDeleteMutationPayload!",
             "required_scopes": ["community.section-homework:write"],
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",

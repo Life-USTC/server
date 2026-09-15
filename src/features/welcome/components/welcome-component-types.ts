@@ -39,6 +39,10 @@ export type WelcomeRootCopy = {
 
 export type WelcomeBulkImportCopy = Record<string, string> & {
   cancel: string;
+  descriptionPrefix: string;
+  undergraduateSystem: string;
+  descriptionConjunction: string;
+  graduateSystem: string;
   description: string;
   matchButton: string;
   matching: string;

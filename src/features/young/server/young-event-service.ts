@@ -1,11 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/db/prisma";
 import {
   buildPaginatedResponse,
   normalizePagination,
   type PaginatedResponse,
   type PaginationInput,
-} from "@/lib/api/pagination";
-import { prisma } from "@/lib/db/prisma";
+} from "@/lib/pagination";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 export type YoungEventSummary = {

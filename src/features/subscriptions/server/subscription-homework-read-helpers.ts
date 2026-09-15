@@ -1,7 +1,7 @@
 export { buildSubscribedHomeworkQuery } from "./subscription-homework-query";
 export {
-  buildDashboardHomeworkSelect,
   buildSubscribedHomeworkInclude,
+  buildWorkspaceHomeworkSelect,
 } from "./subscription-homework-selects";
 export { homeworkSummaryFromRecord } from "./subscription-homework-summary";
 export type {

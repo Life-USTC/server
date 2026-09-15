@@ -7,6 +7,9 @@
     "agent": "After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability."
   },
   "rules": {
+    "web-list-state": "The Web todo list preserves the explicitly selected completion filter, including empty results. Local create, edit, completion and delete results are reflected without reloading or resurrecting stale rows when switching filters.",
+    "web-due-order": "The Web todo list puts undated items first, then orders dated items by absolute distance from the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This order applies to every completion filter and updates after edits.",
+    "web-detail": "Completed todo detail titles are struck through. Priority uses the same badge as the list. Footer actions are delete, completion toggle, then edit, with icons and accessible mobile controls.",
     "purely-personal": "Todo is a purely personal object and is not bound to any section.",
     "due-date-calendar": "Only incomplete todos with a due date appear in the calendar.",
     "completed-retained": "Completed todos retain history but no longer occupy urgent information areas.",
@@ -45,7 +48,9 @@
         "mutations": [
           {
             "name": "todoCreate",
-            "arguments": { "input": "CreateTodoInput!" },
+            "arguments": {
+              "input": "CreateTodoInput!"
+            },
             "returns": "TodoMutationPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],
@@ -66,7 +71,9 @@
           },
           {
             "name": "todoDelete",
-            "arguments": { "id": "ID!" },
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],
@@ -90,7 +97,9 @@
           },
           {
             "name": "todosDelete",
-            "arguments": { "ids": "[ID!]!" },
+            "arguments": {
+              "ids": "[ID!]!"
+            },
             "returns": "TodoDeleteBatchPayload!",
             "auth": "user",
             "required_scopes": ["workspace.todo:write"],
@@ -164,7 +173,7 @@
             "method": "PATCH",
             "returns": "{ success: Boolean, todo: TodoItem }",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {
@@ -179,7 +188,10 @@
           {
             "path": "/api/workspace/todos/[id]",
             "method": "DELETE",
-            "returns": "{ success: Boolean }"
+            "returns": "{ success: Boolean }",
+            "notes": [
+              "Missing todos and other users' todos hidden by row security return 404, including for admin callers."
+            ]
           },
           {
             "path": "/api/workspace/todos/batch",
@@ -204,7 +216,7 @@
             "returns": "{ success: Boolean, todo: TodoItem }",
             "rest_equivalent": "PATCH /api/workspace/todos/[id]",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {

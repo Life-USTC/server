@@ -1,3 +1,8 @@
+/**
+ * Public catalog detail cache: isolate memory → colo Cache API → revision-scoped
+ * KV. Callers supply keys and optional result validators; analytics write on
+ * hit/miss/error outcomes.
+ */
 import type { AppLocale } from "@/i18n/config";
 import {
   type CloudflareCache,

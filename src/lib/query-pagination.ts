@@ -2,7 +2,7 @@ import {
   buildPaginatedResponse,
   normalizePagination,
   type PaginatedResponse,
-} from "@/lib/api/helpers";
+} from "@/lib/pagination";
 
 /** Generic paginated query function for Prisma models. */
 export async function paginatedQuery<TData>(

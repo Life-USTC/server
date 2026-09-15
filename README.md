@@ -9,7 +9,8 @@ Production: [https://life-ustc.tiankaima.dev](https://life-ustc.tiankaima.dev)
 
 | Domain | What users can do |
 |--------|-------------------|
-| **Catalog** | Search courses / sections / teachers; semester schedules and exams; bus timetable and map; campus links; global search |
+| **Catalog** | Search courses / sections / teachers; semester schedules and exams; bus timetable and map; young events (第二课堂); campus links; weather; global search |
+| **News** | Public publication list and detail (`/news`); REST ingestion for crawlers |
 | **Workspace** | Overview and calendar; todos; homework completion; exams; section subscriptions (including import); iCal export; link pins; uploads |
 | **Community** | Public profiles; comments / reactions; descriptions; shared section homework |
 | **Account** | USTC OAuth / Passkey sign-in; profile and locale; linked accounts and authorizations |
@@ -17,7 +18,8 @@ Production: [https://life-ustc.tiankaima.dev](https://life-ustc.tiankaima.dev)
 
 Workspace Web tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
 (plus subscription sub-routes). Schedules / uploads are mostly API and other
-clients — not always a dedicated tab.
+clients — not always a dedicated tab. Catalog also includes
+`/catalog/young-events` and `/catalog/weather`.
 
 ## Clients / APIs
 

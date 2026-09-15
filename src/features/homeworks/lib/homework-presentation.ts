@@ -16,6 +16,7 @@ type HomeworkDescriptionValue =
 
 export type HomeworkDetailSource = {
   completion?: unknown | null;
+  completionRequired?: boolean;
   completed?: boolean;
   description?: HomeworkDescriptionValue;
   id: number | string;
@@ -38,6 +39,7 @@ export type HomeworkDetailSource = {
 
 export type HomeworkDetailModel = {
   completed: boolean;
+  completionRequired: boolean;
   contextHref: string | null;
   contextLabel: string | null;
   description: string | null;
@@ -54,6 +56,7 @@ export type HomeworkDetailModel = {
 export type HomeworkSummaryItem = Pick<
   HomeworkDetailModel,
   | "completed"
+  | "completionRequired"
   | "contextHref"
   | "contextLabel"
   | "id"
@@ -88,6 +91,7 @@ export function normalizeHomeworkDetail(
   const description = normalizeDescription(source.description);
   return {
     completed: source.completion != null || source.completed === true,
+    completionRequired: source.completionRequired !== false,
     contextHref: options.contextHref ?? null,
     contextLabel: options.contextLabel ?? null,
     description: description.content,
@@ -112,6 +116,7 @@ export function homeworkSummaryItem(
   const detail = normalizeHomeworkDetail(source, options);
   return {
     completed: detail.completed,
+    completionRequired: detail.completionRequired,
     contextHref: detail.contextHref,
     contextLabel: detail.contextLabel,
     id: detail.id,
@@ -123,7 +128,12 @@ export function homeworkSummaryItem(
 }
 
 export function homeworkSummaryBadges(
-  homework: Pick<HomeworkSummaryItem, "completed" | "isMajor" | "requiresTeam">,
+  homework: Pick<
+    HomeworkSummaryItem,
+    "completed" | "isMajor" | "requiresTeam"
+  > & {
+    completionRequired?: boolean;
+  },
   labels: {
     completed: string;
     major: string;
@@ -131,7 +141,7 @@ export function homeworkSummaryBadges(
   },
 ): HomeworkSummaryBadge[] {
   return [
-    ...(homework.completed
+    ...(homework.completed && homework.completionRequired !== false
       ? [
           {
             key: "completed" as const,

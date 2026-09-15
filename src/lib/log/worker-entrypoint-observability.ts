@@ -12,6 +12,7 @@ const REQUEST_ID_PATTERN =
 export type EdgeRequestClass =
   | "catalog-redirect"
   | "dynamic"
+  | "legacy-redirect"
   | "public-not-found"
   | "public-ssr-cache";
 
@@ -48,7 +49,12 @@ const SAFE_CACHE_OUTCOMES = new Set<EdgeCacheOutcome>([
   "updating",
 ]);
 
-export type WorkerQueue = "audit" | "calendar" | "unknown";
+export type WorkerQueue =
+  | "audit"
+  | "audit-dead-letter"
+  | "calendar"
+  | "calendar-dead-letter"
+  | "unknown";
 export type WorkerQueueCompletionOutcome =
   | "error"
   | "partial"
@@ -58,6 +64,10 @@ export type WorkerQueueCompletionOutcome =
 export function resolveWorkerQueue(queue: string): WorkerQueue {
   if (queue === "life-ustc-audit-log-write") return "audit";
   if (queue === "life-ustc-calendar-export-rebuild") return "calendar";
+  if (queue === "life-ustc-audit-log-write-dlq") return "audit-dead-letter";
+  if (queue === "life-ustc-calendar-export-rebuild-dlq") {
+    return "calendar-dead-letter";
+  }
   return "unknown";
 }
 
@@ -195,6 +205,10 @@ export function observedEdgeResponse(input: {
     logEdgeObservationFailure(input, "request-id", error);
   }
 
+  // Scrapes must not record themselves as page traffic or recursively persist
+  // exporter failures as application issues. Prometheus tracks scrape health.
+  if (new URL(input.request.url).pathname === "/metrics") return response;
+
   let ioObservedDurationMs = 0;
   try {
     ioObservedDurationMs = elapsedMs(input.startMs);
@@ -325,6 +339,41 @@ export function logWorkerQueueError(input: {
     },
     input.error,
   );
+}
+
+export type WorkerDeadLetterMessage = {
+  attempts?: number;
+  body: unknown;
+  id?: string;
+};
+
+function deadLetterMessageType(body: unknown) {
+  if (typeof body !== "object" || body === null) return undefined;
+  const type = (body as { type?: unknown }).type;
+  return typeof type === "string" && type.length <= 128 ? type : undefined;
+}
+
+export function logWorkerDeadLetterMessage(input: {
+  message: WorkerDeadLetterMessage;
+  queue: WorkerQueue;
+}) {
+  // Like the source queue consumers, never log the message body: it may carry
+  // credentials or PII. The platform message id and envelope type identify the
+  // dead letter without retaining its payload.
+  const messageType = deadLetterMessageType(input.message.body);
+  logAppEvent("error", "worker.queue.dead-letter", {
+    ...(typeof input.message.attempts === "number"
+      ? { attempts: input.message.attempts }
+      : {}),
+    event: "worker.queue.dead-letter",
+    ...(typeof input.message.id === "string"
+      ? { messageId: input.message.id }
+      : {}),
+    ...(messageType === undefined ? {} : { messageType }),
+    outcome: "dead-letter",
+    queue: input.queue,
+    source: "worker-entrypoint",
+  });
 }
 
 type ScheduledTask =

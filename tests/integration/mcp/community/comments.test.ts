@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
 import * as fixtures from "../_harness";
 import { createMcpHarness } from "../_harness";
 
@@ -67,11 +68,11 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     expect(typeof result.meta?.hiddenCount).toBe("number");
     expect(result.pagination).toMatchObject({ page: 1, pageSize: 20 });
 
-    const root = result.data?.find((comment) =>
-      comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
+    const root = assertCommentThreadFound(
+      result,
+      fixtures.DEV_SEED.comments.sectionRootBody,
     );
-    expect(root).toBeDefined();
-    expect(root?.author?.name).toBe(fixtures.DEV_SEED.debugName);
+    expect(root.author?.name).toBe(fixtures.DEV_SEED.debugName);
     expect(root?.canReact).toBe(true);
     expect(root?.canReply).toBe(true);
     expect(root?.canEdit).toBe(true);

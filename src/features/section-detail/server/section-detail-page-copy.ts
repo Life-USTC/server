@@ -15,6 +15,7 @@ export function getSectionDetailPageCopy(locale: AppLocale) {
     descriptions: copy.descriptions,
     homeworks: copy.homeworks,
     metadata: copy.metadata,
+    roomMap: copy.roomMap,
     sectionDetail: copy.sectionDetail,
   };
 }

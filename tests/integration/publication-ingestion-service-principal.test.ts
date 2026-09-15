@@ -1,13 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { PUBLICATION_INGESTION_PRINCIPAL_KEY } from "@/lib/auth/service-principal";
-import { prisma } from "@/lib/db/prisma";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const testPrisma = createTestPrisma();
+const testPrisma = createFixturePrisma();
 
 describe("publication ingestion service principal", () => {
   afterAll(async () => {
-    await Promise.all([prisma.$disconnect(), disconnectTestPrisma(testPrisma)]);
+    await disconnectTestPrisma(testPrisma);
   });
 
   it("keeps a stable non-user ownership key", () => {

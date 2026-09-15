@@ -3,6 +3,9 @@
 MCP server and tools under `tools/{workspace,catalog,community,bus,uploads,graphql,_shared}/`.
 Tool names and schemas stay stable across folder moves.
 
+Output schemas live under `tool-output-schemas/` (`shared`, `catalog`,
+`workspace`, `community`, `bus`, plus `index.ts`).
+
 ## Pattern
 
 Thin adapter: Zod parse → `getUserId(authInfo)` → `src/features/*/server` →

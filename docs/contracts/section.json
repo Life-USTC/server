@@ -121,7 +121,9 @@
           {
             "name": "section",
             "parent": "Catalog",
-            "arguments": { "jwId": "Int!" },
+            "arguments": {
+              "jwId": "Int!"
+            },
             "returns": "Section",
             "rest_equivalent": "GET /api/catalog/sections/[jwId]",
             "mcp_equivalent": "catalog_section_get"

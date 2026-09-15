@@ -38,7 +38,9 @@
           {
             "name": "weather",
             "parent": "Catalog",
-            "arguments": { "locationKey": "String!" },
+            "arguments": {
+              "locationKey": "String!"
+            },
             "returns": "WeatherSnapshot",
             "rest_equivalent": "GET /api/catalog/weather",
             "mcp_equivalent": "catalog_weather_get",
@@ -66,7 +68,7 @@
         "fields": [
           "location name",
           "current temperature and condition",
-          "hourly precipitation forecast",
+          "hourly temperature curve and precipitation probability bars share one full-width plot; hour details appear on hover, touch, or keyboard focus instead of a separate card strip",
           "daily high/low temperatures",
           "weather alerts"
         ]

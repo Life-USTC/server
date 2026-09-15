@@ -19,21 +19,11 @@ import {
   countGraphqlTopLevelFields,
 } from "./operation-analysis";
 import { persistedGraphqlOperationDefinitions } from "./operation-definitions";
+import type { PersistedGraphqlOperationDefinition } from "./operation-types";
 import { graphqlOperationValidationSchema } from "./validation-schema";
 
+export type { PersistedGraphqlOperationDefinition } from "./operation-types";
 export { graphqlOperationValidationSchema } from "./validation-schema";
-
-export type PersistedGraphqlOperationDefinition = Readonly<{
-  description: string;
-  destructive: boolean;
-  document: string;
-  id: string;
-  openWorld: boolean;
-  readOnly: boolean;
-  requiresConfirmation: boolean;
-  scopes: readonly string[];
-  title: string;
-}>;
 
 export type PersistedGraphqlOperationVariable = Readonly<{
   name: string;

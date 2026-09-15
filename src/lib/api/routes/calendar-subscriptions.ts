@@ -11,7 +11,6 @@ import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   calendarSubscriptionAppendResponseSchema,
   calendarSubscriptionBatchResponseSchema,
-  calendarSubscriptionCreateResponseSchema,
   calendarSubscriptionImportResponseSchema,
   calendarSubscriptionQueryResponseSchema,
   calendarSubscriptionRemoveResponseSchema,
@@ -20,7 +19,6 @@ import {
 import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
-  calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
@@ -121,42 +119,6 @@ function parsedSubscriptionSemesterId(semesterId: string | number | undefined) {
     return { ok: false as const };
   }
   return { ok: true as const, value: parsed };
-}
-
-export async function postCalendarSubscriptionsRoute(request: Request) {
-  try {
-    const auth = await requireAuth(request, {
-      bearerScope: { feature: "workspace.subscription", action: "write" },
-      rateLimit: { action: "subscription:batch-write", tier: "batch" },
-    });
-    if (auth instanceof Response) return auth;
-    const { userId } = auth;
-
-    const parsedBody = await parseRouteJsonBody(
-      request,
-      calendarSubscriptionCreateRequestSchema,
-      "Invalid subscription request",
-    );
-    if (parsedBody instanceof Response) {
-      return parsedBody;
-    }
-
-    const sectionIds = parsedBody.sectionIds ?? [];
-    const { replaceUserSectionSubscriptions } = await import(
-      "@/features/subscriptions/server/subscriptions"
-    );
-    const subscription = await replaceUserSectionSubscriptions(
-      userId,
-      sectionIds,
-      getRequestLocale(request),
-    );
-
-    return jsonResponse(
-      calendarSubscriptionCreateResponseSchema.parse({ subscription }),
-    );
-  } catch (error) {
-    return handleRouteError("Failed to update calendar subscription", error);
-  }
 }
 
 export async function postCalendarSubscriptionQueryRoute(request: Request) {

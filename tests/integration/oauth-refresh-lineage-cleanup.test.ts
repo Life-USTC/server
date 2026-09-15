@@ -8,7 +8,7 @@ import {
   purgeRevokedOAuthRefreshTokenLineage,
   resolveActiveOAuthRefreshGrant,
 } from "@/features/oauth/server/user-authorizations.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import {
   OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE,
@@ -20,6 +20,10 @@ import {
   getOAuthMcpResourceUrl,
 } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { createFixturePrisma } from "../shared/prisma";
+
+// Direct database access arranges and verifies fixtures; the OAuth services use authPrisma.
+const prisma = createFixturePrisma();
 
 describe.sequential("OAuth refresh lineage cleanup", () => {
   const marker = crypto.randomUUID();
@@ -103,7 +107,7 @@ describe.sequential("OAuth refresh lineage cleanup", () => {
       where: { clientId: { in: clientIds } },
     });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-    await prisma.$disconnect();
+    await Promise.all([prisma.$disconnect(), authPrisma.$disconnect()]);
   });
 
   it("null-grant cleanup 不会误删并发产生的 exact-grant rows", async () => {

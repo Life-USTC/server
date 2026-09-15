@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getDashboardNavStats } from "@/features/dashboard/server/dashboard-nav-stats";
-import { getDashboardSemesters } from "@/features/dashboard/server/dashboard-overview-data";
-import { getDashboardUserContext } from "@/features/dashboard/server/dashboard-user-context";
-import { getWorkspaceNavigationSummary } from "@/features/dashboard/server/workspace-navigation-summary";
+import { getWorkspaceNavStats } from "@/features/workspace/server/workspace-nav-stats";
+import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
+import { getWorkspaceSemesters } from "@/features/workspace/server/workspace-overview-data";
+import { getWorkspaceUserContext } from "@/features/workspace/server/workspace-user-context";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import {
-  createTestPrisma,
+  createFixturePrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../shared/prisma";
@@ -14,11 +15,14 @@ describe("workspace navigation summary", () => {
   let testPrisma: TestPrismaClient;
 
   beforeAll(() => {
-    testPrisma = createTestPrisma();
+    testPrisma = createFixturePrisma();
   });
 
   afterAll(async () => {
-    await disconnectTestPrisma(testPrisma);
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      disconnectTestPrisma(testPrisma),
+    ]);
   });
 
   test("matches the existing workspace SSR navigation semantics", async () => {
@@ -28,13 +32,13 @@ describe("workspace navigation summary", () => {
         select: { userId: true },
       });
     const referenceDate = new Date(DEV_SEED_ANCHOR.recommendedAtTime);
-    const context = await getDashboardUserContext(subscription.userId);
+    const context = await getWorkspaceUserContext(subscription.userId);
     expect(context).not.toBeNull();
     if (!context) return;
 
-    const semesters = await getDashboardSemesters();
+    const semesters = await getWorkspaceSemesters();
     const [existing, summary] = await Promise.all([
-      getDashboardNavStats(
+      getWorkspaceNavStats(
         context.user,
         context.subscribedSections,
         referenceDate,

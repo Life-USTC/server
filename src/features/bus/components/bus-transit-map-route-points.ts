@@ -1,6 +1,6 @@
 import type { BusMapRouteEdge } from "@/features/bus/lib/bus-types";
-import type { Pos } from "./bus-transit-map-campus-layout";
 import { canonicalPerpendicular } from "./bus-transit-map-segments";
+import type { Pos } from "./bus-transit-map-types";
 
 export function buildRoutePoints(
   route: BusMapRouteEdge,

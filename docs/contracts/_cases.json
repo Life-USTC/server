@@ -7,7 +7,7 @@
       },
       {
         "module": "overview",
-        "capability": "assistant-dashboard-snapshot"
+        "capability": "workspace-snapshot"
       },
       {
         "module": "subscription",
@@ -23,7 +23,7 @@
       },
       {
         "module": "bus",
-        "capability": "bus-dashboard"
+        "capability": "bus-timetable"
       },
       {
         "module": "bus",

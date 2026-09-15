@@ -1,8 +1,8 @@
 /**
- * E2E tests for the bus dashboard tab (/dashboard/bus)
+ * E2E tests for the bus workspace tab (/workspace/bus)
  *
  * ## Behavior
- * - /bus is the canonical public planner; /dashboard/bus keeps saved preferences
+ * - /bus is the canonical public planner; /workspace/bus keeps saved preferences
  * - Public users get a client-side planner: weekday/Saturday/Sunday, start stop, end stop,
  *   reverse, and departed-trip toggle
  * - Applicable routes are ordered by the next bus available from the selected start stop

@@ -28,6 +28,7 @@
 			variant: ctx.variant || variant,
 			size: ctx.size || size,
 		}),
+		"transition-shadow",
 		className
 	)}
 	{value}

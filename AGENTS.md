@@ -37,10 +37,10 @@ src/routes/              SvelteKit pages + thin HTTP handlers
 src/features/            Domain use-cases + feature-owned UI
   <domain>/server/       Shared application logic
   <domain>/components/   Feature UI (not in src/lib/components)
-  dashboard/             Signed-in workspace UI (routes: /workspace/*)
+  workspace/             Signed-in workspace UI (routes: /workspace/*)
 src/lib/                 Infrastructure only
-  ports/                 Env contracts (`env.ts`)
-  adapters/              Cloudflare runtime wiring
+  ports/                 Env + Cloudflare runtime contracts (`env.ts`, `runtime.ts`)
+  adapters/              Cloudflare runtime wiring (features import via ports/)
   api/routes/            REST adapters (may call features; keep route files thin)
   graphql/ · mcp/tools/  Yoga schema; MCP tools by domain
   components/            Shared, feature-neutral UI
@@ -51,7 +51,7 @@ docs/contracts/          Product / API / GraphQL / MCP JSON contracts
 docs/graphql/            SDL snapshot + mutation matrix
 tests/unit|integration|e2e
 .agents/skills/          Project skills (how to implement changes)
-.github/workflows/       CI phases in db-backed-bun-job.yml
+.github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
 ```
 
 **Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
@@ -60,7 +60,8 @@ tests/unit|integration|e2e
 ## Local checks
 
 Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
-one `DATABASE_URL` (production uses separate app/auth database bindings). First
+one `DATABASE_URL` for development. Database-backed tests require a disposable
+database and separate app/auth/maintenance roles, prepared below. First
 Playwright run: `bunx playwright install --with-deps chromium`.
 
 ```bash
@@ -81,25 +82,32 @@ bunx tsc --noEmit -p tsconfig.typecheck.tests.json
 bunx tsc --noEmit -p tsconfig.typecheck.operational.json
 bunx vitest run
 bun run openapi:check
-bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
 # CI ci:verify also runs these shell guards — run if you touch them or CI fails there
 # bash tests/ci/retry.test.sh
 # bash tests/ci/seed-guard.test.sh
 # bash tests/ci/e2e-full-suite-parity.test.sh
 
-# Integration (same shape as CI ci:integration)
-bun run db:migrate:deploy && bunx prisma db seed
+# Integration (same shape as CI ci:integration), in Bash
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
+export ALLOW_DATABASE_SEED=true
+source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 
-# E2E — script prepares, builds, migrates, and reseeds per shard
+# Parallel integration: provisions and cleans up four isolated databases
+bun run integration:test:parallel
+
+# E2E — resets the disposable database before each shard
 ALLOW_DATABASE_SEED=true bun run e2e:test
+# FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
 
 docker compose -f docker-compose.dev.yml down
 ```
 
-CI phase scripts live in `.github/workflows/db-backed-bun-job.yml`. Uploads in
+CI phases live in `.github/workflows/bun-job.yml` (static, unit, build) and
+`.github/workflows/db-backed-bun-job.yml` (database-backed tests). Uploads in
 E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
@@ -122,20 +130,10 @@ Fixtures: `tests/e2e/fixtures/scenario.json` feeds `tests/fixtures/dev-seed.ts`
 (`DEV_SEED_ANCHOR`). `prisma/seed.sql` is the executable DB seed (kept in sync
 with that scenario; not auto-generated in-repo).
 
-## Old names still in the tree
-
-| Idea | Product name | Code today |
-|------|--------------|------------|
-| Signed-in home | `workspace` | Feature folder `dashboard/`, routes `/workspace/[tab]` |
-| Overview REST | workspace overview | File `me-overview-route.ts` |
-| GraphQL personal data | `workspace.*` / `account.*` | Some files still `viewer.ts` |
-| MCP tools | `workspace_*` ids | Files may say `my-data-*` / `dashboard-*` |
-
-Don't add a second `workspace` feature folder or a root GraphQL `viewer`.
-
 ## Web and auth
 
-- Catalog: `/catalog/courses|sections|teachers|bus|links`, `/search`
+- Catalog: `/catalog/courses|sections|teachers|bus|links|young-events|weather`,
+  `/search`, `/news` (publications)
 - Workspace tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
 - Account: `/account/sign-in` (+ settings); Admin: `/admin/...`
 - Schedules list and uploads are mostly API / MCP / CLI — not always a Web tab
@@ -162,10 +160,12 @@ Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
   `shanghaiDayjs`
 - Prisma: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 - REST errors: `handleRouteError`; MCP: Zod inputs, let unexpected errors throw
-- Pagination: `buildPaginatedResponse`
+- Pagination: `buildPaginatedResponse` from `@/lib/pagination` (features) or
+  `@/lib/api/helpers` (REST)
 - Native IO (`node:*` / `bun:*` / `fs` / …): approved infra (`auth` / `db` /
   `log` / `cloudflare`), Cloudflare `adapters/`, or entrypoints (`static-loader`,
-  `*-cli.ts`) — not ordinary features or routes
+  `*-cli.ts`) — not ordinary features or routes. Features use `@/lib/ports/`
+  for env and Cloudflare runtime accessors.
 
 ## Boundaries
 

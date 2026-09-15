@@ -1,4 +1,4 @@
-// Merged from mcp-06-time-sensitive + mcp-09-dashboard
+// Merged from mcp-06-time-sensitive + mcp-09-workspace
 
 import { describe, expect, it } from "vitest";
 import {
@@ -440,15 +440,15 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 // catalog_section_schedule_list — new date filter
 // ---------------------------------------------------------------------------
 
-// --- formerly mcp-09-dashboard ---
+// --- formerly mcp-09-workspace ---
 const isolated = fixtures.createSubscribedIsolatedMcpToolTestContext({
-  emailPrefix: "mcp-dashboard",
-  name: "[integration-test] Dashboard",
+  emailPrefix: "mcp-workspace",
+  name: "[integration-test] Workspace",
 });
 
 describe("workspace_snapshot_get — 默认模式紧凑性", () => {
   it("atTime 锚定下一节课、截止日期和事件", async () => {
-    const dashboard = await isolated.client.call<{
+    const workspaceResult = await isolated.client.call<{
       nextClass?: { type?: string; at?: string | null };
       upcomingDeadlines?: {
         total?: number;
@@ -461,14 +461,16 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
       atTime: fixtures.SEED_AT_TIME,
     });
 
-    expect(dashboard.nextClass?.type).toBe("schedule");
-    expect(dashboard.nextClass?.at?.slice(0, 10)).toBe(fixtures.SEED_DATE);
-    expect(dashboard.upcomingDeadlines?.total).toBeGreaterThan(0);
-    expect(dashboard.upcomingEvents?.total).toBeGreaterThan(0);
+    expect(workspaceResult.nextClass?.type).toBe("schedule");
+    expect(workspaceResult.nextClass?.at?.slice(0, 10)).toBe(
+      fixtures.SEED_DATE,
+    );
+    expect(workspaceResult.upcomingDeadlines?.total).toBeGreaterThan(0);
+    expect(workspaceResult.upcomingEvents?.total).toBeGreaterThan(0);
   });
 
   it("nextClass payload 中移除 scheduleGroup 和 roomType", async () => {
-    const dashboard = await isolated.client.call<{
+    const workspaceResult = await isolated.client.call<{
       nextClass?: {
         payload?: {
           scheduleGroup?: unknown;
@@ -484,14 +486,16 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
       atTime: fixtures.SEED_AT_TIME,
     });
 
-    if (dashboard.nextClass?.payload) {
-      expect(dashboard.nextClass.payload).not.toHaveProperty("scheduleGroup");
-      expect(dashboard.nextClass.payload).not.toHaveProperty("roomType");
+    if (workspaceResult.nextClass?.payload) {
+      expect(workspaceResult.nextClass.payload).not.toHaveProperty(
+        "scheduleGroup",
+      );
+      expect(workspaceResult.nextClass.payload).not.toHaveProperty("roomType");
     }
-    expect(typeof dashboard.subscriptions?.currentSemesterSectionsTotal).toBe(
-      "number",
-    );
-    expect(typeof dashboard.todos?.incompleteCount).toBe("number");
+    expect(
+      typeof workspaceResult.subscriptions?.currentSemesterSectionsTotal,
+    ).toBe("number");
+    expect(typeof workspaceResult.todos?.incompleteCount).toBe("number");
   });
 
   it("summary 兼容输入与 default 返回相同结构", async () => {
@@ -549,7 +553,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
     ]);
 
     try {
-      const dashboard = await isolated.client.call<{
+      const workspaceResult = await isolated.client.call<{
         subscriptions?: {
           totalCount?: number;
           currentSemesterCount?: number;
@@ -558,7 +562,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
       });
-      expect(dashboard.subscriptions).toMatchObject({
+      expect(workspaceResult.subscriptions).toMatchObject({
         totalCount: 1,
         currentSemesterCount: 0,
       });

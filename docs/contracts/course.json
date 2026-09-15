@@ -110,7 +110,9 @@
           {
             "name": "course",
             "parent": "Catalog",
-            "arguments": { "jwId": "Int!" },
+            "arguments": {
+              "jwId": "Int!"
+            },
             "returns": "Course",
             "rest_equivalent": "GET /api/catalog/courses/[jwId]",
             "mcp_equivalent": "catalog_course_get"

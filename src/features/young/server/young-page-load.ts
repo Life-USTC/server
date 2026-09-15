@@ -1,6 +1,4 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
-import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
-import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
 import {
   getYoungEvent,
   listYoungEventCategories,
@@ -11,6 +9,8 @@ import {
   parsePositivePage,
   toLoadData,
 } from "@/lib/load-data-utils";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 
 export type YoungEventsPageFilters = {
   active?: boolean;
@@ -24,10 +24,7 @@ function parseActiveParam(value: string | null): boolean | undefined {
   return undefined;
 }
 
-export async function loadYoungEventsPage({
-  locals,
-  url,
-}: DashboardPageLoadEvent) {
+export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
   const filters: YoungEventsPageFilters = {
     active: parseActiveParam(url.searchParams.get("active")),
     category: optionalValue(url.searchParams.get("category")),
@@ -47,7 +44,7 @@ export async function loadYoungEventsPage({
   ]);
 
   return toLoadData({
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     data: result.data,
     pagination: result.pagination,
@@ -59,11 +56,11 @@ export async function loadYoungEventsPage({
 export async function loadYoungEventDetailPage({
   locals,
   youngId,
-}: DashboardPageLoadEvent & { youngId: string }) {
+}: AppPageLoadEvent & { youngId: string }) {
   const event = await getYoungEvent(youngId);
 
   return toLoadData({
-    copy: getDashboardPageCopy(locals.locale),
+    copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     event,
   });

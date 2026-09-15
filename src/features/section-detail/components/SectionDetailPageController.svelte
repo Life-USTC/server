@@ -501,6 +501,7 @@ onMount(() => {
     openSubscribeDialog={_openSubscribeDialog}
     {periodDetailRows}
     primaryName={_primaryName}
+    roomMapCopy={data.copy.roomMap}
     {sectionCalendarEvents}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}

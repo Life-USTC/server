@@ -1,7 +1,9 @@
-import { prisma } from "@/lib/db/prisma";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../fixtures/dev-seed";
+import { createFixturePrisma } from "../../../shared/prisma";
 
-export { DEV_SEED, DEV_SEED_ANCHOR, prisma };
+const fixturePrisma = createFixturePrisma();
+
+export { DEV_SEED, DEV_SEED_ANCHOR, fixturePrisma as prisma };
 
 export const SEED_DATE = DEV_SEED_ANCHOR.date;
 export const SEED_AT_TIME = DEV_SEED_ANCHOR.recommendedAtTime;

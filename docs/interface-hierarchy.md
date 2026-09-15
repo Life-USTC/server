@@ -38,6 +38,13 @@ Life@USTC
 │   ├── young-events
 │   │   ├── list
 │   │   └── get
+│   ├── weather
+│   │   └── snapshot
+│   ├── rooms
+│   │   └── map
+│   ├── publications                REST + ingestion; Web at /news
+│   │   ├── list
+│   │   └── get
 │   └── links
 ├── workspace                       current user's campus work
 │   ├── overview
@@ -61,7 +68,8 @@ Life@USTC
 │   │   ├── add / remove
 │   │   ├── set
 │   │   ├── preview
-│   │   └── import
+│   │   ├── import
+│   │   └── kind-update
 │   ├── bus-preferences
 │   ├── link-pins
 │   │   ├── list
@@ -81,6 +89,7 @@ Life@USTC
 │   ├── session
 │   ├── sign-in / sign-out
 │   ├── preferences                 locale only today
+│   ├── client-activity
 │   └── authorizations
 └── admin                           platform governance
     ├── overview
@@ -190,24 +199,43 @@ and retry guidance must make the distinction explicit.
 
 | Capability ID / MCP | Web | REST | GraphQL | Bot | CLI |
 |---|---|---|---|---|---|
-| `catalog_course_search` | `/catalog/courses` | `GET /api/catalog/courses` | `catalog.courses` | `课程 搜索` | `catalog course search` |
+| `catalog_course_search` | `/catalog/courses` | `GET /api/catalog/courses` | `catalog.courses` | `课程 搜索` | `catalog course --search <query>` |
 | `catalog_section_get` | `/catalog/sections/:jwId` | `GET /api/catalog/sections/:jwId` | `catalog.section` | `教学班 查看` | `catalog section get` |
 | `catalog_bus_departure_next` | `/catalog/bus` | `GET /api/catalog/bus/next` | — | `校车 下一班` | `catalog bus` |
-| `catalog_bus_map_get` | `/catalog/bus/map` | — | — | — | — |
-| `catalog_link_list` | `/catalog/links` | `GET /api/catalog/links` | `catalog.links` | `网站 列表` | `catalog link` |
+| bus map (Web-only) | `/catalog/bus/map` | — | — | — | — |
+| `catalog_link_list` | `/catalog/links` | `GET /api/catalog/links` | `catalog.links` | — | `catalog link` |
+| `catalog_young_event_list` / `catalog_young_event_get` | `/catalog/young-events` | `GET /api/catalog/young-events`, `GET /api/catalog/young-events/:youngId` | `catalog.youngEvents`, `catalog.youngEvent` | `第二课堂` / `第二课堂 查看 <youngId>` | `catalog young-event list/get` |
+| `catalog_weather_get` | `/catalog/weather` | `GET /api/catalog/weather` | `catalog.weather` | `天气` / `天气 高新` | `catalog weather` |
+| `catalog_rooms_map` | `/catalog/rooms` | `GET /api/catalog/rooms/:code/map` | `catalog.roomMap` | `教室 <code>` or a recognized bare room code | `catalog room map <code>` |
 | `workspace_overview_get` | `/workspace/overview` | `GET /api/workspace/overview` | `workspace.overview` | `概览` | `workspace overview` |
-| `workspace_calendar_event_list` | `/workspace/calendar` | — | — | `日程 今日/本周` | `workspace calendar events` |
+| `workspace_calendar_event_list` | `/workspace/calendar` | — | — | `日程 今日/本周` (client aggregation) | — (see overview-backed command below) |
 | `workspace_schedule_list` | `/workspace/overview` (no dedicated schedules tab) | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
-| `workspace_subscription_add` | `/workspace/subscriptions` | `POST /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
-| `workspace_calendar_feed_get` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `日历 导出` | `workspace calendar feed` |
+| `workspace_subscription_add` | `/workspace/subscriptions` | `PATCH /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |
+| `workspace_subscription_kind_update` | `/workspace/subscriptions` | `PATCH /api/workspace/subscriptions/:jwId` | `subscriptionKindUpdate` | `订阅 身份 <jwId> <普通\|助教\|旁听>` | `workspace subscription kind <jwId> <kind>` |
+| `workspace_calendar_feed_get` | `/workspace/subscriptions` | `GET /api/calendar-feeds/:credential.ics` | — | `订阅 链接` | `workspace calendar feed` |
 | `workspace_bus_preferences_set` | `/catalog/bus` | `POST /api/workspace/bus-preferences` | `busPreferencesSet` | `校车 偏好 设置` | `workspace bus-preferences set` |
-| `workspace_link_pin_set` | `/catalog/links` | `POST /api/workspace/link-pins` | `linkPinSet` | `网站 置顶/取消置顶` | `workspace link-pin pin/unpin` |
-| `community_comment_create` | target comment panel | `POST /api/community/comments` | `commentCreate` | `评论 添加` | `community comment create` |
-| `community_description_set` | target editor | `POST /api/community/descriptions` | `descriptionSet` | `描述 更新` | `community description set` |
+| `workspace_link_pin_set` | `/catalog/links` | `POST /api/workspace/link-pins` | `linkPinSet` | — | `workspace link-pin pin/unpin` |
+| `community_comment_create` | target comment panel | `POST /api/community/comments` | `commentCreate` | — | `community comment create` |
+| `community_description_set` | target editor | `POST /api/community/descriptions` | `descriptionSet` | — | `community description set` |
 | `account_profile_get` | `/account/settings/profile` | `GET /api/account/profile` | `account.profile` | `账户 信息` | `account profile` |
-| `account_client_activity_list` | `/account/settings/security` | `GET /api/account/client-activity` | `account.clientActivity` | `账户 当前应用活动` | `account client activity` |
+| `account_client_activity_list` | `/account/settings/security` | `GET /api/account/client-activity` | `account.clientActivity` | — | `account client activity` |
+
+The first column is the capability ID (also the MCP name where exposed), not
+a promise that Bot exposes that tool. The bus map is Web-only. A dash in a client column means there is no dedicated command.
+`workspace_calendar_feed_get` returns credential-free subscription information;
+the Bot and CLI feed commands use REST with `workspace.subscription:read`
+to retrieve subscription information, plus `workspace.calendar-feed:read` to
+include a private URL. The MCP tool requires `workspace.subscription:read`
+and never includes that URL.
+
+CLI `workspace calendar events` and `workspace exam` currently consume the
+bounded REST overview. Its class list is today's classes; exams, homework, and
+todos use upcoming windows and per-group limits. These commands do not expose
+the complete date-range calendar or exam dataset. Bot also assembles its own
+calendar from REST sources. The shared full calendar-event use-case is exposed
+through Web and MCP, with no dedicated REST or GraphQL event-list endpoint.
 
 Feature-specific contract modules in `docs/contracts/` contain the exhaustive
 routes, fields, tools, permissions, and return shapes.
@@ -223,8 +251,16 @@ routes, fields, tools, permissions, and return shapes.
   nested paths such as `/workspace/subscriptions`. Tree entries like
   `workspace/schedules` or `workspace/uploads` are API/MCP/CLI capabilities and
   do not imply a matching Web page.
-- Bot exposes deterministic commands only for frequent, short interactions.
-  Its AI mode may reach long-tail capabilities through MCP.
+- Bot exposes deterministic commands for frequent, short interactions. Its AI
+  mode also discovers all tools published by the configured server MCP session
+  through `search_campus_tools` / `call_campus_tool`, using per-user MCP OAuth.
+  There is no client tool-name allowlist: schemas and read/write annotations
+  come from the server. Private MCP mutations use Bot's durable confirmation
+  and execution records; interrupted writes with an uncertain result are not
+  automatically replayed. Server scopes and ownership checks still apply.
+  MCP resource and prompt readers supply the GraphQL schema and operation
+  planning context. Shared conversations retain public host commands and do
+  not expose MCP tools, resources, or prompts.
 - CLI-local configuration and Bot-local AI/tool settings are client state and
   remain outside the server capability tree.
 - Administration remains Web, REST, and CLI only by default. Surface symmetry
@@ -244,8 +280,19 @@ surface agrees on:
 7. response freshness and mutation return snapshot;
 8. confirmation and retry guidance for destructive or timeout-ambiguous writes.
 
-Public courses and sections use `jwId` at external boundaries. Internal
-database IDs are not accepted by GraphQL, MCP, Bot, or ordinary CLI commands.
+OAuth feature scopes use the complete canonical feature name, for example
+`community.comment:write`, `workspace.subscription:write`, and
+`workspace.upload:write`. Short forms such as `comment:write` are not accepted.
+Contract `required_scopes` are checked against the OAuth registry and native
+MCP equivalents by `graphql-contract-parity.test.ts`.
+
+Public course/section lookups and subscription-kind updates use `jwId` at
+external boundaries. CLI subscription `add`, `remove`, and `preview` still
+interpret numeric references as database section IDs, as does their REST batch
+payload's `sectionIds`. Use section/course codes for these CLI commands to
+avoid confusing those IDs with the JW IDs used by `subscription kind` and
+catalog detail commands. GraphQL and native MCP subscription add/remove use
+JW IDs; Bot add/remove use section codes.
 
 ## Locale, Caching, and SEO
 
@@ -270,3 +317,10 @@ Before changing a route, field, tool, or command:
    and their tests.
 5. Run contract, schema, integration, client, and deployment checks appropriate
    to the affected surfaces.
+
+Client OpenAPI synchronization checks only the generated REST contract. It does
+not prove that a command is registered, its flags expose new filters, its table
+shows new fields, or Bot's MCP allowlist admits a server tool. Review those
+entrypoints separately, including help text and private/shared conversation
+policy. A pinned server commit may predate the current release while its
+OpenAPI content is still identical; compare content before updating provenance.

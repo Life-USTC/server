@@ -94,6 +94,22 @@ test.describe("/news 新闻与通知预览", () => {
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}$`));
   });
 
+  test("越界页重定向到保留筛选条件的最后一页", async ({ page }, testInfo) => {
+    const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
+    await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`, {
+      testInfo,
+      screenshotLabel: "news-pagination-overflow",
+    });
+
+    await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
+    await expect(
+      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+    ).toHaveCount(fixture.total - 20);
+    await expect(
+      page.getByRole("link", { name: /上一页|Previous page/i }),
+    ).toHaveAttribute("href", `/news?${sourceQuery}`);
+  });
+
   test("详情页显示正文和来源链接", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
       testInfo,

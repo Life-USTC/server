@@ -1,6 +1,6 @@
 import type { BusMapRouteEdge } from "@/features/bus/lib/bus-types";
-import type { Pos } from "./bus-transit-map-campus-layout";
 import { TRACK_SPACING } from "./bus-transit-map-constants";
+import type { Pos } from "./bus-transit-map-types";
 
 export function segmentKey(first: number, second: number) {
   return first < second ? `${first}-${second}` : `${second}-${first}`;

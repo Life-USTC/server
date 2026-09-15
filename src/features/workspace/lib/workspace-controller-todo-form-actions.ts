@@ -1,0 +1,70 @@
+import type { SubmitFunction } from "@sveltejs/kit";
+import {
+  actionResultError,
+  validateTodoForm as validateTodoFormData,
+} from "./forms";
+import { createTodoSubmitAction, updateTodoSubmitAction } from "./todos";
+
+type Setter<T> = (value: T) => void;
+type TodoCopy = Parameters<typeof validateTodoFormData>[1];
+
+export function validateWorkspaceTodoForm(
+  formData: FormData,
+  todosCopy: TodoCopy,
+) {
+  return validateTodoFormData(formData, todosCopy);
+}
+
+export function createWorkspaceTodoAction({
+  getTodosCopy,
+  onClose,
+  onSuccess,
+  setCreating,
+  setError,
+}: {
+  getTodosCopy: () => TodoCopy;
+  onClose: () => void;
+  onSuccess?: () => void;
+  setCreating: Setter<boolean>;
+  setError: Setter<string>;
+}): SubmitFunction {
+  return ({ cancel, formData }) => {
+    const todosCopy = getTodosCopy();
+    return createTodoSubmitAction({
+      actionResultError,
+      fallbackMessage: todosCopy.saveFailed,
+      onClose,
+      onSuccess,
+      setCreating,
+      setError,
+      validate: (data) => validateWorkspaceTodoForm(data, todosCopy),
+    })({ cancel, formData });
+  };
+}
+
+export function updateWorkspaceTodoAction({
+  getTodosCopy,
+  onClose,
+  onSuccess,
+  setError,
+  setUpdating,
+}: {
+  getTodosCopy: () => TodoCopy;
+  onClose: () => void;
+  onSuccess?: () => void;
+  setError: Setter<string>;
+  setUpdating: Setter<boolean>;
+}): SubmitFunction {
+  return ({ cancel, formData }) => {
+    const todosCopy = getTodosCopy();
+    return updateTodoSubmitAction({
+      actionResultError,
+      fallbackMessage: todosCopy.saveFailed,
+      onClose,
+      onSuccess,
+      setError,
+      setUpdating,
+      validate: (data) => validateWorkspaceTodoForm(data, todosCopy),
+    })({ cancel, formData });
+  };
+}

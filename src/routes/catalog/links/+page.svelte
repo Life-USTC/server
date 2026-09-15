@@ -1,14 +1,14 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import AnonymousLinksTab from "@/features/dashboard/components/AnonymousLinksTab.svelte";
-import LinksTab from "@/features/dashboard/components/LinksTab.svelte";
-import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-icon";
+import { groupCatalogLinks } from "@/features/catalog-links/lib/catalog-link-search";
+import AnonymousLinksTab from "@/features/workspace/components/AnonymousLinksTab.svelte";
+import LinksTab from "@/features/workspace/components/LinksTab.svelte";
+import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import {
-  applyDashboardLinkPinnedSlugs,
-  currentDashboardLinkReturnTo,
-  submitDashboardLinkPinRequest,
-} from "@/features/dashboard/lib/dashboard-link-pin-client";
-import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
+  applyCatalogLinkPinnedSlugs,
+  currentCatalogLinkReturnTo,
+  submitWorkspaceLinkPinRequest,
+} from "@/features/workspace/lib/workspace-link-pin-client";
 import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import type { PageData } from "./$types";
@@ -20,65 +20,65 @@ let linkSearchQuery = "";
 let linkActionError = "";
 let linkItems = data.links;
 let linkReturnTo = "/catalog/links";
-let updatingDashboardLinkSlug: string | null = null;
+let updatingCatalogLinkSlug: string | null = null;
 
-$: dashboardCopy = data.copy.dashboard;
-$: linkGroups = groupDashboardLinks(
+$: workspaceCopy = data.copy.workspace;
+$: linkGroups = groupCatalogLinks(
   linkItems,
   linkSearchQuery,
-  dashboardCopy.linkHub.groups,
+  workspaceCopy.linkHub.groups,
 );
 
-async function submitDashboardLinkPin(slug: string, action: "pin" | "unpin") {
-  if (updatingDashboardLinkSlug) return;
-  updatingDashboardLinkSlug = slug;
+async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
+  if (updatingCatalogLinkSlug) return;
+  updatingCatalogLinkSlug = slug;
   linkActionError = "";
   try {
-    const pinnedSlugs = await submitDashboardLinkPinRequest({
+    const pinnedSlugs = await submitWorkspaceLinkPinRequest({
       action,
-      fallbackMessage: dashboardCopy.linkHub.pinFailedDescription,
+      fallbackMessage: workspaceCopy.linkHub.pinFailedDescription,
       returnTo: linkReturnTo,
       slug,
     });
-    linkItems = applyDashboardLinkPinnedSlugs(linkItems, pinnedSlugs);
+    linkItems = applyCatalogLinkPinnedSlugs(linkItems, pinnedSlugs);
   } catch (error) {
     linkActionError = error instanceof Error ? error.message : "";
   } finally {
-    updatingDashboardLinkSlug = null;
+    updatingCatalogLinkSlug = null;
   }
 }
 
 onMount(() => {
-  linkReturnTo = currentDashboardLinkReturnTo();
+  linkReturnTo = currentCatalogLinkReturnTo();
   return mountPageSearchShortcut(() => linkSearchInput);
 });
 </script>
 
 <svelte:head>
-  <title>{data.copy.dashboard.nav.links.title} - Life@USTC</title>
+  <title>{data.copy.workspace.nav.links.title} - Life@USTC</title>
 </svelte:head>
 
 <section class="grid gap-5">
   <PageHeader
-    description={data.copy.dashboard.nav.links.description}
-    title={data.copy.dashboard.nav.links.title}
+    description={data.copy.workspace.nav.links.description}
+    title={data.copy.workspace.nav.links.title}
   />
 
   {#if data.signedIn}
     <LinksTab
-      {dashboardCopy}
+      {workspaceCopy}
       {linkActionError}
       {linkIconLabel}
       {linkReturnTo}
       signedLinkGroups={linkGroups}
-      submitDashboardLinkPin={submitDashboardLinkPin}
-      {updatingDashboardLinkSlug}
+      submitWorkspaceLinkPin={submitWorkspaceLinkPin}
+      {updatingCatalogLinkSlug}
       bind:linkSearchQuery
       bind:linkSearchInput
     />
   {:else}
     <AnonymousLinksTab
-      {dashboardCopy}
+      {workspaceCopy}
       {linkIconLabel}
       anonymousLinkGroups={linkGroups}
       bind:linkSearchQuery

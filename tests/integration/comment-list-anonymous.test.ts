@@ -1,7 +1,10 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
-import { prisma } from "@/lib/db/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 /**
  * The anonymous branch of `loadCommentThread` is the only caller of the
@@ -17,7 +20,10 @@ async function getAnonymously(query: string) {
 
 describe("GET /api/community/comments (anonymous)", () => {
   afterAll(async () => {
-    await prisma.$disconnect();
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      fixturePrisma.$disconnect(),
+    ]);
   });
 
   it("lists section comments without a viewer and reports a hidden count", async () => {
@@ -37,7 +43,7 @@ describe("GET /api/community/comments (anonymous)", () => {
   });
 
   it("resolves every anonymous comment target type", async () => {
-    const teacher = await prisma.teacher.findFirstOrThrow({
+    const teacher = await fixturePrisma.teacher.findFirstOrThrow({
       where: { code: DEV_SEED.teacher.code },
       select: { id: true },
     });

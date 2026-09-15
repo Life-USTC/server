@@ -48,6 +48,9 @@ export let selectHomework: (homework: SectionHomework) => void | Promise<void>;
                 <span class="max-w-full break-words">
                   {sectionCopy.due}: {fmtDateTime(homework.submissionDueAt)}
                 </span>
+                {#if homework.completionRequired === false}
+                  <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
+                {/if}
                 {#if homework.isMajor}
                   <Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>
                 {/if}
@@ -91,6 +94,9 @@ export let selectHomework: (homework: SectionHomework) => void | Promise<void>;
               >
               <Table.Cell>
                 <div class="flex min-w-0 flex-wrap gap-2">
+                  {#if homework.completionRequired === false}
+                    <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
+                  {/if}
                   {#if homework.isMajor}<Badge variant="secondary"
                       >{homeworkCopy.tagMajor}</Badge
                     >{/if}

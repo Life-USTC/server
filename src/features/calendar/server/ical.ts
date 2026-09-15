@@ -67,8 +67,8 @@ export async function createSectionCalendar(
     `${ICAL_SITE_URL}/catalog/sections/${section.jwId}`,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, [section], geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, [section], geoData, roomMaps, locale);
   return calendar;
 }
 
@@ -82,8 +82,8 @@ export async function createMultiSectionCalendar(
     ICAL_SITE_URL,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, roomMaps, locale);
   return calendar;
 }
 
@@ -104,8 +104,8 @@ export async function createUserCalendar({
     ICAL_SITE_URL,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, roomMaps, locale);
   for (const homework of homeworks)
     createHomeworkEvent(homework, calendar, locale);
   for (const todo of todos) createTodoEvent(todo, calendar, locale);

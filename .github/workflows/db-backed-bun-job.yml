@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: ""
+      vitest-shard:
+        required: false
+        type: string
+        default: ""
       timeout-minutes:
         required: false
         type: number
@@ -101,10 +105,8 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
+            echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
-            if [ "$JOB_PHASE" = "ci:verify" ]; then
-              echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
-            fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
               echo "WEBHOOK_LOGIN_ENABLED=true"
@@ -120,7 +122,7 @@ jobs:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
       - name: Install PostgreSQL client
-        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
+        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rest' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
         shell: bash
         run: |
           sudo apt-get update
@@ -137,6 +139,7 @@ jobs:
         shell: bash
         env:
           E2E_SHARD: ${{ inputs.e2e-shard }}
+          VITEST_SHARD: ${{ inputs.vitest-shard }}
           JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           run_e2e_test_phase() {
@@ -146,67 +149,59 @@ jobs:
             fi
 
             bun run app:prepare
-            bun run db:migrate:deploy
-            bunx prisma db seed
+            source tests/ci/setup-runtime-database.sh
             bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
           }
 
           case "$JOB_PHASE" in
-            ci:verify)
-              bash tests/ci/retry.test.sh
-              bash tests/ci/seed-guard.test.sh
-              bash tests/ci/e2e-full-suite-parity.test.sh
-              bash tests/ci/e2e-worker-server.test.sh
-              bash tests/ci/worker-request-id-platform.test.sh
-              bun run app:prepare
-              bunx wrangler types --include-runtime=false --check
-              bunx biome check
-              bunx svelte-check --tsconfig ./tsconfig.json
-              bunx tsc --noEmit -p tsconfig.typecheck.json
-              bunx tsc --noEmit -p tsconfig.typecheck.tests.json
-              bunx tsc --noEmit -p tsconfig.typecheck.operational.json
-              bunx vitest run --coverage
-              ;;
             ci:integration)
+              if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
+                echo "::error::ci:integration requires vitest-shard in current/total format."
+                exit 1
+              fi
+
+              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
+              # the integration suite exercises the same auth configuration.
+              export AUTH_SECRET=e2e-dev-secret-not-for-production
+              bun run app:prepare
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                --shard="$VITEST_SHARD"
+              ;;
+            ci:rest)
               # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
               # the Playwright API suite starts `bun run e2e:server`.
               export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
-              bun run db:migrate:deploy
-              bunx prisma db seed
-              # The canonical scenario must be safe to load repeatedly.
-              bunx prisma db seed
-              bunx vitest run --config vitest.integration.config.ts
-              bun run build
-              bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
+              bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
-              bun run db:migrate:deploy
-              bunx prisma db seed
-              # Keep the RLS database setup idempotent like ci:integration.
-              bunx prisma db seed
-              for _ in 1 2; do
-                PGPASSWORD=postgres psql "$DATABASE_URL" -X \
-                  --single-transaction \
-                  --set=database_name="${{ inputs.database-name }}" \
-                  --file=tests/integration/fixtures/rls-runtime-bootstrap.sql
-              done
-              runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
+              source tests/ci/setup-runtime-database.sh
+              source tests/ci/setup-runtime-database.sh
+              runtime_database_url="$DATABASE_URL"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-table-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-table-privileges.sql)"
               expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-column-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-column-privileges.sql)"
               expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-sequence-privileges.sql)"
               expected_function_privileges='public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE'
               expected_function_privileges+=',public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE'
               expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE'
               expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE'
               expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              expected_function_privileges+=',public.read_prometheus_metrics_snapshot():EXECUTE'
               expected_function_privileges+=',public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE'
               psql "$runtime_database_url" -X \
                 --set=expected_role=life_ustc_runtime \
@@ -216,17 +211,14 @@ jobs:
                 --set=expected_sequence_privileges="$expected_sequence_privileges" \
                 --set=expected_function_privileges="$expected_function_privileges" \
                 --file=prisma/roles/verify-app-runtime.sql
-              export FUNCTION_OWNER_DATABASE_URL="$DATABASE_URL"
-              export DATABASE_URL="$runtime_database_url"
-              export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
-              export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               export RLS_TEST_ENABLED=true
               export AUTH_ROLE_TEST_ENABLED=true
               export FUNCTION_OWNER_ROLE_TEST_ENABLED=true
               export MAINTENANCE_ROLE_TEST_ENABLED=true
               bunx vitest run \
                 --config vitest.integration.config.ts \
-                tests/integration/rls-database-contract.test.ts
+                tests/integration/rls-database-contract.test.ts \
+                tests/integration/feature-event-store.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/auth-runtime-contract.test.ts
@@ -244,11 +236,6 @@ jobs:
                 --config vitest.integration.config.ts \
                 tests/integration/*-rls.test.ts
               ;;
-            ci:e2e:build-artifacts)
-              bun run app:prepare
-              bun run build
-              bash tests/ci/public-route-client-budget.test.sh
-              ;;
             ci:e2e:test)
               run_e2e_test_phase
               ;;
@@ -260,18 +247,6 @@ jobs:
               exit 1
               ;;
           esac
-
-      - name: Verify OpenAPI parity
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        run: bun run openapi:check
-
-      - name: Verify canonical GraphQL schema snapshot
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        env:
-          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
-        run: bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
 
       - name: Upload artifact
         id: upload-artifact

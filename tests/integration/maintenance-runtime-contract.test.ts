@@ -4,14 +4,20 @@ import {
   maintainOAuthGrantUsageRetention,
 } from "@/features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "@/features/auth/server/auth-record-cleanup";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import {
+  createFixturePrisma,
+  createTestPrisma,
+  disconnectTestPrisma,
+} from "../shared/prisma";
 
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
-const maintenancePrisma = createTestPrisma(
-  process.env.MAINTENANCE_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const maintenanceDatabaseUrl = process.env.MAINTENANCE_DATABASE_URL;
+if (!maintenanceDatabaseUrl) {
+  throw new Error(
+    "MAINTENANCE_DATABASE_URL is required for maintenance role tests",
+  );
+}
+const adminPrisma = createFixturePrisma();
+const maintenancePrisma = createTestPrisma(maintenanceDatabaseUrl);
 const marker = `maintenance-cleanup-${crypto.randomUUID()}`;
 
 describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
@@ -161,6 +167,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         {
           signature:
             "public.maintain_oauth_grant_usage_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
+        },
+        {
+          signature:
+            "public.maintain_observability_event_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
         },
         {
           signature:

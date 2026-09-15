@@ -4,6 +4,7 @@ import {
   type ToolAnnotations,
 } from "@modelcontextprotocol/sdk/types.js";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
+import { observeMcpFeature } from "./feature-observability";
 import {
   getMcpToolOutputSchema,
   getMcpToolOutputSchemaForMode,
@@ -186,21 +187,32 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
     } as unknown as typeof config;
 
     const validatedCallback = (async (args: unknown, extra: unknown) => {
-      const result = await (
-        callback as unknown as (
-          args: unknown,
-          extra: unknown,
-        ) => unknown | Promise<unknown>
-      )(args, extra);
-      if (isRecord(result) && isRecord(result.structuredContent)) {
-        const mode =
-          isRecord(args) && args.mode === "full" ? "full" : "default";
-        const validationSchema = hasExplicitOutputSchema
-          ? outputSchema
-          : getMcpToolOutputSchemaForMode(name, mode);
-        validationSchema.parse(result.structuredContent);
-      }
-      return result;
+      let validatingOutput = false;
+      return observeMcpFeature(
+        name,
+        args,
+        extra,
+        async () => {
+          const result = await (
+            callback as unknown as (
+              args: unknown,
+              extra: unknown,
+            ) => unknown | Promise<unknown>
+          )(args, extra);
+          if (isRecord(result) && isRecord(result.structuredContent)) {
+            const mode =
+              isRecord(args) && args.mode === "full" ? "full" : "default";
+            const validationSchema = hasExplicitOutputSchema
+              ? outputSchema
+              : getMcpToolOutputSchemaForMode(name, mode);
+            validatingOutput = true;
+            validationSchema.parse(result.structuredContent);
+            validatingOutput = false;
+          }
+          return result;
+        },
+        () => validatingOutput,
+      );
     }) as unknown as typeof callback;
 
     const registered = registerTool(name, mergedConfig, validatedCallback);

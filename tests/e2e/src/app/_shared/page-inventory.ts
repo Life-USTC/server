@@ -4,8 +4,9 @@
  * Derived from src/routes/+page.svelte trees. Keep this map complete — the unit
  * gate in tests/unit/page-inventory.test.ts fails when a route is orphaned.
  */
-import { workspaceTabIds } from "@/features/dashboard/lib/dashboard-nav";
+
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
+import { workspaceTabIds } from "@/features/workspace/lib/workspace-nav";
 import { DEV_SEED } from "../../../../fixtures/dev-seed";
 
 export type PageAuth = "public" | "user" | "admin";
@@ -64,8 +65,6 @@ export type PageInventoryEntry = {
 const E2E = {
   home: "src/app/test.ts",
   admin: "src/app/admin/test.ts",
-  adminAnalytics: "src/app/admin/audit/test.ts",
-  adminAudit: "src/app/admin/audit/test.ts",
   adminUsers: "src/app/admin/users/test.ts",
   adminModeration: "src/app/admin/moderation/test.ts",
   adminOauth: "src/app/admin/oauth/test.ts",
@@ -77,19 +76,20 @@ const E2E = {
   commentsId: "src/app/comments/[id]/test.ts",
   courses: "src/app/courses/test.ts",
   coursesJwId: "src/app/courses/[jwId]/test.ts",
-  dashboard: "src/app/dashboard/test.ts",
-  dashboardTab: "src/app/dashboard/[tab]/test.ts",
-  dashboardLinks: "src/app/dashboard/links/test.ts",
-  dashboardCalendar: "src/app/dashboard/calendar/test.ts",
-  dashboardHomeworks: "src/app/dashboard/homeworks/test.ts",
-  dashboardTodos: "src/app/dashboard/todos/test.ts",
-  dashboardExams: "src/app/dashboard/exams/test.ts",
-  dashboardSubscriptions: "src/app/dashboard/subscriptions/sections/test.ts",
+  workspace: "src/app/workspace/test.ts",
+  workspaceTab: "src/app/workspace/[tab]/test.ts",
+  catalogLinks: "src/app/workspace/links/test.ts",
+  workspaceCalendar: "src/app/workspace/calendar/test.ts",
+  workspaceHomeworkCreation: "src/app/workspace/homeworks/creation.test.ts",
+  workspaceTodos: "src/app/workspace/todos/test.ts",
+  workspaceExams: "src/app/workspace/exams/test.ts",
+  workspaceSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
   e2eOauthCallback: "src/app/e2e/oauth/callback/test.ts",
   error: "src/app/error/test.ts",
   guidesMarkdown: "src/app/guides/markdown-support/test.ts",
   usage: "src/app/usage/test.ts",
   weather: "src/app/weather/test.ts",
+  rooms: "src/app/rooms/test.ts",
   youngEvents: "src/app/young-events/test.ts",
   youngEventsYoungId: "src/app/young-events/[youngId]/test.ts",
   oauthAuthorize: "src/app/oauth/authorize/test.ts",
@@ -98,7 +98,9 @@ const E2E = {
   news: "src/app/news/test.ts",
   search: "src/app/search/test.ts",
   sections: "src/app/sections/test.ts",
-  sectionsJwId: "src/app/sections/[jwId]/test.ts",
+  sectionsJwId: "src/app/sections/[jwId]/page-contract.test.ts",
+  sectionsJwIdCalendar: "src/app/sections/[jwId]/calendar.test.ts",
+  sectionsJwIdSubscribe: "src/app/sections/[jwId]/subscribe.test.ts",
   settings: "src/app/settings/test.ts",
   settingsProfile: "src/app/settings/profile/test.ts",
   settingsPreferences: "src/app/settings/preferences/test.ts",
@@ -261,7 +263,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     contractPath: "/account/welcome",
     e2eSpec: E2E.welcome,
     mobileCoveredBy: {
-      e2eSpec: "mobile-screenshots/screenshots.spec.ts",
+      e2eSpec: "mobile-screenshots/authenticated.spec.ts",
       testName: "/account/welcome 页面截图",
       reason:
         "The welcome page requires temporarily clearing and restoring the seeded user's profile.",
@@ -294,40 +296,6 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin",
     e2eSpec: E2E.admin,
-  },
-  {
-    routeId: "/admin/analytics",
-    samplePath: "/admin/analytics",
-    kind: "page",
-    auth: "admin",
-    contractPath: "/admin/analytics",
-    e2eSpec: E2E.adminAnalytics,
-    mobileScreenshots: ["admin"],
-    primaryActions: [
-      {
-        id: "analytics-window",
-        role: "link",
-        name: "/最近 30 天|Last 30 days/i",
-        e2eSpec: E2E.adminAnalytics,
-      },
-    ],
-  },
-  {
-    routeId: "/admin/audit",
-    samplePath: "/admin/audit",
-    kind: "page",
-    auth: "admin",
-    contractPath: "/admin/audit",
-    e2eSpec: E2E.adminAudit,
-    mobileScreenshots: ["admin"],
-    primaryActions: [
-      {
-        id: "apply-audit-filters",
-        role: "button",
-        name: "/应用筛选|Apply filters/i",
-        e2eSpec: E2E.adminAudit,
-      },
-    ],
   },
   {
     routeId: "/admin/bus",
@@ -488,6 +456,18 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     ],
   },
   {
+    routeId: "/catalog/rooms",
+    samplePath: "/catalog/rooms",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/rooms",
+    e2eSpec: E2E.rooms,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      { id: "room-map-lookup", e2eSpec: E2E.rooms, evidence: "查询展示地图" },
+    ],
+  },
+  {
     routeId: "/catalog/weather",
     samplePath: "/catalog/weather",
     kind: "page",
@@ -565,20 +545,20 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "public",
     contractPath: "/catalog/links",
-    e2eSpec: E2E.dashboardLinks,
+    e2eSpec: E2E.catalogLinks,
     mobileScreenshots: ["public", "authed"],
     primaryActions: [
       {
         id: "search-links",
         role: "searchbox",
         name: "/搜索网站名称、描述或域名|Search by name, description, or domain/i",
-        e2eSpec: E2E.dashboardLinks,
+        e2eSpec: E2E.catalogLinks,
       },
       {
         id: "pin-link",
         role: "button",
         name: "/^(?:置顶|Pin)$/i",
-        e2eSpec: E2E.dashboardLinks,
+        e2eSpec: E2E.catalogLinks,
       },
     ],
   },
@@ -611,19 +591,19 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         id: "subscribe",
         role: "button",
         name: "/订阅教学班|Subscribe to section/i",
-        e2eSpec: E2E.sectionsJwId,
+        e2eSpec: E2E.sectionsJwIdSubscribe,
       },
       {
         id: "unsubscribe",
         role: "button",
         name: "/取消订阅|Unsubscribe from section/i",
-        e2eSpec: E2E.sectionsJwId,
+        e2eSpec: E2E.sectionsJwIdSubscribe,
       },
       {
         id: "add-to-calendar",
         role: "button",
         name: "/添加到日历|Add to calendar/i",
-        e2eSpec: E2E.sectionsJwId,
+        e2eSpec: E2E.sectionsJwIdCalendar,
       },
     ],
   },
@@ -960,7 +940,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "redirect",
     auth: "user",
     contractPath: "/workspace",
-    e2eSpec: E2E.dashboardTab,
+    e2eSpec: E2E.workspaceTab,
   },
   {
     routeId: "/workspace/[tab]",
@@ -968,45 +948,45 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "user",
     contractPath: "/workspace/overview",
-    e2eSpec: E2E.dashboardTab,
+    e2eSpec: E2E.workspaceTab,
     mobileScreenshots: ["authed"],
     primaryActions: [
       ...workspaceTabIds.map(
         (tab): PrimaryAction => ({
           id: `workspace-tab-${tab}`,
           role: "link",
-          e2eSpec: E2E.dashboardTab,
+          e2eSpec: E2E.workspaceTab,
           evidence: "登录工作台各分支提供唯一页面身份",
         }),
       ),
       {
         id: "overview-now-next",
-        e2eSpec: E2E.dashboard,
+        e2eSpec: E2E.workspace,
         evidence: "移动端总览优先显示此刻与下一步",
       },
       {
         id: "calendar-export",
-        e2eSpec: E2E.dashboardCalendar,
+        e2eSpec: E2E.workspaceCalendar,
         evidence: "复制日历链接生成有效的 iCal URL",
       },
       {
         id: "homework-crud",
-        e2eSpec: E2E.dashboardHomeworks,
+        e2eSpec: E2E.workspaceHomeworkCreation,
         evidence: "可以创建新作业",
       },
       {
         id: "todo-crud",
-        e2eSpec: E2E.dashboardTodos,
+        e2eSpec: E2E.workspaceTodos,
         evidence: "可以创建、编辑和删除待办",
       },
       {
         id: "exams-view",
-        e2eSpec: E2E.dashboardExams,
+        e2eSpec: E2E.workspaceExams,
         evidence: "考试列表显示必填字段",
       },
       {
         id: "subscriptions-bulk-import",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "批量导入可确认并显示成功",
       },
     ],
@@ -1017,22 +997,22 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "user",
     contractPath: "/workspace/subscriptions",
-    e2eSpec: E2E.dashboardSubscriptions,
+    e2eSpec: E2E.workspaceSubscriptions,
     mobileScreenshots: ["authed"],
     primaryActions: [
       {
         id: "bulk-import",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "批量导入打开确认对话框并可取消",
       },
       {
         id: "unsubscribe-row",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "取消订阅操作确认后移除订阅",
       },
       {
         id: "calendar-feed-copy",
-        e2eSpec: E2E.dashboardSubscriptions,
+        e2eSpec: E2E.workspaceSubscriptions,
         evidence: "复制日历链接生成有效的 iCal URL",
       },
     ],
@@ -1043,7 +1023,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "redirect",
     auth: "user",
     contractPath: "/workspace/subscriptions/sections",
-    e2eSpec: E2E.dashboardSubscriptions,
+    e2eSpec: E2E.workspaceSubscriptions,
   },
 ] as const satisfies readonly PageInventoryEntry[];
 

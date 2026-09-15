@@ -22,9 +22,10 @@ export function buildSubscribedHomeworkInclude(includeEditors: boolean) {
   } satisfies Prisma.HomeworkInclude;
 }
 
-export function buildDashboardHomeworkSelect() {
+export function buildWorkspaceHomeworkSelect() {
   return {
     id: true,
+    sectionId: true,
     title: true,
     publishedAt: true,
     submissionStartAt: true,

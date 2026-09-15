@@ -1,18 +1,7 @@
-import type {
-  courseDetailInclude,
-  courseInclude,
-  sectionCompactInclude,
-  sectionPublicContextSelect,
-  sectionSummarySelect,
-  teacherPublicDetailSelect,
-  teacherPublicListSelect,
-} from "@/features/catalog/server/academic-query-includes";
-import type { Prisma, Section } from "@/generated/prisma/client";
-import type { AppLocale } from "@/i18n/config";
 import {
   type CourseDto,
   courseSchema,
-} from "@/lib/api/schemas/academic-course-response-schemas";
+} from "@/features/catalog/lib/academic-course-response-schemas";
 import {
   type CourseDetailDto,
   courseDetailSchema,
@@ -24,11 +13,22 @@ import {
   sectionSummarySchema,
   type TeacherDetailDto,
   teacherDetailSchema,
-} from "@/lib/api/schemas/academic-section-list-response-schemas";
+} from "@/features/catalog/lib/academic-section-list-response-schemas";
 import {
   type TeacherListDto,
   teacherListSchema,
-} from "@/lib/api/schemas/academic-teacher-response-schemas";
+} from "@/features/catalog/lib/academic-teacher-response-schemas";
+import type {
+  courseDetailInclude,
+  courseInclude,
+  sectionCompactInclude,
+  sectionPublicContextSelect,
+  sectionSummarySelect,
+  teacherPublicDetailSelect,
+  teacherPublicListSelect,
+} from "@/features/catalog/server/academic-query-includes";
+import type { Prisma, Section } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { toLocalizedNameDto } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 

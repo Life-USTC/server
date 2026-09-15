@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const authOrigin = "http://localhost:3000";
 const encoder = new TextEncoder();
@@ -31,7 +35,7 @@ function base64(bytes: Uint8Array) {
 
 async function createSessionCookie() {
   const token = crypto.randomUUID();
-  const session = await prisma.session.create({
+  const session = await fixturePrisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
@@ -62,7 +66,7 @@ async function createSessionCookie() {
 
 describe.sequential("committed Better Auth lifecycle audit", () => {
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `auth-lifecycle-${marker}@example.test`,
         name: "Before update",
@@ -91,13 +95,17 @@ describe.sequential("committed Better Auth lifecycle audit", () => {
   });
 
   afterAll(async () => {
-    await prisma.auditLog.deleteMany({
+    await fixturePrisma.auditLog.deleteMany({
       where: {
         OR: [{ id: replayAuditId }, { userId }, { subjectUserId: userId }],
       },
     });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    await fixturePrisma.user.deleteMany({ where: { id: userId } });
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      fixturePrisma.$disconnect(),
+    ]);
   });
 
   it("stores a producer-ID replay exactly once", async () => {
@@ -112,7 +120,7 @@ describe.sequential("committed Better Auth lifecycle audit", () => {
     await writeAuditLog(event);
 
     await expect(
-      prisma.auditLog.count({ where: { id: replayAuditId } }),
+      fixturePrisma.auditLog.count({ where: { id: replayAuditId } }),
     ).resolves.toBe(1);
   });
 
@@ -130,9 +138,11 @@ describe.sequential("committed Better Auth lifecycle audit", () => {
 
     const signOut = await authRequest("/sign-out", cookie);
     expect(signOut.status).toBe(200);
-    expect(await prisma.session.count({ where: { id: sessionId } })).toBe(0);
+    expect(
+      await fixturePrisma.session.count({ where: { id: sessionId } }),
+    ).toBe(0);
 
-    const rows = await prisma.auditLog.findMany({
+    const rows = await fixturePrisma.auditLog.findMany({
       where: {
         subjectUserId: userId,
         action: {

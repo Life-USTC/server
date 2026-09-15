@@ -16,6 +16,7 @@
  * - Unauthenticated → redirects to /signin
  * - Invalid username pattern → browser validation prevents submission
  * - Empty username → browser validation prevents submission
+ * - Empty avatar options do not prevent a subsequent debug sign-in
  * - Save success → one visible Sonner toast
  * - Name change persists across page reload
  */
@@ -26,6 +27,12 @@ import {
   signInAsDebugUser,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import {
+  getCurrentSessionUser,
+  getUserProfileById,
+  updateUserProfileById,
+} from "../../../../utils/e2e-db";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -130,6 +137,40 @@ test.describe("/account/settings/profile 个人资料设置", () => {
       testInfo,
       "settings/profile-username-required",
     );
+  });
+
+  test("清空头像选项后仍可重新登录", async ({ page }) => {
+    test.setTimeout(300_000);
+    await signInAsDebugUser(page, "/account/settings/profile", undefined, {
+      ui: true,
+    });
+    const sessionUser = await getCurrentSessionUser(page);
+    const originalUser = await getUserProfileById(sessionUser.id);
+
+    await updateUserProfileById(sessionUser.id, {
+      image: null,
+      profilePictures: [],
+    });
+
+    try {
+      const signOutResponse = await page.request.post("/account/sign-out", {
+        maxRedirects: 0,
+      });
+      expect(signOutResponse.status()).toBe(303);
+      await gotoAndWaitForReady(page, "/account/sign-in");
+      await signInAsDebugUser(
+        page,
+        "/account/settings/profile",
+        "/account/settings/profile",
+        { ui: true },
+      );
+      await expectPagePath(page, "/account/settings/profile");
+    } finally {
+      await updateUserProfileById(sessionUser.id, {
+        image: originalUser.image,
+        profilePictures: originalUser.profilePictures,
+      });
+    }
   });
 });
 

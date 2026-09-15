@@ -5,7 +5,10 @@ import {
   countOverviewTodoBundleInTransaction,
   listTodoSummary,
 } from "@/features/todos/server/todo-service";
-import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 describe("overview todo bundle counts", () => {
   let userId = "";
@@ -15,7 +18,7 @@ describe("overview todo bundle counts", () => {
 
   beforeAll(async () => {
     const marker = crypto.randomUUID();
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `todo-overview-counts-${marker}@example.test`,
         name: "[integration-test] Todo Overview Counts",
@@ -24,7 +27,7 @@ describe("overview todo bundle counts", () => {
     });
     userId = user.id;
 
-    const todos = await prisma.todo.createManyAndReturn({
+    const todos = await fixturePrisma.todo.createManyAndReturn({
       data: [
         {
           userId,
@@ -64,39 +67,39 @@ describe("overview todo bundle counts", () => {
 
   afterAll(async () => {
     if (userId) {
-      await prisma.todo.deleteMany({
+      await fixturePrisma.todo.deleteMany({
         where: { id: { in: createdTodoIds } },
       });
-      await prisma.user.deleteMany({ where: { id: userId } });
+      await fixturePrisma.user.deleteMany({ where: { id: userId } });
     }
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
   it("matches the existing per-count helpers and preserves dueAt IS NOT NULL semantics", async () => {
-    const fusedCounts = await withUserDbContext(userId, (tx) =>
-      countOverviewTodoBundleInTransaction(tx, {
+    const fusedCounts = await runtimePrisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.user_id', ${userId}, true)`;
+      return countOverviewTodoBundleInTransaction(tx, {
         userId,
         now,
         homeworkWindowEnd,
-      }),
-    );
+      });
+    });
 
     const [incomplete, completed, overdue, dueSoon] = await Promise.all([
       countIncompleteTodos(userId),
-      withUserDbContext(userId, (tx) =>
-        tx.todo.count({
-          where: { userId, completed: true },
-        }),
-      ),
-      withUserDbContext(userId, (tx) =>
-        tx.todo.count({
-          where: {
-            userId,
-            completed: false,
-            dueAt: { lt: now },
-          },
-        }),
-      ),
+      fixturePrisma.todo.count({
+        where: { userId, completed: true },
+      }),
+      fixturePrisma.todo.count({
+        where: {
+          userId,
+          completed: false,
+          dueAt: { lt: now },
+        },
+      }),
       countDueTodos({
         userId,
         completed: false,

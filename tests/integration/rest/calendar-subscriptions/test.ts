@@ -2,12 +2,10 @@
  * E2E tests for the calendar subscription API
  *
  * ## Endpoints
- * - `POST /api/workspace/subscriptions` — Replace the current user's subscribed sections
  * - `PATCH /api/workspace/subscriptions` — Append selected section IDs
  * - `DELETE /api/workspace/subscriptions` — Remove selected section IDs
  *
  * ## Request
- * - POST Body: `{ sectionIds?: number[] }` (optional; omitting clears subscriptions)
  * - PATCH Body: `{ sectionIds: number[] }`
  * - DELETE Body: `{ sectionIds: number[] }`
  *
@@ -20,7 +18,6 @@
  * - Requires session authentication
  *
  * ## Edge Cases
- * - POST `sectionIds` is optional — omitting it clears all subscriptions
  * - Unknown positive section IDs are silently dropped
  * - Invalid body types (e.g. string instead of array) return 400
  */
@@ -33,6 +30,7 @@ import {
 } from "../../../e2e/utils/e2e-db";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { resolveSeedSectionMatches } from "../../../e2e/utils/seed-lookups";
+import { assertSubscriptionBrief } from "../../../shared/scenarios/subscriptions";
 import { signInAsDebugUserApi } from "../_harness/auth";
 import { assertApiContract } from "../_shared/api-contract";
 
@@ -52,7 +50,7 @@ test.describe("日历订阅 API", () => {
   });
 
   test("未登录时返回 401", async ({ request }) => {
-    const response = await request.post(BASE, {
+    const response = await request.patch(BASE, {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
@@ -72,9 +70,7 @@ test.describe("日历订阅 API", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("未登录的带 body PATCH/POST 重复请求始终返回 401", async ({
-    request,
-  }) => {
+  test("未登录的带 body PATCH 重复请求始终返回 401", async ({ request }) => {
     for (let index = 0; index < 20; index += 1) {
       const headers =
         index % 2 === 0
@@ -86,10 +82,10 @@ test.describe("日历订阅 API", () => {
               "x-request-id": "client-controlled-id",
             }
           : undefined;
-      const response =
-        index % 2 === 0
-          ? await request.patch(BASE, { data: { sectionIds: [1] }, headers })
-          : await request.post(BASE, { data: { sectionIds: [1] }, headers });
+      const response = await request.patch(BASE, {
+        data: { sectionIds: [1] },
+        headers,
+      });
       expect(response.status()).toBe(401);
     }
   });
@@ -138,7 +134,7 @@ test.describe("日历订阅 API", () => {
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
     try {
-      await request.post(BASE, { data: { sectionIds: [] } });
+      await request.delete(BASE, { data: { sectionIds: originalIds } });
 
       const firstResponse = await request.post(IMPORT_BASE, {
         data: {
@@ -181,7 +177,7 @@ test.describe("日历订阅 API", () => {
         DEV_SEED.section.code,
       );
     } finally {
-      await request.post(BASE, {
+      await request.patch(BASE, {
         data: { sectionIds: originalIds },
       });
     }
@@ -204,9 +200,8 @@ test.describe("日历订阅 API", () => {
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
     try {
-      await request.post(BASE, {
-        data: { sectionIds: [firstSection.id] },
-      });
+      await request.delete(BASE, { data: { sectionIds: originalIds } });
+      await request.patch(BASE, { data: { sectionIds: [firstSection.id] } });
 
       const unknownPositiveSectionId = 999_999_999;
       const response = await request.patch(BASE, {
@@ -221,6 +216,7 @@ test.describe("日历订阅 API", () => {
 
       expect(body.addedCount).toBe(1);
       expect(body.alreadySubscribedCount).toBe(0);
+      assertSubscriptionBrief(body.subscription, { expectSections: true });
       const sectionIds = body.subscription?.sections?.map((s) => s.id) ?? [];
       expect(sectionIds).toContain(firstSection.id);
       expect(sectionIds).toContain(secondSection.id);
@@ -237,108 +233,14 @@ test.describe("日历订阅 API", () => {
       expect(repeatBody.addedCount).toBe(0);
       expect(repeatBody.alreadySubscribedCount).toBe(1);
     } finally {
-      await request.post(BASE, {
-        data: { sectionIds: originalIds },
+      await request.delete(BASE, {
+        data: { sectionIds: [firstSection.id, secondSection.id] },
       });
+      await request.patch(BASE, { data: { sectionIds: originalIds } });
     }
   });
 
-  test("set 只替换指定学期并保留往期订阅", async ({ request }) => {
-    await signInAsDebugUserApi(request, "/");
-    const [currentSection, previousSection] = await Promise.all([
-      getSeedSectionSemesterFixture(DEV_SEED.section.jwId),
-      getSeedSectionSemesterFixture(DEV_SEED.previousSection.jwId),
-    ]);
-    if (
-      currentSection.semesterId === null ||
-      previousSection.semesterId === null
-    ) {
-      throw new Error("Expected seed sections to belong to semesters");
-    }
-    expect(currentSection.semesterId).not.toBe(previousSection.semesterId);
-
-    const currentRes = await request.get(
-      "/api/workspace/subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map(
-        (section) => section.id as number,
-      ) ?? [];
-
-    try {
-      const setupResponse = await request.post(BASE, {
-        data: { sectionIds: [currentSection.id, previousSection.id] },
-      });
-      expect(setupResponse.status()).toBe(200);
-
-      const unscopedSetResponse = await request.post(BATCH_BASE, {
-        data: { action: "set", sectionIds: [] },
-      });
-      expect(unscopedSetResponse.status()).toBe(400);
-      const preservedBody = (await (
-        await request.get("/api/workspace/subscriptions/current")
-      ).json()) as {
-        subscription?: { sections?: Array<{ id?: number }> } | null;
-      };
-      const preservedIds =
-        preservedBody.subscription?.sections?.map((section) => section.id) ??
-        [];
-      expect(preservedIds).toContain(currentSection.id);
-      expect(preservedIds).toContain(previousSection.id);
-
-      const currentSemesterId = currentSection.semesterId;
-
-      const response = await request.post(BATCH_BASE, {
-        data: {
-          action: "set",
-          sectionIds: [],
-          semesterId: currentSemesterId,
-        },
-      });
-      expect(response.status()).toBe(200);
-      const body = calendarSubscriptionBatchResponseSchema.parse(
-        await response.json(),
-      );
-      const subscribedIds =
-        body.subscription?.sections?.map((section) => section.id) ?? [];
-
-      expect(body.removedCount).toBe(1);
-      expect(subscribedIds).not.toContain(currentSection.id);
-      expect(subscribedIds).toContain(previousSection.id);
-
-      const wrongSemesterResponse = await request.post(BATCH_BASE, {
-        data: {
-          action: "set",
-          sectionIds: [previousSection.id],
-          semesterId: currentSemesterId,
-        },
-      });
-      expect(wrongSemesterResponse.status()).toBe(200);
-      const wrongSemesterBody = (await wrongSemesterResponse.json()) as {
-        matchedSectionIds?: number[];
-        unmatchedSectionIds?: number[];
-        subscription?: { sections?: Array<{ id?: number }> };
-      };
-      expect(wrongSemesterBody.matchedSectionIds).toEqual([]);
-      expect(wrongSemesterBody.unmatchedSectionIds).toEqual([
-        previousSection.id,
-      ]);
-      expect(
-        wrongSemesterBody.subscription?.sections?.map((section) => section.id),
-      ).toContain(previousSection.id);
-    } finally {
-      await request.post(BASE, {
-        data: { sectionIds: originalIds },
-      });
-    }
-  });
-
-  test("replace 和 set 保留请求中已有的退役班级但不能重新添加", async ({
-    request,
-  }) => {
+  test("追加操作保留已有退役班级且不能重新添加", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
     const sessionUser = await getCurrentSessionUser(request);
     const previous = await withE2ePrisma(async (prisma) => {
@@ -386,96 +288,76 @@ test.describe("日历订阅 API", () => {
     try {
       if (previous.section.semesterId == null) {
         throw new Error(
-          "Expected retired test Section to belong to a semester",
+          "Expected retired test section to belong to a semester",
         );
       }
-      const replaceResponse = await request.post(BASE, {
+
+      const appendResponse = await request.patch(BASE, {
         data: { sectionIds: [previous.section.id] },
       });
-      expect(replaceResponse.status()).toBe(200);
-      const replaceBody = (await replaceResponse.json()) as {
+      expect(appendResponse.status()).toBe(200);
+      const appendBody = (await appendResponse.json()) as {
+        addedCount?: number;
+        alreadySubscribedCount?: number;
         subscription?: { sections?: Array<{ id?: number }> };
       };
+      expect(appendBody.addedCount).toBe(0);
+      expect(appendBody.alreadySubscribedCount).toBe(0);
       expect(
-        replaceBody.subscription?.sections?.map((section) => section.id),
+        appendBody.subscription?.sections?.map((section) => section.id),
       ).toContain(previous.section.id);
 
-      const setResponse = await request.post(BATCH_BASE, {
+      const batchResponse = await request.post(BATCH_BASE, {
         data: {
-          action: "set",
+          action: "add",
           sectionIds: [previous.section.id],
           semesterId: previous.section.semesterId,
         },
       });
-      expect(setResponse.status()).toBe(200);
-      const setBody = (await setResponse.json()) as {
+      expect(batchResponse.status()).toBe(200);
+      const batchBody = (await batchResponse.json()) as {
+        addedCount?: number;
         matchedSectionIds?: number[];
-        removedCount?: number;
-        sections?: Array<{ id?: number }>;
-        total?: number;
+        subscription?: { sections?: Array<{ id?: number }> };
         unchangedCount?: number;
         unmatchedSectionIds?: number[];
-        subscription?: { sections?: Array<{ id?: number }> };
       };
-      expect(setBody.matchedSectionIds).toEqual([previous.section.id]);
-      expect(setBody.unmatchedSectionIds).toEqual([]);
-      expect(setBody.removedCount).toBe(0);
-      expect(setBody.unchangedCount).toBe(1);
-      expect(setBody.sections?.map((section) => section.id)).toEqual([
-        previous.section.id,
-      ]);
-      expect(setBody.total).toBe(1);
+      expect(batchBody.addedCount).toBe(0);
+      expect(batchBody.unchangedCount).toBe(0);
+      expect(batchBody.matchedSectionIds).toEqual([]);
+      expect(batchBody.unmatchedSectionIds).toEqual([previous.section.id]);
       expect(
-        setBody.subscription?.sections?.map((section) => section.id),
+        batchBody.subscription?.sections?.map((section) => section.id),
       ).toContain(previous.section.id);
 
-      const omitResponse = await request.post(BATCH_BASE, {
-        data: {
-          action: "set",
-          sectionIds: [],
-          semesterId: previous.section.semesterId,
-        },
+      const removeResponse = await request.delete(BASE, {
+        data: { sectionIds: [previous.section.id] },
       });
-      expect(omitResponse.status()).toBe(200);
-      const omitBody = (await omitResponse.json()) as {
-        removedCount?: number;
+      expect(removeResponse.status()).toBe(200);
+      const removeBody = (await removeResponse.json()) as {
         subscription?: { sections?: Array<{ id?: number }> };
       };
-      expect(omitBody.removedCount).toBe(1);
       expect(
-        omitBody.subscription?.sections?.map((section) => section.id),
+        removeBody.subscription?.sections?.map((section) => section.id),
       ).not.toContain(previous.section.id);
 
-      const setReAddResponse = await request.post(BATCH_BASE, {
+      const reAddResponse = await request.post(BATCH_BASE, {
         data: {
-          action: "set",
+          action: "add",
           sectionIds: [previous.section.id],
           semesterId: previous.section.semesterId,
         },
       });
-      expect(setReAddResponse.status()).toBe(200);
-      const setReAddBody = (await setReAddResponse.json()) as {
+      expect(reAddResponse.status()).toBe(200);
+      const reAddBody = (await reAddResponse.json()) as {
         matchedSectionIds?: number[];
-        unchangedCount?: number;
+        subscription?: { sections?: Array<{ id?: number }> };
         unmatchedSectionIds?: number[];
-        subscription?: { sections?: Array<{ id?: number }> };
       };
-      expect(setReAddBody.matchedSectionIds).toEqual([]);
-      expect(setReAddBody.unmatchedSectionIds).toEqual([previous.section.id]);
-      expect(setReAddBody.unchangedCount).toBe(0);
+      expect(reAddBody.matchedSectionIds).toEqual([]);
+      expect(reAddBody.unmatchedSectionIds).toEqual([previous.section.id]);
       expect(
-        setReAddBody.subscription?.sections?.map((section) => section.id),
-      ).not.toContain(previous.section.id);
-
-      const replaceReAddResponse = await request.post(BASE, {
-        data: { sectionIds: [previous.section.id] },
-      });
-      expect(replaceReAddResponse.status()).toBe(200);
-      const replaceReAddBody = (await replaceReAddResponse.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> };
-      };
-      expect(
-        replaceReAddBody.subscription?.sections?.map((section) => section.id),
+        reAddBody.subscription?.sections?.map((section) => section.id),
       ).not.toContain(previous.section.id);
     } finally {
       await withE2ePrisma((prisma) =>
@@ -500,6 +382,94 @@ test.describe("日历订阅 API", () => {
     }
   });
 
+  test("batch add 追加指定学期班级且保留其他学期订阅", async ({ request }) => {
+    await signInAsDebugUserApi(request, "/");
+    const [currentSection, previousSection] = await Promise.all([
+      getSeedSectionSemesterFixture(DEV_SEED.section.jwId),
+      getSeedSectionSemesterFixture(DEV_SEED.previousSection.jwId),
+    ]);
+    if (
+      currentSection.semesterId === null ||
+      previousSection.semesterId === null
+    ) {
+      throw new Error("Expected seed sections to belong to semesters");
+    }
+    expect(currentSection.semesterId).not.toBe(previousSection.semesterId);
+
+    const currentRes = await request.get(
+      "/api/workspace/subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map(
+        (section) => section.id as number,
+      ) ?? [];
+
+    try {
+      await request.delete(BASE, { data: { sectionIds: originalIds } });
+
+      const currentResponse = await request.post(BATCH_BASE, {
+        data: {
+          action: "add",
+          sectionIds: [currentSection.id],
+          semesterId: currentSection.semesterId,
+        },
+      });
+      expect(currentResponse.status()).toBe(200);
+      const currentResult = calendarSubscriptionBatchResponseSchema.parse(
+        await currentResponse.json(),
+      );
+      expect(currentResult.addedCount).toBe(1);
+      expect(currentResult.removedCount).toBe(0);
+
+      const previousResponse = await request.post(BATCH_BASE, {
+        data: {
+          action: "add",
+          sectionIds: [previousSection.id],
+          semesterId: previousSection.semesterId,
+        },
+      });
+      expect(previousResponse.status()).toBe(200);
+      const previousResult = calendarSubscriptionBatchResponseSchema.parse(
+        await previousResponse.json(),
+      );
+      expect(previousResult.addedCount).toBe(1);
+      expect(previousResult.removedCount).toBe(0);
+
+      const repeatResponse = await request.post(BATCH_BASE, {
+        data: {
+          action: "add",
+          sectionIds: [currentSection.id],
+          semesterId: currentSection.semesterId,
+        },
+      });
+      expect(repeatResponse.status()).toBe(200);
+      const repeatResult = calendarSubscriptionBatchResponseSchema.parse(
+        await repeatResponse.json(),
+      );
+      expect(repeatResult.addedCount).toBe(0);
+      expect(repeatResult.unchangedCount).toBe(1);
+
+      const finalResponse = await request.get(
+        "/api/workspace/subscriptions/current",
+      );
+      const finalBody = (await finalResponse.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
+      };
+      const finalIds =
+        finalBody.subscription?.sections?.map((section) => section.id) ?? [];
+      expect(finalIds).toContain(currentSection.id);
+      expect(finalIds).toContain(previousSection.id);
+    } finally {
+      await request.delete(BASE, {
+        data: { sectionIds: [currentSection.id, previousSection.id] },
+      });
+      await request.patch(BASE, { data: { sectionIds: originalIds } });
+    }
+  });
+
   test("remove sections 删除指定 id 且不替换并发添加", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
     const [firstSection, secondSection] =
@@ -517,7 +487,10 @@ test.describe("日历订阅 API", () => {
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
     try {
-      await request.post(BASE, {
+      await request.delete(BASE, {
+        data: { sectionIds: originalIds },
+      });
+      await request.patch(BASE, {
         data: { sectionIds: [firstSection.id] },
       });
       await request.patch(BASE, {
@@ -535,7 +508,10 @@ test.describe("日历订阅 API", () => {
       expect(sectionIds).not.toContain(firstSection.id);
       expect(sectionIds).toContain(secondSection.id);
     } finally {
-      await request.post(BASE, {
+      await request.delete(BASE, {
+        data: { sectionIds: [firstSection.id, secondSection.id] },
+      });
+      await request.patch(BASE, {
         data: { sectionIds: originalIds },
       });
     }
@@ -571,7 +547,7 @@ test.describe("日历订阅 API", () => {
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
     try {
-      const response = await request.post(BASE, {
+      const response = await request.patch(BASE, {
         data: { sectionIds: [sectionId] },
       });
       expect(response.status()).toBe(200);
@@ -588,38 +564,20 @@ test.describe("日历订阅 API", () => {
         true,
       );
     } finally {
-      await request.post(BASE, {
+      await request.delete(BASE, {
+        data: { sectionIds: [sectionId] },
+      });
+      await request.patch(BASE, {
         data: { sectionIds: originalIds },
       });
     }
   });
 
-  test("省略 sectionIds 清空订阅", async ({ request }) => {
+  test("省略 sectionIds 返回 400", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
 
-    // Save current subscriptions for restoration
-    const currentRes = await request.get(
-      "/api/workspace/subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    try {
-      const response = await request.post(BASE, { data: {} });
-      expect(response.status()).toBe(200);
-
-      const body = (await response.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> };
-      };
-      expect(body.subscription?.sections).toEqual([]);
-    } finally {
-      await request.post(BASE, {
-        data: { sectionIds: originalIds },
-      });
-    }
+    const response = await request.delete(BASE, { data: {} });
+    expect(response.status()).toBe(400);
   });
 
   test("不存在的 section ID 被静默忽略", async ({ request }) => {
@@ -651,7 +609,7 @@ test.describe("日历订阅 API", () => {
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
     try {
-      const response = await request.post(BASE, {
+      const response = await request.patch(BASE, {
         data: { sectionIds: [validId, bogusId] },
       });
       expect(response.status()).toBe(200);
@@ -666,7 +624,10 @@ test.describe("日历订阅 API", () => {
         false,
       );
     } finally {
-      await request.post(BASE, {
+      await request.delete(BASE, {
+        data: { sectionIds: [validId] },
+      });
+      await request.patch(BASE, {
         data: { sectionIds: originalIds },
       });
     }
@@ -675,7 +636,7 @@ test.describe("日历订阅 API", () => {
   test("格式错误的请求体返回 400", async ({ request }) => {
     await signInAsDebugUserApi(request, "/");
 
-    const response = await request.post(BASE, {
+    const response = await request.patch(BASE, {
       data: { sectionIds: "not-an-array" },
     });
     expect(response.status()).toBe(400);

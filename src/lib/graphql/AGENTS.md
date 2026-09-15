@@ -27,11 +27,18 @@ Explicit public GraphQL transport and schema.
 - Personal mutations use the same `feature:write` scope and per-user rate-limit
   key as REST and MCP.
 
+## Mutations layout
+
+Mutation typedefs and resolvers live under `mutations/` (`todos`, `homeworks`,
+`subscriptions`, `comments`, `uploads`, `descriptions`, `bus`, `links`,
+`shared`, `index`). `schema.ts` still imports `graphqlMutationTypeDefs` /
+`graphqlMutationResolvers` from `./mutations`.
+
 ## Contracts
 
 - Schema changes update `docs/contracts/<module>.json`, `graphql.json`, and
   `docs/graphql/schema.graphql`.
-- Regenerate with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`,
+- Regenerate with `bunx vitest run --update tests/unit/lib/graphql/graphql-schema-snapshot.test.ts`,
   then rerun without `--update`.
 - MCP may run documents only through the shared production Yoga pipeline; require
   confirmation for mutations.

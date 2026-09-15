@@ -1,8 +1,8 @@
+import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   getCloudflareCalendarExportRebuildQueue,
   getCloudflareRuntimeTaskScheduler,
-} from "@/lib/adapters/cloudflare-runtime";
-import { writeCalendarExportRebuildAnalytics } from "@/lib/metrics/analytics-engine";
+} from "@/lib/ports/runtime";
 
 export type CalendarExportRebuildUserMessage = {
   type: "user";

@@ -1,5 +1,7 @@
+import { getUserSubscriptionKinds } from "@/features/subscriptions/server/subscription-kind";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
+import { attachHomeworkCompletionRequired } from "../lib/homework-completion-state";
 
 const homeworkItemUserSelect = {
   select: { id: true, name: true, username: true, image: true },
@@ -96,8 +98,18 @@ export function attachHomeworkCompletionsForViewer<T extends { id: string }>(
   });
 }
 
+export async function withHomeworkCompletionRequiredForViewer<
+  T extends { sectionId: number },
+>(homeworks: T[], viewerUserId?: string | null) {
+  const subscriptionKinds = viewerUserId
+    ? await getUserSubscriptionKinds(viewerUserId)
+    : new Map<number, string>();
+  return attachHomeworkCompletionRequired(homeworks, subscriptionKinds);
+}
+
 export function homeworkItemResponse<
   Homework extends {
+    completionRequired?: boolean;
     _count: { comments: number };
     homeworkCompletions?: Array<{ completedAt: Date | string | null }>;
   },
@@ -105,6 +117,7 @@ export function homeworkItemResponse<
   const { homeworkCompletions, _count, ...rest } = homework;
   return {
     ...rest,
+    completionRequired: homework.completionRequired !== false,
     completion: homeworkCompletions?.[0] ?? null,
     commentCount: _count.comments,
   };
@@ -125,7 +138,12 @@ export async function getHomeworkItemById(input: {
     [homework],
     input.userId,
   );
-  return homeworkItemResponse(homeworkWithCompletion);
+  const [homeworkWithRequirement] =
+    await withHomeworkCompletionRequiredForViewer(
+      [homeworkWithCompletion],
+      input.userId,
+    );
+  return homeworkItemResponse(homeworkWithRequirement);
 }
 
 export async function requireHomeworkItemById(
