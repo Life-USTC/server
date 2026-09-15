@@ -70,7 +70,10 @@ import {
   validateMappedSectionJwIds,
   validateSnapshotCompleteness,
 } from "./validation";
-import { loadYoungEvents } from "./young-plan";
+import {
+  isYoungEventsSnapshotComplete,
+  loadYoungEvents,
+} from "./young-plan";
 
 export { upsertAdminClasses } from "./import-infrastructure";
 export type {
@@ -203,6 +206,8 @@ export async function runImport(
 
   const exams = loadExams(snapshot, allSectionJwIds);
   const youngEvents = loadYoungEvents(snapshot);
+  const youngEventsSnapshotComplete =
+    youngEvents != null && isYoungEventsSnapshotComplete(snapshot);
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
@@ -409,7 +414,10 @@ export async function runImport(
     );
     if (youngEvents != null) {
       await logStep("syncYoungEvents", youngEvents.length, () =>
-        syncYoungEvents(tx, youngEvents),
+        syncYoungEvents(tx, youngEvents, {
+          observedAt,
+          complete: youngEventsSnapshotComplete,
+        }),
       );
     }
     const databaseRecordCounts = await logStep("countDatabaseRecords", 13, () =>

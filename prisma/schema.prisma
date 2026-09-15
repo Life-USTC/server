@@ -1949,6 +1949,7 @@ model YoungEvent {
   category           String?
   department         String?
   organizer          String?
+  organizerId        String?
   status             String?
   registrationStatus String?
   location           String?
@@ -1961,10 +1962,26 @@ model YoungEvent {
   applyStartAt       DateTime? @db.Timestamp(0)
   applyEndAt         DateTime? @db.Timestamp(0)
   isActive           Boolean
+  sourceMissing      Boolean   @default(false)
+  lastSeenAt         DateTime?
   rawJson            Json
+  createdAt          DateTime  @default(now())
+
+  organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
 
   @@index([isActive, startAt])
   @@index([category])
+  @@index([organizerId, startAt])
+  @@index([sourceMissing, startAt])
+}
+
+model YoungOrganizer {
+  id             String @id @default(cuid())
+  name           String
+  normalizedName String @unique
+
+  events YoungEvent[]
+  createdAt DateTime @default(now())
 }
 
 // Internal durable monitoring aggregates; never contain identity labels.
