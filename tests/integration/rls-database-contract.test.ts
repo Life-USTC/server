@@ -74,6 +74,32 @@ const expectedRuntimeFunctionPrivileges = [
   "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
 ] as const;
 
+type RuntimePrivilegeAllowlist = {
+  table: string[];
+  column: string[];
+  sequence: string[];
+};
+
+async function loadRuntimePrivilegeAllowlist(
+  client: PrismaClient,
+): Promise<RuntimePrivilegeAllowlist> {
+  const [table, column, sequence] = await Promise.all([
+    loadPrivilegeAllowlist(
+      client,
+      "tests/integration/fixtures/app-runtime-table-privileges.sql",
+    ),
+    loadPrivilegeAllowlist(
+      client,
+      "tests/integration/fixtures/app-runtime-column-privileges.sql",
+    ),
+    loadPrivilegeAllowlist(
+      client,
+      "tests/integration/fixtures/app-runtime-sequence-privileges.sql",
+    ),
+  ]);
+  return { table, column, sequence };
+}
+
 type ScopedRows = {
   audit: Array<{ id: string; subjectUserId: string | null }>;
   usage: Array<{ id: string; userId: string }>;
@@ -450,11 +476,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       }
     });
 
-    it("keeps the temporary CI runtime grants on the export privilege contract", async () => {
-      const expectedRuntimeTablePrivileges = await loadPrivilegeAllowlist(
-        prisma,
-        "prisma/roles/export-app-runtime-table-privileges.sql",
-      );
+    it("keeps runtime grants on the checked-in privilege contract", async () => {
+      const expectedRuntimePrivileges =
+        await loadRuntimePrivilegeAllowlist(prisma);
 
       const grants = await prisma.$queryRaw<
         { tableName: string; privilege: string }[]
@@ -472,7 +496,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         grants.map(
           ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
         ),
-      ).toEqual(expectedRuntimeTablePrivileges);
+      ).toEqual(expectedRuntimePrivileges.table);
 
       const effectiveGrants = await prisma.$queryRaw<
         { tableName: string; privilege: string }[]
@@ -499,7 +523,63 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         effectiveGrants.map(
           ({ tableName, privilege }) => `public.${tableName}:${privilege}`,
         ),
-      ).toEqual(expectedRuntimeTablePrivileges);
+      ).toEqual(expectedRuntimePrivileges.table);
+
+      const columnGrants = await prisma.$queryRaw<
+        { tableName: string; columnName: string; privilege: string }[]
+      >(Prisma.sql`
+        SELECT
+          relation.relname AS "tableName",
+          attribute.attname AS "columnName",
+          acl.privilege_type AS privilege
+        FROM pg_class AS relation
+        JOIN pg_namespace AS namespace
+          ON namespace.oid = relation.relnamespace
+        JOIN pg_attribute AS attribute
+          ON attribute.attrelid = relation.oid
+          AND attribute.attnum > 0
+          AND NOT attribute.attisdropped
+        CROSS JOIN LATERAL aclexplode(attribute.attacl) AS acl
+        WHERE namespace.nspname = 'public'
+          AND acl.grantee = (
+            SELECT oid FROM pg_roles WHERE rolname = current_user
+          )
+        ORDER BY namespace.nspname, relation.relname, attribute.attname,
+          acl.privilege_type
+      `);
+      expect(
+        columnGrants.map(
+          ({ tableName, columnName, privilege }) =>
+            `public.${tableName}.${columnName}:${privilege}`,
+        ),
+      ).toEqual(expectedRuntimePrivileges.column);
+
+      const sequenceGrants = await prisma.$queryRaw<
+        { sequenceName: string; privilege: string }[]
+      >(Prisma.sql`
+        SELECT
+          relation.relname AS "sequenceName",
+          acl.privilege_type AS privilege
+        FROM pg_class AS relation
+        JOIN pg_namespace AS namespace
+          ON namespace.oid = relation.relnamespace
+        CROSS JOIN LATERAL aclexplode(COALESCE(
+          relation.relacl,
+          acldefault('S', relation.relowner)
+        )) AS acl
+        WHERE namespace.nspname = 'public'
+          AND relation.relkind = 'S'
+          AND acl.grantee = (
+            SELECT oid FROM pg_roles WHERE rolname = current_user
+          )
+        ORDER BY namespace.nspname, relation.relname, acl.privilege_type
+      `);
+      expect(
+        sequenceGrants.map(
+          ({ sequenceName, privilege }) =>
+            `public.${sequenceName}:${privilege}`,
+        ),
+      ).toEqual(expectedRuntimePrivileges.sequence);
 
       const functionGrants = await prisma.$queryRaw<
         { signature: string }[]

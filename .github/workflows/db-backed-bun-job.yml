@@ -187,11 +187,11 @@ jobs:
               source tests/ci/setup-runtime-database.sh
               runtime_database_url="$DATABASE_URL"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-table-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-table-privileges.sql)"
               expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-column-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-column-privileges.sql)"
               expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-sequence-privileges.sql)"
               expected_function_privileges='public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE'
               expected_function_privileges+=',public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE'
