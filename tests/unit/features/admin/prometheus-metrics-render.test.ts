@@ -86,6 +86,24 @@ describe("Admin Prometheus metric definitions", () => {
     expect(body).not.toMatch(/(?:user_id|request_id|client_id|day)=/);
   });
 
+  it("omits an undefined maximum for empty windows but preserves observed zero durations", () => {
+    const value = snapshot();
+    value.features[0].events = 0;
+    value.features[0].durationSeconds = 0;
+    value.features[0].maxDurationSeconds = 0;
+    const empty = renderPrometheusMetrics(value);
+    expect(empty).toMatch(/^life_ustc_feature_operations\{.*\} 0$/m);
+    expect(empty).not.toMatch(
+      /^life_ustc_feature_operation_max_duration_seconds\{/m,
+    );
+
+    value.features[0].events = 1;
+    const observed = renderPrometheusMetrics(value);
+    expect(observed).toMatch(
+      /^life_ustc_feature_operation_max_duration_seconds\{.*\} 0$/m,
+    );
+  });
+
   it("uses Shanghai midnight across UTC date boundaries", () => {
     const body = renderPrometheusMetrics(snapshot());
     expect(body).toContain(
