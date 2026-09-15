@@ -132,11 +132,13 @@ export function renderPrometheusMetrics(snapshot: PrometheusMetricsSnapshot) {
   );
   add(
     "feature_operation_max_duration_seconds",
-    "Maximum observed feature operation duration in the window, in seconds.",
-    snapshot.features.map((row) => ({
-      labels: featureLabels(row),
-      value: row.maxDurationSeconds,
-    })),
+    "Maximum observed feature operation duration in the window, in seconds; omitted when no operations were observed.",
+    snapshot.features
+      .filter((row) => row.events > 0)
+      .map((row) => ({
+        labels: featureLabels(row),
+        value: row.maxDurationSeconds,
+      })),
   );
   add(
     "audit_events",

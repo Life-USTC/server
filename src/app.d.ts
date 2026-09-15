@@ -3,11 +3,6 @@ import type { AppSession } from "@/lib/auth/session";
 
 declare global {
   namespace App {
-    interface PageState {
-      adminAnalyticsPanel?: "feature" | "users" | "history";
-      adminAuditTab?: "operations" | "runtime" | "audit";
-    }
-
     interface Locals {
       authUser: AppSession["user"] | null;
       locale: AppLocale;
