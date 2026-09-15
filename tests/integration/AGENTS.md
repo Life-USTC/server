@@ -46,15 +46,11 @@ four disposable PostgreSQL containers, applies the production role bootstrap to
 each, and removes them on exit. Existing databases are not used. Set
 `INTEGRATION_SHARDS=1` through `8` to choose concurrency and
 `INTEGRATION_REPORT_ROOT` to retain logs at a chosen path. Test filters and role
-test environment flags pass through; files inside each shard stay serial.
+filters pass through; files inside each shard stay serial. The runner enables
+RLS, authentication-role, function-owner, and maintenance-role contract tests
+by default. Explicitly setting any of those four gates to a value other than
+`true` is rejected so required tests cannot be silently skipped.
 The local runner requires Bash, Docker, Bun, `psql`, and Linux `setsid`.
-To include every gated role contract locally:
-
-```bash
-RLS_TEST_ENABLED=true AUTH_ROLE_TEST_ENABLED=true \
-FUNCTION_OWNER_ROLE_TEST_ENABLED=true MAINTENANCE_ROLE_TEST_ENABLED=true \
-bun run integration:test:parallel
-```
 
 ## Conventions
 

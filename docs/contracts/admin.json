@@ -3,7 +3,7 @@
   "access": {
     "anon": "Cannot access the admin backend.",
     "user": "Cannot access the admin backend.",
-    "admin": "Can access governance pages for moderation, users, OAuth, bus, and more. Active suspensions block admin mutations but not read-only admin pages/list endpoints.",
+    "admin": "Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block admin mutations but not read-only admin pages/list endpoints.",
     "agent": "No admin tools are currently provided."
   },
   "rules": {
@@ -18,18 +18,15 @@
     "single-open-suspension": "Each user can have at most one open suspension. Creating a new suspension closes any previous open suspension for that user while retaining history; lifting an open suspension clears the user's open suspension state.",
     "admin-mutation-not-found": "PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return 404 when the target record is not found.",
     "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion.",
-    "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, bus, operations and issues, usage statistics) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
-    "audit-session-only": "The /admin/audit and /admin/analytics pages require an in-site Better Auth admin session. OAuth bearer tokens cannot access governance data.",
-    "audit-safe-projection": "The audit rows use stable (createdAt,id) cursor pagination and expose allowlisted structured metadata only; content bodies, IP addresses, full user agents, tokens, secrets, grant IDs, session IDs, and request IDs are not displayed in audit rows. The separate feature issue panel may display validated safe request IDs for correlation, without raw exceptions or stacks.",
-    "aggregate-only-analytics": "Historical activity combines first-party audit events and content-free OAuth daily usage, excluding external OAuth mutation audit rows to avoid double counting. Daily operation and access-method curves can be narrowed by feature. OAuth history identifies read/write only, never inferred specific operations. This source remains separate from new feature observations.",
-    "feature-experience-telemetry": "PostgreSQL stores unsampled feature observations. Counts and daily curves share feature, operation, protocol, surface, auth and outcome filters. Shanghai windows include partial today. Percentiles measure recorded wall duration. Summary totals include all rows even when matrix detail is capped at 500 cells. Known identities reuse existing verified principals; anonymous visitors are not unique users.",
+    "primary-admin-navigation": "The global shell exposes each admin tool (users, moderation, OAuth, and bus) under Admin tools. /admin redirects to /admin/users; resource URLs remain stable.",
+    "feature-experience-telemetry": "PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded feature, operation, protocol, surface, authentication, outcome, error class, identity, and wall-duration dimensions; Prometheus snapshots expose counters, duration histograms and activity gauges and deduplicate identified users independently per window. Anonymous visitors are not unique users.",
     "feature-experience-outcomes": "Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no identified error. They contribute to usage but not issue samples or warning logs.",
     "feature-experience-retention": "Background writes retain at most 256 events per request and use independent PostgreSQL transactions. Overflow, process termination or database failure can lose records; missing history is not zero. Records are cleaned in bounded batches after 90 days, without historical backfill. No Analytics Engine API, token or binding is required.",
     "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, optional feedback or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation.",
-    "platform-operation-browser": "The operations page offers issue-only or all recorded feature operations, filters by feature, operation, protocol, outcome and known actor, grouped issue counts, daily trends and deterministic (occurredAt,id) cursor pagination. Security audit records remain a separate source with their existing safe projection. Runtime warnings/errors are shown separately as the latest 20 records in the selected time window.",
     "platform-runtime-logs": "Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary paths, messages, stacks, request bodies, search text, IP addresses and credentials. Telemetry writer failures cannot recursively generate telemetry writes.",
-    "user-trend-definitions": "User growth counts creation dates of currently retained accounts; deleted accounts cannot be reconstructed. Daily and period activity count distinct known user IDs from feature observations, never sum daily users to obtain period users. Days before first observation have unknown activity.",
-    "observability-panels": "Statistics and operation logs use shared dashboard panels and compact toolbars. Charts expose selectable series and a data-table view; metric definitions remain available through panel information controls. History, feature operations, runtime issues, and audit records remain separately labelled and accessible without stacking every detail on the initial screen."
+    "prometheus-export": "GET /metrics accepts only the dedicated METRICS_SECRET as a Bearer credential. Missing configuration or invalid credentials return 401 without database reads. It exports durable event counters, cumulative duration histograms and current-state/activity gauges; no raw logs or user/request/client identifiers. This machine-only transport has no GraphQL or MCP equivalent.",
+    "prometheus-collection": "Counters begin at the recorded installation epoch, with no backfill, and update atomically with committed observations. Duplicate retained event IDs and rolled-back writes do not increment counters; retention and identity deletion never decrement them. Counters are fresh each scrape. Expensive gauges are cached 60 seconds (at most 120 during refresh contention); failures return 503.",
+    "prometheus-windows": "Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature activity is grouped by feature and protocol, excluding anonymous users. Event counters have no window label; duration histograms use feature, operation and protocol. Raw observation capture remains bounded and best effort."
   },
   "capabilities": {
     "admin-entry": {
@@ -41,7 +38,7 @@
       "display": {
         "fields": [
           "Redirects to user management",
-          "Primary sidebar links for moderation, users, OAuth, bus, audit, and analytics"
+          "Primary sidebar links for moderation, users, OAuth, and bus"
         ]
       }
     },
@@ -182,69 +179,6 @@
           "effective range",
           "enabled status",
           "Actions: import, activate, delete"
-        ]
-      }
-    },
-    "audit-log": {
-      "title": "Operations and Issues",
-      "auth": "admin",
-      "web": {
-        "pages": ["/admin/audit"]
-      },
-      "rest": "unavailable",
-      "mcp": "unavailable",
-      "display": {
-        "fields": [
-          "createdAt",
-          "actor and subject summaries",
-          "OAuth client name/id",
-          "action, outcome, channel",
-          "target type/id",
-          "allowlisted structured metadata",
-          "separately bounded feature issue samples, including today: safe request ID, timestamp, outcome, and error class"
-        ],
-        "filters": [
-          "actor",
-          "subject",
-          "client",
-          "action",
-          "outcome",
-          "channel",
-          "target type/id",
-          "date range"
-        ]
-      }
-    },
-    "aggregate-analytics": {
-      "title": "Usage Statistics",
-      "auth": "admin",
-      "web": {
-        "pages": ["/admin/analytics"]
-      },
-      "rest": "unavailable",
-      "mcp": "unavailable",
-      "display": {
-        "fields": [
-          "feature",
-          "channel",
-          "outcome",
-          "client",
-          "count",
-          "time window: 7, 30, or 90 days",
-          "Shanghai-day window: 7, 30, or 90 days including partial today",
-          "feature × operation × protocol × surface × authentication mode × outcome matrix",
-          "recorded totals, rejected, errors, unknown outcomes and identified active users",
-          "PostgreSQL wall-time p50 and p95 for recorded operations",
-          "available cells reflect observed telemetry only",
-          "coverage start, recording limits, retention, and identified-user definition"
-        ],
-        "filters": [
-          "feature",
-          "operation",
-          "protocol",
-          "surface",
-          "authentication mode",
-          "outcome"
         ]
       }
     }

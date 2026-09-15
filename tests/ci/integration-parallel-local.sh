@@ -8,6 +8,22 @@ if ! [[ "$shard_total" =~ ^[1-8]$ ]]; then
   echo "INTEGRATION_SHARDS must be an integer from 1 through 8." >&2
   exit 1
 fi
+
+# The default local runner is also the convenient way to exercise the role
+# contracts. Do not let an explicitly disabled gate turn mandatory tests into
+# silent skips.
+for role_test_flag in \
+  RLS_TEST_ENABLED \
+  AUTH_ROLE_TEST_ENABLED \
+  FUNCTION_OWNER_ROLE_TEST_ENABLED \
+  MAINTENANCE_ROLE_TEST_ENABLED; do
+  if [[ -v "$role_test_flag" && "${!role_test_flag}" != "true" ]]; then
+    echo "$role_test_flag must be true for the parallel integration runner." >&2
+    exit 1
+  fi
+  export "$role_test_flag=true"
+done
+
 for command in docker bun bunx psql setsid; do
   command -v "$command" >/dev/null || { echo "$command is required." >&2; exit 1; }
 done

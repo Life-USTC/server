@@ -5,6 +5,8 @@ import { parse as parseYaml } from "yaml";
 
 type WorkflowJob = {
   needs?: string | string[];
+  uses?: string;
+  services?: Record<string, unknown>;
   steps?: Array<{
     name?: string;
     run?: string;
@@ -35,14 +37,16 @@ function jobNeeds(job: WorkflowJob | undefined): string[] {
 }
 
 async function readWorkflows() {
-  const [ci, dbBacked] = await Promise.all([
+  const [ci, dbBacked, bun] = await Promise.all([
     readWorkflow(".github/workflows/ci.yml"),
     readWorkflow(".github/workflows/db-backed-bun-job.yml"),
+    readWorkflow(".github/workflows/bun-job.yml"),
   ]);
 
   return {
     ciJobs: ci.jobs ?? {},
     dbBackedRun: dbBacked.jobs?.run,
+    bunRun: bun.jobs?.run,
   };
 }
 
@@ -65,6 +69,30 @@ describe("CI server test parallelism", () => {
     }
 
     expect(jobNeeds(ciJobs["test-e2e"])).not.toContain("test-integration");
+  });
+
+  it("keeps pure checks and builds off the Postgres-backed reusable job", async () => {
+    const { ciJobs, bunRun, dbBackedRun } = await readWorkflows();
+
+    for (const jobId of ["check", "test-unit", "build-e2e-artifacts"]) {
+      expect(ciJobs[jobId]?.uses, jobId).toBe(
+        "./.github/workflows/bun-job.yml",
+      );
+    }
+    for (const jobId of [
+      "test-integration",
+      "test-rest",
+      "test-rls",
+      "test-e2e",
+      "test-visual-regression",
+    ]) {
+      expect(ciJobs[jobId]?.uses, jobId).toBe(
+        "./.github/workflows/db-backed-bun-job.yml",
+      );
+    }
+
+    expect(bunRun?.services).toBeUndefined();
+    expect(dbBackedRun?.services?.postgres).toBeDefined();
   });
 
   it("shares the one application build artifact with REST, E2E, and visual tests", async () => {
@@ -119,28 +147,61 @@ describe("CI server test parallelism", () => {
     );
 
     const e2eEntries = ciJobs["test-e2e"]?.strategy?.matrix?.include ?? [];
-    expect(e2eEntries).toHaveLength(4);
+    expect(e2eEntries).toHaveLength(8);
     expect(e2eEntries.map((entry) => entry.shard)).toEqual([
-      "1/4",
-      "2/4",
-      "3/4",
-      "4/4",
+      "1/8",
+      "2/8",
+      "3/8",
+      "4/8",
+      "5/8",
+      "6/8",
+      "7/8",
+      "8/8",
     ]);
   });
 
-  it("keeps the unit coverage phase and its artifact separate", async () => {
+  it("runs both REST partitions with separate databases and artifacts", async () => {
     const { ciJobs, dbBackedRun } = await readWorkflows();
+    const rest = ciJobs["test-rest"];
+    const entries = rest?.strategy?.matrix?.include ?? [];
+    expect(entries.map((entry) => entry.shard)).toEqual(["1/2", "2/2"]);
+    expect(new Set(entries.map((entry) => entry.database)).size).toBe(2);
+    expect(new Set(entries.map((entry) => entry.artifact)).size).toBe(2);
+    expect(rest?.with?.["e2e-shard"]).toBe("${" + "{ matrix.shard }}");
+    expect(rest?.with?.["upload-artifact-name"]).toContain("matrix.artifact");
+    const source =
+      dbBackedRun?.steps?.find((step) => step.name === "Run job phase")?.run ??
+      "";
+    const phase = source.slice(
+      source.indexOf("ci:rest)"),
+      source.indexOf("ci:rls)"),
+    );
+    expect(phase).toContain(
+      'bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts',
+    );
+  });
+
+  it("keeps the unit coverage phase and its artifact separate", async () => {
+    const { ciJobs, bunRun } = await readWorkflows();
     const unitInputs = ciJobs["test-unit"]?.with;
 
     expect(unitInputs?.["job-phase"]).toBe("ci:unit");
     expect(unitInputs?.["upload-artifact-name"]).toBe("vitest-coverage");
     expect(unitInputs?.["upload-artifact-path"]).toBe("coverage");
+    expect(unitInputs?.["upload-artifact-always"]).toBe(true);
+    expect(unitInputs?.["upload-artifact-no-files-found"]).toBe("warn");
 
-    const environmentRun = dbBackedRun?.steps?.find(
+    const environmentRun = bunRun?.steps?.find(
       (step) => step.name === "Configure job environment",
     )?.run;
     expect(environmentRun).toMatch(
       /JOB_PHASE.*ci:verify.*ci:unit|ci:unit.*JOB_PHASE.*ci:verify/s,
     );
+  });
+
+  it("keeps the request-only REST suite from installing Chromium", async () => {
+    const { ciJobs } = await readWorkflows();
+
+    expect(ciJobs["test-rest"]?.with?.["install-playwright"]).not.toBe(true);
   });
 });

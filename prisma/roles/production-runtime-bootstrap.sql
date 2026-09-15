@@ -237,6 +237,9 @@ GRANT SELECT ON TABLE
   "UploadPending",
   "CommentAttachment",
   "Comment",
+  "Homework",
+  "OAuthClient",
+  "UserSuspension",
   "User",
   "CommentReaction",
   "UserSectionSubscription"
@@ -250,6 +253,8 @@ TO life_ustc_function_owner;
 GRANT SELECT, UPDATE, DELETE ON TABLE
   "FeatureOperationEvent",
   "RuntimeIssueEvent"
+TO life_ustc_function_owner;
+GRANT SELECT, INSERT, UPDATE ON TABLE "PrometheusMetricsCache"
 TO life_ustc_function_owner;
 GRANT DELETE ON TABLE "User" TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
@@ -331,6 +336,8 @@ ALTER FUNCTION public.release_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.read_prometheus_metrics_snapshot()
+  OWNER TO life_ustc_function_owner;
 
 DROP POLICY IF EXISTS "Upload_definer_read" ON "Upload";
 CREATE POLICY "Upload_definer_read" ON "Upload"
@@ -461,11 +468,20 @@ CREATE POLICY "FeatureOperationEvent_function_owner" ON "FeatureOperationEvent"
 DROP POLICY IF EXISTS "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent";
 CREATE POLICY "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent"
   FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+ALTER TABLE "PrometheusMetricsCache" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PrometheusMetricsCache" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "PrometheusMetricsCache_function_owner"
+  ON "PrometheusMetricsCache";
+CREATE POLICY "PrometheusMetricsCache_function_owner"
+  ON "PrometheusMetricsCache"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
 
 GRANT EXECUTE ON FUNCTION public.maintain_observability_event_retention(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;
+GRANT EXECUTE ON FUNCTION public.read_prometheus_metrics_snapshot()
+  TO life_ustc_runtime;
 GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer,
@@ -479,6 +495,29 @@ GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
     integer
   )
 TO life_ustc_maintenance_runtime;
+
+GRANT SELECT, INSERT, UPDATE ON public."PrometheusCounter" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "PrometheusCounter_function_owner" ON public."PrometheusCounter";
+CREATE POLICY "PrometheusCounter_function_owner" ON public."PrometheusCounter" FOR ALL TO life_ustc_function_owner USING(true) WITH CHECK(true);
+REVOKE ALL ON public."PrometheusCounter" FROM life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+GRANT SELECT, INSERT, UPDATE ON public."PrometheusCounterEpoch" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "PrometheusCounterEpoch_function_owner" ON public."PrometheusCounterEpoch";
+CREATE POLICY "PrometheusCounterEpoch_function_owner" ON public."PrometheusCounterEpoch" FOR ALL TO life_ustc_function_owner USING(true) WITH CHECK(true);
+REVOKE ALL ON public."PrometheusCounterEpoch" FROM life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_features() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_features() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_runtime() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_runtime() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_audit() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_audit() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_oauth_insert() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_oauth_insert() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_oauth_update() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_oauth_update() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_registrations() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_registrations() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_deletions() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_deletions() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
 
 -- Grants to caller roles materialize the owner's default EXECUTE entry. Keep
 -- the function owner as a pure SECURITY DEFINER identity with no explicit ACL.

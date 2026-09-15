@@ -11,22 +11,21 @@ jobs:
     name: Check
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_ci
       job-phase: ci:verify
 
   test-unit:
     name: Unit test coverage
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_unit
       job-phase: ci:unit
       upload-artifact-name: vitest-coverage
       upload-artifact-path: coverage
       upload-artifact-no-files-found: warn
+      upload-artifact-always: true
 
   test-integration:
     name: MCP Integration Test (${{ matrix.index }}/4)
@@ -53,19 +52,29 @@ jobs:
       timeout-minutes: 60
 
   test-rest:
-    name: REST API Test
+    name: REST API Test (${{ matrix.shard }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1/2
+            database: life_ustc_rest_1
+            artifact: api-1
+          - shard: 2/2
+            database: life_ustc_rest_2
+            artifact: api-2
     needs: build-e2e-artifacts
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_rest
-      install-playwright: true
+      database-name: ${{ matrix.database }}
       job-phase: ci:rest
+      e2e-shard: ${{ matrix.shard }}
       timeout-minutes: 60
       download-artifact-name: e2e-svelte-kit
       download-artifact-path: .svelte-kit
-      upload-artifact-name: playwright-report-integration
+      upload-artifact-name: playwright-report-integration-${{ matrix.artifact }}
       # Keep API Playwright and Worker-supervisor diagnostics when integration
       # infrastructure fails before a report can be rendered.
       upload-artifact-path: playwright-report/
@@ -84,9 +93,8 @@ jobs:
     name: Build E2E artifacts
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_e2e_build
       webhook-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts
@@ -189,18 +197,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: 1/4
+          - shard: 1/8
             artifact: shard-1
             database: life_ustc_e2e_1
-          - shard: 2/4
+          - shard: 2/8
             artifact: shard-2
             database: life_ustc_e2e_2
-          - shard: 3/4
+          - shard: 3/8
             artifact: shard-3
             database: life_ustc_e2e_3
-          - shard: 4/4
+          - shard: 4/8
             artifact: shard-4
             database: life_ustc_e2e_4
+          - shard: 5/8
+            artifact: shard-5
+            database: life_ustc_e2e_5
+          - shard: 6/8
+            artifact: shard-6
+            database: life_ustc_e2e_6
+          - shard: 7/8
+            artifact: shard-7
+            database: life_ustc_e2e_7
+          - shard: 8/8
+            artifact: shard-8
+            database: life_ustc_e2e_8
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml

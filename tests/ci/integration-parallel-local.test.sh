@@ -50,6 +50,9 @@ fi
 [[ "$MAINTENANCE_DATABASE_URL" == *life_ustc_maintenance_runtime:* ]]
 [[ "$DATABASE_URL" != "$FUNCTION_OWNER_DATABASE_URL" ]]
 [[ "$RLS_TEST_ENABLED" == true ]]
+[[ "$AUTH_ROLE_TEST_ENABLED" == true ]]
+[[ "$FUNCTION_OWNER_ROLE_TEST_ENABLED" == true ]]
+[[ "$MAINTENANCE_ROLE_TEST_ENABLED" == true ]]
 [[ "$CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE" == "$DATABASE_URL" ]]
 [[ "$*" == *'test-filter --reporter=dot'* ]]
 shard="${5#--shard=}"
@@ -76,7 +79,8 @@ chmod +x "$test_dir/bin/"*
 export PARALLEL_REAL_BUN="$(command -v bun)"
 export PATH="$test_dir/bin:$PATH"
 unset E2E_BUNX_BIN
-export RLS_TEST_ENABLED=true INTEGRATION_SHARDS=2
+unset RLS_TEST_ENABLED AUTH_ROLE_TEST_ENABLED FUNCTION_OWNER_ROLE_TEST_ENABLED MAINTENANCE_ROLE_TEST_ENABLED
+export INTEGRATION_SHARDS=2
 export INTEGRATION_REPORT_ROOT="$test_dir/reports"
 bash tests/ci/integration-parallel-local.sh test-filter --reporter=dot >"$test_dir/success.log" 2>&1
 [[ "$(wc -l < "$test_dir/tests.log")" == 2 ]]
@@ -108,6 +112,17 @@ for shard in 1 2; do
   fi
 done
 [[ "$(grep -c '^rm -f -v life-ustc-integration-' "$test_dir/docker.log")" == 6 ]]
+for invalid_role_test_flag in \
+  RLS_TEST_ENABLED \
+  AUTH_ROLE_TEST_ENABLED \
+  FUNCTION_OWNER_ROLE_TEST_ENABLED \
+  MAINTENANCE_ROLE_TEST_ENABLED; do
+  if env "$invalid_role_test_flag=false" \
+    bash tests/ci/integration-parallel-local.sh >/dev/null 2>&1; then
+    echo "$invalid_role_test_flag=false was incorrectly accepted." >&2
+    exit 1
+  fi
+done
 if INTEGRATION_SHARDS=0 bash tests/ci/integration-parallel-local.sh >/dev/null 2>&1; then
   echo 'Invalid shard count was accepted.' >&2
   exit 1

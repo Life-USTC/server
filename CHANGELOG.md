@@ -1,3 +1,17 @@
+# [1.115.0](https://github.com/Life-USTC/server/compare/v1.114.0...v1.115.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** persist native Prometheus counters and histograms ([#1054](https://github.com/Life-USTC/server/issues/1054)) ([9c87833](https://github.com/Life-USTC/server/commit/9c87833000405da827d8070f0478df926c3ea962))
+
+# [1.114.0](https://github.com/Life-USTC/server/compare/v1.113.0...v1.114.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** export admin aggregates through authenticated /metrics ([#1051](https://github.com/Life-USTC/server/issues/1051)) ([46e9b4f](https://github.com/Life-USTC/server/commit/46e9b4fb9dcfb4db7e0efe013aac39043f7d09f5))
+
 # [1.113.0](https://github.com/Life-USTC/server/compare/v1.112.1...v1.113.0) (2026-09-14)
 
 

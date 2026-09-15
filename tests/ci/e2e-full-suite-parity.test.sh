@@ -24,17 +24,17 @@ test -f "$worker_server_script" ||
 test -f "$shard_runner_script" ||
   fail "missing ${shard_runner_script}"
 
-grep -q 'readonly E2E_SHARD_TOTAL=4' "$orchestration_script" ||
-  fail "orchestration script must declare E2E_SHARD_TOTAL=4"
+grep -q 'readonly E2E_SHARD_TOTAL=8' "$orchestration_script" ||
+  fail "orchestration script must declare E2E_SHARD_TOTAL=8"
 
 ci_shard_count="$(
-  grep -cE 'shard: [0-9]+/4' "${repo_root}/.github/workflows/ci.yml" || true
+  grep -cE 'shard: [0-9]+/8' "${repo_root}/.github/workflows/ci.yml" || true
 )"
-[[ "$ci_shard_count" == "4" ]] ||
-  fail "ci.yml defines ${ci_shard_count} E2E shards, expected 4"
+[[ "$ci_shard_count" == "8" ]] ||
+  fail "ci.yml defines ${ci_shard_count} E2E shards, expected 8"
 
-for shard in 1 2 3 4; do
-  grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/4\"" \
+for shard in 1 2 3 4 5 6 7 8; do
+  grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/8\"" \
     "${repo_root}/package.json" ||
     fail "package.json is missing e2e:test:shard${shard}"
 done
@@ -73,8 +73,14 @@ grep -q 'bash tests/ci/e2e-run-shard.sh' "$parallel_shard_script" ||
   fail "parallel runner must use the infrastructure-aware shard runner"
 grep -q 'setsid bash tests/ci/e2e-local-shard.sh' "$parallel_script" ||
   fail "parallel runner must isolate each shard in a process group"
-grep -q 'kill -KILL -- "-${pid}"' "$parallel_script" ||
-  fail "parallel runner must clean up an interrupted shard process group"
+grep -q 'source tests/ci/e2e-process-groups.sh' "$parallel_script" ||
+  fail "parallel runner must load the process ownership helper"
+grep -q 'E2E_PROCESS_OWNER=' "$parallel_script" ||
+  fail "parallel runner must mark owned processes before launching a shard"
+grep -q 'e2e_signal_owned_processes.*KILL' "$parallel_script" ||
+  fail "parallel runner must clean up owned processes after shard exit"
+grep -q 'readonly shard_total=8' "$parallel_script" ||
+  fail "parallel runner must execute all eight CI partitions"
 grep -q 'assert_port_available' "$parallel_script" ||
   fail "parallel runner must reject occupied Worker ports before setup"
 
@@ -90,16 +96,17 @@ if grep -q 'PLAYWRIGHT_BASE_URL = "http://localhost:3000"' \
 fi
 
 job_phase_script="${repo_root}/.github/workflows/db-backed-bun-job.yml"
+static_job_phase_script="${repo_root}/.github/workflows/bun-job.yml"
 visual_script="${repo_root}/tests/ci/visual-regression.test.sh"
 grep -q 'source tests/ci/setup-runtime-database.sh' "$job_phase_script" ||
   fail "DB-backed jobs must prepare restricted runtime roles"
 grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD"' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must use the infrastructure-aware shard runner"
-grep -q 'bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts' \
+grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD" --config playwright.api.config.ts' \
   "$job_phase_script" ||
-  fail "ci:integration must use the infrastructure-aware API shard runner"
+  fail "ci:rest must use the infrastructure-aware API shard runner"
 if grep -q 'bunx playwright test --config playwright.api.config.ts' "$job_phase_script"; then
-  fail "ci:integration must not invoke Playwright directly"
+  fail "ci:rest must not invoke Playwright directly"
 fi
 grep -q 'VISUAL_REGRESSION=1 bash tests/ci/e2e-run-shard.sh 1/1 visual-matrix' \
   "$visual_script" ||
@@ -128,7 +135,8 @@ grep -q 'source tests/ci/setup-runtime-database.sh reset' "$shard_runner_script"
   fail "CI retries must restore data and restricted roles before replay"
 grep -q 'wrangler.log' "$worker_server_script" ||
   fail "Worker wrapper must capture Wrangler logs"
-grep -q 'bash tests/ci/e2e-worker-server.test.sh' "$job_phase_script" ||
+grep -Eq '^[[:space:]]*bash tests/ci/e2e-worker-server\.test\.sh[[:space:]]*$' \
+  "$static_job_phase_script" ||
   fail "CI verify phase must run the Worker termination regression"
 
 echo "e2e full-suite parity guard passed"

@@ -37,6 +37,10 @@ BEGIN
 END
 $revoke_auth_tables$;
 
+-- The metrics endpoint receives sanitized aggregates through its SECURITY
+-- DEFINER function and must never read the singleton cache directly.
+REVOKE ALL ON TABLE "PrometheusMetricsCache" FROM life_ustc_runtime;
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "Todo",
   "CatalogLinkClick",
@@ -122,3 +126,5 @@ GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
 TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
+
+REVOKE ALL ON public."PrometheusCounter",public."PrometheusCounterEpoch" FROM life_ustc_runtime;

@@ -1,29 +1,47 @@
 #!/usr/bin/env bash
-# Run the four Playwright shards concurrently against isolated local services.
+# Run the eight Playwright shards against isolated local services with bounded
+# local concurrency.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly shard_total=4
+readonly shard_total=8
+readonly e2e_concurrency="${E2E_CONCURRENCY:-2}"
 readonly base_port="${E2E_BASE_PORT:-3100}"
 readonly inspector_base_port="${E2E_INSPECTOR_BASE_PORT:-3200}"
-readonly run_id="$$"
-readonly container_prefix="life-ustc-e2e-${run_id}"
-temp_dir="$(mktemp -d)"
-pids=()
+readonly run_id="$$-$(date +%s%N)"
+readonly process_owner_prefix="life-ustc-e2e-${run_id}"
+readonly container_prefix="${process_owner_prefix}"
+temp_dir=""
+shard_process_owners=()
 
-if ! [[ "$base_port" =~ ^[0-9]+$ ]] || ((base_port < 1024 || base_port > 65531)); then
-  echo "E2E_BASE_PORT must be an integer from 1024 through 65531." >&2
+source tests/ci/e2e-process-groups.sh
+
+if ! [[ "$e2e_concurrency" =~ ^[1-8]$ ]]; then
+  echo "E2E_CONCURRENCY must be an integer from 1 through 8." >&2
+  exit 1
+fi
+
+readonly max_shard_port=$((65535 - shard_total + 1))
+
+if ! [[ "$base_port" =~ ^[0-9]+$ ]] ||
+  ((base_port < 1024 || base_port > max_shard_port)); then
+  echo "E2E_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
   exit 1
 fi
 if ! [[ "$inspector_base_port" =~ ^[0-9]+$ ]] ||
-  ((inspector_base_port < 1024 || inspector_base_port > 65531)); then
-  echo "E2E_INSPECTOR_BASE_PORT must be an integer from 1024 through 65531." >&2
+  ((inspector_base_port < 1024 || inspector_base_port > max_shard_port)); then
+  echo "E2E_INSPECTOR_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
+  exit 1
+fi
+if ((base_port <= inspector_base_port + shard_total - 1)) &&
+  ((inspector_base_port <= base_port + shard_total - 1)); then
+  echo "E2E worker and inspector port ranges must not overlap." >&2
   exit 1
 fi
 
-for command in docker bun psql setsid; do
+for command in docker bun psql setsid ps; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1
@@ -51,18 +69,35 @@ for shard in $(seq 1 "$shard_total"); do
   assert_port_available "$((inspector_base_port + shard - 1))"
 done
 
+cleanup_shard_processes() {
+  local owner="$1"
+  local main_process_group
+
+  main_process_group="$(e2e_process_group_for_pid "$$")"
+  if e2e_signal_owned_processes "$owner" TERM "$$" "$main_process_group"; then
+    sleep 1
+    e2e_signal_owned_processes "$owner" KILL "$$" "$main_process_group" || true
+  fi
+}
+
 cleanup() {
+  trap '' INT TERM
   local has_live_process=false
-  for pid in "${pids[@]}"; do
-    if kill -0 -- "-${pid}" >/dev/null 2>&1; then
-      kill -TERM -- "-${pid}" >/dev/null 2>&1 || true
+  local main_process_group
+  local owner
+
+  main_process_group="$(e2e_process_group_for_pid "$$")"
+
+  for owner in "${shard_process_owners[@]}"; do
+    if e2e_signal_owned_processes "$owner" TERM "$$" "$main_process_group"; then
       has_live_process=true
     fi
   done
+
   if [[ "$has_live_process" == "true" ]]; then
     sleep 1
-    for pid in "${pids[@]}"; do
-      kill -KILL -- "-${pid}" >/dev/null 2>&1 || true
+    for owner in "${shard_process_owners[@]}"; do
+      e2e_signal_owned_processes "$owner" KILL "$$" "$main_process_group" || true
     done
   fi
   for shard in $(seq 1 "$shard_total"); do
@@ -72,6 +107,8 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
+
+temp_dir="$(mktemp -d)"
 
 database_urls=()
 for shard in $(seq 1 "$shard_total"); do
@@ -103,25 +140,51 @@ done
 DATABASE_URL="${database_urls[0]}" bun run app:prepare
 DATABASE_URL="${database_urls[0]}" bun run build
 
-for shard in $(seq 1 "$shard_total"); do
-  database_url="${database_urls[$((shard - 1))]}"
-  worker_port="$((base_port + shard - 1))"
-  log_file="${temp_dir}/shard-${shard}.log"
-
-  setsid bash tests/ci/e2e-local-shard.sh \
-    "$shard" \
-    "$shard_total" \
-    "$database_url" \
-    "$worker_port" \
-    "$((inspector_base_port + shard - 1))" \
-    "$temp_dir" \
-    "$@" >"$log_file" 2>&1 &
-  pids+=("$!")
-done
-
 failed_shards=()
-for shard in $(seq 1 "$shard_total"); do
-  if ! wait "${pids[$((shard - 1))]}"; then
+active_pids=()
+declare -A shard_for_pid=()
+next_shard=1
+
+while ((next_shard <= shard_total || ${#active_pids[@]} > 0)); do
+  while ((next_shard <= shard_total && ${#active_pids[@]} < e2e_concurrency)); do
+    shard="$next_shard"
+    database_url="${database_urls[$((shard - 1))]}"
+    worker_port="$((base_port + shard - 1))"
+    log_file="${temp_dir}/shard-${shard}.log"
+    process_owner="${process_owner_prefix}-shard-${shard}"
+    shard_process_owners+=("$process_owner")
+
+    E2E_PROCESS_OWNER="$process_owner" setsid bash tests/ci/e2e-local-shard.sh \
+      "$shard" \
+      "$shard_total" \
+      "$database_url" \
+      "$worker_port" \
+      "$((inspector_base_port + shard - 1))" \
+      "$temp_dir" \
+      "$@" >"$log_file" 2>&1 &
+    pid="$!"
+    active_pids+=("$pid")
+    shard_for_pid[$pid]="$shard"
+    ((next_shard++))
+  done
+
+  finished_pid=""
+  wait_result=0
+  set +e
+  wait -n -p finished_pid "${active_pids[@]}"
+  wait_result="$?"
+  set -e
+
+  shard="${shard_for_pid[$finished_pid]}"
+  remaining_pids=()
+  for pid in "${active_pids[@]}"; do
+    [[ "$pid" == "$finished_pid" ]] || remaining_pids+=("$pid")
+  done
+  active_pids=("${remaining_pids[@]}")
+
+  cleanup_shard_processes "${process_owner_prefix}-shard-${shard}"
+
+  if ((wait_result != 0)); then
     failed_shards+=("${shard}/${shard_total}")
     echo "=== E2E shard ${shard}/${shard_total} (failed) ==="
     sed -n '1,$p' "${temp_dir}/shard-${shard}.log"
