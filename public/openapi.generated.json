@@ -2243,6 +2243,19 @@
         "parameters": [
           {
             "in": "query",
+            "name": "dateUnknown",
+            "schema": {
+              "description": "Filter activities missing the selected time basis start; incompatible with date bounds.",
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter activities missing the selected time basis start; incompatible with date bounds."
+          },
+          {
+            "in": "query",
             "name": "active",
             "schema": {
               "description": "Filter by signup-open (active) events.",
@@ -10658,389 +10671,10 @@
           "normalizedName": {
             "type": "string"
           },
-          "activeEvents": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "youngId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "category": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "department": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizer": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizerId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "status": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "registrationStatus": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "location": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "imageUrl": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "hours": {
-                  "nullable": true,
-                  "type": "number"
-                },
-                "capacity": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "appliedCount": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "startAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "endAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyStartAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyEndAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "isActive": {
-                  "type": "boolean"
-                },
-                "sourceMissing": {
-                  "type": "boolean"
-                },
-                "lastSeenAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "createdAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                }
-              },
-              "required": [
-                "youngId",
-                "name",
-                "category",
-                "department",
-                "organizer",
-                "organizerId",
-                "status",
-                "registrationStatus",
-                "location",
-                "imageUrl",
-                "hours",
-                "capacity",
-                "appliedCount",
-                "startAt",
-                "endAt",
-                "applyStartAt",
-                "applyEndAt",
-                "isActive",
-                "sourceMissing",
-                "lastSeenAt",
-                "createdAt"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "upcomingEvents": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "youngId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "category": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "department": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizer": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizerId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "status": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "registrationStatus": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "location": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "imageUrl": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "hours": {
-                  "nullable": true,
-                  "type": "number"
-                },
-                "capacity": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "appliedCount": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "startAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "endAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyStartAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyEndAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "isActive": {
-                  "type": "boolean"
-                },
-                "sourceMissing": {
-                  "type": "boolean"
-                },
-                "lastSeenAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "createdAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                }
-              },
-              "required": [
-                "youngId",
-                "name",
-                "category",
-                "department",
-                "organizer",
-                "organizerId",
-                "status",
-                "registrationStatus",
-                "location",
-                "imageUrl",
-                "hours",
-                "capacity",
-                "appliedCount",
-                "startAt",
-                "endAt",
-                "applyStartAt",
-                "applyEndAt",
-                "isActive",
-                "sourceMissing",
-                "lastSeenAt",
-                "createdAt"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "historyEvents": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "youngId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "category": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "department": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizer": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizerId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "status": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "registrationStatus": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "location": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "imageUrl": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "hours": {
-                  "nullable": true,
-                  "type": "number"
-                },
-                "capacity": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "appliedCount": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "startAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "endAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyStartAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyEndAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "isActive": {
-                  "type": "boolean"
-                },
-                "sourceMissing": {
-                  "type": "boolean"
-                },
-                "lastSeenAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "createdAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                }
-              },
-              "required": [
-                "youngId",
-                "name",
-                "category",
-                "department",
-                "organizer",
-                "organizerId",
-                "status",
-                "registrationStatus",
-                "location",
-                "imageUrl",
-                "hours",
-                "capacity",
-                "appliedCount",
-                "startAt",
-                "endAt",
-                "applyStartAt",
-                "applyEndAt",
-                "isActive",
-                "sourceMissing",
-                "lastSeenAt",
-                "createdAt"
-              ],
-              "additionalProperties": false
-            }
+          "totalCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           },
           "activeCount": {
             "type": "integer",
@@ -11062,9 +10696,7 @@
           "id",
           "name",
           "normalizedName",
-          "activeEvents",
-          "upcomingEvents",
-          "historyEvents",
+          "totalCount",
           "activeCount",
           "upcomingCount",
           "historyCount"
@@ -15936,133 +15568,10 @@
             ],
             "additionalProperties": false
           },
-          "unknownDates": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "youngId": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "category": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "department": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizer": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "organizerId": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "status": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "registrationStatus": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "location": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "imageUrl": {
-                  "nullable": true,
-                  "type": "string"
-                },
-                "hours": {
-                  "nullable": true,
-                  "type": "number"
-                },
-                "capacity": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "appliedCount": {
-                  "nullable": true,
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "startAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "endAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyStartAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "applyEndAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "isActive": {
-                  "type": "boolean"
-                },
-                "sourceMissing": {
-                  "type": "boolean"
-                },
-                "lastSeenAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "createdAt": {
-                  "nullable": true,
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                }
-              },
-              "required": [
-                "youngId",
-                "name",
-                "category",
-                "department",
-                "organizer",
-                "organizerId",
-                "status",
-                "registrationStatus",
-                "location",
-                "imageUrl",
-                "hours",
-                "capacity",
-                "appliedCount",
-                "startAt",
-                "endAt",
-                "applyStartAt",
-                "applyEndAt",
-                "isActive",
-                "sourceMissing",
-                "lastSeenAt",
-                "createdAt"
-              ],
-              "additionalProperties": false
-            }
+          "unknownDateCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           },
           "source": {
             "type": "object",
@@ -16092,7 +15601,7 @@
         "required": [
           "data",
           "pagination",
-          "unknownDates",
+          "unknownDateCount",
           "source"
         ],
         "additionalProperties": false
@@ -23543,6 +23052,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "organizerId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "status": {
                       "nullable": true,
                       "type": "string"
@@ -23601,6 +23114,21 @@
                     },
                     "isActive": {
                       "type": "boolean"
+                    },
+                    "sourceMissing": {
+                      "type": "boolean"
+                    },
+                    "lastSeenAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                     }
                   },
                   "required": [
@@ -23609,6 +23137,7 @@
                     "category",
                     "department",
                     "organizer",
+                    "organizerId",
                     "status",
                     "registrationStatus",
                     "location",
@@ -23620,7 +23149,10 @@
                     "endAt",
                     "applyStartAt",
                     "applyEndAt",
-                    "isActive"
+                    "isActive",
+                    "sourceMissing",
+                    "lastSeenAt",
+                    "createdAt"
                   ],
                   "additionalProperties": false
                 }

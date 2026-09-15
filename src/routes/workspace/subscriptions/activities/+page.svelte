@@ -60,7 +60,7 @@ function pageHref(number: number) {
       {#each data.organizers.data as row (row.organizerId)}
         <Panel>
           <div class="grid gap-3">
-            <a class="font-medium" href={`/catalog/young-organizers/${encodeURIComponent(row.organizerId)}`}>{row.organizer.name}</a>
+            <a class="font-medium" href={`/catalog/young-events/organizers/${encodeURIComponent(row.organizerId)}`}>{row.organizer.name}</a>
             <YoungSubscriptionControl id={row.organizerId} kind="organizers" {copy} initialState={{ subscribed: true }} />
           </div>
         </Panel>
@@ -70,7 +70,7 @@ function pageHref(number: number) {
         <Panel>
           <div class="grid gap-3">
             <div class="flex flex-wrap items-center gap-3">
-              <a class="font-medium" href={row.youngId ? `/catalog/young-events/${encodeURIComponent(row.youngId)}` : `/catalog/young-organizers/${encodeURIComponent(row.organizerId ?? "")}`}>{row.title}</a>
+              <a class="font-medium" href={row.youngId ? `/catalog/young-events/${encodeURIComponent(row.youngId)}` : `/catalog/young-events/organizers/${encodeURIComponent(row.organizerId ?? "")}`}>{row.title}</a>
               {#if !row.readAt}<Badge variant="secondary">{copy.unread}</Badge>{/if}
             </div>
             <p>{row.body}</p>

@@ -216,6 +216,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   input YoungEventFilter {
+    dateUnknown: Boolean
     active: Boolean
     category: String
     search: String
@@ -267,7 +268,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
 
   type YoungEventPage {
     items: [YoungEvent!]!
-    unknownDates: [YoungEvent!]!
+    unknownDateCount: Int!
     source: YoungSourceFreshness!
     pageInfo: PageInfo!
   }
@@ -276,9 +277,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
     id: String!
     name: String!
     normalizedName: String!
-    activeEvents: [YoungEvent!]!
-    upcomingEvents: [YoungEvent!]!
-    historyEvents: [YoungEvent!]!
+    totalCount: Int!
     activeCount: Int!
     upcomingCount: Int!
     historyCount: Int!
@@ -714,6 +713,7 @@ export const graphqlSchema = createSchema<
               organizerId?: string | null;
               dateFrom?: string | null;
               dateTo?: string | null;
+              dateUnknown?: boolean | null;
               timeBasis?: "activity" | "registration" | null;
             } | null;
             page?: GraphqlPageInput | null;
@@ -731,6 +731,7 @@ export const graphqlSchema = createSchema<
           try {
             return await listYoungEvents({
               active: args.filter?.active ?? undefined,
+              dateUnknown: args.filter?.dateUnknown ?? undefined,
               category: validateGraphqlSearch(args.filter?.category),
               search: validateGraphqlSearch(args.filter?.search),
               organizerId: args.filter?.organizerId

@@ -11,8 +11,8 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
   commentsData?: CommentsInitialData | null;

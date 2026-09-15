@@ -434,6 +434,7 @@ export async function runImport(
     await logStep("recordStaticImportState", 1, () =>
       recordStaticImportState(tx, {
         observedAt,
+        youngSyncedAt: youngEventsSnapshotComplete ? observedAt : undefined,
         snapshotSha256: config.snapshotSha256,
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       }),

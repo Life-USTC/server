@@ -19,6 +19,6 @@ let { data }: { data: PageData } = $props();
   organizers={data.organizers}
   range={data.range}
   source={data.source}
-  unknownDates={data.unknownDates}
+  unknownDateCount={data.unknownDateCount}
   view={data.view}
 />

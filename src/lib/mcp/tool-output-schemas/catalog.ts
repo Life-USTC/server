@@ -94,14 +94,14 @@ export const youngEventPaginationSchema =
 export const youngEventListDefaultSchema = objectOutputSchema({
   data: z.array(compactYoungEventSchema),
   pagination: youngEventPaginationSchema,
-  unknownDates: z.array(compactYoungEventSchema),
+  unknownDateCount: z.number().int().nonnegative(),
   source: paginatedYoungEventResponseSchema.shape.source,
 });
 
 export const youngEventListFullSchema = objectOutputSchema({
   data: z.array(youngEventSummarySchema),
   pagination: youngEventPaginationSchema,
-  unknownDates: z.array(youngEventSummarySchema),
+  unknownDateCount: z.number().int().nonnegative(),
   source: paginatedYoungEventResponseSchema.shape.source,
 });
 
@@ -337,9 +337,7 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   catalog_young_event_list: objectOutputSchema({
     data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
     pagination: youngEventPaginationSchema,
-    unknownDates: z.array(
-      z.union([compactYoungEventSchema, youngEventSummarySchema]),
-    ),
+    unknownDateCount: z.number().int().nonnegative(),
     source: paginatedYoungEventResponseSchema.shape.source,
   }),
   catalog_young_event_get: objectOutputSchema({

@@ -531,6 +531,7 @@ model StaticImportState {
   id String @id
 
   snapshotGeneratedAt DateTime
+  youngSyncedAt       DateTime?
   snapshotSha256      String
   transformRevision   Int
 

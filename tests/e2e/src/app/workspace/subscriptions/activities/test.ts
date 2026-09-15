@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { createFixturePrisma } from "../../../../../../shared/prisma";
-import { signInAsDebugUser } from "../../../../../utils/auth";
+import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../../utils/comments";
+import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { assertPageContract } from "../../../_shared/page-contract";
 
@@ -97,3 +102,44 @@ for (const viewport of [
     }
   });
 }
+
+test("activity detail posts comments to the public youngId and preserves them on reload", async ({
+  page,
+}) => {
+  let id: string | undefined;
+  const body = `young-browser-comment-${crypto.randomUUID()}`;
+  try {
+    await signInAsDevAdmin(
+      page,
+      `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+    );
+    const composer = await openCommentComposer(page);
+    await composer.fill(body);
+    const response = page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/community/comments") &&
+        r.request().method() === "POST",
+    );
+    await page
+      .locator("#comments")
+      .getByRole("button", { name: /发布评论|Post comment/i })
+      .click();
+    const created = await response;
+    expect(created.request().postDataJSON()).toMatchObject({
+      targetType: "young-event",
+      youngId: DEV_SEED.youngEvent.youngId,
+    });
+    expect(created.status()).toBe(201);
+    id = (await created.json()).id;
+    await expect(
+      page.locator("#comments").getByText(body, { exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.locator("#comments").getByText(body, { exact: true }),
+    ).toBeVisible();
+    await page.screenshot({ path: "/tmp/young-comments.png", fullPage: true });
+  } finally {
+    await cleanupCommentsForE2e([id]);
+  }
+});

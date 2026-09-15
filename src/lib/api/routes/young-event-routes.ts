@@ -56,6 +56,7 @@ export async function getYoungEventsRoute(request: Request) {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
       timeBasis: query.timeBasis,
+      dateUnknown: query.dateUnknown,
       page: pagination.page,
       pageSize: pagination.pageSize,
     });

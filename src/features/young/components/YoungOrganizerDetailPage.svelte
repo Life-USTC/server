@@ -1,5 +1,7 @@
 <script lang="ts">
+import CatalogPagination from "@/features/catalog/components/CatalogPagination.svelte";
 import type {
+  YoungEventPage,
   YoungEventSummary,
   YoungOrganizerSummary,
   YoungSourceFreshness,
@@ -9,14 +11,16 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
   copy: AppPageCopy;
   organizer: YoungOrganizerSummary;
   source: YoungSourceFreshness;
+  events: YoungEventPage;
 };
 
-let { copy, organizer, source }: Props = $props();
+let { copy, organizer, source, events }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
 
@@ -33,11 +37,9 @@ function formatSourceDate(value: string | null) {
   return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
 
-const sections = $derived([
-  { events: organizer.activeEvents, label: youngCopy.activeEvents },
-  { events: organizer.upcomingEvents, label: youngCopy.upcomingEvents },
-  { events: organizer.historyEvents, label: youngCopy.historyEvents },
-]);
+function pageHref(page: number) {
+  return `?page=${page}`;
+}
 </script>
 
 <PageLayout
@@ -66,14 +68,20 @@ const sections = $derived([
       </div>
     </div>
 
-    {#each sections as section (section.label)}
+    <YoungSubscriptionControl id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
+    <dl class="flex flex-wrap gap-6 text-sm">
+      <div><dt class="text-muted-foreground">{youngCopy.organizerEvents}</dt><dd>{organizer.totalCount}</dd></div>
+      <div><dt class="text-muted-foreground">{youngCopy.activeEvents}</dt><dd>{organizer.activeCount}</dd></div>
+      <div><dt class="text-muted-foreground">{youngCopy.upcomingEvents}</dt><dd>{organizer.upcomingCount}</dd></div>
+      <div><dt class="text-muted-foreground">{youngCopy.historyEvents}</dt><dd>{organizer.historyCount}</dd></div>
+    </dl>
       <Panel>
         {#snippet header()}
-          <h2 class="font-medium text-base">{section.label}</h2>
+          <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
-        {#if section.events.length > 0}
+        {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
-            {#each section.events as event, index (event.youngId)}
+            {#each events.data as event, index (event.youngId)}
               <div role="listitem">
                 <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
                   {#snippet child({ props })}
@@ -92,7 +100,7 @@ const sections = $derived([
                     </a>
                   {/snippet}
                 </Item.Root>
-                {#if index < section.events.length - 1}
+                {#if index < events.data.length - 1}
                   <Item.Separator />
                 {/if}
               </div>
@@ -102,7 +110,9 @@ const sections = $derived([
           <p class="text-muted-foreground text-sm">{youngCopy.calendarEmpty}</p>
         {/if}
       </Panel>
-    {/each}
+    {#if events.pagination.totalPages > 1}
+      <CatalogPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
+    {/if}
 
     <div>
       <Button href="/catalog/young-events/organizers" variant="outline">

@@ -31,7 +31,7 @@ type Props = {
   copy: AppPageCopy;
   data: YoungEventSummary[];
   filters: YoungEventsPageFilters;
-  organizers: YoungOrganizerSummary[];
+  organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   source: YoungSourceFreshness;
   pagination: {
     page: number;
@@ -105,6 +105,8 @@ const searchSummary = $derived(
         class="flex flex-wrap items-end gap-3"
         method="get"
       >
+        {#if filters.dateUnknown != null}<input type="hidden" name="dateUnknown" value={String(filters.dateUnknown)} /><input type="hidden" name="timeBasis" value={filters.timeBasis ?? "activity"} />{/if}
+
         <div class="grid min-w-48 flex-1 gap-1.5">
           <label class="text-sm font-medium" for="young-event-search">
             {commonLabels.search}

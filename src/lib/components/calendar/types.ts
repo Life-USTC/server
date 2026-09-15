@@ -21,6 +21,7 @@ export type CalendarGridEvent = {
 };
 
 export type CalendarGridDay = {
+  moreHref?: string;
   key: string;
   label: string;
   sublabel?: string;

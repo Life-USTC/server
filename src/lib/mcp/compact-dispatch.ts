@@ -65,7 +65,11 @@ export function compactBusArrayItem(
 export function compactEntityArrayItem(
   value: Record<string, unknown>,
 ): CompactArrayMatch {
-  if (Object.hasOwn(value, "youngId")) {
+  if (
+    Object.hasOwn(value, "youngId") &&
+    Object.hasOwn(value, "name") &&
+    Object.hasOwn(value, "isActive")
+  ) {
     return { matched: true, value: compactYoungEvent(value) };
   }
 

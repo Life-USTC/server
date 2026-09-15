@@ -532,3 +532,5 @@ DROP POLICY IF EXISTS "UserYoungOrganizerSubscription_recipients" ON "UserYoungO
 CREATE POLICY "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
 ALTER FUNCTION public.list_young_notification_recipients(text, integer) OWNER TO life_ustc_function_owner;
 GRANT EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) TO life_ustc_maintenance_runtime;
+
+REVOKE EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) FROM life_ustc_function_owner;

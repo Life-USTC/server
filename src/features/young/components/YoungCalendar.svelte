@@ -20,7 +20,10 @@ export let events: YoungEventSummary[] = [];
 export let locale = "zh-cn";
 export let timeBasis: YoungEventTimeBasis = "activity";
 export let view: YoungCalendarView = "month";
-export let unknownDates: YoungEventSummary[] = [];
+export let unknownDateCount = 0;
+export let conflictIds = new Set<string>();
+export let conflictLabel = "";
+export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
   empty: string;
@@ -59,6 +62,7 @@ $: weeks = youngCalendarWeeks(
 ).map((week) => ({
   days: week.days.map((day) => ({
     key: day.key,
+    moreHref: hrefFor("day", day.key),
     label: new Intl.DateTimeFormat(locale, {
       timeZone: "Asia/Shanghai",
       day: "numeric",
@@ -73,6 +77,7 @@ $: weeks = youngCalendarWeeks(
       href: eventHref(event),
       label: event.name,
       meta: formatTime(event),
+      badge: conflictIds.has(event.youngId) ? conflictLabel : undefined,
       detail: event.sourceMissing
         ? `${event.location ?? ""}${event.location ? " · " : ""}${labels.sourceMissing}`
         : (event.location ?? ""),
@@ -100,7 +105,13 @@ function formatTime(event: YoungEventSummary) {
 }
 
 function eventMeta(event: YoungEventSummary) {
-  return [formatTime(event), event.location].filter(Boolean).join(" · ");
+  return [
+    formatTime(event),
+    event.location,
+    conflictIds.has(event.youngId) ? conflictLabel : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 </script>
 
@@ -179,15 +190,15 @@ function eventMeta(event: YoungEventSummary) {
     {#if view === "day"}
       {@const day = days[0]}
       {#if day}
-        <div class="grid gap-2 rounded-xl border p-4" role="grid">
-          <div class="font-medium text-sm" role="rowheader">
+        <div class="grid gap-2 rounded-xl border p-4">
+          <div class="font-medium text-sm">
             {new Intl.DateTimeFormat(locale, {
               timeZone: "Asia/Shanghai",
               dateStyle: "full",
             }).format(day.date)}
           </div>
           {#each day.events as event (event.youngId)}
-            <a class="rounded-lg border p-3 hover:bg-muted" href={eventHref(event)} role="gridcell">
+            <a class="rounded-lg border p-3 hover:bg-muted" href={eventHref(event)}>
               <div class="font-medium">{event.name}</div>
               <div class="text-muted-foreground text-sm">{eventMeta(event)}</div>
               {#if event.sourceMissing}<div class="text-muted-foreground text-xs">{labels.sourceMissing}</div>{/if}
@@ -212,11 +223,11 @@ function eventMeta(event: YoungEventSummary) {
     {/if}
   </div>
 
-  {#if unknownDates.length > 0}
+  {#if unknownDateCount > 0}
     <section class="grid gap-2" data-testid="young-calendar-unknown-dates">
       <h3 class="font-medium text-sm">{labels.unknownDates}</h3>
       <p class="text-muted-foreground text-sm">
-        {unknownDates.length} {labels.unknownDates}
+        <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
       </p>
     </section>
   {/if}

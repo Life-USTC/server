@@ -335,29 +335,7 @@ export const catalogGraphqlOperationDefinitions = [
               lastSeenAt
               createdAt
             }
-            unknownDates {
-              youngId
-              name
-              category
-              department
-              organizer
-              organizerId
-              status
-              registrationStatus
-              location
-              imageUrl
-              hours
-              capacity
-              appliedCount
-              startAt
-              endAt
-              applyStartAt
-              applyEndAt
-              isActive
-              sourceMissing
-              lastSeenAt
-              createdAt
-            }
+            unknownDateCount
             source {
               status
               lastSyncedAt
@@ -411,7 +389,7 @@ export const catalogGraphqlOperationDefinitions = [
     id: "catalog.young_organizer.list.v1",
     title: "List Young organizers",
     description:
-      "Lists normalized Young organizers with active, upcoming, and historical events.",
+      "Lists normalized Young organizers with counts; list activities using the organizerId event filter.",
     document: /* GraphQL */ `
       query CatalogYoungOrganizers($page: PageInput, $search: String) {
         catalog {
@@ -420,31 +398,8 @@ export const catalogGraphqlOperationDefinitions = [
               id
               name
               normalizedName
-              activeEvents {
-                youngId
-                name
-                organizerId
-                startAt
-                endAt
-                sourceMissing
-              }
-              upcomingEvents {
-                youngId
-                name
-                organizerId
-                startAt
-                endAt
-                sourceMissing
-              }
-              historyEvents {
-                youngId
-                name
-                organizerId
-                startAt
-                endAt
-                sourceMissing
-              }
-              activeCount
+              totalCount
+            activeCount
               upcomingCount
               historyCount
             }
@@ -461,7 +416,7 @@ export const catalogGraphqlOperationDefinitions = [
     id: "catalog.young_organizer.get.v1",
     title: "Get Young organizer",
     description:
-      "Returns one normalized Young organizer with active, upcoming, and historical events.",
+      "Returns one normalized Young organizer with counts; list activities using the organizerId event filter.",
     document: /* GraphQL */ `
       query CatalogYoungOrganizer($organizerId: String!) {
         catalog {
@@ -469,30 +424,7 @@ export const catalogGraphqlOperationDefinitions = [
             id
             name
             normalizedName
-            activeEvents {
-              youngId
-              name
-              organizerId
-              startAt
-              endAt
-              sourceMissing
-            }
-            upcomingEvents {
-              youngId
-              name
-              organizerId
-              startAt
-              endAt
-              sourceMissing
-            }
-            historyEvents {
-              youngId
-              name
-              organizerId
-              startAt
-              endAt
-              sourceMissing
-            }
+            totalCount
             activeCount
             upcomingCount
             historyCount

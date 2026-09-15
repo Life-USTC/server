@@ -1,5 +1,10 @@
 <script lang="ts">
 import YoungCalendar from "@/features/young/components/YoungCalendar.svelte";
+import {
+  fetchPersonalCalendar,
+  PersonalCalendarRequestError,
+} from "@/features/young/lib/personal-calendar-client";
+import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
 import type {
   YoungEventSummary,
   YoungOrganizerSummary,
@@ -7,6 +12,7 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { getClientShellBootstrap } from "@/lib/shell/shell-bootstrap";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -19,10 +25,10 @@ type Props = {
   data: YoungEventSummary[];
   filters: YoungCalendarPageFilters;
   locale: string;
-  organizers: YoungOrganizerSummary[];
+  organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   range: { start: string; end: string };
   source: YoungSourceFreshness;
-  unknownDates: YoungEventSummary[];
+  unknownDateCount: number;
   view: "day" | "week" | "month";
 };
 
@@ -34,27 +40,72 @@ let {
   filters,
   locale,
   organizers,
+  range,
   source,
-  unknownDates,
+  unknownDateCount,
   view,
 }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
+let conflictIds = $state<Set<string>>(new Set());
+let conflictStatus = $state<"loading" | "ready" | "signin" | "failed">(
+  "loading",
+);
+$effect(() => {
+  const currentEvents = data;
+  const currentRange = range;
+  const basis = filters.timeBasis;
+  const controller = new AbortController();
+  conflictIds = new Set();
+  if (basis !== "activity") return;
+  conflictStatus = "loading";
+  void getClientShellBootstrap(fetch, controller.signal)
+    .then(({ viewer }) => {
+      if (!viewer) throw new PersonalCalendarRequestError(401);
+      return fetchPersonalCalendar(
+        currentRange.start,
+        currentRange.end,
+        controller.signal,
+      );
+    })
+    .then((items) => {
+      if (controller.signal.aborted) return;
+      conflictIds = youngCalendarConflicts(currentEvents, items);
+      conflictStatus = "ready";
+    })
+    .catch((error) => {
+      if (controller.signal.aborted) return;
+      conflictStatus =
+        error instanceof PersonalCalendarRequestError && error.status === 401
+          ? "signin"
+          : "failed";
+    });
+  return () => controller.abort();
+});
 
 function formatSourceDate(value: string | null) {
   return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
 
-function calendarHref(targetView: "day" | "week" | "month", date: string) {
-  const params = new URLSearchParams({ view: targetView, date });
-  if (filters.active != null) params.set("active", String(filters.active));
-  if (filters.category) params.set("category", filters.category);
-  if (filters.organizerId) params.set("organizerId", filters.organizerId);
-  if (filters.timeBasis !== "activity")
-    params.set("timeBasis", filters.timeBasis);
-  return `/catalog/young-events/calendar?${params.toString()}`;
-}
+const calendarHref = $derived.by(() => {
+  const currentFilters = filters;
+  return function calendarHref(
+    targetView: "day" | "week" | "month",
+    date: string,
+  ) {
+    const params = new URLSearchParams({ view: targetView, date });
+    if (currentFilters.active != null)
+      params.set("active", String(currentFilters.active));
+    if (currentFilters.category)
+      params.set("category", currentFilters.category);
+    if (currentFilters.organizerId)
+      params.set("organizerId", currentFilters.organizerId);
+    if (currentFilters.timeBasis !== "activity")
+      params.set("timeBasis", currentFilters.timeBasis);
+    return `/catalog/young-events/calendar?${params.toString()}`;
+  };
+});
 
 function listHref() {
   const params = new URLSearchParams();
@@ -64,6 +115,17 @@ function listHref() {
   return params.size > 0
     ? `/catalog/young-events?${params.toString()}`
     : "/catalog/young-events";
+}
+
+function unknownDatesHref() {
+  const params = new URLSearchParams({
+    dateUnknown: "true",
+    timeBasis: filters.timeBasis,
+  });
+  if (filters.organizerId) params.set("organizerId", filters.organizerId);
+  if (filters.category) params.set("category", filters.category);
+  if (filters.active != null) params.set("active", String(filters.active));
+  return `/catalog/young-events?${params}`;
 }
 
 function clearHref() {
@@ -173,15 +235,26 @@ const calendarLabels = $derived({
       </form>
     {/snippet}
 
+    {#if filters.timeBasis === "activity"}
+      <p class="mb-3 text-sm text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
+        {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
+        {:else if conflictStatus === "signin"}<a class="underline" href={`/account/sign-in?callbackUrl=${encodeURIComponent(calendarHref(view, anchorDate))}`}>{youngCopy.conflictSignin}</a>
+        {:else if conflictStatus === "failed"}{youngCopy.conflictUnavailable}
+        {:else}{youngCopy.conflictScope}{/if}
+      </p>
+    {/if}
     <YoungCalendar
+      {conflictIds}
+      conflictLabel={youngCopy.workspace.conflict}
       {anchorDate}
       eventHref={(event) => `/catalog/young-events/${event.youngId}`}
-      events={[...data, ...unknownDates]}
+      events={data}
       hrefFor={calendarHref}
       labels={calendarLabels}
       {locale}
       timeBasis={filters.timeBasis}
-      {unknownDates}
+      {unknownDateCount}
+      unknownDatesHref={unknownDatesHref()}
       {view}
     />
   </Panel>

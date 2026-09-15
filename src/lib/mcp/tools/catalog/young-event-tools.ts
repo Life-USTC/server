@@ -23,11 +23,13 @@ async function listYoungEventsTool({
   dateFrom,
   dateTo,
   timeBasis,
+  dateUnknown,
   page,
   limit,
   mode,
 }: {
   active?: boolean;
+  dateUnknown?: boolean;
   category?: string;
   search?: string;
   organizerId?: string;
@@ -50,6 +52,7 @@ async function listYoungEventsTool({
       dateFrom,
       dateTo,
       timeBasis,
+      dateUnknown,
       page,
       pageSize: limit,
     });
@@ -164,6 +167,12 @@ export function registerYoungEventTools(server: McpServer) {
           .max(50)
           .optional()
           .describe("Inclusive Shanghai date/time range end."),
+        dateUnknown: z
+          .boolean()
+          .optional()
+          .describe(
+            "Filter activities with no known start; incompatible with date bounds.",
+          ),
         timeBasis: z
           .enum(["activity", "registration"])
           .optional()

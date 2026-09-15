@@ -13,6 +13,7 @@ let { data }: { data: PageData } = $props();
   <YoungOrganizerDetailPage
     copy={data.copy}
     organizer={data.organizer}
+    events={data.events}
     source={data.source}
   />
 {/if}

@@ -20,6 +20,11 @@ const youngEventPageSizeSchema = integerStringRangeSchema({
 export const youngEventTimeBasisSchema = z.enum(["activity", "registration"]);
 
 export const youngEventsQuerySchema = z.object({
+  dateUnknown: booleanQuerySchema
+    .optional()
+    .describe(
+      "Filter activities missing the selected time basis start; incompatible with date bounds.",
+    ),
   active: booleanQuerySchema
     .optional()
     .describe("Filter by signup-open (active) events."),
@@ -95,7 +100,7 @@ export const youngEventDetailSchema = youngEventSummarySchema.extend({
 export const paginatedYoungEventResponseSchema = createPaginatedSchema(
   youngEventSummarySchema,
 ).extend({
-  unknownDates: z.array(youngEventSummarySchema),
+  unknownDateCount: z.number().int().nonnegative(),
   source: z.strictObject({
     status: z.enum(["fresh", "stale", "unknown"]),
     lastSyncedAt: dateTimeSchema.nullable(),
@@ -106,9 +111,7 @@ export const youngOrganizerSummarySchema = z.strictObject({
   id: z.string(),
   name: z.string(),
   normalizedName: z.string(),
-  activeEvents: z.array(youngEventSummarySchema),
-  upcomingEvents: z.array(youngEventSummarySchema),
-  historyEvents: z.array(youngEventSummarySchema),
+  totalCount: z.number().int().nonnegative(),
   activeCount: z.number().int().nonnegative(),
   upcomingCount: z.number().int().nonnegative(),
   historyCount: z.number().int().nonnegative(),

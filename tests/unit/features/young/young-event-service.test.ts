@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { youngEventMock, youngOrganizerMock, staticImportStateMock } =
   vi.hoisted(() => ({
     youngEventMock: {
+      groupBy: vi.fn(),
       count: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -58,7 +59,8 @@ const RECORD = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  youngEventMock.groupBy.mockResolvedValue([]);
   staticImportStateMock.findUnique.mockResolvedValue(null);
 });
 
@@ -166,70 +168,85 @@ describe("young event service", () => {
     );
   });
 
-  it("returns range overlaps and separates incomplete dates", async () => {
-    youngEventMock.count.mockResolvedValue(1);
-    youngEventMock.findMany
-      .mockResolvedValueOnce([RECORD])
-      .mockResolvedValueOnce([{ ...RECORD, youngId: "unknown", endAt: null }]);
-
+  it("uses exclusive interval ends and counts unknown dates without loading them", async () => {
+    youngEventMock.count.mockResolvedValueOnce(1).mockResolvedValueOnce(500);
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
     const result = await listYoungEvents({
       dateFrom: "2026-09-10",
       dateTo: "2026-09-11",
-      timeBasis: "activity",
-      page: 1,
-      pageSize: 20,
     });
-
-    expect(youngEventMock.count).toHaveBeenCalledWith({
-      where: {
-        AND: [
-          {},
-          {
-            startAt: { not: null, lte: new Date("2026-09-11T15:59:59.999Z") },
-            endAt: { not: null, gte: new Date("2026-09-09T16:00:00.000Z") },
-          },
-        ],
-      },
-    });
-    expect(result.data.map(({ youngId }) => youngId)).toEqual(["42"]);
-    expect(result.unknownDates.map(({ youngId }) => youngId)).toEqual([
-      "unknown",
-    ]);
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+    expect(youngEventMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {},
+            {
+              AND: [
+                {
+                  startAt: {
+                    not: null,
+                    lte: new Date("2026-09-11T15:59:59.999Z"),
+                  },
+                },
+                {
+                  OR: [
+                    { endAt: { gt: new Date("2026-09-09T16:00:00Z") } },
+                    { startAt: { gte: new Date("2026-09-09T16:00:00Z") } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        take: 20,
+      }),
+    );
+    expect(result.unknownDateCount).toBe(500);
+    expect(result.data).toHaveLength(1);
   });
 
-  it("groups organizer activities by active, upcoming, and history state", async () => {
+  it("paginates unknown registration dates", async () => {
+    youngEventMock.count.mockResolvedValue(500);
+    youngEventMock.findMany.mockResolvedValue([]);
+    await listYoungEvents({
+      dateUnknown: true,
+      timeBasis: "registration",
+      page: 2,
+    });
+    expect(youngEventMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [{}, { applyStartAt: null }] },
+        skip: 20,
+        take: 20,
+      }),
+    );
+    await expect(
+      listYoungEvents({ dateUnknown: true, dateFrom: "2026-09-10" }),
+    ).rejects.toThrow("Unknown-date");
+  });
+
+  it("returns organizer counts without loading activity histories", async () => {
     youngOrganizerMock.count.mockResolvedValue(1);
     youngOrganizerMock.findMany.mockResolvedValue([
       { id: "organizer-1", name: "学生会", normalizedName: "学生会" },
     ]);
-    youngEventMock.findMany.mockResolvedValue([
-      { ...RECORD, isActive: true, youngId: "active" },
-      {
-        ...RECORD,
-        isActive: false,
-        youngId: "upcoming",
-        startAt: new Date("2099-09-10T06:00:00.000Z"),
-        endAt: new Date("2099-09-10T08:00:00.000Z"),
-      },
-      {
-        ...RECORD,
-        isActive: false,
-        youngId: "history",
-        startAt: new Date("2020-09-10T06:00:00.000Z"),
-        endAt: new Date("2020-09-10T08:00:00.000Z"),
-      },
-    ]);
-
+    for (const count of [3000, 10, 20, 2900])
+      youngEventMock.groupBy.mockResolvedValueOnce([
+        { organizerId: "organizer-1", _count: { _all: count } },
+      ]);
     const listed = await listYoungOrganizers({ page: 1, pageSize: 20 });
-    expect(listed.data[0]).toMatchObject({
+    expect(listed.data[0]).toEqual({
       id: "organizer-1",
-      activeCount: 1,
-      upcomingCount: 1,
-      historyCount: 1,
+      name: "学生会",
+      normalizedName: "学生会",
+      totalCount: 3000,
+      activeCount: 10,
+      upcomingCount: 20,
+      historyCount: 2900,
     });
-    expect(listed.data[0]?.activeEvents[0]?.youngId).toBe("active");
-    expect(listed.data[0]?.upcomingEvents[0]?.youngId).toBe("upcoming");
-    expect(listed.data[0]?.historyEvents[0]?.youngId).toBe("history");
+    expect(youngEventMock.findMany).not.toHaveBeenCalled();
+    expect(youngEventMock.groupBy).toHaveBeenCalledTimes(4);
   });
 
   it("gets one organizer by its stable local ID", async () => {
@@ -238,14 +255,12 @@ describe("young event service", () => {
       name: "学生会",
       normalizedName: "学生会",
     });
-    youngEventMock.findMany.mockResolvedValue([]);
-
     await expect(getYoungOrganizer("organizer-1")).resolves.toMatchObject({
       id: "organizer-1",
-      name: "学生会",
-      activeEvents: [],
-      upcomingEvents: [],
-      historyEvents: [],
+      totalCount: 0,
+      activeCount: 0,
+      upcomingCount: 0,
+      historyCount: 0,
     });
   });
 });

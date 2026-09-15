@@ -349,11 +349,21 @@ describe("Young workspace owner subscriptions and reminders", () => {
         { youngId, subscribed: true },
       );
       expect(result.subscribed).toBe(true);
-      const list = await client.call<{ data: Array<{ youngId: string }> }>(
-        "workspace_young_event_subscription_list",
-        { mode: "full" },
-      );
-      expect(list.data.map((row) => row.youngId)).toEqual([youngId]);
+      for (const mode of ["default", "full"] as const) {
+        const list = await client.call<{
+          data: Array<{ youngId: string; remindStart: boolean }>;
+        }>("workspace_young_event_subscription_list", { mode });
+        expect(list.data.map((row) => row.youngId)).toEqual([youngId]);
+        expect(list.data[0].remindStart).toBe(true);
+        await refreshYoungNotifications(userId, now);
+        const inbox = await client.call<{
+          data: Array<{ id: string; kind: string; title: string }>;
+        }>("workspace_young_notification_list", { mode });
+        expect(inbox.data.length).toBeGreaterThan(0);
+        expect(inbox.data[0].id).toBeTruthy();
+        expect(inbox.data[0].kind).toBeTruthy();
+        expect(inbox.data[0].title).toBeTruthy();
+      }
       const events = await client.call<{ events: Array<{ type: string }> }>(
         "workspace_calendar_event_list",
         { dateFrom: "2030-09-15", dateTo: "2030-09-15", mode: "full" },

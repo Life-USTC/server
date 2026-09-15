@@ -8,6 +8,12 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export type PersonalCalendarItem = z.infer<typeof personalCalendarItemSchema>;
 
+export class PersonalCalendarRequestError extends Error {
+  constructor(readonly status: number) {
+    super("Calendar request failed");
+  }
+}
+
 export async function fetchPersonalCalendar(
   dateFrom: string,
   dateTo: string,
@@ -25,7 +31,7 @@ export async function fetchPersonalCalendar(
     const response = await fetch(`/api/workspace/calendar/events?${query}`, {
       signal,
     });
-    if (!response.ok) throw new Error("Calendar request failed");
+    if (!response.ok) throw new PersonalCalendarRequestError(response.status);
     const result = personalCalendarPageSchema.parse(await response.json());
     items.push(...result.data);
     if (page >= result.pagination.totalPages) return items;

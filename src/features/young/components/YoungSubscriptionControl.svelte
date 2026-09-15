@@ -6,6 +6,7 @@ import {
   youngOrganizerSubscriptionStateSchema,
 } from "@/lib/api/schemas/young-workspace-schemas";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { getClientShellBootstrap } from "@/lib/shell/shell-bootstrap";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import { Button } from "$lib/components/ui/button";
@@ -62,6 +63,14 @@ $effect(() => {
   const controller = new AbortController();
   void (async () => {
     try {
+      const { viewer } = await getClientShellBootstrap(
+        fetch,
+        controller.signal,
+      );
+      if (!viewer) {
+        signedIn = false;
+        return;
+      }
       const response = await fetch(url, { signal: controller.signal });
       if (response.status === 401) {
         signedIn = false;

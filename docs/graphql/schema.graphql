@@ -917,6 +917,7 @@ input YoungEventFilter {
   category: String
   dateFrom: String
   dateTo: String
+  dateUnknown: Boolean
   organizerId: String
   search: String
   timeBasis: YoungEventTimeBasis
@@ -926,40 +927,7 @@ type YoungEventPage {
   items: [YoungEvent!]!
   pageInfo: PageInfo!
   source: YoungSourceFreshness!
-  unknownDates: [YoungEvent!]!
-}
-
-enum YoungEventTimeBasis {
-  activity
-  registration
-}
-
-type YoungOrganizer {
-  activeCount: Int!
-  activeEvents: [YoungEvent!]!
-  historyCount: Int!
-  historyEvents: [YoungEvent!]!
-  id: String!
-  name: String!
-  normalizedName: String!
-  upcomingCount: Int!
-  upcomingEvents: [YoungEvent!]!
-}
-
-type YoungOrganizerPage {
-  items: [YoungOrganizer!]!
-  pageInfo: PageInfo!
-}
-
-type YoungSourceFreshness {
-  lastSyncedAt: DateTime
-  status: YoungSourceStatus!
-}
-
-enum YoungSourceStatus {
-  fresh
-  stale
-  unknown
+  unknownDateCount: Int!
 }
 
 type YoungEventSubscription {
@@ -991,6 +959,11 @@ type YoungEventSubscriptionState {
   youngId: String!
 }
 
+enum YoungEventTimeBasis {
+  activity
+  registration
+}
+
 type YoungNotification {
   body: String!
   createdAt: DateTime!
@@ -1005,6 +978,21 @@ type YoungNotification {
 
 type YoungNotificationPage {
   items: [YoungNotification!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizer {
+  activeCount: Int!
+  historyCount: Int!
+  id: String!
+  name: String!
+  normalizedName: String!
+  totalCount: Int!
+  upcomingCount: Int!
+}
+
+type YoungOrganizerPage {
+  items: [YoungOrganizer!]!
   pageInfo: PageInfo!
 }
 
@@ -1027,4 +1015,15 @@ type YoungOrganizerSubscriptionPage {
 type YoungOrganizerSubscriptionState {
   organizerId: ID!
   subscribed: Boolean!
+}
+
+type YoungSourceFreshness {
+  lastSyncedAt: DateTime
+  status: YoungSourceStatus!
+}
+
+enum YoungSourceStatus {
+  fresh
+  stale
+  unknown
 }
