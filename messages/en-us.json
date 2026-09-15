@@ -2700,7 +2700,7 @@
             "We apply reasonable technical and organizational safeguards to protect data.",
             "Data is retained only as long as needed for service purposes or legal obligations.",
             "Sensitive-operation audits record the action type, outcome, channel, and necessary account or OAuth client attribution, but not content bodies, tokens, secrets, or search text. IP and device details are anonymized after 30 days, request/session/grant correlation identifiers after 90 days, and audit events are deleted after 400 days.",
-            "Public profile contributions exclude your homework completion state. Admin product analytics shows only aggregates by feature, channel, outcome, and client, without per-user browsing trails.",
+            "Public profile contributions exclude your homework completion state. The protected monitoring endpoint exports aggregate metrics without user, client, or request identifiers or individual browsing trails.",
             "You can update or remove parts of your profile through account settings."
           ]
         },
