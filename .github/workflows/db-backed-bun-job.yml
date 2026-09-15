@@ -153,10 +153,6 @@ jobs:
             bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
           }
 
-          # Static verification runs in bun-job.yml. Keep the Worker
-          # termination guard reference here because the parity guard checks
-          # that the shared CI orchestration retains this regression check.
-          # bash tests/ci/e2e-worker-server.test.sh
           case "$JOB_PHASE" in
             ci:integration)
               if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
