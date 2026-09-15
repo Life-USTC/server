@@ -1,5 +1,7 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
+import { symmetricDecrypt } from "better-auth/crypto";
+import { importJWK, SignJWT } from "jose";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../../../e2e/utils/dev-seed";
 import {
@@ -8,12 +10,6 @@ import {
 } from "../../../e2e/utils/e2e-db";
 import { withE2ePrisma } from "../../../e2e/utils/e2e-db/prisma";
 import { signInAsDebugUserApi } from "../_harness/auth";
-
-// The Worker launched by playwright.api.config.ts uses these same defaults.
-// Keep the test-side JWT signer aligned when a developer runs the API suite
-// without exporting the Wrangler variables in their shell.
-process.env.APP_PUBLIC_ORIGIN ??= PLAYWRIGHT_BASE_URL;
-process.env.AUTH_SECRET ??= "e2e-dev-secret-not-for-production";
 
 const GRAPHQL_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/graphql`;
 const WRONG_RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/auth`;
@@ -154,18 +150,28 @@ async function signGraphqlToken(
   scopes: string[],
   resource = GRAPHQL_RESOURCE,
 ) {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const token = await signResourceBoundOAuthAccessToken({
-    clientId: OAUTH_CLIENT_ID,
-    expiresAt: issuedAt + 300,
-    grantId,
-    issuedAt,
-    resources: [resource],
-    scopes,
-    userId,
+  // Sign fixtures with the real Worker's key. Loading the application auth
+  // singleton here would initialize the Cloudflare Prisma client inside Node.
+  const key = await withE2ePrisma((prisma) =>
+    prisma.jwks.findFirstOrThrow({ orderBy: { createdAt: "desc" } }),
+  );
+  expect(key.alg).toBe("EdDSA");
+  const privateJwk = await symmetricDecrypt({
+    key: "e2e-dev-secret-not-for-production", // wrangler.e2e.jsonc
+    data: JSON.parse(key.privateKey),
   });
-  if (!token) throw new Error("Expected a signed GraphQL access token");
-  return token;
+  return new SignJWT({
+    azp: OAUTH_CLIENT_ID,
+    scope: scopes.join(" "),
+    [OAUTH_GRANT_ID_CLAIM]: grantId,
+  })
+    .setProtectedHeader({ alg: "EdDSA", kid: key.id, typ: "JWT" })
+    .setSubject(userId)
+    .setAudience(resource)
+    .setIssuer(`${PLAYWRIGHT_BASE_URL}/api/auth`)
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(await importJWK(JSON.parse(privateJwk), "EdDSA"));
 }
 
 async function postGraphql(
@@ -193,8 +199,9 @@ function expectGraphqlError(
   payload: GraphqlPayload,
   code: string,
   requiredScopes?: string[],
+  expectedData: GraphqlPayload["data"] = null,
 ) {
-  expect(payload.data ?? null).toBeNull();
+  expect(payload.data ?? null).toEqual(expectedData);
   expect(payload.errors?.[0]?.extensions?.code).toBe(code);
   if (requiredScopes) {
     expect(payload.errors?.[0]?.extensions?.requiredScopes).toEqual(
@@ -254,7 +261,11 @@ test("Cloudflare Worker serves the public GraphQL endpoint", async ({
 test.describe("Cloudflare Worker authenticated GraphQL", () => {
   test.describe.configure({ mode: "serial" });
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ request }) => {
+    // Provision signing keys through the Worker, not through a Node auth clone.
+    const jwks = await request.get("/api/auth/jwks");
+    expect(jwks.status()).toBe(200);
+    expect((await jwks.json()).keys.length).toBeGreaterThan(0);
     graphqlFixture = await createGraphqlFixture();
   });
 
@@ -360,7 +371,9 @@ test.describe("Cloudflare Worker authenticated GraphQL", () => {
     );
 
     expect(response.response.status()).toBe(403);
-    expectGraphqlError(response.payload, "FORBIDDEN", [TODO_READ_SCOPE]);
+    expectGraphqlError(response.payload, "FORBIDDEN", [TODO_READ_SCOPE], {
+      viewer: null,
+    });
 
     const readOnlyToken = await signGraphqlToken(user.id, user.grantId, [
       TODO_READ_SCOPE,
