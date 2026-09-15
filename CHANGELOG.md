@@ -1,3 +1,10 @@
+# [1.115.0](https://github.com/Life-USTC/server/compare/v1.114.0...v1.115.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** persist native Prometheus counters and histograms ([#1054](https://github.com/Life-USTC/server/issues/1054)) ([9c87833](https://github.com/Life-USTC/server/commit/9c87833000405da827d8070f0478df926c3ea962))
+
 # [1.114.0](https://github.com/Life-USTC/server/compare/v1.113.0...v1.114.0) (2026-09-15)
 
 
