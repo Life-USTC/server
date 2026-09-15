@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# Verify that interrupting the parallel runner also stops detached descendants
-# such as Playwright webServer process groups without touching unrelated groups.
+# Verify that local E2E cleanup handles both an interrupted runner and a shard
+# that exits before the parent reaches its EXIT trap. The detached fixture
+# carries the same run marker as its shard so cleanup can identify it without
+# matching process names or touching an unrelated process group.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+parallel_script_source="${E2E_PARALLEL_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-parallel-local.sh}"
+local_shard_script_source="${E2E_LOCAL_SHARD_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-local-shard.sh}"
+process_groups_source="${E2E_PROCESS_GROUPS_SOURCE:-${repo_root}/tests/ci/e2e-process-groups.sh}"
+expected_shard_total="${E2E_EXPECTED_SHARD_TOTAL:-8}"
 test_dir="$(mktemp -d)"
+test_base_port=$((50000 + ($$ % 1000) * 8))
+test_inspector_base_port=$((test_base_port + 100))
 runner_pid=""
 sentinel_pid=""
 sentinel_group=""
@@ -31,31 +39,59 @@ cleanup() {
   if [[ -n "$sentinel_group" ]] && kill -0 -- "-${sentinel_group}" >/dev/null 2>&1; then
     kill -KILL -- "-${sentinel_group}" >/dev/null 2>&1 || true
   fi
+  if [[ -n "$sentinel_pid" ]]; then
+    wait "$sentinel_pid" >/dev/null 2>&1 || true
+  fi
+  local pid_file
+  local detached_pid
+  local detached_group
+  for pid_file in "$test_dir"/*-run/*-*.pid; do
+    [[ -f "$pid_file" ]] || continue
+    detached_pid="$(<"$pid_file")"
+    detached_group="$(ps -o pgid= -p "$detached_pid" 2>/dev/null | tr -d '[:space:]' || true)"
+    if [[ "$detached_group" =~ ^[1-9][0-9]*$ ]] && ((detached_group > 1)); then
+      kill -KILL -- "-${detached_group}" >/dev/null 2>&1 || true
+    fi
+  done
   rm -rf "$test_dir"
 }
 trap cleanup EXIT
 
-mkdir -p "$test_dir/fixture/tests/ci" "$test_dir/bin"
-cp "$repo_root/tests/ci/e2e-parallel-local.sh" \
-  "$test_dir/fixture/tests/ci/e2e-parallel-local.sh"
+prepare_fixture() {
+  local fixture_root="$1"
+  mkdir -p "$fixture_root/tests/ci" "$fixture_root/bin"
+  cp "$parallel_script_source" \
+    "$fixture_root/tests/ci/e2e-parallel-local.sh"
+  cp "$local_shard_script_source" \
+    "$fixture_root/tests/ci/e2e-local-shard.sh"
+  cp "$process_groups_source" \
+    "$fixture_root/tests/ci/e2e-process-groups.sh"
 
-cat >"$test_dir/fixture/tests/ci/e2e-local-shard.sh" <<'EOF'
+  cat >"$fixture_root/tests/ci/setup-runtime-database.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-shard="$1"
+fixture_shard="${E2E_REPORT_ROOT##*-}"
+detached_pid_file="${PARALLEL_FIXTURE_DIR}/${E2E_FIXTURE_MODE}-${fixture_shard}.pid"
 setsid bash -c '
-  echo "$$" >"${PARALLEL_FIXTURE_DIR}/detached-${1}.pid"
+  echo "$BASHPID" >"$1"
   trap "" INT TERM
   while :; do sleep 1; done
-' _ "$shard" &
+' _ "$detached_pid_file" &
 
+if [[ "${E2E_FIXTURE_MODE}" == early-exit ]]; then
+  return 42
+fi
+EOF
+
+  cat >"$fixture_root/tests/ci/e2e-run-shard.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
 trap 'exit 143' INT TERM
 while :; do sleep 1; done
 EOF
-chmod +x "$test_dir/fixture/tests/ci/e2e-local-shard.sh"
 
-cat >"$test_dir/bin/docker" <<'EOF'
+  cat >"$fixture_root/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -76,7 +112,7 @@ case "${1:-}" in
 esac
 EOF
 
-cat >"$test_dir/bin/bun" <<'EOF'
+  cat >"$fixture_root/bin/bun" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -86,74 +122,132 @@ fi
 exec "$PARALLEL_REAL_BUN" "$@"
 EOF
 
-cat >"$test_dir/bin/psql" <<'EOF'
+  cat >"$fixture_root/bin/psql" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-chmod +x "$test_dir/bin/"*
+  chmod +x "$fixture_root/tests/ci/"*.sh "$fixture_root/bin/"*
+}
 
-export PARALLEL_FIXTURE_DIR="$test_dir"
-export PARALLEL_REAL_BUN="$(command -v bun)"
-export PATH="$test_dir/bin:$PATH"
-export E2E_BASE_PORT=38100
-export E2E_INSPECTOR_BASE_PORT=39100
+start_sentinel() {
+  setsid sleep 60 &
+  sentinel_pid="$!"
+  sentinel_group="$(ps -o pgid= -p "$sentinel_pid" | tr -d '[:space:]')"
+  [[ "$sentinel_group" =~ ^[1-9][0-9]*$ ]] ||
+    fail "could not resolve sentinel process group"
+}
 
-setsid sleep 30 &
-sentinel_pid="$!"
-sentinel_group="$(ps -o pgid= -p "$sentinel_pid" | tr -d '[:space:]')"
-[[ "$sentinel_group" =~ ^[1-9][0-9]*$ ]] || fail "could not resolve sentinel process group"
+stop_sentinel() {
+  if [[ -n "$sentinel_group" ]] && kill -0 -- "-${sentinel_group}" >/dev/null 2>&1; then
+    kill -KILL -- "-${sentinel_group}" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$sentinel_pid" ]]; then
+    wait "$sentinel_pid" >/dev/null 2>&1 || true
+  fi
+  sentinel_pid=""
+  sentinel_group=""
+}
 
-bash "$test_dir/fixture/tests/ci/e2e-parallel-local.sh" \
-  >"$test_dir/runner.log" 2>&1 &
-runner_pid="$!"
+start_runner() {
+  local fixture_root="$1"
+  local mode="$2"
+  local output_file="$3"
+  local run_dir="$4"
 
-for _ in $(seq 1 200); do
-  ready=true
-  for shard in 1 2 3 4; do
-    if [[ ! -s "$test_dir/detached-${shard}.pid" ]]; then
-      ready=false
-      break
+  E2E_FIXTURE_MODE="$mode" \
+  PARALLEL_FIXTURE_DIR="$run_dir" \
+  PARALLEL_REAL_BUN="$(command -v bun)" \
+  PATH="$fixture_root/bin:$PATH" \
+  E2E_BASE_PORT="$test_base_port" \
+  E2E_INSPECTOR_BASE_PORT="$test_inspector_base_port" \
+  E2E_CONCURRENCY=2 \
+    bash "$fixture_root/tests/ci/e2e-parallel-local.sh" >"$output_file" 2>&1 &
+  runner_pid="$!"
+}
+
+wait_for_detached_fixture() {
+  local run_dir="$1"
+  local mode="$2"
+  local expected_count="$3"
+
+  for _ in $(seq 1 200); do
+    local count
+    count="$(find "$run_dir" -maxdepth 1 -name "${mode}-*.pid" -type f | wc -l)"
+    if ((count >= expected_count)); then
+      return 0
     fi
+    process_is_alive "$runner_pid" || return 1
+    sleep 0.05
   done
-  if [[ "$ready" == true ]]; then break; fi
-  process_is_alive "$runner_pid" || {
-    sed -n '1,240p' "$test_dir/runner.log" >&2
-    fail "parallel runner exited before all detached descendants started"
-  }
-  sleep 0.05
-done
+  return 1
+}
 
-for shard in 1 2 3 4; do
-  detached_pid="$(<"$test_dir/detached-${shard}.pid")"
-  process_is_alive "$detached_pid" || fail "detached shard ${shard} process exited early"
-done
+assert_detached_processes_stopped() {
+  local run_dir="$1"
+  local mode="$2"
+  local pid_file
+  local detached_pid
 
-kill -TERM "$runner_pid"
-set +e
-wait "$runner_pid"
-runner_exit_code="$?"
-set -e
-[[ "$runner_exit_code" == 130 ]] ||
-  fail "parallel runner returned ${runner_exit_code} after interrupt"
-
-for _ in $(seq 1 100); do
-  all_stopped=true
-  for shard in 1 2 3 4; do
-    detached_pid="$(<"$test_dir/detached-${shard}.pid")"
+  for pid_file in "$run_dir"/"${mode}"-*.pid; do
+    [[ -f "$pid_file" ]] || continue
+    detached_pid="$(<"$pid_file")"
     if process_is_alive "$detached_pid"; then
-      all_stopped=false
-      break
+      fail "${mode} detached process ${detached_pid} survived cleanup"
     fi
   done
-  if [[ "$all_stopped" == true ]]; then break; fi
-  sleep 0.05
-done
+}
 
-for shard in 1 2 3 4; do
-  detached_pid="$(<"$test_dir/detached-${shard}.pid")"
-  process_is_alive "$detached_pid" || continue
-  fail "detached shard ${shard} process ${detached_pid} survived cleanup"
-done
+run_normal_cancellation() {
+  local fixture_root="$test_dir/fixture-normal"
+  local run_dir="$test_dir/normal-run"
+  mkdir -p "$run_dir"
+  prepare_fixture "$fixture_root"
+  start_sentinel
+  start_runner "$fixture_root" normal "$run_dir/runner.log" "$run_dir"
 
-process_is_alive "$sentinel_pid" || fail "cleanup killed an unrelated process group"
+  wait_for_detached_fixture "$run_dir" normal 2 || {
+    sed -n '1,240p' "$run_dir/runner.log" >&2
+    fail "parallel runner did not start its bounded active shard set"
+  }
+
+  kill -TERM "$runner_pid"
+  set +e
+  wait "$runner_pid"
+  runner_exit_code="$?"
+  set -e
+  runner_pid=""
+  [[ "$runner_exit_code" == 130 ]] ||
+    fail "parallel runner returned ${runner_exit_code} after interrupt"
+
+  assert_detached_processes_stopped "$run_dir" normal
+  process_is_alive "$sentinel_pid" || fail "cleanup killed an unrelated process group"
+  stop_sentinel
+}
+
+run_early_shard_exit() {
+  local fixture_root="$test_dir/fixture-early"
+  local run_dir="$test_dir/early-run"
+  mkdir -p "$run_dir"
+  prepare_fixture "$fixture_root"
+  start_sentinel
+  start_runner "$fixture_root" early-exit "$run_dir/runner.log" "$run_dir"
+
+  set +e
+  wait "$runner_pid"
+  runner_exit_code="$?"
+  set -e
+  runner_pid=""
+  [[ "$runner_exit_code" == 1 ]] ||
+    fail "early shard exit returned ${runner_exit_code}"
+
+  detached_count="$(find "$run_dir" -maxdepth 1 -name 'early-exit-*.pid' -type f | wc -l)"
+  [[ "$detached_count" == "$expected_shard_total" ]] ||
+    fail "early shard fixture started ${detached_count} of ${expected_shard_total} partitions"
+  assert_detached_processes_stopped "$run_dir" early-exit
+  process_is_alive "$sentinel_pid" || fail "early-exit cleanup killed an unrelated process group"
+  stop_sentinel
+}
+
+run_normal_cancellation
+run_early_shard_exit
 echo "parallel E2E detached-process cleanup regression passed"

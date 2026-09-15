@@ -1,101 +1,52 @@
 #!/usr/bin/env bash
-# Run the four Playwright shards concurrently against isolated local services.
+# Run the eight Playwright shards against isolated local services with bounded
+# local concurrency.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly shard_total=4
+readonly shard_total=8
+readonly e2e_concurrency="${E2E_CONCURRENCY:-2}"
 readonly base_port="${E2E_BASE_PORT:-3100}"
 readonly inspector_base_port="${E2E_INSPECTOR_BASE_PORT:-3200}"
-readonly run_id="$$"
-readonly container_prefix="life-ustc-e2e-${run_id}"
+readonly run_id="$$-$(date +%s%N)"
+readonly process_owner_prefix="life-ustc-e2e-${run_id}"
+readonly container_prefix="${process_owner_prefix}"
 temp_dir="$(mktemp -d)"
-pids=()
-detached_group_ids=()
-detached_group_members=()
-main_process_group=""
+shard_process_owners=()
 
-if ! [[ "$base_port" =~ ^[0-9]+$ ]] || ((base_port < 1024 || base_port > 65531)); then
-  echo "E2E_BASE_PORT must be an integer from 1024 through 65531." >&2
+source tests/ci/e2e-process-groups.sh
+
+if ! [[ "$e2e_concurrency" =~ ^[1-8]$ ]]; then
+  echo "E2E_CONCURRENCY must be an integer from 1 through 8." >&2
+  exit 1
+fi
+
+readonly max_shard_port=$((65535 - shard_total + 1))
+
+if ! [[ "$base_port" =~ ^[0-9]+$ ]] ||
+  ((base_port < 1024 || base_port > max_shard_port)); then
+  echo "E2E_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
   exit 1
 fi
 if ! [[ "$inspector_base_port" =~ ^[0-9]+$ ]] ||
-  ((inspector_base_port < 1024 || inspector_base_port > 65531)); then
-  echo "E2E_INSPECTOR_BASE_PORT must be an integer from 1024 through 65531." >&2
+  ((inspector_base_port < 1024 || inspector_base_port > max_shard_port)); then
+  echo "E2E_INSPECTOR_BASE_PORT must be an integer from 1024 through ${max_shard_port}." >&2
+  exit 1
+fi
+if ((base_port <= inspector_base_port + shard_total - 1)) &&
+  ((inspector_base_port <= base_port + shard_total - 1)); then
+  echo "E2E worker and inspector port ranges must not overlap." >&2
   exit 1
 fi
 
-for command in docker bun psql setsid ps pgrep; do
+for command in docker bun psql setsid ps; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1
   fi
 done
-
-process_group_for_pid() {
-  ps -o pgid= -p "$1" 2>/dev/null | tr -d '[:space:]' || true
-}
-
-process_is_alive() {
-  local pid="$1"
-  kill -0 "$pid" >/dev/null 2>&1 || return 1
-
-  local process_state
-  process_state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]' || true)"
-  [[ -n "$process_state" && "$process_state" != Z* ]]
-}
-
-remember_detached_group() {
-  local pid="$1"
-  local group="$2"
-
-  [[ "$group" =~ ^[1-9][0-9]*$ ]] || return 0
-  ((group > 1)) || return 0
-  [[ "$group" != "$main_process_group" ]] || return 0
-
-  local index
-  for index in "${!detached_group_ids[@]}"; do
-    if [[ "${detached_group_ids[$index]}" == "$group" ]]; then
-      detached_group_members[$index]="${detached_group_members[$index]} $pid"
-      return 0
-    fi
-  done
-
-  detached_group_ids+=("$group")
-  detached_group_members+=("$pid")
-}
-
-snapshot_descendant_groups() {
-  local parent_pid="$1"
-  local root_group="$2"
-  local child_pid
-  local child_group
-
-  while IFS= read -r child_pid; do
-    [[ "$child_pid" =~ ^[1-9][0-9]*$ ]] || continue
-    child_group="$(process_group_for_pid "$child_pid")"
-    if [[ "$child_group" =~ ^[1-9][0-9]*$ ]] &&
-      [[ "$child_group" != "$root_group" ]]; then
-      remember_detached_group "$child_pid" "$child_group"
-    fi
-    snapshot_descendant_groups "$child_pid" "$root_group"
-  done < <(pgrep -P "$parent_pid" 2>/dev/null || true)
-}
-
-detached_group_is_alive() {
-  local index="$1"
-  local group="${detached_group_ids[$index]}"
-  local member_pid
-
-  for member_pid in ${detached_group_members[$index]}; do
-    if process_is_alive "$member_pid" &&
-      [[ "$(process_group_for_pid "$member_pid")" == "$group" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
 
 assert_port_available() {
   local port="$1"
@@ -118,49 +69,35 @@ for shard in $(seq 1 "$shard_total"); do
   assert_port_available "$((inspector_base_port + shard - 1))"
 done
 
+cleanup_shard_processes() {
+  local owner="$1"
+  local main_process_group
+
+  main_process_group="$(e2e_process_group_for_pid "$$")"
+  if e2e_signal_owned_processes "$owner" TERM "$$" "$main_process_group"; then
+    sleep 1
+    e2e_signal_owned_processes "$owner" KILL "$$" "$main_process_group" || true
+  fi
+}
+
 cleanup() {
   trap '' INT TERM
   local has_live_process=false
-  local root_group
-  local index
+  local main_process_group
+  local owner
 
-  # Playwright can detach its webServer process group from the shard. Capture
-  # those groups while the shard roots still own them, before sending TERM.
-  detached_group_ids=()
-  detached_group_members=()
-  main_process_group="$(process_group_for_pid "$$")"
-  for pid in "${pids[@]}"; do
-    if process_is_alive "$pid"; then
-      root_group="$(process_group_for_pid "$pid")"
-      if [[ "$root_group" =~ ^[1-9][0-9]*$ ]]; then
-        snapshot_descendant_groups "$pid" "$root_group"
-      fi
-    fi
-  done
+  main_process_group="$(e2e_process_group_for_pid "$$")"
 
-  for pid in "${pids[@]}"; do
-    if kill -0 -- "-${pid}" >/dev/null 2>&1; then
-      kill -TERM -- "-${pid}" >/dev/null 2>&1 || true
-      has_live_process=true
-    fi
-  done
-
-  for index in "${!detached_group_ids[@]}"; do
-    if detached_group_is_alive "$index"; then
-      kill -TERM -- "-${detached_group_ids[$index]}" >/dev/null 2>&1 || true
+  for owner in "${shard_process_owners[@]}"; do
+    if e2e_signal_owned_processes "$owner" TERM "$$" "$main_process_group"; then
       has_live_process=true
     fi
   done
 
   if [[ "$has_live_process" == "true" ]]; then
     sleep 1
-    for pid in "${pids[@]}"; do
-      kill -KILL -- "-${pid}" >/dev/null 2>&1 || true
-    done
-    for index in "${!detached_group_ids[@]}"; do
-      if detached_group_is_alive "$index"; then
-        kill -KILL -- "-${detached_group_ids[$index]}" >/dev/null 2>&1 || true
-      fi
+    for owner in "${shard_process_owners[@]}"; do
+      e2e_signal_owned_processes "$owner" KILL "$$" "$main_process_group" || true
     done
   fi
   for shard in $(seq 1 "$shard_total"); do
@@ -201,25 +138,51 @@ done
 DATABASE_URL="${database_urls[0]}" bun run app:prepare
 DATABASE_URL="${database_urls[0]}" bun run build
 
-for shard in $(seq 1 "$shard_total"); do
-  database_url="${database_urls[$((shard - 1))]}"
-  worker_port="$((base_port + shard - 1))"
-  log_file="${temp_dir}/shard-${shard}.log"
-
-  setsid bash tests/ci/e2e-local-shard.sh \
-    "$shard" \
-    "$shard_total" \
-    "$database_url" \
-    "$worker_port" \
-    "$((inspector_base_port + shard - 1))" \
-    "$temp_dir" \
-    "$@" >"$log_file" 2>&1 &
-  pids+=("$!")
-done
-
 failed_shards=()
-for shard in $(seq 1 "$shard_total"); do
-  if ! wait "${pids[$((shard - 1))]}"; then
+active_pids=()
+declare -A shard_for_pid=()
+next_shard=1
+
+while ((next_shard <= shard_total || ${#active_pids[@]} > 0)); do
+  while ((next_shard <= shard_total && ${#active_pids[@]} < e2e_concurrency)); do
+    shard="$next_shard"
+    database_url="${database_urls[$((shard - 1))]}"
+    worker_port="$((base_port + shard - 1))"
+    log_file="${temp_dir}/shard-${shard}.log"
+    process_owner="${process_owner_prefix}-shard-${shard}"
+    shard_process_owners+=("$process_owner")
+
+    E2E_PROCESS_OWNER="$process_owner" setsid bash tests/ci/e2e-local-shard.sh \
+      "$shard" \
+      "$shard_total" \
+      "$database_url" \
+      "$worker_port" \
+      "$((inspector_base_port + shard - 1))" \
+      "$temp_dir" \
+      "$@" >"$log_file" 2>&1 &
+    pid="$!"
+    active_pids+=("$pid")
+    shard_for_pid[$pid]="$shard"
+    ((next_shard++))
+  done
+
+  finished_pid=""
+  wait_result=0
+  set +e
+  wait -n -p finished_pid "${active_pids[@]}"
+  wait_result="$?"
+  set -e
+
+  shard="${shard_for_pid[$finished_pid]}"
+  remaining_pids=()
+  for pid in "${active_pids[@]}"; do
+    [[ "$pid" == "$finished_pid" ]] || remaining_pids+=("$pid")
+  done
+  active_pids=("${remaining_pids[@]}")
+
+  cleanup_shard_processes "${process_owner_prefix}-shard-${shard}"
+
+  if ((wait_result != 0)); then
     failed_shards+=("${shard}/${shard_total}")
     echo "=== E2E shard ${shard}/${shard_total} (failed) ==="
     sed -n '1,$p' "${temp_dir}/shard-${shard}.log"
