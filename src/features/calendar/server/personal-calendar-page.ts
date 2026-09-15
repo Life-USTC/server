@@ -3,10 +3,11 @@ import {
   normalizePagination,
   type PaginationInput,
 } from "@/lib/pagination";
-import { parseDateInput } from "@/lib/time/parse-date-input";
-import { listUserCalendarEvents } from "./calendar-events";
+import { parsePersonalCalendarRange } from "./personal-calendar-range";
 
-export class InvalidCalendarRangeError extends Error {}
+export { InvalidCalendarRangeError } from "./personal-calendar-range";
+
+import { listUserCalendarEvents } from "./calendar-events";
 
 export async function listPersonalCalendarPage(
   userId: string,
@@ -16,27 +17,9 @@ export async function listPersonalCalendarPage(
     locale?: string;
   } = {},
 ) {
-  const dateFrom = input.dateFrom ? parseDateInput(input.dateFrom) : null;
-  const dateTo = input.dateTo ? parseDateInput(input.dateTo) : null;
-  if (Boolean(input.dateFrom) !== Boolean(input.dateTo))
-    throw new InvalidCalendarRangeError("Supply both dateFrom and dateTo");
-  if (
-    (input.dateFrom && !dateFrom) ||
-    (input.dateTo && !dateTo) ||
-    (dateFrom &&
-      dateTo &&
-      (dateTo < dateFrom ||
-        dateTo.getTime() - dateFrom.getTime() > 366 * 86400000))
-  )
-    throw new InvalidCalendarRangeError(
-      "Calendar range must be valid, ordered and at most 366 days",
-    );
+  const range = parsePersonalCalendarRange(input);
   const events = await listUserCalendarEvents(userId, {
-    dateFrom,
-    dateTo,
-    dateFromIsDateOnly: /^\d{4}-\d{2}-\d{2}$/.test(input.dateFrom ?? ""),
-    dateToIsDateOnly: /^\d{4}-\d{2}-\d{2}$/.test(input.dateTo ?? ""),
-    dateToInclusive: true,
+    ...range,
     locale: input.locale,
   });
   const items = events.map((event) => {
@@ -89,6 +72,7 @@ export async function listPersonalCalendarPage(
           url: "/workspace/exams",
         };
     }
+    throw new Error("Unsupported calendar event type");
   });
   const { page, pageSize, skip } = normalizePagination(input);
   return buildPaginatedResponse(

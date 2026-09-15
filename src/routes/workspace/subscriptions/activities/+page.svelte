@@ -51,8 +51,8 @@ function pageHref(number: number) {
         <Panel>
           <div class="grid gap-3">
             <a class="font-medium" href={`/catalog/young-events/${encodeURIComponent(row.youngId)}`}>{row.event.name}</a>
-            <p>{row.event.startAt?.slice(0, 16).replace("T", " ") ?? copy.unknown} · {row.event.location ?? ""}</p>
-            <YoungSubscriptionControl id={row.youngId} copy={copy} />
+            <p>{row.event.startAt?.slice(0, 16).replace("T", " ") ?? copy.unknown}{row.event.location ? ` · ${row.event.location}` : ""}</p>
+            <YoungSubscriptionControl id={row.youngId} copy={copy} initialState={{ ...row, subscribed: true }} />
           </div>
         </Panel>
       {/each}
@@ -61,7 +61,7 @@ function pageHref(number: number) {
         <Panel>
           <div class="grid gap-3">
             <a class="font-medium" href={`/catalog/young-organizers/${encodeURIComponent(row.organizerId)}`}>{row.organizer.name}</a>
-            <YoungSubscriptionControl id={row.organizerId} kind="organizers" {copy} />
+            <YoungSubscriptionControl id={row.organizerId} kind="organizers" {copy} initialState={{ subscribed: true }} />
           </div>
         </Panel>
       {/each}

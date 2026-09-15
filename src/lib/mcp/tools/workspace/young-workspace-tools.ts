@@ -6,6 +6,7 @@ import {
 } from "@/features/young/server/young-notification-service";
 import {
   getYoungEventSubscription,
+  getYoungOrganizerSubscription,
   listYoungEventSubscriptions,
   listYoungOrganizerSubscriptions,
   setYoungEventSubscription,
@@ -26,6 +27,21 @@ const page = {
 };
 
 export function registerYoungWorkspaceTools(server: McpServer) {
+  server.registerTool(
+    "workspace_young_organizer_subscription_get",
+    {
+      description: "Get personal organizer follow state.",
+      inputSchema: { organizerId: id, mode: mcpModeInputSchema },
+    },
+    async (args, extra) =>
+      jsonToolResult(
+        await getYoungOrganizerSubscription(
+          getUserId(extra.authInfo),
+          args.organizerId,
+        ),
+        { mode: resolveMcpMode(args.mode) },
+      ),
+  );
   server.registerTool(
     "workspace_young_event_subscription_list",
     {

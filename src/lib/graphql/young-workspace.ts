@@ -9,6 +9,7 @@ import {
 } from "@/features/young/server/young-notification-service";
 import {
   getYoungEventSubscription,
+  getYoungOrganizerSubscription,
   listYoungEventSubscriptions,
   listYoungOrganizerSubscriptions,
   setYoungEventSubscription,
@@ -39,9 +40,10 @@ export const youngWorkspaceTypeDefs = /* GraphQL */ `
   type PersonalCalendarEvent { id: ID!, type: String!, at: DateTime, endsAt: DateTime, title: String!, location: String, url: String!, youngId: String }
   type PersonalCalendarEventPage { items: [PersonalCalendarEvent!]!, pageInfo: PageInfo! }
   extend type Workspace {
-    calendarEvents(dateFrom: DateTime, dateTo: DateTime, page: PageInput): PersonalCalendarEventPage!
+    calendarEvents(dateFrom: String, dateTo: String, page: PageInput): PersonalCalendarEventPage!
     youngEventSubscriptions(page: PageInput): YoungEventSubscriptionPage!
     youngEventSubscription(youngId: String!): YoungEventSubscriptionState!
+    youngOrganizerSubscription(organizerId: ID!): YoungOrganizerSubscriptionState!
     youngOrganizerSubscriptions(page: PageInput): YoungOrganizerSubscriptionPage!
     youngNotifications(unread: Boolean = false, page: PageInput): YoungNotificationPage!
   }
@@ -69,6 +71,16 @@ const reader = (context: GraphqlContext, notifications = false) =>
   }).userId;
 
 export const youngWorkspaceResolvers = {
+  youngOrganizerSubscription(
+    _parent: unknown,
+    args: { organizerId: string },
+    context: GraphqlContext,
+  ) {
+    return getYoungOrganizerSubscription(
+      reader(context),
+      identifier(args.organizerId),
+    );
+  },
   async calendarEvents(
     _parent: unknown,
     args: { dateFrom?: string; dateTo?: string; page?: GraphqlPageInput },

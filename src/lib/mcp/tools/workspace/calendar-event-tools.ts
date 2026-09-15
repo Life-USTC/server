@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
+import { parsePersonalCalendarRange } from "@/features/calendar/server/personal-calendar-range";
 import {
   flexDateInputSchema,
   getUserId,
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
-  parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
 
@@ -15,8 +15,8 @@ export function registerCalendarEventTools(server: McpServer) {
     "workspace_calendar_event_list",
     {
       description:
-        "Unified personal calendar events (schedules, homework deadlines, exams, todos) filtered by date range. " +
-        "Use workspace_calendar_timeline_get for a no-date-required 7-day window.",
+        "Unified personal calendar events (schedules, homework deadlines, exams, todos, subscribed Young events) filtered by date range. " +
+        "Supply both date bounds or neither, at most 366 days. Use workspace_calendar_timeline_get for a no-date-required 7-day window.",
       inputSchema: {
         dateFrom: flexDateInputSchema
           .optional()
@@ -33,17 +33,19 @@ export function registerCalendarEventTools(server: McpServer) {
       },
     },
     async ({ dateFrom, dateTo, locale, mode }, extra) => {
-      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
-      if (!dateRange.ok) {
-        return dateRange.result;
+      let range: ReturnType<typeof parsePersonalCalendarRange>;
+      try {
+        range = parsePersonalCalendarRange({ dateFrom, dateTo });
+      } catch {
+        return jsonToolResult({
+          success: false,
+          error:
+            "Supply both dates or neither; range must be valid, ordered and at most 366 days.",
+        });
       }
       const events = await listUserCalendarEvents(getUserId(extra.authInfo), {
         locale,
-        dateFrom: dateRange.dateFrom,
-        dateTo: dateRange.dateTo,
-        dateFromIsDateOnly: dateRange.dateFromIsDateOnly,
-        dateToIsDateOnly: dateRange.dateToIsDateOnly,
-        dateToInclusive: true,
+        ...range,
       });
       const resolvedMode = resolveMcpMode(mode);
 

@@ -6,6 +6,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response youngNotificationReadSchema
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

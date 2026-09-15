@@ -1,4 +1,3 @@
-import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
 import {
@@ -19,6 +18,7 @@ import {
 } from "./features/catalog/lib/catalog-list-query";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
+import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
@@ -655,7 +655,8 @@ export default {
 
               if (controller.cron === YOUNG_NOTIFICATION_CRON) {
                 task = "young-notifications";
-                const report = await runYoungNotificationCron(maintenancePrisma);
+                const report =
+                  await runYoungNotificationCron(maintenancePrisma);
                 logScheduledTaskFinish(task, report, elapsedMs(startMs));
                 return;
               }

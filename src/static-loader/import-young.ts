@@ -1,9 +1,10 @@
 /** Static-import young-event sync and post-import database counts. */
-import type { Prisma } from "../generated/prisma-node/client";
+
 import {
   displayYoungOrganizerName,
   normalizeYoungOrganizerName,
 } from "../features/young/server/young-organizer-normalization";
+import type { Prisma } from "../generated/prisma-node/client";
 import { bulkUpsert, type ColumnValue } from "./database-writes";
 import type { ImportRecordCounts } from "./import-types";
 import type { YoungEventBuild } from "./young-plan";
@@ -111,8 +112,8 @@ export async function syncYoungEvents(
         normalizeYoungOrganizerName(build.organizer) == null
           ? null
           : (organizerIds.get(
-                normalizeYoungOrganizerName(build.organizer) as string,
-              ) ?? null),
+              normalizeYoungOrganizerName(build.organizer) as string,
+            ) ?? null),
         build.status,
         build.registrationStatus,
         build.location,

@@ -123,6 +123,13 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ["search_path=pg_catalog, public"],
+    signature:
+      "public.list_young_notification_recipients(after_id text, batch_size integer)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
     settings: ['search_path=""'],
     signature:
       "public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer)",
@@ -222,6 +229,8 @@ const expectedColumnPrivileges = [
   "public.OAuthRefreshToken:id:UPDATE",
   "public.Session:id:UPDATE",
   "public.User:id:UPDATE",
+  "public.UserYoungEventSubscription:userId:SELECT",
+  "public.UserYoungOrganizerSubscription:userId:SELECT",
   "public.VerificationToken:id:UPDATE",
 ] as const;
 
@@ -678,6 +687,26 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           roles: [functionOwnerRole],
           schemaName: "public",
           tableName: "UserSectionSubscription",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "UserYoungEventSubscription_recipients",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UserYoungEventSubscription",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "UserYoungOrganizerSubscription_recipients",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UserYoungOrganizerSubscription",
           usingExpression: "true",
         },
       ]);

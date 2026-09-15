@@ -29,7 +29,8 @@
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
     "schema-evolution": "CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label is present; approval skips only that base-compatibility comparison.",
     "room-maps": "Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview, or unavailable status.",
-    "subscription-kind": "Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate edits existing owner-scoped membership only."
+    "subscription-kind": "Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate edits existing owner-scoped membership only.",
+    "young-workspace": "Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range calendars use shared owner-scoped services. See young-workspace.json for complete signatures and scopes."
   },
   "capabilities": {
     "public-query-endpoint": {

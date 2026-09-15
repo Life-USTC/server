@@ -70,10 +70,7 @@ import {
   validateMappedSectionJwIds,
   validateSnapshotCompleteness,
 } from "./validation";
-import {
-  isYoungEventsSnapshotComplete,
-  loadYoungEvents,
-} from "./young-plan";
+import { isYoungEventsSnapshotComplete, loadYoungEvents } from "./young-plan";
 
 export { upsertAdminClasses } from "./import-infrastructure";
 export type {

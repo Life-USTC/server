@@ -136,10 +136,13 @@ export async function postYoungNotificationReadRoute(
   if (auth instanceof Response) return auth;
   try {
     const result = await readYoungNotification(auth.userId, id);
-    return jsonResponse(result, {
-      status: result.success ? 200 : 404,
-      headers: privateHeaders,
-    });
+    return jsonResponse(
+      result.success ? result : { error: "Notification not found" },
+      {
+        status: result.success ? 200 : 404,
+        headers: privateHeaders,
+      },
+    );
   } catch (error) {
     return handleRouteError("Unable to read notification", error);
   }

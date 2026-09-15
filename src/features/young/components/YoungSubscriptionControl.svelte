@@ -1,4 +1,5 @@
 <script lang="ts">
+import { untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import {
   youngEventSubscriptionStateSchema,
@@ -15,19 +16,28 @@ let {
   id,
   kind = "events",
   copy,
+  initialState,
 }: {
   id: string;
   kind?: "events" | "organizers";
   copy: AppPageCopy["youngEvents"]["workspace"];
+  initialState?: {
+    subscribed: boolean;
+    remindSignup?: boolean;
+    remindDeadline?: boolean;
+    remindStart?: boolean;
+  };
 } = $props();
-let subscribed = $state(false);
-let loaded = $state(false);
+let subscribed = $state(untrack(() => initialState?.subscribed ?? false));
+let loaded = $state(untrack(() => initialState != null));
 let failed = $state(false);
-let signedIn = $state(false);
+let signedIn = $state(untrack(() => initialState != null));
 let busy = $state(false);
-let remindSignup = $state(true);
-let remindDeadline = $state(true);
-let remindStart = $state(true);
+let remindSignup = $state(untrack(() => initialState?.remindSignup ?? true));
+let remindDeadline = $state(
+  untrack(() => initialState?.remindDeadline ?? true),
+);
+let remindStart = $state(untrack(() => initialState?.remindStart ?? true));
 let refresh = $state(0);
 const endpoint = $derived(
   `/api/workspace/young-${kind === "events" ? "event" : "organizer"}-subscriptions/${encodeURIComponent(id)}`,
@@ -36,6 +46,16 @@ const prefix = $props.id();
 
 $effect(() => {
   const url = endpoint;
+  if (initialState) {
+    subscribed = initialState.subscribed;
+    remindSignup = initialState.remindSignup ?? true;
+    remindDeadline = initialState.remindDeadline ?? true;
+    remindStart = initialState.remindStart ?? true;
+    loaded = true;
+    signedIn = true;
+    failed = false;
+    return;
+  }
   void refresh;
   loaded = false;
   failed = false;
@@ -112,9 +132,9 @@ async function save(next: boolean) {
         {!loaded ? copy.loading : !signedIn ? copy.signin : kind === "events" ? (subscribed ? copy.unsubscribe : copy.subscribe) : (subscribed ? copy.unfollow : copy.follow)}
       </Button>
     {/if}
-    <Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>
+    {#if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
   </div>
-  <p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>
+  {#if !initialState}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
   {#if kind === "events" && subscribed && loaded && !failed}
     <Field.FieldSet disabled={busy}>
       <Field.FieldGroup>

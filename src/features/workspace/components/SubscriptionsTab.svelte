@@ -1,9 +1,9 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button";
-import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import BulkImportConfirmDialog from "@/features/subscriptions/components/BulkImportConfirmDialog.svelte";
 import BulkImportDialog from "@/features/subscriptions/components/BulkImportDialog.svelte";
 import type { BulkImportSectionView } from "@/features/subscriptions/components/bulk-import-types";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { Button } from "$lib/components/ui/button";
 import SubscriptionsList from "./SubscriptionsList.svelte";
 import SubscriptionsQuickAddDialog from "./SubscriptionsQuickAddDialog.svelte";
 import SubscriptionsStatusAlerts from "./SubscriptionsStatusAlerts.svelte";

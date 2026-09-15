@@ -8,6 +8,10 @@ vi.mock("@/features/calendar/server/calendar-event-sources", () => ({
   loadCalendarEventSources: loadCalendarEventSourcesMock,
 }));
 
+vi.mock("@/features/young/server/young-calendar-service", () => ({
+  listSubscribedYoungCalendarEvents: vi.fn().mockResolvedValue([]),
+}));
+
 import {
   mapExamCalendarEvent,
   mapHomeworkCalendarEvent,

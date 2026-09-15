@@ -3,6 +3,7 @@ import { accountGraphqlOperationDefinitions } from "./account";
 import { catalogGraphqlOperationDefinitions } from "./catalog";
 import { communityGraphqlOperationDefinitions } from "./community";
 import { workspaceGraphqlOperationDefinitions } from "./workspace";
+import { youngWorkspaceOperationDefinitions } from "./young-workspace";
 
 const byId = new Map<string, PersistedGraphqlOperationDefinition>(
   [
@@ -10,10 +11,21 @@ const byId = new Map<string, PersistedGraphqlOperationDefinition>(
     ...accountGraphqlOperationDefinitions,
     ...communityGraphqlOperationDefinitions,
     ...workspaceGraphqlOperationDefinitions,
+    ...youngWorkspaceOperationDefinitions,
   ].map((op) => [op.id, op]),
 );
 
 const REGISTRY_ORDER = [
+  "workspace.young_event_subscription.list.v1",
+  "workspace.young_event_subscription.get.v1",
+  "workspace.young_organizer_subscription.list.v1",
+  "workspace.young_organizer_subscription.get.v1",
+  "workspace.young_notification.list.v1",
+  "workspace.calendar.events.list.v1",
+  "workspace.young_event_subscription.set.v1",
+  "workspace.young_organizer_subscription.set.v1",
+  "workspace.young_notification.read.v1",
+
   "catalog.semester.list.v1",
   "catalog.semester.current.get.v1",
   "catalog.course.search.v1",

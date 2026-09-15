@@ -9,7 +9,12 @@ import {
 } from "./event-summary-cards";
 
 type CalendarEvent = Awaited<ReturnType<typeof listUserCalendarEvents>>[number];
-type CalendarEventType = "schedule" | "homework_due" | "exam" | "todo_due" | "young_event";
+type CalendarEventType =
+  | "schedule"
+  | "homework_due"
+  | "exam"
+  | "todo_due"
+  | "young_event";
 export type SummarizableCalendarEvent = {
   at?: string | Date | null;
   payload: unknown;

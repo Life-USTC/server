@@ -1,4 +1,3 @@
-import { registerYoungWorkspaceTools } from "./tools/workspace/young-workspace-tools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   GRAPHQL_OPERATION_PROMPT_NAME,
@@ -24,6 +23,7 @@ import {
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "./tool-descriptors";
+import { registerYoungWorkspaceTools } from "./tools/workspace/young-workspace-tools";
 
 const SERVER_INSTRUCTIONS = [
   "Use workspace_snapshot_get or workspace_overview_get before fanning out into narrower personal tools.",

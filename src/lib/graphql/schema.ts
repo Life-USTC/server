@@ -1,4 +1,3 @@
-import { youngWorkspaceTypeDefs, youngWorkspaceResolvers, youngWorkspaceMutationResolvers, youngWorkspacePageResolvers } from "./young-workspace";
 import { createSchema } from "graphql-yoga";
 import {
   getBusRouteTimetable,
@@ -58,6 +57,12 @@ import {
   graphqlScopeResolvers,
   graphqlScopeTypeDefs,
 } from "./workspace";
+import {
+  youngWorkspaceMutationResolvers,
+  youngWorkspacePageResolvers,
+  youngWorkspaceResolvers,
+  youngWorkspaceTypeDefs,
+} from "./young-workspace";
 
 type TeacherParent = {
   id: number;
@@ -429,7 +434,10 @@ export const graphqlSchema = createSchema<
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Workspace,
     ),
     Mutation: observeGraphqlResolverMap(
-      { ...graphqlMutationResolvers.Mutation, ...youngWorkspaceMutationResolvers },
+      {
+        ...graphqlMutationResolvers.Mutation,
+        ...youngWorkspaceMutationResolvers,
+      },
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Mutation,
     ),
     Teacher: {

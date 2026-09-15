@@ -1018,6 +1018,22 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     ],
   },
   {
+    routeId: "/workspace/subscriptions/activities",
+    samplePath: "/workspace/subscriptions/activities",
+    kind: "page",
+    auth: "user",
+    contractPath: "/workspace/subscriptions/activities",
+    e2eSpec: "src/app/workspace/subscriptions/activities/test.ts",
+    mobileScreenshots: ["authed"],
+    primaryActions: [
+      {
+        id: "activity-subscriptions",
+        e2eSpec: "src/app/workspace/subscriptions/activities/test.ts",
+        evidence: "活动、主办方订阅和提醒入口可用",
+      },
+    ],
+  },
+  {
     routeId: "/workspace/subscriptions/sections",
     samplePath: "/workspace/subscriptions/sections",
     kind: "redirect",

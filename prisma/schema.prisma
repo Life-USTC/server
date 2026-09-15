@@ -1926,23 +1926,10 @@ model WeatherObservation {
   @@index([locationKey, observedAt])
 }
 
-model YoungOrganizer {
-  id String @id @default(cuid())
-  name String
-  normalizedName String @unique
-  events YoungEvent[]
-  subscriptions UserYoungOrganizerSubscription[]
-}
-
 model YoungEvent {
   id Int @id @default(autoincrement())
 
   youngId String @unique
-  organizerId String?
-  organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id])
-  sourceMissing Boolean @default(false)
-  lastSeenAt DateTime?
-  createdAt DateTime @default(now())
   subscriptions UserYoungEventSubscription[]
 
   name               String
@@ -1981,6 +1968,7 @@ model YoungOrganizer {
   normalizedName String @unique
 
   events YoungEvent[]
+  subscriptions UserYoungOrganizerSubscription[]
   createdAt DateTime @default(now())
 }
 
