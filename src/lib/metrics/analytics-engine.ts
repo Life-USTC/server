@@ -424,8 +424,6 @@ const PAGE_ROUTE_IDS = new Set([
   "/account/sign-in",
   "/account/welcome",
   "/admin",
-  "/admin/analytics",
-  "/admin/audit",
   "/admin/bus",
   "/admin/moderation",
   "/admin/oauth",

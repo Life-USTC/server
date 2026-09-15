@@ -42,6 +42,18 @@ test("/admin 重定向到用户管理", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin/redirect-users");
 });
 
+test("已移除的可观测性页面返回 404 且不出现在管理导航", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/users");
+
+  for (const path of ["/admin/analytics", "/admin/audit"] as const) {
+    await expect((await page.request.get(path)).status()).toBe(404);
+  }
+
+  const navigation = adminPrimaryNav(page);
+  await expect(navigation.locator('a[href="/admin/analytics"]')).toHaveCount(0);
+  await expect(navigation.locator('a[href="/admin/audit"]')).toHaveCount(0);
+});
+
 test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
   page,
 }, testInfo) => {
@@ -52,8 +64,6 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
-    { path: "/admin/audit", name: /操作与异常日志|Operations and Issues/i },
-    { path: "/admin/analytics", name: /统计数据|Usage Statistics/i },
   ] as const;
 
   for (const { path, name } of paths) {
@@ -61,7 +71,7 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
-    await expect(adminLinks).toHaveCount(6);
+    await expect(adminLinks).toHaveCount(4);
     await expect(navigation.getByRole("link", { name })).toHaveAttribute(
       "aria-current",
       "page",
@@ -119,16 +129,6 @@ test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) =
       shot: "admin/navigate-bus",
     },
     {
-      name: /操作与异常日志|Operations and Issues/i,
-      url: /\/admin\/audit(?:\?.*)?$/,
-      shot: "admin/navigate-audit",
-    },
-    {
-      name: /统计数据|Usage Statistics/i,
-      url: /\/admin\/analytics(?:\?.*)?$/,
-      shot: "admin/navigate-analytics",
-    },
-    {
       name: /用户管理|User Management/i,
       url: /\/admin\/users(?:\?.*)?$/,
       shot: "admin/navigate-users",
@@ -152,8 +152,6 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
     { path: "/admin/moderation", name: /内容审核|Moderation/i },
     { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
     { path: "/admin/bus", name: /校车管理|Bus Management/i },
-    { path: "/admin/audit", name: /操作与异常日志|Operations and Issues/i },
-    { path: "/admin/analytics", name: /统计数据|Usage Statistics/i },
   ] as const;
 
   const mobileNavigation = page.getByTestId("admin-mobile-navigation");
@@ -172,7 +170,7 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
     const panel = page.getByTestId("admin-mobile-navigation-panel");
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("link", { name })).toBeVisible();
-    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(6);
+    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(4);
     await panel.getByRole("link", { name }).click();
     await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
   }

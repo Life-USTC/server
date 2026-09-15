@@ -200,46 +200,7 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("link", {
-          name: /操作与异常日志|Operations and Issues/i,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /统计数据|Usage Statistics/i }),
-      ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-entry");
-      return;
-    }
-
-    case "/admin/audit": {
-      await signInAsDevAdmin(page, "/admin/audit");
-      await gotoContractPage(page, routePath, testInfo);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          name: /操作与异常日志|Operations and Issues/i,
-          level: 1,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /筛选操作|Filter operations/i }),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-audit");
-      return;
-    }
-
-    case "/admin/analytics": {
-      await signInAsDevAdmin(page, "/admin/analytics");
-      await gotoContractPage(page, routePath, testInfo);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /统计数据|Usage Statistics/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /最近 30 天|Last 30 days/i }),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-analytics");
       return;
     }
 
