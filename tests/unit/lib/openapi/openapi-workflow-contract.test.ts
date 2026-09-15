@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 
-const actionRevision = "2649ebe137aeb72a95707671204e829f86e091fc";
+const actionRevision = "9c0494cfee8b8fcc9fb383ed2d5d3fbdae169b93";
 
 async function readRepositoryFile(path: string) {
   return readFile(new URL(`../../../../${path}`, import.meta.url), "utf8");

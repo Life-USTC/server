@@ -10,8 +10,14 @@ import { gotoAndWaitForReady } from "./page-ready";
 export async function showWeatherFixture(page: Page) {
   const start = new Date(Date.now() + 3_600_000);
   start.setUTCMinutes(0, 0, 0);
-  const temperatures = [28, 27, 26, 26, 25, 24, 23, 23, 22, 21, 22, 24];
-  const rain = [3, 4, 5, 25, 60, 85, 100, 55, 20, 4, 0, 0];
+  const temperatures = [
+    28, 27, 26, 26, 25, 24, 23, 23, 22, 21, 22, 24, 26, 28, 30, 31, 32, 32, 31,
+    30, 29, 28, 27, 26,
+  ];
+  const rain = [
+    3, 4, 5, 25, 60, 85, 100, 55, 20, 4, 0, 0, 0, 0, 0, 0, 0, 5, 10, 20, 30, 20,
+    10, 0,
+  ];
   const locations = WEATHER_LOCATIONS.map((location) => {
     const snapshot: WeatherSnapshot = {
       location: {

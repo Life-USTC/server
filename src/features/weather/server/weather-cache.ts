@@ -5,7 +5,7 @@ const WEATHER_CACHE_TTL_SECONDS = 15 * 60;
 const WEATHER_CACHE_EXPIRATION_TTL_SECONDS = 60 * 60;
 
 export function buildWeatherCacheKey(locationKey: string): string {
-  return `weather:${locationKey}:v1`;
+  return `weather:${locationKey}:v2`;
 }
 
 export async function readWeatherCache(

@@ -63,7 +63,7 @@ describe("weather server edges", () => {
     const { buildWeatherCacheKey, readWeatherCache, writeWeatherCache } =
       await import("@/features/weather/server/weather-cache");
 
-    expect(buildWeatherCacheKey("ustc-main")).toBe("weather:ustc-main:v1");
+    expect(buildWeatherCacheKey("ustc-main")).toBe("weather:ustc-main:v2");
     await expect(readWeatherCache("ustc-main")).resolves.toBeNull();
     await expect(
       writeWeatherCache("ustc-main", snapshot),
@@ -82,14 +82,14 @@ describe("weather server edges", () => {
     );
 
     await expect(readWeatherCache("ustc-main")).resolves.toBe(snapshot);
-    expect(namespace.get).toHaveBeenCalledWith("weather:ustc-main:v1", {
+    expect(namespace.get).toHaveBeenCalledWith("weather:ustc-main:v2", {
       cacheTtl: 900,
       type: "json",
     });
 
     await writeWeatherCache("ustc-main", snapshot);
     expect(namespace.put).toHaveBeenCalledWith(
-      "weather:ustc-main:v1",
+      "weather:ustc-main:v2",
       JSON.stringify(snapshot),
       { expirationTtl: 3600 },
     );

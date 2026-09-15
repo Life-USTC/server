@@ -8,9 +8,22 @@ import { getWeatherLocation, type WeatherSnapshot } from "./weather-types";
 export async function getWeatherSnapshot(
   locationKey: string,
 ): Promise<WeatherSnapshot | null> {
-  const cached = await readWeatherCache(locationKey);
-  if (cached) return cached;
-  return refreshWeatherSnapshot(locationKey);
+  const snapshot =
+    (await readWeatherCache(locationKey)) ??
+    (await refreshWeatherSnapshot(locationKey));
+  if (!snapshot) return null;
+
+  // Select on every read: the cached provider series also covers tomorrow
+  // when the request crosses an hour or midnight after the last refresh.
+  const now = Date.now();
+  const end = now + 24 * 60 * 60 * 1000;
+  return {
+    ...snapshot,
+    hourly: snapshot.hourly.filter((hour) => {
+      const at = Date.parse(hour.at);
+      return at >= now && at < end;
+    }),
+  };
 }
 
 export async function refreshWeatherSnapshot(

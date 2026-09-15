@@ -1026,7 +1026,7 @@
     "temperatureLegend": "Temperature (°C)",
     "precipitationLegend": "Rain chance (%)",
     "hourlyChartHint": "Use arrow keys to choose an hour; Escape closes details",
-    "hourlyForecast": "Hourly forecast",
+    "hourlyForecast": "Next 24 hours",
     "precipitationProbability": "Precipitation {value}%",
     "dailyForecast": "Daily forecast",
     "alerts": "Weather alerts",
