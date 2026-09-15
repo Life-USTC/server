@@ -4,35 +4,54 @@ import { renderPrometheusMetrics } from "@/features/admin/server/prometheus-metr
 
 function snapshot(): PrometheusMetricsSnapshot {
   return {
-    generatedAt: "2026-09-14T16:02:00.000Z",
-    firstFeatureRecordedAt: "2026-09-01T00:00:00.000Z",
+    generatedAt: "2026-09-15T00:00:15Z",
+    activityGeneratedAt: "2026-09-15T00:00:00Z",
+    counterStartedAt: "2026-09-01T00:00:00Z",
+    firstFeatureRecordedAt: "2026-09-01T00:00:00Z",
     summary: {
       users: 3,
       comments: 4,
       homeworks: 5,
       oauthClients: 2,
-      activeSuspensions: 1,
+      activeSuspensions: 0,
     },
-    users: [{ window: "today", registeredUsers: 1, activeUsers: 2 }],
+    registrations: 7,
+    deletions: 4,
+    users: [{ window: "24h", activeUsers: 2 }],
+    featureActivity: [
+      { window: "24h", feature: "catalog.search", protocol: "rest", users: 2 },
+    ],
     features: [
       {
-        window: "5m",
         feature: "catalog.search",
         operation: "search",
         protocol: "rest",
         surface: "unknown",
         authMode: "anonymous",
         outcome: "success",
-        errorClass: "none",
         events: 3,
-        users: 0,
-        durationSeconds: 0.15,
-        maxDurationSeconds: 0.1,
+      },
+    ],
+    featureErrors: [
+      {
+        feature: "catalog.search",
+        protocol: "rest",
+        errorClass: "internal",
+        events: 1,
+      },
+    ],
+    featureDurations: [
+      {
+        feature: "catalog.search",
+        operation: "search",
+        protocol: "rest",
+        count: 3,
+        durationSeconds: 11.015,
+        buckets: [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
       },
     ],
     audit: [
       {
-        window: "today",
         action: "homework_create",
         channel: "web",
         outcome: "success",
@@ -41,92 +60,75 @@ function snapshot(): PrometheusMetricsSnapshot {
     ],
     oauth: [
       {
-        window: "today",
         channel: "mcp",
-        feature: "catalog",
+        feature: "catalog.course",
         readCount: 7,
         writeCount: 3,
         errorCount: 2,
       },
     ],
-    oauthSummary: [{ window: "today", activeClients: 1 }],
-    runtime: [
-      {
-        window: "5m",
-        level: "error",
-        event: "api.request.error",
-        status: "500",
-        events: 2,
-      },
-    ],
+    oauthSummary: [{ window: "24h", activeClients: 1 }],
+    runtime: [{ level: "error", event: "other", status: "5xx", events: 2 }],
   };
 }
-
-describe("Admin Prometheus metric definitions", () => {
-  it("preserves source counts, intersection labels and seconds without treating windows as counters", () => {
-    const body = renderPrometheusMetrics(snapshot());
-    expect(body).toContain("# TYPE life_ustc_feature_operations gauge\n");
-    expect(body).toContain(
-      'life_ustc_feature_operations{auth_mode="anonymous",error_class="none",feature="catalog.search",operation="search",outcome="success",protocol="rest",surface="unknown",window="5m"} 3\n',
+describe("Native Prometheus metric definitions", () => {
+  it("exports cumulative events and a valid cumulative histogram with seconds and bounded dimensions", () => {
+    const text = renderPrometheusMetrics(snapshot());
+    expect(text).toContain(
+      "# TYPE life_ustc_feature_operations_total counter\n",
     );
-    expect(body).toMatch(
-      /^life_ustc_feature_operation_duration_seconds\{.*\} 0\.15$/m,
+    expect(text).toContain(
+      'life_ustc_feature_operations_total{auth_mode="anonymous",feature="catalog.search",operation="search",outcome="success",protocol="rest",surface="unknown"} 3\n',
     );
-    expect(body).toContain(
-      'life_ustc_oauth_read_operations{channel="mcp",feature="catalog",window="today"} 7\n',
+    expect(text).toContain(
+      "# TYPE life_ustc_feature_operation_duration_seconds histogram\n",
     );
-    expect(body).toContain(
-      'life_ustc_oauth_write_operations{channel="mcp",feature="catalog",window="today"} 3\n',
+    expect(text).toContain(
+      'life_ustc_feature_operation_duration_seconds_bucket{feature="catalog.search",le="+Inf",operation="search",protocol="rest"} 3\n',
     );
-    expect(body).toContain(
-      'life_ustc_oauth_operation_errors{channel="mcp",feature="catalog",window="today"} 2\n',
+    expect(text).toMatch(
+      /^life_ustc_feature_operation_duration_seconds_sum\{.*\} 11\.015$/m,
     );
-    expect(body).toContain('life_ustc_active_users{window="today"} 2\n');
-    expect(body).not.toMatch(/# TYPE \S+ counter/);
-    expect(body).not.toMatch(/(?:user_id|request_id|client_id|day)=/);
+    expect(text).toMatch(
+      /^life_ustc_feature_operation_duration_seconds_count\{.*\} 3$/m,
+    );
+    expect(text).toContain("life_ustc_user_registrations_total 7\n");
+    expect(text).toContain('life_ustc_active_users{window="24h"} 2\n');
+    expect(text).not.toMatch(/(?:user_id|client_id|request_id|day)=/);
+    expect(text).not.toMatch(/^life_ustc_feature_operations\{/m);
+    expect(text).not.toContain("max_duration");
+    expect(
+      text
+        .split("\n")
+        .filter((line) =>
+          line.startsWith(
+            "life_ustc_feature_operation_duration_seconds_bucket",
+          ),
+        ),
+    ).toHaveLength(12);
   });
-
-  it("omits an undefined maximum for empty windows but preserves observed zero durations", () => {
+  it("distinguishes fresh counter time from cached activity time", () => {
     const value = snapshot();
-    value.features[0].events = 0;
-    value.features[0].durationSeconds = 0;
-    value.features[0].maxDurationSeconds = 0;
-    const empty = renderPrometheusMetrics(value);
-    expect(empty).toMatch(/^life_ustc_feature_operations\{.*\} 0$/m);
-    expect(empty).not.toMatch(
-      /^life_ustc_feature_operation_max_duration_seconds\{/m,
+    const text = renderPrometheusMetrics(value);
+    expect(text).toContain(
+      `life_ustc_metrics_generated_timestamp_seconds ${Date.parse(value.generatedAt) / 1000}\n`,
     );
-
-    value.features[0].events = 1;
-    const observed = renderPrometheusMetrics(value);
-    expect(observed).toMatch(
-      /^life_ustc_feature_operation_max_duration_seconds\{.*\} 0$/m,
+    expect(text).toContain(
+      `life_ustc_activity_generated_timestamp_seconds ${Date.parse(value.activityGeneratedAt) / 1000}\n`,
     );
   });
-
-  it("uses Shanghai midnight across UTC date boundaries", () => {
-    const body = renderPrometheusMetrics(snapshot());
-    expect(body).toContain(
-      `life_ustc_metrics_window_start_timestamp_seconds{window="today"} ${Date.parse("2026-09-14T16:00:00Z") / 1000}\n`,
-    );
-    expect(body).toContain(
-      `life_ustc_metrics_window_start_timestamp_seconds{window="7d"} ${Date.parse("2026-09-08T16:00:00Z") / 1000}\n`,
-    );
-    expect(body).toContain(
-      `life_ustc_metrics_window_start_timestamp_seconds{window="30d"} ${Date.parse("2026-08-16T16:00:00Z") / 1000}\n`,
-    );
-  });
-
-  it("emits zero scalars for an empty system without inventing feature observations", () => {
+  it("does not invent activity when observations are unavailable", () => {
     const value = snapshot();
-    value.summary.users = 0;
-    value.features = [];
     value.firstFeatureRecordedAt = null;
-    value.users = [{ window: "today", registeredUsers: 0, activeUsers: null }];
-    const body = renderPrometheusMetrics(value);
-    expect(body).toContain("life_ustc_users 0\n");
-    expect(body).toContain("life_ustc_feature_observation_available 0\n");
-    expect(body).not.toMatch(/^life_ustc_active_users\{/m);
-    expect(body).not.toMatch(/^life_ustc_feature_operations\{/m);
+    value.users = [{ window: "24h", activeUsers: null }];
+    value.features = [];
+    value.featureDurations = [];
+    value.featureActivity = [];
+    const text = renderPrometheusMetrics(value);
+    expect(text).toContain("life_ustc_feature_observation_available 0\n");
+    expect(text).not.toMatch(/^life_ustc_active_users\{/m);
+    expect(text).not.toMatch(
+      /^life_ustc_feature_operation_duration_seconds_bucket\{/m,
+    );
   });
 });

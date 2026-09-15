@@ -760,7 +760,7 @@ model AuditLog {
 }
 
 /// Self-hosted, content-free feature observations. These rows are retained
-/// briefly and are the durable source for admin usage charts and issue views.
+/// briefly for exact distinct activity; cumulative counters survive their deletion.
 model FeatureOperationEvent {
   id         String   @id @default(uuid())
   occurredAt DateTime @default(now())
@@ -783,8 +783,7 @@ model FeatureOperationEvent {
   @@index([userId, occurredAt], map: "FeatureOperationEvent_userId_occurredAt_idx")
 }
 
-/// Bounded, safe runtime warnings and errors for the self-hosted admin issue
-/// view. Payloads, messages, stack traces, and user identifiers are excluded.
+/// Bounded, safe runtime warnings and errors for self-hosted monitoring. Payloads, messages, stack traces, and user identifiers are excluded.
 model RuntimeIssueEvent {
   id         String   @id @default(uuid())
   occurredAt DateTime @default(now())
@@ -1949,4 +1948,18 @@ model YoungEvent {
 
   @@index([isActive, startAt])
   @@index([category])
+}
+
+// Internal durable monitoring aggregates; never contain identity labels.
+model PrometheusCounter {
+  kind   String
+  labels String
+  value  Decimal @db.Decimal(65, 15)
+
+  @@id([kind, labels])
+}
+
+model PrometheusCounterEpoch {
+  id        Int      @id @default(1)
+  startedAt DateTime @default(now()) @db.Timestamp(3)
 }

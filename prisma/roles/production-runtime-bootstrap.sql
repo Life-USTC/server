@@ -496,6 +496,29 @@ GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
   )
 TO life_ustc_maintenance_runtime;
 
+GRANT SELECT, INSERT, UPDATE ON public."PrometheusCounter" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "PrometheusCounter_function_owner" ON public."PrometheusCounter";
+CREATE POLICY "PrometheusCounter_function_owner" ON public."PrometheusCounter" FOR ALL TO life_ustc_function_owner USING(true) WITH CHECK(true);
+REVOKE ALL ON public."PrometheusCounter" FROM life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+GRANT SELECT, INSERT, UPDATE ON public."PrometheusCounterEpoch" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "PrometheusCounterEpoch_function_owner" ON public."PrometheusCounterEpoch";
+CREATE POLICY "PrometheusCounterEpoch_function_owner" ON public."PrometheusCounterEpoch" FOR ALL TO life_ustc_function_owner USING(true) WITH CHECK(true);
+REVOKE ALL ON public."PrometheusCounterEpoch" FROM life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_features() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_features() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_runtime() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_runtime() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_audit() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_audit() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_oauth_insert() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_oauth_insert() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_oauth_update() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_oauth_update() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_registrations() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_registrations() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+ALTER FUNCTION public.count_prometheus_deletions() OWNER TO life_ustc_function_owner;
+REVOKE ALL ON FUNCTION public.count_prometheus_deletions() FROM PUBLIC,life_ustc_runtime,life_ustc_auth_runtime,life_ustc_maintenance_runtime;
+
 -- Grants to caller roles materialize the owner's default EXECUTE entry. Keep
 -- the function owner as a pure SECURITY DEFINER identity with no explicit ACL.
 REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public
