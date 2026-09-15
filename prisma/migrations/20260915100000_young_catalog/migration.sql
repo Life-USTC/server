@@ -24,22 +24,23 @@ ALTER TABLE "YoungEvent"
 INSERT INTO "YoungOrganizer" ("id", "name", "normalizedName")
 SELECT
     md5('young-organizer:' || normalized_name),
-    min(trim("organizer")),
+    min(btrim(regexp_replace(normalize("organizer", NFKC), '[[:space:]]+', ' ', 'g'))),
     normalized_name
 FROM (
     SELECT
         "organizer",
-        lower(regexp_replace(normalize(btrim("organizer"), NFKC), '[[:space:]]+', ' ', 'g')) AS normalized_name
+        lower(btrim(regexp_replace(normalize("organizer", NFKC), '[[:space:]]+', ' ', 'g'))) AS normalized_name
     FROM "YoungEvent"
     WHERE "organizer" IS NOT NULL AND btrim("organizer") <> ''
 ) AS source
+WHERE normalized_name <> ''
 GROUP BY normalized_name;
 
 UPDATE "YoungEvent" AS event
 SET "organizerId" = organizer."id"
 FROM "YoungOrganizer" AS organizer
 WHERE event."organizer" IS NOT NULL
-  AND lower(regexp_replace(normalize(btrim(event."organizer"), NFKC), '[[:space:]]+', ' ', 'g')) = organizer."normalizedName";
+  AND lower(btrim(regexp_replace(normalize(event."organizer", NFKC), '[[:space:]]+', ' ', 'g'))) = organizer."normalizedName";
 
 CREATE INDEX "YoungEvent_organizerId_startAt_idx"
     ON "YoungEvent"("organizerId", "startAt");
