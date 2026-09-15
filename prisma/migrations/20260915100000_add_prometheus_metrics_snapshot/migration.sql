@@ -80,7 +80,8 @@ BEGIN
 
   SELECT pg_catalog.min(feature."occurredAt")
   INTO v_first_feature_recorded_at
-  FROM public."FeatureOperationEvent" AS feature;
+  FROM public."FeatureOperationEvent" AS feature
+  WHERE feature."occurredAt" <= v_now;
 
   v_summary := v_summary || pg_catalog.jsonb_build_object(
     'comments', (SELECT pg_catalog.count(*) FROM public."Comment"),

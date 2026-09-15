@@ -28,6 +28,7 @@
     "DEV_ADMIN_NAME": "校园管理员",
     "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
     "DEV_ADMIN_PASSWORD": "dev-admin-password",
+    "METRICS_SECRET": "e2e-metrics-secret-not-for-production",
     "PUBLICATION_INGESTION_SECRET": "e2e-publication-ingestion-secret",
     "UPLOAD_TOTAL_QUOTA_MB": "100"
   },

@@ -205,6 +205,10 @@ export function observedEdgeResponse(input: {
     logEdgeObservationFailure(input, "request-id", error);
   }
 
+  // Scrapes must not record themselves as page traffic or recursively persist
+  // exporter failures as application issues. Prometheus tracks scrape health.
+  if (new URL(input.request.url).pathname === "/metrics") return response;
+
   let ioObservedDurationMs = 0;
   try {
     ioObservedDurationMs = elapsedMs(input.startMs);

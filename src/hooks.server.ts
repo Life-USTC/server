@@ -212,7 +212,9 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     route: observedRoute(event.url.pathname, event.route.id),
   });
   const startMs = monotonicNowMs();
-  const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
+  const isMetricsRequest = event.url.pathname === "/metrics";
+  const hasAuthSignal =
+    !isMetricsRequest && hasRequestAuthSignal(event.request.headers);
   event.locals.publicSsr = publicSsr && !hasAuthSignal;
   const apiObservability = prepareApiObservability(
     event.request,
@@ -244,7 +246,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     ssrClass: classifyPageSsrClass(event.locals.publicSsr),
   });
   const recordPageFinish = (status: number, responseBytes?: number) => {
-    if (apiObservability || pageObservationRecorded) return;
+    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
     pageObservationRecorded = true;
     recordPageRequestFinish({
       attribution: pageAttribution(),
@@ -259,7 +261,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     });
   };
   const recordPageError = (error: unknown) => {
-    if (apiObservability || pageObservationRecorded) return;
+    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
     pageObservationRecorded = true;
     recordPageRequestError({
       attribution: pageAttribution(),
