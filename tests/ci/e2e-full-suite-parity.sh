@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the complete E2E suite with the same per-shard database lifecycle as CI.
 #
-# CI runs four independent jobs. Each job migrates, seeds, and executes one
+# CI runs eight independent jobs. Each job migrates, seeds, and executes one
 # Playwright shard against a fresh database. A single unsharded `playwright test`
 # invocation reuses one seed across all files and projects, so shared-state
 # mutations from earlier shards leak into later ones.
@@ -10,7 +10,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly E2E_SHARD_TOTAL=4
+readonly E2E_SHARD_TOTAL=8
 
 if [[ -z "${FUNCTION_OWNER_DATABASE_URL:-}" ]]; then
   echo "FUNCTION_OWNER_DATABASE_URL must be set for E2E database lifecycle." >&2

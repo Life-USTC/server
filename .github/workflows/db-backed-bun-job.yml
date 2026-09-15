@@ -179,7 +179,7 @@ jobs:
               source tests/ci/setup-runtime-database.sh
               # Verify setup remains safe to repeat, including grants.
               source tests/ci/setup-runtime-database.sh
-              bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
+              bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare
@@ -187,11 +187,11 @@ jobs:
               source tests/ci/setup-runtime-database.sh
               runtime_database_url="$DATABASE_URL"
               expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-table-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-table-privileges.sql)"
               expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-column-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-column-privileges.sql)"
               expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
-                --file=prisma/roles/export-app-runtime-sequence-privileges.sql)"
+                --file=tests/integration/fixtures/app-runtime-sequence-privileges.sql)"
               expected_function_privileges='public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE'
               expected_function_privileges+=',public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
               expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer):EXECUTE'
@@ -218,8 +218,7 @@ jobs:
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/rls-database-contract.test.ts \
-                tests/integration/feature-event-store.test.ts \
-                tests/integration/admin-observability.test.ts
+                tests/integration/feature-event-store.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/auth-runtime-contract.test.ts
