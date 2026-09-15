@@ -28,37 +28,8 @@ ALTER TABLE "Comment"
   FOREIGN KEY ("youngEventId") REFERENCES "YoungEvent"("id")
   ON DELETE CASCADE ON UPDATE CASCADE;
 
--- The production roles bootstrap transfers this helper to
--- `life_ustc_function_owner`. A migrator that does not own the old overload
--- cannot drop it, but it can still add the six-argument overload used by the
--- application. Drop the obsolete overload only when the current migration
--- role owns it; otherwise leave its privileges and ownership untouched.
-DO $do$
-BEGIN
-  IF to_regprocedure(
-    'public.comment_hidden_root_count(integer, integer, integer, text, integer)'
-  ) IS NOT NULL
-  AND EXISTS (
-    SELECT 1
-    FROM pg_proc AS p
-    JOIN pg_namespace AS n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.proname = 'comment_hidden_root_count'
-      AND p.oid = to_regprocedure(
-        'public.comment_hidden_root_count(integer, integer, integer, text, integer)'
-      )
-      AND pg_get_userbyid(p.proowner) = current_user
-  ) THEN
-    DROP FUNCTION public.comment_hidden_root_count(
-      integer,
-      integer,
-      integer,
-      text,
-      integer
-    );
-  END IF;
-END
-$do$;
+-- Replace the former signature; every application caller now passes six targets.
+DROP FUNCTION public.comment_hidden_root_count(integer, integer, integer, text, integer);
 
 CREATE FUNCTION public.comment_hidden_root_count(
   p_section_id integer DEFAULT NULL,
@@ -88,3 +59,16 @@ AS $function$
       OR (p_young_event_id IS NOT NULL AND "youngEventId" = p_young_event_id)
     );
 $function$;
+
+REVOKE ALL ON FUNCTION public.comment_hidden_root_count(integer, integer, integer, text, integer, integer) FROM PUBLIC;
+DO $grants$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner') THEN
+    ALTER FUNCTION public.comment_hidden_root_count(integer, integer, integer, text, integer, integer) OWNER TO life_ustc_function_owner;
+    REVOKE EXECUTE ON FUNCTION public.comment_hidden_root_count(integer, integer, integer, text, integer, integer) FROM life_ustc_function_owner;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_runtime') THEN
+    GRANT EXECUTE ON FUNCTION public.comment_hidden_root_count(integer, integer, integer, text, integer, integer) TO life_ustc_runtime;
+  END IF;
+END
+$grants$;

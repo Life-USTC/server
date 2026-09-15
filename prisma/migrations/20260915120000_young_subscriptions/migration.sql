@@ -63,6 +63,7 @@ BEGIN
     CREATE POLICY "UserYoungEventSubscription_recipients" ON "UserYoungEventSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
     CREATE POLICY "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
     ALTER FUNCTION public.list_young_notification_recipients(text, integer) OWNER TO life_ustc_function_owner;
+    REVOKE EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) FROM life_ustc_function_owner;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_maintenance_runtime') THEN
     GRANT EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) TO life_ustc_maintenance_runtime;
