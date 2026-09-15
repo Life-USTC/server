@@ -14,5 +14,7 @@ let { data }: { data: PageData } = $props();
   copy={data.copy}
   data={data.data}
   filters={data.filters}
+  organizers={data.organizers}
   pagination={data.pagination}
+  source={data.source}
 />

@@ -14,5 +14,6 @@ let { data }: { data: PageData } = $props();
     commentsData={data.commentsData}
     copy={data.copy}
     event={data.event}
+    source={data.source}
   />
 {/if}

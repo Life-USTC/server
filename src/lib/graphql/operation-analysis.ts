@@ -44,6 +44,7 @@ export const PAGINATED_FIELD_COORDINATES = new Set([
   "Catalog.semesters",
   "Catalog.teachers",
   "Catalog.youngEvents",
+  "Catalog.youngOrganizers",
   "Exam.examRooms",
   "Schedule.teachers",
   "Workspace.exams",

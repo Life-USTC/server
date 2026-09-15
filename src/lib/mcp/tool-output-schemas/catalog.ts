@@ -3,8 +3,10 @@ import { roomMapResponseSchema } from "@/lib/api/schemas/room-map-schemas";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 import {
   paginatedYoungEventResponseSchema,
+  paginatedYoungOrganizerResponseSchema,
   youngEventDetailSchema,
   youngEventSummarySchema,
+  youngOrganizerSummarySchema,
 } from "@/lib/api/schemas/young-event-schemas";
 import {
   compactCatalogExamSchema,
@@ -92,11 +94,15 @@ export const youngEventPaginationSchema =
 export const youngEventListDefaultSchema = objectOutputSchema({
   data: z.array(compactYoungEventSchema),
   pagination: youngEventPaginationSchema,
+  unknownDates: z.array(compactYoungEventSchema),
+  source: paginatedYoungEventResponseSchema.shape.source,
 });
 
 export const youngEventListFullSchema = objectOutputSchema({
   data: z.array(youngEventSummarySchema),
   pagination: youngEventPaginationSchema,
+  unknownDates: z.array(youngEventSummarySchema),
+  source: paginatedYoungEventResponseSchema.shape.source,
 });
 
 export const youngEventGetDefaultSchema = objectOutputSchema({
@@ -107,6 +113,16 @@ export const youngEventGetDefaultSchema = objectOutputSchema({
 export const youngEventGetFullSchema = objectOutputSchema({
   youngId: z.string(),
   event: youngEventDetailSchema.nullable(),
+});
+
+export const youngOrganizerListSchema = objectOutputSchema({
+  data: z.array(youngOrganizerSummarySchema),
+  pagination: paginatedYoungOrganizerResponseSchema.shape.pagination,
+});
+
+export const youngOrganizerGetSchema = objectOutputSchema({
+  organizerId: z.string(),
+  organizer: youngOrganizerSummarySchema.nullable(),
 });
 
 export const catalogAcademicModeOutputSchemas = {
@@ -284,6 +300,14 @@ export const catalogNonAcademicModeOutputSchemas = {
     default: youngEventGetDefaultSchema,
     full: youngEventGetFullSchema,
   },
+  catalog_young_organizer_list: {
+    default: youngOrganizerListSchema,
+    full: youngOrganizerListSchema,
+  },
+  catalog_young_organizer_get: {
+    default: youngOrganizerGetSchema,
+    full: youngOrganizerGetSchema,
+  },
 } satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
 function advertisedCatalogOutputSchema(name: CatalogAcademicModeToolName) {
@@ -313,6 +337,10 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   catalog_young_event_list: objectOutputSchema({
     data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
     pagination: youngEventPaginationSchema,
+    unknownDates: z.array(
+      z.union([compactYoungEventSchema, youngEventSummarySchema]),
+    ),
+    source: paginatedYoungEventResponseSchema.shape.source,
   }),
   catalog_young_event_get: objectOutputSchema({
     youngId: z.string(),
@@ -320,6 +348,8 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
       .union([youngEventSummarySchema, youngEventDetailSchema])
       .nullable(),
   }),
+  catalog_young_organizer_list: youngOrganizerListSchema,
+  catalog_young_organizer_get: youngOrganizerGetSchema,
   catalog_course_search: advertisedCatalogOutputSchema("catalog_course_search"),
   catalog_course_get: advertisedCatalogOutputSchema("catalog_course_get"),
   catalog_semester_list: paginatedSemesterMcpSchema,

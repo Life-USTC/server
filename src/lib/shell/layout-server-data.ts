@@ -76,6 +76,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       transitMap: messages.metadata.pages.busMap,
       weather: messages.weather.title,
       youngEvents: messages.youngEvents.title,
+      youngCalendar: messages.youngEvents.calendarTitle,
+      youngOrganizers: messages.youngEvents.organizersTitle,
       mobileApp: messages.metadata.pages.mobileApp,
       prestoBot: messages.metadata.pages.prestoBot,
       mcp: messages.metadata.pages.mcp,

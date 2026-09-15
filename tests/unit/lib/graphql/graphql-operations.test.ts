@@ -32,7 +32,7 @@ describe("persisted GraphQL operation registry", () => {
 
     expect(registeredQueryFields).toEqual(queryFields);
     expect(registeredMutationFields).toEqual(mutationFields);
-    expect(graphqlPersistedOperationRegistry).toHaveLength(59);
+    expect(graphqlPersistedOperationRegistry).toHaveLength(61);
     expect(
       graphqlPersistedOperationRegistry.map((operation) => operation.id),
     ).toEqual(
@@ -90,7 +90,7 @@ describe("persisted GraphQL operation registry", () => {
 
   it("publishes frozen safety metadata without operation documents", () => {
     expect(publicGraphqlOperationsManifest.schemaVersion).toBe(1);
-    expect(publicGraphqlOperationsManifest.operations).toHaveLength(59);
+    expect(publicGraphqlOperationsManifest.operations).toHaveLength(61);
     expect(Object.isFrozen(publicGraphqlOperationsManifest)).toBe(true);
     expect(Object.isFrozen(publicGraphqlOperationsManifest.operations)).toBe(
       true,

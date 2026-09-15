@@ -96,4 +96,26 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       page.locator("#main-content a[href^='/catalog/young-events/']"),
     ).toHaveCount(0);
   });
+
+  test("日历和主办方页面保留公开深链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/young-events/calendar?view=month&date=2026-05-10",
+    );
+    await expect(page.getByTestId("young-calendar")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /日|Day/i }).first(),
+    ).toBeVisible();
+
+    await gotoAndWaitForReady(page, "/catalog/young-events/organizers");
+    await expect(page.getByRole("searchbox")).toBeVisible();
+    await expect(
+      page.getByText(/学生会|Students'? Union/i).first(),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        "a[href='/catalog/young-events/organizers/dev-scenario-young-organizer']",
+      ),
+    ).toBeVisible();
+  });
 });

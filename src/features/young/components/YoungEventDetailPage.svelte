@@ -2,7 +2,10 @@
 import { onMount } from "svelte";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
-import type { YoungEventDetail } from "@/features/young/server/young-event-service";
+import type {
+  YoungEventDetail,
+  YoungSourceFreshness,
+} from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
@@ -15,9 +18,10 @@ type Props = {
   commentsData?: CommentsInitialData | null;
   copy: AppPageCopy;
   event: YoungEventDetail;
+  source: YoungSourceFreshness;
 };
 
-let { commentsData = null, copy, event }: Props = $props();
+let { commentsData = null, copy, event, source }: Props = $props();
 
 let CommentsPanel = $state<
   | typeof import("@/features/comments/components/CommentsPanel.svelte").default
@@ -56,6 +60,10 @@ function formatRange(start: string | null, end: string | null) {
   return `${formatDateTime(start)} ~ ${formatDateTime(end)}`;
 }
 
+function formatSourceDate(value: string | null) {
+  return value ? value.slice(0, 16).replace("T", " ") : "-";
+}
+
 const fields = $derived(
   [
     { label: youngCopy.category, value: event.category },
@@ -86,6 +94,25 @@ const fields = $derived(
 
 <PageLayout description={event.category ?? youngCopy.description} title={event.name}>
   <div class="grid gap-5">
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 text-sm"
+      data-testid="young-source-freshness"
+    >
+      <span class="text-muted-foreground">
+        {#if source.status === "fresh"}
+          {youngCopy.sourceFresh}
+        {:else if source.status === "stale"}
+          {youngCopy.sourceStale}
+        {:else}
+          {youngCopy.sourceUnknown}
+        {/if}
+        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
+      </span>
+      {#if event.sourceMissing}
+        <span class="text-muted-foreground">{youngCopy.sourceMissing}</span>
+      {/if}
+    </div>
+
     {#if event.imageUrl}
       <img
         alt={event.name}
@@ -106,6 +133,18 @@ const fields = $derived(
     </Panel>
 
     <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+    {#if event.organizerId && event.organizer}
+      <p class="text-sm">
+        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
+        <a
+          class="underline underline-offset-4"
+          href={`/catalog/young-events/organizers/${event.organizerId}`}
+        >
+          {event.organizer}
+        </a>
+      </p>
+    {/if}
+
     <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
 
     <div class="flex flex-wrap gap-3">

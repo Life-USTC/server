@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Snapshot } from "@/static-loader/snapshot";
-import { loadYoungEvents } from "@/static-loader/young-plan";
+import {
+  isYoungEventsSnapshotComplete,
+  loadYoungEvents,
+} from "@/static-loader/young-plan";
 
 const ACTIVE_TABLE = "young_mobile_item_enrolment_list_result_records";
 const ENDED_TABLE = "young_mobile_item_end_list_result_records";
@@ -21,6 +24,29 @@ function fakeSnapshot({
 }
 
 describe("static young event plan", () => {
+  it("only marks snapshots complete when both event tables are present", () => {
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({
+          tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({ tables: { [ACTIVE_TABLE]: [] } }),
+      ),
+    ).toBe(false);
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({
+          metadata: { young_events_mode: "partial" },
+          tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("returns null when the snapshot predates the young builder", () => {
     const snapshot = fakeSnapshot({ metadata: {} });
     expect(loadYoungEvents(snapshot)).toBeNull();

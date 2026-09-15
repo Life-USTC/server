@@ -167,6 +167,8 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Young events
   catalog_young_event_list: [],
   catalog_young_event_get: [],
+  catalog_young_organizer_list: [],
+  catalog_young_organizer_get: [],
 
   // Course catalog
   catalog_course_search: [],

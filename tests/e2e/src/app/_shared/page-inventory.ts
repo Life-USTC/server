@@ -516,6 +516,56 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     ],
   },
   {
+    routeId: "/catalog/young-events/calendar",
+    samplePath: "/catalog/young-events/calendar",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/young-events/calendar",
+    e2eSpec: E2E.youngEvents,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      {
+        id: "young-calendar-view-switcher",
+        e2eSpec: E2E.youngEvents,
+        evidence: 'getByTestId("young-calendar")',
+      },
+    ],
+  },
+  {
+    routeId: "/catalog/young-events/organizers",
+    samplePath: "/catalog/young-events/organizers",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/young-events/organizers",
+    e2eSpec: E2E.youngEvents,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      {
+        id: "search-young-organizers",
+        role: "searchbox",
+        e2eSpec: E2E.youngEvents,
+        evidence: 'getByRole("searchbox")',
+      },
+    ],
+  },
+  {
+    routeId: "/catalog/young-events/organizers/[organizerId]",
+    samplePath: "/catalog/young-events/organizers/dev-scenario-young-organizer",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/young-events/organizers/[organizerId]",
+    e2eSpec: E2E.youngEvents,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      {
+        id: "back-to-young-organizers",
+        role: "link",
+        e2eSpec: E2E.youngEvents,
+        evidence: "dev-scenario-young-organizer",
+      },
+    ],
+  },
+  {
     routeId: "/catalog/courses/[jwId]",
     samplePath: `/catalog/courses/${DEV_SEED.course.jwId}`,
     kind: "page",

@@ -29,7 +29,7 @@ SELECT
 FROM (
     SELECT
         "organizer",
-        lower(regexp_replace(btrim("organizer"), '[[:space:]]+', ' ', 'g')) AS normalized_name
+        lower(regexp_replace(normalize(btrim("organizer"), NFKC), '[[:space:]]+', ' ', 'g')) AS normalized_name
     FROM "YoungEvent"
     WHERE "organizer" IS NOT NULL AND btrim("organizer") <> ''
 ) AS source
@@ -39,7 +39,7 @@ UPDATE "YoungEvent" AS event
 SET "organizerId" = organizer."id"
 FROM "YoungOrganizer" AS organizer
 WHERE event."organizer" IS NOT NULL
-  AND lower(regexp_replace(btrim(event."organizer"), '[[:space:]]+', ' ', 'g')) = organizer."normalizedName";
+  AND lower(regexp_replace(normalize(btrim(event."organizer"), NFKC), '[[:space:]]+', ' ', 'g')) = organizer."normalizedName";
 
 CREATE INDEX "YoungEvent_organizerId_startAt_idx"
     ON "YoungEvent"("organizerId", "startAt");
@@ -51,4 +51,10 @@ ALTER TABLE "YoungEvent"
     FOREIGN KEY ("organizerId") REFERENCES "YoungOrganizer"("id")
     ON DELETE SET NULL ON UPDATE CASCADE;
 
-GRANT SELECT ON TABLE "YoungOrganizer" TO life_ustc_runtime;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_runtime') THEN
+        EXECUTE 'GRANT SELECT ON TABLE "YoungOrganizer" TO life_ustc_runtime';
+    END IF;
+END
+$$;

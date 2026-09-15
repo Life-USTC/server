@@ -318,6 +318,7 @@ export const catalogGraphqlOperationDefinitions = [
               category
               department
               organizer
+              organizerId
               status
               registrationStatus
               location
@@ -330,6 +331,36 @@ export const catalogGraphqlOperationDefinitions = [
               applyStartAt
               applyEndAt
               isActive
+              sourceMissing
+              lastSeenAt
+              createdAt
+            }
+            unknownDates {
+              youngId
+              name
+              category
+              department
+              organizer
+              organizerId
+              status
+              registrationStatus
+              location
+              imageUrl
+              hours
+              capacity
+              appliedCount
+              startAt
+              endAt
+              applyStartAt
+              applyEndAt
+              isActive
+              sourceMissing
+              lastSeenAt
+              createdAt
+            }
+            source {
+              status
+              lastSyncedAt
             }
             pageInfo {
               ${pageInfoFields}
@@ -354,6 +385,7 @@ export const catalogGraphqlOperationDefinitions = [
             category
             department
             organizer
+            organizerId
             status
             registrationStatus
             location
@@ -366,6 +398,104 @@ export const catalogGraphqlOperationDefinitions = [
             applyStartAt
             applyEndAt
             isActive
+            sourceMissing
+            lastSeenAt
+            createdAt
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.young_organizer.list.v1",
+    title: "List Young organizers",
+    description:
+      "Lists normalized Young organizers with active, upcoming, and historical events.",
+    document: /* GraphQL */ `
+      query CatalogYoungOrganizers($page: PageInput, $search: String) {
+        catalog {
+          youngOrganizers(page: $page, search: $search) {
+            items {
+              id
+              name
+              normalizedName
+              activeEvents {
+                youngId
+                name
+                organizerId
+                startAt
+                endAt
+                sourceMissing
+              }
+              upcomingEvents {
+                youngId
+                name
+                organizerId
+                startAt
+                endAt
+                sourceMissing
+              }
+              historyEvents {
+                youngId
+                name
+                organizerId
+                startAt
+                endAt
+                sourceMissing
+              }
+              activeCount
+              upcomingCount
+              historyCount
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "catalog.young_organizer.get.v1",
+    title: "Get Young organizer",
+    description:
+      "Returns one normalized Young organizer with active, upcoming, and historical events.",
+    document: /* GraphQL */ `
+      query CatalogYoungOrganizer($organizerId: String!) {
+        catalog {
+          youngOrganizer(organizerId: $organizerId) {
+            id
+            name
+            normalizedName
+            activeEvents {
+              youngId
+              name
+              organizerId
+              startAt
+              endAt
+              sourceMissing
+            }
+            upcomingEvents {
+              youngId
+              name
+              organizerId
+              startAt
+              endAt
+              sourceMissing
+            }
+            historyEvents {
+              youngId
+              name
+              organizerId
+              startAt
+              endAt
+              sourceMissing
+            }
+            activeCount
+            upcomingCount
+            historyCount
           }
         }
       }

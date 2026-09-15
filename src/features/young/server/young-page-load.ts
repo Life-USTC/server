@@ -1,8 +1,18 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import {
+  normalizeYoungCalendarDate,
+  type YoungCalendarView,
+  youngCalendarRange,
+} from "@/features/young/lib/young-calendar";
+import {
   getYoungEvent,
+  getYoungOrganizer,
+  getYoungSourceFreshness,
   listYoungEventCategories,
   listYoungEvents,
+  listYoungOrganizers,
+  type YoungEventPage,
+  type YoungEventTimeBasis,
 } from "@/features/young/server/young-event-service";
 import {
   optionalValue,
@@ -16,6 +26,14 @@ export type YoungEventsPageFilters = {
   active?: boolean;
   category?: string;
   search?: string;
+  organizerId?: string;
+};
+
+export type YoungCalendarPageFilters = {
+  active?: boolean;
+  category?: string;
+  organizerId?: string;
+  timeBasis: YoungEventTimeBasis;
 };
 
 function parseActiveParam(value: string | null): boolean | undefined {
@@ -29,18 +47,21 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
     active: parseActiveParam(url.searchParams.get("active")),
     category: optionalValue(url.searchParams.get("category")),
     search: optionalValue(url.searchParams.get("search")),
+    organizerId: optionalValue(url.searchParams.get("organizerId")),
   };
   const page = parsePositivePage(url.searchParams.get("page"));
 
-  const [result, categories] = await Promise.all([
+  const [result, categories, organizers] = await Promise.all([
     listYoungEvents({
       active: filters.active,
       category: filters.category,
       search: filters.search,
+      organizerId: filters.organizerId,
       page,
       pageSize: CATALOG_PAGE_SIZE,
     }),
     listYoungEventCategories(),
+    listYoungOrganizers({ page: 1, pageSize: 100 }),
   ]);
 
   return toLoadData({
@@ -50,6 +71,129 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
     pagination: result.pagination,
     filters,
     categories,
+    organizers: organizers.data,
+    source: result.source,
+  });
+}
+
+function parseCalendarView(value: string | null): YoungCalendarView {
+  return value === "day" || value === "week" || value === "month"
+    ? value
+    : "month";
+}
+
+function parseTimeBasis(value: string | null): YoungEventTimeBasis {
+  return value === "registration" ? "registration" : "activity";
+}
+
+async function listAllYoungEventsForRange(input: {
+  active?: boolean;
+  category?: string;
+  organizerId?: string;
+  dateFrom: string;
+  dateTo: string;
+  timeBasis: YoungEventTimeBasis;
+}): Promise<YoungEventPage> {
+  const pageSize = 100;
+  const first = await listYoungEvents({ ...input, page: 1, pageSize });
+  if (first.pagination.totalPages <= 1) return first;
+  const pages = await Promise.all(
+    Array.from({ length: first.pagination.totalPages - 1 }, (_, index) =>
+      listYoungEvents({
+        ...input,
+        page: index + 2,
+        pageSize,
+      }),
+    ),
+  );
+  return {
+    data: [first, ...pages].flatMap((page) => page.data),
+    pagination: {
+      page: 1,
+      pageSize,
+      total: first.pagination.total,
+      totalPages: 1,
+    },
+    unknownDates: first.unknownDates,
+    source: first.source,
+  };
+}
+
+export async function loadYoungCalendarPage({ locals, url }: AppPageLoadEvent) {
+  const view = parseCalendarView(url.searchParams.get("view"));
+  const anchorDate = normalizeYoungCalendarDate(url.searchParams.get("date"));
+  const range = youngCalendarRange(view, anchorDate);
+  const filters: YoungCalendarPageFilters = {
+    active: parseActiveParam(url.searchParams.get("active")),
+    category: optionalValue(url.searchParams.get("category")),
+    organizerId: optionalValue(url.searchParams.get("organizerId")),
+    timeBasis: parseTimeBasis(url.searchParams.get("timeBasis")),
+  };
+  const [result, categories, organizers] = await Promise.all([
+    listAllYoungEventsForRange({
+      active: filters.active,
+      category: filters.category,
+      organizerId: filters.organizerId,
+      dateFrom: range.start,
+      dateTo: range.end,
+      timeBasis: filters.timeBasis,
+    }),
+    listYoungEventCategories(),
+    listYoungOrganizers({ page: 1, pageSize: 100 }),
+  ]);
+
+  return toLoadData({
+    copy: getWorkspacePageCopy(locals.locale),
+    locale: locals.locale,
+    view,
+    anchorDate,
+    range,
+    filters,
+    categories,
+    organizers: organizers.data,
+    data: result.data,
+    unknownDates: result.unknownDates,
+    source: result.source,
+  });
+}
+
+export async function loadYoungOrganizersPage({
+  locals,
+  url,
+}: AppPageLoadEvent) {
+  const page = parsePositivePage(url.searchParams.get("page"));
+  const search = optionalValue(url.searchParams.get("search"));
+  const [result, source] = await Promise.all([
+    listYoungOrganizers({
+      search,
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+    }),
+    getYoungSourceFreshness(),
+  ]);
+  return toLoadData({
+    copy: getWorkspacePageCopy(locals.locale),
+    locale: locals.locale,
+    data: result.data,
+    pagination: result.pagination,
+    search,
+    source,
+  });
+}
+
+export async function loadYoungOrganizerDetailPage({
+  locals,
+  organizerId,
+}: AppPageLoadEvent & { organizerId: string }) {
+  const [organizer, source] = await Promise.all([
+    getYoungOrganizer(organizerId),
+    getYoungSourceFreshness(),
+  ]);
+  return toLoadData({
+    copy: getWorkspacePageCopy(locals.locale),
+    locale: locals.locale,
+    organizer,
+    source,
   });
 }
 
@@ -57,12 +201,16 @@ export async function loadYoungEventDetailPage({
   locals,
   youngId,
 }: AppPageLoadEvent & { youngId: string }) {
-  const event = await getYoungEvent(youngId);
+  const [event, source] = await Promise.all([
+    getYoungEvent(youngId),
+    getYoungSourceFreshness(),
+  ]);
 
   return toLoadData({
     copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
     event,
     commentsData: null,
+    source,
   });
 }

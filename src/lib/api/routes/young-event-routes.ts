@@ -6,20 +6,29 @@ import {
 } from "@/features/young/server/young-event-image-service";
 import {
   getYoungEvent,
+  getYoungOrganizer,
   listYoungEvents,
+  listYoungOrganizers,
 } from "@/features/young/server/young-event-service";
 import {
+  badRequest,
   handleRouteError,
   notFound,
   parseRouteParams,
   parseRouteQuery,
   schemaJsonResponse,
 } from "@/lib/api/helpers";
-import { youngEventYoungIdPathParamsSchema } from "@/lib/api/schemas/request-path-schemas";
+import {
+  youngEventYoungIdPathParamsSchema,
+  youngOrganizerIdPathParamsSchema,
+} from "@/lib/api/schemas/request-path-schemas";
 import {
   paginatedYoungEventResponseSchema,
+  paginatedYoungOrganizerResponseSchema,
   youngEventDetailSchema,
   youngEventsQuerySchema,
+  youngOrganizerSummarySchema,
+  youngOrganizersQuerySchema,
 } from "@/lib/api/schemas/young-event-schemas";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
@@ -43,6 +52,10 @@ export async function getYoungEventsRoute(request: Request) {
       active: query.active,
       category: query.category,
       search: query.search,
+      organizerId: query.organizerId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+      timeBasis: query.timeBasis,
       page: pagination.page,
       pageSize: pagination.pageSize,
     });
@@ -50,7 +63,53 @@ export async function getYoungEventsRoute(request: Request) {
       headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
+    if (error instanceof RangeError) return badRequest(error.message);
     return handleRouteError("Failed to fetch young events", error);
+  }
+}
+
+export async function getYoungOrganizersRoute(request: Request) {
+  const parsed = parseRouteQuery(
+    new URL(request.url).searchParams,
+    youngOrganizersQuerySchema,
+    "Invalid young organizers query",
+    { logErrors: true },
+  );
+  if (parsed instanceof Response) return parsed;
+
+  try {
+    const result = await listYoungOrganizers({
+      search: parsed.query.search,
+      page: parsed.pagination.page,
+      pageSize: parsed.pagination.pageSize,
+    });
+    return schemaJsonResponse(paginatedYoungOrganizerResponseSchema, result, {
+      headers: PUBLIC_CATALOG_HEADERS,
+    });
+  } catch (error) {
+    return handleRouteError("Failed to fetch young organizers", error);
+  }
+}
+
+export async function getYoungOrganizerDetailRoute(
+  _request: Request,
+  params: { organizerId: string },
+) {
+  const parsed = await parseRouteParams(
+    Promise.resolve(params),
+    youngOrganizerIdPathParamsSchema,
+    "Invalid young organizer ID",
+  );
+  if (parsed instanceof Response) return parsed;
+
+  try {
+    const organizer = await getYoungOrganizer(parsed.organizerId);
+    if (organizer == null) return notFound("Young organizer not found");
+    return schemaJsonResponse(youngOrganizerSummarySchema, organizer, {
+      headers: PUBLIC_CATALOG_HEADERS,
+    });
+  } catch (error) {
+    return handleRouteError("Failed to fetch young organizer", error);
   }
 }
 

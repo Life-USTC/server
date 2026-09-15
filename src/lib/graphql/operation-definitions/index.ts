@@ -39,6 +39,8 @@ const REGISTRY_ORDER = [
   "catalog.weather.get.v1",
   "catalog.young_event.list.v1",
   "catalog.young_event.get.v1",
+  "catalog.young_organizer.list.v1",
+  "catalog.young_organizer.get.v1",
   "account.profile.get.v1",
   "account.client_activity.get.v1",
   "community.user.get.v1",

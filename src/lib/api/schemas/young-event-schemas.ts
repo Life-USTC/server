@@ -1,6 +1,7 @@
 import * as z from "zod";
 import {
   booleanQuerySchema,
+  dateInputStringSchema,
   deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   paginationPageSizeParam,
@@ -15,6 +16,8 @@ const youngEventPageSizeSchema = integerStringRangeSchema({
   maximum: 100,
   message: "pageSize must be between 1 and 100",
 });
+
+export const youngEventTimeBasisSchema = z.enum(["activity", "registration"]);
 
 export const youngEventsQuerySchema = z.object({
   active: booleanQuerySchema
@@ -34,6 +37,22 @@ export const youngEventsQuerySchema = z.object({
     .max(100)
     .optional()
     .describe("Case-insensitive substring match on the event name."),
+  organizerId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Stable local Young organizer ID."),
+  dateFrom: dateInputStringSchema
+    .optional()
+    .describe("Inclusive Shanghai date/time range start."),
+  dateTo: dateInputStringSchema
+    .optional()
+    .describe("Inclusive Shanghai date/time range end."),
+  timeBasis: youngEventTimeBasisSchema
+    .optional()
+    .describe("Date fields to use for range overlap filtering."),
   page: integerStringRangeSchema({
     minimum: 1,
     maximum: 1000,
@@ -51,6 +70,7 @@ export const youngEventSummarySchema = z.strictObject({
   category: z.string().nullable(),
   department: z.string().nullable(),
   organizer: z.string().nullable(),
+  organizerId: z.string().nullable(),
   status: z.string().nullable(),
   registrationStatus: z.string().nullable(),
   location: z.string().nullable(),
@@ -63,6 +83,9 @@ export const youngEventSummarySchema = z.strictObject({
   applyStartAt: dateTimeSchema.nullable(),
   applyEndAt: dateTimeSchema.nullable(),
   isActive: z.boolean(),
+  sourceMissing: z.boolean(),
+  lastSeenAt: dateTimeSchema.nullable(),
+  createdAt: dateTimeSchema.nullable(),
 });
 
 export const youngEventDetailSchema = youngEventSummarySchema.extend({
@@ -71,4 +94,37 @@ export const youngEventDetailSchema = youngEventSummarySchema.extend({
 
 export const paginatedYoungEventResponseSchema = createPaginatedSchema(
   youngEventSummarySchema,
+).extend({
+  unknownDates: z.array(youngEventSummarySchema),
+  source: z.strictObject({
+    status: z.enum(["fresh", "stale", "unknown"]),
+    lastSyncedAt: dateTimeSchema.nullable(),
+  }),
+});
+
+export const youngOrganizerSummarySchema = z.strictObject({
+  id: z.string(),
+  name: z.string(),
+  normalizedName: z.string(),
+  activeEvents: z.array(youngEventSummarySchema),
+  upcomingEvents: z.array(youngEventSummarySchema),
+  historyEvents: z.array(youngEventSummarySchema),
+  activeCount: z.number().int().nonnegative(),
+  upcomingCount: z.number().int().nonnegative(),
+  historyCount: z.number().int().nonnegative(),
+});
+
+export const youngOrganizersQuerySchema = z.object({
+  search: z.string().trim().min(1).max(100).optional(),
+  page: integerStringRangeSchema({
+    minimum: 1,
+    maximum: 1000,
+    message: "page must be between 1 and 1000",
+  }).optional(),
+  pageSize: paginationPageSizeParam(youngEventPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(youngEventPageSizeSchema),
+});
+
+export const paginatedYoungOrganizerResponseSchema = createPaginatedSchema(
+  youngOrganizerSummarySchema,
 );

@@ -117,6 +117,8 @@ type Catalog {
   weather(locationKey: String!): WeatherSnapshot
   youngEvent(youngId: String!): YoungEvent
   youngEvents(filter: YoungEventFilter, page: PageInput): YoungEventPage!
+  youngOrganizer(organizerId: String!): YoungOrganizer
+  youngOrganizers(page: PageInput, search: String): YoungOrganizerPage!
 }
 
 type CatalogLink {
@@ -892,15 +894,19 @@ type YoungEvent {
   applyStartAt: DateTime
   capacity: Int
   category: String
+  createdAt: DateTime
   department: String
   endAt: DateTime
   hours: Float
   imageUrl: String
   isActive: Boolean!
+  lastSeenAt: DateTime
   location: String
   name: String!
   organizer: String
+  organizerId: String
   registrationStatus: String
+  sourceMissing: Boolean!
   startAt: DateTime
   status: String
   youngId: String!
@@ -909,12 +915,51 @@ type YoungEvent {
 input YoungEventFilter {
   active: Boolean
   category: String
+  dateFrom: String
+  dateTo: String
+  organizerId: String
   search: String
+  timeBasis: YoungEventTimeBasis
 }
 
 type YoungEventPage {
   items: [YoungEvent!]!
   pageInfo: PageInfo!
+  source: YoungSourceFreshness!
+  unknownDates: [YoungEvent!]!
+}
+
+enum YoungEventTimeBasis {
+  activity
+  registration
+}
+
+type YoungOrganizer {
+  activeCount: Int!
+  activeEvents: [YoungEvent!]!
+  historyCount: Int!
+  historyEvents: [YoungEvent!]!
+  id: String!
+  name: String!
+  normalizedName: String!
+  upcomingCount: Int!
+  upcomingEvents: [YoungEvent!]!
+}
+
+type YoungOrganizerPage {
+  items: [YoungOrganizer!]!
+  pageInfo: PageInfo!
+}
+
+type YoungSourceFreshness {
+  lastSyncedAt: DateTime
+  status: YoungSourceStatus!
+}
+
+enum YoungSourceStatus {
+  fresh
+  stale
+  unknown
 }
 
 type YoungEventSubscription {
