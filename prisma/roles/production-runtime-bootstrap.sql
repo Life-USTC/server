@@ -237,6 +237,9 @@ GRANT SELECT ON TABLE
   "UploadPending",
   "CommentAttachment",
   "Comment",
+  "Homework",
+  "OAuthClient",
+  "UserSuspension",
   "User",
   "CommentReaction",
   "UserSectionSubscription"
@@ -250,6 +253,8 @@ TO life_ustc_function_owner;
 GRANT SELECT, UPDATE, DELETE ON TABLE
   "FeatureOperationEvent",
   "RuntimeIssueEvent"
+TO life_ustc_function_owner;
+GRANT SELECT, INSERT, UPDATE ON TABLE "PrometheusMetricsCache"
 TO life_ustc_function_owner;
 GRANT DELETE ON TABLE "User" TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
@@ -331,6 +336,8 @@ ALTER FUNCTION public.release_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer
 ) OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.read_prometheus_metrics_snapshot()
+  OWNER TO life_ustc_function_owner;
 
 DROP POLICY IF EXISTS "Upload_definer_read" ON "Upload";
 CREATE POLICY "Upload_definer_read" ON "Upload"
@@ -461,11 +468,20 @@ CREATE POLICY "FeatureOperationEvent_function_owner" ON "FeatureOperationEvent"
 DROP POLICY IF EXISTS "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent";
 CREATE POLICY "RuntimeIssueEvent_function_owner" ON "RuntimeIssueEvent"
   FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
+ALTER TABLE "PrometheusMetricsCache" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PrometheusMetricsCache" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "PrometheusMetricsCache_function_owner"
+  ON "PrometheusMetricsCache";
+CREATE POLICY "PrometheusMetricsCache_function_owner"
+  ON "PrometheusMetricsCache"
+  FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
 
 GRANT EXECUTE ON FUNCTION public.maintain_observability_event_retention(
   timestamp without time zone,
   integer
 ) TO life_ustc_maintenance_runtime;
+GRANT EXECUTE ON FUNCTION public.read_prometheus_metrics_snapshot()
+  TO life_ustc_runtime;
 GRANT EXECUTE ON FUNCTION public.claim_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer,

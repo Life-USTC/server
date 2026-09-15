@@ -40,6 +40,25 @@ describe("worker entrypoint observability", () => {
     vi.useRealTimers();
   });
 
+  it.each([200, 401, 503])(
+    "does not collect metrics scrapes at status %s",
+    (status) => {
+      const response = observedEdgeResponse({
+        cacheOutcome: "bypass",
+        request: new Request("https://example.test/metrics"),
+        requestClass: "dynamic",
+        requestId: "scrape-request",
+        response: new Response("metrics", { status }),
+        route: "/metrics",
+        startMs: 0,
+      });
+      expect(response.status).toBe(status);
+      expect(response.headers.get("x-request-id")).toBe("scrape-request");
+      expect(logAppEventMock).not.toHaveBeenCalled();
+      expect(writeWorkerRequestAnalyticsMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("normalizes public SSR routes without retaining entity identifiers", () => {
     expect(
       normalizePublicSsrObservedRoute("/catalog/courses/course-secret"),

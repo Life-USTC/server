@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLICATION_INGESTION_SECRET_HEADER,
   requirePublicationIngestionPrincipal,
-  timingSafeSecretEqual,
 } from "@/lib/auth/publication-ingestion-auth";
+import { timingSafeSecretEqual } from "@/lib/auth/secret-comparison";
 import { PUBLICATION_INGESTION_PRINCIPAL_KEY } from "@/lib/auth/service-principal";
 
 const request = (secret?: string) =>
