@@ -36,6 +36,7 @@ export function visibleModerationComments<T extends ModerationCommentLike>(
       comment.sectionTeacher?.section?.code,
       comment.sectionTeacher?.section?.course?.nameCn,
       comment.sectionTeacher?.teacher?.nameCn,
+      comment.youngEvent?.name,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(needle)),
@@ -61,10 +62,19 @@ export function moderationTargetLabel(
   if (item.course) return `${item.course.nameCn} ${item.course.code}`;
   if (item.teacher) return item.teacher.nameCn;
   if (item.homework) return item.homework.title;
+  if (item.youngEvent) return item.youngEvent.name;
   return copy.unknownTarget;
 }
 
 export function moderationTargetHref(comment: ModerationCommentLike) {
+  if (comment.youngEvent?.youngId)
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        type: "young-event",
+        youngId: comment.youngEvent.youngId,
+      }),
+      String(comment.id),
+    );
   if (comment.sectionTeacher?.section?.jwId)
     return commentPermalinkHref(
       commentTargetPermalinkBaseHref({

@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { Snapshot } from "@/static-loader/snapshot";
-import { loadYoungEvents } from "@/static-loader/young-plan";
+import {
+  isYoungEventsSnapshotComplete,
+  loadYoungEvents,
+  youngSnapshotSyncedAt,
+} from "@/static-loader/young-plan";
 
 const ACTIVE_TABLE = "young_mobile_item_enrolment_list_result_records";
 const ENDED_TABLE = "young_mobile_item_end_list_result_records";
 
 function fakeSnapshot({
-  metadata = { young_events_mode: "full" },
+  metadata = {
+    young_events_mode: "full",
+    young_events_synced_at: "2026-09-15T01:00:00+00:00",
+  },
   tables = {},
 }: {
   metadata?: Record<string, string>;
@@ -21,6 +28,56 @@ function fakeSnapshot({
 }
 
 describe("static young event plan", () => {
+  it("only marks snapshots complete when both event tables are present", () => {
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({
+          tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({ tables: { [ACTIVE_TABLE]: [] } }),
+      ),
+    ).toBe(false);
+    expect(
+      isYoungEventsSnapshotComplete(
+        fakeSnapshot({
+          metadata: { young_events_mode: "partial" },
+          tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("uses the Young success timestamp even when another builder advances generated_at", () => {
+    const snapshot = fakeSnapshot({
+      metadata: {
+        young_events_mode: "full",
+        young_events_synced_at: "2026-09-10T01:00:00+00:00",
+        generated_at: "2026-09-15T01:00:00Z",
+      },
+      tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+    });
+    expect(youngSnapshotSyncedAt(snapshot)?.toISOString()).toBe(
+      "2026-09-10T01:00:00.000Z",
+    );
+    for (const value of [undefined, "invalid", "2026-09-15T01:00:00"]) {
+      expect(
+        youngSnapshotSyncedAt(
+          fakeSnapshot({
+            metadata: {
+              young_events_mode: "full",
+              ...(value ? { young_events_synced_at: value } : {}),
+            },
+            tables: { [ACTIVE_TABLE]: [], [ENDED_TABLE]: [] },
+          }),
+        ),
+      ).toBeUndefined();
+    }
+  });
+
   it("returns null when the snapshot predates the young builder", () => {
     const snapshot = fakeSnapshot({ metadata: {} });
     expect(loadYoungEvents(snapshot)).toBeNull();

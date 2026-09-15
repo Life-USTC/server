@@ -9,7 +9,7 @@ export function unresolvedCommentTargetPayload(
   return {
     error: "invalid_target",
     message: `Missing or invalid ${result.targetType} comment target`,
-    hint: "Provide targetId for the REST-compatible internal id, or a public identifier such as sectionJwId, courseJwId, teacherId, homeworkId, or sectionTeacherId.",
+    hint: "Provide youngId for a young-event target, or a public identifier such as sectionJwId, courseJwId, teacherId, homeworkId, or sectionTeacherId for other targets.",
   };
 }
 
@@ -110,6 +110,6 @@ function targetNotFound(
   return {
     error: "target_not_found",
     message: `Comment target ${targetType}:${String(targetId)} was not found`,
-    hint: "Use catalog_section_search, catalog_course_search, catalog_teacher_search, or catalog_section_get to find a valid comment target.",
+    hint: "Use catalog_section_search, catalog_course_search, catalog_teacher_search, catalog_section_get, or catalog_young_event_get to find a valid comment target.",
   };
 }

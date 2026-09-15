@@ -38,6 +38,16 @@ export async function verifyCommentTargetEntity(
     return homework !== null;
   }
   if (
+    targetType === "young-event" &&
+    typeof whereTarget.youngEventId === "number"
+  ) {
+    const youngEvent = await prisma.youngEvent.findUnique({
+      where: { id: whereTarget.youngEventId },
+      select: { id: true },
+    });
+    return youngEvent !== null;
+  }
+  if (
     targetType === "section-teacher" &&
     typeof whereTarget.sectionTeacherId === "number"
   ) {

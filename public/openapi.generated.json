@@ -97,6 +97,10 @@
       "description": "catalog.young-events operations"
     },
     {
+      "name": "catalog.young-organizers",
+      "description": "catalog.young-organizers operations"
+    },
+    {
       "name": "community.comments",
       "description": "community.comments operations"
     },
@@ -147,6 +151,18 @@
     {
       "name": "workspace.upload",
       "description": "workspace.upload operations"
+    },
+    {
+      "name": "workspace.young-event-subscriptions",
+      "description": "workspace.young-event-subscriptions operations"
+    },
+    {
+      "name": "workspace.young-notifications",
+      "description": "workspace.young-notifications operations"
+    },
+    {
+      "name": "workspace.young-organizer-subscriptions",
+      "description": "workspace.young-organizer-subscriptions operations"
     }
   ],
   "x-tagGroups": [
@@ -163,7 +179,8 @@
         "catalog.semesters",
         "catalog.teachers",
         "catalog.weather",
-        "catalog.young-events"
+        "catalog.young-events",
+        "catalog.young-organizers"
       ]
     },
     {
@@ -177,7 +194,10 @@
         "workspace.schedule",
         "workspace.subscription",
         "workspace.todo",
-        "workspace.upload"
+        "workspace.upload",
+        "workspace.young-event-subscriptions",
+        "workspace.young-notifications",
+        "workspace.young-organizer-subscriptions"
       ]
     },
     {
@@ -2223,6 +2243,19 @@
         "parameters": [
           {
             "in": "query",
+            "name": "dateUnknown",
+            "schema": {
+              "description": "Filter activities missing the selected time basis start; incompatible with date bounds.",
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter activities missing the selected time basis start; incompatible with date bounds."
+          },
+          {
+            "in": "query",
             "name": "active",
             "schema": {
               "description": "Filter by signup-open (active) events.",
@@ -2255,6 +2288,50 @@
               "maxLength": 100
             },
             "description": "Case-insensitive substring match on the event name."
+          },
+          {
+            "in": "query",
+            "name": "organizerId",
+            "schema": {
+              "description": "Stable local Young organizer ID.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Stable local Young organizer ID."
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "description": "Inclusive Shanghai date/time range start.",
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Inclusive Shanghai date/time range start."
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "description": "Inclusive Shanghai date/time range end.",
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Inclusive Shanghai date/time range end."
+          },
+          {
+            "in": "query",
+            "name": "timeBasis",
+            "schema": {
+              "description": "Date fields to use for range overlap filtering.",
+              "type": "string",
+              "enum": [
+                "activity",
+                "registration"
+              ]
+            },
+            "description": "Date fields to use for range overlap filtering."
           },
           {
             "in": "query",
@@ -2314,6 +2391,81 @@
         }
       }
     },
+    "/api/catalog/young-organizers": {
+      "get": {
+        "operationId": "get-api-catalog-young-organizers",
+        "summary": "List normalized Young organizers and their active, upcoming, and historical",
+        "tags": [
+          "catalog.young-organizers"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedYoungOrganizerResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/community/comments": {
       "get": {
         "operationId": "listComments",
@@ -2332,7 +2484,8 @@
                 "course",
                 "teacher",
                 "section-teacher",
-                "homework"
+                "homework",
+                "young-event"
               ]
             },
             "required": true
@@ -2342,6 +2495,14 @@
             "name": "targetId",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1
             }
           },
           {
@@ -4235,6 +4396,252 @@
         }
       }
     },
+    "/api/workspace/young-event-subscriptions": {
+      "get": {
+        "operationId": "get-api-workspace-young-event-subscriptions",
+        "summary": "List personal young-event-subscriptions",
+        "tags": [
+          "workspace.young-event-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "unread",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngEventSubscriptionListSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspace/young-notifications": {
+      "get": {
+        "operationId": "get-api-workspace-young-notifications",
+        "summary": "List personal young-notifications",
+        "tags": [
+          "workspace.young-notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "unread",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngNotificationListSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspace/young-organizer-subscriptions": {
+      "get": {
+        "operationId": "get-api-workspace-young-organizer-subscriptions",
+        "summary": "List personal young-organizer-subscriptions",
+        "tags": [
+          "workspace.young-organizer-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "unread",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngOrganizerSubscriptionListSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/.well-known/oauth-authorization-server/api/auth": {
       "get": {
         "operationId": "get-.well-known-oauth-authorization-server-api-auth",
@@ -5812,6 +6219,60 @@
         }
       }
     },
+    "/api/catalog/young-organizers/{organizerId}": {
+      "get": {
+        "operationId": "get-api-catalog-young-organizers-organizerId",
+        "summary": "Fetch one normalized Young organizer and its event groups",
+        "tags": [
+          "catalog.young-organizers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizerId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable local Young organizer identifier."
+            },
+            "required": true,
+            "description": "Stable local Young organizer identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngOrganizerSummarySchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/community/comments/{id}": {
       "get": {
         "operationId": "getComment",
@@ -6777,6 +7238,95 @@
                 "schema": {
                   "type": "string",
                   "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspace/calendar/events": {
+      "get": {
+        "operationId": "get-api-workspace-calendar-events",
+        "summary": "List complete personal calendar events by date range, with explicit pagination",
+        "tags": [
+          "workspace.calendar"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/personalCalendarPageSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -8338,6 +8888,346 @@
         }
       }
     },
+    "/api/workspace/young-event-subscriptions/{youngId}": {
+      "get": {
+        "operationId": "get-api-workspace-young-event-subscriptions-youngId",
+        "summary": "Read personal activity subscription state",
+        "tags": [
+          "workspace.young-event-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn event identifier."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn event identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngEventSubscriptionStateSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-api-workspace-young-event-subscriptions-youngId",
+        "summary": "Set personal events subscription state. This does not register attendance",
+        "tags": [
+          "workspace.young-event-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn event identifier."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn event identifier."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/youngEventSubscriptionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngEventSubscriptionStateSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspace/young-organizer-subscriptions/{organizerId}": {
+      "get": {
+        "operationId": "get-api-workspace-young-organizer-subscriptions-organizerId",
+        "summary": "Read personal organizer follow state",
+        "tags": [
+          "workspace.young-organizer-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizerId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable local Young organizer identifier."
+            },
+            "required": true,
+            "description": "Stable local Young organizer identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngOrganizerSubscriptionStateSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-api-workspace-young-organizer-subscriptions-organizerId",
+        "summary": "Set personal organizers subscription state. This does not register attendance",
+        "tags": [
+          "workspace.young-organizer-subscriptions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizerId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable local Young organizer identifier."
+            },
+            "required": true,
+            "description": "Stable local Young organizer identifier."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/youngOrganizerSubscriptionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngOrganizerSubscriptionStateSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/rooms/{code}/map": {
       "get": {
         "operationId": "catalog_rooms_map",
@@ -9367,6 +10257,104 @@
         }
       }
     },
+    "/api/workspace/young-notifications/{id}/read": {
+      "post": {
+        "operationId": "post-api-workspace-young-notifications-id-read",
+        "summary": "Mark a personal activity notification read",
+        "tags": [
+          "workspace.young-notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/youngNotificationReadSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}": {
       "put": {
         "operationId": "put-api-ingestion-publications-objects-batchId-kind-sha256",
@@ -9731,6 +10719,50 @@
           "code",
           "startDate",
           "endDate"
+        ],
+        "additionalProperties": false
+      },
+      "youngOrganizerSummarySchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "normalizedName": {
+            "type": "string"
+          },
+          "totalCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "activeCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "upcomingCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "historyCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "normalizedName",
+          "totalCount",
+          "activeCount",
+          "upcomingCount",
+          "historyCount"
         ],
         "additionalProperties": false
       },
@@ -10463,6 +11495,12 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "youngEventId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "user": {
                   "nullable": true,
                   "type": "object",
@@ -10654,6 +11692,29 @@
                     "teacher"
                   ],
                   "additionalProperties": false
+                },
+                "youngEvent": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "youngId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "youngId"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -10677,12 +11738,14 @@
                 "teacherId",
                 "sectionTeacherId",
                 "homeworkId",
+                "youngEventId",
                 "user",
                 "section",
                 "course",
                 "teacher",
                 "homework",
-                "sectionTeacher"
+                "sectionTeacher",
+                "youngEvent"
               ],
               "additionalProperties": false
             }
@@ -14431,6 +15494,10 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "organizerId": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "status": {
                   "nullable": true,
                   "type": "string"
@@ -14489,6 +15556,21 @@
                 },
                 "isActive": {
                   "type": "boolean"
+                },
+                "sourceMissing": {
+                  "type": "boolean"
+                },
+                "lastSeenAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "createdAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                 }
               },
               "required": [
@@ -14497,6 +15579,7 @@
                 "category",
                 "department",
                 "organizer",
+                "organizerId",
                 "status",
                 "registrationStatus",
                 "location",
@@ -14508,9 +15591,91 @@
                 "endAt",
                 "applyStartAt",
                 "applyEndAt",
-                "isActive"
+                "isActive",
+                "sourceMissing",
+                "lastSeenAt",
+                "createdAt"
               ],
               "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          },
+          "unknownDateCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "fresh",
+                  "stale",
+                  "unknown"
+                ]
+              },
+              "lastSyncedAt": {
+                "nullable": true,
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "status",
+              "lastSyncedAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination",
+          "unknownDateCount",
+          "source"
+        ],
+        "additionalProperties": false
+      },
+      "paginatedYoungOrganizerResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/youngOrganizerSummarySchema"
             }
           },
           "pagination": {
@@ -14701,6 +15866,16 @@
                     "nullable": true,
                     "type": "string"
                   },
+                  "youngEventId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "youngId": {
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "sectionTeacherSectionId": {
                     "nullable": true,
                     "type": "integer",
@@ -14774,6 +15949,10 @@
                   "teacherName": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "youngEventName": {
+                    "nullable": true,
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -14784,6 +15963,8 @@
                   "teacherId",
                   "sectionTeacherId",
                   "homeworkId",
+                  "youngEventId",
+                  "youngId",
                   "sectionTeacherSectionId",
                   "sectionTeacherTeacherId",
                   "sectionTeacherSectionJwId",
@@ -14798,7 +15979,8 @@
                   "sectionCode",
                   "courseJwId",
                   "courseName",
-                  "teacherName"
+                  "teacherName",
+                  "youngEventName"
                 ],
                 "additionalProperties": false
               }
@@ -14828,7 +16010,8 @@
               "course",
               "teacher",
               "section-teacher",
-              "homework"
+              "homework",
+              "young-event"
             ]
           },
           "targetId": {
@@ -14840,6 +16023,10 @@
                 "type": "number"
               }
             ]
+          },
+          "youngId": {
+            "type": "string",
+            "minLength": 1
           },
           "sectionId": {
             "anyOf": [
@@ -21882,6 +23069,386 @@
         ],
         "additionalProperties": false
       },
+      "youngEventSubscriptionListSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "youngId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "remindSignup": {
+                  "type": "boolean"
+                },
+                "remindDeadline": {
+                  "type": "boolean"
+                },
+                "remindStart": {
+                  "type": "boolean"
+                },
+                "event": {
+                  "type": "object",
+                  "properties": {
+                    "youngId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "department": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "organizer": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "organizerId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "registrationStatus": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "location": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "hours": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "capacity": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "appliedCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "startAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "endAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "applyStartAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "applyEndAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "isActive": {
+                      "type": "boolean"
+                    },
+                    "sourceMissing": {
+                      "type": "boolean"
+                    },
+                    "lastSeenAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "youngId",
+                    "name",
+                    "category",
+                    "department",
+                    "organizer",
+                    "organizerId",
+                    "status",
+                    "registrationStatus",
+                    "location",
+                    "imageUrl",
+                    "hours",
+                    "capacity",
+                    "appliedCount",
+                    "startAt",
+                    "endAt",
+                    "applyStartAt",
+                    "applyEndAt",
+                    "isActive",
+                    "sourceMissing",
+                    "lastSeenAt",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "youngId",
+                "createdAt",
+                "remindSignup",
+                "remindDeadline",
+                "remindStart",
+                "event"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "youngNotificationListSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "youngId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "organizerId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "readAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "expiresAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "youngId",
+                "organizerId",
+                "kind",
+                "title",
+                "body",
+                "createdAt",
+                "readAt",
+                "expiresAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "youngOrganizerSubscriptionListSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "organizerId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "organizer": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "organizerId",
+                "createdAt",
+                "organizer"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "additionalProperties": false
+      },
       "adminModerateCommentRequestSchema": {
         "type": "object",
         "properties": {
@@ -22006,6 +23573,12 @@
               "homeworkId": {
                 "nullable": true,
                 "type": "string"
+              },
+              "youngEventId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [
@@ -22028,7 +23601,8 @@
               "courseId",
               "teacherId",
               "sectionTeacherId",
-              "homeworkId"
+              "homeworkId",
+              "youngEventId"
             ],
             "additionalProperties": false
           }
@@ -26856,6 +28430,10 @@
             "nullable": true,
             "type": "string"
           },
+          "organizerId": {
+            "nullable": true,
+            "type": "string"
+          },
           "status": {
             "nullable": true,
             "type": "string"
@@ -26915,6 +28493,21 @@
           "isActive": {
             "type": "boolean"
           },
+          "sourceMissing": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "createdAt": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
           "rawJson": {}
         },
         "required": [
@@ -26923,6 +28516,7 @@
           "category",
           "department",
           "organizer",
+          "organizerId",
           "status",
           "registrationStatus",
           "location",
@@ -26935,6 +28529,9 @@
           "applyStartAt",
           "applyEndAt",
           "isActive",
+          "sourceMissing",
+          "lastSeenAt",
+          "createdAt",
           "rawJson"
         ],
         "additionalProperties": false
@@ -27070,6 +28667,16 @@
                 "nullable": true,
                 "type": "string"
               },
+              "youngEventId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "youngId": {
+                "nullable": true,
+                "type": "string"
+              },
               "homeworkTitle": {
                 "nullable": true,
                 "type": "string"
@@ -27107,6 +28714,10 @@
               "teacherName": {
                 "nullable": true,
                 "type": "string"
+              },
+              "youngEventName": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
@@ -27122,6 +28733,8 @@
               "sectionTeacherCourseJwId",
               "sectionTeacherCourseName",
               "homeworkId",
+              "youngEventId",
+              "youngId",
               "homeworkTitle",
               "homeworkSectionJwId",
               "homeworkSectionCode",
@@ -27129,7 +28742,8 @@
               "sectionCode",
               "courseJwId",
               "courseName",
-              "teacherName"
+              "teacherName",
+              "youngEventName"
             ],
             "additionalProperties": false
           }
@@ -29209,6 +30823,106 @@
           "clientRunId",
           "payloadDigest",
           "results"
+        ],
+        "additionalProperties": false
+      },
+      "personalCalendarPageSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "schedule",
+                    "exam",
+                    "homework_due",
+                    "todo_due",
+                    "young_event"
+                  ]
+                },
+                "at": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "endsAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "location": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "youngId": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "at",
+                "endsAt",
+                "title",
+                "location",
+                "url",
+                "youngId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },
@@ -35638,6 +37352,83 @@
         ],
         "additionalProperties": false
       },
+      "youngEventSubscriptionStateSchema": {
+        "type": "object",
+        "properties": {
+          "youngId": {
+            "type": "string"
+          },
+          "subscribed": {
+            "type": "boolean"
+          },
+          "remindSignup": {
+            "type": "boolean"
+          },
+          "remindDeadline": {
+            "type": "boolean"
+          },
+          "remindStart": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "youngId",
+          "subscribed",
+          "remindSignup",
+          "remindDeadline",
+          "remindStart"
+        ],
+        "additionalProperties": false
+      },
+      "youngEventSubscriptionRequestSchema": {
+        "type": "object",
+        "properties": {
+          "subscribed": {
+            "type": "boolean"
+          },
+          "remindSignup": {
+            "type": "boolean"
+          },
+          "remindDeadline": {
+            "type": "boolean"
+          },
+          "remindStart": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subscribed"
+        ],
+        "additionalProperties": false
+      },
+      "youngOrganizerSubscriptionStateSchema": {
+        "type": "object",
+        "properties": {
+          "organizerId": {
+            "type": "string"
+          },
+          "subscribed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "organizerId",
+          "subscribed"
+        ],
+        "additionalProperties": false
+      },
+      "youngOrganizerSubscriptionRequestSchema": {
+        "type": "object",
+        "properties": {
+          "subscribed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subscribed"
+        ],
+        "additionalProperties": false
+      },
       "roomMapResponseSchema": {
         "type": "object",
         "properties": {
@@ -35916,6 +37707,22 @@
         "required": [
           "completed",
           "completedAt"
+        ],
+        "additionalProperties": false
+      },
+      "youngNotificationReadSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "success"
         ],
         "additionalProperties": false
       },

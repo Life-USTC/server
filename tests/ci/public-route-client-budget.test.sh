@@ -20,9 +20,10 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // normal chunking noise passes while material regressions do not. The `/`
 // request budget also absorbs shared-chunk splits when a Lucide icon used by
 // the shell gains another importer (e.g. the weather page split the 525 B
-// `sun` icon into its own chunk).
+// `sun` icon into its own chunk). The Young client controls reuse the shell
+// bootstrap helper, splitting it into one shared chunk; retain the gzip cap.
 const budgets = {
-  "/": { gzipBytes: 195_000, requests: 70 },
+  "/": { gzipBytes: 195_000, requests: 71 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },

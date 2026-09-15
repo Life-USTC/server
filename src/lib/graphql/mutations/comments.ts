@@ -11,7 +11,10 @@ import type {
   CommentVisibility,
 } from "@/generated/prisma/client";
 import type { GraphqlContext } from "../context";
-import { requireGraphqlId } from "../input-boundaries";
+import {
+  requireGraphqlId,
+  requireGraphqlYoungEventId,
+} from "../input-boundaries";
 import { requireGraphqlMutation } from "../mutation-guard";
 import {
   type commentTargetTypeResolver,
@@ -34,6 +37,7 @@ type CreateCommentInput = {
   body: string;
   courseJwId?: number | null;
   homeworkId?: string | null;
+  youngId?: string | null;
   isAnonymous?: boolean | null;
   parentId?: string | null;
   sectionId?: string | null;
@@ -70,6 +74,7 @@ export const commentMutationResolvers = {
       "courseJwId",
       "teacherId",
       "homeworkId",
+      "youngId",
       "sectionTeacherId",
       "visibility",
       "isAnonymous",
@@ -107,6 +112,10 @@ export const commentMutationResolvers = {
       teacherId: input.teacherId,
       userId: principal.userId,
       visibility: input.visibility ?? "public",
+      youngId:
+        input.youngId == null
+          ? undefined
+          : requireGraphqlYoungEventId(input.youngId),
     });
     if (!result.ok) handleCommentFailure(result);
     return { id: result.comment.id };

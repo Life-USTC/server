@@ -29,7 +29,7 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer)",
+      "public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer, p_young_event_id integer)",
     volatility: "STABLE",
   },
   {
@@ -119,6 +119,13 @@ const expectedFunctions = [
     settings: ['search_path=""'],
     signature:
       "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ["search_path=pg_catalog, public"],
+    signature:
+      "public.list_young_notification_recipients(after_id text, batch_size integer)",
     volatility: "STABLE",
   },
   {
@@ -222,6 +229,8 @@ const expectedColumnPrivileges = [
   "public.OAuthRefreshToken:id:UPDATE",
   "public.Session:id:UPDATE",
   "public.User:id:UPDATE",
+  "public.UserYoungEventSubscription:userId:SELECT",
+  "public.UserYoungOrganizerSubscription:userId:SELECT",
   "public.VerificationToken:id:UPDATE",
 ] as const;
 
@@ -678,6 +687,26 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           roles: [functionOwnerRole],
           schemaName: "public",
           tableName: "UserSectionSubscription",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "UserYoungEventSubscription_recipients",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UserYoungEventSubscription",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: null,
+          command: "SELECT",
+          permissive: "PERMISSIVE",
+          policyName: "UserYoungOrganizerSubscription_recipients",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "UserYoungOrganizerSubscription",
           usingExpression: "true",
         },
       ]);

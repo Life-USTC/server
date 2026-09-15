@@ -46,10 +46,13 @@ export async function getCommentsPayload(
     rawTargetId:
       target.type === "homework"
         ? (target.homeworkId ?? target.targetId)
-        : (target.sectionTeacherId ?? target.targetId),
+        : target.type === "young-event"
+          ? (target.youngEventId ?? target.targetId)
+          : (target.sectionTeacherId ?? target.targetId),
     sectionId: target.sectionId,
     targetType: target.type,
     teacherId: target.teacherId,
+    youngId: target.youngId,
   });
 
   if (!resolvedTarget) {

@@ -531,6 +531,7 @@ model StaticImportState {
   id String @id
 
   snapshotGeneratedAt DateTime
+  youngSyncedAt       DateTime?
   snapshotSha256      String
   transformRevision   Int
 
@@ -942,6 +943,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  youngEventSubscriptions UserYoungEventSubscription[]
+  youngOrganizerSubscriptions UserYoungOrganizerSubscription[]
+  youngNotifications YoungNotification[]
   sectionSubscriptions   UserSectionSubscription[]
   uploads                Upload[]
   uploadPendings         UploadPending[]
@@ -1272,12 +1276,14 @@ model Comment {
   teacherId        Int?
   sectionTeacherId Int?
   homeworkId       String?
+  youngEventId     Int?
 
   section        Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   course         Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher        Teacher?        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
   homework       Homework?       @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  youngEvent     YoungEvent?     @relation(fields: [youngEventId], references: [id], onDelete: Cascade)
 
   attachments CommentAttachment[]
   reactions   CommentReaction[]
@@ -1291,6 +1297,8 @@ model Comment {
   @@index([sectionTeacherId])
   @@index([homeworkId])
   @@index([homeworkId, status])
+  @@index([youngEventId])
+  @@index([youngEventId, status])
   @@index([status])
   @@index([visibility])
   @@index([userId, status])
@@ -1927,11 +1935,13 @@ model YoungEvent {
   id Int @id @default(autoincrement())
 
   youngId String @unique
+  subscriptions UserYoungEventSubscription[]
 
   name               String
   category           String?
   department         String?
   organizer          String?
+  organizerId        String?
   status             String?
   registrationStatus String?
   location           String?
@@ -1944,10 +1954,29 @@ model YoungEvent {
   applyStartAt       DateTime? @db.Timestamp(0)
   applyEndAt         DateTime? @db.Timestamp(0)
   isActive           Boolean
+  sourceMissing      Boolean   @default(false)
+  lastSeenAt         DateTime?
   rawJson            Json
+  createdAt          DateTime  @default(now())
+
+  organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+
+  comments Comment[]
 
   @@index([isActive, startAt])
   @@index([category])
+  @@index([organizerId, startAt])
+  @@index([sourceMissing, startAt])
+}
+
+model YoungOrganizer {
+  id             String @id @default(cuid())
+  name           String
+  normalizedName String @unique
+
+  events YoungEvent[]
+  subscriptions UserYoungOrganizerSubscription[]
+  createdAt DateTime @default(now())
 }
 
 // Internal durable monitoring aggregates; never contain identity labels.
@@ -1962,4 +1991,47 @@ model PrometheusCounter {
 model PrometheusCounterEpoch {
   id        Int      @id @default(1)
   startedAt DateTime @default(now()) @db.Timestamp(3)
+}
+
+model UserYoungEventSubscription {
+  id String @unique @default(cuid())
+  userId String
+  youngId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event YoungEvent @relation(fields: [youngId], references: [youngId], onDelete: Restrict)
+  remindSignup Boolean @default(true)
+  remindDeadline Boolean @default(true)
+  remindStart Boolean @default(true)
+  observedState String
+  observedRevision Int @default(0)
+  createdAt DateTime @default(now())
+  @@id([userId, youngId])
+  @@index([youngId])
+}
+
+model UserYoungOrganizerSubscription {
+  userId String
+  organizerId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizer YoungOrganizer @relation(fields: [organizerId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@id([userId, organizerId])
+  @@index([organizerId])
+}
+
+model YoungNotification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youngId String?
+  organizerId String?
+  kind String
+  title String
+  body String
+  dedupeKey String
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  expiresAt DateTime?
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt, id])
 }

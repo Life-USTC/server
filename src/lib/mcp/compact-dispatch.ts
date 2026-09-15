@@ -65,7 +65,11 @@ export function compactBusArrayItem(
 export function compactEntityArrayItem(
   value: Record<string, unknown>,
 ): CompactArrayMatch {
-  if (Object.hasOwn(value, "youngId")) {
+  if (
+    Object.hasOwn(value, "youngId") &&
+    Object.hasOwn(value, "name") &&
+    Object.hasOwn(value, "isActive")
+  ) {
     return { matched: true, value: compactYoungEvent(value) };
   }
 
@@ -219,7 +223,7 @@ export function compactEvents(
   fallbackCompact: (value: unknown) => unknown,
 ) {
   return asRecordArray(value).map((event) => {
-    const base = pick(event, ["type", "at"]);
+    const base = pick(event, ["type", "at", "endsAt"]);
     if (!Object.hasOwn(event, "payload")) return base;
     const compactFn =
       isRecord(event) && typeof event.type === "string"

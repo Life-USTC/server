@@ -9,7 +9,12 @@ import {
 } from "./event-summary-cards";
 
 type CalendarEvent = Awaited<ReturnType<typeof listUserCalendarEvents>>[number];
-type CalendarEventType = "schedule" | "homework_due" | "exam" | "todo_due";
+type CalendarEventType =
+  | "schedule"
+  | "homework_due"
+  | "exam"
+  | "todo_due"
+  | "young_event";
 export type SummarizableCalendarEvent = {
   at?: string | Date | null;
   payload: unknown;
@@ -33,6 +38,7 @@ export function summarizeCalendarEvent(value: SummarizableCalendarEvent) {
   if (value.type === "exam") {
     return { ...base, payload: summarizeExamCard(value.payload) };
   }
+  if (value.type === "young_event") return { ...base, payload: value.payload };
   return { ...base, payload: summarizeTodoCard(value.payload) };
 }
 
@@ -42,6 +48,7 @@ function createEventTypeCounts() {
     homework_due: 0,
     exam: 0,
     todo_due: 0,
+    young_event: 0,
   };
 }
 

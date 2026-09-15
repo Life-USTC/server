@@ -56,6 +56,7 @@ export async function postCommentRoute(request: Request) {
       teacherId: parsedBody.teacherId,
       userId,
       visibility,
+      youngId: parsedBody.youngId,
     });
     if (!result.ok) {
       if (result.error === "invalid_target") {

@@ -5,7 +5,7 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 
 // Increment whenever mapper semantics change and existing imported rows must be
 // rebuilt even when the source snapshot itself is unchanged.
-export const STATIC_IMPORT_TRANSFORM_REVISION = 2;
+export const STATIC_IMPORT_TRANSFORM_REVISION = 4;
 
 type StaticImportStateTransaction = {
   staticImportState: Pick<
@@ -80,7 +80,7 @@ export async function assertStaticImportStateAllowsSnapshot(
 
 export async function recordStaticImportState(
   tx: StaticImportStateTransaction,
-  input: StaticImportStateInput,
+  input: StaticImportStateInput & { youngSyncedAt?: Date },
 ) {
   validateSnapshotSha256(input.snapshotSha256);
   validateTransformRevision(input.transformRevision);
@@ -89,11 +89,13 @@ export async function recordStaticImportState(
     create: {
       id: GLOBAL_IMPORT_STATE_ID,
       snapshotGeneratedAt: input.observedAt,
+      ...(input.youngSyncedAt ? { youngSyncedAt: input.youngSyncedAt } : {}),
       snapshotSha256: input.snapshotSha256,
       transformRevision: input.transformRevision,
     },
     update: {
       snapshotGeneratedAt: input.observedAt,
+      ...(input.youngSyncedAt ? { youngSyncedAt: input.youngSyncedAt } : {}),
       snapshotSha256: input.snapshotSha256,
       transformRevision: input.transformRevision,
     },

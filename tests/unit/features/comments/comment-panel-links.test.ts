@@ -21,6 +21,18 @@ describe("评论面板链接", () => {
     );
   });
 
+  it("uses the public youngId in young-event comment permalinks", () => {
+    const baseHref = commentTargetPermalinkBaseHref({
+      type: "young-event",
+      youngId: "young event/42",
+    });
+
+    expect(baseHref).toBe("/catalog/young-events/young%20event%2F42#comments");
+    expect(commentPermalinkHref(baseHref, "comment-1")).toBe(
+      "/catalog/young-events/young%20event%2F42#comment-comment-1",
+    );
+  });
+
   it.each([
     [
       "section",

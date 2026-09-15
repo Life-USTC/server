@@ -50,9 +50,11 @@ export let variant: "week" | "month" = "week";
       {/if}
     {/each}
     {#if day.events.length > eventLimit}
-      <span class="text-muted-foreground text-xs">
-        {moreLabel(day.events.length - eventLimit)}
-      </span>
+      {#if day.moreHref}
+        <a class="text-muted-foreground text-xs underline" href={day.moreHref}>{moreLabel(day.events.length - eventLimit)}</a>
+      {:else}
+        <span class="text-muted-foreground text-xs">{moreLabel(day.events.length - eventLimit)}</span>
+      {/if}
     {/if}
   </div>
 </div>

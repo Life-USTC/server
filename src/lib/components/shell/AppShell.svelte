@@ -221,6 +221,18 @@ function buildShellNavGroups(
       href: "/catalog/young-events",
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
+      items: [
+        {
+          href: "/catalog/young-events/calendar",
+          icon: CalendarDaysIcon,
+          label: copy.nav.youngCalendar,
+        },
+        {
+          href: "/catalog/young-events/organizers",
+          icon: UsersIcon,
+          label: copy.nav.youngOrganizers,
+        },
+      ],
     },
     {
       href: "/catalog/weather",
@@ -402,6 +414,18 @@ function buildMobileSecondaryNavGroups(
       href: "/catalog/young-events",
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
+      items: [
+        {
+          href: "/catalog/young-events/calendar",
+          icon: CalendarDaysIcon,
+          label: copy.nav.youngCalendar,
+        },
+        {
+          href: "/catalog/young-events/organizers",
+          icon: UsersIcon,
+          label: copy.nav.youngOrganizers,
+        },
+      ],
     },
     {
       href: "/catalog/weather",

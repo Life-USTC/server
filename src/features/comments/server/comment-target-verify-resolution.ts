@@ -51,6 +51,7 @@ async function resolveVerifiedTarget(
     | "sectionId"
     | "teacherId"
     | "verifyExistence"
+    | "youngId"
   >,
 ): Promise<ResolvedCommentTargetReference> {
   const target = await resolveCommentTarget({
@@ -59,6 +60,7 @@ async function resolveVerifiedTarget(
     sectionId: input.sectionId,
     targetType,
     teacherId: input.teacherId,
+    youngId: input.youngId,
     verifyExistence: input.verifyExistence,
   });
 
@@ -99,6 +101,31 @@ export async function resolveCommentTargetReferenceWithoutListMetadata(
       input.homeworkId ?? input.rawTargetId,
       input,
     );
+  }
+
+  if (input.targetType === "young-event") {
+    if (
+      input.rawTargetId !== undefined &&
+      input.rawTargetId !== null &&
+      String(input.rawTargetId).trim().length > 0
+    ) {
+      return invalidTarget("young-event");
+    }
+    if (
+      typeof input.youngId !== "string" ||
+      input.youngId.trim().length === 0
+    ) {
+      return invalidTarget("young-event");
+    }
+    const youngEvent = await prisma.youngEvent.findUnique({
+      where: { youngId: input.youngId.trim() },
+      select: { id: true, youngId: true },
+    });
+    if (!youngEvent) return targetNotFound("young-event", input.youngId);
+    return resolveVerifiedTarget("young-event", youngEvent.id, {
+      ...input,
+      youngId: youngEvent.youngId,
+    });
   }
 
   if (input.targetType === "section-teacher") {

@@ -44,6 +44,7 @@ export async function getCommentsRoute(request: Request) {
           sectionTeacherId: parsedQuery.sectionTeacherId,
           targetType,
           teacherId: parsedQuery.teacherId,
+          youngId: parsedQuery.youngId,
           verifyExistence: true,
           includeTargetMetadata: true,
         }),

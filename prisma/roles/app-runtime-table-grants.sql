@@ -48,6 +48,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "BusUserPreference",
   "UserUstcIdentity",
   "UserSectionSubscription",
+  "UserYoungEventSubscription",
+  "UserYoungOrganizerSubscription",
+  "YoungNotification",
   "Upload",
   "UploadPending",
   "HomeworkCompletion"

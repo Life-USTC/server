@@ -202,7 +202,18 @@
           },
           {
             "name": "Young Events",
-            "tools": ["catalog_young_event_list", "catalog_young_event_get"]
+            "tools": [
+              "catalog_young_event_list",
+              "catalog_young_event_get",
+              "workspace_young_event_subscription_list",
+              "workspace_young_event_subscription_get",
+              "workspace_young_event_subscription_set",
+              "workspace_young_organizer_subscription_list",
+              "workspace_young_organizer_subscription_get",
+              "workspace_young_organizer_subscription_set",
+              "workspace_young_notification_list",
+              "workspace_young_notification_read"
+            ]
           }
         ]
       },

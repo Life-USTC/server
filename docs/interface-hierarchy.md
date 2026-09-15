@@ -118,7 +118,7 @@ The following distinctions are contractual:
 | Terms | Canonical meaning |
 |---|---|
 | `schedule` | A class meeting or schedule view composed from class meetings |
-| `calendar` | A time-ordered aggregation of schedules, exams, homework, and todos |
+| `calendar` | A time-ordered aggregation of schedules, exams, homework, todos, and subscribed activities |
 | `subscription` | The current user's relationship to a section |
 | `calendar feed` | An iCalendar representation exported from workspace data |
 | `community section homework` | A shared homework record attached to a section |
@@ -208,7 +208,7 @@ and retry guidance must make the distinction explicit.
 | `catalog_weather_get` | `/catalog/weather` | `GET /api/catalog/weather` | `catalog.weather` | `天气` / `天气 高新` | `catalog weather` |
 | `catalog_rooms_map` | `/catalog/rooms` | `GET /api/catalog/rooms/:code/map` | `catalog.roomMap` | `教室 <code>` or a recognized bare room code | `catalog room map <code>` |
 | `workspace_overview_get` | `/workspace/overview` | `GET /api/workspace/overview` | `workspace.overview` | `概览` | `workspace overview` |
-| `workspace_calendar_event_list` | `/workspace/calendar` | — | — | `日程 今日/本周` (client aggregation) | — (see overview-backed command below) |
+| `workspace_calendar_event_list` | `/workspace/calendar` | `GET /api/workspace/calendar/events` | `workspace.calendarEvents` | `日程 今日/本周` | `workspace calendar events` |
 | `workspace_schedule_list` | `/workspace/overview` (no dedicated schedules tab) | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
@@ -230,12 +230,13 @@ to retrieve subscription information, plus `workspace.calendar-feed:read` to
 include a private URL. The MCP tool requires `workspace.subscription:read`
 and never includes that URL.
 
-CLI `workspace calendar events` and `workspace exam` currently consume the
-bounded REST overview. Its class list is today's classes; exams, homework, and
-todos use upcoming windows and per-group limits. These commands do not expose
-the complete date-range calendar or exam dataset. Bot also assembles its own
-calendar from REST sources. The shared full calendar-event use-case is exposed
-through Web and MCP, with no dedicated REST or GraphQL event-list endpoint.
+Complete personal calendar clients use `GET /api/workspace/calendar/events`,
+`workspace.calendarEvents`, or `workspace_calendar_event_list` and the same
+Shanghai date bounds. REST and GraphQL clients exhaust pagination instead of
+using the bounded overview as a calendar dataset. Individual Young event
+subscriptions add activities to this calendar and ICS; organizer follows only
+produce daily new-event digests. See `contracts/young-workspace.json` for the
+owner-scoped subscription and notification interfaces.
 
 Feature-specific contract modules in `docs/contracts/` contain the exhaustive
 routes, fields, tools, permissions, and return shapes.

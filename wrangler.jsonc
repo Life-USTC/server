@@ -31,7 +31,13 @@
     ]
   },
   "triggers": {
-    "crons": ["7 */2 * * *", "23 */6 * * *", "*/20 * * * *", "*/30 * * * *"]
+    "crons": [
+      "7 */2 * * *",
+      "23 */6 * * *",
+      "*/20 * * * *",
+      "*/30 * * * *",
+      "*/10 * * * *"
+    ]
   },
   "observability": {
     "enabled": true,
@@ -62,6 +68,7 @@
     "cpu_ms": 30000
   },
   "alias": {
+    "@better-auth/core/async_hooks": "./src/lib/cloudflare/better-auth-async-hooks.ts",
     "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
     "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
     "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",

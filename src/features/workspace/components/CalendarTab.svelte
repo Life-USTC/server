@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import { weekStartFor } from "@/features/workspace/lib/calendar";
 import { buildWorkspaceCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
 import {
@@ -6,11 +7,19 @@ import {
   type WorkspaceAgendaDay,
 } from "@/features/workspace/lib/workspace-agenda";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import PersonalActivityCalendar from "@/features/young/components/PersonalActivityCalendar.svelte";
+import {
+  fetchPersonalCalendar,
+  type PersonalCalendarItem,
+  personalItemsForDay,
+} from "@/features/young/lib/personal-calendar-client";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { browser } from "$app/environment";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
+import { Button } from "$lib/components/ui/button";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import CalendarAgenda from "./CalendarAgenda.svelte";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
-import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";
 
@@ -50,14 +59,15 @@ export let calendarWeekStart: WorkspaceCalendarTabProps["calendarWeekStart"];
 export let calendarSemesterId: WorkspaceCalendarTabProps["calendarSemesterId"];
 export let calendarData: WorkspaceCalendarTabProps["calendarData"];
 
-let calendarGridWeeks: ReturnType<typeof buildWorkspaceCalendarGridWeeks> = [];
-let agendaDays: WorkspaceAgendaDay[] = [];
+let baseCalendarGridWeeks: ReturnType<typeof buildWorkspaceCalendarGridWeeks> =
+  [];
+let baseAgendaDays: WorkspaceAgendaDay[] = [];
 let agendaWeekStart = "";
 
 $: agendaWeekStart =
   calendarWeekStart ||
   (calendarData ? weekStartFor(calendarData.todayDate) : "");
-$: agendaDays =
+$: baseAgendaDays =
   calendarData && agendaWeekStart
     ? buildWorkspaceAgendaDays({
         calendar: calendarData,
@@ -67,7 +77,7 @@ $: agendaDays =
         timelineItemsForDay: calendarTimelineItemsForDay,
       })
     : [];
-$: calendarGridWeeks = calendarData
+$: baseCalendarGridWeeks = calendarData
   ? buildWorkspaceCalendarGridWeeks({
       addDays,
       calendar: calendarData,
@@ -89,19 +99,61 @@ $: calendarGridWeeks = calendarData
       weekStart: calendarWeekStart,
     })
   : [];
+let youngItems: PersonalCalendarItem[] = [];
+let youngFailed = false;
+let youngController: AbortController | undefined;
+let requestedRange = "";
+$: activityCopy = getWorkspacePageCopy(
+  signedData.locale === "en-us" ? "en-us" : "zh-cn",
+);
+$: rangeKeys = [
+  ...baseCalendarGridWeeks.flatMap((week) => week.days.map((day) => day.key)),
+  ...baseAgendaDays.map((day) => day.key),
+].sort();
+$: if (
+  browser &&
+  rangeKeys.length &&
+  `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}` !== requestedRange
+) {
+  requestedRange = `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`;
+  void loadYoung(rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
+}
+async function loadYoung(from: string, to: string) {
+  youngController?.abort();
+  const controller = new AbortController();
+  youngController = controller;
+  youngFailed = false;
+  youngItems = [];
+  try {
+    const items = await fetchPersonalCalendar(from, to, controller.signal);
+    if (!controller.signal.aborted)
+      youngItems = items.filter((item) => item.type === "young_event");
+  } catch {
+    if (!controller.signal.aborted) youngFailed = true;
+  }
+}
+onDestroy(() => youngController?.abort());
+$: calendarGridWeeks = baseCalendarGridWeeks.map((week) => ({
+  ...week,
+  days: week.days.map((day) => ({
+    ...day,
+    events: [...day.events, ...personalItemsForDay(youngItems, day.key)],
+  })),
+}));
+$: agendaDays = baseAgendaDays.map((day) => ({
+  ...day,
+  events: [...day.events, ...personalItemsForDay(youngItems, day.key)].sort(
+    (a, b) => a.sort - b.sort,
+  ),
+}));
 </script>
 
 <section class="grid gap-4">
   {#if !hasWorkspaceSubscriptions(signedData)}
-    <WorkspaceNoSubscriptionsState
-      title={subscriptionsCopy.noSubscriptions}
-      description={subscriptionsCopy.noSubscriptionsDescription}
-      actions={[
-        { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
-        { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
-      ]}
-    />
+    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} />
   {:else}
+    <Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="link">{activityCopy.youngEvents.workspace.manage}</Button>
+    {#if youngFailed}<p role="alert">{activityCopy.youngEvents.workspace.failed}</p><Button variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>{/if}
     <CalendarTabToolbar
       {addDays}
       {addMonths}

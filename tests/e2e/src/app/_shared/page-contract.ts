@@ -465,6 +465,56 @@ export async function assertPageContract(
       return;
     }
 
+    case "/catalog/young-events/calendar": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/calendar?view=month&date=2026-05-10",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /活动日历|Event calendar/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("young-calendar")).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-calendar");
+      return;
+    }
+
+    case "/catalog/young-events/organizers": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/organizers",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /主办方|Organizers/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("searchbox")).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-organizers");
+      return;
+    }
+
+    case "/catalog/young-events/organizers/[organizerId]": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/organizers/dev-scenario-young-organizer",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /学生会|Students'? Union/i,
+        }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-organizer-detail");
+      return;
+    }
+
     case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);

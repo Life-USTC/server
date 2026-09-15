@@ -5,7 +5,8 @@ export type CommentTargetType =
   | "section"
   | "teacher"
   | "section-teacher"
-  | "homework";
+  | "homework"
+  | "young-event";
 
 export type CommentTargetOption = {
   key: string;
@@ -13,6 +14,7 @@ export type CommentTargetOption = {
   permalinkBaseHref?: string;
   sectionId?: number;
   targetId?: number | string | null;
+  youngId?: string | null;
   teacherId?: number | null;
   type: CommentTargetType;
 };

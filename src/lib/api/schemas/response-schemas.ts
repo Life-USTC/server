@@ -16,3 +16,5 @@ export { subscriptionKindUpdateResponseSchema } from "./subscription-kind-schema
 export * from "./uploads-response-schemas";
 export * from "./weather-response-schemas";
 export * from "./young-event-schemas";
+
+export * from "./young-workspace-schemas";

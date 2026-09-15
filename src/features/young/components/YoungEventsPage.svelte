@@ -8,7 +8,11 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import type { YoungEventSummary } from "@/features/young/server/young-event-service";
+import type {
+  YoungEventSummary,
+  YoungOrganizerSummary,
+  YoungSourceFreshness,
+} from "@/features/young/server/young-event-service";
 import type { YoungEventsPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/stores";
@@ -27,6 +31,8 @@ type Props = {
   copy: AppPageCopy;
   data: YoungEventSummary[];
   filters: YoungEventsPageFilters;
+  organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
+  source: YoungSourceFreshness;
   pagination: {
     page: number;
     pageSize: number;
@@ -35,7 +41,8 @@ type Props = {
   };
 };
 
-let { categories, copy, data, filters, pagination }: Props = $props();
+let { categories, copy, data, filters, organizers, pagination, source }: Props =
+  $props();
 
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
@@ -71,6 +78,26 @@ const searchSummary = $derived(
 {/snippet}
 
 <PageLayout description={youngCopy.description} title={youngCopy.title}>
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
+    <span class="text-muted-foreground">
+      {#if source.status === "fresh"}
+        {youngCopy.sourceFresh}
+      {:else if source.status === "stale"}
+        {youngCopy.sourceStale}
+      {:else}
+        {youngCopy.sourceUnknown}
+      {/if}
+      {#if source.lastSyncedAt} · {formatDateTime(source.lastSyncedAt)}{/if}
+    </span>
+    <div class="flex flex-wrap gap-2">
+      <Button href="/catalog/young-events/calendar" variant="outline">
+        {youngCopy.viewCalendar}
+      </Button>
+      <Button href="/catalog/young-events/organizers" variant="outline">
+        {youngCopy.viewOrganizers}
+      </Button>
+    </div>
+  </div>
   <Panel footer={pagination.totalPages > 1 ? paginationFooter : undefined}>
     {#snippet header()}
       <form
@@ -78,6 +105,8 @@ const searchSummary = $derived(
         class="flex flex-wrap items-end gap-3"
         method="get"
       >
+        {#if filters.dateUnknown != null}<input type="hidden" name="dateUnknown" value={String(filters.dateUnknown)} /><input type="hidden" name="timeBasis" value={filters.timeBasis ?? "activity"} />{/if}
+
         <div class="grid min-w-48 flex-1 gap-1.5">
           <label class="text-sm font-medium" for="young-event-search">
             {commonLabels.search}
@@ -102,6 +131,21 @@ const searchSummary = $derived(
             <NativeSelect.Option value="">{youngCopy.statusAll}</NativeSelect.Option>
             <NativeSelect.Option value="true">{youngCopy.statusActive}</NativeSelect.Option>
             <NativeSelect.Option value="false">{youngCopy.statusEnded}</NativeSelect.Option>
+          </NativeSelect.Root>
+        </div>
+        <div class="grid gap-1.5">
+          <label class="text-sm font-medium" for="young-event-organizer">
+            {youngCopy.organizerFilter}
+          </label>
+          <NativeSelect.Root
+            id="young-event-organizer"
+            name="organizerId"
+            value={filters.organizerId ?? ""}
+          >
+            <NativeSelect.Option value="">{youngCopy.allOrganizers}</NativeSelect.Option>
+            {#each organizers as organizer (organizer.id)}
+              <NativeSelect.Option value={organizer.id}>{organizer.name}</NativeSelect.Option>
+            {/each}
           </NativeSelect.Root>
         </div>
         <div class="grid gap-1.5">
@@ -150,7 +194,8 @@ const searchSummary = $derived(
                         </Item.Actions>
                         <Item.Footer class="flex-wrap justify-start">
                           <span>{event.category ?? "-"}</span>
-                          <span>{event.registrationStatus ?? "-"}</span>
+                          <span>{event.registrationStatus ?? event.status ?? "-"}</span>
+                          {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
                       </a>
                     {/snippet}
@@ -192,7 +237,12 @@ const searchSummary = $derived(
                     <Table.Cell class="tabular-nums">
                       {event.appliedCount ?? 0}{event.capacity != null ? ` / ${event.capacity}` : ""}
                     </Table.Cell>
-                    <Table.Cell>{event.registrationStatus ?? "-"}</Table.Cell>
+                    <Table.Cell>
+                      {event.registrationStatus ?? event.status ?? "-"}
+                      {#if event.sourceMissing}
+                        <div class="text-muted-foreground text-xs">{youngCopy.sourceMissing}</div>
+                      {/if}
+                    </Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>

@@ -162,6 +162,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         },
         {
           signature:
+            "public.list_young_notification_recipients(after_id text, batch_size integer):EXECUTE",
+        },
+        {
+          signature:
             "public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer):EXECUTE",
         },
         {

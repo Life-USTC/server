@@ -4,6 +4,26 @@ import { asFloat, asInt, asString, type SnapshotRow } from "./snapshot-values";
 const ACTIVE_TABLE = "young_mobile_item_enrolment_list_result_records";
 const ENDED_TABLE = "young_mobile_item_end_list_result_records";
 
+/** Only successful Young fetches carry this timestamp; unrelated builders preserve it. */
+export function youngSnapshotSyncedAt(snapshot: Snapshot): Date | undefined {
+  const metadata = snapshot.metadata();
+  const value = metadata.young_events_synced_at;
+  if (
+    metadata.young_events_mode !== "full" ||
+    !snapshot.hasTable(ACTIVE_TABLE) ||
+    !snapshot.hasTable(ENDED_TABLE) ||
+    !value ||
+    !/(Z|[+-]\d{2}:\d{2})$/.test(value)
+  )
+    return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+export function isYoungEventsSnapshotComplete(snapshot: Snapshot): boolean {
+  return youngSnapshotSyncedAt(snapshot) !== undefined;
+}
+
 // Internal bookkeeping columns added by the snapshot store, not upstream data.
 const INTERNAL_COLUMNS = new Set([
   "store_id",

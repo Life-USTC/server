@@ -1,16 +1,53 @@
 <script lang="ts">
-import type { YoungEventDetail } from "@/features/young/server/young-event-service";
+import { onMount } from "svelte";
+import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
+import type {
+  YoungEventDetail,
+  YoungSourceFreshness,
+} from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
+  commentsData?: CommentsInitialData | null;
   copy: AppPageCopy;
   event: YoungEventDetail;
+  source: YoungSourceFreshness;
 };
 
-let { copy, event }: Props = $props();
+let { commentsData = null, copy, event, source }: Props = $props();
+
+let CommentsPanel = $state<
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null
+>(null);
+let commentsLoadError = $state(false);
+let detailModulesLoading = $state(true);
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  commentsLoadError = false;
+  try {
+    const result = await import(
+      "@/features/comments/components/CommentsPanel.svelte"
+    );
+    CommentsPanel = result.default;
+  } catch {
+    commentsLoadError = true;
+  } finally {
+    detailModulesLoading = false;
+  }
+}
+
+onMount(() => {
+  void loadDetailModules();
+});
 
 const youngCopy = $derived(copy.youngEvents);
 
@@ -21,6 +58,10 @@ function formatDateTime(value: string | null) {
 function formatRange(start: string | null, end: string | null) {
   if (!start && !end) return "-";
   return `${formatDateTime(start)} ~ ${formatDateTime(end)}`;
+}
+
+function formatSourceDate(value: string | null) {
+  return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
 
 const fields = $derived(
@@ -53,6 +94,25 @@ const fields = $derived(
 
 <PageLayout description={event.category ?? youngCopy.description} title={event.name}>
   <div class="grid gap-5">
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 text-sm"
+      data-testid="young-source-freshness"
+    >
+      <span class="text-muted-foreground">
+        {#if source.status === "fresh"}
+          {youngCopy.sourceFresh}
+        {:else if source.status === "stale"}
+          {youngCopy.sourceStale}
+        {:else}
+          {youngCopy.sourceUnknown}
+        {/if}
+        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
+      </span>
+      {#if event.sourceMissing}
+        <span class="text-muted-foreground">{youngCopy.sourceMissing}</span>
+      {/if}
+    </div>
+
     {#if event.imageUrl}
       <img
         alt={event.name}
@@ -72,6 +132,19 @@ const fields = $derived(
       </dl>
     </Panel>
 
+    <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+    {#if event.organizerId && event.organizer}
+      <p class="text-sm">
+        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
+        <a
+          class="underline underline-offset-4"
+          href={`/catalog/young-events/organizers/${event.organizerId}`}
+        >
+          {event.organizer}
+        </a>
+      </p>
+    {/if}
+
     <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
 
     <div class="flex flex-wrap gap-3">
@@ -86,5 +159,36 @@ const fields = $derived(
         {youngCopy.backToList}
       </Button>
     </div>
+
+    <section id="comments" class="scroll-mt-4">
+      {#key `comments:young-event:${event.youngId}`}
+        {#if CommentsPanel}
+          <CommentsPanel
+            heading={copy.comments.title}
+            initialData={commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              type: "young-event",
+              youngId: event.youngId,
+            })}
+            targetType="young-event"
+            youngId={event.youngId}
+          />
+        {:else if commentsLoadError}
+          <Alert.Root variant="destructive">
+            <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+            <Alert.Action>
+              <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                {copy.comments.retry}
+              </Button>
+            </Alert.Action>
+          </Alert.Root>
+        {:else if detailModulesLoading}
+          <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
+            <Skeleton class="h-5 w-24" />
+            <Skeleton class="h-16 w-full" />
+          </div>
+        {/if}
+      {/key}
+    </section>
   </div>
 </PageLayout>

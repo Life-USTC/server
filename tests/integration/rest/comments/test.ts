@@ -2,7 +2,7 @@
  * E2E tests for GET /api/community/comments and POST /api/community/comments.
  *
  * ## GET /api/community/comments
- * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, page, pageSize (deprecated alias: limit)
+ * - Query: targetType (section|course|teacher|homework|section-teacher|young-event), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, youngId, page, pageSize (deprecated alias: limit)
  * - Response: { data: CommentNode[], pagination, meta: { hiddenCount, viewer, target } }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
@@ -11,7 +11,7 @@
  *   bounded reply page through GET /api/community/comments/{id}/replies.
  *
  * ## POST /api/community/comments
- * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, sectionJwId?, courseJwId?, teacherId?, homeworkId?, sectionTeacherId? }
+ * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, sectionJwId?, courseJwId?, teacherId?, homeworkId?, sectionTeacherId?, youngId? }
  * - Response: { id: string }
  * - Auth required (401 if unauthenticated)
  * - Returns 403 if user is suspended
@@ -52,6 +52,7 @@ type CommentListResponse<TComment = { body?: string; id?: string }> = {
       targetId?: number;
       teacherId?: number | null;
       type?: string;
+      youngId?: string | null;
     };
     viewer?: { userId?: string | null };
   };
@@ -183,6 +184,57 @@ test("/api/community/comments GET 接受公开 section JW id", async ({
   expect(body.meta?.target?.courseJwId).toBe(DEV_SEED.course.jwId);
   expect(body.meta?.target?.courseName).toBe(DEV_SEED.course.nameCn);
   assertCommentThreadFound(body, DEV_SEED.comments.sectionRootBody);
+});
+
+test("/api/community/comments GET 接受公开 youngId", async ({ request }) => {
+  const response = await request.get(
+    `/api/community/comments?targetType=young-event&youngId=${encodeURIComponent(DEV_SEED.youngEvent.youngId)}`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as CommentListResponse;
+
+  expect(body.meta?.target?.type).toBe("young-event");
+  expect(body.meta?.target?.youngId).toBe(DEV_SEED.youngEvent.youngId);
+});
+
+test("/api/community/comments POST 支持 youngId 目标", async ({ request }) => {
+  await signInAsDebugUserApi(request, "/");
+  const marker = `e2e-young-event-comment-${Date.now()}`;
+  try {
+    const response = await request.post("/api/community/comments", {
+      data: {
+        body: marker,
+        targetType: "young-event",
+        youngId: DEV_SEED.youngEvent.youngId,
+      },
+    });
+    expect(response.status()).toBe(201);
+    expect(((await response.json()) as { id?: string }).id).toEqual(
+      expect.any(String),
+    );
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { body: marker } }),
+    );
+  }
+});
+
+test("/api/community/comments GET 拒绝未验证的 young-event targetId", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/api/community/comments?targetType=young-event&targetId=1",
+  );
+  expect(response.status()).toBe(400);
+});
+
+test("/api/community/comments GET 对未知 youngId 返回 404", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/api/community/comments?targetType=young-event&youngId=missing-young-event",
+  );
+  expect(response.status()).toBe(404);
 });
 
 test("/api/community/comments GET 无效 targetType 返回 400", async ({

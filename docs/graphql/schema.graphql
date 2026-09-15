@@ -117,6 +117,8 @@ type Catalog {
   weather(locationKey: String!): WeatherSnapshot
   youngEvent(youngId: String!): YoungEvent
   youngEvents(filter: YoungEventFilter, page: PageInput): YoungEventPage!
+  youngOrganizer(organizerId: String!): YoungOrganizer
+  youngOrganizers(page: PageInput, search: String): YoungOrganizerPage!
 }
 
 type CatalogLink {
@@ -166,6 +168,7 @@ enum CommentTargetType {
   SECTION
   SECTION_TEACHER
   TEACHER
+  YOUNG_EVENT
 }
 
 enum CommentVisibility {
@@ -231,6 +234,7 @@ input CreateCommentInput {
   targetType: CommentTargetType!
   teacherId: ID
   visibility: CommentVisibility = PUBLIC
+  youngId: String
 }
 
 input CreateHomeworkInput {
@@ -420,6 +424,9 @@ type Mutation {
   uploadRename(filename: String!, id: ID!): UploadMutationPayload!
   uploadSessionComplete(input: CompleteUploadSessionInput!): UploadCompletionPayload!
   uploadSessionCreate(input: CreateUploadSessionInput!): UploadSessionPayload!
+  youngEventSubscriptionSet(input: YoungEventSubscriptionInput!, youngId: String!): YoungEventSubscriptionState!
+  youngNotificationRead(id: ID!): DeleteMutationPayload!
+  youngOrganizerSubscriptionSet(organizerId: ID!, subscribed: Boolean!): YoungOrganizerSubscriptionState!
 }
 
 type NamedCatalogValue {
@@ -438,6 +445,22 @@ type PageInfo {
 input PageInput {
   page: Int = 1
   pageSize: Int = 20
+}
+
+type PersonalCalendarEvent {
+  at: DateTime
+  endsAt: DateTime
+  id: ID!
+  location: String
+  title: String!
+  type: String!
+  url: String!
+  youngId: String
+}
+
+type PersonalCalendarEventPage {
+  items: [PersonalCalendarEvent!]!
+  pageInfo: PageInfo!
 }
 
 type Query {
@@ -821,12 +844,18 @@ type WeatherSnapshot {
 }
 
 type Workspace {
+  calendarEvents(dateFrom: String, dateTo: String, page: PageInput): PersonalCalendarEventPage!
   exams(filter: ExamFilter, page: PageInput): ExamPage!
   homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
   overview(atTime: DateTime): WorkspaceOverview!
   schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
   subscribedSections(page: PageInput): SubscribedSectionPage!
   todos(filter: TodoFilter, page: PageInput): TodoPage!
+  youngEventSubscription(youngId: String!): YoungEventSubscriptionState!
+  youngEventSubscriptions(page: PageInput): YoungEventSubscriptionPage!
+  youngNotifications(page: PageInput, unread: Boolean = false): YoungNotificationPage!
+  youngOrganizerSubscription(organizerId: ID!): YoungOrganizerSubscriptionState!
+  youngOrganizerSubscriptions(page: PageInput): YoungOrganizerSubscriptionPage!
 }
 
 input WorkspaceLinkPinBatchItemInput {
@@ -865,15 +894,19 @@ type YoungEvent {
   applyStartAt: DateTime
   capacity: Int
   category: String
+  createdAt: DateTime
   department: String
   endAt: DateTime
   hours: Float
   imageUrl: String
   isActive: Boolean!
+  lastSeenAt: DateTime
   location: String
   name: String!
   organizer: String
+  organizerId: String
   registrationStatus: String
+  sourceMissing: Boolean!
   startAt: DateTime
   status: String
   youngId: String!
@@ -882,10 +915,115 @@ type YoungEvent {
 input YoungEventFilter {
   active: Boolean
   category: String
+  dateFrom: String
+  dateTo: String
+  dateUnknown: Boolean
+  organizerId: String
   search: String
+  timeBasis: YoungEventTimeBasis
 }
 
 type YoungEventPage {
   items: [YoungEvent!]!
   pageInfo: PageInfo!
+  source: YoungSourceFreshness!
+  unknownDateCount: Int!
+}
+
+type YoungEventSubscription {
+  createdAt: DateTime!
+  event: YoungEvent!
+  remindDeadline: Boolean!
+  remindSignup: Boolean!
+  remindStart: Boolean!
+  youngId: String!
+}
+
+input YoungEventSubscriptionInput {
+  remindDeadline: Boolean
+  remindSignup: Boolean
+  remindStart: Boolean
+  subscribed: Boolean!
+}
+
+type YoungEventSubscriptionPage {
+  items: [YoungEventSubscription!]!
+  pageInfo: PageInfo!
+}
+
+type YoungEventSubscriptionState {
+  remindDeadline: Boolean!
+  remindSignup: Boolean!
+  remindStart: Boolean!
+  subscribed: Boolean!
+  youngId: String!
+}
+
+enum YoungEventTimeBasis {
+  activity
+  registration
+}
+
+type YoungNotification {
+  body: String!
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: ID!
+  kind: String!
+  organizerId: ID
+  readAt: DateTime
+  title: String!
+  youngId: String
+}
+
+type YoungNotificationPage {
+  items: [YoungNotification!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizer {
+  activeCount: Int!
+  historyCount: Int!
+  id: String!
+  name: String!
+  normalizedName: String!
+  totalCount: Int!
+  upcomingCount: Int!
+}
+
+type YoungOrganizerPage {
+  items: [YoungOrganizer!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizerReference {
+  id: ID!
+  name: String!
+}
+
+type YoungOrganizerSubscription {
+  createdAt: DateTime!
+  organizer: YoungOrganizerReference!
+  organizerId: ID!
+}
+
+type YoungOrganizerSubscriptionPage {
+  items: [YoungOrganizerSubscription!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizerSubscriptionState {
+  organizerId: ID!
+  subscribed: Boolean!
+}
+
+type YoungSourceFreshness {
+  lastSyncedAt: DateTime
+  status: YoungSourceStatus!
+}
+
+enum YoungSourceStatus {
+  fresh
+  stale
+  unknown
 }

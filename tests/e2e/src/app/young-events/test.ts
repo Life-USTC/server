@@ -18,6 +18,7 @@
  * - Non-matching search shows the empty state instead of an error
  */
 import { expect, test } from "@playwright/test";
+import { createFixturePrisma } from "../../../../shared/prisma";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -93,7 +94,119 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 
     await expect(page.getByText(/未找到活动|No events found/i)).toBeVisible();
     await expect(
-      page.locator("#main-content a[href^='/catalog/young-events/']"),
+      page.locator(
+        "#main-content a[href^='/catalog/young-events/dev-scenario-']",
+      ),
     ).toHaveCount(0);
   });
+
+  test("日历和主办方页面保留公开深链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/young-events/calendar?view=month&date=2026-05-10",
+    );
+    await expect(page.getByTestId("young-calendar")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /日|Day/i }).first(),
+    ).toBeVisible();
+
+    await gotoAndWaitForReady(page, "/catalog/young-events/organizers");
+    await expect(page.getByRole("searchbox")).toBeVisible();
+    await expect(
+      page
+        .getByText(/学生会|Students'? Union/i)
+        .filter({ visible: true })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator(
+          "a[href='/catalog/young-events/organizers/dev-scenario-young-organizer']",
+        )
+        .filter({ visible: true }),
+    ).toBeVisible();
+  });
 });
+
+for (const width of [1280, 390]) {
+  test(`calendar has all pages, day drilldown, and independent registration times at ${width}px`, async ({
+    page,
+  }) => {
+    const db = createFixturePrisma();
+    const marker = `browser-young-${crypto.randomUUID()}`;
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await db.youngOrganizer.create({
+      data: { id: marker, name: marker, normalizedName: marker },
+    });
+    await db.youngEvent.createMany({
+      data: Array.from({ length: 106 }, (_, index) => ({
+        youngId: `${marker}-${String(index).padStart(3, "0")}`,
+        name: `Calendar activity ${String(index).padStart(3, "0")}`,
+        organizerId: marker,
+        isActive: true,
+        rawJson: {},
+        startAt: new Date("2035-09-15T10:00:00+08:00"),
+        endAt: new Date("2035-09-15T12:00:00+08:00"),
+        applyStartAt: new Date("2035-09-14T08:00:00+08:00"),
+        applyEndAt: new Date("2035-09-14T18:00:00+08:00"),
+      })),
+    });
+    try {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/young-events/calendar?view=month&date=2035-09-15&organizerId=${marker}`,
+      );
+      const root = page.getByTestId("young-calendar");
+      if (width > 700)
+        await root.getByRole("link", { name: "+101", exact: true }).click();
+      else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+      await expect(page).toHaveURL(/view=day/);
+      await expect(
+        root
+          .getByRole("link", { name: /Calendar activity 105/ })
+          .filter({ visible: true }),
+      ).toBeVisible();
+      await root.getByRole("link", { name: /^(周|Week)$/ }).click();
+      await expect(page).toHaveURL(/view=week/);
+      await page
+        .locator("#young-calendar-time-basis")
+        .selectOption("registration");
+      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+      await expect(page).toHaveURL(/timeBasis=registration/);
+      await expect(
+        root.getByRole("link", { name: /^(日|Day)$/ }),
+      ).toHaveAttribute("href", /timeBasis=registration/);
+      await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+      await expect(
+        root
+          .getByRole("link", { name: /Calendar activity/ })
+          .filter({ visible: true }),
+      ).toHaveCount(0);
+      await root
+        .getByRole("link", { name: /^(上一段|Previous|上一)/ })
+        .first()
+        .click();
+      await expect(
+        root
+          .getByRole("link", { name: /Calendar activity 105/ })
+          .filter({ visible: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: `/tmp/young-calendar-${width}.png`,
+        fullPage: true,
+      });
+      expect(errors).toEqual([]);
+    } finally {
+      await db.youngEvent.deleteMany({ where: { organizerId: marker } });
+      await db.youngOrganizer.delete({ where: { id: marker } });
+      await db.$disconnect();
+    }
+  });
+}

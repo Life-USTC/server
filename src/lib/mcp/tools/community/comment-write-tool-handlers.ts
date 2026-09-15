@@ -74,6 +74,7 @@ export async function createCommentTool(
     teacherId: args.teacherId,
     userId,
     visibility: args.visibility ?? "public",
+    youngId: args.youngId,
   });
 
   if (!result.ok) {

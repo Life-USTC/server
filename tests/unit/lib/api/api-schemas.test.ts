@@ -325,6 +325,12 @@ describe("其他请求 schema", () => {
     ).toBe(true);
     expect(
       commentsQuerySchema.safeParse({
+        targetType: "young-event",
+        youngId: "young-42",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentsQuerySchema.safeParse({
         targetType: "section",
         sectionJwId: "abc",
       }).success,
@@ -357,6 +363,13 @@ describe("其他请求 schema", () => {
       commentCreateRequestSchema.safeParse({
         targetType: "section-teacher",
         sectionTeacherId: "123",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "young-event",
+        youngId: "young-42",
         body: "hello",
       }).success,
     ).toBe(true);
@@ -434,6 +447,12 @@ describe("其他请求 schema", () => {
       commentMcpTargetReadInputSchema.safeParse({
         targetType: "section-teacher",
         sectionTeacherId: 123,
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "young-event",
+        youngId: "young-42",
       }).success,
     ).toBe(true);
     expect(

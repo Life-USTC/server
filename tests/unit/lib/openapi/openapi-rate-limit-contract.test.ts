@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import openApi from "../../../../public/openapi.generated.json";
 
 const PROTECTED_MUTATIONS = [
+  ["put", "/api/workspace/young-event-subscriptions/{youngId}"],
+  ["put", "/api/workspace/young-organizer-subscriptions/{organizerId}"],
+  ["post", "/api/workspace/young-notifications/{id}/read"],
   ["patch", "/api/admin/comments/{id}"],
   ["patch", "/api/admin/descriptions/{id}"],
   ["delete", "/api/admin/homeworks/{id}"],

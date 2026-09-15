@@ -14,6 +14,7 @@ COPY package.json prisma.config.ts ./
 COPY prisma ./prisma
 RUN DATABASE_URL="postgresql://localhost:5432/life_ustc" bun run db:generate
 COPY src/static-loader ./src/static-loader
+COPY src/features/young/server/young-organizer-normalization.ts ./src/features/young/server/young-organizer-normalization.ts
 COPY src/lib/db/section-lifecycle-lock.ts ./src/lib/db/section-lifecycle-lock.ts
 COPY src/lib/db/node-pg-pool-config.ts ./src/lib/db/node-pg-pool-config.ts
 COPY scripts/load-static-sqlite.sh ./scripts/load-static-sqlite.sh

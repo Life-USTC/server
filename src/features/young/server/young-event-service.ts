@@ -6,7 +6,19 @@ import {
   type PaginatedResponse,
   type PaginationInput,
 } from "@/lib/pagination";
-import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+import {
+  endOfShanghaiDay,
+  formatShanghaiTimestamp,
+  startOfShanghaiDay,
+} from "@/lib/time/shanghai-format";
+
+export type YoungEventTimeBasis = "activity" | "registration";
+
+export type YoungSourceFreshness = {
+  status: "fresh" | "stale" | "unknown";
+  lastSyncedAt: string | null;
+};
 
 export type YoungEventSummary = {
   youngId: string;
@@ -14,6 +26,7 @@ export type YoungEventSummary = {
   category: string | null;
   department: string | null;
   organizer: string | null;
+  organizerId: string | null;
   status: string | null;
   registrationStatus: string | null;
   location: string | null;
@@ -26,6 +39,9 @@ export type YoungEventSummary = {
   applyStartAt: string | null;
   applyEndAt: string | null;
   isActive: boolean;
+  sourceMissing: boolean;
+  lastSeenAt: string | null;
+  createdAt: string | null;
 };
 
 export type YoungEventDetail = YoungEventSummary & {
@@ -34,16 +50,37 @@ export type YoungEventDetail = YoungEventSummary & {
 
 export type YoungEventListInput = PaginationInput & {
   active?: boolean | null;
+  dateUnknown?: boolean | null;
   category?: string | null;
   search?: string | null;
+  organizerId?: string | null;
+  dateFrom?: Date | string | null;
+  dateTo?: Date | string | null;
+  timeBasis?: YoungEventTimeBasis | null;
 };
 
-const YOUNG_EVENT_SELECT = {
+export type YoungEventPage = PaginatedResponse<YoungEventSummary> & {
+  /** Missing starts are discoverable through the paginated dateUnknown filter. */
+  unknownDateCount: number;
+  source: YoungSourceFreshness;
+};
+
+export type {
+  YoungOrganizerListInput,
+  YoungOrganizerSummary,
+} from "./young-organizer-service";
+export {
+  getYoungOrganizer,
+  listYoungOrganizers,
+} from "./young-organizer-service";
+
+export const YOUNG_EVENT_SELECT = {
   youngId: true,
   name: true,
   category: true,
   department: true,
   organizer: true,
+  organizerId: true,
   status: true,
   registrationStatus: true,
   location: true,
@@ -56,13 +93,18 @@ const YOUNG_EVENT_SELECT = {
   applyStartAt: true,
   applyEndAt: true,
   isActive: true,
+  sourceMissing: true,
+  lastSeenAt: true,
+  createdAt: true,
 } satisfies Prisma.YoungEventSelect;
 
 type YoungEventRecord = Prisma.YoungEventGetPayload<{
   select: typeof YOUNG_EVENT_SELECT;
 }>;
 
-function toShanghaiIso(date: Date | null): string | null {
+const YOUNG_SOURCE_STALE_AFTER_MS = 36 * 60 * 60 * 1_000;
+
+function toShanghaiIso(date: Date | null | undefined): string | null {
   return date == null ? null : formatShanghaiTimestamp(date);
 }
 
@@ -75,13 +117,16 @@ export function youngEventImageUrl(youngId: string) {
   return `/api/catalog/young-events/${youngId}/image`;
 }
 
-function toYoungEventSummary(record: YoungEventRecord): YoungEventSummary {
+export function toYoungEventSummary(
+  record: YoungEventRecord,
+): YoungEventSummary {
   return {
     youngId: record.youngId,
     name: record.name,
     category: record.category,
     department: record.department,
     organizer: record.organizer,
+    organizerId: record.organizerId,
     status: record.status,
     registrationStatus: record.registrationStatus,
     location: record.location,
@@ -94,43 +139,166 @@ function toYoungEventSummary(record: YoungEventRecord): YoungEventSummary {
     applyStartAt: toShanghaiIso(record.applyStartAt),
     applyEndAt: toShanghaiIso(record.applyEndAt),
     isActive: record.isActive,
+    sourceMissing: record.sourceMissing,
+    lastSeenAt: toShanghaiIso(record.lastSeenAt),
+    createdAt: toShanghaiIso(record.createdAt),
   };
 }
 
-export async function listYoungEvents(
-  input: YoungEventListInput = {},
-): Promise<PaginatedResponse<YoungEventSummary>> {
-  const { page, pageSize, skip } = normalizePagination(input);
+function eventDateField(timeBasis: YoungEventTimeBasis) {
+  return timeBasis === "registration"
+    ? { start: "applyStartAt" as const, end: "applyEndAt" as const }
+    : { start: "startAt" as const, end: "endAt" as const };
+}
 
+function parseYoungDateBoundary(
+  value: Date | string | null | undefined,
+  boundary: "from" | "to",
+): Date | null {
+  if (value == null || value === "") return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) throw new RangeError("Invalid date");
+    return value;
+  }
+
+  // A date-only query is a Shanghai calendar boundary. Passing the date
+  // through parseDateInput first would interpret it as UTC midnight, which
+  // would shift the requested day by eight hours.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+    const parsed = parseDateInput(`${value.trim()}T00:00:00`);
+    if (!(parsed instanceof Date)) throw new RangeError("Invalid date");
+    if (boundary === "from") return startOfShanghaiDay(parsed);
+    const end = endOfShanghaiDay(parsed);
+    end.setSeconds(59, 999);
+    return end;
+  }
+
+  const parsed = parseDateInput(value);
+  if (!(parsed instanceof Date)) throw new RangeError("Invalid date");
+  return parsed;
+}
+
+function buildDateRangeWhere(input: YoungEventListInput): {
+  known: Prisma.YoungEventWhereInput;
+  unknown: Prisma.YoungEventWhereInput;
+  hasRange: boolean;
+  timeBasis: YoungEventTimeBasis;
+} {
+  const timeBasis = input.timeBasis ?? "activity";
+  const fields = eventDateField(timeBasis);
+  const from = parseYoungDateBoundary(input.dateFrom, "from");
+  const to = parseYoungDateBoundary(input.dateTo, "to");
+  if (from && to && from.getTime() > to.getTime()) {
+    throw new RangeError("dateFrom must be before or equal to dateTo");
+  }
+
+  if (from && to && to.getTime() - from.getTime() > 366 * 86400000) {
+    throw new RangeError("Date range must be at most 366 days");
+  }
+  if (input.dateUnknown && (from || to))
+    throw new RangeError(
+      "Unknown-date filtering cannot be combined with date bounds",
+    );
+  const startFilter: Prisma.DateTimeNullableFilter = { not: null };
+  if (to) startFilter.lte = to;
+  const lower: Prisma.YoungEventWhereInput = from
+    ? {
+        OR: [{ [fields.end]: { gt: from } }, { [fields.start]: { gte: from } }],
+      }
+    : {};
+  return {
+    known: { AND: [{ [fields.start]: startFilter }, lower] },
+    unknown: { [fields.start]: null },
+    hasRange: from != null || to != null,
+    timeBasis,
+  };
+}
+
+function buildEventWhere(input: YoungEventListInput) {
   const where: Prisma.YoungEventWhereInput = {};
   if (input.active != null) where.isActive = input.active;
   const category = input.category?.trim();
   if (category) where.category = category;
   const search = input.search?.trim();
   if (search) where.name = { contains: search, mode: "insensitive" };
+  const organizerId = input.organizerId?.trim();
+  if (organizerId) where.organizerId = organizerId;
+  return where;
+}
 
-  const [total, records] = await Promise.all([
+export async function getYoungSourceFreshness(): Promise<YoungSourceFreshness> {
+  const row = await prisma.staticImportState.findUnique({
+    where: { id: "global" },
+    select: { youngSyncedAt: true },
+  });
+  if (!row?.youngSyncedAt) return { status: "unknown", lastSyncedAt: null };
+  const lastSyncedAt = toShanghaiIso(row.youngSyncedAt);
+  return {
+    status:
+      Date.now() - row.youngSyncedAt.getTime() <= YOUNG_SOURCE_STALE_AFTER_MS
+        ? "fresh"
+        : "stale",
+    lastSyncedAt,
+  };
+}
+
+export async function listYoungEvents(
+  input: YoungEventListInput = {},
+): Promise<YoungEventPage> {
+  const { page, pageSize, skip } = normalizePagination(input);
+  const baseWhere = buildEventWhere(input);
+  const dateRange = buildDateRangeWhere(input);
+  const where: Prisma.YoungEventWhereInput = input.dateUnknown
+    ? { AND: [baseWhere, dateRange.unknown] }
+    : dateRange.hasRange
+      ? { AND: [baseWhere, dateRange.known] }
+      : input.dateUnknown === false
+        ? { AND: [baseWhere, { NOT: dateRange.unknown }] }
+        : baseWhere;
+  const unknownWhere: Prisma.YoungEventWhereInput = {
+    AND: [baseWhere, dateRange.unknown],
+  };
+  const dateOrderBy: Prisma.YoungEventOrderByWithRelationInput[] =
+    dateRange.hasRange
+      ? [
+          {
+            [dateRange.timeBasis === "registration"
+              ? "applyStartAt"
+              : "startAt"]: "asc" as const,
+          },
+          { youngId: "asc" as const },
+        ]
+      : [
+          { isActive: "desc" as const },
+          { startAt: { sort: "desc" as const, nulls: "last" as const } },
+          { youngId: "asc" as const },
+        ];
+
+  const [total, records, unknownDateCount, source] = await Promise.all([
     prisma.youngEvent.count({ where }),
     prisma.youngEvent.findMany({
       where,
       select: YOUNG_EVENT_SELECT,
-      // Signup-open events first, then most recent start time.
-      orderBy: [
-        { isActive: "desc" },
-        { startAt: { sort: "desc", nulls: "last" } },
-        { youngId: "asc" },
-      ],
+      orderBy: dateOrderBy,
       skip,
       take: pageSize,
     }),
+    dateRange.hasRange
+      ? prisma.youngEvent.count({ where: unknownWhere })
+      : Promise.resolve(0),
+    getYoungSourceFreshness(),
   ]);
 
-  return buildPaginatedResponse(
-    records.map(toYoungEventSummary),
-    page,
-    pageSize,
-    total,
-  );
+  return {
+    ...buildPaginatedResponse(
+      records.map(toYoungEventSummary),
+      page,
+      pageSize,
+      total,
+    ),
+    unknownDateCount,
+    source,
+  };
 }
 
 export async function getYoungEvent(

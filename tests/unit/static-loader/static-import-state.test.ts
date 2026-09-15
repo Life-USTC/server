@@ -127,6 +127,23 @@ describe("global static import state", () => {
     });
   });
 
+  it("updates Young freshness only when a complete Young snapshot was observed", async () => {
+    const tx = stateClient();
+    await recordStaticImportState(tx, {
+      ...input(),
+      youngSyncedAt: OBSERVED_AT,
+    });
+    expect(tx.staticImportState.upsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ youngSyncedAt: OBSERVED_AT }),
+        update: expect.objectContaining({ youngSyncedAt: OBSERVED_AT }),
+      }),
+    );
+    await recordStaticImportState(tx, input());
+    const last = tx.staticImportState.upsert.mock.calls.at(-1)?.[0];
+    expect(last.update).not.toHaveProperty("youngSyncedAt");
+  });
+
   it("requires a positive integer transform revision", async () => {
     const tx = stateClient();
 

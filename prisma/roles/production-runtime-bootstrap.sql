@@ -319,6 +319,7 @@ ALTER FUNCTION public.comment_hidden_root_count(
   integer,
   integer,
   text,
+  integer,
   integer
 ) OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.get_public_profile_section_subscription_count(text)
@@ -422,7 +423,7 @@ GRANT EXECUTE ON FUNCTION
   public.comment_attachment_summaries(text[]),
   public.get_public_profile_upload_stats(text, timestamp without time zone),
   public.comment_reaction_summaries(text[]),
-  public.comment_hidden_root_count(integer, integer, integer, text, integer),
+  public.comment_hidden_root_count(integer, integer, integer, text, integer, integer),
   public.get_public_profile_comment_contribution_days(text, timestamp without time zone),
   public.get_public_profile_section_subscription_count(text),
   public.claim_upload_pending_storage_cleanup(
@@ -523,3 +524,13 @@ REVOKE ALL ON FUNCTION public.count_prometheus_deletions() FROM PUBLIC,life_ustc
 -- the function owner as a pure SECURITY DEFINER identity with no explicit ACL.
 REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public
 FROM life_ustc_function_owner;
+
+GRANT SELECT ("userId") ON "UserYoungEventSubscription", "UserYoungOrganizerSubscription" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "UserYoungEventSubscription_recipients" ON "UserYoungEventSubscription";
+CREATE POLICY "UserYoungEventSubscription_recipients" ON "UserYoungEventSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
+DROP POLICY IF EXISTS "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription";
+CREATE POLICY "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
+ALTER FUNCTION public.list_young_notification_recipients(text, integer) OWNER TO life_ustc_function_owner;
+GRANT EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) TO life_ustc_maintenance_runtime;
+
+REVOKE EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) FROM life_ustc_function_owner;

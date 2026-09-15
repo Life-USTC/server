@@ -40,6 +40,7 @@ export const commentTargetLookupSelect = {
   courseId: true,
   teacherId: true,
   sectionTeacherId: true,
+  youngEventId: true,
   rootId: true,
   id: true,
   homework: {
@@ -83,6 +84,9 @@ export const commentTargetLookupSelect = {
   },
   teacher: {
     select: { nameCn: true },
+  },
+  youngEvent: {
+    select: { name: true, youngId: true },
   },
 } as const;
 

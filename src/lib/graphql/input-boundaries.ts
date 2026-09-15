@@ -5,6 +5,7 @@ import {
   WEATHER_LOCATIONS,
   type WeatherLocationKey,
 } from "@/features/weather/server/weather-types";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { GRAPHQL_LIMITS } from "./constants";
 
 function badUserInput(message: string): never {
@@ -108,6 +109,30 @@ export function requireGraphqlYoungEventId(value: string): string {
     badUserInput("youngId must be a non-empty string.");
   }
   return youngId;
+}
+
+export function requireGraphqlYoungOrganizerId(value: string): string {
+  const organizerId = validateOptionalText(
+    value.trim(),
+    "organizerId",
+    GRAPHQL_LIMITS.versionKeyChars,
+  );
+  if (!organizerId) {
+    badUserInput("organizerId must be a non-empty string.");
+  }
+  return organizerId;
+}
+
+export function validateGraphqlYoungDate(
+  value: string | null | undefined,
+  name: "dateFrom" | "dateTo",
+) {
+  if (value == null) return undefined;
+  const date = value.trim();
+  if (!date || !(parseDateInput(date) instanceof Date)) {
+    badUserInput(`${name} must be a valid Shanghai date or date-time.`);
+  }
+  return date;
 }
 
 const WEATHER_LOCATION_KEYS = new Set(

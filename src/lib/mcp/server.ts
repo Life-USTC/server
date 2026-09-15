@@ -23,6 +23,7 @@ import {
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "./tool-descriptors";
+import { registerYoungWorkspaceTools } from "./tools/workspace/young-workspace-tools";
 
 const SERVER_INSTRUCTIONS = [
   "Use workspace_snapshot_get or workspace_overview_get before fanning out into narrower personal tools.",
@@ -56,6 +57,7 @@ export function createMcpServer() {
   registerWeatherTools(server);
   registerRoomMapTools(server);
   registerYoungEventTools(server);
+  registerYoungWorkspaceTools(server);
   registerWorkspaceDataTools(server);
   registerCalendarTools(server);
   registerGraphqlOperationTool(server);

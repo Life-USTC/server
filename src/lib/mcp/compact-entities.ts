@@ -38,6 +38,10 @@ export function compactYoungEvent(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
     "youngId",
+    "organizerId",
+    "sourceMissing",
+    "lastSeenAt",
+    "createdAt",
     "name",
     "category",
     "status",

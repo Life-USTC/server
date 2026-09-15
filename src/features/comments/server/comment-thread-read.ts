@@ -53,6 +53,10 @@ async function countAnonymousHiddenRoots(
     typeof whereTarget.sectionTeacherId === "number"
       ? whereTarget.sectionTeacherId
       : null;
+  const youngEventId =
+    typeof whereTarget.youngEventId === "number"
+      ? whereTarget.youngEventId
+      : null;
 
   countCommentStageQuery(counter);
   const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
@@ -61,7 +65,8 @@ async function countAnonymousHiddenRoots(
       ${courseId},
       ${teacherId},
       ${homeworkId},
-      ${sectionTeacherId}
+      ${sectionTeacherId},
+      ${youngEventId}
     ) AS count
   `;
   return Number(row?.count ?? 0);
@@ -86,6 +91,9 @@ function commentTargetPredicate(
   }
   if (typeof whereTarget.sectionTeacherId === "number") {
     return Prisma.sql`${column("sectionTeacherId")} = ${whereTarget.sectionTeacherId}`;
+  }
+  if (typeof whereTarget.youngEventId === "number") {
+    return Prisma.sql`${column("youngEventId")} = ${whereTarget.youngEventId}`;
   }
   return Prisma.sql`FALSE`;
 }

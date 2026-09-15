@@ -28,6 +28,7 @@ export async function createComment(input: {
   sectionTeacherId?: unknown;
   targetType: CommentTargetType;
   teacherId?: unknown;
+  youngId?: unknown;
   userId: string;
   visibility: CommentVisibility;
 }) {
@@ -43,6 +44,7 @@ export async function createComment(input: {
     sectionTeacherId: input.sectionTeacherId,
     targetType: input.targetType,
     teacherId: input.teacherId,
+    youngId: input.youngId,
   });
   if (!reference.ok) {
     return {

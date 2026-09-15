@@ -22,6 +22,7 @@ export async function resolveCommentCanonicalUrl(
       section: { select: { jwId: true } },
       course: { select: { jwId: true } },
       teacher: { select: { id: true } },
+      youngEvent: { select: { youngId: true } },
     },
   });
 
@@ -83,6 +84,18 @@ export async function resolveCommentCanonicalUrl(
         commentTargetPermalinkBaseHref({
           teacherId: comment.teacher.id,
           type: "teacher",
+        }),
+        comment.id,
+      ),
+    };
+  }
+  if (comment.youngEvent?.youngId) {
+    return {
+      ok: true,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          type: "young-event",
+          youngId: comment.youngEvent.youngId,
         }),
         comment.id,
       ),

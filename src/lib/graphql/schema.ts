@@ -1,3 +1,4 @@
+import { GraphQLError } from "graphql";
 import { createSchema } from "graphql-yoga";
 import {
   getBusRouteTimetable,
@@ -20,7 +21,9 @@ import { getRoomMap } from "@/features/rooms/server/room-map-service";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
   getYoungEvent,
+  getYoungOrganizer,
   listYoungEvents,
+  listYoungOrganizers,
 } from "@/features/young/server/young-event-service";
 import {
   capGraphqlAlternateRoutes,
@@ -37,12 +40,14 @@ import {
 import {
   requireGraphqlId,
   requireGraphqlYoungEventId,
+  requireGraphqlYoungOrganizerId,
   validateGraphqlIdList,
   validateGraphqlRoomCode,
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
   validateGraphqlVersionKey,
   validateGraphqlWeatherLocationKey,
+  validateGraphqlYoungDate,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
 import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
@@ -57,6 +62,12 @@ import {
   graphqlScopeResolvers,
   graphqlScopeTypeDefs,
 } from "./workspace";
+import {
+  youngWorkspaceMutationResolvers,
+  youngWorkspacePageResolvers,
+  youngWorkspaceResolvers,
+  youngWorkspaceTypeDefs,
+} from "./young-workspace";
 
 type TeacherParent = {
   id: number;
@@ -205,9 +216,25 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   input YoungEventFilter {
+    dateUnknown: Boolean
     active: Boolean
     category: String
     search: String
+    organizerId: String
+    dateFrom: String
+    dateTo: String
+    timeBasis: YoungEventTimeBasis
+  }
+
+  enum YoungEventTimeBasis {
+    activity
+    registration
+  }
+
+  enum YoungSourceStatus {
+    fresh
+    stale
+    unknown
   }
 
   type YoungEvent {
@@ -216,6 +243,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
     category: String
     department: String
     organizer: String
+    organizerId: String
     status: String
     registrationStatus: String
     location: String
@@ -228,10 +256,35 @@ export const graphqlTypeDefs = /* GraphQL */ `
     applyStartAt: DateTime
     applyEndAt: DateTime
     isActive: Boolean!
+    sourceMissing: Boolean!
+    lastSeenAt: DateTime
+    createdAt: DateTime
+  }
+
+  type YoungSourceFreshness {
+    status: YoungSourceStatus!
+    lastSyncedAt: DateTime
   }
 
   type YoungEventPage {
     items: [YoungEvent!]!
+    unknownDateCount: Int!
+    source: YoungSourceFreshness!
+    pageInfo: PageInfo!
+  }
+
+  type YoungOrganizer {
+    id: String!
+    name: String!
+    normalizedName: String!
+    totalCount: Int!
+    activeCount: Int!
+    upcomingCount: Int!
+    historyCount: Int!
+  }
+
+  type YoungOrganizerPage {
+    items: [YoungOrganizer!]!
     pageInfo: PageInfo!
   }
 
@@ -363,6 +416,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
     weather(locationKey: String!): WeatherSnapshot
     youngEvents(page: PageInput, filter: YoungEventFilter): YoungEventPage!
     youngEvent(youngId: String!): YoungEvent
+    youngOrganizers(page: PageInput, search: String): YoungOrganizerPage!
+    youngOrganizer(organizerId: String!): YoungOrganizer
   }
 
   type RoomMap {
@@ -403,6 +458,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   ${graphqlMutationTypeDefs}
+  ${youngWorkspaceTypeDefs}
 `;
 
 export const graphqlSchema = createSchema<
@@ -419,14 +475,19 @@ export const graphqlSchema = createSchema<
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
     YoungEventPage: graphqlPageResolvers,
+    ...youngWorkspacePageResolvers,
+    YoungOrganizerPage: graphqlPageResolvers,
     ...graphqlScopeResolvers,
     ...graphqlMutationResolvers,
     Workspace: observeGraphqlResolverMap(
-      graphqlScopeResolvers.Workspace,
+      { ...graphqlScopeResolvers.Workspace, ...youngWorkspaceResolvers },
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Workspace,
     ),
     Mutation: observeGraphqlResolverMap(
-      graphqlMutationResolvers.Mutation,
+      {
+        ...graphqlMutationResolvers.Mutation,
+        ...youngWorkspaceMutationResolvers,
+      },
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Mutation,
     ),
     Teacher: {
@@ -642,28 +703,73 @@ export const graphqlSchema = createSchema<
             validateGraphqlWeatherLocationKey(args.locationKey),
           );
         },
-        youngEvents(
+        async youngEvents(
           _parent,
           args: {
             filter?: {
               active?: boolean | null;
               category?: string | null;
               search?: string | null;
+              organizerId?: string | null;
+              dateFrom?: string | null;
+              dateTo?: string | null;
+              dateUnknown?: boolean | null;
+              timeBasis?: "activity" | "registration" | null;
             } | null;
             page?: GraphqlPageInput | null;
           },
         ) {
           const pagination = normalizeGraphqlPage(args.page);
-          return listYoungEvents({
-            active: args.filter?.active ?? undefined,
-            category: validateGraphqlSearch(args.filter?.category),
-            search: validateGraphqlSearch(args.filter?.search),
+          const dateFrom = validateGraphqlYoungDate(
+            args.filter?.dateFrom,
+            "dateFrom",
+          );
+          const dateTo = validateGraphqlYoungDate(
+            args.filter?.dateTo,
+            "dateTo",
+          );
+          try {
+            return await listYoungEvents({
+              active: args.filter?.active ?? undefined,
+              dateUnknown: args.filter?.dateUnknown ?? undefined,
+              category: validateGraphqlSearch(args.filter?.category),
+              search: validateGraphqlSearch(args.filter?.search),
+              organizerId: args.filter?.organizerId
+                ? requireGraphqlYoungOrganizerId(args.filter.organizerId)
+                : undefined,
+              dateFrom,
+              dateTo,
+              timeBasis: args.filter?.timeBasis ?? undefined,
+              page: pagination.page,
+              pageSize: pagination.pageSize,
+            });
+          } catch (error) {
+            if (error instanceof RangeError) {
+              throw new GraphQLError(error.message, {
+                extensions: { code: "BAD_USER_INPUT" },
+              });
+            }
+            throw error;
+          }
+        },
+        async youngEvent(_parent, args: { youngId: string }) {
+          return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
+        },
+        youngOrganizers(
+          _parent,
+          args: { page?: GraphqlPageInput | null; search?: string | null },
+        ) {
+          const pagination = normalizeGraphqlPage(args.page);
+          return listYoungOrganizers({
+            search: validateGraphqlSearch(args.search),
             page: pagination.page,
             pageSize: pagination.pageSize,
           });
         },
-        async youngEvent(_parent, args: { youngId: string }) {
-          return getYoungEvent(requireGraphqlYoungEventId(args.youngId));
+        async youngOrganizer(_parent, args: { organizerId: string }) {
+          return getYoungOrganizer(
+            requireGraphqlYoungOrganizerId(args.organizerId),
+          );
         },
       },
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Catalog,

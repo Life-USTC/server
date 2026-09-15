@@ -25,6 +25,14 @@ export const youngEventYoungIdPathParamsSchema = z.object({
     .describe("Upstream young.ustc.edu.cn event identifier."),
 });
 
+export const youngOrganizerIdPathParamsSchema = z.object({
+  organizerId: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Stable local Young organizer identifier."),
+});
+
 export const userCalendarPathParamsSchema = z.object({
   userId: z
     .string()

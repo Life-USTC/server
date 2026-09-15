@@ -78,6 +78,7 @@ export async function buildUserCalendarExport(
         : homework,
     ),
     todos,
+    youngEvents: user.youngEventSubscriptions.map(({ event }) => event),
   });
 
   return {

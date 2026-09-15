@@ -19,7 +19,10 @@
     {
       "id": "workspace_subscription_kind_update",
       "rest": ["PATCH /api/workspace/subscriptions/{jwId}"],
-      "graphql": { "status": "stable", "field": "subscriptionKindUpdate" },
+      "graphql": {
+        "status": "stable",
+        "field": "subscriptionKindUpdate"
+      },
       "mcp": {
         "status": "native",
         "tools": ["workspace_subscription_kind_update"]
@@ -29,28 +32,49 @@
     {
       "id": "workspace_todo_create",
       "rest": ["POST /api/workspace/todos"],
-      "graphql": { "status": "stable", "field": "todoCreate" },
-      "mcp": { "status": "native", "tools": ["workspace_todo_create"] },
+      "graphql": {
+        "status": "stable",
+        "field": "todoCreate"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_todo_create"]
+      },
       "semantics": "single"
     },
     {
       "id": "workspace_todo_update",
       "rest": ["PATCH /api/workspace/todos/[id]"],
-      "graphql": { "status": "stable", "field": "todoUpdate" },
-      "mcp": { "status": "native", "tools": ["workspace_todo_update"] },
+      "graphql": {
+        "status": "stable",
+        "field": "todoUpdate"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_todo_update"]
+      },
       "semantics": "single"
     },
     {
       "id": "workspace_todo_delete",
       "rest": ["DELETE /api/workspace/todos/[id]"],
-      "graphql": { "status": "stable", "field": "todoDelete" },
-      "mcp": { "status": "native", "tools": ["workspace_todo_delete"] },
+      "graphql": {
+        "status": "stable",
+        "field": "todoDelete"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_todo_delete"]
+      },
       "semantics": "single"
     },
     {
       "id": "workspace_todo_completions_set",
       "rest": ["PATCH /api/workspace/todos/batch"],
-      "graphql": { "status": "stable", "field": "todoCompletionsSet" },
+      "graphql": {
+        "status": "stable",
+        "field": "todoCompletionsSet"
+      },
       "mcp": {
         "status": "single_item_only",
         "tools": ["workspace_todo_update"]
@@ -60,7 +84,10 @@
     {
       "id": "workspace_todos_delete",
       "rest": ["DELETE /api/workspace/todos/batch"],
-      "graphql": { "status": "stable", "field": "todosDelete" },
+      "graphql": {
+        "status": "stable",
+        "field": "todosDelete"
+      },
       "mcp": {
         "status": "single_item_only",
         "tools": ["workspace_todo_delete"]
@@ -70,7 +97,10 @@
     {
       "id": "community_section_homework_create",
       "rest": ["POST /api/community/section-homeworks"],
-      "graphql": { "status": "stable", "field": "homeworkCreate" },
+      "graphql": {
+        "status": "stable",
+        "field": "homeworkCreate"
+      },
       "mcp": {
         "status": "native",
         "tools": ["community_section_homework_create"]
@@ -80,7 +110,10 @@
     {
       "id": "community_section_homework_update",
       "rest": ["PATCH /api/community/section-homeworks/[id]"],
-      "graphql": { "status": "stable", "field": "homeworkUpdate" },
+      "graphql": {
+        "status": "stable",
+        "field": "homeworkUpdate"
+      },
       "mcp": {
         "status": "native",
         "tools": ["community_section_homework_update"]
@@ -90,7 +123,10 @@
     {
       "id": "community_section_homework_delete",
       "rest": ["DELETE /api/community/section-homeworks/[id]"],
-      "graphql": { "status": "stable", "field": "homeworkDelete" },
+      "graphql": {
+        "status": "stable",
+        "field": "homeworkDelete"
+      },
       "mcp": {
         "status": "native",
         "tools": ["community_section_homework_delete"]
@@ -100,7 +136,10 @@
     {
       "id": "workspace_homework_completion_set",
       "rest": ["PUT /api/workspace/homeworks/[id]/completion"],
-      "graphql": { "status": "stable", "field": "homeworkCompletionSet" },
+      "graphql": {
+        "status": "stable",
+        "field": "homeworkCompletionSet"
+      },
       "mcp": {
         "status": "native",
         "tools": ["workspace_homework_completion_set"]
@@ -110,7 +149,10 @@
     {
       "id": "workspace_homework_completions_set",
       "rest": ["PUT /api/workspace/homeworks/completions"],
-      "graphql": { "status": "stable", "field": "homeworkCompletionsSet" },
+      "graphql": {
+        "status": "stable",
+        "field": "homeworkCompletionsSet"
+      },
       "mcp": {
         "status": "single_item_only",
         "tools": ["workspace_homework_completion_set"]
@@ -120,14 +162,23 @@
     {
       "id": "workspace_subscription_add",
       "rest": [],
-      "graphql": { "status": "stable", "field": "subscriptionAdd" },
-      "mcp": { "status": "native", "tools": ["workspace_subscription_add"] },
+      "graphql": {
+        "status": "stable",
+        "field": "subscriptionAdd"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_subscription_add"]
+      },
       "semantics": "single"
     },
     {
       "id": "workspace_subscription_remove",
       "rest": [],
-      "graphql": { "status": "stable", "field": "subscriptionRemove" },
+      "graphql": {
+        "status": "stable",
+        "field": "subscriptionRemove"
+      },
       "mcp": {
         "status": "native",
         "tools": ["workspace_subscription_remove"]
@@ -140,7 +191,10 @@
         "POST /api/workspace/subscriptions/batch",
         "POST /api/workspace/subscriptions/import-codes"
       ],
-      "graphql": { "status": "stable", "field": "subscriptionsImport" },
+      "graphql": {
+        "status": "stable",
+        "field": "subscriptionsImport"
+      },
       "mcp": {
         "status": "partial",
         "tools": ["workspace_subscription_import"]
@@ -150,14 +204,23 @@
     {
       "id": "workspace_link_pin_set",
       "rest": ["POST /api/workspace/link-pins"],
-      "graphql": { "status": "stable", "field": "linkPinSet" },
-      "mcp": { "status": "native", "tools": ["workspace_link_pin_set"] },
+      "graphql": {
+        "status": "stable",
+        "field": "linkPinSet"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_link_pin_set"]
+      },
       "semantics": "single"
     },
     {
       "id": "workspace_bus_preferences_set",
       "rest": ["POST /api/workspace/bus-preferences"],
-      "graphql": { "status": "stable", "field": "busPreferencesSet" },
+      "graphql": {
+        "status": "stable",
+        "field": "busPreferencesSet"
+      },
       "mcp": {
         "status": "native",
         "tools": ["workspace_bus_preferences_set"]
@@ -167,35 +230,62 @@
     {
       "id": "community_description_set",
       "rest": ["POST /api/community/descriptions"],
-      "graphql": { "status": "stable", "field": "descriptionSet" },
-      "mcp": { "status": "native", "tools": ["community_description_set"] },
+      "graphql": {
+        "status": "stable",
+        "field": "descriptionSet"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_description_set"]
+      },
       "semantics": "single_audited"
     },
     {
       "id": "community_comment_create",
       "rest": ["POST /api/community/comments"],
-      "graphql": { "status": "stable", "field": "commentCreate" },
-      "mcp": { "status": "native", "tools": ["community_comment_create"] },
+      "graphql": {
+        "status": "stable",
+        "field": "commentCreate"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_comment_create"]
+      },
       "semantics": "single_audited"
     },
     {
       "id": "community_comment_update",
       "rest": ["PATCH /api/community/comments/[id]"],
-      "graphql": { "status": "stable", "field": "commentUpdate" },
-      "mcp": { "status": "native", "tools": ["community_comment_update"] },
+      "graphql": {
+        "status": "stable",
+        "field": "commentUpdate"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_comment_update"]
+      },
       "semantics": "single_audited"
     },
     {
       "id": "community_comment_delete",
       "rest": ["DELETE /api/community/comments/[id]"],
-      "graphql": { "status": "stable", "field": "commentDelete" },
-      "mcp": { "status": "native", "tools": ["community_comment_delete"] },
+      "graphql": {
+        "status": "stable",
+        "field": "commentDelete"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["community_comment_delete"]
+      },
       "semantics": "single_audited"
     },
     {
       "id": "community_comment_reaction_add",
       "rest": ["POST /api/community/comments/[id]/reactions"],
-      "graphql": { "status": "stable", "field": "commentReactionAdd" },
+      "graphql": {
+        "status": "stable",
+        "field": "commentReactionAdd"
+      },
       "mcp": {
         "status": "native",
         "tools": ["community_comment_reaction_add"]
@@ -205,7 +295,10 @@
     {
       "id": "community_comment_reaction_remove",
       "rest": ["DELETE /api/community/comments/[id]/reactions"],
-      "graphql": { "status": "stable", "field": "commentReactionRemove" },
+      "graphql": {
+        "status": "stable",
+        "field": "commentReactionRemove"
+      },
       "mcp": {
         "status": "native",
         "tools": ["community_comment_reaction_remove"]
@@ -215,7 +308,10 @@
     {
       "id": "workspace_link_pins_set",
       "rest": ["POST /api/workspace/link-pins/batch"],
-      "graphql": { "status": "stable", "field": "linkPinsSet" },
+      "graphql": {
+        "status": "stable",
+        "field": "linkPinsSet"
+      },
       "mcp": {
         "status": "registered_operation",
         "tools": ["workspace_link_pin_set", "graphql_operation_run"]
@@ -229,7 +325,10 @@
     {
       "id": "community_comments_delete",
       "rest": ["DELETE /api/community/comments/batch"],
-      "graphql": { "status": "stable", "field": "commentsDelete" },
+      "graphql": {
+        "status": "stable",
+        "field": "commentsDelete"
+      },
       "mcp": {
         "status": "registered_operation",
         "tools": ["community_comment_delete", "graphql_operation_run"]
@@ -239,7 +338,10 @@
     {
       "id": "workspace_upload_session_create",
       "rest": ["POST /api/workspace/uploads"],
-      "graphql": { "status": "stable", "field": "uploadSessionCreate" },
+      "graphql": {
+        "status": "stable",
+        "field": "uploadSessionCreate"
+      },
       "mcp": {
         "status": "registered_operation",
         "tools": ["graphql_operation_run"]
@@ -253,7 +355,10 @@
     {
       "id": "workspace_upload_session_complete",
       "rest": ["POST /api/workspace/uploads/complete"],
-      "graphql": { "status": "stable", "field": "uploadSessionComplete" },
+      "graphql": {
+        "status": "stable",
+        "field": "uploadSessionComplete"
+      },
       "mcp": {
         "status": "registered_operation",
         "tools": ["graphql_operation_run"]
@@ -266,7 +371,10 @@
     {
       "id": "workspace_upload_rename",
       "rest": ["PATCH /api/workspace/uploads/[id]"],
-      "graphql": { "status": "stable", "field": "uploadRename" },
+      "graphql": {
+        "status": "stable",
+        "field": "uploadRename"
+      },
       "mcp": {
         "status": "native_and_registered",
         "tools": ["workspace_upload_rename", "graphql_operation_run"]
@@ -276,7 +384,10 @@
     {
       "id": "workspace_upload_delete",
       "rest": ["DELETE /api/workspace/uploads/[id]"],
-      "graphql": { "status": "stable", "field": "uploadDelete" },
+      "graphql": {
+        "status": "stable",
+        "field": "uploadDelete"
+      },
       "mcp": {
         "status": "native_and_registered",
         "tools": ["workspace_upload_delete", "graphql_operation_run"]
@@ -293,12 +404,59 @@
         "PATCH /api/workspace/subscriptions",
         "DELETE /api/workspace/subscriptions"
       ],
-      "graphql": { "status": "intentional_gap", "field": null },
-      "mcp": { "status": "unavailable", "tools": [] },
+      "graphql": {
+        "status": "intentional_gap",
+        "field": null
+      },
+      "mcp": {
+        "status": "unavailable",
+        "tools": []
+      },
       "semantics": "transport_only",
       "notes": [
         "GraphQL and MCP use public section JW IDs or section/course codes; internal database section IDs remain unavailable."
       ]
+    },
+    {
+      "id": "workspace_young_event_subscription_set",
+      "rest": ["PUT /api/workspace/young-event-subscriptions/[youngId]"],
+      "graphql": {
+        "status": "stable",
+        "field": "youngEventSubscriptionSet"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_young_event_subscription_set"]
+      },
+      "semantics": "single"
+    },
+    {
+      "id": "workspace_young_organizer_subscription_set",
+      "rest": [
+        "PUT /api/workspace/young-organizer-subscriptions/[organizerId]"
+      ],
+      "graphql": {
+        "status": "stable",
+        "field": "youngOrganizerSubscriptionSet"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_young_organizer_subscription_set"]
+      },
+      "semantics": "single"
+    },
+    {
+      "id": "workspace_young_notification_read",
+      "rest": ["POST /api/workspace/young-notifications/[id]/read"],
+      "graphql": {
+        "status": "stable",
+        "field": "youngNotificationRead"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["workspace_young_notification_read"]
+      },
+      "semantics": "single"
     }
   ]
 }

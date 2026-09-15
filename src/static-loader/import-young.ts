@@ -1,18 +1,80 @@
 /** Static-import young-event sync and post-import database counts. */
+
+import {
+  displayYoungOrganizerName,
+  normalizeYoungOrganizerName,
+} from "../features/young/server/young-organizer-normalization";
 import type { Prisma } from "../generated/prisma-node/client";
 import { bulkUpsert, type ColumnValue } from "./database-writes";
 import type { ImportRecordCounts } from "./import-types";
 import type { YoungEventBuild } from "./young-plan";
 
+/** Skip reused or older Young data even when another dataset advances the snapshot. */
+export async function syncYoungSnapshot(
+  tx: Prisma.TransactionClient,
+  builds: YoungEventBuild[],
+  syncedAt: Date | undefined,
+): Promise<Date | undefined> {
+  if (!syncedAt) return undefined;
+  const current = await tx.staticImportState.findUnique({
+    where: { id: "global" },
+    select: { youngSyncedAt: true },
+  });
+  if (current?.youngSyncedAt && syncedAt <= current.youngSyncedAt)
+    return undefined;
+  await syncYoungEvents(tx, builds, { observedAt: syncedAt, complete: true });
+  return syncedAt;
+}
+
+export type YoungEventSyncOptions = {
+  /** Timestamp attached to rows observed by this static snapshot. */
+  observedAt?: Date;
+  /** Whether the snapshot is complete enough to reconcile absent rows. */
+  complete?: boolean;
+};
+
+async function upsertYoungOrganizers(
+  tx: Prisma.TransactionClient,
+  builds: YoungEventBuild[],
+): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  for (const build of builds) {
+    const normalizedName = normalizeYoungOrganizerName(build.organizer);
+    if (normalizedName == null) continue;
+    names.set(
+      normalizedName,
+      displayYoungOrganizerName(build.organizer as string),
+    );
+  }
+
+  if (names.size === 0) return new Map();
+  await tx.youngOrganizer.createMany({
+    data: [...names].map(([normalizedName, name]) => ({
+      name,
+      normalizedName,
+    })),
+    skipDuplicates: true,
+  });
+  const rows = await tx.youngOrganizer.findMany({
+    where: { normalizedName: { in: [...names.keys()] } },
+    select: { id: true, normalizedName: true },
+  });
+  return new Map(rows.map((row) => [row.normalizedName, row.id]));
+}
+
 export async function syncYoungEvents(
   tx: Prisma.TransactionClient,
   builds: YoungEventBuild[],
+  options: YoungEventSyncOptions = {},
 ): Promise<void> {
+  const observedAt = options.observedAt ?? new Date();
+  const organizerIds = await upsertYoungOrganizers(tx, builds);
   const columns = [
     "name",
     "category",
     "department",
     "organizer",
+    "organizerId",
     "status",
     "registrationStatus",
     "location",
@@ -25,6 +87,8 @@ export async function syncYoungEvents(
     "applyStartAt",
     "applyEndAt",
     "isActive",
+    "sourceMissing",
+    "lastSeenAt",
     "rawJson",
   ];
   await bulkUpsert(
@@ -42,6 +106,7 @@ export async function syncYoungEvents(
       "text",
       "text",
       "text",
+      "text",
       "float8",
       "int",
       "int",
@@ -50,6 +115,8 @@ export async function syncYoungEvents(
       "timestamp",
       "timestamp",
       "boolean",
+      "boolean",
+      "timestamp",
       "jsonb",
     ],
     builds.map((build) => ({
@@ -59,6 +126,11 @@ export async function syncYoungEvents(
         build.category,
         build.department,
         build.organizer,
+        normalizeYoungOrganizerName(build.organizer) == null
+          ? null
+          : (organizerIds.get(
+              normalizeYoungOrganizerName(build.organizer) as string,
+            ) ?? null),
         build.status,
         build.registrationStatus,
         build.location,
@@ -71,19 +143,23 @@ export async function syncYoungEvents(
         build.applyStartAt,
         build.applyEndAt,
         build.isActive,
+        false,
+        observedAt,
         build.rawJson,
       ] satisfies ColumnValue[],
     })),
   );
 
-  // The snapshot is authoritative for both lists; drop events that disappeared.
-  // An empty snapshot means the upstream fetch broke (the ended list alone
-  // carries thousands of historical events), so keep existing rows instead of
-  // wiping the table.
-  if (builds.length === 0) return;
-  const keepYoungIds = builds.map((build) => build.youngId);
-  await tx.youngEvent.deleteMany({
-    where: { youngId: { notIn: keepYoungIds } },
+  // Keep rows that disappeared from the source so links and subscriptions stay
+  // valid. Only a complete active + ended snapshot may mark them missing; a
+  // partial snapshot must not turn a transient fetch gap into a false removal.
+  if (!options.complete) return;
+  await tx.youngEvent.updateMany({
+    where:
+      builds.length === 0
+        ? {}
+        : { youngId: { notIn: builds.map((build) => build.youngId) } },
+    data: { sourceMissing: true },
   });
 }
 

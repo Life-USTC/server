@@ -23,9 +23,12 @@ export function commentTargetCanLoad(target: CommentTargetOption) {
 
 export function commentTargetSearchParams(target: CommentTargetOption) {
   const params = new URLSearchParams({ targetType: target.type });
-  setNullableParam(params, "targetId", target.targetId);
+  if (target.type !== "young-event") {
+    setNullableParam(params, "targetId", target.targetId);
+  }
   setNullableParam(params, "sectionId", target.sectionId);
   setNullableParam(params, "teacherId", target.teacherId);
+  setNullableParam(params, "youngId", target.youngId);
   return params;
 }
 
