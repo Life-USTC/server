@@ -1,3 +1,10 @@
+# [1.114.0](https://github.com/Life-USTC/server/compare/v1.113.0...v1.114.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** export admin aggregates through authenticated /metrics ([#1051](https://github.com/Life-USTC/server/issues/1051)) ([46e9b4f](https://github.com/Life-USTC/server/commit/46e9b4fb9dcfb4db7e0efe013aac39043f7d09f5))
+
 # [1.113.0](https://github.com/Life-USTC/server/compare/v1.112.1...v1.113.0) (2026-09-14)
 
 
