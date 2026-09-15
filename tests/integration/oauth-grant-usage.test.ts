@@ -9,7 +9,7 @@ import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const adminPrisma = createFixturePrisma();
 
-describe.sequential("OAuth authorization usage summary", () => {
+describe("OAuth authorization usage summary", { concurrent: false }, () => {
   const marker = crypto.randomUUID();
   const clientId = `usage-client-${marker}`;
   const grantId = `usage-grant-${marker}`;

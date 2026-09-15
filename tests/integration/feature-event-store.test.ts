@@ -7,7 +7,7 @@ import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 const fixturePrisma = createFixturePrisma();
 const marker = `feature-event-${crypto.randomUUID()}`;
 
-describe.sequential("self-hosted observability event store", () => {
+describe("self-hosted observability event store", { concurrent: false }, () => {
   let adminUserId = "";
   let regularUserId = "";
   const featureEventIds = [

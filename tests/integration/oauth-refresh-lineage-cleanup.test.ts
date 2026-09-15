@@ -25,7 +25,7 @@ import { createFixturePrisma } from "../shared/prisma";
 // Direct database access arranges and verifies fixtures; the OAuth services use authPrisma.
 const prisma = createFixturePrisma();
 
-describe.sequential("OAuth refresh lineage cleanup", () => {
+describe("OAuth refresh lineage cleanup", { concurrent: false }, () => {
   const marker = crypto.randomUUID();
   const clientIds: string[] = [];
   const userIds: string[] = [];

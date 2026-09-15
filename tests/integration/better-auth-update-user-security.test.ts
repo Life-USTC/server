@@ -55,7 +55,9 @@ function updateUserRequest(cookie: string, body: Record<string, unknown>) {
   );
 }
 
-describe.sequential("Better Auth update-user field security", () => {
+describe("Better Auth update-user field security", {
+  concurrent: false,
+}, () => {
   afterAll(async () => {
     if (createdUserIds.length > 0) {
       await adminPrisma.user.deleteMany({

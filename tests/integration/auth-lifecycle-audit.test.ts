@@ -64,7 +64,7 @@ async function createSessionCookie() {
   return `${context.authCookies.sessionToken.name}=${value}`;
 }
 
-describe.sequential("committed Better Auth lifecycle audit", () => {
+describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
   beforeAll(async () => {
     const user = await fixturePrisma.user.create({
       data: {

@@ -36,7 +36,7 @@ function authorizeRequest(clientId: string, includePkce = true) {
   return authHandler(new Request(url));
 }
 
-describe.sequential("Better Auth CIMD registration", () => {
+describe("Better Auth CIMD registration", { concurrent: false }, () => {
   beforeAll(async () => {
     vi.mocked(resolve4).mockResolvedValue(["8.8.8.8"]);
     vi.mocked(resolve6).mockRejectedValue(

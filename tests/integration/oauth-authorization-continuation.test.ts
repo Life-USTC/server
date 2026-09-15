@@ -23,7 +23,9 @@ vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
-describe.sequential("OAuth authorization continuation grant binding", () => {
+describe("OAuth authorization continuation grant binding", {
+  concurrent: false,
+}, () => {
   const marker = crypto.randomUUID();
   const clientId = `oauth-continuation-${marker}`;
   const verificationIdentifiers: string[] = [];
