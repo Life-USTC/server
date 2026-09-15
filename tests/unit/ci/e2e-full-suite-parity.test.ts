@@ -14,8 +14,8 @@ describe("E2E full-suite parity orchestration", () => {
     expect(packageJson.scripts["e2e:test"]).toBe(
       "bash tests/ci/e2e-full-suite-parity.sh",
     );
-    expect(packageJson.scripts["e2e:test:shard4"]).toBe(
-      "bash tests/ci/e2e-run-shard.sh 4/4",
+    expect(packageJson.scripts["e2e:test:shard8"]).toBe(
+      "bash tests/ci/e2e-run-shard.sh 8/8",
     );
   });
 
@@ -25,7 +25,7 @@ describe("E2E full-suite parity orchestration", () => {
       "utf8",
     );
 
-    expect(script).toContain("readonly E2E_SHARD_TOTAL=4");
+    expect(script).toContain("readonly E2E_SHARD_TOTAL=8");
     expect(script).toContain("source tests/ci/setup-runtime-database.sh");
     expect(script).toContain("bash tests/ci/e2e-run-shard.sh");
     expect(script).toContain("E2E_SHARD_TOTAL");

@@ -95,7 +95,7 @@ REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.cou
 CREATE FUNCTION public.count_prometheus_audit() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' SET row_security = on AS $fn$
 BEGIN
   INSERT INTO public."PrometheusCounter" AS target (kind, labels, value)
-  SELECT kind, labels, sum(value) FROM (SELECT 'audit' AS kind, jsonb_build_object('action',action,'channel',channel,'outcome',outcome)::text AS labels, 1::numeric AS value FROM new_rows) AS increments
+  SELECT kind, labels, sum(value) FROM (SELECT 'audit' AS kind, jsonb_build_object('action',action,'channel',channel,'outcome',outcome)::text AS labels, 1::numeric AS value FROM new_rows WHERE "oauthClientId" IS NULL OR channel::text NOT IN ('rest','graphql','mcp')) AS increments
   GROUP BY kind, labels ORDER BY kind, labels
   ON CONFLICT (kind, labels) DO UPDATE SET value = target.value + EXCLUDED.value;
   RETURN NULL;

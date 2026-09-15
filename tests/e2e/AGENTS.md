@@ -7,13 +7,17 @@ Playwright browser tests against the Cloudflare Worker. Full recipes: root
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
 export ALLOW_DATABASE_SEED=true
 source tests/ci/setup-runtime-database.sh
-bun run e2e:test   # resets this disposable database before each of four shards
+bun run e2e:test   # resets this disposable database before each of eight shards
 bunx playwright test path/to/test          # focused (free localhost:3000 first)
 CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
 
 Playwright starts the Worker via `bun run e2e:server` (`wrangler.e2e.jsonc`).
 R2 uses local `R2_UPLOADS`.
+
+CI uses eight browser shards. The local parallel runner executes the same eight
+partitions with `E2E_CONCURRENCY=2` by default; set it from 1 through 8 to fit
+available memory. Every partition retains its own database and Worker state.
 
 CI and shard scripts run `tests/ci/e2e-run-shard.sh`, which allows one bounded
 retry only after `tests/ci/e2e-worker-server.sh` records a startup failure,

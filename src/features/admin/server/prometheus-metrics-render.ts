@@ -161,7 +161,7 @@ export function renderPrometheusMetrics(snapshot: PrometheusMetricsSnapshot) {
   });
   add(
     "audit_events_total",
-    "Recorded audit rows; may overlap feature and OAuth observations, do not add families.",
+    "Audit rows excluding external OAuth mutation rows; may overlap feature observations, do not add families.",
     "counter",
     snapshot.audit.map((row) => ({
       labels: {
