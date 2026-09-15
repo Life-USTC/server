@@ -31,7 +31,7 @@ afterEach(() => {
   executeRawMock.mockReset();
 });
 
-describe.sequential("OAuth grant usage aggregation", () => {
+describe("OAuth grant usage aggregation", { concurrent: false }, () => {
   it("命名 grant key，避免真实 grantId 与无 grant 的 key 冲突", () => {
     expect(oauthGrantUsageKey("unbound")).toBe("grant:unbound");
     expect(oauthGrantUsageKey()).toBe("none");

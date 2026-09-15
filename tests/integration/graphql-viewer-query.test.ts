@@ -131,7 +131,7 @@ const allViewerScopes = [
   restReadScope("workspace.exam"),
 ];
 
-describe.sequential("GraphQL Viewer integration", () => {
+describe("GraphQL Viewer integration", { concurrent: false }, () => {
   let firstSectionId = 0;
   let firstSectionJwId = 0;
   let secondSectionId = 0;

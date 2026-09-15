@@ -10,7 +10,9 @@ const fixturePrisma = createFixturePrisma();
 const referenceNow = new Date("2026-03-02T01:30:00+08:00");
 const startAt = new Date("2025-03-02T16:00:00.000Z");
 
-describe.sequential("public profile contribution aggregation", () => {
+describe("public profile contribution aggregation", {
+  concurrent: false,
+}, () => {
   let userId = "";
   let otherUserId = "";
 

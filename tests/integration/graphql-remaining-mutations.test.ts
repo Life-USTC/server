@@ -271,7 +271,9 @@ afterAll(async () => {
   }
 });
 
-describe.sequential("remaining GraphQL and MCP mutation parity", () => {
+describe("remaining GraphQL and MCP mutation parity", {
+  concurrent: false,
+}, () => {
   it("preserves workspace ordering and comment per-item results over GraphQL", async () => {
     const token = await signToken([
       restWriteScope("workspace.link-pin"),
