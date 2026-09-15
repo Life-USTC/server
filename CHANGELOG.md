@@ -1,3 +1,10 @@
+# [1.116.0](https://github.com/Life-USTC/server/compare/v1.115.1...v1.116.0) (2026-09-15)
+
+
+### Features
+
+* **young:** add organizer calendars, subscriptions, reminders and comments ([#1056](https://github.com/Life-USTC/server/issues/1056)) ([b06091d](https://github.com/Life-USTC/server/commit/b06091debfe887174937b555c003561f2322b3b0))
+
 ## [1.115.1](https://github.com/Life-USTC/server/compare/v1.115.0...v1.115.1) (2026-09-15)
 
 
