@@ -6,6 +6,7 @@
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | OpenAPI consumer sync | OpenAPI changes on main, manual | Notify Bot and CLI with the exact server revision |
+| Bun job | workflow_call | Reusable non-DB Bun job for static checks, unit coverage, and builds |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
 | Release | successful CI on main | Semantic release |
@@ -21,7 +22,10 @@ docs.
 - App-exercising workflows provision their own Postgres + `DATABASE_URL`.
 - Production deploy is Cloudflare Git integration only.
 - Docker is local infra, CI services, and the static loader image only.
-- Keep YAML as orchestration; phase command lists live in `db-backed-bun-job.yml`.
+- Keep YAML as orchestration; pure phase command lists live in `bun-job.yml` and
+  database-backed phase command lists live in `db-backed-bun-job.yml`.
+- Pure static, unit, and build jobs must use `bun-job.yml`; only app-exercising
+  jobs should provision the Postgres service from `db-backed-bun-job.yml`.
   Local check recipes for agents: root `AGENTS.md`.
 - E2E HTML publish stays `continue-on-error` with serial artifact concurrency.
 - `copilot-setup-steps.yml` must keep a job named exactly `copilot-setup-steps`

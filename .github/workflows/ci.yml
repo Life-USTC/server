@@ -11,22 +11,21 @@ jobs:
     name: Check
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_ci
       job-phase: ci:verify
 
   test-unit:
     name: Unit test coverage
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_unit
       job-phase: ci:unit
       upload-artifact-name: vitest-coverage
       upload-artifact-path: coverage
       upload-artifact-no-files-found: warn
+      upload-artifact-always: true
 
   test-integration:
     name: MCP Integration Test (${{ matrix.index }}/4)
@@ -60,7 +59,6 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_rest
-      install-playwright: true
       job-phase: ci:rest
       timeout-minutes: 60
       download-artifact-name: e2e-svelte-kit
@@ -84,9 +82,8 @@ jobs:
     name: Build E2E artifacts
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_e2e_build
       webhook-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts

@@ -12,6 +12,9 @@ readonly run_id="$$"
 readonly container_prefix="life-ustc-e2e-${run_id}"
 temp_dir="$(mktemp -d)"
 pids=()
+detached_group_ids=()
+detached_group_members=()
+main_process_group=""
 
 if ! [[ "$base_port" =~ ^[0-9]+$ ]] || ((base_port < 1024 || base_port > 65531)); then
   echo "E2E_BASE_PORT must be an integer from 1024 through 65531." >&2
@@ -23,12 +26,76 @@ if ! [[ "$inspector_base_port" =~ ^[0-9]+$ ]] ||
   exit 1
 fi
 
-for command in docker bun psql setsid; do
+for command in docker bun psql setsid ps pgrep; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required for parallel E2E tests." >&2
     exit 1
   fi
 done
+
+process_group_for_pid() {
+  ps -o pgid= -p "$1" 2>/dev/null | tr -d '[:space:]' || true
+}
+
+process_is_alive() {
+  local pid="$1"
+  kill -0 "$pid" >/dev/null 2>&1 || return 1
+
+  local process_state
+  process_state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]' || true)"
+  [[ -n "$process_state" && "$process_state" != Z* ]]
+}
+
+remember_detached_group() {
+  local pid="$1"
+  local group="$2"
+
+  [[ "$group" =~ ^[1-9][0-9]*$ ]] || return 0
+  ((group > 1)) || return 0
+  [[ "$group" != "$main_process_group" ]] || return 0
+
+  local index
+  for index in "${!detached_group_ids[@]}"; do
+    if [[ "${detached_group_ids[$index]}" == "$group" ]]; then
+      detached_group_members[$index]="${detached_group_members[$index]} $pid"
+      return 0
+    fi
+  done
+
+  detached_group_ids+=("$group")
+  detached_group_members+=("$pid")
+}
+
+snapshot_descendant_groups() {
+  local parent_pid="$1"
+  local root_group="$2"
+  local child_pid
+  local child_group
+
+  while IFS= read -r child_pid; do
+    [[ "$child_pid" =~ ^[1-9][0-9]*$ ]] || continue
+    child_group="$(process_group_for_pid "$child_pid")"
+    if [[ "$child_group" =~ ^[1-9][0-9]*$ ]] &&
+      [[ "$child_group" != "$root_group" ]]; then
+      remember_detached_group "$child_pid" "$child_group"
+    fi
+    snapshot_descendant_groups "$child_pid" "$root_group"
+  done < <(pgrep -P "$parent_pid" 2>/dev/null || true)
+}
+
+detached_group_is_alive() {
+  local index="$1"
+  local group="${detached_group_ids[$index]}"
+  local member_pid
+
+  for member_pid in ${detached_group_members[$index]}; do
+    if process_is_alive "$member_pid" &&
+      [[ "$(process_group_for_pid "$member_pid")" == "$group" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 assert_port_available() {
   local port="$1"
@@ -52,17 +119,48 @@ for shard in $(seq 1 "$shard_total"); do
 done
 
 cleanup() {
+  trap '' INT TERM
   local has_live_process=false
+  local root_group
+  local index
+
+  # Playwright can detach its webServer process group from the shard. Capture
+  # those groups while the shard roots still own them, before sending TERM.
+  detached_group_ids=()
+  detached_group_members=()
+  main_process_group="$(process_group_for_pid "$$")"
+  for pid in "${pids[@]}"; do
+    if process_is_alive "$pid"; then
+      root_group="$(process_group_for_pid "$pid")"
+      if [[ "$root_group" =~ ^[1-9][0-9]*$ ]]; then
+        snapshot_descendant_groups "$pid" "$root_group"
+      fi
+    fi
+  done
+
   for pid in "${pids[@]}"; do
     if kill -0 -- "-${pid}" >/dev/null 2>&1; then
       kill -TERM -- "-${pid}" >/dev/null 2>&1 || true
       has_live_process=true
     fi
   done
+
+  for index in "${!detached_group_ids[@]}"; do
+    if detached_group_is_alive "$index"; then
+      kill -TERM -- "-${detached_group_ids[$index]}" >/dev/null 2>&1 || true
+      has_live_process=true
+    fi
+  done
+
   if [[ "$has_live_process" == "true" ]]; then
     sleep 1
     for pid in "${pids[@]}"; do
       kill -KILL -- "-${pid}" >/dev/null 2>&1 || true
+    done
+    for index in "${!detached_group_ids[@]}"; do
+      if detached_group_is_alive "$index"; then
+        kill -KILL -- "-${detached_group_ids[$index]}" >/dev/null 2>&1 || true
+      fi
     done
   fi
   for shard in $(seq 1 "$shard_total"); do

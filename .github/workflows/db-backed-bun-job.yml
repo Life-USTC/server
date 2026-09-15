@@ -107,9 +107,6 @@ jobs:
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
             echo "ALLOW_DATABASE_SEED=true"
-            if [ "$JOB_PHASE" = "ci:verify" ] || [ "$JOB_PHASE" = "ci:unit" ]; then
-              echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
-            fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
               echo "WEBHOOK_LOGIN_ENABLED=true"
@@ -157,26 +154,6 @@ jobs:
           }
 
           case "$JOB_PHASE" in
-            ci:verify)
-              bash tests/ci/retry.test.sh
-              bash tests/ci/seed-guard.test.sh
-              bash tests/ci/runtime-database-parity.test.sh
-              bash tests/ci/e2e-full-suite-parity.test.sh
-              bash tests/ci/integration-parallel-local.test.sh
-              bash tests/ci/e2e-worker-server.test.sh
-              bash tests/ci/worker-request-id-platform.test.sh
-              bun run app:prepare
-              bunx wrangler types --include-runtime=false --check
-              bunx biome check
-              bunx svelte-check --tsconfig ./tsconfig.json
-              bunx tsc --noEmit -p tsconfig.typecheck.json
-              bunx tsc --noEmit -p tsconfig.typecheck.tests.json
-              bunx tsc --noEmit -p tsconfig.typecheck.operational.json
-              ;;
-            ci:unit)
-              bun run app:prepare
-              bunx vitest run --coverage
-              ;;
             ci:integration)
               if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
                 echo "::error::ci:integration requires vitest-shard in current/total format."
@@ -259,11 +236,6 @@ jobs:
                 --config vitest.integration.config.ts \
                 tests/integration/*-rls.test.ts
               ;;
-            ci:e2e:build-artifacts)
-              bun run app:prepare
-              bun run build
-              bash tests/ci/public-route-client-budget.test.sh
-              ;;
             ci:e2e:test)
               run_e2e_test_phase
               ;;
@@ -275,18 +247,6 @@ jobs:
               exit 1
               ;;
           esac
-
-      - name: Verify OpenAPI parity
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        run: bun run openapi:check
-
-      - name: Verify canonical GraphQL schema snapshot
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        env:
-          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
-        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
       - name: Upload artifact
         id: upload-artifact

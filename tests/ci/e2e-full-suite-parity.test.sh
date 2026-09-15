@@ -90,6 +90,7 @@ if grep -q 'PLAYWRIGHT_BASE_URL = "http://localhost:3000"' \
 fi
 
 job_phase_script="${repo_root}/.github/workflows/db-backed-bun-job.yml"
+static_job_phase_script="${repo_root}/.github/workflows/bun-job.yml"
 visual_script="${repo_root}/tests/ci/visual-regression.test.sh"
 grep -q 'source tests/ci/setup-runtime-database.sh' "$job_phase_script" ||
   fail "DB-backed jobs must prepare restricted runtime roles"
@@ -128,7 +129,8 @@ grep -q 'source tests/ci/setup-runtime-database.sh reset' "$shard_runner_script"
   fail "CI retries must restore data and restricted roles before replay"
 grep -q 'wrangler.log' "$worker_server_script" ||
   fail "Worker wrapper must capture Wrangler logs"
-grep -q 'bash tests/ci/e2e-worker-server.test.sh' "$job_phase_script" ||
+grep -Eq '^[[:space:]]*bash tests/ci/e2e-worker-server\.test\.sh[[:space:]]*$' \
+  "$static_job_phase_script" ||
   fail "CI verify phase must run the Worker termination regression"
 
 echo "e2e full-suite parity guard passed"
