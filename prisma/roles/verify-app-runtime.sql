@@ -32,6 +32,9 @@ WITH protected(table_name) AS (
     ('Upload'),
     ('UploadPending'),
     ('UserSectionSubscription'),
+    ('UserYoungEventSubscription'),
+    ('UserYoungOrganizerSubscription'),
+    ('YoungNotification'),
     ('UserUstcIdentity')
 ),
 audited_schemas AS (
@@ -535,6 +538,9 @@ checks(name, passed) AS (
     AND NOT EXISTS (SELECT 1 FROM public."UploadPending" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UserSectionSubscription" LIMIT 1)
     AND NOT EXISTS (SELECT 1 FROM public."UserUstcIdentity" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."UserYoungEventSubscription" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."UserYoungOrganizerSubscription" LIMIT 1)
+    AND NOT EXISTS (SELECT 1 FROM public."YoungNotification" LIMIT 1)
 )
 SELECT
   jsonb_object_agg(name, COALESCE(passed, false) ORDER BY name)::text AS report,

@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Set personal events subscription state. This does not register attendance.
  * @body youngEventSubscriptionRequestSchema
+ * @pathParams youngEventYoungIdPathParamsSchema
  * @response youngEventSubscriptionStateSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
@@ -20,6 +21,7 @@ export const PUT: RequestHandler = ({ request, params }) =>
   )(request);
 /**
  * Read personal activity subscription state.
+ * @pathParams youngEventYoungIdPathParamsSchema
  * @response youngEventSubscriptionStateSchema
  * @response 401:openApiErrorSchema
  */

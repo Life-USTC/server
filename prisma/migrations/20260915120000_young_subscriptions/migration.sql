@@ -31,19 +31,19 @@ CREATE UNIQUE INDEX "YoungNotification_userId_dedupeKey_key" ON "YoungNotificati
 CREATE INDEX "YoungNotification_userId_createdAt_id_idx" ON "YoungNotification"("userId", "createdAt", "id");
 ALTER TABLE "UserYoungEventSubscription" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "UserYoungEventSubscription" FORCE ROW LEVEL SECURITY;
-CREATE POLICY "UserYoungEventSubscription_owner" ON "UserYoungEventSubscription" FOR ALL
-  USING ("userId" = current_setting('app.user_id', true))
-  WITH CHECK ("userId" = current_setting('app.user_id', true));
+CREATE POLICY "UserYoungEventSubscription_owner_isolation" ON "UserYoungEventSubscription" FOR ALL
+  USING ("userId" = NULLIF(current_setting('app.user_id', true), ''))
+  WITH CHECK ("userId" = NULLIF(current_setting('app.user_id', true), ''));
 ALTER TABLE "UserYoungOrganizerSubscription" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "UserYoungOrganizerSubscription" FORCE ROW LEVEL SECURITY;
-CREATE POLICY "UserYoungOrganizerSubscription_owner" ON "UserYoungOrganizerSubscription" FOR ALL
-  USING ("userId" = current_setting('app.user_id', true))
-  WITH CHECK ("userId" = current_setting('app.user_id', true));
+CREATE POLICY "UserYoungOrganizerSubscription_owner_isolation" ON "UserYoungOrganizerSubscription" FOR ALL
+  USING ("userId" = NULLIF(current_setting('app.user_id', true), ''))
+  WITH CHECK ("userId" = NULLIF(current_setting('app.user_id', true), ''));
 ALTER TABLE "YoungNotification" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "YoungNotification" FORCE ROW LEVEL SECURITY;
-CREATE POLICY "YoungNotification_owner" ON "YoungNotification" FOR ALL
-  USING ("userId" = current_setting('app.user_id', true))
-  WITH CHECK ("userId" = current_setting('app.user_id', true));
+CREATE POLICY "YoungNotification_owner_isolation" ON "YoungNotification" FOR ALL
+  USING ("userId" = NULLIF(current_setting('app.user_id', true), ''))
+  WITH CHECK ("userId" = NULLIF(current_setting('app.user_id', true), ''));
 CREATE FUNCTION public.list_young_notification_recipients(after_id text, batch_size integer)
 RETURNS TABLE (id text) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
   SELECT recipients."userId" FROM (

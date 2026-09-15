@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Set personal organizers subscription state. This does not register attendance.
  * @body youngOrganizerSubscriptionRequestSchema
+ * @pathParams youngOrganizerIdPathParamsSchema
  * @response youngOrganizerSubscriptionStateSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
@@ -20,6 +21,7 @@ export const PUT: RequestHandler = ({ request, params }) =>
   )(request);
 /**
  * Read personal organizer follow state.
+ * @pathParams youngOrganizerIdPathParamsSchema
  * @response youngOrganizerSubscriptionStateSchema
  * @response 401:openApiErrorSchema
  */

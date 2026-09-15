@@ -142,7 +142,7 @@ export async function syncYoungEvents(
       builds.length === 0
         ? {}
         : { youngId: { notIn: builds.map((build) => build.youngId) } },
-    data: { sourceMissing: true, lastSeenAt: observedAt },
+    data: { sourceMissing: true },
   });
 }
 

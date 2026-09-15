@@ -3,6 +3,7 @@ import { postYoungNotificationReadRoute } from "@/lib/api/routes/young-workspace
 import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Mark a personal activity notification read.
+ * @pathParams resourceIdPathParamsSchema
  * @response youngNotificationReadSchema
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema

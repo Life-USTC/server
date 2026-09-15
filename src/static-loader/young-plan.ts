@@ -13,7 +13,7 @@ const ENDED_TABLE = "young_mobile_item_end_list_result_records";
 export function isYoungEventsSnapshotComplete(snapshot: Snapshot): boolean {
   const mode = snapshot.metadata().young_events_mode?.trim().toLowerCase();
   return (
-    (mode === "full" || mode === "complete") &&
+    mode === "full" &&
     snapshot.hasTable(ACTIVE_TABLE) &&
     snapshot.hasTable(ENDED_TABLE)
   );

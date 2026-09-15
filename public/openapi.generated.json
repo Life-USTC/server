@@ -8903,6 +8903,19 @@
             "sessionCookie": []
           }
         ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn event identifier."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn event identifier."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -8938,6 +8951,19 @@
           },
           {
             "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn event identifier."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn event identifier."
           }
         ],
         "requestBody": {
@@ -9047,6 +9073,19 @@
             "sessionCookie": []
           }
         ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizerId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable local Young organizer identifier."
+            },
+            "required": true,
+            "description": "Stable local Young organizer identifier."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -9082,6 +9121,19 @@
           },
           {
             "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizerId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable local Young organizer identifier."
+            },
+            "required": true,
+            "description": "Stable local Young organizer identifier."
           }
         ],
         "requestBody": {
@@ -10218,6 +10270,17 @@
           },
           {
             "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
           }
         ],
         "responses": {
