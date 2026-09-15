@@ -4,13 +4,17 @@ import type { Prisma } from "@/generated/prisma-node/client";
 const write = vi.hoisted(() => vi.fn());
 vi.mock("@/static-loader/database-writes", () => ({ bulkUpsert: write }));
 
-import { syncYoungEvents } from "@/static-loader/import-young";
+import {
+  syncYoungEvents,
+  syncYoungSnapshot,
+} from "@/static-loader/import-young";
 
 const organizer = { createMany: vi.fn(), findMany: vi.fn() };
 const events = { updateMany: vi.fn() };
 const tx = {
   youngOrganizer: organizer,
   youngEvent: events,
+  staticImportState: { findUnique: vi.fn() },
 } as unknown as Prisma.TransactionClient;
 beforeEach(() => vi.resetAllMocks());
 describe("Young static import identity and preservation", () => {
@@ -78,6 +82,33 @@ describe("Young static import identity and preservation", () => {
   });
   it("retains activity rows even when a complete snapshot is empty", async () => {
     await syncYoungEvents(tx, [], { complete: true });
+    expect(events.updateMany).toHaveBeenCalledWith({
+      where: {},
+      data: { sourceMissing: true },
+    });
+  });
+});
+
+describe("Young snapshot freshness", () => {
+  it("does not reconcile or rewrite reused, missing, or older Young snapshots", async () => {
+    const last = new Date("2035-09-15T01:00:00Z");
+    vi.mocked(tx.staticImportState.findUnique).mockResolvedValue({
+      youngSyncedAt: last,
+    } as never);
+    for (const timestamp of [
+      undefined,
+      last,
+      new Date("2035-09-14T01:00:00Z"),
+    ]) {
+      expect(await syncYoungSnapshot(tx, [], timestamp)).toBeUndefined();
+    }
+    expect(write).not.toHaveBeenCalled();
+    expect(events.updateMany).not.toHaveBeenCalled();
+  });
+  it("reconciles a newly successful fetch using its own timestamp", async () => {
+    vi.mocked(tx.staticImportState.findUnique).mockResolvedValue(null);
+    const fetched = new Date("2035-09-15T01:00:00Z");
+    expect(await syncYoungSnapshot(tx, [], fetched)).toEqual(fetched);
     expect(events.updateMany).toHaveBeenCalledWith({
       where: {},
       data: { sourceMissing: true },

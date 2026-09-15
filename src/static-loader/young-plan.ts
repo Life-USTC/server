@@ -4,19 +4,24 @@ import { asFloat, asInt, asString, type SnapshotRow } from "./snapshot-values";
 const ACTIVE_TABLE = "young_mobile_item_enrolment_list_result_records";
 const ENDED_TABLE = "young_mobile_item_end_list_result_records";
 
-/**
- * A Young snapshot is safe to reconcile only when the static builder marked
- * both active and ended lists as complete. Older snapshots may have one list,
- * or may carry a partial fetch; those rows can still be upserted, but absent
- * rows must remain in the database.
- */
+/** Only successful Young fetches carry this timestamp; unrelated builders preserve it. */
+export function youngSnapshotSyncedAt(snapshot: Snapshot): Date | undefined {
+  const metadata = snapshot.metadata();
+  const value = metadata.young_events_synced_at;
+  if (
+    metadata.young_events_mode !== "full" ||
+    !snapshot.hasTable(ACTIVE_TABLE) ||
+    !snapshot.hasTable(ENDED_TABLE) ||
+    !value ||
+    !/(Z|[+-]\d{2}:\d{2})$/.test(value)
+  )
+    return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 export function isYoungEventsSnapshotComplete(snapshot: Snapshot): boolean {
-  const mode = snapshot.metadata().young_events_mode?.trim().toLowerCase();
-  return (
-    mode === "full" &&
-    snapshot.hasTable(ACTIVE_TABLE) &&
-    snapshot.hasTable(ENDED_TABLE)
-  );
+  return youngSnapshotSyncedAt(snapshot) !== undefined;
 }
 
 // Internal bookkeeping columns added by the snapshot store, not upstream data.

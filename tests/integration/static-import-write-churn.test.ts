@@ -1,7 +1,10 @@
 /// <reference path="../../src/static-loader/bun-sqlite.d.ts" />
 
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { syncYoungEvents } from "@/static-loader/import-young";
+import {
+  syncYoungEvents,
+  syncYoungSnapshot,
+} from "@/static-loader/import-young";
 import type { ScheduleBuild } from "@/static-loader/mappers";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
@@ -503,6 +506,50 @@ describe("static import write churn", () => {
 });
 
 describe("Young source reconciliation", () => {
+  it("does not let a newer curriculum snapshot replay stale Young data", async () => {
+    const rollback = new Error("rollback stale Young snapshot");
+    try {
+      await prisma.$transaction(async (tx) => {
+        const seen = new Date("2030-01-01T00:00:00Z");
+        await tx.staticImportState.upsert({
+          where: { id: "global" },
+          create: {
+            id: "global",
+            snapshotGeneratedAt: seen,
+            youngSyncedAt: seen,
+            snapshotSha256: "a".repeat(64),
+            transformRevision: 4,
+          },
+          update: { youngSyncedAt: seen },
+        });
+        const row = await tx.youngEvent.create({
+          data: {
+            youngId: crypto.randomUUID(),
+            name: "newer activity",
+            rawJson: {},
+            isActive: true,
+            lastSeenAt: seen,
+          },
+        });
+        for (const date of [
+          undefined,
+          seen,
+          new Date("2029-12-01T00:00:00Z"),
+        ]) {
+          expect(await syncYoungSnapshot(tx, [], date)).toBeUndefined();
+        }
+        expect(
+          await tx.youngEvent.findUnique({ where: { id: row.id } }),
+        ).toMatchObject({ sourceMissing: false, lastSeenAt: seen });
+        expect(
+          await tx.staticImportState.findUnique({ where: { id: "global" } }),
+        ).toMatchObject({ youngSyncedAt: seen });
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
   it("preserves the last seen timestamp and rows when a complete snapshot omits an activity", async () => {
     const rollback = new Error("rollback young fixture");
     try {

@@ -45,7 +45,7 @@ import type {
   ImportRecordCounts,
   ImportReport,
 } from "./import-types";
-import { countStats, syncYoungEvents } from "./import-young";
+import { countStats, syncYoungSnapshot } from "./import-young";
 import { loadScheduleInfrastructure } from "./infrastructure-plan";
 import type {
   AdminClassSectionPair,
@@ -70,7 +70,7 @@ import {
   validateMappedSectionJwIds,
   validateSnapshotCompleteness,
 } from "./validation";
-import { isYoungEventsSnapshotComplete, loadYoungEvents } from "./young-plan";
+import { loadYoungEvents, youngSnapshotSyncedAt } from "./young-plan";
 
 export { upsertAdminClasses } from "./import-infrastructure";
 export type {
@@ -203,8 +203,7 @@ export async function runImport(
 
   const exams = loadExams(snapshot, allSectionJwIds);
   const youngEvents = loadYoungEvents(snapshot);
-  const youngEventsSnapshotComplete =
-    youngEvents != null && isYoungEventsSnapshotComplete(snapshot);
+  const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
@@ -409,14 +408,12 @@ export async function runImport(
         );
       },
     );
-    if (youngEvents != null) {
-      await logStep("syncYoungEvents", youngEvents.length, () =>
-        syncYoungEvents(tx, youngEvents, {
-          observedAt,
-          complete: youngEventsSnapshotComplete,
-        }),
-      );
-    }
+    const importedYoungSyncedAt =
+      youngEvents == null
+        ? undefined
+        : await logStep("syncYoungEvents", youngEvents.length, () =>
+            syncYoungSnapshot(tx, youngEvents, youngSyncedAt),
+          );
     const databaseRecordCounts = await logStep("countDatabaseRecords", 13, () =>
       countStats(tx),
     );
@@ -434,7 +431,7 @@ export async function runImport(
     await logStep("recordStaticImportState", 1, () =>
       recordStaticImportState(tx, {
         observedAt,
-        youngSyncedAt: youngEventsSnapshotComplete ? observedAt : undefined,
+        youngSyncedAt: importedYoungSyncedAt,
         snapshotSha256: config.snapshotSha256,
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       }),

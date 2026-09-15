@@ -9,6 +9,23 @@ import { bulkUpsert, type ColumnValue } from "./database-writes";
 import type { ImportRecordCounts } from "./import-types";
 import type { YoungEventBuild } from "./young-plan";
 
+/** Skip reused or older Young data even when another dataset advances the snapshot. */
+export async function syncYoungSnapshot(
+  tx: Prisma.TransactionClient,
+  builds: YoungEventBuild[],
+  syncedAt: Date | undefined,
+): Promise<Date | undefined> {
+  if (!syncedAt) return undefined;
+  const current = await tx.staticImportState.findUnique({
+    where: { id: "global" },
+    select: { youngSyncedAt: true },
+  });
+  if (current?.youngSyncedAt && syncedAt <= current.youngSyncedAt)
+    return undefined;
+  await syncYoungEvents(tx, builds, { observedAt: syncedAt, complete: true });
+  return syncedAt;
+}
+
 export type YoungEventSyncOptions = {
   /** Timestamp attached to rows observed by this static snapshot. */
   observedAt?: Date;
