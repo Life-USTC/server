@@ -82,7 +82,7 @@ const E2E = {
   workspaceTab: "src/app/workspace/[tab]/test.ts",
   catalogLinks: "src/app/workspace/links/test.ts",
   workspaceCalendar: "src/app/workspace/calendar/test.ts",
-  workspaceHomeworks: "src/app/workspace/homeworks/test.ts",
+  workspaceHomeworkCreation: "src/app/workspace/homeworks/creation.test.ts",
   workspaceTodos: "src/app/workspace/todos/test.ts",
   workspaceExams: "src/app/workspace/exams/test.ts",
   workspaceSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
@@ -1007,7 +1007,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       },
       {
         id: "homework-crud",
-        e2eSpec: E2E.workspaceHomeworks,
+        e2eSpec: E2E.workspaceHomeworkCreation,
         evidence: "可以创建新作业",
       },
       {
