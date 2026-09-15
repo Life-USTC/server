@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 function loadPrivilegeAllowlist(
@@ -22,6 +22,29 @@ function loadPrivilegeAllowlist(
 }
 
 const adminPrisma = createFixturePrisma();
+
+const scopedFixture = {
+  marker: `rls-database-contract-${crypto.randomUUID()}`,
+  firstUserId: "",
+  secondUserId: "",
+  clientId: "",
+  auditIds: {
+    first: "",
+    second: "",
+  },
+  usageIds: {
+    first: "",
+    second: "",
+  },
+};
+
+scopedFixture.firstUserId = `${scopedFixture.marker}-user-a`;
+scopedFixture.secondUserId = `${scopedFixture.marker}-user-b`;
+scopedFixture.clientId = `${scopedFixture.marker}-client`;
+scopedFixture.auditIds.first = `${scopedFixture.marker}-audit-a`;
+scopedFixture.auditIds.second = `${scopedFixture.marker}-audit-b`;
+scopedFixture.usageIds.first = `${scopedFixture.marker}-usage-a`;
+scopedFixture.usageIds.second = `${scopedFixture.marker}-usage-b`;
 
 const protectedTables = [
   "BusUserPreference",
@@ -49,14 +72,272 @@ const expectedRuntimeFunctionPrivileges = [
   "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE",
 ] as const;
 
+type ScopedRows = {
+  audit: Array<{ id: string; subjectUserId: string | null }>;
+  usage: Array<{ id: string; userId: string }>;
+};
+
+async function readScopedRows(userId?: string): Promise<ScopedRows> {
+  const read = async (
+    client: Pick<Prisma.TransactionClient, "auditLog" | "oAuthGrantUsageDaily">,
+  ): Promise<ScopedRows> => {
+    const [audit, usage] = await Promise.all([
+      client.auditLog.findMany({
+        where: {
+          id: {
+            in: [scopedFixture.auditIds.first, scopedFixture.auditIds.second],
+          },
+        },
+        select: { id: true, subjectUserId: true },
+        orderBy: { id: "asc" },
+      }),
+      client.oAuthGrantUsageDaily.findMany({
+        where: {
+          id: {
+            in: [scopedFixture.usageIds.first, scopedFixture.usageIds.second],
+          },
+        },
+        select: { id: true, userId: true },
+        orderBy: { id: "asc" },
+      }),
+    ]);
+    return { audit, usage };
+  };
+
+  if (userId === undefined) return read(prisma);
+  return withUserDbContext(userId, read);
+}
+
+function expectedScopedRows(userId: string, auditId: string, usageId: string) {
+  return {
+    audit: [{ id: auditId, subjectUserId: userId }],
+    usage: [{ id: usageId, userId }],
+  };
+}
+
+async function assertScopedReadContract() {
+  await expect(readScopedRows(scopedFixture.firstUserId)).resolves.toEqual(
+    expectedScopedRows(
+      scopedFixture.firstUserId,
+      scopedFixture.auditIds.first,
+      scopedFixture.usageIds.first,
+    ),
+  );
+  await expect(readScopedRows(scopedFixture.secondUserId)).resolves.toEqual(
+    expectedScopedRows(
+      scopedFixture.secondUserId,
+      scopedFixture.auditIds.second,
+      scopedFixture.usageIds.second,
+    ),
+  );
+  await expect(readScopedRows()).resolves.toEqual({ audit: [], usage: [] });
+}
+
+async function dropScopedPolicy(
+  table: "AuditLog" | "OAuthGrantUsageDaily",
+  policyName: "AuditLog_scoped_reader" | "OAuthGrantUsageDaily_scoped_reader",
+) {
+  await adminPrisma.$executeRawUnsafe(
+    `DROP POLICY IF EXISTS "${policyName}" ON public."${table}"`,
+  );
+}
+
+async function createScopedPolicy(
+  table: "AuditLog" | "OAuthGrantUsageDaily",
+  mode: "original" | "permissive" | "denyAll",
+) {
+  if (table === "AuditLog") {
+    if (mode === "permissive") {
+      await adminPrisma.$executeRawUnsafe(`
+        CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
+          FOR SELECT TO PUBLIC
+          USING (true)
+      `);
+      return;
+    }
+    if (mode === "denyAll") {
+      await adminPrisma.$executeRawUnsafe(`
+        CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
+          FOR SELECT TO PUBLIC
+          USING (false)
+      `);
+      return;
+    }
+    await adminPrisma.$executeRawUnsafe(`
+      CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
+        FOR SELECT TO PUBLIC
+        USING (
+          "subjectUserId" = NULLIF(current_setting('app.user_id', true), '')
+          OR (
+            "targetType" = 'homework'
+            AND "action" IN ('homework_create', 'homework_update', 'homework_delete')
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM public."User" AS app_user
+            WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
+              AND app_user."isAdmin" = true
+          )
+        )
+    `);
+    return;
+  }
+
+  if (mode === "permissive") {
+    await adminPrisma.$executeRawUnsafe(`
+      CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
+        ON public."OAuthGrantUsageDaily"
+        FOR SELECT TO PUBLIC
+        USING (true)
+    `);
+    return;
+  }
+  if (mode === "denyAll") {
+    await adminPrisma.$executeRawUnsafe(`
+      CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
+        ON public."OAuthGrantUsageDaily"
+        FOR SELECT TO PUBLIC
+        USING (false)
+    `);
+    return;
+  }
+  await adminPrisma.$executeRawUnsafe(`
+    CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
+      ON public."OAuthGrantUsageDaily"
+      FOR SELECT TO PUBLIC
+      USING (
+        "userId" = NULLIF(current_setting('app.user_id', true), '')
+        OR EXISTS (
+          SELECT 1
+          FROM public."User" AS app_user
+          WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
+            AND app_user."isAdmin" = true
+        )
+      )
+  `);
+}
+
+async function probeScopedPolicyMutation(
+  table: "AuditLog" | "OAuthGrantUsageDaily",
+  policyName: "AuditLog_scoped_reader" | "OAuthGrantUsageDaily_scoped_reader",
+  mode: "permissive" | "denyAll",
+) {
+  await dropScopedPolicy(table, policyName);
+  try {
+    await createScopedPolicy(table, mode);
+    await expect(assertScopedReadContract()).rejects.toThrow();
+  } finally {
+    await dropScopedPolicy(table, policyName);
+    await createScopedPolicy(table, "original");
+  }
+}
+
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
+    beforeAll(async () => {
+      await adminPrisma.user.createMany({
+        data: [
+          {
+            id: scopedFixture.firstUserId,
+            email: `${scopedFixture.firstUserId}@example.invalid`,
+            name: `${scopedFixture.marker} user A`,
+          },
+          {
+            id: scopedFixture.secondUserId,
+            email: `${scopedFixture.secondUserId}@example.invalid`,
+            name: `${scopedFixture.marker} user B`,
+          },
+        ],
+      });
+      await adminPrisma.oAuthClient.create({
+        data: {
+          clientId: scopedFixture.clientId,
+          name: `${scopedFixture.marker} client`,
+          redirectUris: ["https://rls-database-contract.example/callback"],
+          skipConsent: false,
+        },
+      });
+      await adminPrisma.auditLog.createMany({
+        data: [
+          {
+            id: scopedFixture.auditIds.first,
+            action: "account_sign_in",
+            channel: "web",
+            subjectUserId: scopedFixture.firstUserId,
+            targetId: scopedFixture.firstUserId,
+            targetType: "account",
+          },
+          {
+            id: scopedFixture.auditIds.second,
+            action: "account_sign_in",
+            channel: "web",
+            subjectUserId: scopedFixture.secondUserId,
+            targetId: scopedFixture.secondUserId,
+            targetType: "account",
+          },
+        ],
+      });
+      await adminPrisma.oAuthGrantUsageDaily.createMany({
+        data: [
+          {
+            id: scopedFixture.usageIds.first,
+            userId: scopedFixture.firstUserId,
+            clientId: scopedFixture.clientId,
+            grantKey: `${scopedFixture.marker}-grant-a`,
+            day: new Date("2026-08-15T00:00:00.000Z"),
+            feature: "account.profile",
+            channel: "web",
+            readCount: 1,
+            lastUsedAt: new Date("2026-08-15T10:00:00.000Z"),
+          },
+          {
+            id: scopedFixture.usageIds.second,
+            userId: scopedFixture.secondUserId,
+            clientId: scopedFixture.clientId,
+            grantKey: `${scopedFixture.marker}-grant-b`,
+            day: new Date("2026-08-15T00:00:00.000Z"),
+            feature: "account.profile",
+            channel: "web",
+            readCount: 1,
+            lastUsedAt: new Date("2026-08-15T10:00:00.000Z"),
+          },
+        ],
+      });
+    });
+
     afterAll(async () => {
-      await Promise.all([
-        prisma.$disconnect(),
-        disconnectTestPrisma(adminPrisma),
-      ]);
+      try {
+        await adminPrisma.oAuthGrantUsageDaily.deleteMany({
+          where: {
+            id: {
+              in: [scopedFixture.usageIds.first, scopedFixture.usageIds.second],
+            },
+          },
+        });
+        await adminPrisma.auditLog.deleteMany({
+          where: {
+            id: {
+              in: [scopedFixture.auditIds.first, scopedFixture.auditIds.second],
+            },
+          },
+        });
+        await adminPrisma.oAuthClient.deleteMany({
+          where: { clientId: scopedFixture.clientId },
+        });
+        await adminPrisma.user.deleteMany({
+          where: {
+            id: {
+              in: [scopedFixture.firstUserId, scopedFixture.secondUserId],
+            },
+          },
+        });
+      } finally {
+        await Promise.all([
+          prisma.$disconnect(),
+          disconnectTestPrisma(adminPrisma),
+        ]);
+      }
     });
 
     it("uses an unprivileged runtime role that owns none of the protected tables", async () => {
@@ -143,12 +424,19 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         { rlsEnabled: true, tableName: "OAuthGrantUsageDaily" },
       ]);
 
-      await expect(
-        prisma.auditLog.findMany({
-          where: { targetType: { not: "homework" } },
-        }),
-      ).resolves.toEqual([]);
-      await expect(prisma.oAuthGrantUsageDaily.findMany()).resolves.toEqual([]);
+      await assertScopedReadContract();
+    });
+
+    it("fails its scoped-read assertions for permissive and deny-all policies", async () => {
+      for (const table of ["AuditLog", "OAuthGrantUsageDaily"] as const) {
+        const policyName =
+          table === "AuditLog"
+            ? "AuditLog_scoped_reader"
+            : "OAuthGrantUsageDaily_scoped_reader";
+        for (const mode of ["permissive", "denyAll"] as const) {
+          await probeScopedPolicyMutation(table, policyName, mode);
+        }
+      }
     });
 
     it("keeps exactly one runtime-applicable owner policy per table", async () => {

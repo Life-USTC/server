@@ -7,7 +7,7 @@ when changing behavior: `$life-ustc-implement`.
 |-------|------|-------------------------|
 | Unit | `tests/unit/` | `bunx vitest run --coverage`; files run in parallel with isolated mocks |
 | Integration | `tests/integration/` | `bun run integration:test:parallel`; four independent PostgreSQL shards, serial files within each |
-| RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job enables role-test flags against the production bootstrap |
+| RLS / role contracts | `tests/integration/*-rls.test.ts` and role contracts | Dedicated CI job and the default local parallel runner enable all role-test gates against the production bootstrap |
 | REST | `tests/integration/rest/` | `bun run rest:test`; own database and real Worker |
 | Browser | `tests/e2e/` | Four isolated CI shards; locally `bun run e2e:test:parallel` or serial `bun run e2e:test` |
 
