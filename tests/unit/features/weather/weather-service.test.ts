@@ -12,7 +12,70 @@ vi.mock("@/features/weather/server/weather-history", () => ({
 describe("weather service", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
+
+  it.each([
+    ["2026-09-15T00:00:00+08:00", "2026-09-15T00:00:00+08:00"],
+    ["2026-09-15T15:35:00+08:00", "2026-09-15T16:00:00+08:00"],
+    ["2026-09-15T23:59:00+08:00", "2026-09-16T00:00:00+08:00"],
+    ["2026-09-16T00:01:00+08:00", "2026-09-16T01:00:00+08:00"],
+  ])(
+    "selects 24 upcoming hours from the same cache at %s",
+    async (now, first) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(now));
+      const { mergeWeatherSnapshots } = await import(
+        "@/features/weather/server/weather-merge"
+      );
+      const { getWeatherLocation } = await import(
+        "@/features/weather/server/weather-types"
+      );
+      const { readWeatherCache } = await import(
+        "@/features/weather/server/weather-cache"
+      );
+      const { getWeatherSnapshot } = await import(
+        "@/features/weather/server/weather-service"
+      );
+      const time = Array.from({ length: 72 }, (_, i) =>
+        new Date(
+          Date.parse("2026-09-15T00:00:00+08:00") + i * 3_600_000,
+        ).toISOString(),
+      );
+      const cached = mergeWeatherSnapshots(
+        getWeatherLocation("ustc-main"),
+        { ok: false, error: new Error("unavailable") },
+        {
+          ok: true,
+          raw: {},
+          data: {
+            hourly: {
+              time,
+              temperature_2m: time.map((_, i) => i),
+              weather_code: time.map(() => 2),
+            },
+          },
+        },
+      );
+      vi.mocked(readWeatherCache).mockResolvedValueOnce(cached);
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const result = await getWeatherSnapshot("ustc-main");
+      expect(result?.hourly).toHaveLength(24);
+      expect(Date.parse(result?.hourly[0].at ?? "")).toBe(Date.parse(first));
+      expect(Date.parse(result?.hourly[23].at ?? "")).toBe(
+        Date.parse(first) + 23 * 3_600_000,
+      );
+      expect(cached.hourly).toHaveLength(72);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      vi.setSystemTime(new Date("2026-09-19T00:00:00+08:00"));
+      vi.mocked(readWeatherCache).mockResolvedValueOnce(cached);
+      expect((await getWeatherSnapshot("ustc-main"))?.hourly).toEqual([]);
+    },
+  );
 
   it("returns null for unknown location", async () => {
     const { getWeatherSnapshot } = await import(
@@ -22,7 +85,14 @@ describe("weather service", () => {
     expect(result).toBeNull();
   });
 
-  it("merges provider results", async () => {
+  it("merges provider results and caches tomorrow before selecting the public window", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-15T23:30:00+08:00"));
+    const time = Array.from({ length: 72 }, (_, i) =>
+      new Date(
+        Date.parse("2026-09-15T00:00:00+08:00") + i * 3_600_000,
+      ).toISOString(),
+    );
     vi.stubEnv("AMAP_API_KEY", "test-amap-key");
     vi.stubGlobal(
       "fetch",
@@ -75,9 +145,9 @@ describe("weather service", () => {
                 weather_code: 0,
               },
               hourly: {
-                time: [],
-                temperature_2m: [],
-                weather_code: [],
+                time,
+                temperature_2m: time.map(() => 25),
+                weather_code: time.map(() => 0),
               },
               daily: {
                 time: [],
@@ -96,6 +166,15 @@ describe("weather service", () => {
     const result = await getWeatherSnapshot("ustc-main");
     expect(result).not.toBeNull();
     expect(result?.current.temperature).toBe(28);
+    expect(result?.hourly).toHaveLength(24);
+    expect(result?.hourly[0].at).toBe(time[24]);
+    expect(result?.hourly[23].at).toBe(time[47]);
+    const { writeWeatherCache } = await import(
+      "@/features/weather/server/weather-cache"
+    );
+    expect(vi.mocked(writeWeatherCache).mock.lastCall?.[1].hourly).toHaveLength(
+      72,
+    );
   });
 
   it("falls back to open-meteo when amap answers OK with empty data", async () => {
