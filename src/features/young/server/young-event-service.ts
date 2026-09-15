@@ -38,7 +38,7 @@ export type YoungEventListInput = PaginationInput & {
   search?: string | null;
 };
 
-const YOUNG_EVENT_SELECT = {
+export const YOUNG_EVENT_SELECT = {
   youngId: true,
   name: true,
   category: true,
@@ -75,7 +75,9 @@ export function youngEventImageUrl(youngId: string) {
   return `/api/catalog/young-events/${youngId}/image`;
 }
 
-function toYoungEventSummary(record: YoungEventRecord): YoungEventSummary {
+export function toYoungEventSummary(
+  record: YoungEventRecord,
+): YoungEventSummary {
   return {
     youngId: record.youngId,
     name: record.name,

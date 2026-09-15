@@ -1,3 +1,4 @@
+import { youngEventSubscriptionListSchema, youngEventSubscriptionStateSchema, youngNotificationListSchema, youngNotificationReadSchema, youngOrganizerSubscriptionListSchema, youngOrganizerSubscriptionStateSchema } from "@/lib/api/schemas/young-workspace-schemas";
 import { z } from "zod";
 import {
   accountClientActivityResponseSchema,
@@ -50,6 +51,13 @@ type NonAcademicModeToolName = keyof typeof nonAcademicModeOutputSchemas;
 // Production startup asserts that every registered application tool has an
 // explicit entry. The fallback exists only for isolated SDK/test registrations.
 const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
+  workspace_young_event_subscription_list: objectOutputSchemaFromApi(youngEventSubscriptionListSchema),
+  workspace_young_event_subscription_get: objectOutputSchemaFromApi(youngEventSubscriptionStateSchema),
+  workspace_young_event_subscription_set: objectOutputSchemaFromApi(youngEventSubscriptionStateSchema),
+  workspace_young_organizer_subscription_list: objectOutputSchemaFromApi(youngOrganizerSubscriptionListSchema),
+  workspace_young_organizer_subscription_set: objectOutputSchemaFromApi(youngOrganizerSubscriptionStateSchema),
+  workspace_young_notification_list: objectOutputSchemaFromApi(youngNotificationListSchema),
+  workspace_young_notification_read: objectOutputSchemaFromApi(youngNotificationReadSchema),
   graphql_operation_run: objectOutputSchema({
     operationId: z.string(),
     operationName: z.string(),

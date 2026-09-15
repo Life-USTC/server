@@ -51,6 +51,10 @@ export const PAGINATED_FIELD_COORDINATES = new Set([
   "Workspace.schedules",
   "Workspace.subscribedSections",
   "Workspace.todos",
+  "Workspace.youngEventSubscriptions",
+  "Workspace.youngOrganizerSubscriptions",
+  "Workspace.youngNotifications",
+  "Workspace.calendarEvents",
 ]);
 
 function fragmentDefinitions(document: DocumentNode) {

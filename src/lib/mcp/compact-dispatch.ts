@@ -219,7 +219,7 @@ export function compactEvents(
   fallbackCompact: (value: unknown) => unknown,
 ) {
   return asRecordArray(value).map((event) => {
-    const base = pick(event, ["type", "at"]);
+    const base = pick(event, ["type", "at", "endsAt"]);
     if (!Object.hasOwn(event, "payload")) return base;
     const compactFn =
       isRecord(event) && typeof event.type === "string"

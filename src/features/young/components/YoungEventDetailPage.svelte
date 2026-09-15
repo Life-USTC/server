@@ -4,6 +4,7 @@ import type { AppPageCopy } from "@/lib/shell/page-copy";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
   copy: AppPageCopy;
@@ -72,6 +73,7 @@ const fields = $derived(
       </dl>
     </Panel>
 
+    <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
     <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
 
     <div class="flex flex-wrap gap-3">

@@ -78,6 +78,8 @@ export const REST_FEATURES = [
   "workspace.overview",
   "workspace.schedule",
   "workspace.subscription",
+  "workspace.young-subscription",
+  "workspace.young-notification",
   "workspace.todo",
   "workspace.upload",
   "admin",
@@ -121,6 +123,8 @@ export const PUBLIC_REST_FEATURES = [
   "workspace.overview",
   "workspace.schedule",
   "workspace.subscription",
+  "workspace.young-subscription",
+  "workspace.young-notification",
   "workspace.todo",
   "workspace.upload",
 ] as const satisfies readonly RestFeature[];

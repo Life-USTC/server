@@ -8,3 +8,5 @@ export * from "./request-schema-primitives";
 export { roomMapCodePathParamsSchema } from "./room-map-schemas";
 
 export { subscriptionKindUpdateRequestSchema } from "./subscription-kind-schemas";
+
+export * from "./young-workspace-schemas";

@@ -523,3 +523,11 @@ REVOKE ALL ON FUNCTION public.count_prometheus_deletions() FROM PUBLIC,life_ustc
 -- the function owner as a pure SECURITY DEFINER identity with no explicit ACL.
 REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public
 FROM life_ustc_function_owner;
+
+GRANT SELECT ("userId") ON "UserYoungEventSubscription", "UserYoungOrganizerSubscription" TO life_ustc_function_owner;
+DROP POLICY IF EXISTS "UserYoungEventSubscription_recipients" ON "UserYoungEventSubscription";
+CREATE POLICY "UserYoungEventSubscription_recipients" ON "UserYoungEventSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
+DROP POLICY IF EXISTS "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription";
+CREATE POLICY "UserYoungOrganizerSubscription_recipients" ON "UserYoungOrganizerSubscription" FOR SELECT TO life_ustc_function_owner USING (true);
+ALTER FUNCTION public.list_young_notification_recipients(text, integer) OWNER TO life_ustc_function_owner;
+GRANT EXECUTE ON FUNCTION public.list_young_notification_recipients(text, integer) TO life_ustc_maintenance_runtime;

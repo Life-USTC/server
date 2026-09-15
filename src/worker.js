@@ -1,3 +1,4 @@
+import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import { WorkerEntrypoint } from "cloudflare:workers";
 import svelteKitWorker from "life-ustc-sveltekit-worker";
 import {
@@ -75,6 +76,7 @@ import { CONTENT_SIGNAL } from "./lib/seo/content-signal";
 const app = svelteKitWorker;
 const UPLOAD_PENDING_CLEANUP_CRON = "7 */2 * * *";
 const AUTH_RECORD_CLEANUP_CRON = "23 */6 * * *";
+const YOUNG_NOTIFICATION_CRON = "*/10 * * * *";
 const WEATHER_MAIN_CRON = "*/20 * * * *";
 const WEATHER_GAOXIN_CRON = "*/30 * * * *";
 
@@ -648,6 +650,13 @@ export default {
                   },
                   elapsedMs(startMs),
                 );
+                return;
+              }
+
+              if (controller.cron === YOUNG_NOTIFICATION_CRON) {
+                task = "young-notifications";
+                const report = await runYoungNotificationCron(maintenancePrisma);
+                logScheduledTaskFinish(task, report, elapsedMs(startMs));
                 return;
               }
 

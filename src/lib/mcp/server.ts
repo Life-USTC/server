@@ -1,3 +1,4 @@
+import { registerYoungWorkspaceTools } from "./tools/workspace/young-workspace-tools";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   GRAPHQL_OPERATION_PROMPT_NAME,
@@ -56,6 +57,7 @@ export function createMcpServer() {
   registerWeatherTools(server);
   registerRoomMapTools(server);
   registerYoungEventTools(server);
+  registerYoungWorkspaceTools(server);
   registerWorkspaceDataTools(server);
   registerCalendarTools(server);
   registerGraphqlOperationTool(server);

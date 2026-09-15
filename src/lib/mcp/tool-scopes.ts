@@ -54,6 +54,14 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
     { feature: "community.section-homework", action: "write" },
   ],
 
+  workspace_young_event_subscription_list: [{ feature: "workspace.young-subscription", action: "read" }],
+  workspace_young_event_subscription_get: [{ feature: "workspace.young-subscription", action: "read" }],
+  workspace_young_event_subscription_set: [{ feature: "workspace.young-subscription", action: "write" }],
+  workspace_young_organizer_subscription_list: [{ feature: "workspace.young-subscription", action: "read" }],
+  workspace_young_organizer_subscription_set: [{ feature: "workspace.young-subscription", action: "write" }],
+  workspace_young_notification_list: [{ feature: "workspace.young-notification", action: "read" }],
+  workspace_young_notification_read: [{ feature: "workspace.young-notification", action: "write" }],
+
   // Section subscriptions
   workspace_calendar_feed_get: [
     { feature: "workspace.subscription", action: "read" },

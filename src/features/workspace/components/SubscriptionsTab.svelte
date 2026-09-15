@@ -1,4 +1,6 @@
 <script lang="ts">
+import { Button } from "$lib/components/ui/button";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import BulkImportConfirmDialog from "@/features/subscriptions/components/BulkImportConfirmDialog.svelte";
 import BulkImportDialog from "@/features/subscriptions/components/BulkImportDialog.svelte";
 import type { BulkImportSectionView } from "@/features/subscriptions/components/bulk-import-types";
@@ -88,6 +90,7 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
   }),
 );
 </script>
+<Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
 
 <section class="grid gap-4">
   {#if signedData.subscriptions.subscriptions.length > 0}

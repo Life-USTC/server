@@ -942,6 +942,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  youngEventSubscriptions UserYoungEventSubscription[]
+  youngOrganizerSubscriptions UserYoungOrganizerSubscription[]
+  youngNotifications YoungNotification[]
   sectionSubscriptions   UserSectionSubscription[]
   uploads                Upload[]
   uploadPendings         UploadPending[]
@@ -1923,10 +1926,24 @@ model WeatherObservation {
   @@index([locationKey, observedAt])
 }
 
+model YoungOrganizer {
+  id String @id @default(cuid())
+  name String
+  normalizedName String @unique
+  events YoungEvent[]
+  subscriptions UserYoungOrganizerSubscription[]
+}
+
 model YoungEvent {
   id Int @id @default(autoincrement())
 
   youngId String @unique
+  organizerId String?
+  organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id])
+  sourceMissing Boolean @default(false)
+  lastSeenAt DateTime?
+  createdAt DateTime @default(now())
+  subscriptions UserYoungEventSubscription[]
 
   name               String
   category           String?
@@ -1962,4 +1979,47 @@ model PrometheusCounter {
 model PrometheusCounterEpoch {
   id        Int      @id @default(1)
   startedAt DateTime @default(now()) @db.Timestamp(3)
+}
+
+model UserYoungEventSubscription {
+  id String @unique @default(cuid())
+  userId String
+  youngId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event YoungEvent @relation(fields: [youngId], references: [youngId], onDelete: Restrict)
+  remindSignup Boolean @default(true)
+  remindDeadline Boolean @default(true)
+  remindStart Boolean @default(true)
+  observedState String
+  observedRevision Int @default(0)
+  createdAt DateTime @default(now())
+  @@id([userId, youngId])
+  @@index([youngId])
+}
+
+model UserYoungOrganizerSubscription {
+  userId String
+  organizerId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizer YoungOrganizer @relation(fields: [organizerId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@id([userId, organizerId])
+  @@index([organizerId])
+}
+
+model YoungNotification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youngId String?
+  organizerId String?
+  kind String
+  title String
+  body String
+  dedupeKey String
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  expiresAt DateTime?
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt, id])
 }

@@ -1,3 +1,5 @@
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import { listSubscribedYoungCalendarEvents } from "@/features/young/server/young-calendar-service";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   mapExamCalendarEvent,
@@ -58,7 +60,9 @@ export async function listUserCalendarEvents(
       windowStart,
     });
 
+  const youngEvents = await listSubscribedYoungCalendarEvents(userId, windowStart, windowEnd, includeWindowEnd);
   const events = [
+    ...youngEvents,
     ...schedules.map(mapScheduleCalendarEvent),
     ...homeworkItems.map(mapHomeworkCalendarEvent),
     ...exams.map(mapExamCalendarEvent),
@@ -82,6 +86,6 @@ export async function listUserCalendarEvents(
         filterEnd: _filterEnd,
         sortKey: _sortKey,
         ...event
-      }) => event,
+      }) => ({ ...event, endsAt: _filterEnd ? toShanghaiIsoString(_filterEnd) : null }),
     );
 }
