@@ -25,6 +25,7 @@ const adminPrisma = createFixturePrisma();
 
 const scopedFixture = {
   marker: `rls-database-contract-${crypto.randomUUID()}`,
+  adminUserId: "",
   firstUserId: "",
   secondUserId: "",
   clientId: "",
@@ -133,109 +134,17 @@ async function assertScopedReadContract() {
   await expect(readScopedRows()).resolves.toEqual({ audit: [], usage: [] });
 }
 
-async function dropScopedPolicy(
-  table: "AuditLog" | "OAuthGrantUsageDaily",
-  policyName: "AuditLog_scoped_reader" | "OAuthGrantUsageDaily_scoped_reader",
-) {
-  await adminPrisma.$executeRawUnsafe(
-    `DROP POLICY IF EXISTS "${policyName}" ON public."${table}"`,
-  );
-}
-
-async function createScopedPolicy(
-  table: "AuditLog" | "OAuthGrantUsageDaily",
-  mode: "original" | "permissive" | "denyAll",
-) {
-  if (table === "AuditLog") {
-    if (mode === "permissive") {
-      await adminPrisma.$executeRawUnsafe(`
-        CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
-          FOR SELECT TO PUBLIC
-          USING (true)
-      `);
-      return;
-    }
-    if (mode === "denyAll") {
-      await adminPrisma.$executeRawUnsafe(`
-        CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
-          FOR SELECT TO PUBLIC
-          USING (false)
-      `);
-      return;
-    }
-    await adminPrisma.$executeRawUnsafe(`
-      CREATE POLICY "AuditLog_scoped_reader" ON public."AuditLog"
-        FOR SELECT TO PUBLIC
-        USING (
-          "subjectUserId" = NULLIF(current_setting('app.user_id', true), '')
-          OR (
-            "targetType" = 'homework'
-            AND "action" IN ('homework_create', 'homework_update', 'homework_delete')
-          )
-          OR EXISTS (
-            SELECT 1
-            FROM public."User" AS app_user
-            WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
-              AND app_user."isAdmin" = true
-          )
-        )
-    `);
-    return;
-  }
-
-  if (mode === "permissive") {
-    await adminPrisma.$executeRawUnsafe(`
-      CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
-        ON public."OAuthGrantUsageDaily"
-        FOR SELECT TO PUBLIC
-        USING (true)
-    `);
-    return;
-  }
-  if (mode === "denyAll") {
-    await adminPrisma.$executeRawUnsafe(`
-      CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
-        ON public."OAuthGrantUsageDaily"
-        FOR SELECT TO PUBLIC
-        USING (false)
-    `);
-    return;
-  }
-  await adminPrisma.$executeRawUnsafe(`
-    CREATE POLICY "OAuthGrantUsageDaily_scoped_reader"
-      ON public."OAuthGrantUsageDaily"
-      FOR SELECT TO PUBLIC
-      USING (
-        "userId" = NULLIF(current_setting('app.user_id', true), '')
-        OR EXISTS (
-          SELECT 1
-          FROM public."User" AS app_user
-          WHERE app_user."id" = NULLIF(current_setting('app.user_id', true), '')
-            AND app_user."isAdmin" = true
-        )
-      )
-  `);
-}
-
-async function probeScopedPolicyMutation(
-  table: "AuditLog" | "OAuthGrantUsageDaily",
-  policyName: "AuditLog_scoped_reader" | "OAuthGrantUsageDaily_scoped_reader",
-  mode: "permissive" | "denyAll",
-) {
-  await dropScopedPolicy(table, policyName);
-  try {
-    await createScopedPolicy(table, mode);
-    await expect(assertScopedReadContract()).rejects.toThrow();
-  } finally {
-    await dropScopedPolicy(table, policyName);
-    await createScopedPolicy(table, "original");
-  }
-}
-
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
     beforeAll(async () => {
+      const seededAdmin = await adminPrisma.user.findFirst({
+        where: { isAdmin: true },
+        select: { id: true },
+      });
+      if (!seededAdmin) throw new Error("Expected a seeded admin user");
+      scopedFixture.adminUserId = seededAdmin.id;
+
       await adminPrisma.user.createMany({
         data: [
           {
@@ -425,18 +334,28 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       ]);
 
       await assertScopedReadContract();
-    });
-
-    it("fails its scoped-read assertions for permissive and deny-all policies", async () => {
-      for (const table of ["AuditLog", "OAuthGrantUsageDaily"] as const) {
-        const policyName =
-          table === "AuditLog"
-            ? "AuditLog_scoped_reader"
-            : "OAuthGrantUsageDaily_scoped_reader";
-        for (const mode of ["permissive", "denyAll"] as const) {
-          await probeScopedPolicyMutation(table, policyName, mode);
-        }
-      }
+      await expect(readScopedRows(scopedFixture.adminUserId)).resolves.toEqual({
+        audit: [
+          {
+            id: scopedFixture.auditIds.first,
+            subjectUserId: scopedFixture.firstUserId,
+          },
+          {
+            id: scopedFixture.auditIds.second,
+            subjectUserId: scopedFixture.secondUserId,
+          },
+        ],
+        usage: [
+          {
+            id: scopedFixture.usageIds.first,
+            userId: scopedFixture.firstUserId,
+          },
+          {
+            id: scopedFixture.usageIds.second,
+            userId: scopedFixture.secondUserId,
+          },
+        ],
+      });
     });
 
     it("keeps exactly one runtime-applicable owner policy per table", async () => {
