@@ -44,6 +44,11 @@ tests/e2e/utils/                Auth, DB, subscriptions, uploads
 tests/integration/rest/         REST contracts — not browser E2E
 ```
 
+Mobile route checks are split by public, authenticated, and admin access.
+Workspace homework checks are split by creation, completion, list state, and
+mobile behavior so file-based shards can distribute them independently. Keep
+shared-user mutations serial within each database and restore their fixtures.
+
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
 ## Conventions

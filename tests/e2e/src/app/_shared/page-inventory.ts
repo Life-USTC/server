@@ -265,7 +265,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     contractPath: "/account/welcome",
     e2eSpec: E2E.welcome,
     mobileCoveredBy: {
-      e2eSpec: "mobile-screenshots/screenshots.spec.ts",
+      e2eSpec: "mobile-screenshots/authenticated.spec.ts",
       testName: "/account/welcome 页面截图",
       reason:
         "The welcome page requires temporarily clearing and restoring the seeded user's profile.",

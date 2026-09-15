@@ -1,49 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../fixtures/dev-seed";
 import { mobileScreenshotPaths } from "../src/app/_shared/page-inventory";
-import { signInAsDebugUser, signInAsDevAdmin } from "../utils/auth";
+import { signInAsDebugUser } from "../utils/auth";
 import {
   getCurrentSessionUser,
   getUserProfileById,
   updateUserProfileById,
 } from "../utils/e2e-db";
 import { gotoAndWaitForReady } from "../utils/page-ready";
-import {
-  captureStepScreenshot,
-  isStepScreenshotCaptureEnabled,
-} from "../utils/screenshot";
-
-function healthyMobileRoute(name: string, path: string) {
-  test(name, async ({ page }) => {
-    const response = await gotoAndWaitForReady(page, path, {
-      browserHealth: {},
-      expectMeaningfulContent: true,
-      expectNoHorizontalOverflow: true,
-      uiQuality: {},
-    });
-
-    expect(
-      response,
-      `Expected ${path} to return a document response`,
-    ).not.toBeNull();
-    expect(
-      response?.ok(),
-      `Expected ${path} to return a successful status`,
-    ).toBe(true);
-    expect(
-      (await page.title()).trim(),
-      `Expected ${path} to have a page title`,
-    ).not.toBe("");
-  });
-}
+import { healthyMobileRoute } from "./route-health";
 
 test.describe("移动端页面健全性", () => {
-  test.describe("公开页面", () => {
-    for (const path of mobileScreenshotPaths("public")) {
-      healthyMobileRoute(path, path);
-    }
-  });
-
   test.describe("登录后页面", () => {
     test.beforeEach(async ({ page }) => {
       await signInAsDebugUser(page, "/");
@@ -98,32 +65,5 @@ test.describe("移动端页面健全性", () => {
         }
       });
     });
-  });
-
-  test("命名步骤截图会写入报告附件", async ({ page }, testInfo) => {
-    test.skip(
-      !isStepScreenshotCaptureEnabled(),
-      "Set CAPTURE_STEP_SCREENSHOTS=1 for visual evidence runs.",
-    );
-
-    await gotoAndWaitForReady(page, "/");
-    const attachmentName = "evidence/named-checkpoint";
-    await captureStepScreenshot(page, testInfo, attachmentName);
-
-    const attachment = testInfo.attachments.find(
-      (candidate) => candidate.name === attachmentName,
-    );
-    expect(attachment?.contentType).toBe("image/jpeg");
-    expect(attachment?.body?.byteLength).toBeGreaterThan(0);
-  });
-
-  test.describe("管理员页面", () => {
-    test.beforeEach(async ({ page }) => {
-      await signInAsDevAdmin(page, "/admin/users");
-    });
-
-    for (const path of mobileScreenshotPaths("admin")) {
-      healthyMobileRoute(path, path);
-    }
   });
 });
