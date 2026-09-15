@@ -44,8 +44,8 @@ describe("OpenAPI build and workflow contracts", () => {
     const compatibilityWorkflow = await readRepositoryFile(
       ".github/workflows/graphql-compatibility.yml",
     );
-    const dbBackedWorkflow = await readRepositoryFile(
-      ".github/workflows/db-backed-bun-job.yml",
+    const bunWorkflow = await readRepositoryFile(
+      ".github/workflows/bun-job.yml",
     );
 
     expect(compatibilityWorkflow).toContain("'graphql-breaking-approved'");
@@ -61,13 +61,13 @@ describe("OpenAPI build and workflow contracts", () => {
     expect(compatibilityWorkflow).toContain(
       '-t "does not break the configured base schema"',
     );
-    expect(dbBackedWorkflow).toMatch(
+    expect(bunWorkflow).toMatch(
       /name: Verify canonical GraphQL schema snapshot[\s\S]*GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"/,
     );
-    expect(dbBackedWorkflow).toContain(
+    expect(bunWorkflow).toContain(
       'echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"',
     );
-    expect(dbBackedWorkflow).not.toContain("PR_TITLE:");
+    expect(bunWorkflow).not.toContain("PR_TITLE:");
   });
 
   it("dispatches the immutable server revision without failing on a missing token", async () => {
