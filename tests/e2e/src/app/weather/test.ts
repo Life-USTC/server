@@ -7,7 +7,10 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { formatShanghaiTime } from "@/lib/time/shanghai-format";
+import {
+  formatShanghaiDate,
+  formatShanghaiTime,
+} from "@/lib/time/shanghai-format";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -66,6 +69,7 @@ for (const width of [1280, 390]) {
     const chart = page.getByTestId("weather-hourly-chart").first();
     const slider = chart.getByRole("slider");
     const tooltip = chart.getByRole("tooltip");
+    await expect(slider).toHaveAttribute("aria-valuemax", "23");
     await expect(tooltip).toHaveCount(0);
     await expect(page.getByTestId("weather-hourly-scroll-region")).toHaveCount(
       0,
@@ -78,6 +82,7 @@ for (const width of [1280, 390]) {
       });
       const hour = snapshot.hourly[position ? snapshot.hourly.length - 1 : 0];
       await expect(tooltip).toContainText(formatShanghaiTime(hour.at));
+      await expect(tooltip).toContainText(formatShanghaiDate(hour.at));
       await expect(tooltip).toContainText(`${hour.temperature}°C`);
       const bounds = await tooltip.boundingBox();
       expect(bounds?.x).toBeGreaterThanOrEqual(box.x - 1);

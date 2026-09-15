@@ -3,6 +3,39 @@ import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
 
 describe("weather merge", () => {
+  it("retains all seven days with aligned hourly fields for cached rolling reads", () => {
+    const time = Array.from({ length: 168 }, (_, i) =>
+      new Date(
+        Date.parse("2026-09-15T00:00:00+08:00") + i * 3_600_000,
+      ).toISOString(),
+    );
+    const snapshot = mergeWeatherSnapshots(
+      getWeatherLocation("ustc-main"),
+      { ok: false, error: new Error("unavailable") },
+      {
+        ok: true,
+        raw: {},
+        data: {
+          hourly: {
+            time,
+            temperature_2m: time.map((_, i) => i),
+            weather_code: time.map(() => 61),
+            precipitation_probability: time.map((_, i) => i % 100),
+            precipitation: time.map((_, i) => i / 10),
+          },
+        },
+      },
+    );
+    expect(snapshot.hourly).toHaveLength(168);
+    expect(snapshot.hourly[47]).toEqual({
+      at: time[47],
+      temperature: 47,
+      condition: { text: "小雨", icon: "wmo-61" },
+      precipitationProbability: 47,
+      precipitationAmount: 4.7,
+    });
+  });
+
   it("prefers Amap current over Open-Meteo", () => {
     const location = getWeatherLocation("ustc-main");
     const amap = {

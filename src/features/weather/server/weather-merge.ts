@@ -47,17 +47,13 @@ export function mergeWeatherSnapshots(
       : { temperature: 0, condition: { text: "未知", icon: "unknown" } };
 
   const hourlySource = openMeteo.ok ? openMeteo.data.hourly : undefined;
-  const hourly: WeatherHourly[] = (hourlySource?.time ?? [])
-    .slice(0, 24)
-    .map((time, i) => ({
-      at: time,
-      temperature: hourlySource?.temperature_2m[i] ?? 0,
-      condition: normalizeOpenMeteoCondition(
-        hourlySource?.weather_code[i] ?? -1,
-      ),
-      precipitationProbability: hourlySource?.precipitation_probability?.[i],
-      precipitationAmount: hourlySource?.precipitation?.[i],
-    }));
+  const hourly: WeatherHourly[] = (hourlySource?.time ?? []).map((time, i) => ({
+    at: time,
+    temperature: hourlySource?.temperature_2m[i] ?? 0,
+    condition: normalizeOpenMeteoCondition(hourlySource?.weather_code[i] ?? -1),
+    precipitationProbability: hourlySource?.precipitation_probability?.[i],
+    precipitationAmount: hourlySource?.precipitation?.[i],
+  }));
 
   const amapDaily = amap.ok ? (amap.data.daily ?? []) : [];
   const daily: WeatherDaily[] =

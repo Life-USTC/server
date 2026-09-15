@@ -2660,7 +2660,7 @@
     "temperatureLegend": "温度 (°C)",
     "precipitationLegend": "降水概率 (%)",
     "hourlyChartHint": "方向键选择小时，Esc 关闭详情",
-    "hourlyForecast": "逐小时预报",
+    "hourlyForecast": "未来 24 小时预报",
     "precipitationProbability": "降水概率 {value}%",
     "dailyForecast": "每日预报",
     "alerts": "天气预警",

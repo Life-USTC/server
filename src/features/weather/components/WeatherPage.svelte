@@ -5,7 +5,6 @@ import Wind from "@lucide/svelte/icons/wind";
 import WeatherConditionIcon from "@/features/weather/components/WeatherConditionIcon.svelte";
 import WeatherHourlyChart from "@/features/weather/components/WeatherHourlyChart.svelte";
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
-import type { WeatherHourly } from "@/features/weather/server/weather-types";
 import { temperatureRangePositions } from "@/features/weather/weather-ui";
 import type { AppLocale } from "@/i18n/config";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
@@ -49,14 +48,6 @@ function formatTemplate(template: string, values: Record<string, string>) {
     (text, [key, value]) => text.replace(`{${key}}`, value),
     template,
   );
-}
-
-const CHART_HOURLY_SLOTS = 24;
-
-function upcomingHoursAll(hourly: WeatherHourly[]): WeatherHourly[] {
-  const now = Date.now();
-  const upcoming = hourly.filter((hour) => Date.parse(hour.at) >= now);
-  return (upcoming.length > 0 ? upcoming : hourly).slice(0, CHART_HOURLY_SLOTS);
 }
 
 function formatTemperature(value: number) {
@@ -140,7 +131,7 @@ function formatTemperature(value: number) {
             <section class="grid gap-2">
               <h3 class="text-sm font-medium">{weatherCopy.hourlyForecast}</h3>
               <WeatherHourlyChart
-                hours={upcomingHoursAll(snapshot.hourly)}
+                hours={snapshot.hourly}
                 {weatherCopy}
               />
             </section>

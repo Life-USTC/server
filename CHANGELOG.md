@@ -1,3 +1,10 @@
+## [1.115.1](https://github.com/Life-USTC/server/compare/v1.115.0...v1.115.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **weather:** show rolling next 24 hours across midnight ([#1055](https://github.com/Life-USTC/server/issues/1055)) ([85f02be](https://github.com/Life-USTC/server/commit/85f02becb6524be39887f00b3f03c55d3f06bac1))
+
 # [1.115.0](https://github.com/Life-USTC/server/compare/v1.114.0...v1.115.0) (2026-09-15)
 
 

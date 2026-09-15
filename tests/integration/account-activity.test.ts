@@ -8,7 +8,7 @@ import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const fixturePrisma = createFixturePrisma();
 
-describe.sequential("account activity isolation", () => {
+describe("account activity isolation", { concurrent: false }, () => {
   const marker = crypto.randomUUID();
   const clientId = `activity-client-${marker}`;
   const otherClientId = `activity-other-client-${marker}`;

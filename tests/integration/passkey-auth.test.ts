@@ -70,7 +70,7 @@ async function repeatRequest(count: number, request: () => Promise<Response>) {
   return responses;
 }
 
-describe.sequential("Better Auth passkey integration", () => {
+describe("Better Auth passkey integration", { concurrent: false }, () => {
   afterAll(async () => {
     if (createdAuditTargetIds.length > 0) {
       await fixturePrisma.auditLog.deleteMany({

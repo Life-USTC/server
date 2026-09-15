@@ -45,7 +45,7 @@ function authorizeMcpToken(token: string) {
   });
 }
 
-describe.sequential("GraphQL OAuth resource isolation", () => {
+describe("GraphQL OAuth resource isolation", { concurrent: false }, () => {
   beforeAll(async () => {
     const user = await fixturePrisma.user.create({
       data: {
