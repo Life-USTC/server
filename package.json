@@ -58,7 +58,7 @@
     "@better-auth/core": "1.7.2",
     "@better-auth/mcp": "1.7.2",
     "@better-auth/oauth-provider": "1.7.2",
-    "@better-auth/passkey": "1.7.2",
+    "@better-auth/passkey": "1.7.4",
     "@escape.tech/graphql-armor": "3.2.0",
     "@ethercorps/sveltekit-og": "4.3.0",
     "@graphql-tools/executor": "2.0.0",
