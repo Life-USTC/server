@@ -1,3 +1,172 @@
+# [1.115.0](https://github.com/Life-USTC/server/compare/v1.114.0...v1.115.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** persist native Prometheus counters and histograms ([#1054](https://github.com/Life-USTC/server/issues/1054)) ([9c87833](https://github.com/Life-USTC/server/commit/9c87833000405da827d8070f0478df926c3ea962))
+
+# [1.114.0](https://github.com/Life-USTC/server/compare/v1.113.0...v1.114.0) (2026-09-15)
+
+
+### Features
+
+* **metrics:** export admin aggregates through authenticated /metrics ([#1051](https://github.com/Life-USTC/server/issues/1051)) ([46e9b4f](https://github.com/Life-USTC/server/commit/46e9b4fb9dcfb4db7e0efe013aac39043f7d09f5))
+
+# [1.113.0](https://github.com/Life-USTC/server/compare/v1.112.1...v1.113.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* validate server paths with production database roles ([#1048](https://github.com/Life-USTC/server/issues/1048)) ([f8c3134](https://github.com/Life-USTC/server/commit/f8c3134e4575c14518142ec81ef4d7be9c651db4))
+
+
+### Features
+
+* **admin:** simplify observability into reusable dashboard panels ([#1047](https://github.com/Life-USTC/server/issues/1047)) ([52a8466](https://github.com/Life-USTC/server/commit/52a84665331950c944ede8539c468b2fa96566c6))
+
+## [1.112.1](https://github.com/Life-USTC/server/compare/v1.112.0...v1.112.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **subscriptions:** enforce owner RLS context for removals ([#1046](https://github.com/Life-USTC/server/issues/1046)) ([5f377e6](https://github.com/Life-USTC/server/commit/5f377e6f8e053b9c6b2e7fdd9ea154c0a8f7e86e))
+
+# [1.112.0](https://github.com/Life-USTC/server/compare/v1.111.0...v1.112.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* **publications:** re-register object claims on unchanged ingestion redelivery ([#1044](https://github.com/Life-USTC/server/issues/1044)) ([6b1f16c](https://github.com/Life-USTC/server/commit/6b1f16c2ee2b3d2a9dade7fdb4ea73dc275fa608))
+
+
+### Features
+
+* **admin:** make statistics and operation logs self-hosted ([#1045](https://github.com/Life-USTC/server/issues/1045)) ([55b781a](https://github.com/Life-USTC/server/commit/55b781afd9741944e0c6ecca7ad26cbba1276050))
+
+# [1.111.0](https://github.com/Life-USTC/server/compare/v1.110.0...v1.111.0) (2026-09-14)
+
+
+### Features
+
+* **admin:** consolidate statistics and operation issues ([#1043](https://github.com/Life-USTC/server/issues/1043)) ([cad45aa](https://github.com/Life-USTC/server/commit/cad45aabc6806c088c9972f3248ceb51b32a2db0))
+
+# [1.110.0](https://github.com/Life-USTC/server/compare/v1.109.1...v1.110.0) (2026-09-14)
+
+
+### Bug Fixes
+
+* **mcp:** align GraphQL prompt and full Bot integration docs ([#1041](https://github.com/Life-USTC/server/issues/1041)) ([def06d7](https://github.com/Life-USTC/server/commit/def06d7ece0e4afe5de880621c5b3c27e759c095))
+
+
+### Features
+
+* **admin:** show feature usage and recent issues ([#1042](https://github.com/Life-USTC/server/issues/1042)) ([9875388](https://github.com/Life-USTC/server/commit/98753883cb44ca90252ad775b6d8efa943c492e6))
+
+## [1.109.1](https://github.com/Life-USTC/server/compare/v1.109.0...v1.109.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* align client contracts and MCP calendar scopes ([#1040](https://github.com/Life-USTC/server/issues/1040)) ([5a67ad8](https://github.com/Life-USTC/server/commit/5a67ad82451830574917a572e0b32409578b3f02))
+
+# [1.109.0](https://github.com/Life-USTC/server/compare/v1.108.0...v1.109.0) (2026-09-13)
+
+
+### Features
+
+* **calendar:** show subscription role corner badges ([#1039](https://github.com/Life-USTC/server/issues/1039)) ([83e1e04](https://github.com/Life-USTC/server/commit/83e1e04c0df64f5f5ce6495e2eac73d2deff3e6f))
+
+# [1.108.0](https://github.com/Life-USTC/server/compare/v1.107.0...v1.108.0) (2026-09-13)
+
+
+### Features
+
+* **subscriptions:** support personal course roles ([#1038](https://github.com/Life-USTC/server/issues/1038)) ([b56fe8f](https://github.com/Life-USTC/server/commit/b56fe8fc1324faa722a0373457700178bdd3f6a8))
+
+# [1.107.0](https://github.com/Life-USTC/server/compare/v1.106.3...v1.107.0) (2026-09-11)
+
+
+### Features
+
+* **rooms:** add room maps across web, APIs, and calendar exports ([#1037](https://github.com/Life-USTC/server/issues/1037)) ([a5d65d1](https://github.com/Life-USTC/server/commit/a5d65d1445e8d4bb36864814f3229089cf70e044))
+
+## [1.106.3](https://github.com/Life-USTC/server/compare/v1.106.2...v1.106.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* **server:** harden ingestion retries, cut R2 probe noise, restore legacy URL shims ([#1036](https://github.com/Life-USTC/server/issues/1036)) ([ca1d06c](https://github.com/Life-USTC/server/commit/ca1d06caf0eae9aec391a3f6fa49c185bd21e0fd))
+
+## [1.106.2](https://github.com/Life-USTC/server/compare/v1.106.1...v1.106.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **weather:** align conditions and unify hourly chart details ([#1035](https://github.com/Life-USTC/server/issues/1035)) ([82d6c69](https://github.com/Life-USTC/server/commit/82d6c69cd7d1c73c15f6b4d078470296123b8ed3))
+
+## [1.106.1](https://github.com/Life-USTC/server/compare/v1.106.0...v1.106.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **homeworks:** simplify creation dialog and align date controls ([#1034](https://github.com/Life-USTC/server/issues/1034)) ([cb95e98](https://github.com/Life-USTC/server/commit/cb95e98553dae9496a49b83803915cb53af17c6d))
+
+# [1.106.0](https://github.com/Life-USTC/server/compare/v1.105.10...v1.106.0) (2026-09-10)
+
+
+### Features
+
+* **homeworks:** improve creation layout and smart deadlines ([#1033](https://github.com/Life-USTC/server/issues/1033)) ([fde1c8b](https://github.com/Life-USTC/server/commit/fde1c8b4ebc57f2acc341630ae9729fa0ca72bf6))
+
+## [1.105.10](https://github.com/Life-USTC/server/compare/v1.105.9...v1.105.10) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** unify task list empty states ([#1032](https://github.com/Life-USTC/server/issues/1032)) ([c880817](https://github.com/Life-USTC/server/commit/c880817644c9e9718846247574d377130a4b9892))
+
+## [1.105.9](https://github.com/Life-USTC/server/compare/v1.105.8...v1.105.9) (2026-09-10)
+
+
+### Bug Fixes
+
+* **subscriptions:** explain how to import course selections ([#1031](https://github.com/Life-USTC/server/issues/1031)) ([3b8001f](https://github.com/Life-USTC/server/commit/3b8001f7e15b550024e7f7ed9669716f88c51daa))
+
+## [1.105.8](https://github.com/Life-USTC/server/compare/v1.105.7...v1.105.8) (2026-09-10)
+
+
+### Bug Fixes
+
+* **subscriptions:** only preselect a single quick-add result ([#1030](https://github.com/Life-USTC/server/issues/1030)) ([223f349](https://github.com/Life-USTC/server/commit/223f349556a14588c9a56a2e8a4cc0101d31592d))
+
+## [1.105.7](https://github.com/Life-USTC/server/compare/v1.105.6...v1.105.7) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** honor task filters and Shanghai exam times ([#1029](https://github.com/Life-USTC/server/issues/1029)) ([ec20717](https://github.com/Life-USTC/server/commit/ec20717cbb45cc51fbac151dc73ea14e1f4c279d))
+
+## [1.105.6](https://github.com/Life-USTC/server/compare/v1.105.5...v1.105.6) (2026-09-10)
+
+
+### Bug Fixes
+
+* **todos:** correct filtering, deadline order and detail actions ([#1027](https://github.com/Life-USTC/server/issues/1027)) ([6099b2c](https://github.com/Life-USTC/server/commit/6099b2c587f9fb9c7c9f5a6cbaf82dd8e26582dc))
+
+## [1.105.5](https://github.com/Life-USTC/server/compare/v1.105.4...v1.105.5) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workspace:** keep completion filters visibly selected ([#1028](https://github.com/Life-USTC/server/issues/1028)) ([4c6267e](https://github.com/Life-USTC/server/commit/4c6267e3029af669279ba0bbac38f12db84a2b13))
+
+## [1.105.4](https://github.com/Life-USTC/server/compare/v1.105.3...v1.105.4) (2026-09-10)
+
+
+### Bug Fixes
+
+* **homeworks:** hide deadline reminders for completed homework ([#1026](https://github.com/Life-USTC/server/issues/1026)) ([62d87c2](https://github.com/Life-USTC/server/commit/62d87c22e0657dd0a56f9ae7c767b3efa70a1302))
+
 ## [1.105.3](https://github.com/Life-USTC/server/compare/v1.105.2...v1.105.3) (2026-09-04)
 
 

@@ -52,6 +52,7 @@ export const compactHomeworkSchema = z.strictObject({
   title: z.string(),
   isMajor: z.boolean(),
   requiresTeam: z.boolean(),
+  completionRequired: z.boolean(),
   publishedAt: dateTimeSchema.nullable(),
   submissionStartAt: dateTimeSchema.nullable(),
   submissionDueAt: dateTimeSchema.nullable(),

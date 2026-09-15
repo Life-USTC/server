@@ -15,6 +15,6 @@ export async function ensureSeedSectionSubscription(
   );
   const subscriptionResponse = await getRequestFromSubscriptionSource(
     source,
-  ).post("/api/workspace/subscriptions", { data: { sectionIds } });
+  ).patch("/api/workspace/subscriptions", { data: { sectionIds } });
   expect(subscriptionResponse.status()).toBe(200);
 }

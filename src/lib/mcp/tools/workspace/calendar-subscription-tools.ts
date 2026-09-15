@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
@@ -12,8 +13,22 @@ import {
   getMyCalendarSubscriptionTool,
   listMySubscribedSectionsTool,
 } from "./calendar-subscription-read-tools";
+import { updateSubscriptionKindTool } from "./subscription-kind-tool";
 
 export function registerCalendarSubscriptionTools(server: McpServer) {
+  server.registerTool(
+    "workspace_subscription_kind_update",
+    {
+      description:
+        "Update the personal kind of an already subscribed section. Does not create a subscription or grant teaching permissions.",
+      inputSchema: {
+        jwId: z.number().int().positive(),
+        kind: subscriptionKindSchema,
+      },
+    },
+    updateSubscriptionKindTool,
+  );
+
   server.registerTool(
     "workspace_calendar_feed_get",
     {

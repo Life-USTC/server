@@ -1,11 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-homework-${Date.now()}`;
@@ -50,7 +54,7 @@ async function execute(body: unknown, token?: string) {
 }
 
 async function signToken(userId: string, scopes: string[]) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -79,14 +83,14 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
 
 beforeAll(async () => {
   const [creator, collaborator] = await Promise.all([
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-creator@example.test`,
         name: "GraphQL Homework Creator",
       },
       select: { id: true },
     }),
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-collaborator@example.test`,
         name: "GraphQL Homework Collaborator",
@@ -96,7 +100,7 @@ beforeAll(async () => {
   ]);
   creatorId = creator.id;
   collaboratorId = collaborator.id;
-  await prisma.oAuthClient.create({
+  await fixturePrisma.oAuthClient.create({
     data: {
       clientId: oauthClientId,
       consents: {
@@ -124,20 +128,26 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
-  await prisma.auditLog.deleteMany({
+  await fixturePrisma.oAuthClient.deleteMany({
+    where: { clientId: oauthClientId },
+  });
+  await fixturePrisma.auditLog.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.homework.deleteMany({
+  await fixturePrisma.homework.deleteMany({
     where: { id: { in: createdHomeworkIds } },
   });
-  await prisma.userSuspension.deleteMany({
+  await fixturePrisma.userSuspension.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.user.deleteMany({
+  await fixturePrisma.user.deleteMany({
     where: { id: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.$disconnect();
+  await Promise.all([
+    fixturePrisma.$disconnect(),
+    authPrisma.$disconnect(),
+    runtimePrisma.$disconnect(),
+  ]);
 });
 
 describe("GraphQL homework CRUD mutations", () => {
@@ -169,7 +179,7 @@ describe("GraphQL homework CRUD mutations", () => {
       "community.section-homework:write",
     ]);
     await expect(
-      prisma.homework.count({
+      fixturePrisma.homework.count({
         where: { title: `${marker} missing scope` },
       }),
     ).resolves.toBe(0);
@@ -213,7 +223,7 @@ describe("GraphQL homework CRUD mutations", () => {
       "Submission start must be before due",
     );
     await expect(
-      prisma.homework.count({
+      fixturePrisma.homework.count({
         where: { title: `${marker} invalid window` },
       }),
     ).resolves.toBe(0);
@@ -296,7 +306,7 @@ describe("GraphQL homework CRUD mutations", () => {
       section: { jwId: DEV_SEED.section.jwId },
     });
 
-    const createdRecord = await prisma.homework.findUniqueOrThrow({
+    const createdRecord = await fixturePrisma.homework.findUniqueOrThrow({
       where: { id: homeworkId },
       select: {
         createdById: true,
@@ -314,7 +324,7 @@ describe("GraphQL homework CRUD mutations", () => {
       title: `${marker} initial`,
     });
     await expect(
-      prisma.auditLog.findMany({
+      fixturePrisma.auditLog.findMany({
         where: { action: "homework_create", targetId: homeworkId },
         select: { action: true, userId: true, metadata: true },
       }),
@@ -378,7 +388,7 @@ describe("GraphQL homework CRUD mutations", () => {
         },
       },
     });
-    const updatedRecord = await prisma.homework.findUniqueOrThrow({
+    const updatedRecord = await fixturePrisma.homework.findUniqueOrThrow({
       where: { id: homeworkId },
       select: {
         description: { select: { content: true, id: true } },
@@ -390,7 +400,7 @@ describe("GraphQL homework CRUD mutations", () => {
       updatedById: collaboratorId,
     });
     await expect(
-      prisma.auditLog.findFirstOrThrow({
+      fixturePrisma.auditLog.findFirstOrThrow({
         where: {
           action: "description_edit",
           targetId: updatedRecord.description?.id,
@@ -462,7 +472,7 @@ describe("GraphQL homework CRUD mutations", () => {
       },
     });
     await expect(
-      prisma.auditLog.findMany({
+      fixturePrisma.auditLog.findMany({
         where: {
           action: {
             in: ["homework_create", "homework_update", "homework_delete"],

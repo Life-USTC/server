@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PUBLICATION_INGESTION_BATCH_MAX_ITEMS } from "@/features/publications/lib/publication-ingestion-limits";
+import { Prisma } from "@/generated/prisma/client";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
+import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
 import fixture from "../../../../docs/contracts/fixtures/publication-batch.json";
 
@@ -351,12 +353,27 @@ vi.mock("@/lib/db/prisma", () => ({ prisma: fake.prisma }));
 
 import {
   ingestPublicationBatch,
+  PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS,
   PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS,
   PublicationIngestionBadRequestError,
 } from "@/features/publications/server/publication-ingestion-service";
 
 const parsedFixture = publicationIngestionBatchRequestSchema.parse(fixture);
 const principal = PUBLICATION_INGESTION_SERVICE_PRINCIPAL;
+
+function transactionTimeoutError() {
+  return new Prisma.PrismaClientKnownRequestError(
+    "Transaction API error: Transaction not found",
+    { code: "P2028", clientVersion: "test" },
+  );
+}
+
+function uniqueViolationError() {
+  return new Prisma.PrismaClientKnownRequestError(
+    "Unique constraint failed on the fields: (`principalKey`,`batchId`)",
+    { code: "P2002", clientVersion: "test" },
+  );
+}
 
 function payloadFor(item: Record<string, unknown>, batchId: string) {
   return publicationIngestionBatchRequestSchema.parse({
@@ -790,5 +807,160 @@ describe("publication ingestion transaction", () => {
       expect.any(Function),
       { timeout: PUBLICATION_INGESTION_TRANSACTION_TIMEOUT_MS },
     );
+  });
+
+  it("retries an interactive transaction timeout and commits on a later attempt", async () => {
+    fake.prisma.$transaction.mockImplementationOnce(() =>
+      Promise.reject(transactionTimeoutError()),
+    );
+
+    const payload = payloadFor({}, "batch-transaction-timeout-retry");
+    const response = await ingestPublicationBatch({ payload, principal });
+
+    expect(response.batchId).toBe("batch-transaction-timeout-retry");
+    expect(response.results).toHaveLength(1);
+    expect(response.results[0].status).toBe("created");
+    expect(fake.prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(fake.state.batches.size).toBe(1);
+    expect(fake.state.publications.size).toBe(1);
+  });
+
+  it("rethrows the transaction timeout after exhausting all attempts", async () => {
+    const error = transactionTimeoutError();
+    for (
+      let attempt = 0;
+      attempt < PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      fake.prisma.$transaction.mockImplementationOnce(() =>
+        Promise.reject(error),
+      );
+    }
+
+    const payload = payloadFor({}, "batch-transaction-timeout-exhausted");
+    await expect(ingestPublicationBatch({ payload, principal })).rejects.toBe(
+      error,
+    );
+
+    expect(fake.prisma.$transaction).toHaveBeenCalledTimes(
+      PUBLICATION_INGESTION_TRANSACTION_MAX_ATTEMPTS,
+    );
+    expect(fake.state.batches.size).toBe(0);
+    expect(fake.state.publications.size).toBe(0);
+  });
+
+  it("does not retry non-transient transaction failures", async () => {
+    fake.prisma.$transaction.mockImplementationOnce(() =>
+      Promise.reject(uniqueViolationError()),
+    );
+
+    const payload = payloadFor({}, "batch-non-transient-failure");
+    await expect(
+      ingestPublicationBatch({ payload, principal }),
+    ).rejects.toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
+
+    expect(fake.prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves a committed batch through the unique-violation re-read without retrying", async () => {
+    const payload = payloadFor({}, "batch-committed-race");
+    const committed = await ingestPublicationBatch({ payload, principal });
+
+    fake.prisma.$transaction.mockImplementationOnce(() =>
+      Promise.reject(uniqueViolationError()),
+    );
+    const replayed = await ingestPublicationBatch({ payload, principal });
+
+    expect(replayed).toEqual(committed);
+    expect(fake.prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(fake.state.batches.size).toBe(1);
+  });
+});
+
+describe("publication ingestion unchanged redelivery", () => {
+  beforeEach(() => fake.clear());
+
+  const bodyObject = {
+    kind: "body_html" as const,
+    sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    size: 4,
+    contentType: "text/html",
+  };
+
+  it("re-registers the claim and flags missing object bytes on an unchanged redelivery", async () => {
+    const first = await ingestPublicationBatch({
+      payload: payloadFor(
+        { objects: [bodyObject] },
+        "batch-redelivery-initial",
+      ),
+      principal,
+    });
+    expect(first.results[0].status).toBe("created");
+    expect(fake.state.claims.size).toBe(1);
+
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-redelivery-retry"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(second.results[0].objectsNeedingUpload).toEqual([
+      { kind: bodyObject.kind, sha256: bodyObject.sha256 },
+    ]);
+    expect(() =>
+      publicationIngestionBatchResponseSchema.parse(second),
+    ).not.toThrow();
+    // The retry batch owns a claim so the object plan endpoint accepts its
+    // batchId, while the revision keeps a single object link.
+    expect(fake.state.claims.size).toBe(2);
+    expect(fake.state.links.size).toBe(1);
+    const claimBatchIds = [...fake.state.claims.values()].map((claim) =>
+      String(claim.batchId),
+    );
+    expect(new Set(claimBatchIds).size).toBe(2);
+  });
+
+  it("does not flag an unchanged object whose bytes are already linked", async () => {
+    await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-linked-initial"),
+      principal,
+    });
+    for (const object of fake.state.objects.values()) {
+      object.status = "linked";
+    }
+
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-linked-retry"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(second.results[0]).not.toHaveProperty("objectsNeedingUpload");
+    expect(fake.state.claims.size).toBe(2);
+  });
+
+  it("keeps repeated unchanged redeliveries idempotent", async () => {
+    await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-1"),
+      principal,
+    });
+    const second = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-2"),
+      principal,
+    });
+    const third = await ingestPublicationBatch({
+      payload: payloadFor({ objects: [bodyObject] }, "batch-repeat-3"),
+      principal,
+    });
+
+    expect(second.results[0].status).toBe("unchanged");
+    expect(third.results[0].status).toBe("unchanged");
+    expect(third.results[0].objectsNeedingUpload).toEqual([
+      { kind: bodyObject.kind, sha256: bodyObject.sha256 },
+    ]);
+    expect(fake.state.objects.size).toBe(1);
+    expect(fake.state.revisions.size).toBe(1);
+    expect(fake.state.links.size).toBe(1);
+    expect(fake.state.claims.size).toBe(3);
   });
 });

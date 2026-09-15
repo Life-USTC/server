@@ -3,25 +3,26 @@ import { ICAL_SITE_URL } from "@/features/calendar/server/ical-event-constants";
 import {
   buildLocationField,
   type GeoData,
-  type ImgRules,
   parseTimeHHMM,
+  type RoomMaps,
   toCategories,
 } from "@/features/calendar/server/ical-event-utils";
 import {
   examTypeLabel,
   getIcalLabels,
 } from "@/features/calendar/server/ical-labels";
+import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
+import { lookupRoomMap } from "@/features/rooms/server/room-map-service";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
-import { lookupBuildingImagePath } from "@/shared/lib/location/location-utils";
 
 export function createExamEvent(
   exam: Prisma.ExamGetPayload<{ include: { examRooms: true } }>,
   section: Prisma.SectionGetPayload<{ include: { course: true } }>,
   calendar: ICalCalendar,
   geoData: GeoData,
-  imgRules: ImgRules,
+  roomMaps: RoomMaps,
   locale: AppLocale,
 ) {
   if (!exam.examDate) return;
@@ -37,20 +38,26 @@ export function createExamEvent(
   const location = rooms || L.examLocationTbd;
   const typeLabel = examTypeLabel(exam.examType, locale);
 
+  const maps = exam.examRooms.flatMap(({ room }) => {
+    const code = roomCodeSchema.safeParse(room);
+    if (!code.success) return [];
+    const map = lookupRoomMap(code.data, roomMaps);
+    return map.imageUrl ? [map] : [];
+  });
+  const imageUrls = [
+    ...new Set(maps.flatMap((map) => (map.imageUrl ? [map.imageUrl] : []))),
+  ];
+
   const description = [
     `${section.course.nameCn} (${section.code})`,
     `${L.examTypePrefix}${typeLabel}`,
     exam.examMode && `${L.examModePrefix}${exam.examMode}`,
     exam.examTakeCount && `${L.examTakeCountPrefix}${exam.examTakeCount}`,
     rooms && `${L.examRoomPrefix}${rooms}`,
+    ...maps.map((map) => `${L.roomMapPrefix}${map.code}: ${map.imageUrl}`),
   ]
     .filter(Boolean)
     .join("\n");
-
-  const buildingImg =
-    exam.examRooms.length > 0
-      ? lookupBuildingImagePath(imgRules, exam.examRooms[0].room)
-      : null;
 
   calendar.createEvent({
     start,
@@ -69,6 +76,6 @@ export function createExamEvent(
       section.code,
       section.course.code,
     ]),
-    attachments: buildingImg ? [buildingImg] : undefined,
+    attachments: imageUrls,
   });
 }

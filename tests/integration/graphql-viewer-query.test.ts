@@ -1,7 +1,8 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import {
   getOAuthGraphqlResourceUrl,
@@ -9,10 +10,13 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/oauth/resource-urls";
 import { restReadScope } from "@/lib/oauth/scope-registry";
+import { createFixturePrisma } from "../shared/prisma";
 import {
   assertOverviewCountsAreNumbers,
   normalizeGraphqlOverviewPayload,
 } from "../shared/scenarios/overview";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const encoder = new TextEncoder();
@@ -51,7 +55,7 @@ async function signSessionCookieValue(value: string, secret: string) {
 
 async function createSessionCookie(userId: string) {
   const token = crypto.randomUUID();
-  await prisma.session.create({
+  await fixturePrisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
@@ -69,7 +73,7 @@ async function signToken(
   scopes: string[],
   resource = getOAuthGraphqlResourceUrl(),
 ) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -139,7 +143,7 @@ describe.sequential("GraphQL Viewer integration", () => {
   const userEmails: string[] = [];
 
   beforeAll(async () => {
-    const sections = await prisma.section.findMany({
+    const sections = await fixturePrisma.section.findMany({
       where: {
         exams: { some: {} },
         homeworks: { some: { deletedAt: null } },
@@ -172,7 +176,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       `graphql-viewer-b-${marker}@example.test`,
     );
     const [firstUser, secondUser] = await Promise.all([
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[0],
           name: "GraphQL Viewer A",
@@ -181,7 +185,7 @@ describe.sequential("GraphQL Viewer integration", () => {
         },
         select: { id: true },
       }),
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[1],
           name: "GraphQL Viewer B",
@@ -195,7 +199,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     secondUserId = secondUser.id;
 
     await Promise.all([
-      prisma.oAuthClient.create({
+      fixturePrisma.oAuthClient.create({
         data: {
           clientId: oauthClientId,
           consents: {
@@ -208,7 +212,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           redirectUris: ["https://graphql.example/callback"],
         },
       }),
-      prisma.todo.createMany({
+      fixturePrisma.todo.createMany({
         data: [
           {
             title: `[integration-test] graphql-viewer-a-${marker}`,
@@ -220,7 +224,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           },
         ],
       }),
-      prisma.userSuspension.create({
+      fixturePrisma.userSuspension.create({
         data: {
           reason: "[integration-test] reads remain available",
           userId: firstUserId,
@@ -233,15 +237,19 @@ describe.sequential("GraphQL Viewer integration", () => {
   });
 
   afterAll(async () => {
-    await prisma.oAuthClient.deleteMany({
+    await fixturePrisma.oAuthClient.deleteMany({
       where: { clientId: oauthClientId },
     });
     if (userEmails.length > 0) {
-      await prisma.user.deleteMany({
+      await fixturePrisma.user.deleteMany({
         where: { email: { in: userEmails } },
       });
     }
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
   it("returns account=null to anonymous callers and marks the response no-store", async () => {
@@ -347,7 +355,8 @@ describe.sequential("GraphQL Viewer integration", () => {
               }
               subscribedSections {
                 items {
-                  ...SectionFields
+                  kind
+                  section { ...SectionFields }
                 }
                 pageInfo {
                   pageSize
@@ -451,7 +460,7 @@ describe.sequential("GraphQL Viewer integration", () => {
         pageInfo: { pageSize: number; total: number };
       };
       subscribedSections: {
-        items: Array<{ id: number; jwId: number }>;
+        items: Array<{ kind: string; section: { id: number; jwId: number } }>;
         pageInfo: { pageSize: number; total: number };
       };
       homeworks: {
@@ -479,7 +488,10 @@ describe.sequential("GraphQL Viewer integration", () => {
       total: 1,
     });
     expect(viewer.subscribedSections.items).toMatchObject([
-      { id: firstSectionId, jwId: firstSectionJwId },
+      {
+        kind: "regular",
+        section: { id: firstSectionId, jwId: firstSectionJwId },
+      },
     ]);
     for (const page of [viewer.homeworks, viewer.schedules, viewer.exams]) {
       expect(page.pageInfo.total).toBeGreaterThan(0);

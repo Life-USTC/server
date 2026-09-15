@@ -1,5 +1,4 @@
 <script lang="ts">
-import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
 import type {
   SignedWorkspaceData,
@@ -8,9 +7,6 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import ExamsCardsView from "./ExamsCardsView.svelte";
 import ExamsListView from "./ExamsListView.svelte";
 import ExamsTabToolbar from "./ExamsTabToolbar.svelte";
@@ -48,10 +44,9 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   referenceNow: signedData.referenceNow,
   sectionCopy,
 }));
-$: displayExamFilter = resolveWorkspaceTaskFilter(
-  examFilter,
-  examRows.some((row) => !row.completed),
-);
+function clearExamFilter() {
+  examFilter = "all";
+}
 </script>
 
 <section class="grid gap-4">
@@ -67,66 +62,39 @@ $: displayExamFilter = resolveWorkspaceTaskFilter(
   {:else}
     <ExamsTabToolbar
       {workspaceCopy}
-      examFilter={displayExamFilter}
+      {examFilter}
       onExamFilterChange={(value) => {
         examFilter = value;
       }}
     />
 
-    {#if examRows.length === 0}
-      <Empty.Root class="items-start text-left">
-        <Empty.Header class="items-start text-left">
-          <Empty.Media variant="icon"><BookOpenIcon /></Empty.Media>
-          <Empty.Title>{workspaceCopy.nav.exams.empty}</Empty.Title>
-          <Empty.Description>
-            {workspaceCopy.nav.exams.emptyDescription}
-          </Empty.Description>
-        </Empty.Header>
-      </Empty.Root>
-    {:else if filteredExamRows.length === 0}
-      <Empty.Root class="items-start text-left">
-        <Empty.Header class="items-start text-left">
-          <Empty.Media variant="icon"><BookOpenIcon /></Empty.Media>
-          <Empty.Title>{workspaceCopy.nav.exams.filterEmpty}</Empty.Title>
-          <Empty.Description>
-            {workspaceCopy.nav.exams.filterEmptyDescription}
-          </Empty.Description>
-        </Empty.Header>
-        <Empty.Content class="items-start">
-          <Button
-            variant="outline"
-            onclick={() => {
-              examFilter = "all";
-            }}
-          >
-            {workspaceCopy.nav.exams.clearFilter}
-          </Button>
-        </Empty.Content>
-      </Empty.Root>
-    {:else}
-      <div class="md:hidden">
-        <ExamsCardsView
-          {workspaceCopy}
-          {workspaceTabHref}
-          {examMetadataLabels}
-          exams={filteredExamRows}
-          {examTimeLabel}
-          {fmtExamDate}
-          {namePrimary}
-          {sectionCopy}
-          {subscriptionsCopy}
-        />
-      </div>
-      <div class="hidden min-w-0 overflow-x-auto md:block">
-        <ExamsListView
-          {workspaceTabHref}
-          {examTimeLabel}
-          exams={filteredExamRows}
-          {fmtExamDate}
-          {sectionCopy}
-          {subscriptionsCopy}
-        />
-      </div>
-    {/if}
+    <div class="md:hidden">
+      <ExamsCardsView
+        {workspaceCopy}
+        {workspaceTabHref}
+        {examMetadataLabels}
+        exams={filteredExamRows}
+        hasExamRows={examRows.length > 0}
+        onClearFilter={clearExamFilter}
+        {examTimeLabel}
+        {fmtExamDate}
+        {namePrimary}
+        {sectionCopy}
+        {subscriptionsCopy}
+      />
+    </div>
+    <div class="hidden min-w-0 overflow-x-auto md:block">
+      <ExamsListView
+        {workspaceCopy}
+        {workspaceTabHref}
+        {examTimeLabel}
+        exams={filteredExamRows}
+        hasExamRows={examRows.length > 0}
+        onClearFilter={clearExamFilter}
+        {fmtExamDate}
+        {sectionCopy}
+        {subscriptionsCopy}
+      />
+    </div>
   {/if}
 </section>

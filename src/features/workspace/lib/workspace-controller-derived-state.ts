@@ -1,7 +1,9 @@
 import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
-import { filterTodos } from "./todos";
+import { referenceDate } from "./overview-dates";
+import { filterTodos, sortTodosByDueDistance } from "./todos";
 import { workspaceExamRows } from "./workspace-controller-display";
 import {
   type CalendarData,
@@ -15,7 +17,6 @@ import {
   type WorkspacePageData,
 } from "./workspace-controller-helpers";
 import { groupCatalogLinks } from "./workspace-link-ui";
-import { resolveWorkspaceTaskFilter } from "./workspace-task-filter";
 
 export function applyLocalHomeworkItemsToSignedData(
   signedData: SignedWorkspaceData | null,
@@ -31,8 +32,12 @@ export function applyLocalHomeworkItemsToSignedData(
     },
     navStats: {
       ...signedData.navStats,
-      pendingHomeworksCount: homeworkItems.filter((item) => !item.completion)
-        .length,
+      pendingHomeworksCount: homeworkItems.filter((item) =>
+        isHomeworkPendingForViewer(
+          item,
+          referenceDate(signedData.referenceNow),
+        ),
+      ).length,
     },
   };
 }
@@ -88,19 +93,10 @@ export function buildWorkspaceControllerDerivedState(input: {
       null) as CalendarData | null,
     catalogLinkItems,
     examRows,
-    filteredExamRows: filterExamRows(
-      examRows,
-      resolveWorkspaceTaskFilter(
-        input.examFilter,
-        examRows.some((row) => !row.completed),
-      ),
-    ),
-    filteredTodos: filterTodos(
-      todoItems,
-      resolveWorkspaceTaskFilter(
-        input.todoFilter,
-        todoItems.some((todo) => !todo.completed),
-      ),
+    filteredExamRows: filterExamRows(examRows, input.examFilter),
+    filteredTodos: sortTodosByDueDistance(
+      filterTodos(todoItems, input.todoFilter),
+      referenceDate(signedData?.referenceNow),
     ),
     homeworkItems,
     overviewLinkItems,

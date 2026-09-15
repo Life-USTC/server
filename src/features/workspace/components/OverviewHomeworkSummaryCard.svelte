@@ -5,6 +5,7 @@ import type {
   WorkspaceCommonCopy,
   WorkspaceCopy,
   WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -16,6 +17,7 @@ export let workspaceCopy: WorkspaceCopy;
 export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
+export let homeworkCopy: WorkspaceHomeworksCopy;
 export let pendingHomeworks: WorkspaceHomeworkItem[];
 export let previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
@@ -55,7 +57,11 @@ export let viewAllLabel = "View all";
                 </Item.Description>
               </Item.Content>
               <Item.Actions class="grid shrink-0 justify-items-end gap-0.5 text-xs">
-                <span class="text-foreground">{homeworkEtaLabel(homework.submissionDueAt)}</span>
+                <span class="text-foreground">
+                  {homework.completionRequired === false
+                    ? homeworkCopy.noCompletionRequired
+                    : homeworkEtaLabel(homework.submissionDueAt)}
+                </span>
                 <span class="text-muted-foreground tabular-nums">
                   {fmtDate(homework.submissionDueAt)}
                 </span>

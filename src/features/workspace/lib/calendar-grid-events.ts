@@ -1,6 +1,7 @@
 import type { CalendarGridEvent } from "$lib/components/calendar/types";
 
 type CalendarSession = {
+  badge?: string;
   courseName: string;
 };
 
@@ -11,6 +12,7 @@ type CalendarExam = {
 type CalendarHomework = {
   completion?: unknown;
   completed?: boolean;
+  completionRequired?: boolean;
   title: string;
 };
 
@@ -81,6 +83,7 @@ export function calendarGridEventsForDay<
       return {
         href: options.sessionHref(session),
         label: session.courseName,
+        badge: session.badge,
         meta: fields.meta,
         detail: fields.detail,
         tooltipDetail: fields.tooltipDetail,
@@ -108,7 +111,9 @@ export function calendarGridEventsForDay<
     ...events.homeworks.map((homework) => {
       const fields = options.calendarHomeworkChipFields(homework);
       return {
-        done: Boolean(homework.completed ?? homework.completion),
+        done:
+          homework.completionRequired !== false &&
+          Boolean(homework.completed ?? homework.completion),
         href: options.calendarHomeworkHref(homework),
         label: homework.title,
         meta: fields.meta,

@@ -4,14 +4,16 @@
     "anon": "Can browse calendar information on public section detail pages.",
     "user": "Can browse the personal calendar view.",
     "admin": "Has no special calendar view separate from regular users.",
-    "agent": "Can read timeline information with the same semantics through OAuth REST and MCP."
+    "agent": "Can read the unified personal calendar through MCP. REST provides source data and bounded workspace summaries, not the unified timeline."
   },
   "rules": {
     "views": "Provides selectable semester, month, and week views.",
     "retired-sections": "Current/public collection calendars, personal calendar views, feeds, and calendar event tools exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription relationships.",
     "mobile-agenda-first": "At mobile widths, the personal calendar presents the selected week as a vertically readable agenda with time, title, type, and available location context. Previous week, today, next week, and iCal actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable grid views.",
     "week-starts-sunday": "The week view starts on Sunday.",
-    "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."
+    "subscription-badges": "Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as a localized top-right badge in desktop grids and mobile agendas. Regular subscriptions show no badge; course titles and public calendars are unchanged.",
+    "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events.",
+    "teaching-assistant-homework": "Personal calendar views, event sources, and iCal feeds preserve actual completion records but exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed promptly."
   },
   "capabilities": {
     "personal-calendar-view": {
@@ -37,7 +39,10 @@
           },
           {
             "name": "workspace_calendar_timeline_get",
-            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
+            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
+            "notes": [
+              "Requires workspace.calendar:read, matching workspace_calendar_event_list; workspace.overview:read is not required."
+            ]
           },
           {
             "name": "workspace_schedule_list",

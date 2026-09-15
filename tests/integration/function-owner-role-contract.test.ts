@@ -1,10 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const functionOwnerRole = "life_ustc_function_owner";
-const adminPrisma = createTestPrisma(
-  process.env.FUNCTION_OWNER_DATABASE_URL ?? process.env.DATABASE_URL,
-);
+const adminPrisma = createFixturePrisma();
 
 const expectedFunctions = [
   {
@@ -42,6 +40,48 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_audit()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_deletions()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_features()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_oauth_insert()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_oauth_update()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_registrations()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "row_security=on"],
+    signature: "public.count_prometheus_runtime()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
     settings: ['search_path=""'],
     signature:
       'public.delete_own_account(p_user_id text, p_audit_id text, p_channel "AuditChannel", p_ip_address text, p_user_agent text, p_session_id text, p_request_id text)',
@@ -58,6 +98,13 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature: "public.find_downloadable_upload(p_upload_id text)",
+    volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
+      "public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone)",
     volatility: "STABLE",
   },
   {
@@ -92,6 +139,19 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
+      "public.maintain_observability_event_retention(p_now timestamp without time zone, p_batch_size integer)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature: "public.read_prometheus_metrics_snapshot()",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""'],
+    signature:
       "public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer)",
     volatility: "VOLATILE",
   },
@@ -116,13 +176,30 @@ const expectedTablePrivileges = [
   "public.CommentReaction:SELECT",
   "public.DeviceCode:DELETE",
   "public.DeviceCode:SELECT",
+  "public.FeatureOperationEvent:DELETE",
+  "public.FeatureOperationEvent:SELECT",
+  "public.FeatureOperationEvent:UPDATE",
+  "public.Homework:SELECT",
   "public.OAuthAccessToken:DELETE",
   "public.OAuthAccessToken:SELECT",
+  "public.OAuthClient:SELECT",
   "public.OAuthGrantUsageDaily:DELETE",
   "public.OAuthGrantUsageDaily:SELECT",
   "public.OAuthGrantUsageDaily:UPDATE",
   "public.OAuthRefreshToken:DELETE",
   "public.OAuthRefreshToken:SELECT",
+  "public.PrometheusCounter:INSERT",
+  "public.PrometheusCounter:SELECT",
+  "public.PrometheusCounter:UPDATE",
+  "public.PrometheusCounterEpoch:INSERT",
+  "public.PrometheusCounterEpoch:SELECT",
+  "public.PrometheusCounterEpoch:UPDATE",
+  "public.PrometheusMetricsCache:INSERT",
+  "public.PrometheusMetricsCache:SELECT",
+  "public.PrometheusMetricsCache:UPDATE",
+  "public.RuntimeIssueEvent:DELETE",
+  "public.RuntimeIssueEvent:SELECT",
+  "public.RuntimeIssueEvent:UPDATE",
   "public.Session:DELETE",
   "public.Session:SELECT",
   "public.Upload:SELECT",
@@ -132,6 +209,7 @@ const expectedTablePrivileges = [
   "public.User:DELETE",
   "public.User:SELECT",
   "public.UserSectionSubscription:SELECT",
+  "public.UserSuspension:SELECT",
   "public.VerificationToken:DELETE",
   "public.VerificationToken:SELECT",
   "public.VerifiedEmail:DELETE",
@@ -516,10 +594,60 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           checkExpression: "true",
           command: "ALL",
           permissive: "PERMISSIVE",
+          policyName: "FeatureOperationEvent_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "FeatureOperationEvent",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
           policyName: "OAuthGrantUsageDaily_function_owner",
           roles: [functionOwnerRole],
           schemaName: "public",
           tableName: "OAuthGrantUsageDaily",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "PrometheusCounter_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "PrometheusCounter",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "PrometheusCounterEpoch_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "PrometheusCounterEpoch",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "PrometheusMetricsCache_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "PrometheusMetricsCache",
+          usingExpression: "true",
+        },
+        {
+          checkExpression: "true",
+          command: "ALL",
+          permissive: "PERMISSIVE",
+          policyName: "RuntimeIssueEvent_function_owner",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "RuntimeIssueEvent",
           usingExpression: "true",
         },
         {

@@ -1,5 +1,8 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { attachHomeworkCompletionsForViewer } from "@/features/homeworks/server/homework-read-model";
+import {
+  attachHomeworkCompletionsForViewer,
+  withHomeworkCompletionRequiredForViewer,
+} from "@/features/homeworks/server/homework-read-model";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
@@ -17,6 +20,7 @@ export async function listSubscribedHomeworkPage(
     dueAtTo,
     includeEditors = false,
     locale = DEFAULT_LOCALE,
+    now = new Date(),
     pagination,
     semesterId,
   }: {
@@ -25,6 +29,7 @@ export async function listSubscribedHomeworkPage(
     dueAtTo?: Date;
     includeEditors?: boolean;
     locale?: AppLocale;
+    now?: Date;
     pagination: {
       page: number;
       pageSize: number;
@@ -36,6 +41,7 @@ export async function listSubscribedHomeworkPage(
     completed,
     dueAtFrom,
     dueAtTo,
+    now,
     semesterId,
     userId,
   });
@@ -73,7 +79,10 @@ export async function listSubscribedHomeworkPage(
     include: buildSubscribedHomeworkInclude(includeEditors),
   });
   const orderedHomeworks = orderHomeworksById(
-    attachHomeworkCompletionsForViewer(homeworks, completions),
+    await withHomeworkCompletionRequiredForViewer(
+      attachHomeworkCompletionsForViewer(homeworks, completions),
+      userId,
+    ),
     homeworkIds,
   );
 

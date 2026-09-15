@@ -35,10 +35,14 @@
     "e2e:server": "bash tests/ci/e2e-worker-server.sh",
     "e2e:test": "bash tests/ci/e2e-full-suite-parity.sh",
     "e2e:test:parallel": "bash tests/ci/e2e-parallel-local.sh",
-    "e2e:test:shard1": "bash tests/ci/e2e-run-shard.sh 1/4",
-    "e2e:test:shard2": "bash tests/ci/e2e-run-shard.sh 2/4",
-    "e2e:test:shard3": "bash tests/ci/e2e-run-shard.sh 3/4",
-    "e2e:test:shard4": "bash tests/ci/e2e-run-shard.sh 4/4",
+    "e2e:test:shard1": "bash tests/ci/e2e-run-shard.sh 1/8",
+    "e2e:test:shard2": "bash tests/ci/e2e-run-shard.sh 2/8",
+    "e2e:test:shard3": "bash tests/ci/e2e-run-shard.sh 3/8",
+    "e2e:test:shard4": "bash tests/ci/e2e-run-shard.sh 4/8",
+    "e2e:test:shard5": "bash tests/ci/e2e-run-shard.sh 5/8",
+    "e2e:test:shard6": "bash tests/ci/e2e-run-shard.sh 6/8",
+    "e2e:test:shard7": "bash tests/ci/e2e-run-shard.sh 7/8",
+    "e2e:test:shard8": "bash tests/ci/e2e-run-shard.sh 8/8",
     "rest:test": "playwright test --config playwright.api.config.ts",
     "e2e:visual": "VISUAL_REGRESSION=1 playwright test visual-matrix",
     "e2e:visual:update": "VISUAL_REGRESSION=1 playwright test visual-matrix --update-snapshots",
@@ -46,7 +50,8 @@
     "check": "bun run app:prepare && bunx wrangler types --include-runtime=false --check && bunx biome check && bunx svelte-check --tsconfig ./tsconfig.json && bunx tsc --noEmit -p tsconfig.typecheck.json && bunx tsc --noEmit -p tsconfig.typecheck.tests.json && bunx tsc --noEmit -p tsconfig.typecheck.operational.json && bunx vitest run && bun run openapi:check && bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts",
     "openapi:generate": "bun run scripts/openapi/generate.ts",
     "openapi:check": "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "integration:test:parallel": "bash tests/ci/integration-parallel-local.sh"
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.2",
@@ -112,6 +117,7 @@
     "@vitest/coverage-v8": "4.1.11",
     "ajv": "^8.20.0",
     "bits-ui": "^2.19.0",
+    "devalue": "5.8.1",
     "mode-watcher": "^1.1.0",
     "semantic-release": "25.0.9",
     "shadcn-svelte": "1.5.0",
@@ -122,8 +128,9 @@
     "ts-morph": "^28.0.0",
     "typescript": "^6.0.3",
     "vite": "8.2.2",
-    "vitest": "^4.1.10",
-    "wrangler": "4.125.0",
+    "vitest": "4.1.11",
+    "wrangler": "4.129.1",
+    "yaml": "2.9.0",
     "zod-openapi": "^6.0.1"
   },
   "patchedDependencies": {

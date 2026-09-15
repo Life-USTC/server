@@ -37,6 +37,10 @@ BEGIN
 END
 $revoke_auth_tables$;
 
+-- The metrics endpoint receives sanitized aggregates through its SECURITY
+-- DEFINER function and must never read the singleton cache directly.
+REVOKE ALL ON TABLE "PrometheusMetricsCache" FROM life_ustc_runtime;
+
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   "Todo",
   "CatalogLinkClick",
@@ -58,6 +62,14 @@ GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
 GRANT INSERT, UPDATE, DELETE ON TABLE "Description" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "DescriptionEdit" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "AuditLog" TO life_ustc_runtime;
+GRANT INSERT ON TABLE
+  "FeatureOperationEvent",
+  "RuntimeIssueEvent"
+TO life_ustc_runtime;
+
+-- The weather writer upserts hourly observations through the app runtime.
+GRANT SELECT, INSERT, UPDATE ON TABLE "WeatherObservation"
+TO life_ustc_runtime;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
 GRANT SELECT, INSERT, UPDATE ON TABLE
@@ -114,3 +126,5 @@ GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
 TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
+
+REVOKE ALL ON public."PrometheusCounter",public."PrometheusCounterEpoch" FROM life_ustc_runtime;

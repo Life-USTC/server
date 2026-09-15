@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import {
   busCampusSchema,
@@ -19,7 +20,9 @@ export const viewerContextSchema = z.object({
 
 export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
-  sections: z.array(sectionCompactSchema),
+  sections: z.array(
+    sectionCompactSchema.extend({ kind: subscriptionKindSchema }),
+  ),
   note: z.string(),
 });
 
@@ -43,18 +46,18 @@ export const currentCalendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
-export const calendarSubscriptionCreateResponseSchema = z.strictObject({
+export const calendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
 export const calendarSubscriptionAppendResponseSchema =
-  calendarSubscriptionCreateResponseSchema.extend({
+  calendarSubscriptionResponseSchema.extend({
     addedCount: z.number().int().nonnegative(),
     alreadySubscribedCount: z.number().int().nonnegative(),
   });
 
 export const calendarSubscriptionRemoveResponseSchema =
-  calendarSubscriptionCreateResponseSchema;
+  calendarSubscriptionResponseSchema;
 
 export const calendarSubscriptionImportResponseSchema = z.strictObject({
   success: z.boolean(),
@@ -96,7 +99,7 @@ export const calendarSubscriptionQueryResponseSchema =
 
 export const calendarSubscriptionBatchResponseSchema =
   calendarSubscriptionResolvedSectionsSchema.extend({
-    action: z.enum(["add", "remove", "set"]),
+    action: z.enum(["add", "remove"]),
     addedCount: z.number().int().nonnegative(),
     removedCount: z.number().int().nonnegative(),
     unchangedCount: z.number().int().nonnegative(),

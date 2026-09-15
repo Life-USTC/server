@@ -6,10 +6,9 @@ import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-present
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -39,6 +38,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
       completed: Boolean(homework.completion),
+      completionRequired: homework.completionRequired,
       isMajor: homework.isMajor === true,
       requiresTeam: homework.requiresTeam === true,
     },
@@ -86,32 +86,38 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
               >
-              <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
-                {homeworkEtaLabel(homework.submissionDueAt)}
-              </Badge>
+              {#if homework.completionRequired === false}
+                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
+              {:else if !homework.completion}
+                <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
+                  {homeworkEtaLabel(homework.submissionDueAt)}
+                </Badge>
+              {/if}
               {#each summaryBadges(homework) as badge (badge.key)}
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               {/each}
             </Item.Description>
           </Item.Content>
           <Item.Actions class="shrink-0 self-start">
-            <TableIconButton
-              className="size-11"
-              disabled={homeworkSavingById[homework.id]}
-              label={homeworkSavingById[homework.id]
-                ? homeworksCopy.saving
-                : homeworkCompletionActionLabel(homework)}
-              variant={homework.completion ? "secondary" : "default"}
-              onclick={() => toggleHomeworkCompletion(homework)}
-            >
-              {#if homeworkSavingById[homework.id]}
-                <Spinner data-icon="inline-start" />
-              {:else if homework.completion}
-                <RefreshCw data-icon="inline-start" />
-              {:else}
-                <CheckCircleIcon data-icon="inline-start" />
-              {/if}
-            </TableIconButton>
+            {#if homework.completionRequired !== false}
+              <TableIconButton
+                className="size-11"
+                disabled={homeworkSavingById[homework.id]}
+                label={homeworkSavingById[homework.id]
+                  ? homeworksCopy.saving
+                  : homeworkCompletionActionLabel(homework)}
+                variant={homework.completion ? "secondary" : "default"}
+                onclick={() => toggleHomeworkCompletion(homework)}
+              >
+                {#if homeworkSavingById[homework.id]}
+                  <Spinner data-icon="inline-start" />
+                {:else if homework.completion}
+                  <RefreshCw data-icon="inline-start" />
+                {:else}
+                  <CheckCircleIcon data-icon="inline-start" />
+                {/if}
+              </TableIconButton>
+            {/if}
             <TableIconButton
               className="size-11"
               label={homeworksCopy.viewDetails}
@@ -130,22 +136,11 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
       {/each}
     </Item.Group>
   {:else}
-    <Empty.Root class="min-h-24 items-start text-left">
-      <Empty.Header class="items-start text-left">
-        <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
-        {#if hasHomeworkItems}
-          <Empty.Description>
-            {homeworksCopy.filterEmptyDescription}
-          </Empty.Description>
-        {/if}
-      </Empty.Header>
-      {#if hasHomeworkItems}
-        <Empty.Content class="items-start">
-          <Button variant="outline" onclick={onClearFilter}>
-            {homeworksCopy.clearFilter}
-          </Button>
-        </Empty.Content>
-      {/if}
-    </Empty.Root>
+    <WorkspaceTaskEmptyState
+            title={homeworksCopy.filterEmptyTitle}
+            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={homeworksCopy.clearFilter}
+            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
+          />
   {/if}
 </div>

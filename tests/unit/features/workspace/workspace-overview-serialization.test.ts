@@ -106,6 +106,8 @@ function buildHomework(
       },
     },
     ...overrides,
+    completionRequired: overrides.completionRequired ?? true,
+    sectionId: overrides.sectionId ?? 101,
   };
 }
 

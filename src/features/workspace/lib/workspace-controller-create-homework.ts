@@ -1,7 +1,5 @@
 import {
   homeworkDueAtSemesterEnd,
-  homeworkDueInDays,
-  homeworkDueInMonths,
   homeworkStartsNow,
   initialCreateHomeworkDraft,
 } from "./workspace-controller-helpers";
@@ -21,14 +19,6 @@ export function workspaceCreateHomeworkInitialState(sectionId: string) {
 
 export function workspaceHomeworkStartNow() {
   return homeworkStartsNow();
-}
-
-export function workspaceHomeworkDueInWeek() {
-  return homeworkDueInDays(7);
-}
-
-export function workspaceHomeworkDueInMonth() {
-  return homeworkDueInMonths(1);
 }
 
 export function workspaceHomeworkDueAtSemesterEnd(

@@ -37,6 +37,10 @@ vi.mock("@/lib/db/prisma", () => ({
   withUserDbContext: withUserDbContextMock,
 }));
 
+vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
+  getUserSubscriptionKinds: vi.fn(async () => new Map()),
+}));
+
 import {
   getSectionHomeworkDetail,
   listSectionHomeworkItems,

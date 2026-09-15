@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const prisma = createFixturePrisma();
 
 afterAll(() => disconnectTestPrisma(prisma));
 

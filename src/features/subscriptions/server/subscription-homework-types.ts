@@ -16,6 +16,7 @@ export type SubscribedHomeworkRecord = Omit<
   SubscribedHomeworkBaseRecord,
   "section"
 > & {
+  completionRequired: boolean;
   section:
     | (Omit<SubscribedHomeworkSection, "course"> & {
         course:
@@ -29,6 +30,7 @@ export type SubscribedHomeworkRecord = Omit<
 
 export type HomeworkSummaryItem = {
   id: string;
+  completionRequired: boolean;
   title: string;
   isMajor: boolean;
   requiresTeam: boolean;

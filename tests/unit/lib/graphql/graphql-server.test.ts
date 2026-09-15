@@ -1019,6 +1019,8 @@ describe("GraphQL HTTP boundary", () => {
             }
             subscribedSections(page: $page) {
               items {
+                kind
+                section {
                 id
                 jwId
                 code
@@ -1029,6 +1031,7 @@ describe("GraphQL HTTP boundary", () => {
                 stdCount
                 limitCount
                 remark
+                }
               }
             }
             homeworks(page: $page) {

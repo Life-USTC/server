@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { courseSchema } from "@/lib/api/schemas/academic-course-response-schemas";
 import { subscribedExamSchema } from "@/lib/api/schemas/academic-exam-response-schemas";
 import { campusSchema } from "@/lib/api/schemas/academic-location-response-schemas";
@@ -141,6 +142,7 @@ export const calendarSubscriptionBriefSchema = z.strictObject({
 });
 
 export const calendarSectionSummarySchema = z.strictObject({
+  kind: subscriptionKindSchema,
   id: z.number().int(),
   jwId: z.number().int(),
   code: z.string(),
@@ -167,12 +169,16 @@ export const calendarSubscriptionReadSchema =
 
 export const fullCalendarSubscriptionMutationSchema =
   calendarSubscriptionBriefSchema.extend({
-    sections: z.array(subscriptionFullSectionSchema),
+    sections: z.array(
+      subscriptionFullSectionSchema.extend({ kind: subscriptionKindSchema }),
+    ),
   });
 
 export const fullCalendarSubscriptionReadSchema =
   calendarSubscriptionReadSchema.extend({
-    sections: z.array(subscriptionFullSectionSchema),
+    sections: z.array(
+      subscriptionFullSectionSchema.extend({ kind: subscriptionKindSchema }),
+    ),
   });
 
 export const importSemesterSummarySchema = z.strictObject({

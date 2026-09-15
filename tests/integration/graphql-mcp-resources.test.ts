@@ -3,7 +3,6 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
-import { prisma } from "@/lib/db/prisma";
 import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
@@ -80,7 +79,7 @@ describe("GraphQL MCP operations", () => {
         }),
       ]),
     });
-    expect((manifest.operations as unknown[]).length).toBe(49);
+    expect((manifest.operations as unknown[]).length).toBe(50);
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 
@@ -112,6 +111,8 @@ describe("GraphQL MCP operations", () => {
     if (guidance?.type !== "text") {
       throw new Error("Expected GraphQL planning guidance text");
     }
+    expect(guidance.text).toContain("graphql_operation_run");
+    expect(guidance.text).not.toContain("run_graphql_operation");
     expect(guidance.text).toContain("confirmed=true");
     expect(guidance.text).toContain("insufficient_scope");
     expect(prompt.messages).toEqual(
@@ -534,7 +535,7 @@ describe("GraphQL MCP operations", () => {
           requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
-      expect(await prisma.todo.count({ where: { title } })).toBe(0);
+      expect(await fixtures.prisma.todo.count({ where: { title } })).toBe(0);
     } finally {
       await todoOnlyMcp.close();
     }
@@ -607,9 +608,9 @@ describe("GraphQL MCP operations", () => {
           requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
-      expect(await prisma.todo.count({ where: { title: blockedTitle } })).toBe(
-        0,
-      );
+      expect(
+        await fixtures.prisma.todo.count({ where: { title: blockedTitle } }),
+      ).toBe(0);
     } finally {
       await todoOnlyMcp.close();
     }

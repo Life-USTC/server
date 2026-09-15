@@ -5,6 +5,8 @@ import type {
 } from "@/features/catalog-links/lib/catalog-links";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
 import type {
   WorkspaceBusCopy,
   WorkspaceBusData,
@@ -77,6 +79,7 @@ export type WorkspaceRootCopy = WorkspaceRecord & {
 };
 
 export type WorkspaceCopy = WorkspaceRecord & {
+  roomMap: RoomMapCopy;
   linkHub: {
     colActions: string;
     colDescription: string;
@@ -225,12 +228,25 @@ export type WorkspaceSectionCopy = WorkspaceRecord & {
 };
 
 export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
+  kindEditor: {
+    title: string;
+    save: string;
+    cancel: string;
+    failed: string;
+    regular: string;
+    auditor: string;
+    teaching_assistant: string;
+  };
   browseCourses: string;
   browseSections: string;
   bulkImport: {
     cancel: string;
     checkFormat: string;
     confirmTitle: string;
+    descriptionPrefix: string;
+    undergraduateSystem: string;
+    descriptionConjunction: string;
+    graduateSystem: string;
     description: string;
     fetchFailed: string;
     importFailed: string;
@@ -257,7 +273,6 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     description: string;
     emptyDescription: string;
     emptyTitle: string;
-    hint: string;
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;
@@ -316,21 +331,27 @@ export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
   descriptionLabel: string;
   descriptionPlaceholder: string;
   dueDateShortcuts: string;
+  timeShortcuts: string;
   errorDescriptionTooLong: string;
   errorInvalidSubmissionDue: string;
   errorSectionNotFound: string;
   errorTitleRequired: string;
   errorTitleTooLong: string;
   helperClear: string;
+  helperBeforeMonday: string;
   helperMonth: string;
+  helperNextClass: string;
+  helperNextWeek: string;
   helperPublishNow: string;
   helperSemesterEnd: string;
   helperStartNow: string;
+  helperThisWeek: string;
   helperWeek: string;
   homeworkPublishedAt: string;
   markComplete: string;
   markIncomplete: string;
   moreDetails: string;
+  noCompletionRequired: string;
   pendingLabel: string;
   publishedAt: string;
   relativeTime: string;
@@ -378,6 +399,8 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
   errorTitleRequired: string;
   errorTitleTooLong: string;
   filterEmptyTitle: string;
+  filterEmptyDescription: string;
+  clearFilter: string;
   markComplete: string;
   markIncomplete: string;
   priority: Record<string, string>;
@@ -393,6 +416,7 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
 
 export type WorkspaceHomeworkItem = WorkspaceRecord & {
   completion?: unknown | null;
+  completionRequired?: boolean;
   completed?: boolean;
   dateKey?: string | null;
   description?: string | null;
@@ -519,6 +543,7 @@ export type WorkspaceHomeworkSectionOption = WorkspaceRecord & {
   courseCode?: string | null;
   courseName?: string | null;
   id: number | string;
+  nextClassStarts?: string[];
   semesterEnd?: string | null;
   semesterName?: string | null;
   teacherName?: string | null;
@@ -526,6 +551,7 @@ export type WorkspaceHomeworkSectionOption = WorkspaceRecord & {
 
 export type WorkspaceSubscribedSection = WorkspaceRecord &
   WorkspaceExamSection & {
+    kind: SubscriptionKind;
     code: string;
     credits?: number | string | null;
     id: number;

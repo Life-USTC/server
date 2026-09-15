@@ -1,3 +1,5 @@
+import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
+import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { batchUpdateUserSectionSubscriptions } from "@/features/subscriptions/server/subscriptions";
 import type { GraphqlContext } from "../context";
 import { validateOptionalGraphqlId } from "../input-boundaries";
@@ -9,7 +11,7 @@ import {
   setSectionSubscription,
 } from "./shared";
 
-type SectionSubscriptionBatchAction = "add" | "remove" | "set";
+type SectionSubscriptionBatchAction = "add" | "remove";
 
 type UpdateSectionSubscriptionsInput = {
   action: SectionSubscriptionBatchAction;
@@ -20,10 +22,27 @@ type UpdateSectionSubscriptionsInput = {
 export const sectionSubscriptionBatchActionResolver = {
   ADD: "add",
   REMOVE: "remove",
-  SET: "set",
 } as const satisfies Record<string, SectionSubscriptionBatchAction>;
 
 export const subscriptionMutationResolvers = {
+  async subscriptionKindUpdate(
+    _parent: unknown,
+    args: { jwId: number; kind: SubscriptionKind },
+    context: GraphqlContext,
+  ) {
+    const principal = await requireGraphqlMutation(
+      context,
+      "workspace.subscription",
+    );
+    if (args.jwId <= 0) badMutationInput("jwId must be positive.");
+    const result = await updateSubscriptionKind({
+      userId: principal.userId,
+      sectionJwId: args.jwId,
+      kind: args.kind,
+    });
+    if (!result) mutationNotFound("Subscription not found.");
+    return result;
+  },
   subscriptionAdd(
     _parent: unknown,
     args: { jwId: number },
@@ -53,17 +72,13 @@ export const subscriptionMutationResolvers = {
     const input = args.input;
     rejectExplicitNullFields(input, ["semesterId"]);
     const codes = normalizeSubscriptionBatchCodes(input.codes);
-    if (input.action !== "set" && codes.length === 0) {
+    if (codes.length === 0) {
       badMutationInput("codes must contain at least one item.");
     }
     const semesterId = validateOptionalGraphqlId(
       input.semesterId,
       "semesterId",
     );
-    if (input.action === "set" && semesterId === undefined) {
-      badMutationInput("semesterId is required when action is SET.");
-    }
-
     const result = await batchUpdateUserSectionSubscriptions({
       action: input.action,
       codes,

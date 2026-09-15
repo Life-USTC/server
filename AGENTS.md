@@ -51,7 +51,7 @@ docs/contracts/          Product / API / GraphQL / MCP JSON contracts
 docs/graphql/            SDL snapshot + mutation matrix
 tests/unit|integration|e2e
 .agents/skills/          Project skills (how to implement changes)
-.github/workflows/       CI phases in db-backed-bun-job.yml
+.github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
 ```
 
 **Do not edit:** `src/generated/prisma/`, `src/generated/prisma-node/`,
@@ -60,7 +60,8 @@ tests/unit|integration|e2e
 ## Local checks
 
 Needs Bun (`.bun-version`), Docker Compose, and host `psql`. Locally you can use
-one `DATABASE_URL` (production uses separate app/auth database bindings). First
+one `DATABASE_URL` for development. Database-backed tests require a disposable
+database and separate app/auth/maintenance roles, prepared below. First
 Playwright run: `bunx playwright install --with-deps chromium`.
 
 ```bash
@@ -88,18 +89,25 @@ bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 # bash tests/ci/seed-guard.test.sh
 # bash tests/ci/e2e-full-suite-parity.test.sh
 
-# Integration (same shape as CI ci:integration)
-bun run db:migrate:deploy && bunx prisma db seed
+# Integration (same shape as CI ci:integration), in Bash
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
+export ALLOW_DATABASE_SEED=true
+source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
 bun run build && bun run rest:test
 
-# E2E — script prepares, builds, migrates, and reseeds per shard
+# Parallel integration: provisions and cleans up four isolated databases
+bun run integration:test:parallel
+
+# E2E — resets the disposable database before each shard
 ALLOW_DATABASE_SEED=true bun run e2e:test
+# FUNCTION_OWNER_DATABASE_URL must still identify the disposable test database.
 
 docker compose -f docker-compose.dev.yml down
 ```
 
-CI phase scripts live in `.github/workflows/db-backed-bun-job.yml`. Uploads in
+CI phases live in `.github/workflows/bun-job.yml` (static, unit, build) and
+`.github/workflows/db-backed-bun-job.yml` (database-backed tests). Uploads in
 E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 

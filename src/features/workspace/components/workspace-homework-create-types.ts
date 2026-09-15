@@ -32,12 +32,10 @@ export type WorkspaceHomeworkCreateSection = {
   courseCode?: string | null;
   courseName?: string | null;
   id: number | string;
+  nextClassStarts?: string[];
   semesterEnd?: string | null;
   semesterName?: string | null;
   teacherName?: string | null;
 };
-
-export type WorkspaceHomeworkCreateSectionGetter =
-  () => WorkspaceHomeworkCreateSection | null;
 
 export type WorkspaceHomeworkDateShortcut = () => void;

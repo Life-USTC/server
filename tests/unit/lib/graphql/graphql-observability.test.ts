@@ -111,6 +111,21 @@ function installAnalytics() {
   return writeDataPoint;
 }
 
+function graphqlOperationDataPoints(writeDataPoint: {
+  mock: { calls: readonly unknown[][] };
+}) {
+  return writeDataPoint.mock.calls
+    .map(([point]) => point)
+    .filter(
+      (point): point is Record<string, unknown> =>
+        typeof point === "object" &&
+        point !== null &&
+        "blobs" in point &&
+        Array.isArray(point.blobs) &&
+        point.blobs[0] === "graphql_operation_v3",
+    );
+}
+
 describe("GraphQL semantic observability", () => {
   beforeEach(() => {
     courseService.listCourseSummaries.mockReset();
@@ -154,13 +169,14 @@ describe("GraphQL semantic observability", () => {
     });
     await execute({ query: "{ catalog { courses { items { jwId } } } }" });
 
-    expect(writeDataPoint).toHaveBeenCalledTimes(2);
-    expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
+    const operationDataPoints = graphqlOperationDataPoints(writeDataPoint);
+    expect(operationDataPoints).toHaveLength(2);
+    expect(operationDataPoints[0]).toEqual({
       indexes: ["graphql:query"],
       blobs: ["graphql_operation_v3", "named", "query", "anonymous", "success"],
       doubles: [expect.any(Number), 1, 37, 0, 0],
     });
-    expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
+    expect(operationDataPoints[1]).toEqual({
       indexes: ["graphql:query"],
       blobs: [
         "graphql_operation_v3",
@@ -214,9 +230,10 @@ describe("GraphQL semantic observability", () => {
       );
     }
 
-    expect(writeDataPoint).toHaveBeenCalledTimes(3);
+    const operationDataPoints = graphqlOperationDataPoints(writeDataPoint);
+    expect(operationDataPoints).toHaveLength(3);
     principals.forEach(([authMode], index) => {
-      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+      expect(operationDataPoints[index]).toEqual({
         indexes: ["graphql:query"],
         blobs: ["graphql_operation_v3", "named", "query", authMode, "success"],
         doubles: [expect.any(Number), 1, 102, 0, 0],
@@ -269,23 +286,21 @@ describe("GraphQL semantic observability", () => {
     expect(parseFailure.response.status).toBe(200);
     expect(validationFailure.response.status).toBe(200);
     expect(resolverFailure.response.status).toBe(200);
-    expect(writeDataPoint).toHaveBeenCalledTimes(3);
-    expect(writeDataPoint).toHaveBeenNthCalledWith(
-      1,
+    const operationDataPoints = graphqlOperationDataPoints(writeDataPoint);
+    expect(operationDataPoints).toHaveLength(3);
+    expect(operationDataPoints[0]).toEqual(
       expect.objectContaining({
         indexes: ["graphql:unknown"],
         doubles: [expect.any(Number), 0, 0, 1, 0],
       }),
     );
-    expect(writeDataPoint).toHaveBeenNthCalledWith(
-      2,
+    expect(operationDataPoints[1]).toEqual(
       expect.objectContaining({
         indexes: ["graphql:query"],
         doubles: [expect.any(Number), 1, 1, 1, 0],
       }),
     );
-    expect(writeDataPoint).toHaveBeenNthCalledWith(
-      3,
+    expect(operationDataPoints[2]).toEqual(
       expect.objectContaining({
         indexes: ["graphql:query"],
         doubles: [expect.any(Number), 1, 102, 1, 1],
@@ -563,6 +578,6 @@ describe("GraphQL semantic observability", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toHaveProperty("data");
-    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+    expect(graphqlOperationDataPoints(writeDataPoint)).toHaveLength(1);
   });
 });

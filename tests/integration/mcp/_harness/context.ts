@@ -1,7 +1,13 @@
 import { afterAll, beforeAll } from "vitest";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { ensureDevUserSubscribedToSeedSection } from "./cleanup";
 import { createMcpHarness, type McpHarness } from "./client";
-import { DEV_SEED, integrationUserEmail, prisma } from "./fixtures";
+import {
+  DEV_SEED,
+  prisma as fixturePrisma,
+  integrationUserEmail,
+} from "./fixtures";
 
 export type McpToolTestContext = {
   client: McpHarness;
@@ -25,7 +31,7 @@ export function createMcpToolTestContext(): McpToolTestContext {
   };
 
   beforeAll(async () => {
-    const user = await prisma.user.findFirst({
+    const user = await fixturePrisma.user.findFirst({
       where: { username: DEV_SEED.debugUsername },
       select: { id: true },
     });
@@ -41,7 +47,11 @@ export function createMcpToolTestContext(): McpToolTestContext {
 
   afterAll(async () => {
     await context.client?.close();
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
   return context;
@@ -58,7 +68,7 @@ function registerIsolatedUserLifecycle(
   },
 ) {
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: integrationUserEmail(input.emailPrefix),
         name: input.name,
@@ -77,10 +87,14 @@ function registerIsolatedUserLifecycle(
       try {
         await input.cleanup?.(context.userId);
       } finally {
-        await prisma.user.deleteMany({ where: { id: context.userId } });
+        await fixturePrisma.user.deleteMany({ where: { id: context.userId } });
       }
     } finally {
-      await prisma.$disconnect();
+      await Promise.all([
+        fixturePrisma.$disconnect(),
+        authPrisma.$disconnect(),
+        runtimePrisma.$disconnect(),
+      ]);
     }
   });
 }
@@ -137,7 +151,7 @@ export async function createEphemeralMcpUser(input: {
   emailPrefix: string;
   name: string;
 }): Promise<EphemeralMcpUser> {
-  const user = await prisma.user.create({
+  const user = await fixturePrisma.user.create({
     data: {
       email: integrationUserEmail(input.emailPrefix),
       name: input.name,
@@ -151,7 +165,7 @@ export async function createEphemeralMcpUser(input: {
     userId: user.id,
     async close() {
       await client.close();
-      await prisma.user.deleteMany({ where: { id: user.id } });
+      await fixturePrisma.user.deleteMany({ where: { id: user.id } });
     },
   };
 }

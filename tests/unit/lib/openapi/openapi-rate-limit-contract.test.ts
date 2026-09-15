@@ -9,8 +9,8 @@ const PROTECTED_MUTATIONS = [
   ["patch", "/api/admin/suspensions/{id}"],
   ["patch", "/api/admin/users/{id}"],
   ["post", "/api/workspace/bus-preferences"],
-  ["post", "/api/workspace/subscriptions"],
   ["patch", "/api/workspace/subscriptions"],
+  ["patch", "/api/workspace/subscriptions/{jwId}"],
   ["delete", "/api/workspace/subscriptions"],
   ["post", "/api/workspace/subscriptions/batch"],
   ["post", "/api/workspace/subscriptions/import-codes"],
@@ -59,11 +59,13 @@ type Operation = {
 const paths = openApi.paths as Record<string, Record<string, Operation>>;
 
 describe("OpenAPI rate-limit response contract", () => {
-  it("documents 429/503 on protected mutations and storage failures on object reads", () => {
+  it("documents 429/503 on protected mutations and dependency failures on reads", () => {
     const expected = new Set(
-      [...PROTECTED_MUTATIONS, ...EXPECTED_STORAGE_FAILURES].map(
-        ([method, path]) => `${method} ${path}`,
-      ),
+      [
+        ...PROTECTED_MUTATIONS,
+        ...EXPECTED_STORAGE_FAILURES,
+        ["get", "/api/catalog/weather"],
+      ].map(([method, path]) => `${method} ${path}`),
     );
     const documented = new Set<string>();
 

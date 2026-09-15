@@ -2,8 +2,6 @@ export { buildCalendarWeekdayLabels } from "./workspace-controller-labels";
 export const todoPriorityOrder = ["medium", "high", "low"] as const;
 export {
   homeworkDueAtSemesterEnd,
-  homeworkDueInDays,
-  homeworkDueInMonths,
   homeworkTimestampNow as homeworkStartsNow,
   initialHomeworkTimestampDraft as initialCreateHomeworkDraft,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";

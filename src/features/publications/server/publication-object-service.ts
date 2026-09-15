@@ -224,7 +224,13 @@ export async function planPublicationObjects(input: {
       const headers = requiredHeaders({
         contentType: claim.expectedContentType,
       });
-      if (object.status === "linked") {
+      // "verified" and "linked" are the public object statuses (see
+      // publication-public-read-service.ts). A row only reaches them after
+      // strict byte verification, and the manifest is content-addressed with
+      // its size pinned at registration, so the plan trusts the DB row and
+      // skips the R2 head. If the object is deleted or replaced out-of-band,
+      // the plan reports already_present until a public read surfaces it.
+      if (object.status === "linked" || object.status === "verified") {
         return {
           objectId: object.id,
           storageStatus: "linked" as const,

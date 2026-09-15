@@ -4,18 +4,12 @@ import {
   DEV_DEBUG_PROVIDER_ID,
 } from "@/lib/auth/provider-ids";
 
-const hashPasswordMock = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
-  account: { upsert: vi.fn() },
+  account: { findUnique: vi.fn(), upsert: vi.fn() },
   user: {
-    create: vi.fn(),
-    findMany: vi.fn(),
+    findUnique: vi.fn(),
     update: vi.fn(),
   },
-}));
-
-vi.mock("better-auth/crypto", () => ({
-  hashPassword: hashPasswordMock,
 }));
 
 vi.mock("@/lib/db/auth-prisma", () => ({
@@ -24,11 +18,15 @@ vi.mock("@/lib/db/auth-prisma", () => ({
 
 describe("debug 认证配置", () => {
   beforeEach(() => {
-    hashPasswordMock.mockResolvedValue("hashed-debug-password");
-    prismaMock.account.upsert.mockResolvedValue({});
-    prismaMock.user.create.mockResolvedValue({ id: "created-user" });
-    prismaMock.user.findMany.mockResolvedValue([]);
-    prismaMock.user.update.mockResolvedValue({ id: "updated-user" });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "seeded-user",
+      username: "dev-user",
+      isAdmin: false,
+      profilePictures: ["https://example.test/seeded-avatar.svg"],
+    });
+    prismaMock.account.findUnique.mockResolvedValue({
+      id: "seeded-credential",
+    });
   });
 
   afterEach(() => {
@@ -84,103 +82,74 @@ describe("debug 认证配置", () => {
     );
   });
 
-  it("补全匹配的过期 debug 用户", async () => {
+  it("只读取预置的 debug 用户和 credential，不写 auth 数据库", async () => {
     const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
       "@/lib/auth/debug-auth"
     );
     const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
-    prismaMock.user.findMany.mockResolvedValue([
-      {
-        id: "stale-debug-user",
-        username: null,
-        email: config.email,
-        image: null,
-        profilePictures: [],
-      },
-    ]);
 
-    await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
+    await expect(
+      ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID),
+    ).resolves.toBe("seeded-user");
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: "stale-debug-user" },
-      data: {
-        username: config.username,
-        email: config.email,
-        emailVerified: true,
-        name: config.name,
-        isAdmin: config.isAdmin,
-        image: config.image,
-        profilePictures: { set: [config.image] },
-      },
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: { email: config.email },
       select: { id: true },
     });
-    expect(prismaMock.account.upsert).toHaveBeenCalledWith({
+    expect(prismaMock.account.findUnique).toHaveBeenCalledWith({
       where: {
         issuer_providerAccountId: {
           issuer: "local:credential",
-          providerAccountId: "updated-user",
+          providerAccountId: "seeded-user",
         },
       },
-      update: {
-        userId: "updated-user",
-        type: "credential",
-        provider: "credential",
-        issuer: "local:credential",
-        password: "hashed-debug-password",
-      },
-      create: {
-        userId: "updated-user",
-        type: "credential",
-        provider: "credential",
-        issuer: "local:credential",
-        providerAccountId: "updated-user",
-        password: "hashed-debug-password",
-      },
+      select: { id: true },
     });
+    expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(prismaMock.account.findUnique).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.account.upsert).not.toHaveBeenCalled();
   });
 
-  it("优先使用用户名身份并中和重复的 debug 邮箱用户", async () => {
+  it("预置用户缺失时明确要求先执行 seed", async () => {
     const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
       "@/lib/auth/debug-auth"
     );
     const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
-    prismaMock.user.findMany.mockResolvedValue([
-      {
-        id: "canonical-debug-user",
-        username: config.username,
-        email: `${config.username}@users.local`,
-        image: "https://example.test/existing-avatar.svg",
-        profilePictures: ["https://example.test/existing-avatar.svg"],
-      },
-      {
-        id: "stale-email-user",
-        username: null,
-        email: config.email,
-        image: null,
-        profilePictures: [],
-      },
-    ]);
+    prismaMock.user.findUnique.mockResolvedValue(null);
 
-    await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
+    await expect(
+      ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID),
+    ).rejects.toThrow(
+      `Debug auth user ${DEV_DEBUG_PROVIDER_ID} (${config.email}) is missing; run the configured database seed`,
+    );
+    expect(prismaMock.account.findUnique).not.toHaveBeenCalled();
+  });
 
-    expect(prismaMock.user.update).toHaveBeenNthCalledWith(1, {
-      where: { id: "stale-email-user" },
-      data: {
-        username: null,
-        email: "debug-auth-stale-stale-email-user@debug.local",
-      },
+  it("预置 credential 缺失时明确要求先执行 seed", async () => {
+    const { ensureDebugCredentialUser } = await import("@/lib/auth/debug-auth");
+    prismaMock.account.findUnique.mockResolvedValue(null);
+
+    await expect(
+      ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID),
+    ).rejects.toThrow(
+      `Debug auth credential ${DEV_DEBUG_PROVIDER_ID} is missing; run the configured database seed`,
+    );
+  });
+
+  it("允许用户资料和管理员标记发生变化且不重置属性", async () => {
+    const { ensureDebugCredentialUser } = await import("@/lib/auth/debug-auth");
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "existing-user",
+      username: "user-chosen-name",
+      isAdmin: true,
+      profilePictures: [],
     });
-    expect(prismaMock.user.update).toHaveBeenNthCalledWith(2, {
-      where: { id: "canonical-debug-user" },
-      data: {
-        username: config.username,
-        email: config.email,
-        emailVerified: true,
-        name: config.name,
-        isAdmin: config.isAdmin,
-        image: "https://example.test/existing-avatar.svg",
-      },
-      select: { id: true },
-    });
+
+    await expect(
+      ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID),
+    ).resolves.toBe("existing-user");
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.account.upsert).not.toHaveBeenCalled();
   });
 });

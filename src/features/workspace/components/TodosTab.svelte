@@ -10,7 +10,6 @@ import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
@@ -36,10 +35,10 @@ export let createTodoAction: SubmitFunction;
 export let updateTodoAction: SubmitFunction;
 
 export let todoFilter: TodoFilter;
-export let todoItems: WorkspaceTodoItem[];
 export let showCreateTodo: boolean;
 export let selectedTodo: WorkspaceTodoItem | null;
 export let editingTodo: WorkspaceTodoItem | null;
+export let hasTodoItems: boolean;
 export let filteredTodos: WorkspaceTodoItem[];
 export let createTodoError: string;
 export let editTodoError: string;
@@ -60,17 +59,16 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
-$: displayTodoFilter = resolveWorkspaceTaskFilter(
-  todoFilter,
-  todoItems.some((todo) => !todo.completed),
-);
+function clearTodoFilter() {
+  todoFilter = "all";
+}
 </script>
 
 <section class="grid gap-4">
   <TodosTabToolbar
     bind:createTodoError
     bind:showCreateTodo
-    todoFilter={displayTodoFilter}
+    {todoFilter}
     onTodoFilterChange={(value) => {
       todoFilter = value;
     }}
@@ -86,6 +84,8 @@ $: displayTodoFilter = resolveWorkspaceTaskFilter(
   <div class="md:hidden">
     <TodosCardsView
       {filteredTodos}
+      {hasTodoItems}
+      onClearFilter={clearTodoFilter}
       {fmtDate}
       {openTodoEditor}
       bind:selectedTodo
@@ -99,6 +99,8 @@ $: displayTodoFilter = resolveWorkspaceTaskFilter(
   <div class="hidden min-w-0 overflow-x-auto md:block">
     <TodosListView
       {filteredTodos}
+      {hasTodoItems}
+      onClearFilter={clearTodoFilter}
       {fmtDate}
       {openTodoEditor}
       bind:selectedTodo

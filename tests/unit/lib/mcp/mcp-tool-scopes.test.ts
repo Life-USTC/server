@@ -89,6 +89,12 @@ describe("getRequiredMcpScopes", () => {
     expect(getRequiredMcpScopes("workspace_calendar_event_list")).toEqual([
       restReadScope("workspace.calendar"),
     ]);
+    expect(getRequiredMcpScopes("workspace_calendar_timeline_get")).toEqual([
+      restReadScope("workspace.calendar"),
+    ]);
+    expect(getRequiredMcpScopes("workspace_calendar_feed_get")).toEqual([
+      restReadScope("workspace.subscription"),
+    ]);
     expect(getRequiredMcpScopes("community_comment_create")).toEqual([
       restWriteScope("community.comment"),
     ]);

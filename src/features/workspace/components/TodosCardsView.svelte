@@ -13,12 +13,14 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import TodoEmptyState from "./TodoEmptyState.svelte";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
+export let hasTodoItems: boolean;
+export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
@@ -117,6 +119,11 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       {/each}
     </Item.Group>
   {:else}
-    <TodoEmptyState {todosCopy} />
+    <WorkspaceTaskEmptyState
+            title={todosCopy.filterEmptyTitle}
+            description={hasTodoItems ? todosCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={todosCopy.clearFilter}
+            onClearFilter={hasTodoItems ? onClearFilter : undefined}
+          />
   {/if}
 </div>

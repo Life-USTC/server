@@ -115,7 +115,14 @@ export function compactTeacher(value: unknown) {
 export function compactSection(value: unknown) {
   if (!isRecord(value)) return value;
   return {
-    ...pick(value, ["id", "jwId", "code", "campusId", "openDepartmentId"]),
+    ...pick(value, [
+      "id",
+      "jwId",
+      "code",
+      "campusId",
+      "openDepartmentId",
+      "kind",
+    ]),
     ...compactRelations(value, {
       course: compactCourse,
       semester: compactSemester,
@@ -240,6 +247,7 @@ export function compactHomework(value: unknown) {
       "title",
       "isMajor",
       "requiresTeam",
+      "completionRequired",
       "publishedAt",
       "submissionStartAt",
       "submissionDueAt",

@@ -1,5 +1,6 @@
 import { GraphQLError } from "graphql";
 import { BUS_VERSION_KEY_PATTERN } from "@/features/bus/lib/bus-version-key";
+import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
 import {
   WEATHER_LOCATIONS,
   type WeatherLocationKey,
@@ -127,4 +128,10 @@ export function validateGraphqlWeatherLocationKey(
     );
   }
   return locationKey;
+}
+
+export function validateGraphqlRoomCode(value: string) {
+  const parsed = roomCodeSchema.safeParse(value);
+  if (!parsed.success) badUserInput("Invalid room code.");
+  return parsed.data;
 }

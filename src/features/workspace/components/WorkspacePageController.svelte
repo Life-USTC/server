@@ -8,8 +8,8 @@ import {
   monthWeeks,
 } from "@/features/workspace/lib/calendar";
 import {
+  calendarHomeworkChipFields as buildCalendarHomeworkChipFields,
   calendarExamChipFields,
-  calendarHomeworkChipFields,
   calendarSemesterIndex,
   calendarSessionChipFields,
 } from "@/features/workspace/lib/calendar-display";
@@ -110,7 +110,6 @@ let {
   subscriptionActionError,
   todoActionError,
   todoFilter,
-  todoItems,
   todoSavingById,
   todoView,
   unmatchedSectionCodes,
@@ -136,6 +135,15 @@ $: pageTitle =
     ? data.mainContentLabel
     : copy.metadata.home;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
+
+function calendarHomeworkChipFields(
+  homework: Parameters<typeof buildCalendarHomeworkChipFields>[0],
+) {
+  return buildCalendarHomeworkChipFields(
+    homework,
+    homeworksCopy.noCompletionRequired,
+  );
+}
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
 $: catalogLinkGroupLabels = workspaceCopy.linkHub.groups;
 $: if (data !== linkSourceData) {
@@ -149,8 +157,6 @@ $: if (data !== linkSourceData) {
 
 const {
   applyHomeworkDueAtSemesterEnd,
-  applyHomeworkDueInMonth,
-  applyHomeworkDueInWeek,
   applyHomeworkStartNow,
   calendarHomeworkHref,
   calendarTimelineItemsForDay,
@@ -170,7 +176,6 @@ const {
   removeSubscribedSection,
   resetBulkImport,
   searchQuickAddSections,
-  selectedCreateHomeworkSection,
   sessionHref,
   setCalendarMonth,
   setCalendarSemester,
@@ -372,7 +377,6 @@ $: signedData = applyLocalTodoItemsToSignedData(
   todoSourceItems,
 );
 $: homeworkReferenceDate = referenceDate(signedData?.referenceNow);
-$: todoItems = derivedState.todoItems;
 $: filteredTodos = derivedState.filteredTodos;
 $: examRows = derivedState.examRows;
 $: filteredExamRows = derivedState.filteredExamRows;
@@ -430,8 +434,6 @@ onMount(mount);
         <SignedWorkspaceTaskTabs
         activeTab={signedData.tab}
         {applyHomeworkDueAtSemesterEnd}
-        {applyHomeworkDueInMonth}
-        {applyHomeworkDueInWeek}
         {applyHomeworkStartNow}
         {commentsCopy}
         {commonCopy}
@@ -456,11 +458,9 @@ onMount(mount);
         {openCreateHomeworkDialog}
         {openTodoEditor}
         {sectionCopy}
-        {selectedCreateHomeworkSection}
         {signedData}
         {subscriptionsCopy}
         {todoActionError}
-        {todoItems}
         {todoPriorityOptions}
         {todoSavingById}
         {todosCopy}

@@ -1,6 +1,6 @@
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
-  badRequest,
+  errorResponse,
   handleRouteError,
   jsonResponse,
   parseRouteSearchParams,
@@ -20,7 +20,7 @@ export async function getWeatherRoute(request: Request) {
   try {
     const snapshot = await getWeatherSnapshot(parsedQuery.locationKey);
     if (!snapshot) {
-      return badRequest("Weather data is unavailable");
+      return errorResponse("Weather data is unavailable", 503);
     }
     return jsonResponse(snapshot, { headers: PRIVATE_LOCALE_CATALOG_HEADERS });
   } catch (error) {

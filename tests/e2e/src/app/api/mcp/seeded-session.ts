@@ -8,8 +8,8 @@ import {
   createAuthenticatedMcpClient,
   getCurrentSubscriptionSectionIds,
   getSeedSectionId,
-  replaceCalendarSubscription,
   saveBusPreference,
+  setCalendarSubscriptionForTest,
 } from "./helpers";
 
 export type SeededMcpSession = Awaited<
@@ -46,7 +46,7 @@ export async function openSeededMcpSession(
     preferredDestinationCampusId: 4,
     showDepartedTrips: true,
   });
-  await replaceCalendarSubscription(page.request, [seedSectionId]);
+  await setCalendarSubscriptionForTest(page.request, [seedSectionId]);
 
   return {
     ...mcp,
@@ -67,7 +67,10 @@ export async function closeSeededMcpSession(
         `/api/community/section-homeworks/${options.createdHomeworkId}`,
       );
     }
-    await replaceCalendarSubscription(page.request, session.originalSectionIds);
+    await setCalendarSubscriptionForTest(
+      page.request,
+      session.originalSectionIds,
+    );
     await saveBusPreference(page.request, session.originalBusPreference ?? {});
   } finally {
     await session.close();

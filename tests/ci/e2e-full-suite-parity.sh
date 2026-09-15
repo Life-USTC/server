@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the complete E2E suite with the same per-shard database lifecycle as CI.
 #
-# CI runs four independent jobs. Each job migrates, seeds, and executes one
+# CI runs eight independent jobs. Each job migrates, seeds, and executes one
 # Playwright shard against a fresh database. A single unsharded `playwright test`
 # invocation reuses one seed across all files and projects, so shared-state
 # mutations from earlier shards leak into later ones.
@@ -10,10 +10,10 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
-readonly E2E_SHARD_TOTAL=4
+readonly E2E_SHARD_TOTAL=8
 
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "DATABASE_URL must be set for E2E database lifecycle." >&2
+if [[ -z "${FUNCTION_OWNER_DATABASE_URL:-}" ]]; then
+  echo "FUNCTION_OWNER_DATABASE_URL must be set for E2E database lifecycle." >&2
   exit 1
 fi
 
@@ -22,8 +22,8 @@ if [[ "${ALLOW_DATABASE_SEED:-}" != "true" ]]; then
   exit 1
 fi
 
-bun run app:prepare
-bun run build
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run app:prepare
+DATABASE_URL="$FUNCTION_OWNER_DATABASE_URL" bun run build
 
 failed_shards=()
 
@@ -33,8 +33,8 @@ for shard in $(seq 1 "$E2E_SHARD_TOTAL"); do
   # non-production sync previously retargeted Kit aliases to prisma-node and
   # wrangler then rebundled a broken worker for Playwright.
   bun run app:prepare
-  bun run db:migrate:deploy
-  bunx prisma db seed
+  # Each shard starts from a fresh schema, just like its separate CI service.
+  source tests/ci/setup-runtime-database.sh reset
   if ! bash tests/ci/e2e-run-shard.sh "${shard}/${E2E_SHARD_TOTAL}"; then
     failed_shards+=("${shard}/${E2E_SHARD_TOTAL}")
   fi

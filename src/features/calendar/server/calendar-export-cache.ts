@@ -3,7 +3,7 @@ import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
 import { getCloudflareCalendarExportsNamespace } from "@/lib/ports/runtime";
 
-const USER_CALENDAR_EXPORT_CACHE_VERSION = 1;
+const USER_CALENDAR_EXPORT_CACHE_VERSION = 2;
 // Keep feeds "fresh" longer so calendar clients that poll often do not force a
 // rebuild on every hit after 5 minutes. Writes still invalidate the cache.
 export const USER_CALENDAR_EXPORT_FRESH_TTL_MS = 30 * 60_000;

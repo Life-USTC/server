@@ -11,8 +11,6 @@ type SignedWorkspaceExamData = SignedWorkspaceData & {
 
 export let activeTab: WorkspaceTaskTabsProps["activeTab"];
 export let applyHomeworkDueAtSemesterEnd: WorkspaceTaskTabsProps["applyHomeworkDueAtSemesterEnd"];
-export let applyHomeworkDueInMonth: WorkspaceTaskTabsProps["applyHomeworkDueInMonth"];
-export let applyHomeworkDueInWeek: WorkspaceTaskTabsProps["applyHomeworkDueInWeek"];
 export let applyHomeworkStartNow: WorkspaceTaskTabsProps["applyHomeworkStartNow"];
 export let commentsCopy: WorkspaceTaskTabsProps["commentsCopy"];
 export let commonCopy: WorkspaceTaskTabsProps["commonCopy"];
@@ -51,7 +49,6 @@ export let namePrimary: WorkspaceTaskTabsProps["namePrimary"];
 export let openCreateHomeworkDialog: WorkspaceTaskTabsProps["openCreateHomeworkDialog"];
 export let openTodoEditor: WorkspaceTaskTabsProps["openTodoEditor"];
 export let sectionCopy: WorkspaceTaskTabsProps["sectionCopy"];
-export let selectedCreateHomeworkSection: WorkspaceTaskTabsProps["selectedCreateHomeworkSection"];
 export let selectedHomework: WorkspaceTaskTabsProps["selectedHomework"];
 export let selectedTodo: WorkspaceTaskTabsProps["selectedTodo"];
 export let showCreateHomework: boolean;
@@ -60,7 +57,6 @@ export let signedData: WorkspaceTaskTabsProps["signedData"];
 export let subscriptionsCopy: WorkspaceTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
 export let todoFilter: WorkspaceTaskTabsProps["todoFilter"];
-export let todoItems: WorkspaceTaskTabsProps["todoItems"];
 export let todoPriorityOptions: WorkspaceTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: WorkspaceTaskTabsProps["todoSavingById"];
 export let todosCopy: WorkspaceTaskTabsProps["todosCopy"];
@@ -71,6 +67,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
 
 {#if activeTab === "todos"}
   <SignedWorkspaceTodosTaskBranch
+    hasTodoItems={(signedData.todos?.length ?? 0) > 0}
     {todosCopy}
     {workspaceCopy}
     {sectionCopy}
@@ -85,7 +82,6 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {updateTodoAction}
     {filteredTodos}
     {todoActionError}
-    {todoItems}
     {todoSavingById}
     {isCreatingTodo}
     {isUpdatingTodo}
@@ -108,11 +104,8 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {data}
     {signedData}
     homeworkReferenceDate={homeworkReferenceDate}
-    {selectedCreateHomeworkSection}
     {openCreateHomeworkDialog}
     {applyHomeworkStartNow}
-    {applyHomeworkDueInWeek}
-    {applyHomeworkDueInMonth}
     {applyHomeworkDueAtSemesterEnd}
     {toggleHomeworkCompletion}
     {createHomeworkAction}

@@ -44,6 +44,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.sessionDetail(session),
       sort: session.startTime ?? 2400,
       title: session.courseName,
+      badge: session.badge,
       tone: "info" as const,
     })),
     ...events.exams.map((exam) => ({
@@ -56,7 +57,9 @@ export function buildCalendarTimelineItemsForDay<
       tone: "error" as const,
     })),
     ...events.homeworks.map((homework) => ({
-      done: Boolean(homework.completed ?? homework.completion),
+      done:
+        homework.completionRequired !== false &&
+        Boolean(homework.completed ?? homework.completion),
       key: `homework-${homework.id}`,
       href: options.homeworkHref(homework),
       label: options.homeworkLabel,

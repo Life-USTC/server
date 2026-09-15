@@ -59,11 +59,11 @@ describe("用户 iCal 导出缓存", () => {
     expect(second.status).toBe("fresh");
     expect(buildExport).toHaveBeenCalledTimes(1);
     expect(namespace.put).toHaveBeenCalledWith(
-      "user-calendar:v1:user-1",
+      "user-calendar:v2:user-1",
       expect.any(String),
       { expirationTtl: 86_400 },
     );
-    expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v1:user-1", {
+    expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v2:user-1", {
       cacheTtl: 3_600,
       type: "json",
     });
@@ -335,6 +335,6 @@ describe("用户 iCal 导出缓存", () => {
     await getCachedUserCalendarExport("user-1", buildExport);
 
     expect(buildExport).toHaveBeenCalledTimes(2);
-    expect(namespace.delete).toHaveBeenCalledWith("user-calendar:v1:user-1");
+    expect(namespace.delete).toHaveBeenCalledWith("user-calendar:v2:user-1");
   });
 });

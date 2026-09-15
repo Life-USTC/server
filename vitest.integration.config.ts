@@ -13,34 +13,13 @@ const sharedTest = {
 
 /** Integration DB + seed setup lives in `tests/integration/AGENTS.md`. */
 export default defineConfig({
+  resolve: { alias: sharedAlias },
   test: {
-    projects: [
-      {
-        resolve: { alias: sharedAlias },
-        test: {
-          ...sharedTest,
-          name: "integration-serial-auth",
-          // Whole-table auth row counts flake when other files mutate auth tables.
-          include: [
-            "tests/integration/auth-record-cleanup.test.ts",
-            "tests/integration/oauth-consent-transaction.test.ts",
-          ],
-          fileParallelism: false,
-        },
-      },
-      {
-        resolve: { alias: sharedAlias },
-        test: {
-          ...sharedTest,
-          name: "integration-parallel",
-          include: ["tests/integration/**/*.test.ts"],
-          exclude: [
-            "tests/integration/auth-record-cleanup.test.ts",
-            "tests/integration/oauth-consent-transaction.test.ts",
-          ],
-          fileParallelism: true,
-        },
-      },
-    ],
+    globalSetup: ["./tests/integration/global-setup.ts"],
+    ...sharedTest,
+    include: ["tests/integration/**/*.test.ts"],
+    // Integration fixtures share seeded users and database rows. Running the
+    // files serially also keeps whole-table auth assertions deterministic.
+    fileParallelism: false,
   },
 });

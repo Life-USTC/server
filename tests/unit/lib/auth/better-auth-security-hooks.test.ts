@@ -35,6 +35,10 @@ function endpointContext(
   } as never;
 }
 
+function oauthRedirect(location: string) {
+  return new APIError("FOUND", undefined, new Headers({ location }));
+}
+
 describe("Better Auth security audit hooks", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -282,6 +286,61 @@ describe("Better Auth security audit hooks", () => {
         action: "account_sign_in",
         metadata: { authMethod: "password" },
         outcome: "denied",
+      }),
+    );
+  });
+
+  it("does not audit a successful OAuth callback redirect as a failure", async () => {
+    await betterAuthSecurityDatabaseHooks.session?.create?.after?.(
+      {
+        createdAt: new Date(),
+        expiresAt: new Date(),
+        id: "session-1",
+        ipAddress: null,
+        token: "secret",
+        updatedAt: new Date(),
+        userAgent: null,
+        userId: "user-1",
+      },
+      endpointContext("/callback/google"),
+    );
+
+    await betterAuthSecurityHooks.after(
+      endpointContext("/callback/google", {
+        context: {
+          returned: oauthRedirect("https://app.example.test/workspace"),
+          session: null,
+        },
+      }),
+    );
+
+    expect(fireAuditLogMock).toHaveBeenCalledTimes(1);
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_sign_in",
+        metadata: { authMethod: "oauth" },
+        sessionId: "session-1",
+      }),
+    );
+  });
+
+  it("keeps OAuth callback error redirects as failures", async () => {
+    await betterAuthSecurityHooks.after(
+      endpointContext("/callback/google", {
+        context: {
+          returned: oauthRedirect(
+            "https://app.example.test/error?error=invalid_code",
+          ),
+          session: null,
+        },
+      }),
+    );
+
+    expect(fireAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "account_sign_in",
+        metadata: { authMethod: "oauth" },
+        outcome: "failure",
       }),
     );
   });

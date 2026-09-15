@@ -88,6 +88,9 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
                   <Item.Title class="line-clamp-2">{homework.title}</Item.Title>
                   <Item.Description class="flex flex-wrap items-center gap-1.5">
                     <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
+                    {#if homework.completionRequired === false}
+                      <Badge variant="outline">{copy.homeworks.noCompletionRequired}</Badge>
+                    {/if}
                     <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
                   </Item.Description>
                 </Item.Content>

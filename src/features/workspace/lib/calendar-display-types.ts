@@ -1,4 +1,5 @@
 export type CalendarSessionEvent = {
+  badge?: string;
   id: string | number;
   courseName: string;
   endTime?: number | null;
@@ -19,6 +20,7 @@ export type CalendarExamEvent = {
 
 export type CalendarHomeworkEvent = {
   completion?: unknown;
+  completionRequired?: boolean;
   completed?: boolean;
   id: string | number;
   description?: string | null;

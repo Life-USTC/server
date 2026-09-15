@@ -3,9 +3,20 @@ import {
   type AuthRecordCleanupReport,
   cleanupExpiredAuthRecords,
 } from "@/features/auth/server/auth-record-cleanup";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import {
+  createFixturePrisma,
+  createTestPrisma,
+  disconnectTestPrisma,
+} from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const maintenanceDatabaseUrl = process.env.MAINTENANCE_DATABASE_URL;
+if (!maintenanceDatabaseUrl) {
+  throw new Error(
+    "MAINTENANCE_DATABASE_URL is required for auth record cleanup tests",
+  );
+}
+const fixturePrisma = createFixturePrisma();
+const maintenancePrisma = createTestPrisma(maintenanceDatabaseUrl);
 const cutoff = new Date(Date.now() - 60_000);
 const expiredAt = new Date(cutoff.getTime() - 60_000);
 const futureAt = new Date(cutoff.getTime() + 24 * 60 * 60 * 1000);
@@ -24,15 +35,17 @@ describe("expired auth record cleanup", () => {
       oauthRefreshTokens,
       deviceCodes,
     ] = await Promise.all([
-      prisma.session.count({ where: { expires: { lt: cutoff } } }),
-      prisma.verificationToken.count({ where: { expires: { lt: cutoff } } }),
-      prisma.oAuthAccessToken.count({
+      fixturePrisma.session.count({ where: { expires: { lt: cutoff } } }),
+      fixturePrisma.verificationToken.count({
+        where: { expires: { lt: cutoff } },
+      }),
+      fixturePrisma.oAuthAccessToken.count({
         where: { expiresAt: { lt: cutoff } },
       }),
-      prisma.oAuthRefreshToken.count({
+      fixturePrisma.oAuthRefreshToken.count({
         where: { expiresAt: { lt: cutoff } },
       }),
-      prisma.deviceCode.count({ where: { expiresAt: { lt: cutoff } } }),
+      fixturePrisma.deviceCode.count({ where: { expiresAt: { lt: cutoff } } }),
     ]);
     preexistingExpired = {
       sessions,
@@ -42,7 +55,7 @@ describe("expired auth record cleanup", () => {
       deviceCodes,
     };
 
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `${marker}@example.test`,
         name: marker,
@@ -50,7 +63,7 @@ describe("expired auth record cleanup", () => {
     });
     userId = user.id;
 
-    const client = await prisma.oAuthClient.create({
+    const client = await fixturePrisma.oAuthClient.create({
       data: {
         clientId: marker,
         name: marker,
@@ -60,7 +73,7 @@ describe("expired auth record cleanup", () => {
     });
     clientId = client.clientId;
 
-    await prisma.session.createMany({
+    await fixturePrisma.session.createMany({
       data: Array.from(
         { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
         (_, index) => ({
@@ -70,7 +83,7 @@ describe("expired auth record cleanup", () => {
         }),
       ),
     });
-    await prisma.session.createMany({
+    await fixturePrisma.session.createMany({
       data: [
         {
           sessionToken: `${marker}-boundary-session`,
@@ -84,7 +97,7 @@ describe("expired auth record cleanup", () => {
         },
       ],
     });
-    await prisma.verificationToken.createMany({
+    await fixturePrisma.verificationToken.createMany({
       data: [
         ...Array.from(
           { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
@@ -101,7 +114,7 @@ describe("expired auth record cleanup", () => {
         },
       ],
     });
-    await prisma.deviceCode.createMany({
+    await fixturePrisma.deviceCode.createMany({
       data: [
         ...Array.from(
           { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
@@ -122,7 +135,7 @@ describe("expired auth record cleanup", () => {
         },
       ],
     });
-    await prisma.oAuthRefreshToken.createMany({
+    await fixturePrisma.oAuthRefreshToken.createMany({
       data: [
         ...Array.from(
           { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
@@ -148,7 +161,7 @@ describe("expired auth record cleanup", () => {
         },
       ],
     });
-    await prisma.oAuthAccessToken.createMany({
+    await fixturePrisma.oAuthAccessToken.createMany({
       data: [
         ...Array.from(
           { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
@@ -176,15 +189,18 @@ describe("expired auth record cleanup", () => {
   });
 
   afterAll(async () => {
-    await prisma.verificationToken.deleteMany({
+    await fixturePrisma.verificationToken.deleteMany({
       where: { identifier: marker },
     });
-    await prisma.user.delete({ where: { id: userId } });
-    await disconnectTestPrisma(prisma);
+    await fixturePrisma.user.delete({ where: { id: userId } });
+    await Promise.all([
+      disconnectTestPrisma(fixturePrisma),
+      disconnectTestPrisma(maintenancePrisma),
+    ]);
   });
 
   test("uses a locked-down security-definer function with bounded batches", async () => {
-    const [definition] = await prisma.$queryRaw<
+    const [definition] = await fixturePrisma.$queryRaw<
       Array<{
         securityDefiner: boolean;
         settings: string[] | null;
@@ -219,7 +235,7 @@ describe("expired auth record cleanup", () => {
 
     for (const batchSize of [0, AUTH_RECORD_CLEANUP_BATCH_SIZE + 1]) {
       await expect(
-        prisma.$queryRaw`
+        maintenancePrisma.$queryRaw`
           SELECT *
           FROM public.cleanup_expired_auth_records(${cutoff}, ${batchSize})
         `,
@@ -230,13 +246,13 @@ describe("expired auth record cleanup", () => {
   test("rejects a future cutoff before deleting expired or future records", async () => {
     await expect(
       cleanupExpiredAuthRecords(
-        prisma,
+        maintenancePrisma,
         new Date(Date.now() + 24 * 60 * 60 * 1000),
       ),
     ).rejects.toThrow("cutoff must not be in the future");
 
     expect(
-      await prisma.session.count({
+      await fixturePrisma.session.count({
         where: {
           sessionToken: {
             in: [`${marker}-expired-session-0`, `${marker}-future-session`],
@@ -245,7 +261,7 @@ describe("expired auth record cleanup", () => {
       }),
     ).toBe(2);
     expect(
-      await prisma.oAuthAccessToken.count({
+      await fixturePrisma.oAuthAccessToken.count({
         where: {
           token: {
             in: [`${marker}-expired-access-0`, `${marker}-future-access`],
@@ -257,8 +273,8 @@ describe("expired auth record cleanup", () => {
 
   test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async () => {
     const reports = await Promise.all([
-      cleanupExpiredAuthRecords(prisma, cutoff),
-      cleanupExpiredAuthRecords(prisma, cutoff),
+      cleanupExpiredAuthRecords(maintenancePrisma, cutoff),
+      cleanupExpiredAuthRecords(maintenancePrisma, cutoff),
     ]);
     const total = reports.reduce<AuthRecordCleanupReport>(
       (sum, report) => ({
@@ -302,19 +318,21 @@ describe("expired auth record cleanup", () => {
     }
 
     expect(
-      await prisma.session.count({
+      await fixturePrisma.session.count({
         where: {
           sessionToken: { startsWith: `${marker}-expired-session-` },
         },
       }),
     ).toBe(0);
     await expect(
-      prisma.oAuthRefreshToken.findUnique({
+      fixturePrisma.oAuthRefreshToken.findUnique({
         where: { token: `${marker}-revoked-future-refresh` },
       }),
     ).resolves.not.toBeNull();
 
-    await expect(cleanupExpiredAuthRecords(prisma, cutoff)).resolves.toEqual({
+    await expect(
+      cleanupExpiredAuthRecords(maintenancePrisma, cutoff),
+    ).resolves.toEqual({
       sessions: 0,
       verificationTokens: 0,
       oauthAccessTokens: 0,
@@ -323,7 +341,7 @@ describe("expired auth record cleanup", () => {
     });
 
     expect(
-      await prisma.session.count({
+      await fixturePrisma.session.count({
         where: {
           sessionToken: {
             in: [`${marker}-boundary-session`, `${marker}-future-session`],
@@ -332,17 +350,17 @@ describe("expired auth record cleanup", () => {
       }),
     ).toBe(2);
     expect(
-      await prisma.verificationToken.count({
+      await fixturePrisma.verificationToken.count({
         where: { token: `${marker}-boundary-verification` },
       }),
     ).toBe(1);
     expect(
-      await prisma.deviceCode.count({
+      await fixturePrisma.deviceCode.count({
         where: { deviceCode: `${marker}-boundary-device` },
       }),
     ).toBe(1);
     expect(
-      await prisma.oAuthAccessToken.count({
+      await fixturePrisma.oAuthAccessToken.count({
         where: {
           token: {
             in: [`${marker}-boundary-access`, `${marker}-future-access`],
@@ -351,7 +369,7 @@ describe("expired auth record cleanup", () => {
       }),
     ).toBe(2);
     expect(
-      await prisma.oAuthRefreshToken.count({
+      await fixturePrisma.oAuthRefreshToken.count({
         where: {
           token: {
             in: [

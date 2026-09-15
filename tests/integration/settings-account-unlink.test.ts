@@ -1,20 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+import { unlinkSettingsAccount } from "@/features/settings/server/settings-account-unlink";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const fixturePrisma = createFixturePrisma();
 const marker = `settings-unlink-${crypto.randomUUID()}`;
 let userId: string;
 
 async function unlink(provider: string) {
-  const [result] = await prisma.$queryRaw<{ status: string }[]>`
-    SELECT public.unlink_settings_account(${userId}, ${provider}) AS status
-  `;
-  return result.status;
+  return unlinkSettingsAccount(userId, provider);
 }
 
 describe("settings account unlink database boundary", () => {
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `${marker}@example.test`,
         name: marker,
@@ -45,12 +44,15 @@ describe("settings account unlink database boundary", () => {
   });
 
   afterAll(async () => {
-    if (userId) await prisma.user.deleteMany({ where: { id: userId } });
-    await disconnectTestPrisma(prisma);
+    if (userId) await fixturePrisma.user.deleteMany({ where: { id: userId } });
+    await Promise.all([
+      authPrisma.$disconnect(),
+      disconnectTestPrisma(fixturePrisma),
+    ]);
   });
 
   it("uses a locked-down security-definer function", async () => {
-    const [definition] = await prisma.$queryRaw<
+    const [definition] = await fixturePrisma.$queryRaw<
       Array<{
         publicCanExecute: boolean;
         securityDefiner: boolean;
@@ -90,13 +92,13 @@ describe("settings account unlink database boundary", () => {
     await expect(unlink("missing")).resolves.toBe("not_linked");
 
     await expect(
-      prisma.account.findMany({
+      fixturePrisma.account.findMany({
         where: { userId },
         select: { provider: true },
       }),
     ).resolves.toEqual([{ provider: "google" }]);
     await expect(
-      prisma.verifiedEmail.count({
+      fixturePrisma.verifiedEmail.count({
         where: { userId, provider: "github" },
       }),
     ).resolves.toBe(0);

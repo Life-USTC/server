@@ -1,16 +1,16 @@
 import { ICalCategory } from "ical-generator";
+import { loadRoomMapAssets } from "@/features/rooms/server/room-map-service";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
-  loadBuildingImgRules,
   loadGeoData,
   lookupLocationGeo,
 } from "@/shared/lib/location/location-utils";
 
 export type GeoData = Awaited<ReturnType<typeof loadGeoData>>;
-export type ImgRules = Awaited<ReturnType<typeof loadBuildingImgRules>>;
+export type RoomMaps = Awaited<ReturnType<typeof loadRoomMapAssets>>;
 
 export async function loadLocationAssets() {
-  return Promise.all([loadGeoData(), loadBuildingImgRules()]);
+  return Promise.all([loadGeoData(), loadRoomMapAssets()]);
 }
 
 export function parseTimeHHMM(date: Date, hhmm: number) {

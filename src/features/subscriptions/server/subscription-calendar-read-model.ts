@@ -61,9 +61,10 @@ export async function getUserCalendarSubscription(
 
   return {
     userId: user.id,
-    sections: user.sectionSubscriptions.map((row) =>
-      toSectionCompactDto(row.section, locale),
-    ),
+    sections: user.sectionSubscriptions.map((row) => ({
+      ...toSectionCompactDto(row.section, locale),
+      kind: row.kind,
+    })),
     note: SECTION_SUBSCRIPTION_NOTE,
   };
 }

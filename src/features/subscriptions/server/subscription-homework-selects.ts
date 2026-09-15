@@ -25,6 +25,7 @@ export function buildSubscribedHomeworkInclude(includeEditors: boolean) {
 export function buildWorkspaceHomeworkSelect() {
   return {
     id: true,
+    sectionId: true,
     title: true,
     publishedAt: true,
     submissionStartAt: true,

@@ -1,9 +1,8 @@
 import { defineConfig } from "@playwright/test";
+import { getWorkerProcessEnvironment } from "./tests/e2e/utils/worker-database-env";
 
 const baseURL = "http://localhost:3000";
-const databaseUrl =
-  process.env.DATABASE_URL ??
-  "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev";
+const workerEnvironment = getWorkerProcessEnvironment();
 
 /** REST contract tests — no browser, request fixture only. */
 export default defineConfig({
@@ -21,23 +20,15 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
   },
+  globalSetup: "./tests/e2e/global-setup.ts",
   webServer: {
-    command: "bun run e2e:server",
+    command: "env -u FUNCTION_OWNER_DATABASE_URL bun run e2e:server",
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     stdout: "ignore",
     stderr: "pipe",
     timeout: 300_000,
-    env: {
-      ...process.env,
-      // wrangler.e2e.jsonc hardcodes life_ustc_dev; point Hyperdrive at the
-      // job DATABASE_URL so ci:integration (life_ustc_integration) works.
-      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: databaseUrl,
-      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH:
-        databaseUrl,
-      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE:
-        databaseUrl,
-    },
+    env: workerEnvironment,
   },
 });

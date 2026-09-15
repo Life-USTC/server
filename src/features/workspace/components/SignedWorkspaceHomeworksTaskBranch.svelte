@@ -4,8 +4,6 @@ import HomeworksTab from "./HomeworksTab.svelte";
 import type { WorkspaceHomeworksTaskProps } from "./workspace-task-component-types";
 
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworksTaskProps["applyHomeworkDueAtSemesterEnd"];
-export let applyHomeworkDueInMonth: WorkspaceHomeworksTaskProps["applyHomeworkDueInMonth"];
-export let applyHomeworkDueInWeek: WorkspaceHomeworksTaskProps["applyHomeworkDueInWeek"];
 export let applyHomeworkStartNow: WorkspaceHomeworksTaskProps["applyHomeworkStartNow"];
 export let commentsCopy: WorkspaceHomeworksTaskProps["commentsCopy"];
 export let commonCopy: WorkspaceHomeworksTaskProps["commonCopy"];
@@ -28,7 +26,6 @@ export let homeworksCopy: WorkspaceHomeworksTaskProps["homeworksCopy"];
 export let isCreatingHomework: boolean;
 export let openCreateHomeworkDialog: WorkspaceHomeworksTaskProps["openCreateHomeworkDialog"];
 export let sectionCopy: WorkspaceHomeworksTaskProps["sectionCopy"];
-export let selectedCreateHomeworkSection: WorkspaceHomeworksTaskProps["selectedCreateHomeworkSection"];
 export let selectedHomework: WorkspaceHomeworksTaskProps["selectedHomework"];
 export let showCreateHomework: boolean;
 export let signedData: WorkspaceHomeworksTaskProps["signedData"];
@@ -47,11 +44,8 @@ export let toggleHomeworkCompletion: WorkspaceHomeworksTaskProps["toggleHomework
   {signedData}
   locale={data.locale}
   referenceDate={homeworkReferenceDate}
-  {selectedCreateHomeworkSection}
   {openCreateHomeworkDialog}
   {applyHomeworkStartNow}
-  {applyHomeworkDueInWeek}
-  {applyHomeworkDueInMonth}
   {applyHomeworkDueAtSemesterEnd}
   {toggleHomeworkCompletion}
   {createHomeworkAction}

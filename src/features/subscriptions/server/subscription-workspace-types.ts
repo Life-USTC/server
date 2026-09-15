@@ -23,6 +23,7 @@ export type HomeworkWithSection = Omit<
   WorkspaceHomeworkBase,
   "description" | "section"
 > & {
+  completionRequired: boolean;
   description?: WorkspaceHomeworkBase["description"];
   homeworkCompletions: Array<{ completedAt: Date }>;
   section:
@@ -33,6 +34,7 @@ export type HomeworkWithSection = Omit<
 };
 
 export type SectionWithRelations = {
+  badge?: string;
   id: number;
   jwId: number | null;
   course: { namePrimary: string | null };

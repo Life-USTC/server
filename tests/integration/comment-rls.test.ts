@@ -70,6 +70,14 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("defaults direct reads to public active comments without user context", async () => {
+      await expect(
+        withUserDbContext(firstUserId, (tx) =>
+          tx.comment.findUnique({
+            where: { id: fixtureIds.public },
+            select: { id: true, userId: true },
+          }),
+        ),
+      ).resolves.toEqual({ id: fixtureIds.public, userId: firstUserId });
       const rows = await prisma.comment.findMany({
         where: { id: { in: Object.values(fixtureIds) } },
         select: { id: true },

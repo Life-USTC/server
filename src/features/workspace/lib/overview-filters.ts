@@ -1,3 +1,4 @@
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import { dayStart, overviewReferenceDate } from "./overview-dates";
 import type {
   HomeworkWithDue,
@@ -52,7 +53,16 @@ export function homeworksOverdueForOverview<
   Homework extends HomeworkWithDue,
 >(source: OverviewSource<Todo, Homework>) {
   const today = dayStart(overviewReferenceDate(source));
+  const reference = overviewReferenceDate(source);
   return (source.overview?.pendingHomeworks ?? []).filter((homework) => {
+    if (
+      !isHomeworkPendingForViewer(
+        homework,
+        reference instanceof Date ? reference : new Date(reference),
+      )
+    ) {
+      return false;
+    }
     if (!homework.submissionDueAt) return false;
     return dayStart(new Date(homework.submissionDueAt)) < today;
   });

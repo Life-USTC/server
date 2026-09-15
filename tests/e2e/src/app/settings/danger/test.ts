@@ -29,6 +29,7 @@ import {
   expectRequiresSignIn,
   signInAsDebugUser,
 } from "../../../../utils/auth";
+import { restoreDebugUserFixture } from "../../../../utils/e2e-db";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -219,7 +220,9 @@ test.describe("/account/settings/danger 危险区设置", () => {
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-danger-deleted");
 
-    // Recreate the debug fixture user so subsequent tests can sign in again
+    // Restore the owner-side fixture, including its Better Auth credential,
+    // so the Worker auth role only performs the real sign-in flow.
+    await restoreDebugUserFixture();
     await signInAsDebugUser(page, "/", "/", { ui: true });
     await expect(page.locator("#app-user-menu")).toBeVisible();
   });

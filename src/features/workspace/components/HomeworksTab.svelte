@@ -15,17 +15,13 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { filterWorkspaceHomeworks } from "@/features/workspace/lib/workspace-homework-filter";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
-import { resolveWorkspaceTaskFilter } from "@/features/workspace/lib/workspace-task-filter";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import HomeworksCardsView from "./HomeworksCardsView.svelte";
 import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
-import type {
-  WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkCreateSectionGetter,
-} from "./workspace-homework-create-types";
+import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -50,11 +46,8 @@ export let homeworkActionError: string;
 
 export let locale: string;
 export let referenceDate: Date | string;
-export let selectedCreateHomeworkSection: WorkspaceHomeworkCreateSectionGetter;
 export let openCreateHomeworkDialog: () => void;
 export let applyHomeworkStartNow: () => void;
-export let applyHomeworkDueInWeek: () => void;
-export let applyHomeworkDueInMonth: () => void;
 export let applyHomeworkDueAtSemesterEnd: () => void;
 export let toggleHomeworkCompletion: (
   homework: WorkspaceHomeworkItem,
@@ -84,14 +77,8 @@ let homeworkStatus: HomeworkAction;
 
 $: filteredHomeworkItems = filterWorkspaceHomeworks(
   homeworkItems,
-  resolveWorkspaceTaskFilter(
-    homeworkFilter,
-    homeworkItems.some((item) => !item.completion),
-  ),
-);
-$: displayHomeworkFilter = resolveWorkspaceTaskFilter(
   homeworkFilter,
-  homeworkItems.some((item) => !item.completion),
+  new Date(referenceDate),
 );
 $: hasHomeworkItems = homeworkItems.length > 0;
 
@@ -131,7 +118,7 @@ $: ({
   {:else}
     <HomeworksTabToolbar
       {homeworksCopy}
-      homeworkFilter={displayHomeworkFilter}
+      {homeworkFilter}
       onHomeworkFilterChange={(value) => {
         homeworkFilter = value;
       }}
@@ -182,8 +169,6 @@ $: ({
     <HomeworksTabDialogs
       {CommentsPanel}
       {applyHomeworkDueAtSemesterEnd}
-      {applyHomeworkDueInMonth}
-      {applyHomeworkDueInWeek}
       {applyHomeworkStartNow}
       {commentsCopy}
       {createHomeworkAction}
@@ -203,7 +188,6 @@ $: ({
       {referenceDate}
       sections={signedData.homeworks.sections}
       bind:selectedHomework
-      {selectedCreateHomeworkSection}
       bind:showCreateHomework
       {toggleHomeworkCompletion}
     />

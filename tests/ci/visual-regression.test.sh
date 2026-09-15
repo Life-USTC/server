@@ -15,6 +15,5 @@ test -f .svelte-kit/output/server/manifest.js || {
 }
 
 bun run app:prepare
-bun run db:migrate:deploy
-bunx prisma db seed
+source tests/ci/setup-runtime-database.sh
 VISUAL_REGRESSION=1 bash tests/ci/e2e-run-shard.sh 1/1 visual-matrix

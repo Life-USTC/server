@@ -65,8 +65,6 @@ export type PageInventoryEntry = {
 const E2E = {
   home: "src/app/test.ts",
   admin: "src/app/admin/test.ts",
-  adminAnalytics: "src/app/admin/audit/test.ts",
-  adminAudit: "src/app/admin/audit/test.ts",
   adminUsers: "src/app/admin/users/test.ts",
   adminModeration: "src/app/admin/moderation/test.ts",
   adminOauth: "src/app/admin/oauth/test.ts",
@@ -82,7 +80,7 @@ const E2E = {
   workspaceTab: "src/app/workspace/[tab]/test.ts",
   catalogLinks: "src/app/workspace/links/test.ts",
   workspaceCalendar: "src/app/workspace/calendar/test.ts",
-  workspaceHomeworks: "src/app/workspace/homeworks/test.ts",
+  workspaceHomeworkCreation: "src/app/workspace/homeworks/creation.test.ts",
   workspaceTodos: "src/app/workspace/todos/test.ts",
   workspaceExams: "src/app/workspace/exams/test.ts",
   workspaceSubscriptions: "src/app/workspace/subscriptions/sections/test.ts",
@@ -91,6 +89,7 @@ const E2E = {
   guidesMarkdown: "src/app/guides/markdown-support/test.ts",
   usage: "src/app/usage/test.ts",
   weather: "src/app/weather/test.ts",
+  rooms: "src/app/rooms/test.ts",
   youngEvents: "src/app/young-events/test.ts",
   youngEventsYoungId: "src/app/young-events/[youngId]/test.ts",
   oauthAuthorize: "src/app/oauth/authorize/test.ts",
@@ -264,7 +263,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     contractPath: "/account/welcome",
     e2eSpec: E2E.welcome,
     mobileCoveredBy: {
-      e2eSpec: "mobile-screenshots/screenshots.spec.ts",
+      e2eSpec: "mobile-screenshots/authenticated.spec.ts",
       testName: "/account/welcome 页面截图",
       reason:
         "The welcome page requires temporarily clearing and restoring the seeded user's profile.",
@@ -297,40 +296,6 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "admin",
     contractPath: "/admin",
     e2eSpec: E2E.admin,
-  },
-  {
-    routeId: "/admin/analytics",
-    samplePath: "/admin/analytics",
-    kind: "page",
-    auth: "admin",
-    contractPath: "/admin/analytics",
-    e2eSpec: E2E.adminAnalytics,
-    mobileScreenshots: ["admin"],
-    primaryActions: [
-      {
-        id: "analytics-window",
-        role: "link",
-        name: "/最近 30 天|Last 30 days/i",
-        e2eSpec: E2E.adminAnalytics,
-      },
-    ],
-  },
-  {
-    routeId: "/admin/audit",
-    samplePath: "/admin/audit",
-    kind: "page",
-    auth: "admin",
-    contractPath: "/admin/audit",
-    e2eSpec: E2E.adminAudit,
-    mobileScreenshots: ["admin"],
-    primaryActions: [
-      {
-        id: "apply-audit-filters",
-        role: "button",
-        name: "/应用筛选|Apply filters/i",
-        e2eSpec: E2E.adminAudit,
-      },
-    ],
   },
   {
     routeId: "/admin/bus",
@@ -488,6 +453,18 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         e2eSpec: E2E.courses,
         evidence: "搜索和清除按钮",
       },
+    ],
+  },
+  {
+    routeId: "/catalog/rooms",
+    samplePath: "/catalog/rooms",
+    kind: "page",
+    auth: "public",
+    contractPath: "/catalog/rooms",
+    e2eSpec: E2E.rooms,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      { id: "room-map-lookup", e2eSpec: E2E.rooms, evidence: "查询展示地图" },
     ],
   },
   {
@@ -994,7 +971,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       },
       {
         id: "homework-crud",
-        e2eSpec: E2E.workspaceHomeworks,
+        e2eSpec: E2E.workspaceHomeworkCreation,
         evidence: "可以创建新作业",
       },
       {

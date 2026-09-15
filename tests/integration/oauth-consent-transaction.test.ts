@@ -1,9 +1,13 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
 import { createAcceptedOAuthAuthorization } from "@/features/oauth/server/oauth-consent-action";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { getOAuthMcpResourceUrl } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { createFixturePrisma } from "../shared/prisma";
+
+// Direct database access arranges and verifies fixtures; the OAuth services use authPrisma.
+const prisma = createFixturePrisma();
 
 describe.sequential("OAuth consent transaction", () => {
   const marker = crypto.randomUUID();
@@ -187,7 +191,7 @@ describe.sequential("OAuth consent transaction", () => {
       where: { clientId: { in: clientIds } },
     });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-    await prisma.$disconnect();
+    await Promise.all([prisma.$disconnect(), authPrisma.$disconnect()]);
   });
 
   it("原子扩展 consent、保留旧凭据并创建 exact-bound code", async () => {

@@ -19,6 +19,7 @@ import {
   logScheduledTaskError,
   logScheduledTaskFinish,
   logUnknownScheduledTask,
+  logWorkerDeadLetterMessage,
   logWorkerFetchError,
   logWorkerQueueError,
   logWorkerQueueFinish,
@@ -38,6 +39,25 @@ describe("worker entrypoint observability", () => {
     vi.unstubAllEnvs();
     vi.useRealTimers();
   });
+
+  it.each([200, 401, 503])(
+    "does not collect metrics scrapes at status %s",
+    (status) => {
+      const response = observedEdgeResponse({
+        cacheOutcome: "bypass",
+        request: new Request("https://example.test/metrics"),
+        requestClass: "dynamic",
+        requestId: "scrape-request",
+        response: new Response("metrics", { status }),
+        route: "/metrics",
+        startMs: 0,
+      });
+      expect(response.status).toBe(status);
+      expect(response.headers.get("x-request-id")).toBe("scrape-request");
+      expect(logAppEventMock).not.toHaveBeenCalled();
+      expect(writeWorkerRequestAnalyticsMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("normalizes public SSR routes without retaining entity identifiers", () => {
     expect(
@@ -354,12 +374,67 @@ describe("worker entrypoint observability", () => {
     expect(trusted.headers.get("x-request-id")).toBeNull();
   });
 
-  it("classifies only the two configured queues", () => {
+  it("classifies only the configured queues and dead-letter queues", () => {
     expect(resolveWorkerQueue("life-ustc-audit-log-write")).toBe("audit");
     expect(resolveWorkerQueue("life-ustc-calendar-export-rebuild")).toBe(
       "calendar",
     );
+    expect(resolveWorkerQueue("life-ustc-audit-log-write-dlq")).toBe(
+      "audit-dead-letter",
+    );
+    expect(resolveWorkerQueue("life-ustc-calendar-export-rebuild-dlq")).toBe(
+      "calendar-dead-letter",
+    );
     expect(resolveWorkerQueue("unexpected-queue")).toBe("unknown");
+  });
+
+  it("logs dead-letter envelope metadata without the message body", () => {
+    logWorkerDeadLetterMessage({
+      message: {
+        attempts: 4,
+        body: {
+          params: { sessionId: "session-secret" },
+          type: "audit-log.write.v1",
+        },
+        id: "message-1",
+      },
+      queue: "audit-dead-letter",
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "worker.queue.dead-letter",
+      {
+        attempts: 4,
+        event: "worker.queue.dead-letter",
+        messageId: "message-1",
+        messageType: "audit-log.write.v1",
+        outcome: "dead-letter",
+        queue: "audit-dead-letter",
+        source: "worker-entrypoint",
+      },
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "session-secret",
+    );
+  });
+
+  it("omits unavailable dead-letter envelope fields", () => {
+    logWorkerDeadLetterMessage({
+      message: { body: "not-an-envelope" },
+      queue: "calendar-dead-letter",
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "worker.queue.dead-letter",
+      {
+        event: "worker.queue.dead-letter",
+        outcome: "dead-letter",
+        queue: "calendar-dead-letter",
+        source: "worker-entrypoint",
+      },
+    );
   });
 
   it("records queue and scheduled outcomes", () => {

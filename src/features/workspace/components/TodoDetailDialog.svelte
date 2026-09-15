@@ -1,5 +1,6 @@
 <script lang="ts">
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import type {
@@ -12,7 +13,6 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 
@@ -63,9 +63,20 @@ async function confirmDelete(event: MouseEvent) {
       class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
       <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
-        <Dialog.Title class="break-words">{todo.title}</Dialog.Title>
-        <Dialog.Description>
-          {todosCopy.priority[todo.priority]} · {fmtDate(todo.dueAt)}
+        <Dialog.Title class={cn("break-words", todo.completed && "line-through")}
+          >{todo.title}</Dialog.Title
+        >
+        <Dialog.Description class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Badge
+            variant={todo.priority === "high"
+              ? "destructive"
+              : todo.priority === "medium"
+                ? "secondary"
+                : "outline"}
+          >
+            {todosCopy.priority[todo.priority]}
+          </Badge>
+          <span class="text-foreground tabular-nums">{fmtDate(todo.dueAt)}</span>
         </Dialog.Description>
       </Dialog.Header>
       <ScrollArea class="h-0 min-h-0 flex-1">
@@ -81,79 +92,74 @@ async function confirmDelete(event: MouseEvent) {
         </div>
       </ScrollArea>
       <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">
-        <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-            <Button
-              class="w-full sm:w-auto"
-              disabled={todoSavingById[todo.id]}
+        <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+          <AlertDialog.Root
+            open={deleteConfirmOpen}
+            onOpenChange={(open) => {
+              deleteConfirmOpen = open;
+              if (!open) deletePending = false;
+            }}
+          >
+            <AlertDialog.Trigger
+              aria-label={todosCopy.deleteAriaLabel}
+              class={cn(buttonVariants({ variant: "destructive" }), "w-full sm:w-auto")}
+              disabled={todoSavingById[todo.id] || deletePending}
               type="button"
-              onclick={() => {
-                toggleTodoCompletion(todo);
-              }}
             >
-              {#if todo.completed}
-                <RefreshCw data-icon="inline-start" />
-              {:else}
-                <CheckCircleIcon data-icon="inline-start" />
-              {/if}
-              {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
-            </Button>
-            <Button
-              class="w-full sm:w-auto"
-              disabled={todoSavingById[todo.id]}
-              type="button"
-              variant="outline"
-              onclick={() => {
-                openTodoEditor(todo);
-              }}
-            >
-              {todosCopy.editTitle}
-            </Button>
-          </div>
-          <Separator class="sm:hidden" />
-          <Separator class="hidden sm:block" orientation="vertical" />
-          <div class="sm:ml-auto">
-            <AlertDialog.Root
-              open={deleteConfirmOpen}
-              onOpenChange={(open) => {
-                deleteConfirmOpen = open;
-                if (!open) deletePending = false;
-              }}
-            >
-              <AlertDialog.Trigger
-                aria-label={todosCopy.deleteAriaLabel}
-                class={cn(buttonVariants({ variant: "destructive" }), "w-full sm:w-auto")}
-                disabled={todoSavingById[todo.id] || deletePending}
-                type="button"
-              >
-                <Trash2 data-icon="inline-start" />
-                {todosCopy.delete}
-              </AlertDialog.Trigger>
-              <AlertDialog.Content class="max-w-md sm:max-w-md">
-                <AlertDialog.Header>
-                  <AlertDialog.Title>{todosCopy.deleteConfirmTitle}</AlertDialog.Title>
-                  <AlertDialog.Description>{deleteDescription(todo)}</AlertDialog.Description>
-                </AlertDialog.Header>
-                <AlertDialog.Footer>
-                  <AlertDialog.Cancel disabled={deletePending || todoSavingById[todo.id]}>
-                    {todosCopy.cancel}
-                  </AlertDialog.Cancel>
-                  <AlertDialog.Action
-                    disabled={deletePending || todoSavingById[todo.id]}
-                    variant="destructive"
-                    onclick={confirmDelete}
-                  >
-                    {#if deletePending || todoSavingById[todo.id]}
-                      <Spinner data-icon="inline-start" />
-                    {/if}
-                    {deletePending || todoSavingById[todo.id]
-                      ? todosCopy.saving
-                      : todosCopy.delete}
-                  </AlertDialog.Action>
-                </AlertDialog.Footer>
-              </AlertDialog.Content>
-            </AlertDialog.Root>
-          </div>
+              <Trash2 data-icon="inline-start" />
+              {todosCopy.delete}
+            </AlertDialog.Trigger>
+            <AlertDialog.Content class="max-w-md sm:max-w-md">
+              <AlertDialog.Header>
+                <AlertDialog.Title>{todosCopy.deleteConfirmTitle}</AlertDialog.Title>
+                <AlertDialog.Description>{deleteDescription(todo)}</AlertDialog.Description>
+              </AlertDialog.Header>
+              <AlertDialog.Footer>
+                <AlertDialog.Cancel disabled={deletePending || todoSavingById[todo.id]}>
+                  {todosCopy.cancel}
+                </AlertDialog.Cancel>
+                <AlertDialog.Action
+                  disabled={deletePending || todoSavingById[todo.id]}
+                  variant="destructive"
+                  onclick={confirmDelete}
+                >
+                  {#if deletePending || todoSavingById[todo.id]}
+                    <Spinner data-icon="inline-start" />
+                  {/if}
+                  {deletePending || todoSavingById[todo.id]
+                    ? todosCopy.saving
+                    : todosCopy.delete}
+                </AlertDialog.Action>
+              </AlertDialog.Footer>
+            </AlertDialog.Content>
+          </AlertDialog.Root>
+          <Button
+            class="w-full sm:w-auto"
+            disabled={todoSavingById[todo.id]}
+            type="button"
+            onclick={() => {
+              toggleTodoCompletion(todo);
+            }}
+          >
+            {#if todo.completed}
+              <RefreshCw data-icon="inline-start" />
+            {:else}
+              <CheckCircleIcon data-icon="inline-start" />
+            {/if}
+            {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
+          </Button>
+          <Button
+            class="w-full sm:ml-auto sm:w-auto"
+            disabled={todoSavingById[todo.id]}
+            type="button"
+            variant="outline"
+            onclick={() => {
+              openTodoEditor(todo);
+            }}
+          >
+            <Pencil data-icon="inline-start" />
+            {todosCopy.editTitle}
+          </Button>
         </div>
       </Dialog.Footer>
     </Dialog.Content>

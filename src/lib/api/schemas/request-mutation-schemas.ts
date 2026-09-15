@@ -35,7 +35,6 @@ export {
 export {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
-  calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
   localeUpdateRequestSchema,

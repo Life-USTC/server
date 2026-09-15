@@ -1,9 +1,10 @@
 type HomeworkCompletionState = {
+  completionRequired?: boolean;
   completion?: unknown | null;
 };
 
 type HomeworkSectionLabel = {
-  code?: string | null;
+  teacherName?: string | null;
   courseName?: string | null;
   semesterName?: string | null;
 };
@@ -22,9 +23,13 @@ export function homeworkStatusLabel(
   homework: HomeworkCompletionState,
   labels: {
     completed: string;
+    noCompletionRequired: string;
     pending: string;
   },
 ) {
+  if (homework.completionRequired === false) {
+    return labels.noCompletionRequired;
+  }
   return homework.completion ? labels.completed : labels.pending;
 }
 
@@ -33,7 +38,7 @@ export function homeworkSectionOptionLabel(
   fallback: string,
 ) {
   return (
-    [section.courseName ?? fallback, section.code, section.semesterName]
+    [section.courseName ?? fallback, section.teacherName, section.semesterName]
       .filter(Boolean)
       .join(" · ") || fallback
   );

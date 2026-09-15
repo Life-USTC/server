@@ -92,6 +92,7 @@ export function calendarExamDetail(exam: CalendarExamEvent) {
 
 export function calendarHomeworkChipFields(
   homework: CalendarHomeworkEvent,
+  noCompletionRequired?: string,
 ): CalendarEventChipFields {
   const dueTime = homework.submissionDueAt
     ? new Date(homework.submissionDueAt).toLocaleTimeString(undefined, {
@@ -101,12 +102,21 @@ export function calendarHomeworkChipFields(
     : "";
   return {
     meta: dueTime,
-    detail: compactDetail(homework.description),
+    detail: calendarEventParts([
+      homework.completionRequired === false ? noCompletionRequired : null,
+      compactDetail(homework.description),
+    ]),
   };
 }
 
-export function calendarHomeworkDetail(homework: CalendarHomeworkEvent) {
-  const { meta, detail } = calendarHomeworkChipFields(homework);
+export function calendarHomeworkDetail(
+  homework: CalendarHomeworkEvent,
+  noCompletionRequired?: string,
+) {
+  const { meta, detail } = calendarHomeworkChipFields(
+    homework,
+    noCompletionRequired,
+  );
   return calendarEventParts([meta, detail]);
 }
 

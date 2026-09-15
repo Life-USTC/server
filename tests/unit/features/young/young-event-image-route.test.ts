@@ -7,7 +7,16 @@ const mocks = vi.hoisted(() => ({
     get: vi.fn(),
     put: vi.fn(),
   },
+  cache: {
+    match: vi.fn<(request: Request) => Promise<Response | undefined>>(),
+    put: vi.fn<(request: Request, response: Response) => Promise<void>>(),
+  },
+  state: {
+    bucketAvailable: true,
+    cacheAvailable: true,
+  },
   fetchMock: vi.fn(),
+  logAppEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -18,7 +27,15 @@ vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => ({
   ...(await importOriginal<
     typeof import("@/lib/adapters/cloudflare-runtime")
   >()),
-  getCloudflareR2PublicationsBucket: () => mocks.bucket,
+  getCloudflareNamedCache: () =>
+    mocks.state.cacheAvailable ? Promise.resolve(mocks.cache) : undefined,
+  getCloudflareR2PublicationsBucket: () =>
+    mocks.state.bucketAvailable ? mocks.bucket : undefined,
+}));
+
+vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/log/app-logger")>()),
+  logAppEvent: mocks.logAppEvent,
 }));
 
 import { YOUNG_EVENT_IMAGE_MAX_BYTES } from "@/features/young/server/young-event-image-service";
@@ -28,6 +45,8 @@ const PIC_PATH = "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg";
 const R2_KEY = `young-events/images/${PIC_PATH}`;
 const ORIGIN_URL = `https://young.ustc.edu.cn/login/${PIC_PATH}`;
 const ROUTE_URL = "https://life.test/api/catalog/young-events/42/image";
+const CACHE_KEY_URL =
+  "https://life.test/_life-ustc-internal-cache/young-event-image/v1/42";
 
 function stream(value: string) {
   return new ReadableStream<Uint8Array>({
@@ -46,6 +65,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("fetch", mocks.fetchMock);
   mocks.youngEventFindUnique.mockResolvedValue(eventWithImage());
+  mocks.state.bucketAvailable = true;
+  mocks.state.cacheAvailable = true;
+  mocks.cache.match.mockResolvedValue(undefined);
+  mocks.cache.put.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -127,8 +150,13 @@ describe("young event image route", () => {
       expect.any(ArrayBuffer),
       { httpMetadata: { contentType: "image/jpeg" } },
     );
-    expect(deferred).toHaveLength(1);
-    await expect(deferred[0]).resolves.toBeUndefined();
+    // Deferred: the R2 cache write and the Cache API response write.
+    expect(deferred).toHaveLength(2);
+    await expect(Promise.all(deferred)).resolves.toHaveLength(2);
+    expect(mocks.cache.put).toHaveBeenCalledTimes(1);
+    const [cacheRequest, cacheResponse] = mocks.cache.put.mock.calls[0];
+    expect(cacheRequest.url).toBe(CACHE_KEY_URL);
+    expect(cacheResponse.status).toBe(200);
   });
 
   it("falls back to an extension-based content type when the origin omits it", async () => {
@@ -153,7 +181,7 @@ describe("young event image route", () => {
     );
   });
 
-  it("responds 502 and caches nothing when the origin fails", async () => {
+  it("responds 502 and stores nothing in R2 when the origin fails", async () => {
     mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(new Response("nope", { status: 404 }));
 
@@ -273,5 +301,167 @@ describe("young event image route", () => {
     expect(response.status).toBe(404);
     expect(mocks.bucket.head).not.toHaveBeenCalled();
     expect(mocks.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("serves a repeat request from the Cache API without touching the DB, R2, or the origin", async () => {
+    mocks.cache.match.mockResolvedValue(
+      new Response(stream("cached-bytes"), {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, max-age=31536000, immutable, no-transform",
+          "Content-Type": "image/jpeg",
+          ETag: '"cached-etag"',
+        },
+      }),
+    );
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("ETag")).toBe('"cached-etag"');
+    await expect(response.text()).resolves.toBe("cached-bytes");
+    expect(mocks.cache.match.mock.calls[0][0].url).toBe(CACHE_KEY_URL);
+    expect(mocks.youngEventFindUnique).not.toHaveBeenCalled();
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("answers 304 from the Cache API when If-None-Match matches the cached ETag", async () => {
+    mocks.cache.match.mockResolvedValue(
+      new Response(stream("cached-bytes"), {
+        status: 200,
+        headers: { ETag: '"cached-etag"', "Content-Length": "12" },
+      }),
+    );
+
+    const response = await getYoungEventImageRoute(
+      new Request(ROUTE_URL, {
+        headers: { "If-None-Match": 'W/"cached-etag"' },
+      }),
+      { youngId: "42" },
+    );
+
+    expect(response.status).toBe(304);
+    expect(response.headers.get("Content-Length")).toBeNull();
+    expect(mocks.youngEventFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("caches 404 and 502 responses in the Cache API with their header TTLs", async () => {
+    mocks.youngEventFindUnique.mockResolvedValue(null);
+    const missing = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "missing",
+    });
+    expect(missing.status).toBe(404);
+    expect(mocks.cache.put).toHaveBeenCalledTimes(1);
+    const [notFoundRequest, notFoundResponse] = mocks.cache.put.mock.calls[0];
+    expect(notFoundRequest.url).toBe(
+      "https://life.test/_life-ustc-internal-cache/young-event-image/v1/missing",
+    );
+    expect(notFoundResponse.status).toBe(404);
+    expect(notFoundResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=300",
+    );
+
+    mocks.youngEventFindUnique.mockResolvedValue(eventWithImage());
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(new Response("nope", { status: 404 }));
+    const failure = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+    expect(failure.status).toBe(502);
+    expect(mocks.cache.put).toHaveBeenCalledTimes(2);
+    const [, failureResponse] = mocks.cache.put.mock.calls[1];
+    expect(failureResponse.status).toBe(502);
+    expect(failureResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=60",
+    );
+  });
+
+  it("does not cache the 503 storage-unavailable response", async () => {
+    mocks.state.bucketAvailable = false;
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(503);
+    expect(mocks.cache.put).not.toHaveBeenCalled();
+  });
+
+  it("still serves the image when the Cache API is unavailable", async () => {
+    mocks.state.cacheAvailable = false;
+    mocks.bucket.head.mockResolvedValue({
+      size: 5,
+      etag: "r2-etag",
+      httpMetadata: { contentType: "image/jpeg" },
+    });
+    mocks.bucket.get.mockResolvedValue({
+      size: 5,
+      body: stream("bytes"),
+      httpMetadata: { contentType: "image/jpeg" },
+    });
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("bytes");
+  });
+
+  it("logs an error when the deferred R2 cache write fails", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("origin-bytes"), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    const failure = new Error("r2 write failed");
+    mocks.bucket.put.mockRejectedValue(failure);
+    const deferred: Promise<unknown>[] = [];
+
+    const response = await getYoungEventImageRoute(
+      new Request(ROUTE_URL),
+      { youngId: "42" },
+      { defer: (promise) => deferred.push(promise) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(Promise.all(deferred)).resolves.toBeDefined();
+    expect(mocks.logAppEvent).toHaveBeenCalledWith(
+      "error",
+      "Failed to cache young event image in R2",
+      expect.objectContaining({ source: "young-event-image", youngId: "42" }),
+      failure,
+    );
+  });
+
+  it("logs an error when the Cache API write fails and still serves the image", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("origin-bytes"), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    mocks.bucket.put.mockResolvedValue(undefined);
+    const failure = new Error("cache put failed");
+    mocks.cache.put.mockRejectedValue(failure);
+
+    const response = await getYoungEventImageRoute(new Request(ROUTE_URL), {
+      youngId: "42",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("origin-bytes");
+    expect(mocks.logAppEvent).toHaveBeenCalledWith(
+      "error",
+      "Failed to cache young event image response",
+      expect.objectContaining({ source: "young-event-image" }),
+      failure,
+    );
   });
 });

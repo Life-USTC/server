@@ -56,12 +56,15 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Section subscriptions
   workspace_calendar_feed_get: [
-    { feature: "workspace.calendar", action: "read" },
+    { feature: "workspace.subscription", action: "read" },
   ],
   workspace_subscription_list: [
     { feature: "workspace.subscription", action: "read" },
   ],
   workspace_subscription_add: [
+    { feature: "workspace.subscription", action: "write" },
+  ],
+  workspace_subscription_kind_update: [
     { feature: "workspace.subscription", action: "write" },
   ],
   workspace_subscription_remove: [
@@ -78,7 +81,6 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   ],
   workspace_calendar_timeline_get: [
     { feature: "workspace.calendar", action: "read" },
-    { feature: "workspace.overview", action: "read" },
   ],
 
   // Comments
@@ -135,6 +137,7 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
 
   // Weather
   catalog_weather_get: [],
+  catalog_rooms_map: [],
 
   // Young events
   catalog_young_event_list: [],

@@ -242,6 +242,7 @@ function overviewFocus(
         examsCount={signedData.navStats.examsCount}
         {fmtDate}
         {formatMessage}
+        homeworkCopy={copy.homeworks}
         {homeworkEtaLabel}
         pendingHomeworks={overviewSummaryHomeworks}
         pendingTodos={overviewSummaryTodos}

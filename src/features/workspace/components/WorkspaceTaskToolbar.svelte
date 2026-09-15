@@ -4,6 +4,7 @@ export type WorkspaceTaskCompletionFilter = "incomplete" | "completed" | "all";
 
 <script lang="ts">
 import Plus from "@lucide/svelte/icons/plus";
+import { onMount } from "svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
@@ -16,6 +17,11 @@ export let filterAllLabel: string;
 export let addButtonLabel: string | undefined = undefined;
 export let addTestId: string | undefined = undefined;
 export let onAdd: (() => void) | undefined = undefined;
+
+let ready = false;
+onMount(() => {
+  ready = true;
+});
 </script>
 
 <div
@@ -26,19 +32,20 @@ export let onAdd: (() => void) | undefined = undefined;
       aria-label={ariaLabel}
       class="w-full min-w-0 md:w-fit"
       type="single"
-      value={filter}
       variant="outline"
-      onValueChange={(value) => {
-        if (
-          value === "incomplete" ||
-          value === "completed" ||
-          value === "all"
-        ) {
-          onFilterChange(value);
-          return;
+      disabled={!ready}
+      bind:value={
+        () => filter,
+        (value) => {
+          if (
+            value === "incomplete" ||
+            value === "completed" ||
+            value === "all"
+          ) {
+            onFilterChange(value);
+          }
         }
-        onFilterChange(filter);
-      }}
+      }
     >
       <ToggleGroup.Item
         class="h-11 min-w-0 flex-1 text-xs md:h-8 md:flex-none md:text-sm"
@@ -67,6 +74,7 @@ export let onAdd: (() => void) | undefined = undefined;
         class="size-11 md:h-8 md:w-auto md:min-w-28"
         data-testid={addTestId}
         type="button"
+        disabled={!ready}
         onclick={onAdd}
       >
         <Plus class="md:hidden" data-icon="inline-start" />

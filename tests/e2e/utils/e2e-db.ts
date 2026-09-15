@@ -49,6 +49,7 @@ const operations = {
   deleteUsersByPrefix: userFixtures.deleteUsersByPrefix,
   getUserSubscribedSectionIds: userFixtures.getUserSubscribedSectionIds,
   replaceUserSubscribedSectionIds: userFixtures.replaceUserSubscribedSectionIds,
+  restoreDebugUserFixture: userFixtures.restoreDebugUserFixture,
   updateUserProfileById: userFixtures.updateUserProfileById,
 };
 
@@ -255,6 +256,9 @@ export const replaceUserSubscribedSectionIds = (
   sectionIds: number[],
 ) =>
   runDbFixture<null>("replaceUserSubscribedSectionIds", [userId, sectionIds]);
+
+export const restoreDebugUserFixture = () =>
+  runDbFixture<void>("restoreDebugUserFixture");
 
 export const createTempUsersFixture = (options: {
   prefix: string;

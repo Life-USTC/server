@@ -14,7 +14,7 @@ export function registerGraphqlPrompts(server: McpServer) {
     {
       title: "Plan a Life@USTC GraphQL operation",
       description:
-        "Injects the canonical GraphQL schema and safe operation manifest, then guides a scoped run_graphql_operation call.",
+        "Injects the canonical GraphQL schema and safe operation manifest, then guides a scoped graphql_operation_run call.",
       argsSchema: {
         goal: z
           .string()
@@ -59,7 +59,7 @@ export function registerGraphqlPrompts(server: McpServer) {
             text: [
               `Goal: ${goal}`,
               operationType ? `Operation type: ${operationType}.` : null,
-              "Use run_graphql_operation exactly once when one bounded operation can satisfy the goal.",
+              "Use graphql_operation_run exactly once when one bounded operation can satisfy the goal.",
               "Prefer a registered operationId only when its manifest entry exactly fits; otherwise compose one named document from the embedded canonical schema.",
               "If a document contains multiple operations, pass operationName to select exactly one.",
               "Select only required fields, provide variables separately, and use explicit bounded pagination.",

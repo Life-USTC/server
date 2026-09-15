@@ -1,3 +1,4 @@
+import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 type CalendarSectionCourse = {
@@ -10,6 +11,7 @@ type CalendarSectionCourse = {
 };
 
 export type CalendarSection = {
+  kind: SubscriptionKind;
   id: number;
   jwId: number;
   code: string;
@@ -64,6 +66,7 @@ export function summarizeCalendarSection(section: CalendarSection) {
     : null;
 
   return {
+    kind: section.kind,
     id: section.id,
     jwId: section.jwId,
     code: section.code,

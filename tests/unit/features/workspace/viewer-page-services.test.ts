@@ -175,7 +175,7 @@ describe("viewer page services", () => {
       semesterId: 7,
     });
 
-    const where = {
+    const baseWhere = {
       section: {
         sectionSubscriptions: { some: { userId: "user-1" } },
         semesterId: 7,
@@ -183,6 +183,46 @@ describe("viewer page services", () => {
       deletedAt: null,
       homeworkCompletions: { none: { userId: "user-1" } },
       submissionDueAt: { lte: dueAtTo },
+    };
+    const where = {
+      ...baseWhere,
+      AND: [
+        {
+          AND: [
+            {
+              homeworkCompletions: { none: { userId: "user-1" } },
+            },
+            {
+              OR: [
+                {
+                  section: {
+                    sectionSubscriptions: {
+                      none: {
+                        kind: "teaching_assistant",
+                        userId: "user-1",
+                      },
+                    },
+                  },
+                },
+                {
+                  OR: [
+                    { submissionDueAt: null },
+                    { submissionDueAt: { gt: expect.any(Date) } },
+                  ],
+                  section: {
+                    sectionSubscriptions: {
+                      some: {
+                        kind: "teaching_assistant",
+                        userId: "user-1",
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     };
     expect(homeworkFindManyMock).toHaveBeenCalledWith(
       expect.objectContaining({ where, skip: 5, take: 5 }),

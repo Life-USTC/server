@@ -38,7 +38,21 @@ export async function buildUserCalendarExport(
   userId: string,
 ) {
   const subscribedSections = user.sectionSubscriptions.map(
-    (row) => row.section,
+    ({ section, kind }) => ({
+      ...section,
+      course: {
+        ...section.course,
+        nameCn:
+          kind === "teaching_assistant"
+            ? `[TA] ${section.course.nameCn}`
+            : section.course.nameCn,
+      },
+    }),
+  );
+  const taSectionIds = new Set(
+    user.sectionSubscriptions
+      .filter((row) => row.kind === "teaching_assistant")
+      .map((row) => row.sectionId),
   );
   const sectionIds = subscribedSections.map((section) => section.id);
   const homeworks = await getIncompleteHomeworkCalendarItems(
@@ -49,7 +63,20 @@ export async function buildUserCalendarExport(
 
   const calendar = await createUserCalendar({
     sections: subscribedSections,
-    homeworks,
+    homeworks: homeworks.map((homework) =>
+      taSectionIds.has(homework.sectionId)
+        ? {
+            ...homework,
+            section: {
+              ...homework.section,
+              course: {
+                ...homework.section.course,
+                nameCn: `[TA] ${homework.section.course.nameCn}`,
+              },
+            },
+          }
+        : homework,
+    ),
     todos,
   });
 

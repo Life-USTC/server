@@ -100,33 +100,40 @@ async function loadPaginatedCommentRoots(
   const rootVisible = directlyVisibleCommentSql("root", viewer);
   const childVisible = directlyVisibleCommentSql("child", viewer);
   const query = Prisma.sql`
-    WITH eligible_roots AS MATERIALIZED (
+    WITH directly_visible_roots AS MATERIALIZED (
+      SELECT
+        root.id,
+        root."createdAt" AS "orderCreatedAt"
+      FROM "Comment" AS root
+      WHERE ${commentTargetPredicate("root", target.whereTarget)}
+        AND root."parentId" IS NULL
+        AND ${rootVisible}
+    ),
+    hidden_roots_with_visible_child AS MATERIALIZED (
+      SELECT
+        child."rootId" AS id,
+        MIN(child."createdAt") AS "orderCreatedAt"
+      FROM "Comment" AS child
+      WHERE ${commentTargetPredicate("child", target.whereTarget)}
+        AND child."parentId" IS NOT NULL
+        AND child."rootId" IS NOT NULL
+        AND ${childVisible}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM directly_visible_roots AS visible_root
+          WHERE visible_root.id = child."rootId"
+        )
+      GROUP BY child."rootId"
+    ),
+    eligible_roots AS MATERIALIZED (
       -- A root hidden from this viewer cannot expose its own timestamp. Use
       -- the earliest directly visible descendant as its viewer-safe ordering
       -- key so SQL paging and the redacted root placeholder sort identically.
-      SELECT
-        root.id,
-        CASE
-          WHEN ${rootVisible} THEN root."createdAt"
-          ELSE visible_child."createdAt"
-        END AS "orderCreatedAt"
-      FROM "Comment" AS root
-      LEFT JOIN LATERAL (
-        SELECT child.id, child."createdAt"
-        FROM "Comment" AS child
-        WHERE ${commentTargetPredicate("child", target.whereTarget)}
-          AND ${childVisible}
-          AND NOT COALESCE((${rootVisible}), FALSE)
-          AND child."rootId" = root.id
-        ORDER BY child."createdAt" ASC, child.id ASC
-        LIMIT 1
-      ) AS visible_child ON TRUE
-      WHERE ${commentTargetPredicate("root", target.whereTarget)}
-        AND root."parentId" IS NULL
-        AND (
-          ${rootVisible}
-          OR visible_child.id IS NOT NULL
-        )
+      SELECT id, "orderCreatedAt"
+      FROM directly_visible_roots
+      UNION ALL
+      SELECT id, "orderCreatedAt"
+      FROM hidden_roots_with_visible_child
     ),
     paged_roots AS (
       SELECT id, "orderCreatedAt"
