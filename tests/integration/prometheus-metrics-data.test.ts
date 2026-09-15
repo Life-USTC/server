@@ -97,6 +97,12 @@ type OAuthUsageFixture = {
 };
 
 let baseline: Awaited<ReturnType<typeof readPrometheusMetrics>>;
+let userFixtures: Array<{
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+}> = [];
 let featureFixtures: FeatureFixture[] = [];
 let runtimeFixtures: RuntimeFixture[] = [];
 let auditFixtures: AuditFixture[] = [];
@@ -223,22 +229,21 @@ describe("Prometheus metrics data layer", () => {
     const eightDaysAgo = new Date(referenceNow.getTime() - 8 * day);
     const fortyDaysAgo = new Date(referenceNow.getTime() - 40 * day);
 
-    await fixturePrisma.user.createMany({
-      data: [
-        {
-          id: userIds[0],
-          email: `${marker}-one@example.test`,
-          name: `${marker}-one`,
-          createdAt: recentA,
-        },
-        {
-          id: userIds[1],
-          email: `${marker}-two@example.test`,
-          name: `${marker}-two`,
-          createdAt: fortyDaysAgo,
-        },
-      ],
-    });
+    userFixtures = [
+      {
+        id: userIds[0],
+        email: `${marker}-one@example.test`,
+        name: `${marker}-one`,
+        createdAt: recentA,
+      },
+      {
+        id: userIds[1],
+        email: `${marker}-two@example.test`,
+        name: `${marker}-two`,
+        createdAt: fortyDaysAgo,
+      },
+    ];
+    await fixturePrisma.user.createMany({ data: userFixtures });
 
     featureFixtures = [
       {
@@ -731,13 +736,8 @@ describe("Prometheus metrics data layer", () => {
         baseline.users.find((candidate) => candidate.window === window),
         `baseline users ${window}`,
       );
-      const registeredDelta = [
-        { createdAt: featureFixtures[0]?.occurredAt },
-        { createdAt: featureFixtures[3]?.occurredAt },
-      ].filter(
-        (user) =>
-          user.createdAt &&
-          isInMetricsWindow(user.createdAt, generatedAt, window),
+      const registeredDelta = userFixtures.filter((user) =>
+        isInMetricsWindow(user.createdAt, generatedAt, window),
       ).length;
       const activeDelta = new Set(
         featureFixtures

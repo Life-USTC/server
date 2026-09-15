@@ -10,12 +10,14 @@ parallel_script_source="${E2E_PARALLEL_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-
 local_shard_script_source="${E2E_LOCAL_SHARD_SCRIPT_SOURCE:-${repo_root}/tests/ci/e2e-local-shard.sh}"
 process_groups_source="${E2E_PROCESS_GROUPS_SOURCE:-${repo_root}/tests/ci/e2e-process-groups.sh}"
 expected_shard_total="${E2E_EXPECTED_SHARD_TOTAL:-8}"
+source "$process_groups_source"
 test_dir="$(mktemp -d)"
 test_base_port=$((50000 + ($$ % 1000) * 8))
 test_inspector_base_port=$((test_base_port + 100))
 runner_pid=""
 sentinel_pid=""
 sentinel_group=""
+sentinel_start_time=""
 
 fail() {
   echo "parallel E2E cleanup regression failed: $*" >&2
@@ -36,22 +38,22 @@ cleanup() {
     kill -TERM "$runner_pid" >/dev/null 2>&1 || true
     wait "$runner_pid" >/dev/null 2>&1 || true
   fi
-  if [[ -n "$sentinel_group" ]] && kill -0 -- "-${sentinel_group}" >/dev/null 2>&1; then
-    kill -KILL -- "-${sentinel_group}" >/dev/null 2>&1 || true
-  fi
-  if [[ -n "$sentinel_pid" ]]; then
-    wait "$sentinel_pid" >/dev/null 2>&1 || true
-  fi
+  stop_sentinel
   local pid_file
   local detached_pid
+  local detached_start_time
   local detached_group
-  for pid_file in "$test_dir"/*-run/*-*.pid; do
+  for pid_file in "$test_dir"/*-run/*-*.pid.identity; do
     [[ -f "$pid_file" ]] || continue
-    detached_pid="$(<"$pid_file")"
-    detached_group="$(ps -o pgid= -p "$detached_pid" 2>/dev/null | tr -d '[:space:]' || true)"
-    if [[ "$detached_group" =~ ^[1-9][0-9]*$ ]] && ((detached_group > 1)); then
-      kill -KILL -- "-${detached_group}" >/dev/null 2>&1 || true
-    fi
+    read -r detached_pid detached_start_time detached_group <"$pid_file" || continue
+    [[ "$detached_pid" =~ ^[1-9][0-9]*$ ]] || continue
+    [[ "$detached_start_time" =~ ^[1-9][0-9]*$ ]] || continue
+    [[ "$detached_group" =~ ^[1-9][0-9]*$ ]] || continue
+    ((detached_group > 1)) || continue
+    [[ "$(e2e_process_start_time "$detached_pid" 2>/dev/null || true)" == "$detached_start_time" ]] || continue
+    [[ "$(e2e_process_group_for_pid "$detached_pid")" == "$detached_group" ]] || continue
+    grep -aFzxq -- "PARALLEL_FIXTURE_DIR=${pid_file%/*}" "/proc/${detached_pid}/environ" 2>/dev/null || continue
+    kill -KILL -- "-${detached_group}" >/dev/null 2>&1 || true
   done
   rm -rf "$test_dir"
 }
@@ -74,12 +76,22 @@ set -euo pipefail
 fixture_shard="${E2E_REPORT_ROOT##*-}"
 detached_pid_file="${PARALLEL_FIXTURE_DIR}/${E2E_FIXTURE_MODE}-${fixture_shard}.pid"
 setsid bash -c '
-  echo "$BASHPID" >"$1"
+  fixture_pid="$BASHPID"
+  source tests/ci/e2e-process-groups.sh
   trap "" INT TERM
+  printf "%s %s %s\n" "$fixture_pid" \
+    "$(e2e_process_start_time "$fixture_pid")" \
+    "$(e2e_process_group_for_pid "$fixture_pid")" >"${1}.identity"
+  echo "$fixture_pid" >"$1"
   while :; do sleep 1; done
 ' _ "$detached_pid_file" &
 
 if [[ "${E2E_FIXTURE_MODE}" == early-exit ]]; then
+  for _ in $(seq 1 100); do
+    [[ -s "$detached_pid_file" ]] && break
+    sleep 0.01
+  done
+  [[ -s "$detached_pid_file" ]] || return 1
   return 42
 fi
 EOF
@@ -132,13 +144,16 @@ EOF
 start_sentinel() {
   setsid sleep 60 &
   sentinel_pid="$!"
+  sentinel_start_time="$(e2e_process_start_time "$sentinel_pid")"
   sentinel_group="$(ps -o pgid= -p "$sentinel_pid" | tr -d '[:space:]')"
   [[ "$sentinel_group" =~ ^[1-9][0-9]*$ ]] ||
     fail "could not resolve sentinel process group"
 }
 
 stop_sentinel() {
-  if [[ -n "$sentinel_group" ]] && kill -0 -- "-${sentinel_group}" >/dev/null 2>&1; then
+  if [[ -n "$sentinel_pid" && -n "$sentinel_group" && -n "$sentinel_start_time" ]] &&
+    [[ "$(e2e_process_start_time "$sentinel_pid" 2>/dev/null || true)" == "$sentinel_start_time" ]] &&
+    [[ "$(e2e_process_group_for_pid "$sentinel_pid")" == "$sentinel_group" ]]; then
     kill -KILL -- "-${sentinel_group}" >/dev/null 2>&1 || true
   fi
   if [[ -n "$sentinel_pid" ]]; then
@@ -146,6 +161,7 @@ stop_sentinel() {
   fi
   sentinel_pid=""
   sentinel_group=""
+  sentinel_start_time=""
 }
 
 start_runner() {
