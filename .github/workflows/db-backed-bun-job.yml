@@ -179,7 +179,7 @@ jobs:
               source tests/ci/setup-runtime-database.sh
               # Verify setup remains safe to repeat, including grants.
               source tests/ci/setup-runtime-database.sh
-              bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts
+              bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts
               ;;
             ci:rls)
               bun run app:prepare

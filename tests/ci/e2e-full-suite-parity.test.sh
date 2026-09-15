@@ -24,17 +24,17 @@ test -f "$worker_server_script" ||
 test -f "$shard_runner_script" ||
   fail "missing ${shard_runner_script}"
 
-grep -q 'readonly E2E_SHARD_TOTAL=4' "$orchestration_script" ||
-  fail "orchestration script must declare E2E_SHARD_TOTAL=4"
+grep -q 'readonly E2E_SHARD_TOTAL=8' "$orchestration_script" ||
+  fail "orchestration script must declare E2E_SHARD_TOTAL=8"
 
 ci_shard_count="$(
-  grep -cE 'shard: [0-9]+/4' "${repo_root}/.github/workflows/ci.yml" || true
+  grep -cE 'shard: [0-9]+/8' "${repo_root}/.github/workflows/ci.yml" || true
 )"
-[[ "$ci_shard_count" == "4" ]] ||
-  fail "ci.yml defines ${ci_shard_count} E2E shards, expected 4"
+[[ "$ci_shard_count" == "8" ]] ||
+  fail "ci.yml defines ${ci_shard_count} E2E shards, expected 8"
 
-for shard in 1 2 3 4; do
-  grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/4\"" \
+for shard in 1 2 3 4 5 6 7 8; do
+  grep -q "\"e2e:test:shard${shard}\": \"bash tests/ci/e2e-run-shard.sh ${shard}/8\"" \
     "${repo_root}/package.json" ||
     fail "package.json is missing e2e:test:shard${shard}"
 done
@@ -96,11 +96,11 @@ grep -q 'source tests/ci/setup-runtime-database.sh' "$job_phase_script" ||
   fail "DB-backed jobs must prepare restricted runtime roles"
 grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD"' "$job_phase_script" ||
   fail "db-backed-bun-job.yml must use the infrastructure-aware shard runner"
-grep -q 'bash tests/ci/e2e-run-shard.sh 1/1 --config playwright.api.config.ts' \
+grep -q 'bash tests/ci/e2e-run-shard.sh "\$E2E_SHARD" --config playwright.api.config.ts' \
   "$job_phase_script" ||
-  fail "ci:integration must use the infrastructure-aware API shard runner"
+  fail "ci:rest must use the infrastructure-aware API shard runner"
 if grep -q 'bunx playwright test --config playwright.api.config.ts' "$job_phase_script"; then
-  fail "ci:integration must not invoke Playwright directly"
+  fail "ci:rest must not invoke Playwright directly"
 fi
 grep -q 'VISUAL_REGRESSION=1 bash tests/ci/e2e-run-shard.sh 1/1 visual-matrix' \
   "$visual_script" ||

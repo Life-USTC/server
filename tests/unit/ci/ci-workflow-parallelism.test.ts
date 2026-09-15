@@ -147,13 +147,38 @@ describe("CI server test parallelism", () => {
     );
 
     const e2eEntries = ciJobs["test-e2e"]?.strategy?.matrix?.include ?? [];
-    expect(e2eEntries).toHaveLength(4);
+    expect(e2eEntries).toHaveLength(8);
     expect(e2eEntries.map((entry) => entry.shard)).toEqual([
-      "1/4",
-      "2/4",
-      "3/4",
-      "4/4",
+      "1/8",
+      "2/8",
+      "3/8",
+      "4/8",
+      "5/8",
+      "6/8",
+      "7/8",
+      "8/8",
     ]);
+  });
+
+  it("runs both REST partitions with separate databases and artifacts", async () => {
+    const { ciJobs, dbBackedRun } = await readWorkflows();
+    const rest = ciJobs["test-rest"];
+    const entries = rest?.strategy?.matrix?.include ?? [];
+    expect(entries.map((entry) => entry.shard)).toEqual(["1/2", "2/2"]);
+    expect(new Set(entries.map((entry) => entry.database)).size).toBe(2);
+    expect(new Set(entries.map((entry) => entry.artifact)).size).toBe(2);
+    expect(rest?.with?.["e2e-shard"]).toBe("${" + "{ matrix.shard }}");
+    expect(rest?.with?.["upload-artifact-name"]).toContain("matrix.artifact");
+    const source =
+      dbBackedRun?.steps?.find((step) => step.name === "Run job phase")?.run ??
+      "";
+    const phase = source.slice(
+      source.indexOf("ci:rest)"),
+      source.indexOf("ci:rls)"),
+    );
+    expect(phase).toContain(
+      'bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts',
+    );
   });
 
   it("keeps the unit coverage phase and its artifact separate", async () => {
