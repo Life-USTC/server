@@ -73,8 +73,14 @@ grep -q 'bash tests/ci/e2e-run-shard.sh' "$parallel_shard_script" ||
   fail "parallel runner must use the infrastructure-aware shard runner"
 grep -q 'setsid bash tests/ci/e2e-local-shard.sh' "$parallel_script" ||
   fail "parallel runner must isolate each shard in a process group"
-grep -q 'kill -KILL -- "-${pid}"' "$parallel_script" ||
-  fail "parallel runner must clean up an interrupted shard process group"
+grep -q 'source tests/ci/e2e-process-groups.sh' "$parallel_script" ||
+  fail "parallel runner must load the process ownership helper"
+grep -q 'E2E_PROCESS_OWNER=' "$parallel_script" ||
+  fail "parallel runner must mark owned processes before launching a shard"
+grep -q 'e2e_signal_owned_processes.*KILL' "$parallel_script" ||
+  fail "parallel runner must clean up owned processes after shard exit"
+grep -q 'readonly shard_total=8' "$parallel_script" ||
+  fail "parallel runner must execute all eight CI partitions"
 grep -q 'assert_port_available' "$parallel_script" ||
   fail "parallel runner must reject occupied Worker ports before setup"
 

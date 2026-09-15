@@ -13,7 +13,7 @@ readonly inspector_base_port="${E2E_INSPECTOR_BASE_PORT:-3200}"
 readonly run_id="$$-$(date +%s%N)"
 readonly process_owner_prefix="life-ustc-e2e-${run_id}"
 readonly container_prefix="${process_owner_prefix}"
-temp_dir="$(mktemp -d)"
+temp_dir=""
 shard_process_owners=()
 
 source tests/ci/e2e-process-groups.sh
@@ -107,6 +107,8 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
+
+temp_dir="$(mktemp -d)"
 
 database_urls=()
 for shard in $(seq 1 "$shard_total"); do
