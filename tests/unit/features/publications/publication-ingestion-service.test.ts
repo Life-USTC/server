@@ -22,6 +22,8 @@ const fake = vi.hoisted(() => {
     batches: new Map<string, Record<string, unknown>>(),
     publications: new Map<string, Record<string, unknown>>(),
     revisions: new Map<string, Record<string, unknown>>(),
+    imageSources: new Map<string, Record<string, unknown>>(),
+    imageSourceRefs: new Map<string, Record<string, unknown>>(),
     objects: new Map<string, Record<string, unknown>>(),
     claims: new Map<string, Record<string, unknown>>(),
     links: new Map<string, Record<string, unknown>>(),
@@ -192,6 +194,14 @@ const fake = vi.hoisted(() => {
               role: String(link.role),
               sortOrder: (link.sortOrder as number | null | undefined) ?? null,
             })),
+          imageSourceRefs: [...state.imageSourceRefs.values()]
+            .filter((link) => link.revisionId === revision.id)
+            .map((link) => ({
+              imageSource:
+                [...state.imageSources.values()].find(
+                  (source) => source.id === link.imageSourceId,
+                ) ?? null,
+            })),
         };
       }),
       create: vi.fn(async (args: QueryArgs) => {
@@ -209,6 +219,32 @@ const fake = vi.hoisted(() => {
         if (!revision) throw new Error("revision not found");
         Object.assign(revision, args.data);
         return revision;
+      }),
+    },
+    publicationImageSource: {
+      upsert: vi.fn(async (args: QueryArgs) => {
+        const where = value<{ id: string }>(args.where);
+        const existing = state.imageSources.get(where.id);
+        if (existing) return existing;
+        const created = { id: where.id, ...objectValue(args.create) };
+        state.imageSources.set(where.id, created);
+        return created;
+      }),
+    },
+    publicationRevisionImageSource: {
+      upsert: vi.fn(async (args: QueryArgs) => {
+        const where = value<{
+          revisionId_imageSourceId: {
+            revisionId: string;
+            imageSourceId: string;
+          };
+        }>(args.where);
+        const key = `${where.revisionId_imageSourceId.revisionId}:${where.revisionId_imageSourceId.imageSourceId}`;
+        const existing = state.imageSourceRefs.get(key);
+        if (existing) return existing;
+        const created = { id: key, ...objectValue(args.create) };
+        state.imageSourceRefs.set(key, created);
+        return created;
       }),
     },
     publicationObject: {
@@ -310,6 +346,8 @@ const fake = vi.hoisted(() => {
           batches: cloneMap(state.batches),
           publications: cloneMap(state.publications),
           revisions: cloneMap(state.revisions),
+          imageSources: cloneMap(state.imageSources),
+          imageSourceRefs: cloneMap(state.imageSourceRefs),
           objects: cloneMap(state.objects),
           claims: cloneMap(state.claims),
           links: cloneMap(state.links),
@@ -348,6 +386,8 @@ const fake = vi.hoisted(() => {
       state.batches,
       state.publications,
       state.revisions,
+      state.imageSources,
+      state.imageSourceRefs,
       state.objects,
       state.claims,
       state.links,
@@ -399,8 +439,63 @@ function payloadFor(item: Record<string, unknown>, batchId: string) {
   });
 }
 
+async function sha256Text(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 describe("publication ingestion transaction", () => {
   beforeEach(() => fake.clear());
+
+  it("normalizes validated image source URLs into revision registry links", async () => {
+    const imageUrl = "https://news.ustc.edu.cn/images/campus.png";
+    const imageHash = await sha256Text(imageUrl);
+    const response = await ingestPublicationBatch({
+      payload: payloadFor(
+        { imageSources: { [imageHash]: imageUrl }, objects: [] },
+        "batch-image-source-registry",
+      ),
+      principal,
+    });
+
+    expect(response.results[0].status).toBe("created");
+    expect([...fake.state.imageSources.values()]).toEqual([
+      { id: imageHash, url: imageUrl },
+    ]);
+    const revision = [...fake.state.revisions.values()][0];
+    expect([...fake.state.imageSourceRefs.values()]).toEqual([
+      {
+        id: `${revision?.id}:${imageHash}`,
+        revisionId: revision?.id,
+        imageSourceId: imageHash,
+      },
+    ]);
+    expect(revision).not.toHaveProperty("imageSources");
+  });
+
+  it("rejects an image source key whose digest does not match its URL", async () => {
+    const payload = payloadFor(
+      {
+        imageSources: {
+          ["a".repeat(64)]: "https://news.ustc.edu.cn/images/campus.png",
+        },
+        objects: [],
+      },
+      "batch-image-source-hash-mismatch",
+    );
+
+    await expect(
+      ingestPublicationBatch({ payload, principal }),
+    ).rejects.toBeInstanceOf(PublicationIngestionBadRequestError);
+    expect(fake.state.imageSources.size).toBe(0);
+    expect(fake.state.imageSourceRefs.size).toBe(0);
+    expect(fake.state.publications.size).toBe(0);
+  });
 
   it("rolls back a rejected manifest item instead of retaining partial rows", async () => {
     const manifest = {
@@ -422,6 +517,8 @@ describe("publication ingestion transaction", () => {
     expect(fake.state.batches.size).toBe(0);
     expect(fake.state.publications.size).toBe(0);
     expect(fake.state.revisions.size).toBe(0);
+    expect(fake.state.imageSources.size).toBe(0);
+    expect(fake.state.imageSourceRefs.size).toBe(0);
     expect(fake.state.objects.size).toBe(0);
     expect(fake.state.claims.size).toBe(0);
     expect(fake.state.links.size).toBe(0);

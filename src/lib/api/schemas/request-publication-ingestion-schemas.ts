@@ -29,6 +29,16 @@ const urlSchema = z
     const protocol = new URL(value).protocol;
     return protocol === "http:" || protocol === "https:";
   }, "Only HTTP(S) URLs are supported");
+const publicationImageSourceUrlSchema = z
+  .string()
+  .min(1)
+  .max(2_048)
+  .refine((value) => value === value.trim(), "Image URL cannot be padded")
+  .url()
+  .refine((value) => {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  }, "Only HTTP(S) URLs are supported");
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 const contentTypeSchema = z
   .string()
@@ -49,6 +59,18 @@ export const publicationObjectManifestSchema = z.strictObject({
   sortOrder: z.number().int().nonnegative().max(10_000).optional(),
   altText: z.string().trim().max(1_000).optional(),
 });
+
+/**
+ * Original publication image URLs keyed by the lowercase SHA-256 digest of
+ * their exact UTF-8 URL. The digest is checked again by ingestion before it
+ * is persisted so the public image route never trusts an arbitrary key.
+ */
+export const publicationImageSourcesSchema = z
+  .record(sha256Schema, publicationImageSourceUrlSchema)
+  .refine((value) => Object.keys(value).length <= 1_000, {
+    message: "At most 1000 publication image sources are allowed",
+  })
+  .default({});
 
 const NUL_CHARACTER = "\u0000";
 const NUL_CHARACTER_MESSAGE = "NUL characters are not allowed";
@@ -135,6 +157,7 @@ const publicationItemSchema = z.union([
     extractionMethod: z.string().trim().max(200).nullable().optional(),
     classifierVersion: z.string().trim().max(200).nullable().optional(),
     rawMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    imageSources: publicationImageSourcesSchema,
     objects: z.array(publicationObjectManifestSchema).max(100).default([]),
   }),
   z.strictObject({
@@ -192,6 +215,9 @@ export type PublicationIngestionBatchRequest = z.output<
 >;
 export type PublicationObjectManifest = z.output<
   typeof publicationObjectManifestSchema
+>;
+export type PublicationImageSources = z.output<
+  typeof publicationImageSourcesSchema
 >;
 export type PublicationObjectPlanRequest = z.output<
   typeof publicationObjectPlanRequestSchema

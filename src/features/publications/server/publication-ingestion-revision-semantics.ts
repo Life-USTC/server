@@ -26,6 +26,30 @@ function normalizeStoredJson(value: unknown) {
     : value;
 }
 
+function toHex(bytes: Uint8Array) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+}
+
+/** Validate the crawler's URL-hash mapping before it becomes public routing
+ * metadata. The hash covers the exact URL string as UTF-8. */
+export async function validatePublicationImageSources(
+  imageSources: Record<string, string>,
+) {
+  for (const [hash, value] of Object.entries(imageSources)) {
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(value),
+    );
+    if (toHex(new Uint8Array(digest)) !== hash) {
+      throw new PublicationIngestionBadRequestError(
+        `Image source key does not match its URL: ${hash}`,
+      );
+    }
+  }
+}
+
 type PublicationRevisionSemanticObject = {
   // MIME aliases do not change the content-addressed object represented by a
   // revision. The stored PublicationObject contentType remains authoritative
@@ -43,6 +67,7 @@ type PublicationRevisionSemantics = {
   category: string | null;
   classifierVersion: string | null;
   extractionMethod: string | null;
+  imageSources: Record<string, string>;
   isTombstone: boolean;
   objects: PublicationRevisionSemanticObject[];
   publishedAt: string | null;
@@ -81,6 +106,7 @@ function revisionSemanticsFromItem(
       category: null,
       classifierVersion: null,
       extractionMethod: null,
+      imageSources: {},
       isTombstone: true,
       objects: [],
       publishedAt: null,
@@ -99,6 +125,7 @@ function revisionSemanticsFromItem(
     category: item.category ?? null,
     classifierVersion: item.classifierVersion ?? null,
     extractionMethod: item.extractionMethod ?? null,
+    imageSources: item.imageSources,
     isTombstone: false,
     objects: sortRevisionSemanticObjects(
       item.objects.map((object) => ({
@@ -127,6 +154,9 @@ type StoredPublicationRevision = {
   category: string | null;
   classifierVersion: string | null;
   extractionMethod: string | null;
+  imageSourceRefs?: Array<{
+    imageSource: { id: string; url: string } | null;
+  }>;
   isTombstone: boolean;
   objectLinks?: Array<{
     altText: string | null;
@@ -156,6 +186,16 @@ function revisionSemanticsFromStored(
     category: revision.category,
     classifierVersion: revision.classifierVersion,
     extractionMethod: revision.extractionMethod,
+    imageSources:
+      revision.imageSourceRefs?.reduce<Record<string, string>>(
+        (sources, reference) => {
+          if (reference.imageSource) {
+            sources[reference.imageSource.id] = reference.imageSource.url;
+          }
+          return sources;
+        },
+        {},
+      ) ?? {},
     isTombstone: revision.isTombstone,
     objects: sortRevisionSemanticObjects(
       (revision.objectLinks ?? []).map((link) => ({

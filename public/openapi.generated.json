@@ -7245,6 +7245,91 @@
         }
       }
     },
+    "/api/publications/images/{hash}": {
+      "get": {
+        "operationId": "get-api-publications-images-hash",
+        "summary": "Lazily fetch and cache an image referenced by a public publication's",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "hash",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Response 304"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/calendar/events": {
       "get": {
         "operationId": "get-api-workspace-calendar-events",
@@ -17518,6 +17603,10 @@
                 "nullable": true,
                 "type": "string"
               },
+              "bodyMarkdown": {
+                "nullable": true,
+                "type": "string"
+              },
               "extractionMethod": {
                 "nullable": true,
                 "type": "string"
@@ -17601,6 +17690,7 @@
               "summary",
               "sourcePageUrl",
               "bodyText",
+              "bodyMarkdown",
               "extractionMethod",
               "classifierVersion",
               "objects"
@@ -30609,6 +30699,16 @@
                       "type": "object",
                       "additionalProperties": {}
                     },
+                    "imageSources": {
+                      "default": {},
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048,
+                        "format": "uri"
+                      }
+                    },
                     "objects": {
                       "default": [],
                       "maxItems": 100,
@@ -30669,6 +30769,7 @@
                     "tombstone",
                     "publicationType",
                     "title",
+                    "imageSources",
                     "objects"
                   ],
                   "additionalProperties": false
