@@ -213,6 +213,7 @@ const fake = vi.hoisted(() => {
     },
     publicationObject: {
       upsert: vi.fn(),
+      update: vi.fn(),
     },
     ingestionBatchObject: {
       upsert: vi.fn(),
@@ -235,10 +236,21 @@ const fake = vi.hoisted(() => {
     const created = {
       id: id("object"),
       status: "pending",
+      verifiedAt: null,
       ...objectValue(args.create),
     };
     state.objects.set(key, created);
     return created;
+  });
+
+  tx.publicationObject.update.mockImplementation(async (args: QueryArgs) => {
+    const where = value<{ id: string }>(args.where);
+    const object = [...state.objects.values()].find(
+      (entry) => entry.id === where.id,
+    );
+    if (!object) throw new Error("object not found");
+    Object.assign(object, args.data);
+    return object;
   });
 
   tx.ingestionBatchObject.upsert.mockImplementation(async (args: QueryArgs) => {
@@ -350,6 +362,9 @@ const fake = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/db/prisma", () => ({ prisma: fake.prisma }));
+
+const { logAppEventMock } = vi.hoisted(() => ({ logAppEventMock: vi.fn() }));
+vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: logAppEventMock }));
 
 import {
   ingestPublicationBatch,
@@ -510,7 +525,7 @@ describe("publication ingestion transaction", () => {
     ]);
   });
 
-  it("rejects an object size mismatch even when the MIME is an alias", async () => {
+  it("rejects an object size mismatch once bytes are verified", async () => {
     const sha256 =
       "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
     const original = {
@@ -526,11 +541,16 @@ describe("publication ingestion transaction", () => {
       ),
       principal,
     });
+    const stored = [...fake.state.objects.values()][0];
+    stored.status = "linked";
+    stored.verifiedAt = new Date("2026-01-01T00:00:00Z");
 
     await expect(
       ingestPublicationBatch({
         payload: payloadFor(
           {
+            revisionHash:
+              "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             observedAt: "2026-09-02",
             objects: [
               {
@@ -553,6 +573,63 @@ describe("publication ingestion transaction", () => {
       size: original.size,
       contentType: original.contentType,
     });
+  });
+
+  it("self-heals a stale object manifest that has no verified bytes", async () => {
+    const sha256 =
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    const stale = {
+      kind: "asset" as const,
+      sha256,
+      size: 3,
+      contentType: "application/msword",
+    };
+    await ingestPublicationBatch({
+      payload: payloadFor({ objects: [stale] }, "batch-size-heal-original"),
+      principal,
+    });
+    const healed = {
+      ...stale,
+      size: 4,
+      contentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+
+    const response = await ingestPublicationBatch({
+      payload: payloadFor(
+        {
+          revisionHash:
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          observedAt: "2026-09-02",
+          objects: [healed],
+        },
+        "batch-size-heal-updated",
+      ),
+      principal,
+    });
+
+    expect(response.results[0].status).toBe("updated");
+    expect(fake.state.objects.size).toBe(1);
+    expect([...fake.state.objects.values()][0]).toMatchObject({
+      size: healed.size,
+      contentType: healed.contentType,
+      status: "pending",
+    });
+    expect([...fake.state.claims.values()][1]).toMatchObject({
+      expectedSha256: sha256,
+      expectedSize: healed.size,
+      expectedContentType: healed.contentType,
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "Self-healing stale publication object manifest",
+      expect.objectContaining({
+        kind: stale.kind,
+        sha256,
+        previousSize: stale.size,
+        size: healed.size,
+      }),
+    );
   });
 
   it("accepts a same-revision replay with a MIME alias", async () => {
