@@ -14,11 +14,16 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 502:openApiErrorSchema
  * @response 503:openApiErrorSchema
  */
-export const GET: RequestHandler = ({ request, params, platform }) =>
-  observedApiRoute(() =>
+export const GET: RequestHandler = async ({ request, params, platform }) => {
+  const response = await observedApiRoute(() =>
     getPublicPublicationImageRoute(
       request,
       { hash: params.hash },
       { defer: getCloudflareTaskScheduler(platform) },
     ),
   )(request);
+  if (response.status >= 400) {
+    response.headers.set("Cache-Control", "no-store");
+  }
+  return response;
+};
