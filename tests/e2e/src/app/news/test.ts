@@ -177,6 +177,11 @@ test.describe("/news 新闻与通知预览", () => {
       headers: { "If-None-Match": etag },
     });
     expect(unchanged.status()).toBe(304);
+    for (const hash of ["a".repeat(64), "invalid"]) {
+      const missing = await request.get(`/api/publications/images/${hash}`);
+      expect(missing.status()).toBe(hash === "invalid" ? 400 : 404);
+      expect(missing.headers()["cache-control"]).toBe("no-store");
+    }
     const detail = await request.get(`/api/publications/${fixture.id}`);
     expect(detail.status()).toBe(200);
     expect((await detail.json()).revision.bodyMarkdown).toContain(
