@@ -1,3 +1,10 @@
+## [1.116.1](https://github.com/Life-USTC/server/compare/v1.116.0...v1.116.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* **publications:** self-heal stale object manifest metadata conflicts ([#1070](https://github.com/Life-USTC/server/issues/1070)) ([21c5ca3](https://github.com/Life-USTC/server/commit/21c5ca3b8b0d93826f46a02bd7b85652198ea7d5))
+
 # [1.116.0](https://github.com/Life-USTC/server/compare/v1.115.1...v1.116.0) (2026-09-15)
 
 
