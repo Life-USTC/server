@@ -52,7 +52,11 @@ function stream(value: string) {
   });
 }
 
-function sourceRecord(url: string, hash: string) {
+function sourceRecord(
+  url: string,
+  hash: string,
+  source: { allowedHosts?: string[]; blockedHosts?: string[] } = {},
+) {
   return {
     id: hash,
     url,
@@ -63,8 +67,8 @@ function sourceRecord(url: string, hash: string) {
           publication: {
             id: "publication-1",
             source: {
-              allowedHosts: ["news.example.test"],
-              blockedHosts: [],
+              allowedHosts: source.allowedHosts ?? ["news.example.test"],
+              blockedHosts: source.blockedHosts ?? [],
             },
           },
         },
@@ -156,6 +160,79 @@ describe("publication image service", () => {
     expect(mocks.bucket.get).toHaveBeenCalledTimes(1);
   });
 
+  it("allows an external image host registered by the trusted crawler", async () => {
+    const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.jpg";
+    const hash = await hashUrl(url);
+    mocks.imageSourceFindUnique.mockResolvedValue(
+      sourceRecord(url, hash, { allowedHosts: ["news.ustc.edu.cn"] }),
+    );
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("external-image"), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+
+    const response = await getPublicationImageResponse({
+      request: new Request(`https://life.test/api/publications/images/${hash}`),
+      hash,
+    });
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Content-Type")).toBe("image/jpeg");
+    await expect(response?.text()).resolves.toBe("external-image");
+    expect(mocks.fetchMock).toHaveBeenCalledWith(
+      new URL(url),
+      expect.objectContaining({ redirect: "manual" }),
+    );
+  });
+
+  it("allows same-host redirects but rejects an unregistered subdomain", async () => {
+    const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.png";
+    const hash = await hashUrl(url);
+    mocks.imageSourceFindUnique.mockResolvedValue(
+      sourceRecord(url, hash, { allowedHosts: ["news.ustc.edu.cn"] }),
+    );
+    mocks.fetchMock
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { Location: "/images/current.png" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(stream("redirected-image"), {
+          status: 200,
+          headers: { "Content-Type": "image/png" },
+        }),
+      );
+
+    const response = await getPublicationImageResponse({
+      request: new Request(`https://life.test/api/publications/images/${hash}`),
+      hash,
+    });
+    expect(response?.status).toBe(200);
+    await expect(response?.text()).resolves.toBe("redirected-image");
+    expect(mocks.fetchMock).toHaveBeenCalledTimes(2);
+
+    mocks.fetchMock.mockReset();
+    mocks.fetchMock.mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: {
+          Location: "https://cdn.img-xhpfm.xinhuaxmt.com/images/current.png",
+        },
+      }),
+    );
+    const rejected = await getPublicationImageResponse({
+      request: new Request(`https://life.test/api/publications/images/${hash}`),
+      hash,
+    }).catch(() => null);
+    expect(rejected).toBeNull();
+    expect(mocks.fetchMock).toHaveBeenCalledTimes(1);
+    expect(mocks.bucket.put).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     "https://127.0.0.1/image.png",
     "https://localhost/image.png",
@@ -165,6 +242,28 @@ describe("publication image service", () => {
   ])("rejects unsafe origin %s before fetching", async (url) => {
     const hash = await hashUrl(url);
     mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+
+    await expect(
+      getPublicationImageResponse({
+        request: new Request(
+          `https://life.test/api/publications/images/${hash}`,
+        ),
+        hash,
+      }),
+    ).resolves.toBeNull();
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps source blocked hosts authoritative over registered image hosts", async () => {
+    const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.png";
+    const hash = await hashUrl(url);
+    mocks.imageSourceFindUnique.mockResolvedValue(
+      sourceRecord(url, hash, {
+        allowedHosts: ["news.ustc.edu.cn"],
+        blockedHosts: ["xinhuaxmt.com"],
+      }),
+    );
 
     await expect(
       getPublicationImageResponse({
