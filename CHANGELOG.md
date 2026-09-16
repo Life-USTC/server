@@ -1,3 +1,10 @@
+## [1.116.3](https://github.com/Life-USTC/server/compare/v1.116.2...v1.116.3) (2026-09-16)
+
+
+### Bug Fixes
+
+* **publications:** preserve inline Markdown images with local caching ([#1072](https://github.com/Life-USTC/server/issues/1072)) ([6caf6fc](https://github.com/Life-USTC/server/commit/6caf6fcf2c37cd925ea706c670a94c953c443be5))
+
 ## [1.116.2](https://github.com/Life-USTC/server/compare/v1.116.1...v1.116.2) (2026-09-16)
 
 
