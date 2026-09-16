@@ -31,6 +31,7 @@ vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareR2PublicationsBucket: () => mocks.bucket,
 }));
 
+import { publicationObjectKey } from "@/features/publications/server/publication-ingestion-service";
 import {
   getPublicPublicationById,
   getPublicPublicationObjectResponse,
@@ -39,6 +40,7 @@ import {
 
 const digest = "a".repeat(64);
 const secondDigest = "b".repeat(64);
+const markdownDigest = "c".repeat(64);
 
 function revision(overrides: Record<string, unknown> = {}) {
   return {
@@ -188,9 +190,47 @@ describe("public publication reads", () => {
       revision: {
         id: "revision-1",
         bodyText: "Plain body",
+        bodyMarkdown: null,
         objects: [{ kind: "media" }],
       },
     });
+  });
+
+  it("loads current body_markdown bytes into bodyMarkdown without replacing bodyText", async () => {
+    const markdown = "# Markdown body";
+    const object = {
+      kind: "body_markdown" as const,
+      sha256: markdownDigest,
+      size: new TextEncoder().encode(markdown).byteLength,
+      contentType: "text/markdown",
+      r2Key: publicationObjectKey("body_markdown", markdownDigest),
+      status: "verified" as const,
+    };
+    mocks.publicationFindFirst.mockResolvedValue(
+      publication({
+        currentRevision: revision({
+          objectLinks: [
+            {
+              role: "body_markdown",
+              sortOrder: 0,
+              altText: null,
+              object,
+            },
+          ],
+        }),
+      }),
+    );
+    mocks.bucket.get.mockResolvedValue({
+      size: object.size,
+      body: stream(markdown),
+    });
+
+    await expect(
+      getPublicPublicationById("publication-1"),
+    ).resolves.toMatchObject({
+      revision: { bodyText: "Plain body", bodyMarkdown: markdown },
+    });
+    expect(mocks.bucket.get).toHaveBeenCalledWith(object.r2Key);
   });
 
   it("requires a linked object on a current public revision before reading R2", async () => {

@@ -121,11 +121,14 @@ export type PublicPublicationDetail = {
   source: PublicPublicationSource;
   revision: PublicPublicationRevisionSummary & {
     bodyText: string | null;
+    bodyMarkdown: string | null;
     extractionMethod: string | null;
     classifierVersion: string | null;
     objects: PublicPublicationObject[];
   };
 };
+
+const PUBLICATION_BODY_MARKDOWN_MAX_BYTES = 32 * 1024 * 1024;
 
 export type PublicPublicationList = {
   data: PublicPublicationListItem[];
@@ -230,6 +233,50 @@ function mapObjects(revision: PublicPublicationRevision) {
   });
 }
 
+async function readBodyMarkdown(revision: PublicPublicationRevision) {
+  const link = revision.objectLinks.find((candidate) => {
+    const object = mapObjectLink(candidate);
+    return object?.kind === "body_markdown";
+  });
+  const object = link?.object;
+  if (!link || !object || object.size > PUBLICATION_BODY_MARKDOWN_MAX_BYTES) {
+    return null;
+  }
+
+  const bucket = requirePublicationsBucket();
+  const stored = await bucket.get(object.r2Key);
+  if (!stored?.body || stored.size !== object.size) return null;
+
+  const reader = stored.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      total += chunk.value.byteLength;
+      if (total > PUBLICATION_BODY_MARKDOWN_MAX_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(chunk.value);
+    }
+  } catch {
+    await reader.cancel().catch(() => undefined);
+    return null;
+  }
+
+  if (total !== object.size) return null;
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 function mapRevisionSummary(revision: PublicPublicationRevision) {
   return {
     id: revision.id,
@@ -326,6 +373,7 @@ export async function getPublicPublicationById(id: string) {
     revision: {
       ...publication.revision,
       bodyText: revision.bodyText,
+      bodyMarkdown: await readBodyMarkdown(revision),
       extractionMethod: revision.extractionMethod,
       classifierVersion: revision.classifierVersion,
       objects: publication.objects,

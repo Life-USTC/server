@@ -13,6 +13,7 @@ import {
   parseOptionalPublicationDate,
   parsePublicationDate,
   revisionSemanticsMatch,
+  validatePublicationImageSources,
 } from "./publication-ingestion-revision-semantics";
 
 type TransactionClient = Prisma.TransactionClient;
@@ -156,6 +157,35 @@ async function ensureObjectManifest(
   return object;
 }
 
+async function linkImageSources(
+  tx: TransactionClient,
+  revisionId: string,
+  imageSources: Record<string, string>,
+) {
+  for (const [id, url] of Object.entries(imageSources)) {
+    const source = await tx.publicationImageSource.upsert({
+      where: { id },
+      create: { id, url },
+      update: {},
+    });
+    if (source.url !== url) {
+      throw new PublicationIngestionBadRequestError(
+        `Image source ${id} does not match its stored URL`,
+      );
+    }
+    await tx.publicationRevisionImageSource.upsert({
+      where: {
+        revisionId_imageSourceId: {
+          revisionId,
+          imageSourceId: id,
+        },
+      },
+      create: { revisionId, imageSourceId: id },
+      update: {},
+    });
+  }
+}
+
 export function result(
   item: Pick<
     PublicationIngestionItem,
@@ -183,6 +213,9 @@ export async function ingestItem(
   item: PublicationIngestionBatchRequest["items"][number],
   source: RegisteredSource,
 ): Promise<PublicationIngestionItemResult> {
+  if (!item.tombstone) {
+    await validatePublicationImageSources(item.imageSources);
+  }
   if (!sourceAllowsUrl(source, item.canonicalUrl)) {
     return result(
       item,
@@ -279,6 +312,7 @@ export async function ingestItem(
       data: { currentRevisionId: revision.id },
     });
     await linkObjects(tx, batchId, revision.id, item.objects);
+    await linkImageSources(tx, revision.id, item.imageSources);
     await writePublicationEvent(
       tx,
       batchId,
@@ -309,6 +343,13 @@ export async function ingestItem(
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       },
+      imageSourceRefs: {
+        include: {
+          imageSource: {
+            select: { id: true, url: true },
+          },
+        },
+      },
     },
   });
   if (existingRevision && !revisionSemanticsMatch(existingRevision, item)) {
@@ -335,6 +376,7 @@ export async function ingestItem(
         existingRevision.id,
         item.objects,
       );
+      await linkImageSources(tx, existingRevision.id, item.imageSources);
       const missing = objectsNeedingUpload(linked);
       if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
     }
@@ -390,6 +432,7 @@ export async function ingestItem(
         existingRevision.id,
         item.objects,
       );
+      await linkImageSources(tx, existingRevision.id, item.imageSources);
       const missing = objectsNeedingUpload(linked);
       if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
     }
@@ -440,6 +483,8 @@ export async function ingestItem(
 
   if (!item.tombstone)
     await linkObjects(tx, batchId, revision.id, item.objects);
+  if (!item.tombstone)
+    await linkImageSources(tx, revision.id, item.imageSources);
   await writePublicationEvent(
     tx,
     batchId,

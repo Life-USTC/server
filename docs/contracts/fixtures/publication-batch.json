@@ -32,6 +32,7 @@
       "category": "Campus",
       "summary": "A deterministic contract fixture.",
       "bodyText": "Fixture body",
+      "imageSources": {},
       "sourcePageUrl": "https://news.ustc.edu.cn/example/fixture-news.html",
       "extractionMethod": "fixture",
       "classifierVersion": "fixture/1",

@@ -11,9 +11,11 @@ const publicationIngestionTables = [
   "IngestionRun",
   "Publication",
   "PublicationEventOutbox",
+  "PublicationImageSource",
   "PublicationObject",
   "PublicationObjectLink",
   "PublicationRevision",
+  "PublicationRevisionImageSource",
   "PublicationSource",
 ] as const;
 

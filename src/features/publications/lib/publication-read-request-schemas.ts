@@ -28,10 +28,17 @@ export const publicationObjectPathParamsSchema = z.strictObject({
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
+export const publicationImagePathParamsSchema = z.strictObject({
+  hash: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 export type PublicationsQuery = z.output<typeof publicationsQuerySchema>;
 export type PublicationIdPathParams = z.output<
   typeof publicationIdPathParamsSchema
 >;
 export type PublicationObjectPathParams = z.output<
   typeof publicationObjectPathParamsSchema
+>;
+export type PublicationImagePathParams = z.output<
+  typeof publicationImagePathParamsSchema
 >;

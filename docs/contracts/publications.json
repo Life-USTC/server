@@ -9,6 +9,8 @@
   "rules": {
     "public-read": "Anonymous reads expose only non-deleted publications whose effective type is news or notice. The list supports optional type=news|notice, source, query, page, and pageSize filters; detail addresses are public by publication id. Deleted publications and other are never returned by this surface.",
     "public-object-read": "A private R2 object is readable only when its content-addressed key is tied to a linked or verified object and an object link on a non-tombstone revision of a non-deleted news or notice publication. The Worker checks this relationship before reading R2; missing objects return not found and metadata reads do not fail ingestion.",
+    "publication-markdown": "Crawler revisions may link a body_markdown object. The public detail read loads that object from R2 and returns bodyMarkdown explicitly as a string, empty string, or null when no verified current object is available; it never substitutes bodyText. body_html remains an unchanged archive object.",
+    "publication-images": "Ingestion imageSources maps exact absolute URL SHA-256 hashes to source URLs and is stored as indexed revision relations. Markdown uses /api/publications/images/{hash}. Only current public news/notice images resolve; hashes, source hosts and redirects are validated. The first successful origin fetch is archived in R2; responses have finite cache lifetimes and failures are not cached.",
     "public-cache": "Public list/detail responses are cacheable JSON. Object responses use their content-addressed key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media may render inline; all other object kinds use a generated safe attachment filename and never trust crawler-provided filenames.",
     "rest-only": "Publication ingestion and object upload planning are exposed only under /api/ingestion/publications. Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as a user OAuth credential.",
     "read-transport-boundary": "The current product needs a public website preview plus public REST for read/list/detail and controlled object delivery. GraphQL and MCP are intentionally not added for publications until a separate client contract requires them; this is a transport boundary, not an implicit GraphQL/MCP capability.",
@@ -61,6 +63,15 @@
               "The server derives and checks the R2 content-addressed key; clients cannot choose an arbitrary key.",
               "Responses use ETag/immutable cache headers and safe content disposition."
             ]
+          },
+          {
+            "path": "/api/publications/images/{hash}",
+            "method": "GET",
+            "returns": "binary",
+            "notes": [
+              "Resolves only a hash linked to a current public news or notice revision from the ingestion imageSources map; there is no arbitrary URL proxy parameter.",
+              "Successful raster images are cached in R2 under a URL-hash namespace with finite cache headers because the upstream URL may change. Invalid origins, redirect targets, credentials, custom ports, private/local hosts, non-raster responses, oversized bodies, and origin failures are rejected without caching."
+            ]
           }
         ]
       },
@@ -69,6 +80,7 @@
           "source name and organization level",
           "news/notice type",
           "current revision title, summary, bodyText, and source URL",
+          "current bodyMarkdown loaded from the body_markdown R2 object",
           "verified media and attachment links"
         ]
       }
@@ -87,6 +99,7 @@
             "returns": "{ batchId, clientRunId, payloadDigest, results[] }",
             "notes": [
               "Request and response use the shared camelCase fixture shape in docs/contracts/fixtures/publication-batch.json.",
+              "Each non-tombstone item may include imageSources, mapping lowercase SHA-256(UTF-8 original absolute image URL) keys to original URLs; the server stores the map in the indexed image-source registry, and body_markdown Markdown must reference the same-origin /api/publications/images/{hash} paths.",
               "Each result includes sourceId, canonicalUrl, and revisionHash so repeated URLs or revisions remain unambiguous. Status is created, updated, unchanged, or rejected; rejected results include an error and nullable publicationId/revisionId.",
               "An unchanged result may include objectsNeedingUpload ({ kind, sha256 }[]) listing claimed objects whose bytes were never verified; the client plans and uploads those objects against the response batchId."
             ]

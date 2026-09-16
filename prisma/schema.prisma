@@ -1126,10 +1126,35 @@ model PublicationRevision {
   publication Publication             @relation("PublicationRevisionHistory", fields: [publicationId], references: [id], onDelete: Cascade)
   currentFor  Publication?            @relation("PublicationCurrentRevision")
   objectLinks PublicationObjectLink[]
+  imageSourceRefs PublicationRevisionImageSource[]
 
   @@unique([publicationId, revisionHash])
   @@index([publicationId, observedAt])
   @@index([revisionHash])
+}
+
+/** Indexed registry for image URL hashes referenced by immutable revisions. */
+model PublicationImageSource {
+  id        String   @id
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  revisions PublicationRevisionImageSource[]
+
+  @@index([url])
+}
+
+model PublicationRevisionImageSource {
+  revisionId     String
+  imageSourceId  String
+  createdAt      DateTime @default(now())
+
+  revision    PublicationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  imageSource PublicationImageSource @relation(fields: [imageSourceId], references: [id], onDelete: Cascade)
+
+  @@id([revisionId, imageSourceId])
+  @@index([imageSourceId, revisionId])
 }
 
 model PublicationObject {

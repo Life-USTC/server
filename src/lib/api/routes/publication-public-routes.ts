@@ -1,4 +1,9 @@
 import {
+  getPublicationImageResponse,
+  PublicationImageOriginError,
+  PublicationImageStorageUnavailableError,
+} from "@/features/publications/server/publication-image-service";
+import {
   getPublicPublicationById,
   getPublicPublicationObjectResponse,
   listPublications,
@@ -14,6 +19,7 @@ import {
 } from "@/lib/api/helpers";
 import {
   publicationIdPathParamsSchema,
+  publicationImagePathParamsSchema,
   publicationObjectPathParamsSchema,
   publicationsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
@@ -68,6 +74,15 @@ export async function getPublicPublicationRoute(
       headers: PUBLICATION_READ_CACHE_HEADERS,
     });
   } catch (error) {
+    if (error instanceof PublicationReadStorageUnavailableError) {
+      const response = handleRouteError(
+        "Publication body storage unavailable",
+        error,
+        503,
+      );
+      response.headers.set("Retry-After", "60");
+      return response;
+    }
     return handleRouteError("Failed to fetch publication", error);
   }
 }
@@ -102,5 +117,48 @@ export async function getPublicPublicationObjectRoute(
       return response;
     }
     return handleRouteError("Failed to fetch publication object", error);
+  }
+}
+
+export async function getPublicPublicationImageRoute(
+  request: Request,
+  params: { hash: string },
+  options: { defer?: (promise: Promise<unknown>) => void } = {},
+) {
+  const parsed = await parseRouteParams(
+    Promise.resolve(params),
+    publicationImagePathParamsSchema,
+    "Invalid publication image hash",
+  );
+  if (parsed instanceof Response) return parsed;
+
+  try {
+    const result = await getPublicationImageResponse({
+      request,
+      hash: parsed.hash,
+      defer: options.defer,
+    });
+    if (!result) return notFound("Publication image not found");
+    return result;
+  } catch (error) {
+    if (error instanceof PublicationImageStorageUnavailableError) {
+      const response = handleRouteError(
+        "Publication image storage unavailable",
+        error,
+        503,
+      );
+      response.headers.set("Retry-After", "60");
+      return response;
+    }
+    if (error instanceof PublicationImageOriginError) {
+      const response = handleRouteError(
+        "Failed to fetch publication image from origin",
+        error,
+        502,
+      );
+      response.headers.set("Cache-Control", "no-store");
+      return response;
+    }
+    return handleRouteError("Failed to fetch publication image", error);
   }
 }

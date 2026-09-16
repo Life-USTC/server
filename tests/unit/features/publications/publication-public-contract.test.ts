@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  publicationImagePathParamsSchema,
   publicationObjectPathParamsSchema,
   publicationsQuerySchema,
 } from "@/lib/api/schemas/request-publication-read-schemas";
@@ -62,6 +63,7 @@ describe("public publication contract", () => {
       summary: null,
       sourcePageUrl: null,
       bodyText: "Plain body",
+      bodyMarkdown: null,
       extractionMethod: null,
       classifierVersion: null,
       objects: [object],
@@ -107,5 +109,15 @@ describe("public publication contract", () => {
         pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       }).data[0].revision.title,
     ).toBe("Title");
+  });
+
+  it("validates publication image URL-hash paths", () => {
+    expect(
+      publicationImagePathParamsSchema.safeParse({ hash: digest }).success,
+    ).toBe(true);
+    expect(
+      publicationImagePathParamsSchema.safeParse({ hash: digest.toUpperCase() })
+        .success,
+    ).toBe(false);
   });
 });

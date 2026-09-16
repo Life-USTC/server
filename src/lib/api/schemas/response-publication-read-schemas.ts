@@ -59,6 +59,7 @@ export const publicPublicationListItemSchema = z.strictObject({
 export const publicPublicationRevisionDetailSchema = z.strictObject({
   ...publicPublicationRevisionBaseSchema,
   bodyText: z.string().nullable(),
+  bodyMarkdown: z.string().nullable(),
   extractionMethod: z.string().nullable(),
   classifierVersion: z.string().nullable(),
   objects: z.array(publicPublicationObjectSchema),
