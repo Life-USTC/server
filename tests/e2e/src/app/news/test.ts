@@ -130,6 +130,58 @@ test.describe("/news 新闻与通知预览", () => {
     await expect(
       page.locator("[data-slot='card']").filter({ hasText: "<script" }),
     ).toHaveCount(0);
+    const body = page.locator(".publication-body");
+    const image = body.getByRole("img", { name: "Inline publication image" });
+    await expect(image).toHaveAttribute("src", fixture.imageUrl);
+    await image.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() =>
+        image.evaluate(
+          (node: HTMLImageElement) => node.complete && node.naturalWidth > 0,
+        ),
+      )
+      .toBe(true);
+    const blocks = await body
+      .locator(":scope > p")
+      .evaluateAll((nodes) =>
+        nodes.map((node) =>
+          node.querySelector("img") ? "image" : node.textContent,
+        ),
+      );
+    expect(blocks.slice(0, 4)).toEqual([
+      "This is the body text rendered by the public detail page.",
+      "第二段正文，验证段间距与首行缩进。",
+      "image",
+      "This paragraph follows the inline image.",
+    ]);
+    await expect(
+      page.getByText(
+        "Legacy plain text must not be used as the rendered body.",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", {
+        name: /^(图片|Images|媒体|Media|附件|Attachments)$/i,
+      }),
+    ).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "news-inline-markdown");
+  });
+
+  test("本站图片接口读取缓存并支持条件请求", async ({ request }) => {
+    const response = await request.get(fixture.imageUrl);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("image/png");
+    const etag = response.headers().etag;
+    expect(etag).toBeTruthy();
+    const unchanged = await request.get(fixture.imageUrl, {
+      headers: { "If-None-Match": etag },
+    });
+    expect(unchanged.status()).toBe(304);
+    const detail = await request.get(`/api/publications/${fixture.id}`);
+    expect(detail.status()).toBe(200);
+    expect((await detail.json()).revision.bodyMarkdown).toContain(
+      fixture.imageUrl,
+    );
   });
 
   test("移动端新闻详情保持正文可读且无横向溢出", async ({ page }, testInfo) => {
@@ -145,6 +197,17 @@ test.describe("/news 新闻与通知预览", () => {
         "This is the body text rendered by the public detail page.",
       ),
     ).toBeVisible();
+    const paragraphs = page.locator(".publication-body > p");
+    const metrics = await paragraphs.nth(1).evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        font: Number.parseFloat(style.fontSize),
+        indent: Number.parseFloat(style.textIndent),
+        gap: Number.parseFloat(style.marginBlockStart),
+      };
+    });
+    expect(metrics.indent).toBeCloseTo(metrics.font * 2);
+    expect(metrics.gap).toBeCloseTo(metrics.font);
     await expectNoPageHorizontalOverflow(page);
     await captureStepScreenshot(page, testInfo, "news-detail-mobile");
   });
