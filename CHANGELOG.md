@@ -1,3 +1,10 @@
+## [1.116.5](https://github.com/Life-USTC/server/compare/v1.116.4...v1.116.5) (2026-09-16)
+
+
+### Bug Fixes
+
+* **publications:** prevent caching failed image responses ([#1074](https://github.com/Life-USTC/server/issues/1074)) ([6e56eaf](https://github.com/Life-USTC/server/commit/6e56eaf1194c84421e60392e53d209c21e79d081))
+
 ## [1.116.4](https://github.com/Life-USTC/server/compare/v1.116.3...v1.116.4) (2026-09-16)
 
 
