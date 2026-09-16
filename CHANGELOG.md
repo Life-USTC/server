@@ -1,3 +1,10 @@
+## [1.116.4](https://github.com/Life-USTC/server/compare/v1.116.3...v1.116.4) (2026-09-16)
+
+
+### Bug Fixes
+
+* **publications:** allow registered external image hosts ([#1073](https://github.com/Life-USTC/server/issues/1073)) ([e3d15e3](https://github.com/Life-USTC/server/commit/e3d15e3a34aebe75a3a0bf3ce8c01f3310d5e703))
+
 ## [1.116.3](https://github.com/Life-USTC/server/compare/v1.116.2...v1.116.3) (2026-09-16)
 
 
