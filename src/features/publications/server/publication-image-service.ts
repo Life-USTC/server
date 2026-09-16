@@ -43,6 +43,8 @@ const EXTENSION_CONTENT_TYPES: Record<string, string> = {
 
 type PublicationImageSourceOwner = {
   originalUrl: string;
+  /** The exact public hostname derived from the trusted registry URL. */
+  registeredHost: string;
   publication: {
     source: {
       allowedHosts: string[];
@@ -103,12 +105,17 @@ function hostMatches(hostname: string, configuredHost: string) {
 function sourceAllowsHost(
   hostname: string,
   source: PublicationImageSourceOwner["publication"]["source"],
+  registeredHost?: string,
 ) {
   const host = normalizeHost(hostname);
   if (!host) return false;
   if (source.blockedHosts.some((blocked) => hostMatches(host, blocked))) {
     return false;
   }
+  const exactRegisteredHost = registeredHost
+    ? normalizeHost(registeredHost)
+    : null;
+  if (exactRegisteredHost && host === exactRegisteredHost) return true;
   if (hostMatches(host, PUBLICATION_IMAGE_ORIGIN)) return true;
   return source.allowedHosts.some((allowed) => hostMatches(host, allowed));
 }
@@ -117,6 +124,7 @@ function sourceAllowsHost(
 export function parsePublicationImageOrigin(
   value: string,
   source: PublicationImageSourceOwner["publication"]["source"],
+  registeredHost?: string,
 ) {
   let url: URL;
   try {
@@ -129,7 +137,7 @@ export function parsePublicationImageOrigin(
     url.username ||
     url.password ||
     url.port ||
-    !sourceAllowsHost(url.hostname, source)
+    !sourceAllowsHost(url.hostname, source, registeredHost)
   ) {
     return null;
   }
@@ -188,14 +196,28 @@ async function findImageSource(hash: string) {
     },
   });
   if (!source) return null;
+  let registeredHost: string | null;
+  try {
+    registeredHost = normalizeHost(new URL(source.url).hostname);
+  } catch {
+    registeredHost = null;
+  }
+  if (!registeredHost) return null;
   for (const candidate of source.revisions) {
     const revision = candidate.revision;
     if (revision.currentFor?.id !== revision.publication.id) continue;
     const owner = {
       originalUrl: source.url,
+      registeredHost,
       publication: revision.publication,
     } satisfies PublicationImageSourceOwner;
-    if (parsePublicationImageOrigin(source.url, owner.publication.source)) {
+    if (
+      parsePublicationImageOrigin(
+        source.url,
+        owner.publication.source,
+        owner.registeredHost,
+      )
+    ) {
       return owner;
     }
   }
@@ -301,6 +323,7 @@ async function readLimitedBody(response: Response) {
 async function fetchPublicationImage(
   initialUrl: URL,
   source: PublicationImageSourceOwner["publication"]["source"],
+  registeredHost: string,
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(
@@ -314,7 +337,13 @@ async function fetchPublicationImage(
       redirect <= PUBLICATION_IMAGE_MAX_REDIRECTS;
       redirect += 1
     ) {
-      if (!parsePublicationImageOrigin(currentUrl.toString(), source)) {
+      if (
+        !parsePublicationImageOrigin(
+          currentUrl.toString(),
+          source,
+          registeredHost,
+        )
+      ) {
         throw new PublicationImageOriginError(
           "Publication image redirect target is not allowed",
         );
@@ -400,7 +429,11 @@ export async function getPublicationImageResponse(input: {
   if (!record) return null;
   const originalUrl = record.originalUrl;
   const source = record.publication.source;
-  const originUrl = parsePublicationImageOrigin(originalUrl, source);
+  const originUrl = parsePublicationImageOrigin(
+    originalUrl,
+    source,
+    record.registeredHost,
+  );
   if (!originUrl || (await imageUrlHash(originalUrl)) !== input.hash) {
     return null;
   }
@@ -425,7 +458,11 @@ export async function getPublicationImageResponse(input: {
     }
   }
 
-  const { bytes, contentType } = await fetchPublicationImage(originUrl, source);
+  const { bytes, contentType } = await fetchPublicationImage(
+    originUrl,
+    source,
+    record.registeredHost,
+  );
   const store = bucket.put(key, bytes, { httpMetadata: { contentType } });
   const persist = store.catch((error: unknown) => {
     logAppEvent(
