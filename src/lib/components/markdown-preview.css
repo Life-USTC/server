@@ -1,3 +1,24 @@
+.markdown-preview {
+  display: flow-root;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview > * + *,
+.markdown-preview :where(blockquote, li, .markdown-directive) > * + * {
+  margin-block-start: 1em;
+}
+
+.markdown-preview p {
+  text-indent: 2em;
+}
+
+.markdown-preview :where(li, th, td, figcaption) p,
+.markdown-preview .markdown-directive-center p,
+.markdown-preview p:has(img) {
+  text-indent: 0;
+}
+
 .markdown-preview :where(h1, h2) {
   font-size: 1rem;
   font-weight: 600;
@@ -38,7 +59,6 @@
   border-left: 4px solid var(--color-border);
   color: var(--color-muted-foreground);
   padding-left: 1rem;
-  white-space: pre-wrap;
 }
 
 .markdown-preview pre {
@@ -144,7 +164,6 @@
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
   padding: 0.75rem;
-  white-space: pre-wrap;
 }
 
 .markdown-preview .markdown-directive-center {

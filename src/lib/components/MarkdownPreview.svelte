@@ -18,7 +18,7 @@ $: renderedHtml = content.trim()
   : "";
 </script>
 
-<div class={cn("markdown-preview grid gap-3 text-sm leading-6", className)} data-slot="markdown-preview">
+<div class={cn("markdown-preview text-sm", className)} data-slot="markdown-preview">
   {#if renderedHtml}
     {@html renderedHtml}
   {:else if emptyLabel}
