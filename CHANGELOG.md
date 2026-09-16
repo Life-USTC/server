@@ -1,3 +1,10 @@
+## [1.116.2](https://github.com/Life-USTC/server/compare/v1.116.1...v1.116.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* **markdown:** unify paragraph spacing and indentation across renderers ([#1071](https://github.com/Life-USTC/server/issues/1071)) ([f3b0615](https://github.com/Life-USTC/server/commit/f3b06158d51e2ab46e53a812f3d39b0e23d6d9da))
+
 ## [1.116.1](https://github.com/Life-USTC/server/compare/v1.116.0...v1.116.1) (2026-09-16)
 
 

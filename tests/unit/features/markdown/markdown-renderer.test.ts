@@ -11,6 +11,20 @@ import {
 } from "@/lib/components/markdown-preview-renderer";
 
 describe("markdown 渲染器", () => {
+  it("preserves inline image order and loads images lazily on every render path", () => {
+    const markdown =
+      "第一段。\n\n![示意图](/api/publications/images/example)\n\n第二段。";
+    for (const render of [renderMarkdown, renderEmbeddedMarkdown]) {
+      const html = render(markdown);
+      expect(html.indexOf("第一段")).toBeLessThan(html.indexOf("<img"));
+      expect(html.indexOf("<img")).toBeLessThan(html.indexOf("第二段"));
+      expect(html).toContain('src="/api/publications/images/example"');
+      expect(html).toContain('alt="示意图"');
+      expect(html).toContain('loading="lazy"');
+      expect(html).toContain('decoding="async"');
+    }
+  });
+
   it("preserves standalone headings and nests embedded headings below the host section", () => {
     expect(renderMarkdown("# Page title")).toContain("<h1>Page title</h1>");
 
