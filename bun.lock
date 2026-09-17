@@ -82,7 +82,7 @@
         "vitest": "5.0.0",
         "wrangler": "4.129.1",
         "yaml": "2.9.0",
-        "zod-openapi": "^6.0.1",
+        "zod-openapi": "^6.0.2",
       },
     },
   },
@@ -2270,7 +2270,7 @@
 
     "zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
 
-    "zod-openapi": ["zod-openapi@6.0.1", "", { "peerDependencies": { "zod": "^4.0.0" } }, "sha512-ITUfaevP/JcrsOavyVHFQHz788F7YcmN8wFYRZk20UM16BUafdUzxq8ZM4ahyTv3c6ESvY9ywA+MwLXzIvVVAw=="],
+    "zod-openapi": ["zod-openapi@6.0.2", "", { "peerDependencies": { "zod": "^4.0.0" } }, "sha512-SwC5Ppi2ov8WimzNWP/XK95VqPyLDzxPYj10HgNPzhZH9gO7zx0sxdYL9eq7wOADHx1JddOApjhYDmMWQvnVnw=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
 
