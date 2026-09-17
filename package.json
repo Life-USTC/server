@@ -79,7 +79,7 @@
     "graphql-yoga": "5.22.0",
     "ical-generator": "^10.2.0",
     "jose": "^6.2.9",
-    "katex": "^0.18.4",
+    "katex": "^0.18.7",
     "pinyin-pro": "^3.29.3",
     "prisma": "7.10.0",
     "rehype-attr": "^4.1.3",
