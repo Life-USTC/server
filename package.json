@@ -67,7 +67,7 @@
     "@lucide/svelte": "^1.31.0",
     "@modelcontextprotocol/sdk": "1.30.0",
     "@prisma/adapter-pg": "7.10.0",
-    "@prisma/client": "7.9.1",
+    "@prisma/client": "7.10.0",
     "@scalar/api-reference": "^1.67.0",
     "better-auth": "1.7.2",
     "clsx": "^2.1.1",
