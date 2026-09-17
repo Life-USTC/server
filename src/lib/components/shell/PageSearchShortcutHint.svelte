@@ -9,7 +9,7 @@ import * as Kbd from "$lib/components/ui/kbd/index.js";
 $: keys = pageSearchShortcutKeys(browser && isApplePlatform());
 </script>
 
-<Kbd.Group>
+<Kbd.Group class="hidden sm:inline-flex">
   {#each keys as key}
     <Kbd.Root>{key}</Kbd.Root>
   {/each}
