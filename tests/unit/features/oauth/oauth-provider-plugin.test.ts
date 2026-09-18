@@ -53,7 +53,7 @@ describe("buildOAuthProviderPlugin", () => {
       expect.objectContaining({
         grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
         loginPage: "https://life.example/account/sign-in",
-        refreshTokenReuseInterval: 0,
+        refreshTokenReuseInterval: 30,
         refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
         resource: "https://life.example/api/mcp",
         enforcePerClientResources: false,

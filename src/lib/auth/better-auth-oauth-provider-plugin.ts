@@ -42,7 +42,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
     resource: getOAuthMcpResourceUrl(),
-    refreshTokenReuseInterval: 0,
+    refreshTokenReuseInterval: 30,
     refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
     clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
