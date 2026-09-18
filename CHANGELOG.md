@@ -1,3 +1,10 @@
+## [1.116.6](https://github.com/Life-USTC/server/compare/v1.116.5...v1.116.6) (2026-09-18)
+
+
+### Bug Fixes
+
+* **auth:** restore 30s refresh token replay window ([#1078](https://github.com/Life-USTC/server/issues/1078)) ([78d6405](https://github.com/Life-USTC/server/commit/78d64058264621bf9358a182eb550db2c148ae6d))
+
 ## [1.116.5](https://github.com/Life-USTC/server/compare/v1.116.4...v1.116.5) (2026-09-16)
 
 
