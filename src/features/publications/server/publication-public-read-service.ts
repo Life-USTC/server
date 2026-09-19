@@ -1,4 +1,8 @@
 import type { PublicationsQuery } from "@/features/publications/lib/publication-read-request-schemas";
+import {
+  PUBLICATION_SOURCE_UNIVERSITY_LEVEL,
+  type PublicationSourceOrganizationLevel,
+} from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { normalizePagination, type PaginationInput } from "@/lib/pagination";
@@ -66,7 +70,15 @@ type PublicPublicationObjectLink =
 
 export type PublicationReadFilters = {
   type?: PublicationsQuery["type"];
+  /**
+   * Source ids to include (issue #1069). Named for its `source` query
+   * parameter rather than pluralized so a validated `publicationsQuerySchema`
+   * output is still a `PublicationReadFilters` and can be passed straight
+   * through by the REST route and the page loader.
+   */
   source?: PublicationsQuery["source"];
+  /** Source organization levels to include; ANDs with `source`. */
+  organizationLevel?: PublicationsQuery["organizationLevel"];
   query?: PublicationsQuery["query"];
   /**
    * Opt-in reprint folding (issue #1068). When true, the list groups
@@ -97,7 +109,7 @@ export type PublicPublicationObject = {
 export type PublicPublicationSource = {
   id: string;
   name: string;
-  organizationLevel: string;
+  organizationLevel: PublicationSourceOrganizationLevel;
 };
 
 export type PublicPublicationRevisionSummary = {
@@ -203,7 +215,12 @@ function normalizePublicationPagination(input: PaginationInput = {}) {
   });
 }
 
-function publicPublicationWhere(
+/**
+ * Visibility filter shared by the list, the detail read and the source
+ * directory's aggregate, so a source's article count can never disagree with
+ * the list it links to.
+ */
+export function publicPublicationWhere(
   filters: PublicationReadFilters = {},
 ): Prisma.PublicationWhereInput {
   const typeFilter = filters.type ?? { in: [...PUBLIC_PUBLICATION_TYPES] };
@@ -218,8 +235,14 @@ function publicPublicationWhere(
     },
   };
 
-  if (filters.source) {
-    where.sourceId = filters.source;
+  if (filters.source && filters.source.length > 0) {
+    where.sourceId = { in: filters.source };
+  }
+
+  if (filters.organizationLevel && filters.organizationLevel.length > 0) {
+    where.source = {
+      is: { organizationLevel: { in: filters.organizationLevel } },
+    };
   }
 
   if (filters.query) {
@@ -255,8 +278,14 @@ function foldPublicationWhereSql(filters: PublicationReadFilters = {}) {
     Prisma.sql`cr."publicationType"::text = ANY(${types})`,
   ];
 
-  if (filters.source) {
-    conditions.push(Prisma.sql`p."sourceId" = ${filters.source}`);
+  if (filters.source && filters.source.length > 0) {
+    conditions.push(Prisma.sql`p."sourceId" = ANY(${filters.source})`);
+  }
+
+  if (filters.organizationLevel && filters.organizationLevel.length > 0) {
+    conditions.push(
+      Prisma.sql`s."organizationLevel"::text = ANY(${filters.organizationLevel})`,
+    );
   }
 
   if (filters.query) {
@@ -295,7 +324,7 @@ async function queryFoldedPublicationPage(
         p."publishedDateShanghai",
         p."publishedAt",
         p."lastSeenAt",
-        (s."organizationLevel" = 'university') AS "isUniversity"
+        (s."organizationLevel"::text = ${PUBLICATION_SOURCE_UNIVERSITY_LEVEL}) AS "isUniversity"
       FROM "Publication" p
       JOIN "PublicationSource" s ON s.id = p."sourceId"
       JOIN "PublicationRevision" cr ON cr.id = p."currentRevisionId"

@@ -597,8 +597,16 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              "description": "Comma-separated source ids, at most 20 entries. A repeated source parameter is accepted as the same list."
+            }
+          },
+          {
+            "in": "query",
+            "name": "organizationLevel",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Comma-separated source organization levels (university, office, department, college, center, research, service, program, society, journal, student, unknown). A repeated organizationLevel parameter is accepted as the same list."
             }
           },
           {
@@ -3232,6 +3240,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/publications/sources": {
+      "get": {
+        "operationId": "get-api-publications-sources",
+        "summary": "List registered publication sources grouped by organization level",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicPublicationSourceDirectoryResponseSchema"
                 }
               }
             }
@@ -11156,7 +11185,21 @@
                       "type": "string"
                     },
                     "organizationLevel": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "university",
+                        "office",
+                        "department",
+                        "college",
+                        "center",
+                        "research",
+                        "service",
+                        "program",
+                        "society",
+                        "journal",
+                        "student",
+                        "unknown"
+                      ]
                     }
                   },
                   "required": [
@@ -17566,7 +17609,21 @@
                 "type": "string"
               },
               "organizationLevel": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "university",
+                  "office",
+                  "department",
+                  "college",
+                  "center",
+                  "research",
+                  "service",
+                  "program",
+                  "society",
+                  "journal",
+                  "student",
+                  "unknown"
+                ]
               }
             },
             "required": [
@@ -17743,7 +17800,21 @@
                       "type": "string"
                     },
                     "organizationLevel": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": [
+                        "university",
+                        "office",
+                        "department",
+                        "college",
+                        "center",
+                        "research",
+                        "service",
+                        "program",
+                        "society",
+                        "journal",
+                        "student",
+                        "unknown"
+                      ]
                     }
                   },
                   "required": [
@@ -17777,6 +17848,135 @@
           "source",
           "revision",
           "alsoPublishedIn"
+        ],
+        "additionalProperties": false
+      },
+      "publicPublicationSourceDirectoryResponseSchema": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "organizationLevel": {
+                  "type": "string",
+                  "enum": [
+                    "university",
+                    "office",
+                    "department",
+                    "college",
+                    "center",
+                    "research",
+                    "service",
+                    "program",
+                    "society",
+                    "journal",
+                    "student",
+                    "unknown"
+                  ]
+                },
+                "sourceCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "publicationCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "organizationLevel": {
+                        "type": "string",
+                        "enum": [
+                          "university",
+                          "office",
+                          "department",
+                          "college",
+                          "center",
+                          "research",
+                          "service",
+                          "program",
+                          "society",
+                          "journal",
+                          "student",
+                          "unknown"
+                        ]
+                      },
+                      "hosts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "publicationCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "lastPublishedAt": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "organizationLevel",
+                      "hosts",
+                      "publicationCount",
+                      "lastPublishedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "organizationLevel",
+                "sourceCount",
+                "publicationCount",
+                "sources"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "sourceCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "publicationCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "sourceCount",
+              "publicationCount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "groups",
+          "totals"
         ],
         "additionalProperties": false
       },

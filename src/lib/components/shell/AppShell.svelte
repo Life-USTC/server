@@ -11,6 +11,7 @@ import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
+import LibraryIcon from "@lucide/svelte/icons/library";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
@@ -239,7 +240,18 @@ function buildShellNavGroups(
       icon: CloudSunIcon,
       label: copy.nav.weather,
     },
-    { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
+    {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: LibraryIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
+    },
   ];
   const usageLinks: ShellLink[] = [
     {
@@ -436,6 +448,13 @@ function buildMobileSecondaryNavGroups(
       href: "/news",
       icon: ScrollTextIcon,
       label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: LibraryIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
     },
     {
       href: "/catalog/sections",

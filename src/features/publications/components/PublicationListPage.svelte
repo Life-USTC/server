@@ -1,5 +1,10 @@
 <script lang="ts">
+import LibraryIcon from "@lucide/svelte/icons/library";
 import SearchIcon from "@lucide/svelte/icons/search";
+import {
+  PUBLICATION_SOURCE_ORGANIZATION_LEVELS,
+  type PublicationSourceOrganizationLevel,
+} from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -15,23 +20,66 @@ import type {
   PublicationPageCopy,
 } from "./publication-component-types";
 
-export let data: PublicationListPageData;
-export let copy: PublicationPageCopy;
+type Props = {
+  copy: PublicationPageCopy;
+  data: PublicationListPageData;
+};
+
+let { copy, data }: Props = $props();
 
 function formatDate(value: Date | string | null) {
   return value ? formatShanghaiDate(value) : copy.missingDate;
 }
 
+function isSelectedSource(id: string) {
+  return (data.filters.source ?? []).includes(id);
+}
+
+function isSelectedLevel(level: PublicationSourceOrganizationLevel) {
+  return (data.filters.organizationLevel ?? []).includes(level);
+}
+
+function hasActiveFilters() {
+  return Boolean(
+    data.filters.type ||
+      data.filters.source?.length ||
+      data.filters.organizationLevel?.length ||
+      data.filters.query ||
+      data.filters.fold,
+  );
+}
+
+/**
+ * Pagination links must carry every active filter, and the multi-valued ones
+ * use the comma form so one link stays one parameter per facet.
+ */
 function buildPageHref(page: number) {
   const params = new URLSearchParams();
   if (data.filters.type) params.set("type", data.filters.type);
-  if (data.filters.source) params.set("source", data.filters.source);
+  if (data.filters.source?.length) {
+    params.set("source", data.filters.source.join(","));
+  }
+  if (data.filters.organizationLevel?.length) {
+    params.set("organizationLevel", data.filters.organizationLevel.join(","));
+  }
   if (data.filters.query) params.set("query", data.filters.query);
   if (data.filters.fold) params.set("fold", "1");
   if (page > 1) params.set("page", String(page));
   const search = params.toString();
   return search ? `/news?${search}` : "/news";
 }
+
+function sourceHref(id: string) {
+  return `/news?source=${encodeURIComponent(id)}`;
+}
+
+// Only levels that actually have a selectable source are offered, so the
+// filter never shows a checkbox that can only ever return nothing.
+const availableLevels = $derived(
+  PUBLICATION_SOURCE_ORGANIZATION_LEVELS.filter((level) =>
+    data.sourceOptions.some((option) => option.organizationLevel === level),
+  ),
+);
 
 function resultCount() {
   return copy.resultsCount.replace(
@@ -46,61 +94,115 @@ function resultCount() {
 </svelte:head>
 
 <section class="grid gap-5">
-  <PageHeader title={copy.pageTitle} description={copy.pageDescription} />
+  <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
+    {#snippet actions()}
+      <Button href="/news/sources" variant="outline">
+        <LibraryIcon data-icon="inline-start" aria-hidden="true" />
+        {copy.sourcesTitle}
+      </Button>
+    {/snippet}
+  </PageHeader>
 
   <form
     method="get"
     action="/news"
-    class="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[minmax(0,1fr)_minmax(10rem,auto)_12rem_auto] md:items-end"
+    class="grid gap-4 rounded-xl border bg-card p-4"
   >
-    <Field.Field class="gap-1">
-      <Field.Label for="publication-query">{copy.search}</Field.Label>
-      <Input
-        id="publication-query"
-        name="query"
-        type="search"
-        value={data.filters.query ?? ""}
-        placeholder={copy.searchPlaceholder}
-        maxlength={200}
-      />
-    </Field.Field>
+    <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto] md:items-end">
+      <Field.Field class="min-w-0 gap-1">
+        <Field.Label for="publication-query">{copy.search}</Field.Label>
+        <Input
+          id="publication-query"
+          name="query"
+          type="search"
+          value={data.filters.query ?? ""}
+          placeholder={copy.searchPlaceholder}
+          maxlength={200}
+        />
+      </Field.Field>
 
-    <Field.Field class="gap-1">
-      <Field.Label for="publication-source">{copy.sourceId}</Field.Label>
-      <Input
-        id="publication-source"
-        name="source"
-        value={data.filters.source ?? ""}
-        placeholder="ustc-news"
-        maxlength={64}
-      />
-    </Field.Field>
+      <Field.Field class="min-w-0 gap-1">
+        <Field.Label for="publication-type">{copy.publicationType}</Field.Label>
+        <NativeSelect.Root
+          id="publication-type"
+          name="type"
+          value={data.filters.type ?? ""}
+          aria-label={copy.publicationType}
+        >
+          <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
+          <NativeSelect.Option value="news">{copy.news}</NativeSelect.Option>
+          <NativeSelect.Option value="notice">{copy.notice}</NativeSelect.Option>
+        </NativeSelect.Root>
+      </Field.Field>
 
-    <Field.Field class="gap-1">
-      <Field.Label for="publication-type">{copy.publicationType}</Field.Label>
-      <NativeSelect.Root
-        id="publication-type"
-        name="type"
-        value={data.filters.type ?? ""}
-        aria-label={copy.publicationType}
-      >
-        <NativeSelect.Option value="">{copy.all}</NativeSelect.Option>
-        <NativeSelect.Option value="news">{copy.news}</NativeSelect.Option>
-        <NativeSelect.Option value="notice">{copy.notice}</NativeSelect.Option>
-      </NativeSelect.Root>
-    </Field.Field>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button type="submit">
+          <SearchIcon data-icon="inline-start" aria-hidden="true" />
+          {copy.applyFilters}
+        </Button>
+        {#if hasActiveFilters()}
+          <Button href="/news" variant="ghost">{copy.clearFilters}</Button>
+        {/if}
+      </div>
+    </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <Button type="submit">
-        <SearchIcon data-icon="inline-start" aria-hidden="true" />
-        {copy.applyFilters}
-      </Button>
-      {#if data.filters.type || data.filters.source || data.filters.query || data.filters.fold}
-        <Button href="/news" variant="ghost">{copy.clearFilters}</Button>
+    <div class="grid gap-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start">
+      <Field.Field class="min-w-0 gap-1">
+        <Field.Label for="publication-source">{copy.sourceFilter}</Field.Label>
+        {#if data.sourceOptions.length === 0}
+          <p id="publication-source-hint" class="text-xs text-muted-foreground">
+            {copy.sourceFilterEmpty}
+          </p>
+        {:else}
+          <!--
+            A native multiple select keeps the whole filter form working without
+            JavaScript: it submits one `source` param per selected option, which
+            the query schema accepts as the same list as the comma form.
+          -->
+          <select
+            id="publication-source"
+            name="source"
+            multiple
+            size={4}
+            aria-describedby="publication-source-hint"
+            class="w-full min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-sm shadow-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            {#each data.sourceOptions as option (option.id)}
+              <option class="truncate" value={option.id} selected={isSelectedSource(option.id)}>
+                {option.name}
+              </option>
+            {/each}
+          </select>
+          <p id="publication-source-hint" class="text-xs text-muted-foreground">
+            {copy.sourceFilterHint}
+          </p>
+        {/if}
+      </Field.Field>
+
+      {#if availableLevels.length > 0}
+        <fieldset class="min-w-0">
+          <legend class="mb-1.5 text-sm font-medium">
+            {copy.organizationLevelFilter}
+          </legend>
+          <div class="flex flex-wrap gap-x-4 gap-y-2">
+            {#each availableLevels as level (level)}
+              <label class="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  name="organizationLevel"
+                  value={level}
+                  checked={isSelectedLevel(level)}
+                  class="size-4 rounded border-input"
+                />
+                {copy.organizationLevelLabels[level] ?? level}
+              </label>
+            {/each}
+          </div>
+        </fieldset>
       {/if}
     </div>
 
-    <label class="flex items-center gap-2 text-sm text-muted-foreground md:col-span-4">
+    <label class="flex items-center gap-2 text-sm text-muted-foreground">
       <input
         type="checkbox"
         name="fold"
@@ -163,7 +265,13 @@ function resultCount() {
                 {/if}
               </Table.Cell>
               <Table.Cell class="align-top text-muted-foreground">
-                {item.source.name}
+                <a class="hover:underline" href={sourceHref(item.source.id)}>
+                  {item.source.name}
+                </a>
+                <p class="mt-0.5 text-xs">
+                  {copy.organizationLevelLabels[item.source.organizationLevel] ??
+                    item.source.organizationLevel}
+                </p>
               </Table.Cell>
               <Table.Cell class="align-top whitespace-nowrap tabular-nums text-muted-foreground">
                 {formatDate(item.revision.publishedAt)}

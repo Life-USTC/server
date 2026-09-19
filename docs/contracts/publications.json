@@ -7,7 +7,7 @@
     "agent": "A crawler submits REST ingestion requests with the X-Publication-Ingestion-Secret header. Public reads are anonymous REST/Web capabilities; ingestion remains a REST-only crawler exception and is not a Web, GraphQL, or MCP capability."
   },
   "rules": {
-    "public-read": "Anonymous reads expose only non-deleted publications whose effective type is news or notice. The list supports optional type=news|notice, source, query, page, and pageSize filters; detail addresses are public by publication id. Deleted publications and other are never returned by this surface.",
+    "public-read": "Anonymous reads expose only non-deleted publications whose effective type is news or notice; detail addresses are public by publication id. Deleted publications and other are never returned. The list supports type=news|notice, query, page, pageSize, and the source and organizationLevel list filters. A list filter accepts the documented comma-separated form (source=a,b) and the repeated form a checkbox group submits; duplicates collapse, a single value is unchanged, at most 20 source ids, and the facets intersect.",
     "reprint-folding": "news.ustc.edu.cn republishes one article under multiple section canonical URLs, each a distinct legitimate Publication row. The list accepts an opt-in fold=1 parameter that groups rows by (normalized title, published date in Asia/Shanghai) and returns one representative per group, preferring a university organizationLevel source, else the most recently seen copy, then the lowest id. Folding defaults to off; making it the list default is an open product question.",
     "reprint-fold-title-normalization": "Fold grouping keys on a normalized title: NFKC normalization, invisible-character stripping, whitespace collapsing and lowercasing, implemented by normalizePublicationTitle() in src/features/publications/lib/publication-title-normalization.ts and mirrored by a Postgres generated column so grouping runs in SQL rather than in application memory. The helper and the column must change together.",
     "reprint-sibling-exposure": "A folded row representing two or more members carries foldGroup.siblingCount; an unfolded request never includes foldGroup. Independent of fold, the detail response always includes alsoPublishedIn, the sibling reprints sharing the same normalized title and published date, so a detail page can cross-link the other sections.",
@@ -16,7 +16,7 @@
     "publication-images": "Ingestion registers exact source URL SHA-256 hashes for current public revisions. Markdown uses /api/publications/images/{hash}. Fetches and redirects allow the registered exact public hostname, USTC and source allowed hosts; blocked hosts win. IP/local hosts, credentials, custom ports, non-HTTP(S), non-raster and oversized responses are rejected. Successful images are archived in R2 with finite response cache lifetimes; failures are not cached.",
     "public-cache": "Public list/detail responses are cacheable JSON. Object responses use their content-addressed key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media may render inline; all other object kinds use a generated safe attachment filename and never trust crawler-provided filenames.",
     "rest-only": "Publication ingestion and object upload planning are exposed only under /api/ingestion/publications. Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as a user OAuth credential.",
-    "read-transport-boundary": "The current product needs a public website preview plus public REST for read/list/detail and controlled object delivery. GraphQL and MCP are intentionally not added for publications until a separate client contract requires them; this is a transport boundary, not an implicit GraphQL/MCP capability.",
+    "read-transport-boundary": "The current product needs a public website preview plus public REST for read/list/detail, the source directory, and controlled object delivery. GraphQL and MCP are intentionally not added for publications, including the source registry, until a separate client contract requires them; this is a transport boundary, not an implicit GraphQL/MCP capability.",
     "service-auth": "Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker secret PUBLICATION_INGESTION_SECRET with a timing-safe comparison. Missing or invalid configuration returns the same generic 401 response, and the secret is never logged or returned.",
     "service-principal": "All crawler batches, runs, and object claims use the stable service:publication-crawler principal key. The service principal has no User row, OAuth grant, or administrator flag; this key scopes ownership and idempotency.",
     "source-registration": "Every batch carries source descriptors, either the full id/name/organizationLevel/allowedHosts/seedUrls form or the minimal id/name form. The server upserts them in the same transaction, normalizing organizationLevel to the registry enum and reusing persisted host restrictions and the persisted level for minimal descriptors, then accepts an item only when its sourceId is in that batch, enabled and not discovery-only. Canonical URLs must match an allowed source host and no blocked host.",
@@ -48,7 +48,7 @@
             "returns": "{ data[], pagination }",
             "notes": [
               "Defaults to non-deleted news and notices; optional type accepts only news or notice.",
-              "Supports source, query, page, and pageSize filters. query searches the indexed canonical URL, title, and summary fields; raw crawler metadata and archive HTML are never exposed.",
+              "Supports source, organizationLevel, query, page, and pageSize filters. source and organizationLevel accept a list in either the comma-separated or the repeated-parameter form (see source-filtering). query searches the indexed canonical URL, title, and summary fields; raw crawler metadata and archive HTML are never exposed.",
               "Optional fold=1 (issue #1068, opt-in, default off) groups reprints of the same article across sections by normalized title and published date, returning one representative row per group with an optional foldGroup.siblingCount when the group has 2+ members."
             ]
           },
@@ -88,6 +88,35 @@
           "current revision title, summary, bodyText, and source URL",
           "current bodyMarkdown loaded from the body_markdown R2 object",
           "verified media and attachment links"
+        ]
+      }
+    },
+    "publication-source-directory": {
+      "title": "Public publication source directory",
+      "auth": "anon",
+      "web": "stable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/publications/sources",
+            "method": "GET",
+            "returns": "{ groups[], totals }",
+            "notes": [
+              "Lists enabled, non-discovery-only sources grouped by organizationLevel in the registry's declaration order; a level with no registered source is omitted.",
+              "Each source carries its allowed hosts, its publication count, and the newest published date, all computed with the public list's visibility filter. Blocked hosts, seed URLs, aliases and crawler tuning stay internal.",
+              "The registry is bounded (~80 sources), so the directory is returned whole rather than paginated, under the same cache headers as the list read."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "organization level group with its source and publication counts",
+          "source name, id, and allowed hosts",
+          "per-source publication count and latest published date",
+          "cross-link to the list filtered by that source or level"
         ]
       }
     },

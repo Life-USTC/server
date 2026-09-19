@@ -44,7 +44,8 @@ Life@USTC
 │   │   └── map
 │   ├── publications                REST + ingestion; Web at /news
 │   │   ├── list
-│   │   └── get
+│   │   ├── get
+│   │   └── sources                 source registry directory; Web at /news/sources
 │   └── links
 ├── workspace                       current user's campus work
 │   ├── overview

@@ -132,7 +132,7 @@ describe("public publication reads", () => {
     mocks.publicationCount.mockResolvedValue(1);
 
     const result = await listPublications({
-      filters: { type: "news", source: "ustc-news", query: "Campus" },
+      filters: { type: "news", source: ["ustc-news"], query: "Campus" },
       pagination: { page: 2, pageSize: 10 },
     });
 
@@ -161,13 +161,44 @@ describe("public publication reads", () => {
     expect(query.take).toBe(10);
     expect(query.where).toMatchObject({
       deletedAt: null,
-      sourceId: "ustc-news",
+      sourceId: { in: ["ustc-news"] },
       publicationType: "news",
       currentRevision: {
         is: { isTombstone: false, publicationType: "news" },
       },
     });
     expect(query.where.OR).toHaveLength(3);
+  });
+
+  it("combines multi-select source and organization level filters", async () => {
+    mocks.publicationFindMany.mockResolvedValue([]);
+    mocks.publicationCount.mockResolvedValue(0);
+
+    await listPublications({
+      filters: {
+        source: ["ustc-news", "ustc-notice"],
+        organizationLevel: ["office", "college"],
+      },
+    });
+
+    const query = mocks.publicationFindMany.mock.calls[0][0];
+    // The two facets are independent registry dimensions, so they intersect
+    // rather than union: "these sources, and only if they are offices".
+    expect(query.where).toMatchObject({
+      sourceId: { in: ["ustc-news", "ustc-notice"] },
+      source: { is: { organizationLevel: { in: ["office", "college"] } } },
+    });
+  });
+
+  it("omits source predicates when no source filter is selected", async () => {
+    mocks.publicationFindMany.mockResolvedValue([]);
+    mocks.publicationCount.mockResolvedValue(0);
+
+    await listPublications({ filters: { source: [], organizationLevel: [] } });
+
+    const query = mocks.publicationFindMany.mock.calls[0][0];
+    expect(query.where.sourceId).toBeUndefined();
+    expect(query.where.source).toBeUndefined();
   });
 
   it("does not expose deleted or other publications through detail", async () => {

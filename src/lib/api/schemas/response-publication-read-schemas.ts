@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { publicationSourceOrganizationLevelSchema } from "@/features/publications/lib/publication-source-levels";
 import {
   createPaginatedSchema,
   dateTimeSchema,
@@ -16,7 +17,42 @@ const publicationObjectKindSchema = z.enum([
 export const publicPublicationSourceSchema = z.strictObject({
   id: z.string(),
   name: z.string(),
-  organizationLevel: z.string(),
+  organizationLevel: publicationSourceOrganizationLevelSchema,
+});
+
+/**
+ * One registered source in the public directory (issue #1069). `hosts` is the
+ * source's allowed-host list; `publicationCount` and `lastPublishedAt` are
+ * computed over the same visibility filter the list read uses, so they always
+ * agree with /api/publications?source=<id>.
+ */
+export const publicPublicationSourceSummarySchema = z.strictObject({
+  id: z.string(),
+  name: z.string(),
+  organizationLevel: publicationSourceOrganizationLevelSchema,
+  hosts: z.array(z.string()),
+  publicationCount: z.number().int().nonnegative(),
+  lastPublishedAt: dateTimeSchema.nullable(),
+});
+
+export const publicPublicationSourceGroupSchema = z.strictObject({
+  organizationLevel: publicationSourceOrganizationLevelSchema,
+  sourceCount: z.number().int().nonnegative(),
+  publicationCount: z.number().int().nonnegative(),
+  sources: z.array(publicPublicationSourceSummarySchema),
+});
+
+/**
+ * The directory is a bounded registry (~80 sources), so it is returned whole
+ * rather than paginated; groups are ordered by organization level and omit a
+ * level with no registered source.
+ */
+export const publicPublicationSourceDirectoryResponseSchema = z.strictObject({
+  groups: z.array(publicPublicationSourceGroupSchema),
+  totals: z.strictObject({
+    sourceCount: z.number().int().nonnegative(),
+    publicationCount: z.number().int().nonnegative(),
+  }),
 });
 
 export const publicPublicationObjectSchema = z.strictObject({
