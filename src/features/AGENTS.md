@@ -55,4 +55,4 @@ workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 | weather | Campus weather snapshot and history; Amap / Open-Meteo adapters |
 | welcome | First-login profile completion |
 | workspace | Signed-in workspace UI and overview assembly (routes `/workspace/*`) |
-| young | 第二课堂 young-event catalog list/detail and image proxy |
+| young | 第二课堂 young-event catalog list/detail, organizers, subscriptions, and the poster + rich-text image proxy (`young-event-html.ts` sanitizes upstream HTML for every transport) |

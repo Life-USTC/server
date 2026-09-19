@@ -39,7 +39,6 @@ const event = {
   name: "Workshop",
   location: "East",
   status: null,
-  registrationStatus: null,
   sourceMissing: false,
   startAt: new Date("2035-09-15T10:30:00+08:00"),
   endAt: new Date("2035-09-15T12:00:00+08:00"),
