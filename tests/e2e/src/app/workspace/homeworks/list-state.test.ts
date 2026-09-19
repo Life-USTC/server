@@ -126,9 +126,15 @@ test.describe("仪表盘作业", () => {
           const dialog = page.getByRole("dialog");
           const summary = dialog.getByTestId("homework-deadline-summary");
           await expect(summary.getByText(reminder)).toHaveCount(0);
-          await expect(
-            summary.getByText(/^(已完成|Completed)$/i),
-          ).toBeVisible();
+          // The single-column popup keeps the due block for due facts only;
+          // completion status is the first value in the facts table.
+          const statusCell = dialog
+            .getByTestId("homework-secondary-details")
+            .getByRole("row")
+            .filter({ hasText: /状态|Status/i })
+            .getByRole("cell")
+            .first();
+          await expect(statusCell).toHaveText(/^(已完成|Completed)/i);
           await expect(summary.getByText(/\d{1,2}:\d{2}/)).toBeVisible();
           await dialog
             .getByRole("button", { name: /取消完成|Mark as incomplete/i })
