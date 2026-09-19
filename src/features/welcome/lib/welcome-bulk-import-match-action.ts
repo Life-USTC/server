@@ -33,7 +33,7 @@ export async function matchWelcomeBulkImportSections(
     if (payload.sections.length === 0 && payload.unmatchedCodes.length === 0) {
       input.setImportMessage(welcomeCopy.noMatchingSections);
     }
-    input.setConfirmImportOpen(true);
+    input.setResultsVisible(true);
   } catch (error) {
     input.setImportError(
       error instanceof Error ? error.message : bulkCopy.fetchFailed,

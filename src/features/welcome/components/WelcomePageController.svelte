@@ -1,7 +1,9 @@
 <script lang="ts">
-import WelcomeImportDialogs from "@/features/welcome/components/WelcomeImportDialogs.svelte";
-import WelcomeNextStepsCard from "@/features/welcome/components/WelcomeNextStepsCard.svelte";
+import WelcomeGuideCard from "@/features/welcome/components/WelcomeGuideCard.svelte";
+import WelcomeOAuthProfileCard from "@/features/welcome/components/WelcomeOAuthProfileCard.svelte";
 import WelcomeProfileForm from "@/features/welcome/components/WelcomeProfileForm.svelte";
+import WelcomeStepper from "@/features/welcome/components/WelcomeStepper.svelte";
+import WelcomeSubscriptionsStep from "@/features/welcome/components/WelcomeSubscriptionsStep.svelte";
 import { createWelcomeBulkImportActions } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeControllerDefaultState } from "@/features/welcome/lib/welcome-controller-default-state";
 import {
@@ -12,6 +14,7 @@ import {
   displayWelcomeName,
   formatWelcomeCopy,
 } from "@/features/welcome/lib/welcome-display";
+import { welcomeStepNumber } from "@/features/welcome/lib/welcome-steps";
 import type {
   WelcomeActionData,
   WelcomeMatchedSection,
@@ -22,12 +25,11 @@ export let data: WelcomePageData;
 export let form: WelcomeActionData;
 
 let {
+  areResultsVisible,
   importError,
   importMessage,
   importText,
-  isBulkImportOpen,
   isCompletingProfile: _isCompletingProfile,
-  isConfirmImportOpen,
   isImporting,
   isMatching,
   matchedSections,
@@ -48,8 +50,13 @@ $: avatarOptions =
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || currentImage || "/images/icon.png";
 $: selectedSectionIdSet = new Set(selectedSectionIds);
+$: selectedCount = selectedSectionIds.length;
 $: canMatch = importText.trim().length > 0 && !isMatching;
 $: semesterOptions = buildWelcomeSemesterOptions(data.semesters, data.locale);
+$: progressLabel = formatCopy(welcomeCopy.stepProgress, {
+  current: welcomeStepNumber(data.step),
+  total: data.stepIndicators.length,
+});
 
 function formatCopy(value: string, params: Record<string, number | string>) {
   return formatWelcomeCopy(value, params);
@@ -59,7 +66,7 @@ function displayName(item?: WelcomeMatchedSection["course"] | null) {
   return displayWelcomeName(item, data.locale);
 }
 
-const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
+const { confirmImport, matchSections, setSectionSelection } =
   createWelcomeBulkImportActions({
     formatCopy,
     getBulkCopy: () => bulkCopy,
@@ -68,12 +75,6 @@ const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
     getSelectedSectionIds: () => selectedSectionIds,
     getSelectedSemesterId: () => selectedSemesterId,
     getWelcomeCopy: () => welcomeCopy,
-    setBulkImportOpen: (value) => {
-      isBulkImportOpen = value;
-    },
-    setConfirmImportOpen: (value) => {
-      isConfirmImportOpen = value;
-    },
     setImportError: (value) => {
       importError = value;
     },
@@ -92,6 +93,9 @@ const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
     setMatching: (value) => {
       isMatching = value;
     },
+    setResultsVisible: (value) => {
+      areResultsVisible = value;
+    },
     setSelectedSectionIds: (value) => {
       selectedSectionIds = value;
     },
@@ -109,51 +113,61 @@ const completeProfileAction = createCompleteProfileAction({
 
 <svelte:head><title>{welcomeCopy.title} - Life@USTC</title></svelte:head>
 
-<section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-5xl content-center gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
-  <WelcomeProfileForm
-    {avatarOptions}
-    callbackUrl={data.callbackUrl}
-    {completeProfileAction}
-    {copy}
-    {currentImage}
-    formMessage={form?.message}
-    isCompletingProfile={_isCompletingProfile}
-    {previewImage}
-    {profileCopy}
-    bind:selectedImage
-    user={data.user}
-    {welcomeCopy}
-  />
+<section class="mx-auto grid min-h-[calc(100dvh-8rem)] w-full max-w-xl content-start gap-6 py-8">
+  <WelcomeStepper {progressLabel} steps={data.stepIndicators} />
 
-  <WelcomeNextStepsCard
-    {importMessage}
-    onOpenBulkImport={() => {
-      isBulkImportOpen = true;
-    }}
-    {welcomeCopy}
-  />
+  {#if data.step === "profile"}
+    <WelcomeProfileForm
+      {avatarOptions}
+      callbackUrl={data.callbackUrl}
+      {completeProfileAction}
+      {copy}
+      {currentImage}
+      formMessage={form?.message}
+      isCompletingProfile={_isCompletingProfile}
+      {previewImage}
+      {profileCopy}
+      bind:selectedImage
+      user={data.user}
+      {welcomeCopy}
+    />
 
-  <WelcomeImportDialogs
-    {bulkCopy}
-    {canMatch}
-    {confirmImport}
-    {displayName}
-    {formatCopy}
-    {importError}
-    {importMessage}
-    bind:importText
-    bind:isBulkImportOpen
-    bind:isConfirmImportOpen
-    {isImporting}
-    {isMatching}
-    {matchSections}
-    {matchedSections}
-    {resetBulkImport}
-    {selectedSectionIdSet}
-    bind:selectedSemesterId
-    {semesterOptions}
-    {setSectionSelection}
-    {unmatchedCodes}
-    {welcomeCopy}
-  />
+    <WelcomeOAuthProfileCard
+      callbackUrl={data.callbackUrl}
+      oauthProviders={data.oauthProviders}
+      oauthRefreshed={data.oauthRefreshed}
+      {welcomeCopy}
+    />
+  {:else if data.step === "subscriptions"}
+    <WelcomeSubscriptionsStep
+      {areResultsVisible}
+      backUrl={data.backUrl}
+      {bulkCopy}
+      {canMatch}
+      {confirmImport}
+      {displayName}
+      {formatCopy}
+      {importError}
+      {importMessage}
+      bind:importText
+      {isImporting}
+      {isMatching}
+      {matchSections}
+      {matchedSections}
+      nextUrl={data.nextUrl}
+      {selectedCount}
+      {selectedSectionIdSet}
+      bind:selectedSemesterId
+      {semesterOptions}
+      {setSectionSelection}
+      {unmatchedCodes}
+      {welcomeCopy}
+    />
+  {:else}
+    <WelcomeGuideCard
+      backUrl={data.backUrl}
+      finishUrl={data.nextUrl}
+      {welcomeCopy}
+    />
+  {/if}
 </section>

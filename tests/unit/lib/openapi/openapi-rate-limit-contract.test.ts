@@ -51,6 +51,7 @@ const EXPECTED_STORAGE_FAILURES = [
   ["get", "/api/publications/images/{hash}"],
   ["get", "/api/publications/objects/{kind}/{sha256}"],
   ["get", "/api/catalog/young-events/{youngId}/image"],
+  ["get", "/api/catalog/weather"],
 ] as const;
 
 type Operation = {
@@ -100,7 +101,7 @@ describe("OpenAPI rate-limit response contract", () => {
   );
 
   it.each(EXPECTED_STORAGE_FAILURES)(
-    "%s %s exposes Retry-After for storage failures",
+    "%s %s exposes Retry-After for dependency failures",
     (method, path) => {
       expect(
         paths[path]?.[method]?.responses?.["503"]?.headers?.["Retry-After"],

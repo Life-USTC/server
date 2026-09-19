@@ -1,7 +1,7 @@
 export type StagedSocialVerifiedEmail = {
   provider: string;
   accountId: string;
-  email: string;
+  email: string | null;
   emailVerified: boolean;
   name: string | null;
   image: string | null;

@@ -27,10 +27,20 @@ export function mapOidcProfileToUser(profile: OAuthProfile) {
       "email",
     ]) ?? `USTC User ${accountId}`;
 
+  const image = profileImage(profile.picture);
+  stageSocialVerifiedEmail({
+    provider: "oidc",
+    accountId,
+    email: null,
+    emailVerified: false,
+    name: displayName,
+    image: image ?? null,
+  });
+
   return {
     email: fallbackEmail("oidc", accountId),
     name: displayName,
-    image: profileImage(profile.picture),
+    image,
     emailVerified: false,
   };
 }
@@ -45,18 +55,16 @@ export function getOidcAccountSubject(profile: OAuthProfile) {
 
 export function mapGithubProfileToUser(profile: GithubProfile) {
   const email = profileEmail(profile.email);
-  if (isPublishableUserEmail(email)) {
-    stageSocialVerifiedEmail({
-      provider: "github",
-      accountId: String(profile.id),
-      email,
-      // GitHub user:email returns account mailboxes; treat as verified for
-      // OAuth client publication once stored in VerifiedEmail.
-      emailVerified: true,
-      name: profileName(profile.name ?? profile.login) || null,
-      image: profileImage(profile.avatar_url) ?? null,
-    });
-  }
+  stageSocialVerifiedEmail({
+    provider: "github",
+    accountId: String(profile.id),
+    email: isPublishableUserEmail(email) ? email : null,
+    // GitHub user:email returns account mailboxes; treat as verified for
+    // OAuth client publication once stored in VerifiedEmail.
+    emailVerified: isPublishableUserEmail(email),
+    name: profileName(profile.name ?? profile.login) || null,
+    image: profileImage(profile.avatar_url) ?? null,
+  });
 
   return {
     email: email ?? fallbackEmail("github", profile.id),
@@ -73,16 +81,14 @@ export function mapGoogleProfileToUser(profile: GoogleProfile) {
       ? profile.email_verified
       : false;
 
-  if (isPublishableUserEmail(email) && emailVerified) {
-    stageSocialVerifiedEmail({
-      provider: "google",
-      accountId: profile.sub,
-      email,
-      emailVerified: true,
-      name: profileName(profile.name) || null,
-      image: profileImage(profile.picture) ?? null,
-    });
-  }
+  stageSocialVerifiedEmail({
+    provider: "google",
+    accountId: profile.sub,
+    email: isPublishableUserEmail(email) && emailVerified ? email : null,
+    emailVerified,
+    name: profileName(profile.name) || null,
+    image: profileImage(profile.picture) ?? null,
+  });
 
   return {
     email: email ?? fallbackEmail("google", profile.sub),
