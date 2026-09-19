@@ -1,3 +1,10 @@
+# [1.117.0](https://github.com/Life-USTC/server/compare/v1.116.7...v1.117.0) (2026-09-19)
+
+
+### Features
+
+* **publications:** fold cross-section reprints in news lists ([#1079](https://github.com/Life-USTC/server/issues/1079)) ([63c3849](https://github.com/Life-USTC/server/commit/63c3849822893498accc0a147149a334cbb42aba)), closes [#1068](https://github.com/Life-USTC/server/issues/1068)
+
 ## [1.116.7](https://github.com/Life-USTC/server/compare/v1.116.6...v1.116.7) (2026-09-19)
 
 
