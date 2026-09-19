@@ -1,3 +1,4 @@
+import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
 import type {
   PublicationIngestionBatchRequest,
@@ -21,7 +22,7 @@ type TransactionClient = Prisma.TransactionClient;
 export type RegisteredSource = {
   id: string;
   name: string;
-  organizationLevel: string;
+  organizationLevel: PublicationSourceOrganizationLevel;
   allowedHosts: string[];
   blockedHosts: string[];
   seedUrls: string[];

@@ -1046,10 +1046,31 @@ model Upload {
   @@index([userId, createdAt])
 }
 
+/// Organization level of a publication source, mirroring the crawler's
+/// `organization_level` in config/sources.yaml (issue #1069). Declaration
+/// order is the display order of the source directory, from the university
+/// body outwards; `unknown` is the fallback for a level the crawler
+/// introduces before this enum learns about it, so a new upstream level
+/// degrades a grouping rather than rejecting a whole ingestion batch.
+enum PublicationSourceOrganizationLevel {
+  university
+  office
+  department
+  college
+  center
+  research
+  service
+  program
+  society
+  journal
+  student
+  unknown
+}
+
 model PublicationSource {
   id                String   @id
   name              String
-  organizationLevel String
+  organizationLevel PublicationSourceOrganizationLevel @default(unknown)
   allowedHosts      String[] @default([])
   blockedHosts      String[] @default([])
   seedUrls          String[] @default([])
