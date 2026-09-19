@@ -42,6 +42,7 @@ const event = {
   department: null,
   organizer: null,
   organizerId: null,
+  registrationStatus: null,
   status: null,
   location: "East",
   imageUrl: null,

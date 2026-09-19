@@ -102,6 +102,7 @@ describe("static young event plan", () => {
             businessDeptName: "校团委",
             organizer_dictText: "学生会",
             itemStatus_dictText: "进行中",
+            registrationStatus: "报名中",
             placeInfo: "东区图书馆",
             pic: "https://example.com/pic.jpg",
             validHour: "2.5",
@@ -129,6 +130,7 @@ describe("static young event plan", () => {
       department: "校团委",
       organizer: "学生会",
       status: "进行中",
+      registrationStatus: "报名中",
       location: "东区图书馆",
       imageUrl: "https://example.com/pic.jpg",
       hours: 2.5,
@@ -184,7 +186,7 @@ describe("static young event plan", () => {
     expect(builds?.[0]?.startAt).toBeUndefined();
   });
 
-  it("maps the extended upstream columns and drops the dead registrationStatus", () => {
+  it("maps the extended upstream columns and keeps the dead registrationStatus", () => {
     const snapshot = fakeSnapshot({
       tables: {
         [ENDED_TABLE]: [
@@ -243,8 +245,9 @@ describe("static young event plan", () => {
     expect(build?.updatedAtUpstream?.toISOString()).toBe(
       "2026-08-11T00:00:00.000Z",
     );
-    expect(build).not.toHaveProperty("registrationStatus");
-    // The dropped column still survives in the preserved upstream payload.
+    // The column keeps mirroring upstream; only the serialization layer nulls
+    // it. The value also stays in the preserved upstream payload.
+    expect(build?.registrationStatus).toBe("报名中");
     expect(
       (JSON.parse(build?.rawJson ?? "{}") as Record<string, unknown>)
         .registrationStatus,

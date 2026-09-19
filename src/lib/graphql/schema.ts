@@ -253,6 +253,10 @@ export const graphqlTypeDefs = /* GraphQL */ `
     organizer: String
     organizerId: String
     status: String
+    registrationStatus: String
+      @deprecated(
+        reason: "Always null; upstream never populates it. Use status for the signup state."
+      )
     location: String
     imageUrl: String
     hours: Float

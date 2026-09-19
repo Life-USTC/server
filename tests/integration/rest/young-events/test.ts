@@ -133,7 +133,7 @@ test.describe("GET /api/catalog/young-events 接口", () => {
       description?: string | null;
       participationNotes?: string | null;
       places?: Array<{ placeInfo?: string | null }> | null;
-      registrationStatus?: unknown;
+      registrationStatus?: string | null;
     };
     expect(body.activityLevel).toBe(DEV_SEED.youngEvent.activityLevel);
     expect(body.module).toBe(DEV_SEED.youngEvent.module);
@@ -148,7 +148,9 @@ test.describe("GET /api/catalog/young-events 接口", () => {
     );
     expect(body.description).not.toContain("young.ustc.edu.cn");
     expect(body.participationNotes).toContain("学生证");
-    expect(body).not.toHaveProperty("registrationStatus");
+    // Deprecated: still present for generated clients, always null.
+    expect(body).toHaveProperty("registrationStatus");
+    expect(body.registrationStatus).toBeNull();
   });
 
   test("module 与 activityLevel 精确筛选", async ({ request }) => {

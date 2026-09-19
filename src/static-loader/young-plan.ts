@@ -62,6 +62,8 @@ export type YoungEventBuild = {
   department?: string;
   organizer?: string;
   status?: string;
+  /** Deprecated upstream key: empty on every record. Serialized as null. */
+  registrationStatus?: string;
   location?: string;
   imageUrl?: string;
   hours?: number;
@@ -117,6 +119,7 @@ function mapYoungEventRow(
     organizer:
       asString(row.organizer_dictText) ?? asString(row.sponsor_dictText),
     status: asString(row.itemStatus_dictText),
+    registrationStatus: asString(row.registrationStatus),
     location: asString(row.placeInfo),
     imageUrl: asString(row.pic),
     hours: asFloat(row.validHour) ?? asFloat(row.hours),

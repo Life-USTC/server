@@ -1977,6 +1977,10 @@ model YoungEvent {
   organizer          String?
   organizerId        String?
   status             String?
+  /// Deprecated: upstream never populates this and every interface serializes
+  /// it as null. Kept so generated clients keep a required property; removal
+  /// is a separate, deliberately labelled breaking change.
+  registrationStatus String?
   location           String?
   imageUrl           String?
   hours              Float?

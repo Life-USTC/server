@@ -48,6 +48,7 @@ export function compactYoungEvent(value: unknown) {
     "activityLevel",
     "form",
     "status",
+    "registrationStatus",
     "location",
     "hours",
     "capacity",

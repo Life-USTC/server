@@ -41,6 +41,7 @@ const RECORD = {
   department: "校团委",
   organizer: "学生会",
   status: "进行中",
+  registrationStatus: "报名中",
   location: "东区图书馆",
   imageUrl: null,
   hours: 2.5,
@@ -138,7 +139,7 @@ describe("young event service", () => {
     await expect(getYoungEvent("missing")).resolves.toBeNull();
   });
 
-  it("exposes the extended upstream fields and no registrationStatus", async () => {
+  it("exposes the extended upstream fields and nulls the deprecated registrationStatus", async () => {
     youngEventMock.count.mockResolvedValue(1);
     youngEventMock.findMany.mockResolvedValue([RECORD]);
 
@@ -167,7 +168,10 @@ describe("young event service", () => {
         placeEt: "2026-08-20 16:00:00",
       },
     ]);
-    expect(event).not.toHaveProperty("registrationStatus");
+    // Deprecated, kept in the payload for generated clients, never populated
+    // even when a legacy row still holds a value.
+    expect(event).toHaveProperty("registrationStatus");
+    expect(event?.registrationStatus).toBeNull();
   });
 
   it("narrows malformed places payloads to null", async () => {

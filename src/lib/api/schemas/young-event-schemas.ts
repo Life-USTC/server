@@ -91,6 +91,12 @@ export const youngEventSummarySchema = z.strictObject({
   organizer: z.string().nullable(),
   organizerId: z.string().nullable(),
   status: z.string().nullable(),
+  registrationStatus: z
+    .string()
+    .nullable()
+    .describe(
+      "Deprecated: always null. Upstream never populates it; use status for the signup state.",
+    ),
   location: z.string().nullable(),
   imageUrl: z.string().nullable(),
   hours: z.number().nullable(),

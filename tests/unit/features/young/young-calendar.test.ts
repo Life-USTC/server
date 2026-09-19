@@ -21,6 +21,7 @@ function event(
     organizer: null,
     organizerId: null,
     status: null,
+    registrationStatus: null,
     location: null,
     imageUrl: null,
     hours: null,

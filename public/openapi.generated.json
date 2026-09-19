@@ -15697,6 +15697,11 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "registrationStatus": {
+                  "nullable": true,
+                  "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
+                  "type": "string"
+                },
                 "location": {
                   "nullable": true,
                   "type": "string"
@@ -15881,6 +15886,7 @@
                 "organizer",
                 "organizerId",
                 "status",
+                "registrationStatus",
                 "location",
                 "imageUrl",
                 "hours",
@@ -23494,6 +23500,11 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "registrationStatus": {
+                      "nullable": true,
+                      "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
+                      "type": "string"
+                    },
                     "location": {
                       "nullable": true,
                       "type": "string"
@@ -23678,6 +23689,7 @@
                     "organizer",
                     "organizerId",
                     "status",
+                    "registrationStatus",
                     "location",
                     "imageUrl",
                     "hours",
@@ -28931,6 +28943,11 @@
             "nullable": true,
             "type": "string"
           },
+          "registrationStatus": {
+            "nullable": true,
+            "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
+            "type": "string"
+          },
           "location": {
             "nullable": true,
             "type": "string"
@@ -29124,6 +29141,7 @@
           "organizer",
           "organizerId",
           "status",
+          "registrationStatus",
           "location",
           "imageUrl",
           "hours",

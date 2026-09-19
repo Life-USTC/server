@@ -1,29 +1,11 @@
 -- Structure the high-value young.ustc.edu.cn fields that previously only
--- existed inside rawJson, and drop the dead registrationStatus column.
+-- existed inside rawJson.
 --
--- registrationStatus is empty for every upstream record (0 of 2556 rows in the
--- published snapshot carry a value); the real signup state is status
--- (itemStatus_dictText). Dropping it loses nothing that is not still
--- recoverable: rawJson keeps the complete upstream record, so the column can
--- be restored with
---   ALTER TABLE "YoungEvent" ADD COLUMN "registrationStatus" TEXT;
---   UPDATE "YoungEvent" SET "registrationStatus" = "rawJson" ->> 'registrationStatus';
-DO $young_event_registration_status$
-DECLARE
-  populated bigint;
-BEGIN
-  SELECT count(*) INTO populated
-  FROM "YoungEvent"
-  WHERE "registrationStatus" IS NOT NULL;
-
-  IF populated > 0 THEN
-    RAISE NOTICE
-      'Dropping YoungEvent.registrationStatus with % non-null row(s); the upstream value remains in rawJson->>''registrationStatus''.',
-      populated;
-  END IF;
-END
-$young_event_registration_status$;
-
+-- This migration is deliberately additive. The dead registrationStatus column
+-- (empty for every one of the 2556 upstream records in the published snapshot)
+-- stays in place; every interface now serializes it as null and documents it as
+-- deprecated. Dropping the column is a breaking change for the generated Bot,
+-- CLI, and iOS clients and belongs in its own approved migration.
 ALTER TABLE "YoungEvent"
     ADD COLUMN "description" TEXT,
     ADD COLUMN "participationNotes" TEXT,
@@ -44,9 +26,7 @@ ALTER TABLE "YoungEvent"
     ADD COLUMN "createdAtUpstream" TIMESTAMP(0),
     ADD COLUMN "auditedAt" TIMESTAMP(0),
     ADD COLUMN "updatedAtUpstream" TIMESTAMP(0),
-    ADD COLUMN "places" JSONB,
-    DROP COLUMN "registrationStatus";
+    ADD COLUMN "places" JSONB;
 
 -- 20260902150000_grant_young_event granted SELECT on the whole table, so the
--- new columns are already readable by life_ustc_runtime and the dropped one
--- needs no revoke.
+-- new columns are already readable by life_ustc_runtime.

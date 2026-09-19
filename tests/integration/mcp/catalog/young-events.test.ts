@@ -16,6 +16,7 @@ beforeAll(async () => {
         department: "校团委",
         organizer: "学生会",
         status: "进行中",
+        registrationStatus: "报名中",
         location: "东区图书馆",
         imageUrl: "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
         hours: 2,
@@ -151,6 +152,7 @@ describe("第二课堂活动", () => {
   it("catalog_young_event_get 返回消毒后的正文与结构化场地", async () => {
     const result = await context.client.call<{
       event?: {
+        registrationStatus?: string | null;
         description?: string | null;
         participationNotes?: string | null;
         places?: Array<{ placeInfo?: string | null }> | null;
@@ -167,6 +169,8 @@ describe("第二课堂活动", () => {
     expect(result.event?.places?.[0]?.placeInfo).toBe("东区图书馆一楼");
     expect(result.event?.contactTel).toBe("13800000000");
     expect(result.event?.sumHours).toBe(76);
+    // Deprecated: present for existing clients, never populated.
+    expect(result.event?.registrationStatus).toBeNull();
   });
 
   it("catalog_young_event_get 返回详情，full 模式包含 rawJson", async () => {

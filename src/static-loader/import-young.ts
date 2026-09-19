@@ -76,6 +76,7 @@ export async function syncYoungEvents(
     "organizer",
     "organizerId",
     "status",
+    "registrationStatus",
     "location",
     "imageUrl",
     "hours",
@@ -117,6 +118,7 @@ export async function syncYoungEvents(
     "text",
     columns,
     [
+      "text",
       "text",
       "text",
       "text",
@@ -170,6 +172,7 @@ export async function syncYoungEvents(
               normalizeYoungOrganizerName(build.organizer) as string,
             ) ?? null),
         build.status,
+        build.registrationStatus,
         build.location,
         build.imageUrl,
         build.hours,

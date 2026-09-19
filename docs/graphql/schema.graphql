@@ -930,6 +930,7 @@ type YoungEvent {
   single-event query.
   """
   rawJson: String
+  registrationStatus: String @deprecated(reason: "Always null; upstream never populates it. Use status for the signup state.")
   serviceHour: Float
   sourceMissing: Boolean!
   sponsor: String
