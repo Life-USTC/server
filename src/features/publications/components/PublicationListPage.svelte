@@ -27,6 +27,7 @@ function buildPageHref(page: number) {
   if (data.filters.type) params.set("type", data.filters.type);
   if (data.filters.source) params.set("source", data.filters.source);
   if (data.filters.query) params.set("query", data.filters.query);
+  if (data.filters.fold) params.set("fold", "1");
   if (page > 1) params.set("page", String(page));
   const search = params.toString();
   return search ? `/news?${search}` : "/news";
@@ -89,15 +90,26 @@ function resultCount() {
       </NativeSelect.Root>
     </Field.Field>
 
-    <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <Button type="submit">
         <SearchIcon data-icon="inline-start" aria-hidden="true" />
         {copy.applyFilters}
       </Button>
-      {#if data.filters.type || data.filters.source || data.filters.query}
+      {#if data.filters.type || data.filters.source || data.filters.query || data.filters.fold}
         <Button href="/news" variant="ghost">{copy.clearFilters}</Button>
       {/if}
     </div>
+
+    <label class="flex items-center gap-2 text-sm text-muted-foreground md:col-span-4">
+      <input
+        type="checkbox"
+        name="fold"
+        value="1"
+        checked={data.filters.fold ?? false}
+        class="size-4 rounded border-input"
+      />
+      {copy.foldToggle}
+    </label>
   </form>
 
   {#if data.publications.data.length === 0}
@@ -134,6 +146,16 @@ function resultCount() {
                 >
                   {item.revision.title}
                 </a>
+                {#if item.foldGroup}
+                  <span
+                    class="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                  >
+                    {copy.foldSiblingCount.replace(
+                      "{count}",
+                      String(item.foldGroup.siblingCount),
+                    )}
+                  </span>
+                {/if}
                 {#if item.revision.summary}
                   <p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                     {item.revision.summary}

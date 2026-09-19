@@ -8,6 +8,7 @@ export type PublicationListFilters = {
   type?: "news" | "notice";
   source?: string;
   query?: string;
+  fold?: boolean;
 };
 
 export type PublicationListPageData = {
@@ -56,4 +57,7 @@ export type PublicationPageCopy = {
   nextPage: string;
   pagination: string;
   objectLabels: Record<string, string>;
+  foldToggle: string;
+  foldSiblingCount: string;
+  alsoPublishedIn: string;
 };

@@ -78,6 +78,10 @@ describe("public publication contract", () => {
         organizationLevel: "university",
       },
       revision,
+      // The detail serializer always emits this, empty when the article has no
+      // cross-section reprints, so the schema requires it rather than
+      // defaulting it (issue #1068).
+      alsoPublishedIn: [],
     };
 
     expect(

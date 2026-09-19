@@ -13,7 +13,7 @@ function parsePage(value: string | null) {
 export const load: PageServerLoad = async (event) => {
   const layoutData = await event.parent();
   const rawQuery = Object.fromEntries(
-    ["type", "source", "query"].flatMap((key) => {
+    ["type", "source", "query", "fold"].flatMap((key) => {
       const value = event.url.searchParams.get(key)?.trim();
       return value ? [[key, value]] : [];
     }),

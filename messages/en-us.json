@@ -1167,6 +1167,9 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "pagination": "News and notices pagination",
+    "foldToggle": "Group reprints of the same article",
+    "foldSiblingCount": "+{count} more section(s)",
+    "alsoPublishedIn": "Also published in",
     "objectLabels": {
       "body_html": "Web body",
       "body_markdown": "Markdown body",
