@@ -408,6 +408,72 @@ test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({
   ).toHaveCount(0);
 });
 
+test("/ shell 平板视口菜单按钮可通过键盘展开侧边栏", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  const menuTrigger = page
+    .locator("[data-shell-topbar]")
+    .getByRole("button", { name: /^菜单$|^Menu$/i });
+
+  // The trigger must remain visible (not hidden at the `md` breakpoint) and
+  // must be part of the tab order, not merely present in the DOM.
+  await expect(menuTrigger).toBeVisible();
+  await expect(menuTrigger).toHaveJSProperty("tabIndex", 0);
+
+  const sidebarRoot = page.locator('[data-slot="sidebar"]');
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+  await expect(sidebarRoot).toHaveAttribute("data-collapsible", "icon");
+
+  const coursesLink = page
+    .getByTestId("app-sidebar")
+    .getByRole("link", { name: /^(课程|Courses)$/i });
+  // The link stays in the accessibility tree while icon-collapsed (only its
+  // label is visually truncated), so assert on the rendered width instead of
+  // presence/absence.
+  const collapsedBox = await coursesLink.boundingBox();
+  expect(collapsedBox?.width ?? 0).toBeLessThan(40);
+
+  // Reach the trigger purely via the keyboard and activate it with Enter.
+  await menuTrigger.focus();
+  await expect(menuTrigger).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+  await expect(sidebarRoot).not.toHaveAttribute("data-collapsible", "icon");
+  await expect(menuTrigger).toHaveAttribute("aria-expanded", "true");
+  await expect(coursesLink).toBeVisible();
+  // The sidebar width animates via a CSS transition, so poll until it settles
+  // instead of asserting on a single synchronous measurement.
+  await expect
+    .poll(async () => (await coursesLink.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(100);
+
+  // Space must also operate the control per standard button semantics.
+  await menuTrigger.focus();
+  await page.keyboard.press("Space");
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+  await expect(menuTrigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("/ shell 平板视口侧边栏 rail 控件可通过键盘聚焦并展开", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  const rail = page.locator('[data-sidebar="rail"]');
+  await expect(rail).toHaveJSProperty("tabIndex", 0);
+
+  const sidebarRoot = page.locator('[data-slot="sidebar"]');
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+
+  await rail.focus();
+  await expect(rail).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+});
+
 test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signInAsDebugUser(page, "/workspace/calendar");

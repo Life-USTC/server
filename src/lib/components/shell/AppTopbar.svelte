@@ -35,7 +35,7 @@ export let signedIn = false;
   <div class="flex h-full items-center gap-1 px-2 sm:gap-2 sm:px-3 lg:px-6">
     <Sidebar.Trigger
       aria-label={copy.shell.menu}
-      class="size-11 md:hidden"
+      class="size-11 lg:hidden"
       onclick={closeMenus}
     />
 
