@@ -1,3 +1,12 @@
+## [1.116.7](https://github.com/Life-USTC/server/compare/v1.116.6...v1.116.7) (2026-09-19)
+
+
+### Bug Fixes
+
+* **ci:** fail loudly when OpenAPI consumer dispatch is skipped ([#1075](https://github.com/Life-USTC/server/issues/1075)) ([f75e565](https://github.com/Life-USTC/server/commit/f75e565b5e664587f03ea361b9fdda41c0ae4397)), closes [#955](https://github.com/Life-USTC/server/issues/955) [#955](https://github.com/Life-USTC/server/issues/955)
+* **shell:** let tablet viewports expand the sidebar ([#1077](https://github.com/Life-USTC/server/issues/1077)) ([67d71ec](https://github.com/Life-USTC/server/commit/67d71ece07b4074de58cf6d9ea439d939d496015)), closes [#869](https://github.com/Life-USTC/server/issues/869)
+* **ui:** hide page-local search shortcut hint on touch devices ([#1076](https://github.com/Life-USTC/server/issues/1076)) ([7c58157](https://github.com/Life-USTC/server/commit/7c581572e8d61d5d6f189b5b8076f984684ecbbc)), closes [#1024](https://github.com/Life-USTC/server/issues/1024)
+
 ## [1.116.6](https://github.com/Life-USTC/server/compare/v1.116.5...v1.116.6) (2026-09-18)
 
 
