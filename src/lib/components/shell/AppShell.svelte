@@ -239,7 +239,18 @@ function buildShellNavGroups(
       icon: CloudSunIcon,
       label: copy.nav.weather,
     },
-    { href: "/news", icon: ScrollTextIcon, label: copy.nav.news },
+    {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: UsersIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
+    },
   ];
   const usageLinks: ShellLink[] = [
     {
@@ -436,6 +447,13 @@ function buildMobileSecondaryNavGroups(
       href: "/news",
       icon: ScrollTextIcon,
       label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: UsersIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
     },
     {
       href: "/catalog/sections",

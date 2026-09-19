@@ -1,3 +1,4 @@
+import { collapsePublicationListSearchParams } from "@/features/publications/lib/publication-read-request-schemas";
 import {
   getPublicationImageResponse,
   PublicationImageOriginError,
@@ -10,6 +11,7 @@ import {
   PUBLICATION_READ_CACHE_HEADERS,
   PublicationReadStorageUnavailableError,
 } from "@/features/publications/server/publication-public-read-service";
+import { listPublicationSourceDirectory } from "@/features/publications/server/publication-source-directory-service";
 import {
   handleRouteError,
   notFound,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import {
   publicPublicationDetailSchema,
+  publicPublicationSourceDirectoryResponseSchema,
   publicPublicationsResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
 
@@ -36,7 +39,10 @@ const PUBLICATION_LIST_PAGINATION = {
 
 export async function getPublicationsRoute(request: Request) {
   const parsed = parseRouteQuery(
-    new URL(request.url).searchParams,
+    // The list page submits its source and level checkboxes as repeated
+    // params; REST clients use the documented comma-separated form. Collapse
+    // the former into the latter so one schema validates both (issue #1069).
+    collapsePublicationListSearchParams(new URL(request.url).searchParams),
     publicationsQuerySchema,
     "Invalid publication query",
     { pagination: PUBLICATION_LIST_PAGINATION, logErrors: true },
@@ -53,6 +59,19 @@ export async function getPublicationsRoute(request: Request) {
     });
   } catch (error) {
     return handleRouteError("Failed to fetch publications", error);
+  }
+}
+
+export async function getPublicationSourcesRoute(_request: Request) {
+  try {
+    const result = await listPublicationSourceDirectory();
+    return schemaJsonResponse(
+      publicPublicationSourceDirectoryResponseSchema,
+      result,
+      { headers: PUBLICATION_READ_CACHE_HEADERS },
+    );
+  } catch (error) {
+    return handleRouteError("Failed to fetch publication sources", error);
   }
 }
 

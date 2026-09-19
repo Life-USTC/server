@@ -7,6 +7,15 @@ export type PublicationFixture = {
   canonicalUrl: string;
   id: string;
   sourceId: string;
+  sourceName: string;
+  /**
+   * A second registered source at a different organization level, so the
+   * source directory and the list page's level filter have more than one
+   * group to prove they actually group and filter (issue #1069).
+   */
+  officeSourceId: string;
+  officeSourceName: string;
+  officeTotal: number;
   title: string;
   total: number;
   imageId: string;
@@ -42,6 +51,10 @@ function localObjectCommand(
 
 export async function createPublicationFixture(prefix: string) {
   const sourceId = `e2e-publication-${prefix}`;
+  const sourceName = `E2E publication source ${prefix}`;
+  const officeSourceId = `e2e-publication-office-${prefix}`;
+  const officeSourceName = `E2E office source ${prefix}`;
+  const officeTotal = 2;
   const canonicalUrl = `https://news.example.test/${prefix}`;
   const title = `E2E publication ${prefix}`;
   const revisionHash = "e".repeat(64);
@@ -84,11 +97,51 @@ export async function createPublicationFixture(prefix: string) {
     await prisma.publicationSource.create({
       data: {
         id: sourceId,
-        name: `E2E publication source ${prefix}`,
-        organizationLevel: "e2e",
+        name: sourceName,
+        organizationLevel: "university",
         allowedHosts: ["news.example.test"],
       },
     });
+    await prisma.publicationSource.create({
+      data: {
+        id: officeSourceId,
+        name: officeSourceName,
+        organizationLevel: "office",
+        allowedHosts: ["office.example.test"],
+      },
+    });
+
+    for (let index = 0; index < officeTotal; index += 1) {
+      const officeTitle = `E2E office publication ${prefix} ${index + 1}`;
+      const officeUrl = `https://office.example.test/${prefix}/${index + 1}`;
+      const officePublishedAt = new Date(
+        publishedAt.getTime() - (index + 1) * 86_400_000,
+      );
+      const officePublication = await prisma.publication.create({
+        data: {
+          sourceId: officeSourceId,
+          canonicalUrl: officeUrl,
+          title: officeTitle,
+          sourcePageUrl: officeUrl,
+          publicationType: "notice",
+          publishedAt: officePublishedAt,
+        },
+      });
+      const officeRevision = await prisma.publicationRevision.create({
+        data: {
+          publicationId: officePublication.id,
+          revisionHash: "f".repeat(64),
+          observedAt: officePublishedAt,
+          title: officeTitle,
+          publishedAt: officePublishedAt,
+          publicationType: "notice",
+        },
+      });
+      await prisma.publication.update({
+        where: { id: officePublication.id },
+        data: { currentRevisionId: officeRevision.id },
+      });
+    }
 
     let firstPublicationId = "";
     for (let index = 0; index < total; index += 1) {
@@ -147,6 +200,10 @@ export async function createPublicationFixture(prefix: string) {
       canonicalUrl,
       id: firstPublicationId,
       sourceId,
+      sourceName,
+      officeSourceId,
+      officeSourceName,
+      officeTotal,
       title,
       total,
       imageId,
@@ -159,6 +216,9 @@ export async function createPublicationFixture(prefix: string) {
 export async function deletePublicationFixture(fixture: PublicationFixture) {
   await withE2ePrisma(async (prisma) => {
     await prisma.publicationSource.delete({ where: { id: fixture.sourceId } });
+    await prisma.publicationSource.delete({
+      where: { id: fixture.officeSourceId },
+    });
     await prisma.publicationImageSource.delete({
       where: { id: fixture.imageId },
     });

@@ -30,16 +30,17 @@ test.describe("/news 新闻与通知预览", () => {
     await assertPageContract(page, { routePath: "/news", testInfo });
   });
 
-  test("支持来源筛选并明确显示新闻类型", async ({ page }, testInfo) => {
+  test("支持来源多选筛选并明确显示新闻类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(
       page,
       `/news?source=${encodeURIComponent(fixture.sourceId)}`,
       { testInfo, screenshotLabel: "news-source-filter" },
     );
 
-    await expect(
-      page.getByRole("textbox", { name: /来源标识|Source ID/i }),
-    ).toHaveValue(fixture.sourceId);
+    const sourceFilter = page.getByRole("listbox", {
+      name: /^(来源|Sources)$/,
+    });
+    await expect(sourceFilter).toHaveValues([fixture.sourceId]);
     await expect(
       page.getByRole("searchbox", { name: /搜索|Search/i }),
     ).toBeVisible();
@@ -54,10 +55,77 @@ test.describe("/news 新闻与通知预览", () => {
       page.getByRole("columnheader", { name: /标题与摘要|Title and summary/i }),
     ).toBeVisible();
 
-    await page.getByRole("combobox").selectOption("notice");
+    // Both fixture sources at once: the two selections must union rather than
+    // replace each other, so the total covers both sources' rows.
+    await sourceFilter.selectOption([fixture.sourceId, fixture.officeSourceId]);
+    await page.getByRole("button", { name: /筛选|Filter/i }).click();
+    await expect(page).toHaveURL(
+      new RegExp(
+        `source=${encodeURIComponent(fixture.sourceId)}&source=${encodeURIComponent(fixture.officeSourceId)}`,
+      ),
+    );
+    await expect(sourceFilter).toHaveValues([
+      fixture.sourceId,
+      fixture.officeSourceId,
+    ]);
+    const unionTotal = fixture.total + fixture.officeTotal;
+    // The visible summary and the table's sr-only caption both carry the
+    // count; asserting the first is enough to pin the union total.
+    await expect(
+      page
+        .getByText(new RegExp(`共 ${unionTotal} 条|${unionTotal} results`))
+        .first(),
+    ).toBeVisible();
+
+    // Narrowing the same union to notices leaves only the office source's
+    // rows, which is the AND of the type and source facets.
+    await page
+      .getByRole("combobox", { name: /类型|Type/i })
+      .selectOption("notice");
     await page.getByRole("button", { name: /筛选|Filter/i }).click();
     await expect(
-      page.getByText(/暂无公开内容|No public publications/i),
+      page.getByRole("link", { name: fixture.title, exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("link", { name: "E2E office publication", exact: false })
+        .first(),
+    ).toBeVisible();
+  });
+
+  test("支持按组织层级聚合筛选", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/news?organizationLevel=office", {
+      testInfo,
+      screenshotLabel: "news-organization-level-filter",
+    });
+
+    const levelFilter = page.getByRole("group", {
+      name: /按组织层级筛选|Filter by organization level/i,
+    });
+    await expect(
+      levelFilter.getByRole("checkbox", { name: /机关部处|Administrative/i }),
+    ).toBeChecked();
+    await expect(
+      levelFilter.getByRole("checkbox", { name: /学校机关|^University$/i }),
+    ).not.toBeChecked();
+
+    // An office-level filter keeps the office source's notices and drops the
+    // university-level fixture entirely.
+    await expect(
+      page
+        .getByRole("link", { name: `E2E office publication`, exact: false })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: fixture.title, exact: true }),
+    ).toHaveCount(0);
+
+    await levelFilter
+      .getByRole("checkbox", { name: /学校机关|^University$/i })
+      .check();
+    await page.getByRole("button", { name: /筛选|Filter/i }).click();
+    await expect(
+      page.getByRole("link", { name: fixture.title, exact: true }),
     ).toBeVisible();
   });
 
