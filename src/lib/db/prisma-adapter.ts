@@ -12,6 +12,33 @@ import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type RuntimeDatabase = "app" | "auth" | "maintenance";
 
+/**
+ * pg defaults `connectionTimeoutMillis` and `query_timeout` to "wait forever".
+ * A Postgres instance that accepts TCP connections but cannot make progress —
+ * the disk-full (`53100`) mode we hit in production — then parks the Worker on
+ * an await that never settles, and the runtime cancels the invocation with
+ * "your Worker's code had hung and would never generate a response" instead of
+ * returning an error page. Bounding both waits turns that hang into a normal
+ * failed query the request can surface.
+ */
+export const RUNTIME_DATABASE_CONNECTION_TIMEOUT_MS = 5_000;
+export const RUNTIME_DATABASE_QUERY_TIMEOUT_MS = 15_000;
+/** Retention/cleanup crons legitimately run longer than a page render. */
+export const MAINTENANCE_DATABASE_CONNECTION_TIMEOUT_MS = 10_000;
+export const MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS = 60_000;
+
+export function resolveDatabaseTimeouts(database: RuntimeDatabase) {
+  return database === "maintenance"
+    ? {
+        connectionTimeoutMillis: MAINTENANCE_DATABASE_CONNECTION_TIMEOUT_MS,
+        query_timeout: MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS,
+      }
+    : {
+        connectionTimeoutMillis: RUNTIME_DATABASE_CONNECTION_TIMEOUT_MS,
+        query_timeout: RUNTIME_DATABASE_QUERY_TIMEOUT_MS,
+      };
+}
+
 function getRuntimeDatabaseUrl(database: RuntimeDatabase) {
   const hyperdriveConnectionString =
     database === "auth"
@@ -87,6 +114,8 @@ export function createPrismaAdapter(
       // Keep a short idle timeout as a safety net for clients created outside
       // the managed request context.
       idleTimeoutMillis: 5_000,
+      // Never wait indefinitely on a wedged database; see the timeout constants.
+      ...resolveDatabaseTimeouts(database),
     },
     {
       onConnectionError: (error) => {
