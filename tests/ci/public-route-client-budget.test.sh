@@ -28,7 +28,8 @@ const budgets = {
   // menu chunk to a shared 326 B chunk: `/` measures 72 requests and 194,386
   // gzip bytes, up from 71 and 193,916. That is the shared-chunk split
   // described above, not extra payload, so only the request count moves.
-  "/": { gzipBytes: 195_000, requests: 73 },
+  // Pinned to the measured 72, not above it, so the next split still trips.
+  "/": { gzipBytes: 195_000, requests: 72 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },
