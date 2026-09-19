@@ -50,6 +50,48 @@ describe("Prisma adapter observability", () => {
     });
   });
 
+  it("bounds connect and query waits so a wedged database cannot hang the Worker", async () => {
+    const {
+      createPrismaAdapter,
+      RUNTIME_DATABASE_CONNECTION_TIMEOUT_MS,
+      RUNTIME_DATABASE_QUERY_TIMEOUT_MS,
+    } = await import("@/lib/db/prisma-adapter");
+
+    for (const database of ["app", "auth"] as const) {
+      createPrismaAdapter("postgresql://example.test/database", database);
+      const config = adapterState.config;
+
+      expect(config).toMatchObject({
+        connectionTimeoutMillis: RUNTIME_DATABASE_CONNECTION_TIMEOUT_MS,
+        query_timeout: RUNTIME_DATABASE_QUERY_TIMEOUT_MS,
+      });
+      // pg treats 0/undefined as "wait forever", which is what parked requests
+      // until the runtime's hang detector cancelled them.
+      expect(config?.connectionTimeoutMillis).toBeGreaterThan(0);
+      expect(config?.query_timeout).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives maintenance crons a longer but still finite query budget", async () => {
+    const {
+      createPrismaAdapter,
+      MAINTENANCE_DATABASE_CONNECTION_TIMEOUT_MS,
+      MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS,
+      RUNTIME_DATABASE_QUERY_TIMEOUT_MS,
+    } = await import("@/lib/db/prisma-adapter");
+
+    createPrismaAdapter("postgresql://example.test/database", "maintenance");
+
+    expect(adapterState.config).toMatchObject({
+      connectionTimeoutMillis: MAINTENANCE_DATABASE_CONNECTION_TIMEOUT_MS,
+      query_timeout: MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS,
+    });
+    expect(MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS).toBeGreaterThan(
+      RUNTIME_DATABASE_QUERY_TIMEOUT_MS,
+    );
+    expect(Number.isFinite(MAINTENANCE_DATABASE_QUERY_TIMEOUT_MS)).toBe(true);
+  });
+
   it("writes unsampled connection and pool failure counters without messages", async () => {
     const writeDataPoint = vi.fn();
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
