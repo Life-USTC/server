@@ -11,6 +11,9 @@ FROM (
     ('public.User.calendarFeedToken:UPDATE'),
     ('public.User.isAdmin:UPDATE'),
     ('public.User.name:UPDATE'),
+    -- OAuth hooks and profile completion append trusted, server-derived avatar
+    -- URLs; Better Auth's role stays unable to write this column.
+    ('public.User.profilePictures:UPDATE'),
     ('public.User.updatedAt:UPDATE'),
     ('public.User.username:UPDATE')
 ) AS allowlist(privilege);
