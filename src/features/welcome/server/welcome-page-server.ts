@@ -12,6 +12,7 @@ import {
 } from "@/features/welcome/lib/welcome-steps";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { completeWelcomeProfile } from "./welcome-complete-action";
@@ -62,7 +63,10 @@ export const loadWelcomePage = async ({
     );
   }
 
-  const [user, semesters, currentSemester] = await Promise.all([
+  // `Account` is an auth-runtime table: the app runtime role is deliberately
+  // revoked from it (prisma/roles/app-runtime-table-grants.sql), so linked
+  // providers are read through the auth client, as /account/settings does.
+  const [user, linkedAccounts, semesters, currentSemester] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -71,10 +75,11 @@ export const loadWelcomePage = async ({
         username: true,
         image: true,
         profilePictures: true,
-        accounts: {
-          select: { provider: true },
-        },
       },
+    }),
+    authPrisma.account.findMany({
+      where: { userId: session.user.id },
+      select: { provider: true },
     }),
     prisma.semester.findMany({
       select: { id: true, nameCn: true },
@@ -125,7 +130,7 @@ export const loadWelcomePage = async ({
     },
     oauthProviders: Array.from(
       new Set(
-        user.accounts
+        linkedAccounts
           .map(({ provider }) => provider)
           .filter((provider) => REFRESHABLE_PROVIDERS.has(provider)),
       ),

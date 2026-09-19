@@ -2,11 +2,13 @@ import type { ServerLoadEvent } from "@sveltejs/kit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  accountFindManyMock,
   getCurrentSemesterMock,
   getSessionFromHeadersMock,
   semesterFindManyMock,
   userFindUniqueMock,
 } = vi.hoisted(() => ({
+  accountFindManyMock: vi.fn(),
   getCurrentSemesterMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
   semesterFindManyMock: vi.fn(),
@@ -19,6 +21,12 @@ vi.mock("@/features/catalog/server/academic-metadata-read-model", () => ({
 
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
+}));
+
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
+    account: { findMany: accountFindManyMock },
+  },
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -53,6 +61,8 @@ describe("loadWelcomePage", () => {
     semesterFindManyMock.mockReset();
     semesterFindManyMock.mockResolvedValue([{ id: 7, nameCn: "2026 秋" }]);
     userFindUniqueMock.mockReset();
+    accountFindManyMock.mockReset();
+    accountFindManyMock.mockResolvedValue([]);
   });
 
   it("keeps an incomplete profile on the required first step", async () => {
@@ -62,8 +72,12 @@ describe("loadWelcomePage", () => {
       username: null,
       image: null,
       profilePictures: [],
-      accounts: [{ provider: "github" }, { provider: "credential" }],
     });
+    // Linked providers come from the auth runtime client, not the app one.
+    accountFindManyMock.mockResolvedValue([
+      { provider: "github" },
+      { provider: "credential" },
+    ]);
 
     const data = await loadWelcomePage(loadEvent("?step=finish"));
 
@@ -92,7 +106,6 @@ describe("loadWelcomePage", () => {
       username: "test-user",
       image: null,
       profilePictures: [],
-      accounts: [],
     });
 
     await expect(
@@ -110,7 +123,6 @@ describe("loadWelcomePage", () => {
       username: "test-user",
       image: null,
       profilePictures: [],
-      accounts: [],
     });
 
     const subscriptions = await loadWelcomePage(

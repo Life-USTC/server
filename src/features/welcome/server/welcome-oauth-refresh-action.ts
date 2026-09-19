@@ -2,7 +2,9 @@ import { type Cookies, fail, redirect } from "@sveltejs/kit";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
 import { linkAccountFromSvelteAction } from "@/lib/auth/svelte-auth-actions";
-import { prisma } from "@/lib/db/prisma";
+// `Account` belongs to the auth runtime role; the app runtime role has no
+// privileges on it.
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { getWelcomeCopy } from "./welcome-page-copy";
@@ -36,7 +38,7 @@ export async function refreshWelcomeOAuthProfile({
       message: getWelcomeCopy(locals.locale).welcome.oauthRefreshFailed,
     });
   }
-  const linkedAccount = await prisma.account.findFirst({
+  const linkedAccount = await authPrisma.account.findFirst({
     where: {
       userId: session.user.id,
       provider: providerId,

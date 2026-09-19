@@ -21,8 +21,8 @@ vi.mock("@/lib/auth/svelte-auth-actions", () => ({
   linkAccountFromSvelteAction: linkAccountFromSvelteActionMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/auth-prisma", () => ({
+  authPrisma: {
     account: {
       findFirst: accountFindFirstMock,
     },
