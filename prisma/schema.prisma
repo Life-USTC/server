@@ -1089,6 +1089,14 @@ model Publication {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
+  /// Database-generated (STORED) fold key: NFKC-normalized, whitespace-collapsed,
+  /// lowercased title. Populated by Postgres, never written by the app. Kept in
+  /// sync with normalizePublicationTitle() in publication-title-normalization.ts.
+  normalizedTitle String @default(dbgenerated())
+  /// Database-generated (STORED) fold key: COALESCE(publishedAt, firstSeenAt)
+  /// bucketed to its Asia/Shanghai calendar date. Populated by Postgres.
+  publishedDateShanghai DateTime @default(dbgenerated()) @db.Date
+
   source          PublicationSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   currentRevision PublicationRevision?  @relation("PublicationCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
   revisions       PublicationRevision[] @relation("PublicationRevisionHistory")
@@ -1098,6 +1106,7 @@ model Publication {
   @@index([sourceId, lastSeenAt])
   @@index([deletedAt])
   @@index([currentRevisionId])
+  @@index([normalizedTitle, publishedDateShanghai])
   @@index([canonicalUrl(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_canonicalUrl_trgm_idx")
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_title_trgm_idx")
   @@index([summary(ops: raw("gin_trgm_ops"))], type: Gin, map: "Publication_summary_trgm_idx")

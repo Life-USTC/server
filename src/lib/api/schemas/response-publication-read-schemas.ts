@@ -47,6 +47,15 @@ export const publicPublicationRevisionSummarySchema = z.strictObject({
   ...publicPublicationRevisionBaseSchema,
 });
 
+/**
+ * Present only on a `fold=1` list response, and only for a row that
+ * represents 2+ folded reprints (see issue #1068). Absent otherwise, so the
+ * default (unfolded) response shape is unchanged.
+ */
+export const publicPublicationFoldSummarySchema = z.strictObject({
+  siblingCount: z.number().int().positive(),
+});
+
 export const publicPublicationListItemSchema = z.strictObject({
   id: z.string(),
   canonicalUrl: z.string().url(),
@@ -54,6 +63,14 @@ export const publicPublicationListItemSchema = z.strictObject({
   source: publicPublicationSourceSchema,
   revision: publicPublicationRevisionSummarySchema,
   objects: z.array(publicPublicationObjectSchema),
+  foldGroup: publicPublicationFoldSummarySchema.optional(),
+});
+
+export const publicPublicationSiblingSchema = z.strictObject({
+  id: z.string(),
+  canonicalUrl: z.string().url(),
+  source: publicPublicationSourceSchema,
+  publishedAt: dateTimeSchema.nullable(),
 });
 
 export const publicPublicationRevisionDetailSchema = z.strictObject({
@@ -71,6 +88,7 @@ export const publicPublicationDetailSchema = z.strictObject({
   publicationType: publicationTypeSchema,
   source: publicPublicationSourceSchema,
   revision: publicPublicationRevisionDetailSchema,
+  alsoPublishedIn: z.array(publicPublicationSiblingSchema),
 });
 
 export const publicPublicationsResponseSchema = createPaginatedSchema(

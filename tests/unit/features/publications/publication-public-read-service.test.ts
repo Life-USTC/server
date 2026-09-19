@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   publicationCount: vi.fn(),
   publicationFindFirst: vi.fn(),
   publicationObjectFindUnique: vi.fn(),
+  queryRaw: vi.fn(),
   bucket: {
     head: vi.fn(),
     get: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@/lib/db/prisma", () => ({
     $transaction: vi.fn(async (operations: Promise<unknown>[]) =>
       Promise.all(operations),
     ),
+    $queryRaw: mocks.queryRaw,
     publication: {
       findMany: mocks.publicationFindMany,
       count: mocks.publicationCount,
@@ -120,6 +122,9 @@ function stream(value: string) {
 describe("public publication reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Detail reads always compute `alsoPublishedIn` via a secondary
+    // findMany; default it to no siblings unless a test overrides it.
+    mocks.publicationFindMany.mockResolvedValue([]);
   });
 
   it("returns paginated public news and filters unverified objects", async () => {
@@ -361,5 +366,111 @@ describe("public publication reads", () => {
       }),
     ).resolves.toBeNull();
     expect(mocks.bucket.head).not.toHaveBeenCalled();
+  });
+
+  it("folds reprints into one row per group and exposes the sibling count (fold=1)", async () => {
+    mocks.queryRaw
+      .mockResolvedValueOnce([
+        { id: "publication-1", groupSize: 3n },
+        { id: "publication-2", groupSize: 1n },
+      ])
+      .mockResolvedValueOnce([{ total: 2n }]);
+    mocks.publicationFindMany.mockResolvedValue([
+      publication({ id: "publication-2" }),
+      publication({ id: "publication-1" }),
+    ]);
+
+    const result = await listPublications({
+      filters: { fold: true },
+      pagination: { page: 1, pageSize: 20 },
+    });
+
+    expect(result.pagination).toEqual({
+      page: 1,
+      pageSize: 20,
+      total: 2,
+      totalPages: 1,
+    });
+    // Order follows the folded query's ids, not the hydration findMany order.
+    expect(result.data.map((item) => item.id)).toEqual([
+      "publication-1",
+      "publication-2",
+    ]);
+    expect(result.data[0].foldGroup).toEqual({ siblingCount: 2 });
+    // A singleton group must not carry a foldGroup at all.
+    expect(result.data[1].foldGroup).toBeUndefined();
+
+    expect(mocks.publicationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ["publication-1", "publication-2"] } },
+      }),
+    );
+  });
+
+  it("returns an empty page without hydrating when fold=1 finds no groups", async () => {
+    mocks.queryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 0n }]);
+
+    const result = await listPublications({
+      filters: { fold: true },
+      pagination: { page: 1, pageSize: 20 },
+    });
+
+    expect(result.data).toEqual([]);
+    expect(result.pagination.total).toBe(0);
+    expect(mocks.publicationFindMany).not.toHaveBeenCalled();
+  });
+
+  it("exposes sibling reprints on the detail page via alsoPublishedIn", async () => {
+    mocks.publicationFindFirst.mockResolvedValue(
+      publication({
+        normalizedTitle: "campus update",
+        publishedDateShanghai: new Date("2026-08-31"),
+      }),
+    );
+    mocks.publicationFindMany.mockResolvedValue([
+      {
+        id: "publication-2",
+        canonicalUrl: "https://news.ustc.edu.cn/other-section/item",
+        publishedAt: new Date("2026-08-31T16:00:00.000Z"),
+        source: {
+          id: "other-section",
+          name: "Other Section",
+          organizationLevel: "department",
+        },
+      },
+    ]);
+
+    const detail = await getPublicPublicationById("publication-1");
+
+    expect(detail?.alsoPublishedIn).toEqual([
+      {
+        id: "publication-2",
+        canonicalUrl: "https://news.ustc.edu.cn/other-section/item",
+        source: {
+          id: "other-section",
+          name: "Other Section",
+          organizationLevel: "department",
+        },
+        publishedAt: new Date("2026-08-31T16:00:00.000Z"),
+      },
+    ]);
+
+    const findManyArgs = mocks.publicationFindMany.mock.calls[0][0];
+    expect(findManyArgs.where).toMatchObject({
+      id: { not: "publication-1" },
+      normalizedTitle: "campus update",
+      publishedDateShanghai: new Date("2026-08-31"),
+    });
+  });
+
+  it("returns an empty alsoPublishedIn array when there are no sibling reprints", async () => {
+    mocks.publicationFindFirst.mockResolvedValue(publication());
+    mocks.publicationFindMany.mockResolvedValue([]);
+
+    const detail = await getPublicPublicationById("publication-1");
+
+    expect(detail?.alsoPublishedIn).toEqual([]);
   });
 });

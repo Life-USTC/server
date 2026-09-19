@@ -77,6 +77,25 @@ function objectLabel(kind: string) {
           </ul>
         </div>
       {/if}
+
+      {#if publication.alsoPublishedIn.length > 0}
+        <Separator />
+        <div class="grid gap-3" aria-label={copy.alsoPublishedIn}>
+          <h2 class="text-lg font-semibold">{copy.alsoPublishedIn}</h2>
+          <ul class="grid gap-2">
+            {#each publication.alsoPublishedIn as sibling (sibling.id)}
+              <li>
+                <a
+                  class="inline-flex max-w-full items-center gap-2 truncate text-primary hover:underline"
+                  href={`/news/${sibling.id}`}
+                >
+                  <span class="truncate">{sibling.source.name}</span>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
     </Card.Content>
     <Card.Footer class="flex flex-wrap items-center justify-between gap-3">
       <a class="inline-flex items-center gap-1.5 text-sm text-primary hover:underline" href="/news">
