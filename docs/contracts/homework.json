@@ -82,7 +82,7 @@
           "filter: incomplete/completed/all",
           "mobile compact toolbar with direct completion filters and overflow display-mode control",
           "cards/list view mode persisted in browser storage",
-          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details",
+          "detail popup is one scrollable column: due datetime, relative urgency, remaining facts in a table excluding platform createdAt, then description, then full-width discussion; completion stays in the footer; do not use a two-column overlay",
           "create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style guide, and uses aligned date inputs with adjacent shortcut menus",
           "create dialog uses a wider desktop layout with section, title, and timestamps on the left and description editing with simultaneous live Markdown preview on the right; mobile stacks the fields",
           "create section options identify course, teachers, and semester; common deadlines include the selected section's next classes and future this/next-week weekend cutoffs in Asia/Shanghai"
@@ -255,7 +255,7 @@
           "user completion status",
           "edit action",
           "cards/list view mode persisted in browser storage",
-          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, edit/completion controls, inline discussion; desktop places discussion to the right of the details",
+          "detail popup is one scrollable column: due datetime is primary, relative urgency is secondary, remaining facts (status, tags, publication, submission opens) are a table that does not repeat due date or platform createdAt, then description, then full-width discussion; edit/completion stay in the footer; do not use a two-column overlay",
           "section cards use a responsive multi-column layout",
           "create and edit forms expose the same collapsible advisory homework title and description style guide"
         ]

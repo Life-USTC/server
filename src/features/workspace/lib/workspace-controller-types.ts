@@ -409,6 +409,7 @@ export type WorkspaceTodosCopy = WorkspaceRecord & {
   saveFailed: string;
   uncompleteSuccess: string;
   saving: string;
+  statusLabel: string;
   subtitle: string;
   titleLabel: string;
   titlePlaceholder: string;

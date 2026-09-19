@@ -48,17 +48,25 @@ export let isCreatingTodo: boolean;
 export let isUpdatingTodo: boolean;
 let datetimeLocalValue: TodoDateFormatter;
 let fmtDate: TodoDateFormatter;
+let isDueOverdue: (value: Date | string | null | undefined) => boolean;
+let relativeDueLabel: TodoDateFormatter;
 let todoActionLabel: TodoAction;
 let todoStatus: TodoAction;
 
-$: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
-  createTodoTabDisplayActions({
-    workspaceCopy,
-    locale,
-    referenceDate,
-    sectionCopy,
-    todosCopy,
-  }));
+$: ({
+  datetimeLocalValue,
+  fmtDate,
+  isDueOverdue,
+  relativeDueLabel,
+  todoActionLabel,
+  todoStatus,
+} = createTodoTabDisplayActions({
+  workspaceCopy,
+  locale,
+  referenceDate,
+  sectionCopy,
+  todosCopy,
+}));
 function clearTodoFilter() {
   todoFilter = "all";
 }
@@ -122,7 +130,9 @@ function clearTodoFilter() {
     {fmtDate}
     {isCreatingTodo}
     {isUpdatingTodo}
+    {isDueOverdue}
     {openTodoEditor}
+    {relativeDueLabel}
     bind:selectedTodo
     bind:showCreateTodo
     {todoActionLabel}

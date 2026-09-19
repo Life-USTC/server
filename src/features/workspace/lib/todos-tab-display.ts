@@ -1,5 +1,9 @@
 import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
-import { formatWorkspaceDateTime } from "./date-formatters";
+import {
+  formatWorkspaceDateTime,
+  formatWorkspaceDueRelativeTime,
+  isWorkspaceDueOverdue,
+} from "./date-formatters";
 import {
   todoActionLabel as buildTodoActionLabel,
   todoStatus as buildTodoStatus,
@@ -44,5 +48,14 @@ export function createTodoTabDisplayActions({
         completed: workspaceCopy.completedStatus,
         pending: workspaceCopy.pendingStatus,
       }),
+    relativeDueLabel: (value: Date | string | null | undefined) =>
+      formatWorkspaceDueRelativeTime(
+        value,
+        sectionCopy.dateTBD,
+        referenceDate,
+        locale,
+      ),
+    isDueOverdue: (value: Date | string | null | undefined) =>
+      isWorkspaceDueOverdue(value, referenceDate),
   };
 }

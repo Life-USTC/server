@@ -23,6 +23,14 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  closeDetailDialog,
+  detailDialog,
+  expectComfortablePopupWidth,
+  expectHomeworkDetailOrder,
+  expectIconOnlyCloseButton,
+  expectSingleColumnDiscussion,
+} from "../../../../utils/detail-dialog";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -159,6 +167,34 @@ test.describe("仪表盘作业", () => {
       visibleText(page, DEV_SEED.homeworks.overdueTitle),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
+  });
+
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({ page }) => {
+    await signInAsDebugUser(page, "/workspace/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+
+    await page
+      .getByRole("radio", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await row
+      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .first()
+      .click();
+
+    const dialog = detailDialog(page);
+    await expect(dialog).toBeVisible();
+    await expectHomeworkDetailOrder(dialog);
+    await expectSingleColumnDiscussion(dialog);
+    await expectComfortablePopupWidth(page, dialog);
+    await expectIconOnlyCloseButton(dialog);
+    await closeDetailDialog(page, dialog);
   });
 
   test("作业详情链接到班级页面且不打开第二层详情", async ({
