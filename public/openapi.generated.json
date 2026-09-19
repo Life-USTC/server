@@ -11186,20 +11186,7 @@
                     },
                     "organizationLevel": {
                       "type": "string",
-                      "enum": [
-                        "university",
-                        "office",
-                        "department",
-                        "college",
-                        "center",
-                        "research",
-                        "service",
-                        "program",
-                        "society",
-                        "journal",
-                        "student",
-                        "unknown"
-                      ]
+                      "description": "Source organization level. Currently one of: university, office, department, college, center, research, service, program, society, journal, student, unknown. Treat an unrecognized value as unknown rather than an error."
                     }
                   },
                   "required": [
@@ -17610,20 +17597,7 @@
               },
               "organizationLevel": {
                 "type": "string",
-                "enum": [
-                  "university",
-                  "office",
-                  "department",
-                  "college",
-                  "center",
-                  "research",
-                  "service",
-                  "program",
-                  "society",
-                  "journal",
-                  "student",
-                  "unknown"
-                ]
+                "description": "Source organization level. Currently one of: university, office, department, college, center, research, service, program, society, journal, student, unknown. Treat an unrecognized value as unknown rather than an error."
               }
             },
             "required": [
@@ -17801,20 +17775,7 @@
                     },
                     "organizationLevel": {
                       "type": "string",
-                      "enum": [
-                        "university",
-                        "office",
-                        "department",
-                        "college",
-                        "center",
-                        "research",
-                        "service",
-                        "program",
-                        "society",
-                        "journal",
-                        "student",
-                        "unknown"
-                      ]
+                      "description": "Source organization level. Currently one of: university, office, department, college, center, research, service, program, society, journal, student, unknown. Treat an unrecognized value as unknown rather than an error."
                     }
                   },
                   "required": [

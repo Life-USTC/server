@@ -1,5 +1,8 @@
 import * as z from "zod";
-import { publicationSourceOrganizationLevelSchema } from "@/features/publications/lib/publication-source-levels";
+import {
+  PUBLICATION_SOURCE_ORGANIZATION_LEVELS,
+  publicationSourceOrganizationLevelSchema,
+} from "@/features/publications/lib/publication-source-levels";
 import {
   createPaginatedSchema,
   dateTimeSchema,
@@ -14,10 +17,22 @@ const publicationObjectKindSchema = z.enum([
   "raw_page",
 ]);
 
+/**
+ * The source stamp carried by every list and detail row.
+ *
+ * `organizationLevel` stays a plain string here even though the column is now
+ * a closed enum (issue #1069). This field shipped as an open string, and
+ * narrowing a response property to an enum hands generated clients an
+ * exhaustive type that a later registry level would break. The new
+ * /api/publications/sources directory, which has no such history, documents
+ * the vocabulary instead.
+ */
 export const publicPublicationSourceSchema = z.strictObject({
   id: z.string(),
   name: z.string(),
-  organizationLevel: publicationSourceOrganizationLevelSchema,
+  organizationLevel: z.string().meta({
+    description: `Source organization level. Currently one of: ${PUBLICATION_SOURCE_ORGANIZATION_LEVELS.join(", ")}. Treat an unrecognized value as unknown rather than an error.`,
+  }),
 });
 
 /**

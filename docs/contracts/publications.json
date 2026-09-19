@@ -106,7 +106,8 @@
             "notes": [
               "Lists enabled, non-discovery-only sources grouped by organizationLevel in the registry's declaration order; a level with no registered source is omitted.",
               "Each source carries its allowed hosts, its publication count, and the newest published date, all computed with the public list's visibility filter. Blocked hosts, seed URLs, aliases and crawler tuning stay internal.",
-              "The registry is bounded (~80 sources), so the directory is returned whole rather than paginated, under the same cache headers as the list read."
+              "The registry is bounded (~80 sources), so the directory is returned whole rather than paginated, under the same cache headers as the list read.",
+              "organizationLevel is published as a closed enum here only. The long-standing list and detail responses keep it an open string, because narrowing a shipped response property to an enum hands generated clients an exhaustive type that a later registry level would break."
             ]
           }
         ]

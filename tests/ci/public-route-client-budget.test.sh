@@ -22,12 +22,15 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // the shell gains another importer (e.g. the weather page split the 525 B
 // `sun` icon into its own chunk). The Young client controls reuse the shell
 // bootstrap helper, splitting it into one shared chunk; retain the gzip cap.
+// /news/sources is a public entry surface of the same shape as /news, so it
+// gets a budget from day one rather than after its first regression.
 const budgets = {
   "/": { gzipBytes: 195_000, requests: 71 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },
   "/news/[id]": { gzipBytes: 221_000, requests: 82 },
+  "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
 let failed = false;

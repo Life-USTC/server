@@ -1,10 +1,6 @@
 <script lang="ts">
-import LibraryIcon from "@lucide/svelte/icons/library";
 import SearchIcon from "@lucide/svelte/icons/search";
-import {
-  PUBLICATION_SOURCE_ORGANIZATION_LEVELS,
-  type PublicationSourceOrganizationLevel,
-} from "@/features/publications/lib/publication-source-levels";
+import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -74,12 +70,12 @@ function sourceHref(id: string) {
 }
 
 // Only levels that actually have a selectable source are offered, so the
-// filter never shows a checkbox that can only ever return nothing.
-const availableLevels = $derived(
-  PUBLICATION_SOURCE_ORGANIZATION_LEVELS.filter((level) =>
-    data.sourceOptions.some((option) => option.organizationLevel === level),
-  ),
-);
+// filter never shows a checkbox that can only ever return nothing. The
+// options arrive ordered by level, so first-seen order is the registry's
+// own order and the client needs no copy of the level vocabulary.
+const availableLevels = $derived([
+  ...new Set(data.sourceOptions.map((option) => option.organizationLevel)),
+]);
 
 function resultCount() {
   return copy.resultsCount.replace(
@@ -96,10 +92,7 @@ function resultCount() {
 <section class="grid gap-5">
   <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
     {#snippet actions()}
-      <Button href="/news/sources" variant="outline">
-        <LibraryIcon data-icon="inline-start" aria-hidden="true" />
-        {copy.sourcesTitle}
-      </Button>
+      <Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>
     {/snippet}
   </PageHeader>
 

@@ -11,7 +11,6 @@ import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
-import LibraryIcon from "@lucide/svelte/icons/library";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
@@ -247,7 +246,7 @@ function buildShellNavGroups(
       items: [
         {
           href: "/news/sources",
-          icon: LibraryIcon,
+          icon: UsersIcon,
           label: copy.nav.newsSources,
         },
       ],
@@ -451,7 +450,7 @@ function buildMobileSecondaryNavGroups(
       items: [
         {
           href: "/news/sources",
-          icon: LibraryIcon,
+          icon: UsersIcon,
           label: copy.nav.newsSources,
         },
       ],

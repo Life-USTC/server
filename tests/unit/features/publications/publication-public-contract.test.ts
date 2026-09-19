@@ -9,6 +9,8 @@ import {
 import {
   publicPublicationDetailSchema,
   publicPublicationSourceDirectoryResponseSchema,
+  publicPublicationSourceSchema,
+  publicPublicationSourceSummarySchema,
   publicPublicationsResponseSchema,
 } from "@/lib/api/schemas/response-publication-read-schemas";
 
@@ -213,6 +215,27 @@ describe("public publication contract", () => {
         pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
       }).data[0].revision.title,
     ).toBe("Title");
+  });
+
+  it("keeps the list and detail organizationLevel an open string", () => {
+    // The directory is a new surface and documents the closed vocabulary, but
+    // these two responses shipped organizationLevel as a free string. Pinning
+    // them to an enum would hand generated clients an exhaustive type that a
+    // future registry level breaks, so they stay open on purpose.
+    const source = {
+      id: "ustc-news",
+      name: "USTC News",
+      organizationLevel: "a-level-added-upstream-later",
+    };
+    expect(publicPublicationSourceSchema.safeParse(source).success).toBe(true);
+    expect(
+      publicPublicationSourceSummarySchema.safeParse({
+        ...source,
+        hosts: [],
+        publicationCount: 0,
+        lastPublishedAt: null,
+      }).success,
+    ).toBe(false);
   });
 
   it("validates publication image URL-hash paths", () => {

@@ -1,9 +1,6 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
-import {
-  PUBLICATION_SOURCE_ORGANIZATION_LEVELS,
-  type PublicationSourceOrganizationLevel,
-} from "@/features/publications/lib/publication-source-levels";
+import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -52,16 +49,10 @@ function totalsSummary() {
     .replace("{publications}", String(data.directory.totals.publicationCount));
 }
 
-// Level anchors double as an in-page table of contents and as the levels the
-// list page can be filtered down to.
-const levelIndex = $derived(
-  PUBLICATION_SOURCE_ORGANIZATION_LEVELS.flatMap((level) => {
-    const group = data.directory.groups.find(
-      (candidate) => candidate.organizationLevel === level,
-    );
-    return group ? [group] : [];
-  }),
-);
+// The service already returns groups in the registry's display order, so the
+// anchors and the sections below share that one ordering and the client needs
+// no copy of the level vocabulary.
+const levelIndex = $derived(data.directory.groups);
 </script>
 
 <svelte:head>
