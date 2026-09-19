@@ -35,6 +35,20 @@ export const youngEventsQuerySchema = z.object({
     .max(100)
     .optional()
     .describe("Exact category filter, e.g. 单次项目 or 系列项目."),
+  module: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Exact second-classroom module filter, e.g. 德/智/体/美/劳."),
+  activityLevel: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Exact activity-level filter, e.g. 院级 or 校级."),
   search: z
     .string()
     .trim()
@@ -77,7 +91,6 @@ export const youngEventSummarySchema = z.strictObject({
   organizer: z.string().nullable(),
   organizerId: z.string().nullable(),
   status: z.string().nullable(),
-  registrationStatus: z.string().nullable(),
   location: z.string().nullable(),
   imageUrl: z.string().nullable(),
   hours: z.number().nullable(),
@@ -91,9 +104,39 @@ export const youngEventSummarySchema = z.strictObject({
   sourceMissing: z.boolean(),
   lastSeenAt: dateTimeSchema.nullable(),
   createdAt: dateTimeSchema.nullable(),
+  activityLevel: z.string().nullable(),
+  module: z.string().nullable(),
+  form: z.string().nullable(),
+  grades: z.string().nullable(),
+  sponsor: z.string().nullable(),
+  contactName: z.string().nullable(),
+  contactTel: z.string().nullable(),
+  duration: z.number().nullable(),
+  serviceHour: z.number().nullable(),
+  sumHours: z.number().nullable(),
+  sumPersons: z.number().int().nullable(),
+  partakeNum: z.number().int().nullable(),
+  favCount: z.number().int().nullable(),
+  limitNum: z.number().int().nullable(),
+  createdAtUpstream: dateTimeSchema.nullable(),
+  auditedAt: dateTimeSchema.nullable(),
+  updatedAtUpstream: dateTimeSchema.nullable(),
+  places: z
+    .array(
+      z.strictObject({
+        placeInfo: z.string().nullable(),
+        placeSt: z.string().nullable(),
+        placeEt: z.string().nullable(),
+      }),
+    )
+    .nullable(),
 });
 
+// Long rich-text bodies stay out of list payloads: a single description can
+// reach tens of kilobytes.
 export const youngEventDetailSchema = youngEventSummarySchema.extend({
+  description: z.string().nullable(),
+  participationNotes: z.string().nullable(),
   rawJson: z.unknown(),
 });
 

@@ -219,6 +219,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
     dateUnknown: Boolean
     active: Boolean
     category: String
+    module: String
+    activityLevel: String
     search: String
     organizerId: String
     dateFrom: String
@@ -237,6 +239,12 @@ export const graphqlTypeDefs = /* GraphQL */ `
     unknown
   }
 
+  type YoungEventPlace {
+    placeInfo: String
+    placeSt: String
+    placeEt: String
+  }
+
   type YoungEvent {
     youngId: String!
     name: String!
@@ -245,7 +253,6 @@ export const graphqlTypeDefs = /* GraphQL */ `
     organizer: String
     organizerId: String
     status: String
-    registrationStatus: String
     location: String
     imageUrl: String
     hours: Float
@@ -259,6 +266,34 @@ export const graphqlTypeDefs = /* GraphQL */ `
     sourceMissing: Boolean!
     lastSeenAt: DateTime
     createdAt: DateTime
+    activityLevel: String
+    module: String
+    form: String
+    grades: String
+    sponsor: String
+    contactName: String
+    contactTel: String
+    duration: Float
+    serviceHour: Float
+    sumHours: Float
+    sumPersons: Int
+    partakeNum: Int
+    favCount: Int
+    limitNum: Int
+    createdAtUpstream: DateTime
+    auditedAt: DateTime
+    updatedAtUpstream: DateTime
+    places: [YoungEventPlace!]
+    """
+    Sanitized upstream rich text. Only populated by the single-event query.
+    """
+    description: String
+    participationNotes: String
+    """
+    The complete upstream record as a JSON string. Only populated by the
+    single-event query.
+    """
+    rawJson: String
   }
 
   type YoungSourceFreshness {
@@ -490,6 +525,13 @@ export const graphqlSchema = createSchema<
       },
       GRAPHQL_FEATURE_RESOLVER_MAPPINGS.Mutation,
     ),
+    YoungEvent: {
+      // rawJson is an arbitrary upstream object and the schema has no JSON
+      // scalar, so hand it to clients as a JSON string.
+      rawJson(event: { rawJson?: unknown }) {
+        return event.rawJson == null ? null : JSON.stringify(event.rawJson);
+      },
+    },
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;
@@ -709,6 +751,8 @@ export const graphqlSchema = createSchema<
             filter?: {
               active?: boolean | null;
               category?: string | null;
+              module?: string | null;
+              activityLevel?: string | null;
               search?: string | null;
               organizerId?: string | null;
               dateFrom?: string | null;
@@ -733,6 +777,8 @@ export const graphqlSchema = createSchema<
               active: args.filter?.active ?? undefined,
               dateUnknown: args.filter?.dateUnknown ?? undefined,
               category: validateGraphqlSearch(args.filter?.category),
+              module: validateGraphqlSearch(args.filter?.module),
+              activityLevel: validateGraphqlSearch(args.filter?.activityLevel),
               search: validateGraphqlSearch(args.filter?.search),
               organizerId: args.filter?.organizerId
                 ? requireGraphqlYoungOrganizerId(args.filter.organizerId)

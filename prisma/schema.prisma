@@ -1977,7 +1977,6 @@ model YoungEvent {
   organizer          String?
   organizerId        String?
   status             String?
-  registrationStatus String?
   location           String?
   imageUrl           String?
   hours              Float?
@@ -1992,6 +1991,29 @@ model YoungEvent {
   lastSeenAt         DateTime?
   rawJson            Json
   createdAt          DateTime  @default(now())
+
+  /// Upstream rich text is stored verbatim; sanitizing and image rewriting
+  /// happen in the serialization layer, never on the way into the database.
+  description        String?   @db.Text
+  participationNotes String?   @db.Text
+  activityLevel      String?
+  module             String?
+  form               String?
+  grades             String?
+  sponsor            String?
+  contactName        String?
+  contactTel         String?
+  duration           Float?
+  serviceHour        Float?
+  sumHours           Float?
+  sumPersons         Int?
+  partakeNum         Int?
+  favCount           Int?
+  limitNum           Int?
+  createdAtUpstream  DateTime? @db.Timestamp(0)
+  auditedAt          DateTime? @db.Timestamp(0)
+  updatedAtUpstream  DateTime? @db.Timestamp(0)
+  places             Json?
 
   organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
 

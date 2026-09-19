@@ -2,7 +2,6 @@ type EventState = {
   name: string;
   location: string | null;
   status: string | null;
-  registrationStatus: string | null;
   sourceMissing: boolean;
   startAt: Date | null;
   endAt: Date | null;
@@ -15,7 +14,10 @@ export function youngEventState(event: EventState) {
     event.name,
     event.location,
     event.status,
-    event.registrationStatus,
+    // Placeholder for the dropped registrationStatus column. Keeping the tuple
+    // shape stable means existing subscriptions are not all flagged as changed
+    // once, which would push a false "event details changed" notification.
+    null,
     event.sourceMissing,
     event.startAt,
     event.endAt,

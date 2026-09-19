@@ -320,7 +320,6 @@ export const catalogGraphqlOperationDefinitions = [
               organizer
               organizerId
               status
-              registrationStatus
               location
               imageUrl
               hours
@@ -334,6 +333,28 @@ export const catalogGraphqlOperationDefinitions = [
               sourceMissing
               lastSeenAt
               createdAt
+              activityLevel
+              module
+              form
+              grades
+              sponsor
+              contactName
+              contactTel
+              duration
+              serviceHour
+              sumHours
+              sumPersons
+              partakeNum
+              favCount
+              limitNum
+              createdAtUpstream
+              auditedAt
+              updatedAtUpstream
+              places {
+                placeInfo
+                placeSt
+                placeEt
+              }
             }
             unknownDateCount
             source {
@@ -365,7 +386,6 @@ export const catalogGraphqlOperationDefinitions = [
             organizer
             organizerId
             status
-            registrationStatus
             location
             imageUrl
             hours
@@ -379,6 +399,31 @@ export const catalogGraphqlOperationDefinitions = [
             sourceMissing
             lastSeenAt
             createdAt
+            activityLevel
+            module
+            form
+            grades
+            sponsor
+            contactName
+            contactTel
+            duration
+            serviceHour
+            sumHours
+            sumPersons
+            partakeNum
+            favCount
+            limitNum
+            createdAtUpstream
+            auditedAt
+            updatedAtUpstream
+            places {
+              placeInfo
+              placeSt
+              placeEt
+            }
+            description
+            participationNotes
+            rawJson
           }
         }
       }

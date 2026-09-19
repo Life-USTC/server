@@ -41,7 +41,6 @@ const RECORD = {
   department: "校团委",
   organizer: "学生会",
   status: "进行中",
-  registrationStatus: "报名中",
   location: "东区图书馆",
   imageUrl: null,
   hours: 2.5,
@@ -56,6 +55,30 @@ const RECORD = {
   sourceMissing: false,
   lastSeenAt: null,
   createdAt: new Date("2026-09-01T00:00:00.000Z"),
+  activityLevel: "院级",
+  module: "美",
+  form: "现场参与",
+  grades: "1,2",
+  sponsor: "校团委",
+  contactName: "张三",
+  contactTel: "13800000000",
+  duration: 2.5,
+  serviceHour: 1.5,
+  sumHours: 76,
+  sumPersons: 27,
+  partakeNum: 30,
+  favCount: 4,
+  limitNum: 50,
+  createdAtUpstream: new Date("2026-08-08T15:53:40.000Z"),
+  auditedAt: null,
+  updatedAtUpstream: null,
+  places: [
+    {
+      placeInfo: "东区礼堂",
+      placeSt: "2026-08-20 14:00:00",
+      placeEt: "2026-08-20 16:00:00",
+    },
+  ],
 };
 
 beforeEach(() => {
@@ -113,6 +136,80 @@ describe("young event service", () => {
   it("returns null detail for unknown youngId", async () => {
     youngEventMock.findUnique.mockResolvedValue(null);
     await expect(getYoungEvent("missing")).resolves.toBeNull();
+  });
+
+  it("exposes the extended upstream fields and no registrationStatus", async () => {
+    youngEventMock.count.mockResolvedValue(1);
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
+
+    const event = (await listYoungEvents({})).data[0];
+    expect(event).toMatchObject({
+      activityLevel: "院级",
+      module: "美",
+      form: "现场参与",
+      grades: "1,2",
+      sponsor: "校团委",
+      contactName: "张三",
+      contactTel: "13800000000",
+      duration: 2.5,
+      serviceHour: 1.5,
+      sumHours: 76,
+      sumPersons: 27,
+      partakeNum: 30,
+      favCount: 4,
+      limitNum: 50,
+      createdAtUpstream: "2026-08-08T23:53:40+08:00",
+    });
+    expect(event?.places).toEqual([
+      {
+        placeInfo: "东区礼堂",
+        placeSt: "2026-08-20 14:00:00",
+        placeEt: "2026-08-20 16:00:00",
+      },
+    ]);
+    expect(event).not.toHaveProperty("registrationStatus");
+  });
+
+  it("narrows malformed places payloads to null", async () => {
+    youngEventMock.count.mockResolvedValue(1);
+    youngEventMock.findMany.mockResolvedValue([
+      { ...RECORD, places: ["not-an-object", { placeEt: "only-end" }, 7] },
+    ]);
+
+    await expect(
+      listYoungEvents({}).then((result) => result.data[0]?.places),
+    ).resolves.toBeNull();
+  });
+
+  it("filters by module and activity level", async () => {
+    youngEventMock.count.mockResolvedValue(0);
+    youngEventMock.findMany.mockResolvedValue([]);
+
+    await listYoungEvents({ module: "美", activityLevel: "院级" });
+
+    expect(youngEventMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ module: "美", activityLevel: "院级" }),
+      }),
+    );
+  });
+
+  it("sanitizes detail rich text and proxies its inline images", async () => {
+    youngEventMock.findUnique.mockResolvedValue({
+      ...RECORD,
+      rawJson: {},
+      description:
+        '<p onclick="alert(1)">介绍</p><img src="https://young.ustc.edu.cn/login/group1/M00/x.jpg"><script>alert(2)</script>',
+      participationNotes: "<p>请提前十分钟到场。</p>",
+    });
+
+    const event = await getYoungEvent("42");
+    expect(event?.description).toContain(
+      'src="/api/catalog/young-events/images/group1/M00/x.jpg"',
+    );
+    expect(event?.description).not.toContain("onclick");
+    expect(event?.description).not.toContain("script");
+    expect(event?.participationNotes).toBe("<p>请提前十分钟到场。</p>");
   });
 
   it("includes rawJson in detail results", async () => {

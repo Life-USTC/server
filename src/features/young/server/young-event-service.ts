@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { isRecord } from "@/lib/is-record";
 import {
   buildPaginatedResponse,
   normalizePagination,
@@ -12,12 +13,20 @@ import {
   formatShanghaiTimestamp,
   startOfShanghaiDay,
 } from "@/lib/time/shanghai-format";
+import { renderYoungEventHtml } from "./young-event-html";
 
 export type YoungEventTimeBasis = "activity" | "registration";
 
 export type YoungSourceFreshness = {
   status: "fresh" | "stale" | "unknown";
   lastSyncedAt: string | null;
+};
+
+/** One scheduled venue slot as recorded upstream (times are raw local text). */
+export type YoungEventPlace = {
+  placeInfo: string | null;
+  placeSt: string | null;
+  placeEt: string | null;
 };
 
 export type YoungEventSummary = {
@@ -28,7 +37,6 @@ export type YoungEventSummary = {
   organizer: string | null;
   organizerId: string | null;
   status: string | null;
-  registrationStatus: string | null;
   location: string | null;
   imageUrl: string | null;
   hours: number | null;
@@ -42,9 +50,30 @@ export type YoungEventSummary = {
   sourceMissing: boolean;
   lastSeenAt: string | null;
   createdAt: string | null;
+  activityLevel: string | null;
+  module: string | null;
+  form: string | null;
+  grades: string | null;
+  sponsor: string | null;
+  contactName: string | null;
+  contactTel: string | null;
+  duration: number | null;
+  serviceHour: number | null;
+  sumHours: number | null;
+  sumPersons: number | null;
+  partakeNum: number | null;
+  favCount: number | null;
+  limitNum: number | null;
+  createdAtUpstream: string | null;
+  auditedAt: string | null;
+  updatedAtUpstream: string | null;
+  places: YoungEventPlace[] | null;
 };
 
 export type YoungEventDetail = YoungEventSummary & {
+  /** Sanitized upstream HTML with inline images pointed at our own proxy. */
+  description: string | null;
+  participationNotes: string | null;
   rawJson: Prisma.JsonValue;
 };
 
@@ -52,6 +81,8 @@ export type YoungEventListInput = PaginationInput & {
   active?: boolean | null;
   dateUnknown?: boolean | null;
   category?: string | null;
+  module?: string | null;
+  activityLevel?: string | null;
   search?: string | null;
   organizerId?: string | null;
   dateFrom?: Date | string | null;
@@ -82,7 +113,6 @@ export const YOUNG_EVENT_SELECT = {
   organizer: true,
   organizerId: true,
   status: true,
-  registrationStatus: true,
   location: true,
   imageUrl: true,
   hours: true,
@@ -96,6 +126,24 @@ export const YOUNG_EVENT_SELECT = {
   sourceMissing: true,
   lastSeenAt: true,
   createdAt: true,
+  activityLevel: true,
+  module: true,
+  form: true,
+  grades: true,
+  sponsor: true,
+  contactName: true,
+  contactTel: true,
+  duration: true,
+  serviceHour: true,
+  sumHours: true,
+  sumPersons: true,
+  partakeNum: true,
+  favCount: true,
+  limitNum: true,
+  createdAtUpstream: true,
+  auditedAt: true,
+  updatedAtUpstream: true,
+  places: true,
 } satisfies Prisma.YoungEventSelect;
 
 type YoungEventRecord = Prisma.YoungEventGetPayload<{
@@ -117,6 +165,25 @@ export function youngEventImageUrl(youngId: string) {
   return `/api/catalog/young-events/${youngId}/image`;
 }
 
+/** The places column is upstream-shaped JSON, so narrow it before exposing it. */
+function toYoungEventPlaces(
+  value: Prisma.JsonValue | null,
+): YoungEventPlace[] | null {
+  if (!Array.isArray(value)) return null;
+  const places: YoungEventPlace[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const place = {
+      placeInfo: typeof item.placeInfo === "string" ? item.placeInfo : null,
+      placeSt: typeof item.placeSt === "string" ? item.placeSt : null,
+      placeEt: typeof item.placeEt === "string" ? item.placeEt : null,
+    };
+    if (place.placeInfo == null && place.placeSt == null) continue;
+    places.push(place);
+  }
+  return places.length > 0 ? places : null;
+}
+
 export function toYoungEventSummary(
   record: YoungEventRecord,
 ): YoungEventSummary {
@@ -128,7 +195,6 @@ export function toYoungEventSummary(
     organizer: record.organizer,
     organizerId: record.organizerId,
     status: record.status,
-    registrationStatus: record.registrationStatus,
     location: record.location,
     imageUrl: record.imageUrl ? youngEventImageUrl(record.youngId) : null,
     hours: record.hours,
@@ -142,6 +208,24 @@ export function toYoungEventSummary(
     sourceMissing: record.sourceMissing,
     lastSeenAt: toShanghaiIso(record.lastSeenAt),
     createdAt: toShanghaiIso(record.createdAt),
+    activityLevel: record.activityLevel,
+    module: record.module,
+    form: record.form,
+    grades: record.grades,
+    sponsor: record.sponsor,
+    contactName: record.contactName,
+    contactTel: record.contactTel,
+    duration: record.duration,
+    serviceHour: record.serviceHour,
+    sumHours: record.sumHours,
+    sumPersons: record.sumPersons,
+    partakeNum: record.partakeNum,
+    favCount: record.favCount,
+    limitNum: record.limitNum,
+    createdAtUpstream: toShanghaiIso(record.createdAtUpstream),
+    auditedAt: toShanghaiIso(record.auditedAt),
+    updatedAtUpstream: toShanghaiIso(record.updatedAtUpstream),
+    places: toYoungEventPlaces(record.places),
   };
 }
 
@@ -219,6 +303,10 @@ function buildEventWhere(input: YoungEventListInput) {
   if (input.active != null) where.isActive = input.active;
   const category = input.category?.trim();
   if (category) where.category = category;
+  const moduleFilter = input.module?.trim();
+  if (moduleFilter) where.module = moduleFilter;
+  const activityLevel = input.activityLevel?.trim();
+  if (activityLevel) where.activityLevel = activityLevel;
   const search = input.search?.trim();
   if (search) where.name = { contains: search, mode: "insensitive" };
   const organizerId = input.organizerId?.trim();
@@ -306,11 +394,26 @@ export async function getYoungEvent(
 ): Promise<YoungEventDetail | null> {
   const record = await prisma.youngEvent.findUnique({
     where: { youngId },
-    select: { ...YOUNG_EVENT_SELECT, rawJson: true },
+    select: {
+      ...YOUNG_EVENT_SELECT,
+      rawJson: true,
+      description: true,
+      participationNotes: true,
+    },
   });
   if (record == null) return null;
-  const { rawJson, ...summaryRecord } = record;
-  return { ...toYoungEventSummary(summaryRecord), rawJson };
+  const { rawJson, description, participationNotes, ...summaryRecord } = record;
+  return {
+    ...toYoungEventSummary(summaryRecord),
+    // The column holds the upstream HTML verbatim; sanitizing and image
+    // rewriting belong here, at the edge every interface shares.
+    description: description == null ? null : renderYoungEventHtml(description),
+    participationNotes:
+      participationNotes == null
+        ? null
+        : renderYoungEventHtml(participationNotes),
+    rawJson,
+  };
 }
 
 export async function listYoungEventCategories(): Promise<string[]> {

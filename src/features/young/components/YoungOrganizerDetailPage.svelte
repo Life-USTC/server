@@ -93,7 +93,7 @@ function pageHref(page: number) {
                         </Item.Description>
                         <Item.Footer class="flex-wrap justify-start">
                           <span>{event.category ?? youngCopy.category}</span>
-                          <span>{event.registrationStatus ?? event.status ?? "-"}</span>
+                          <span>{event.status ?? "-"}</span>
                           {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
                       </Item.Content>

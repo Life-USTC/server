@@ -39,7 +39,10 @@ vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
 }));
 
 import { YOUNG_EVENT_IMAGE_MAX_BYTES } from "@/features/young/server/young-event-image-service";
-import { getYoungEventImageRoute } from "@/lib/api/routes/young-event-routes";
+import {
+  getYoungEventImageByPathRoute,
+  getYoungEventImageRoute,
+} from "@/lib/api/routes/young-event-routes";
 
 const PIC_PATH = "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg";
 const R2_KEY = `young-events/images/${PIC_PATH}`;
@@ -463,5 +466,100 @@ describe("young event image route", () => {
       expect.objectContaining({ source: "young-event-image" }),
       failure,
     );
+  });
+});
+
+describe("young event image by-path route", () => {
+  const BY_PATH_URL = `https://life.test/api/catalog/young-events/images/${PIC_PATH}`;
+
+  it("serves R2-cached bytes for an arbitrary normalized image path", async () => {
+    mocks.bucket.head.mockResolvedValue({
+      size: 5,
+      etag: "r2-etag",
+      httpMetadata: { contentType: "image/jpeg" },
+    });
+    mocks.bucket.get.mockResolvedValue({
+      size: 5,
+      body: stream("bytes"),
+      httpMetadata: { contentType: "image/jpeg" },
+    });
+
+    const response = await getYoungEventImageByPathRoute(
+      new Request(BY_PATH_URL),
+      { path: PIC_PATH },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/jpeg");
+    expect(response.headers.get("Cache-Control")).toContain("immutable");
+    await expect(response.text()).resolves.toBe("bytes");
+    expect(mocks.bucket.head).toHaveBeenCalledWith(R2_KEY);
+    // Image bytes are event-independent, so no event lookup happens.
+    expect(mocks.youngEventFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("fetches and caches the origin on a miss", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(
+      new Response(stream("origin-bytes"), {
+        status: 200,
+        headers: { "Content-Type": "image/jpeg" },
+      }),
+    );
+    mocks.bucket.put.mockResolvedValue(undefined);
+
+    const response = await getYoungEventImageByPathRoute(
+      new Request(BY_PATH_URL),
+      { path: PIC_PATH },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.fetchMock).toHaveBeenCalledWith(ORIGIN_URL);
+    expect(mocks.bucket.put).toHaveBeenCalledWith(
+      R2_KEY,
+      expect.any(ArrayBuffer),
+      { httpMetadata: { contentType: "image/jpeg" } },
+    );
+  });
+
+  it.each(["../secret.jpg", "group1/../../secret", "group1\\M00\\x.jpg", ""])(
+    "rejects the unsafe path %j without touching R2",
+    async (path) => {
+      const response = await getYoungEventImageByPathRoute(
+        new Request(BY_PATH_URL),
+        { path },
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Cache-Control")).toBe("public, max-age=300");
+      expect(mocks.bucket.head).not.toHaveBeenCalled();
+      expect(mocks.fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("responds 503 when the bucket binding is missing", async () => {
+    mocks.state.bucketAvailable = false;
+
+    const response = await getYoungEventImageByPathRoute(
+      new Request(BY_PATH_URL),
+      { path: PIC_PATH },
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("60");
+  });
+
+  it("responds 502 when the origin fails", async () => {
+    mocks.bucket.head.mockResolvedValue(null);
+    mocks.fetchMock.mockResolvedValue(new Response("nope", { status: 404 }));
+
+    const response = await getYoungEventImageByPathRoute(
+      new Request(BY_PATH_URL),
+      { path: PIC_PATH },
+    );
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=60");
+    expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
 });

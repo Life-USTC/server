@@ -79,22 +79,21 @@ function imageResponseHeaders(etag?: string) {
 }
 
 /**
- * Lazily cache a poster image in R2 and serve it from our own origin.
- * Returns null when the event is unknown, has no image, or stores a value
- * that is not a safe relative pic path.
+ * Lazily cache an upstream image in R2 and serve it from our own origin.
+ * Returns null when the path is not a safe relative pic path.
+ *
+ * Image bytes are addressed by their upstream path, not by the event that
+ * happens to embed them, so poster images and rich-text inline images share
+ * one R2 object and one cache entry.
  */
-export async function getYoungEventImageResponse(input: {
+export async function getYoungEventImageByPathResponse(input: {
   request: Request;
-  youngId: string;
+  imagePath: string;
+  /** Only used to correlate log lines back to the event that embedded it. */
+  youngId?: string;
   defer?: (promise: Promise<unknown>) => void;
 }): Promise<Response | null> {
-  const record = await prisma.youngEvent.findUnique({
-    where: { youngId: input.youngId },
-    select: { imageUrl: true },
-  });
-  const imagePath = record?.imageUrl
-    ? normalizeYoungEventImagePath(record.imageUrl)
-    : null;
+  const imagePath = normalizeYoungEventImagePath(input.imagePath);
   if (!imagePath) return null;
 
   const bucket = getCloudflareR2PublicationsBucket();
@@ -194,7 +193,7 @@ export async function getYoungEventImageResponse(input: {
         logAppEvent(
           "error",
           "Failed to cache young event image in R2",
-          { source: "young-event-image", youngId: input.youngId },
+          { source: "young-event-image", imagePath, youngId: input.youngId },
           error,
         );
       }),
@@ -207,4 +206,26 @@ export async function getYoungEventImageResponse(input: {
   headers.set("Content-Type", contentType);
   headers.set("Content-Length", String(body.byteLength));
   return new Response(body, { headers });
+}
+
+/**
+ * Serve the poster image of one event. Returns null when the event is unknown,
+ * has no image, or stores a value that is not a safe relative pic path.
+ */
+export async function getYoungEventImageResponse(input: {
+  request: Request;
+  youngId: string;
+  defer?: (promise: Promise<unknown>) => void;
+}): Promise<Response | null> {
+  const record = await prisma.youngEvent.findUnique({
+    where: { youngId: input.youngId },
+    select: { imageUrl: true },
+  });
+  if (!record?.imageUrl) return null;
+  return getYoungEventImageByPathResponse({
+    request: input.request,
+    imagePath: record.imageUrl,
+    youngId: input.youngId,
+    defer: input.defer,
+  });
 }

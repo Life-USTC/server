@@ -1,4 +1,5 @@
 import {
+  getYoungEventImageByPathResponse,
   getYoungEventImageResponse,
   requestMatchesEtag,
   YoungEventImageOriginError,
@@ -51,6 +52,8 @@ export async function getYoungEventsRoute(request: Request) {
     const result = await listYoungEvents({
       active: query.active,
       category: query.category,
+      module: query.module,
+      activityLevel: query.activityLevel,
       search: query.search,
       organizerId: query.organizerId,
       dateFrom: query.dateFrom,
@@ -189,6 +192,51 @@ async function writeYoungEventImageColoCache(
     defer(logged);
   } else {
     await logged;
+  }
+}
+
+/**
+ * Serve a rich-text inline image by its upstream young.ustc.edu.cn pic path.
+ * Unlike the per-event poster route these bytes are event-independent, so the
+ * per-colo cache is skipped and R2 alone deduplicates them.
+ */
+export async function getYoungEventImageByPathRoute(
+  request: Request,
+  params: { path: string },
+  options: { defer?: (promise: Promise<unknown>) => void } = {},
+) {
+  try {
+    const result = await getYoungEventImageByPathResponse({
+      request,
+      imagePath: params.path,
+      defer: options.defer,
+    });
+    if (!result) {
+      const response = notFound("Young event image not found");
+      response.headers.set("Cache-Control", "public, max-age=300");
+      return response;
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof YoungEventImageStorageUnavailableError) {
+      const response = handleRouteError(
+        "Young event image storage unavailable",
+        error,
+        503,
+      );
+      response.headers.set("Retry-After", "60");
+      return response;
+    }
+    if (error instanceof YoungEventImageOriginError) {
+      const response = handleRouteError(
+        "Failed to fetch young event image from origin",
+        error,
+        502,
+      );
+      response.headers.set("Cache-Control", "public, max-age=60");
+      return response;
+    }
+    return handleRouteError("Failed to fetch young event image", error);
   }
 }
 
