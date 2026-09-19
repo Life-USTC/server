@@ -28,6 +28,8 @@ export type YoungEventsPageFilters = {
   timeBasis?: YoungEventTimeBasis;
   active?: boolean;
   category?: string;
+  module?: string;
+  activityLevel?: string;
   search?: string;
   organizerId?: string;
 };
@@ -51,6 +53,8 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
     timeBasis: parseTimeBasis(url.searchParams.get("timeBasis")),
     active: parseActiveParam(url.searchParams.get("active")),
     category: optionalValue(url.searchParams.get("category")),
+    module: optionalValue(url.searchParams.get("module")),
+    activityLevel: optionalValue(url.searchParams.get("activityLevel")),
     search: optionalValue(url.searchParams.get("search")),
     organizerId: optionalValue(url.searchParams.get("organizerId")),
   };
@@ -60,6 +64,8 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
     listYoungEvents({
       active: filters.active,
       category: filters.category,
+      module: filters.module,
+      activityLevel: filters.activityLevel,
       search: filters.search,
       dateUnknown: filters.dateUnknown,
       timeBasis: filters.timeBasis,

@@ -47,6 +47,11 @@ let { categories, copy, data, filters, organizers, pagination, source }: Props =
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
+// Fixed upstream enumerations. Values outside these lists still render as
+// badges; they are simply not offered as filters.
+const MODULE_OPTIONS = ["德", "智", "体", "美", "劳"];
+const ACTIVITY_LEVEL_OPTIONS = ["班级", "院级", "校级", "省级", "国家级"];
+
 function formatDateTime(value: string | null) {
   return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
@@ -163,6 +168,36 @@ const searchSummary = $derived(
             {/each}
           </NativeSelect.Root>
         </div>
+        <div class="grid gap-1.5">
+          <label class="text-sm font-medium" for="young-event-module">
+            {youngCopy.module}
+          </label>
+          <NativeSelect.Root
+            id="young-event-module"
+            name="module"
+            value={filters.module ?? ""}
+          >
+            <NativeSelect.Option value="">{youngCopy.allModules}</NativeSelect.Option>
+            {#each MODULE_OPTIONS as moduleOption (moduleOption)}
+              <NativeSelect.Option value={moduleOption}>{moduleOption}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </div>
+        <div class="grid gap-1.5">
+          <label class="text-sm font-medium" for="young-event-activity-level">
+            {youngCopy.activityLevel}
+          </label>
+          <NativeSelect.Root
+            id="young-event-activity-level"
+            name="activityLevel"
+            value={filters.activityLevel ?? ""}
+          >
+            <NativeSelect.Option value="">{youngCopy.allActivityLevels}</NativeSelect.Option>
+            {#each ACTIVITY_LEVEL_OPTIONS as levelOption (levelOption)}
+              <NativeSelect.Option value={levelOption}>{levelOption}</NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </div>
         <Button type="submit">{commonLabels.search}</Button>
         <Button href="/catalog/young-events" variant="outline">
           {commonLabels.clear}
@@ -194,7 +229,9 @@ const searchSummary = $derived(
                         </Item.Actions>
                         <Item.Footer class="flex-wrap justify-start">
                           <span>{event.category ?? "-"}</span>
-                          <span>{event.registrationStatus ?? event.status ?? "-"}</span>
+                          <span>{event.module ?? "-"}</span>
+                          <span>{event.activityLevel ?? "-"}</span>
+                          <span>{event.status ?? "-"}</span>
                           {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
                       </a>
@@ -213,10 +250,12 @@ const searchSummary = $derived(
                 <Table.Row>
                   <Table.Head>{youngCopy.eventName}</Table.Head>
                   <Table.Head>{youngCopy.category}</Table.Head>
+                  <Table.Head>{youngCopy.module}</Table.Head>
+                  <Table.Head>{youngCopy.activityLevel}</Table.Head>
                   <Table.Head>{youngCopy.eventTime}</Table.Head>
                   <Table.Head>{youngCopy.signupWindow}</Table.Head>
                   <Table.Head>{youngCopy.capacity}</Table.Head>
-                  <Table.Head>{youngCopy.registrationStatus}</Table.Head>
+                  <Table.Head>{youngCopy.status}</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -228,6 +267,8 @@ const searchSummary = $derived(
                       </CatalogTableLink>
                     </Table.Cell>
                     <Table.Cell>{event.category ?? "-"}</Table.Cell>
+                    <Table.Cell>{event.module ?? "-"}</Table.Cell>
+                    <Table.Cell class="whitespace-nowrap">{event.activityLevel ?? "-"}</Table.Cell>
                     <Table.Cell class="whitespace-nowrap">
                       {formatDateTime(event.startAt)}
                     </Table.Cell>
@@ -238,7 +279,7 @@ const searchSummary = $derived(
                       {event.appliedCount ?? 0}{event.capacity != null ? ` / ${event.capacity}` : ""}
                     </Table.Cell>
                     <Table.Cell>
-                      {event.registrationStatus ?? event.status ?? "-"}
+                      {event.status ?? "-"}
                       {#if event.sourceMissing}
                         <div class="text-muted-foreground text-xs">{youngCopy.sourceMissing}</div>
                       {/if}

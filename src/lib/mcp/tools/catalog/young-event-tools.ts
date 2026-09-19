@@ -18,6 +18,8 @@ import {
 async function listYoungEventsTool({
   active,
   category,
+  module,
+  activityLevel,
   search,
   organizerId,
   dateFrom,
@@ -31,6 +33,8 @@ async function listYoungEventsTool({
   active?: boolean;
   dateUnknown?: boolean;
   category?: string;
+  module?: string;
+  activityLevel?: string;
   search?: string;
   organizerId?: string;
   dateFrom?: string;
@@ -47,6 +51,8 @@ async function listYoungEventsTool({
     const result = await listYoungEvents({
       active,
       category,
+      module,
+      activityLevel,
       search,
       organizerId,
       dateFrom,
@@ -132,7 +138,7 @@ export function registerYoungEventTools(server: McpServer) {
     "catalog_young_event_list",
     {
       description:
-        "List second-classroom (第二课堂) signup events from young.ustc.edu.cn: name, category, signup window, event time, capacity, applied count, and status. Sign-up itself happens on young.ustc.edu.cn.",
+        "List second-classroom (第二课堂) signup events from young.ustc.edu.cn: name, category, module, activity level, participation form, signup window, event time, capacity, applied count, and status. Filter by module (德/智/体/美/劳) or activity level (院级/校级/…). Sign-up itself happens on young.ustc.edu.cn.",
       inputSchema: {
         active: z
           .boolean()
@@ -145,6 +151,22 @@ export function registerYoungEventTools(server: McpServer) {
           .max(100)
           .optional()
           .describe("Exact category filter, e.g. 单次项目 or 系列项目."),
+        module: z
+          .string()
+          .trim()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe(
+            "Exact second-classroom module filter, e.g. 德/智/体/美/劳.",
+          ),
+        activityLevel: z
+          .string()
+          .trim()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe("Exact activity-level filter, e.g. 院级 or 校级."),
         search: z
           .string()
           .trim()
@@ -189,7 +211,7 @@ export function registerYoungEventTools(server: McpServer) {
     "catalog_young_event_get",
     {
       description:
-        "Fetch one second-classroom (第二课堂) signup event by its young.ustc.edu.cn identifier. Full mode includes the raw upstream payload.",
+        "Fetch one second-classroom (第二课堂) signup event by its young.ustc.edu.cn identifier, including the sanitized description, participation notes and per-slot venues. Full mode also includes the raw upstream payload.",
       inputSchema: {
         youngId: z.string().trim().min(1),
         mode: mcpModeInputSchema,

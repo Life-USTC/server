@@ -129,6 +129,13 @@ export const DEV_SEED = {
     organizer: s.youngEvent.organizer,
     location: s.youngEvent.location,
     imageUrl: s.youngEvent.imageUrl,
+    activityLevel: s.youngEvent.activityLevel,
+    module: s.youngEvent.module,
+    form: s.youngEvent.form,
+    sponsor: s.youngEvent.sponsor,
+    contactName: s.youngEvent.contactName,
+    contactTel: s.youngEvent.contactTel,
+    placeInfo: s.youngEvent.placeInfo,
   },
 } as const;
 

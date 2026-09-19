@@ -2290,6 +2290,28 @@
           },
           {
             "in": "query",
+            "name": "module",
+            "schema": {
+              "description": "Exact second-classroom module filter, e.g. 德/智/体/美/劳.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Exact second-classroom module filter, e.g. 德/智/体/美/劳."
+          },
+          {
+            "in": "query",
+            "name": "activityLevel",
+            "schema": {
+              "description": "Exact activity-level filter, e.g. 院级 or 校级.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "Exact activity-level filter, e.g. 院级 or 校级."
+          },
+          {
+            "in": "query",
             "name": "search",
             "schema": {
               "description": "Case-insensitive substring match on the event name.",
@@ -9646,6 +9668,70 @@
         }
       }
     },
+    "/api/catalog/young-events/images/{...path}": {
+      "get": {
+        "operationId": "get-api-catalog-young-events-images-...path",
+        "summary": "Serve a cached rich-text inline image for second-classroom (Young) events by",
+        "tags": [
+          "catalog.young-events"
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Response 304"
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/community/comments/{id}/reactions": {
       "post": {
         "operationId": "addCommentReaction",
@@ -15613,6 +15699,7 @@
                 },
                 "registrationStatus": {
                   "nullable": true,
+                  "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
                   "type": "string"
                 },
                 "location": {
@@ -15680,6 +15767,115 @@
                   "type": "string",
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "activityLevel": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "module": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "form": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "grades": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "sponsor": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "contactName": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "contactTel": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "duration": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "serviceHour": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "sumHours": {
+                  "nullable": true,
+                  "type": "number"
+                },
+                "sumPersons": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "partakeNum": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "favCount": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "limitNum": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "createdAtUpstream": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "auditedAt": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAtUpstream": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "places": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "placeInfo": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "placeSt": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "placeEt": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "placeInfo",
+                      "placeSt",
+                      "placeEt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -15703,7 +15899,25 @@
                 "isActive",
                 "sourceMissing",
                 "lastSeenAt",
-                "createdAt"
+                "createdAt",
+                "activityLevel",
+                "module",
+                "form",
+                "grades",
+                "sponsor",
+                "contactName",
+                "contactTel",
+                "duration",
+                "serviceHour",
+                "sumHours",
+                "sumPersons",
+                "partakeNum",
+                "favCount",
+                "limitNum",
+                "createdAtUpstream",
+                "auditedAt",
+                "updatedAtUpstream",
+                "places"
               ],
               "additionalProperties": false
             }
@@ -23288,6 +23502,7 @@
                     },
                     "registrationStatus": {
                       "nullable": true,
+                      "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
                       "type": "string"
                     },
                     "location": {
@@ -23355,6 +23570,115 @@
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "activityLevel": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "module": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "form": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "grades": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sponsor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "contactName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "contactTel": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "duration": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "serviceHour": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "sumHours": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "sumPersons": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "partakeNum": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "favCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "limitNum": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "createdAtUpstream": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "auditedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "updatedAtUpstream": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "places": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "placeInfo": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "placeSt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "placeEt": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "placeInfo",
+                          "placeSt",
+                          "placeEt"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -23378,7 +23702,25 @@
                     "isActive",
                     "sourceMissing",
                     "lastSeenAt",
-                    "createdAt"
+                    "createdAt",
+                    "activityLevel",
+                    "module",
+                    "form",
+                    "grades",
+                    "sponsor",
+                    "contactName",
+                    "contactTel",
+                    "duration",
+                    "serviceHour",
+                    "sumHours",
+                    "sumPersons",
+                    "partakeNum",
+                    "favCount",
+                    "limitNum",
+                    "createdAtUpstream",
+                    "auditedAt",
+                    "updatedAtUpstream",
+                    "places"
                   ],
                   "additionalProperties": false
                 }
@@ -28603,6 +28945,7 @@
           },
           "registrationStatus": {
             "nullable": true,
+            "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
             "type": "string"
           },
           "location": {
@@ -28671,6 +29014,123 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "activityLevel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "module": {
+            "nullable": true,
+            "type": "string"
+          },
+          "form": {
+            "nullable": true,
+            "type": "string"
+          },
+          "grades": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sponsor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "contactName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "contactTel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "duration": {
+            "nullable": true,
+            "type": "number"
+          },
+          "serviceHour": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sumHours": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sumPersons": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "partakeNum": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "favCount": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limitNum": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAtUpstream": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "auditedAt": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAtUpstream": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "places": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "placeInfo": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "placeSt": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "placeEt": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "placeInfo",
+                "placeSt",
+                "placeEt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "participationNotes": {
+            "nullable": true,
+            "type": "string"
+          },
           "rawJson": {}
         },
         "required": [
@@ -28695,6 +29155,26 @@
           "sourceMissing",
           "lastSeenAt",
           "createdAt",
+          "activityLevel",
+          "module",
+          "form",
+          "grades",
+          "sponsor",
+          "contactName",
+          "contactTel",
+          "duration",
+          "serviceHour",
+          "sumHours",
+          "sumPersons",
+          "partakeNum",
+          "favCount",
+          "limitNum",
+          "createdAtUpstream",
+          "auditedAt",
+          "updatedAtUpstream",
+          "places",
+          "description",
+          "participationNotes",
           "rawJson"
         ],
         "additionalProperties": false
