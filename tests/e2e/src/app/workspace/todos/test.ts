@@ -214,10 +214,13 @@ test.describe("仪表盘待办", () => {
     await expect(
       completedDetail.locator('[data-slot="dialog-title"]'),
     ).toHaveClass(/line-through/);
+    // The single-column popup moved the priority badge out of the dialog
+    // description and into the facts table; the severity variant is unchanged.
     await expect(
-      completedDetail.locator(
-        '[data-slot="dialog-description"] [data-slot="badge"]',
-      ),
+      completedDetail
+        .getByTestId("todo-detail-summary")
+        .locator('[data-slot="badge"]')
+        .first(),
     ).toHaveClass(/text-destructive/);
     await page.keyboard.press("Escape");
 
