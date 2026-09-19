@@ -86,6 +86,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@better-auth/cimd@1.7.4": "patches/@better-auth%2Fcimd@1.7.4.patch",
+  },
   "overrides": {
     "@better-auth/core": "1.7.2",
     "@better-auth/oauth-provider": "1.7.2",
