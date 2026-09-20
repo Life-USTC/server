@@ -30,6 +30,14 @@ describe("OAuth 档案映射", () => {
       image: undefined,
       emailVerified: false,
     });
+    expect(consumeStagedSocialVerifiedEmail("oidc", "435")).toEqual({
+      provider: "oidc",
+      accountId: "435",
+      email: null,
+      emailVerified: false,
+      name: "USTC User 435",
+      image: null,
+    });
   });
 
   it("忽略 passport fake_email 占位邮箱并回退到本地邮箱", () => {
@@ -116,7 +124,14 @@ describe("OAuth 档案映射", () => {
       image: undefined,
       emailVerified: false,
     });
-    expect(consumeStagedSocialVerifiedEmail("github", "octocat")).toBeNull();
+    expect(consumeStagedSocialVerifiedEmail("github", "octocat")).toEqual({
+      provider: "github",
+      accountId: "octocat",
+      email: null,
+      emailVerified: false,
+      name: "octocat",
+      image: null,
+    });
   });
 
   it("仅在邮箱已验证时暂存 Google 邮箱", () => {
@@ -150,8 +165,13 @@ describe("OAuth 档案映射", () => {
         email_verified: false,
       }).emailVerified,
     ).toBe(false);
-    expect(
-      consumeStagedSocialVerifiedEmail("google", "google-user"),
-    ).toBeNull();
+    expect(consumeStagedSocialVerifiedEmail("google", "google-user")).toEqual({
+      provider: "google",
+      accountId: "google-user",
+      email: null,
+      emailVerified: false,
+      name: null,
+      image: null,
+    });
   });
 });
