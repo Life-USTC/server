@@ -1,3 +1,10 @@
+## [1.120.2](https://github.com/Life-USTC/server/compare/v1.120.1...v1.120.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **cache:** make public SSR responses storable and give the Workers cache a working purge ([#1088](https://github.com/Life-USTC/server/issues/1088)) ([26bbed4](https://github.com/Life-USTC/server/commit/26bbed4a59117e8b086288528a415cd013a9c71b))
+
 ## [1.120.1](https://github.com/Life-USTC/server/compare/v1.120.0...v1.120.1) (2026-09-20)
 
 
