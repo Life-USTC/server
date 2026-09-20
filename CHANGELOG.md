@@ -1,3 +1,10 @@
+# [1.119.0](https://github.com/Life-USTC/server/compare/v1.118.0...v1.119.0) (2026-09-20)
+
+
+### Features
+
+* **young:** expose the full second-classroom event record ([#1086](https://github.com/Life-USTC/server/issues/1086)) ([915c978](https://github.com/Life-USTC/server/commit/915c9783e0b551c9f16124229119ccc9a4b01e69)), closes [hi#value](https://github.com/hi/issues/value)
+
 # [1.118.0](https://github.com/Life-USTC/server/compare/v1.117.0...v1.118.0) (2026-09-20)
 
 
