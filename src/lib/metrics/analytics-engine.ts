@@ -212,6 +212,14 @@ type DatabaseEventAnalyticsInput = {
   event: "connection_error" | "pool_error";
 };
 
+export type ScheduledTaskAnalyticsInput = {
+  /** Safe error class name; omit for successful invocations. */
+  errorName?: string;
+  event: "error" | "finish" | "unknown";
+  ioObservedDurationMs: number;
+  task: string;
+};
+
 export type WorkspaceOverviewStage =
   | "counts"
   | "due_todo_count"
@@ -401,6 +409,20 @@ const AUDIT_EVENTS = new Set(["error", "success"]);
 const QUEUE_NAMES = new Set(["audit", "calendar", "unknown"]);
 const QUEUE_MESSAGE_TYPES = new Set(["audit-log.write.v1", "unknown"]);
 const QUEUE_OUTCOMES = new Set(["error", "partial", "retry", "success"]);
+const SCHEDULED_EVENTS = new Set(["error", "finish", "unknown"]);
+/**
+ * The cron-to-task mapping lives in the Worker entrypoint; several tasks share
+ * a schedule, so the cron expression alone cannot identify a failing task.
+ * Keep this list aligned with `ScheduledTask` in worker-entrypoint-observability.
+ */
+const SCHEDULED_TASKS = new Set([
+  "auth-and-audit-retention",
+  "auth-record-cleanup",
+  "upload-pending-cleanup",
+  "weather-refresh-ustc-gaoxin",
+  "weather-refresh-ustc-main",
+  "young-notifications",
+]);
 const PAGE_EVENTS = new Set(["error", "finish"]);
 const PAGE_LOCALES = new Set(APP_LOCALES);
 const PAGE_AUTH_MODES = new Set(["anonymous", "authenticated"]);
@@ -1058,6 +1080,27 @@ export function writeQueueBatchAnalytics(input: QueueBatchAnalyticsInput) {
       boundedCount(input.maxAgeMs),
       boundedCount(input.maxAttempts),
     ],
+  });
+}
+
+/**
+ * One data point per scheduled (cron) invocation outcome. The task name is
+ * recorded as the index so a failing cron task is identifiable without joining
+ * logs on traceId, and the error class is the only failure detail retained.
+ */
+export function writeScheduledTaskAnalytics(
+  input: ScheduledTaskAnalyticsInput,
+) {
+  const task = finiteEnum(input.task, SCHEDULED_TASKS);
+  writeAnalyticsDataPoint({
+    indexes: [`scheduled:${task}`],
+    blobs: [
+      "scheduled_task_v1",
+      finiteEnum(input.event, SCHEDULED_EVENTS),
+      task,
+      input.errorName === undefined ? "none" : boundedValue(input.errorName),
+    ],
+    doubles: [finiteNumber(input.ioObservedDurationMs)],
   });
 }
 

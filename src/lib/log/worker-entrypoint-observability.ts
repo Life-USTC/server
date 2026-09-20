@@ -3,7 +3,10 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs } from "@/lib/log/observability-clock";
 import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
-import { writeWorkerRequestAnalytics } from "@/lib/metrics/analytics-engine";
+import {
+  writeScheduledTaskAnalytics,
+  writeWorkerRequestAnalytics,
+} from "@/lib/metrics/analytics-engine";
 
 export const INTERNAL_REQUEST_ID_HEADER = "x-life-ustc-request-id";
 const REQUEST_ID_PATTERN =
@@ -376,10 +379,41 @@ export function logWorkerDeadLetterMessage(input: {
   });
 }
 
-type ScheduledTask =
+/**
+ * Every task the Worker `scheduled` handler dispatches. Crons are shared
+ * between tasks, so the cron expression is not an identifier — the task name
+ * is what makes a failing scheduled invocation attributable.
+ */
+export type ScheduledTask =
   | "auth-and-audit-retention"
   | "auth-record-cleanup"
-  | "upload-pending-cleanup";
+  | "upload-pending-cleanup"
+  | "weather-refresh-ustc-gaoxin"
+  | "weather-refresh-ustc-main"
+  | "young-notifications";
+
+/** A getter on a foreign error object must not replace the failure it names. */
+function safeScheduledErrorName(error: unknown) {
+  try {
+    return getSafeErrorName(error);
+  } catch {
+    return "UnknownError";
+  }
+}
+
+/** Telemetry must never replace or mask the scheduled failure it describes. */
+function recordScheduledTaskAnalytics(input: {
+  errorName?: string;
+  event: "error" | "finish" | "unknown";
+  ioObservedDurationMs: number;
+  task: string;
+}) {
+  try {
+    writeScheduledTaskAnalytics(input);
+  } catch {
+    // Observability must never change scheduled task behaviour.
+  }
+}
 
 export function logScheduledTaskFinish(
   task: ScheduledTask,
@@ -394,6 +428,11 @@ export function logScheduledTaskFinish(
     source: "worker-entrypoint",
     task,
   });
+  recordScheduledTaskAnalytics({
+    event: "finish",
+    ioObservedDurationMs: ioObservedDurationMs ?? 0,
+    task,
+  });
 }
 
 export function logScheduledTaskError(
@@ -401,10 +440,15 @@ export function logScheduledTaskError(
   ioObservedDurationMs: number,
   error: unknown,
 ) {
+  // Task name plus error class only: a scheduled failure must be attributable
+  // without a manual traceId join, and without retaining any message, payload,
+  // or user identifier.
+  const errorName = safeScheduledErrorName(error);
   logAppEvent(
     "error",
     "scheduled.task.error",
     {
+      errorName,
       event: "scheduled.task.error",
       ioObservedDurationMs,
       outcome: "error",
@@ -413,6 +457,12 @@ export function logScheduledTaskError(
     },
     error,
   );
+  recordScheduledTaskAnalytics({
+    errorName,
+    event: "error",
+    ioObservedDurationMs,
+    task,
+  });
 }
 
 export function logUnknownScheduledTask(ioObservedDurationMs?: number) {
@@ -421,5 +471,10 @@ export function logUnknownScheduledTask(ioObservedDurationMs?: number) {
     ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
     outcome: "unknown",
     source: "worker-entrypoint",
+  });
+  recordScheduledTaskAnalytics({
+    event: "unknown",
+    ioObservedDurationMs: ioObservedDurationMs ?? 0,
+    task: "unknown",
   });
 }

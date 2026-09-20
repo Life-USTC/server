@@ -1,8 +1,13 @@
 import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { logAppEventMock, writeWorkerRequestAnalyticsMock } = vi.hoisted(() => ({
+const {
+  logAppEventMock,
+  writeScheduledTaskAnalyticsMock,
+  writeWorkerRequestAnalyticsMock,
+} = vi.hoisted(() => ({
   logAppEventMock: vi.fn(),
+  writeScheduledTaskAnalyticsMock: vi.fn(),
   writeWorkerRequestAnalyticsMock: vi.fn(),
 }));
 
@@ -10,6 +15,7 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
 }));
 vi.mock("@/lib/metrics/analytics-engine", () => ({
+  writeScheduledTaskAnalytics: writeScheduledTaskAnalyticsMock,
   writeWorkerRequestAnalytics: writeWorkerRequestAnalyticsMock,
 }));
 
@@ -35,6 +41,7 @@ import {
 describe("worker entrypoint observability", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    writeScheduledTaskAnalyticsMock.mockReset();
     writeWorkerRequestAnalyticsMock.mockReset();
     vi.unstubAllEnvs();
     vi.useRealTimers();
@@ -609,5 +616,118 @@ describe("worker entrypoint observability", () => {
         source: "worker-entrypoint",
       },
     );
+  });
+
+  it("identifies a failing cron task by name and error class", () => {
+    class WeatherUpstreamError extends Error {}
+    const error = new WeatherUpstreamError("amap key 12345 rejected");
+
+    logScheduledTaskError("weather-refresh-ustc-main", 56, error);
+
+    // Several tasks share a cron expression, so the cron alone cannot name the
+    // failing task. Task plus error class must be on the event itself, not
+    // recoverable only by joining logs on traceId.
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "scheduled.task.error",
+      {
+        errorName: "WeatherUpstreamError",
+        event: "scheduled.task.error",
+        ioObservedDurationMs: 56,
+        outcome: "error",
+        source: "worker-entrypoint",
+        task: "weather-refresh-ustc-main",
+      },
+      error,
+    );
+    expect(writeScheduledTaskAnalyticsMock).toHaveBeenCalledWith({
+      errorName: "WeatherUpstreamError",
+      event: "error",
+      ioObservedDurationMs: 56,
+      task: "weather-refresh-ustc-main",
+    });
+
+    // The message may carry secrets or user data; only the class name travels.
+    const [, , context] = logAppEventMock.mock.calls[0] as [
+      string,
+      string,
+      Record<string, unknown>,
+    ];
+    expect(JSON.stringify(context)).not.toContain("amap key 12345");
+    expect(
+      JSON.stringify(writeScheduledTaskAnalyticsMock.mock.calls),
+    ).not.toContain("amap key 12345");
+  });
+
+  it("records every scheduled task name the worker dispatches", () => {
+    const tasks = [
+      "auth-and-audit-retention",
+      "auth-record-cleanup",
+      "upload-pending-cleanup",
+      "weather-refresh-ustc-gaoxin",
+      "weather-refresh-ustc-main",
+      "young-notifications",
+    ] as const;
+
+    for (const task of tasks) {
+      logScheduledTaskError(task, 12, new TypeError("boom"));
+    }
+
+    expect(
+      writeScheduledTaskAnalyticsMock.mock.calls.map(
+        (call) => (call[0] as { task: string }).task,
+      ),
+    ).toEqual([...tasks]);
+  });
+
+  it("reports an unusable error object without throwing", () => {
+    const hostile = {
+      get name(): string {
+        throw new Error("nope");
+      },
+    };
+
+    expect(() =>
+      logScheduledTaskError("young-notifications", 7, hostile),
+    ).not.toThrow();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "scheduled.task.error",
+      expect.objectContaining({
+        errorName: "UnknownError",
+        task: "young-notifications",
+      }),
+      hostile,
+    );
+  });
+
+  it("never lets scheduled analytics replace the failure it describes", () => {
+    writeScheduledTaskAnalyticsMock.mockImplementation(() => {
+      throw new Error("analytics binding unavailable");
+    });
+
+    expect(() =>
+      logScheduledTaskError("upload-pending-cleanup", 3, new Error("original")),
+    ).not.toThrow();
+    expect(() =>
+      logScheduledTaskFinish("upload-pending-cleanup", { completed: 1 }, 3),
+    ).not.toThrow();
+    expect(() => logUnknownScheduledTask(3)).not.toThrow();
+  });
+
+  it("records successful and unattributed scheduled invocations", () => {
+    logScheduledTaskFinish("young-notifications", { sent: 3 }, 21);
+    logUnknownScheduledTask(9);
+
+    expect(writeScheduledTaskAnalyticsMock).toHaveBeenNthCalledWith(1, {
+      event: "finish",
+      ioObservedDurationMs: 21,
+      task: "young-notifications",
+    });
+    expect(writeScheduledTaskAnalyticsMock).toHaveBeenNthCalledWith(2, {
+      event: "unknown",
+      ioObservedDurationMs: 9,
+      task: "unknown",
+    });
   });
 });
