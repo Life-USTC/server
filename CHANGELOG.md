@@ -1,3 +1,10 @@
+## [1.120.1](https://github.com/Life-USTC/server/compare/v1.120.0...v1.120.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* bound publication ingestion batch bodies and make scheduled task failures attributable ([#1089](https://github.com/Life-USTC/server/issues/1089)) ([253b87e](https://github.com/Life-USTC/server/commit/253b87e2126628002a5a41f77389c956ef6a6b12))
+
 # [1.120.0](https://github.com/Life-USTC/server/compare/v1.119.0...v1.120.0) (2026-09-20)
 
 
