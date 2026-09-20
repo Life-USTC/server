@@ -9707,12 +9707,25 @@
         }
       }
     },
-    "/api/catalog/young-events/images/{...path}": {
+    "/api/catalog/young-events/images/{path}": {
       "get": {
-        "operationId": "get-api-catalog-young-events-images-...path",
+        "operationId": "get-api-catalog-young-events-images-path",
         "summary": "Serve a cached rich-text inline image for second-classroom (Young) events by",
         "tags": [
           "catalog.young-events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn image path, e.g. `group1/M00/00/00/example.png`. May contain slashes."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn image path, e.g. `group1/M00/00/00/example.png`. May contain slashes."
+          }
         ],
         "responses": {
           "200": {

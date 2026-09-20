@@ -25,6 +25,16 @@ export const youngEventYoungIdPathParamsSchema = z.object({
     .describe("Upstream young.ustc.edu.cn event identifier."),
 });
 
+export const youngEventImagePathParamsSchema = z.object({
+  path: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "Upstream young.ustc.edu.cn image path, e.g. `group1/M00/00/00/example.png`. May contain slashes.",
+    ),
+});
+
 export const youngOrganizerIdPathParamsSchema = z.object({
   organizerId: z
     .string()

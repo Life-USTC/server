@@ -6,6 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Serve a cached rich-text inline image for second-classroom (Young) events by
  * its upstream pic path.
+ * @pathParams youngEventImagePathParamsSchema
  * @response binary
  * @response 304
  * @response 404:openApiErrorSchema

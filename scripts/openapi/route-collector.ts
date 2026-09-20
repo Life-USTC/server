@@ -250,7 +250,13 @@ function routeFileToOpenApiPath(filePath: string): string {
   const relative = filePath
     .replace(/^.*src\/routes\//, "/")
     .replace(/\/\+server\.ts$/, "");
-  return relative.replace(/\[([^\]]+)\]/g, "{$1}");
+  // SvelteKit rest parameters (`[...path]`) and optional parameters
+  // (`[[lang]]`) must collapse to a plain OpenAPI template name. Emitting
+  // `{...path}` produces a path whose positional parameter matches no declared
+  // parameter, which oapi-codegen rejects outright:
+  //   "path '/x/{...path}' has 1 positional parameters, but spec has 0 declared"
+  // That breaks client generation in every consumer repo, so normalise here.
+  return relative.replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}");
 }
 
 function extractMethods(
