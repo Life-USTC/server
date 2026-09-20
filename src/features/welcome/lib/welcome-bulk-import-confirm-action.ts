@@ -16,8 +16,6 @@ export async function confirmWelcomeBulkImport(
       importFailedMessage: bulkCopy.importFailed,
       selectedSectionIds,
     });
-    input.setConfirmImportOpen(false);
-    input.setBulkImportOpen(false);
     resetWelcomeBulkImport(input);
     input.setImportMessage(
       input.formatCopy(input.getWelcomeCopy().importedSummary, {

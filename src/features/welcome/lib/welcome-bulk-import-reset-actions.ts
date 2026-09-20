@@ -7,4 +7,5 @@ export function resetWelcomeBulkImport(input: WelcomeBulkImportActionInput) {
   input.setMatchedSections([]);
   input.setUnmatchedCodes([]);
   input.setSelectedSectionIds([]);
+  input.setResultsVisible(false);
 }
