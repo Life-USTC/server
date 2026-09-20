@@ -1,3 +1,10 @@
+# [1.120.0](https://github.com/Life-USTC/server/compare/v1.119.0...v1.120.0) (2026-09-20)
+
+
+### Features
+
+* **publications:** add the source directory and multi-source list filters ([#1087](https://github.com/Life-USTC/server/issues/1087)) ([cc99e16](https://github.com/Life-USTC/server/commit/cc99e16216c3bece176b759dcc05bb8f06daa04e)), closes [#1069](https://github.com/Life-USTC/server/issues/1069)
+
 # [1.119.0](https://github.com/Life-USTC/server/compare/v1.118.0...v1.119.0) (2026-09-20)
 
 
