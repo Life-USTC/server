@@ -72,6 +72,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       exams: messages.workspace.nav.exams.title,
       links: messages.workspace.nav.links.title,
       news: messages.publications.title,
+      newsSources: messages.publications.sourcesTitle,
       todos: messages.workspace.nav.todos.title,
       transitMap: messages.metadata.pages.busMap,
       weather: messages.weather.title,

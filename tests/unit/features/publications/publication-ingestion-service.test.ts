@@ -449,6 +449,99 @@ async function sha256Text(value: string) {
   ).join("");
 }
 
+function payloadWithSource(
+  sourceOverrides: Record<string, unknown>,
+  batchId: string,
+) {
+  return publicationIngestionBatchRequestSchema.parse({
+    ...parsedFixture,
+    batchId,
+    clientRunId: "run-source",
+    sources: [{ ...parsedFixture.sources[0], ...sourceOverrides }],
+  });
+}
+
+describe("publication source registration", () => {
+  beforeEach(() => fake.clear());
+
+  it("stores the crawler's organization level when it is a known one", async () => {
+    await ingestPublicationBatch({
+      payload: payloadWithSource(
+        { organizationLevel: "office" },
+        "batch-source-level-known",
+      ),
+      principal,
+    });
+
+    expect(fake.state.sources.get("ustc-news")).toMatchObject({
+      organizationLevel: "office",
+    });
+  });
+
+  it("degrades an unrecognized level to unknown instead of failing the batch", async () => {
+    // config/sources.yaml lives in the crawler repo and can gain a level at
+    // any time; losing one source's grouping beats rejecting its articles.
+    const response = await ingestPublicationBatch({
+      payload: payloadWithSource(
+        { organizationLevel: "institute" },
+        "batch-source-level-unknown",
+      ),
+      principal,
+    });
+
+    expect(response.results[0].status).toBe("created");
+    expect(fake.state.sources.get("ustc-news")).toMatchObject({
+      organizationLevel: "unknown",
+    });
+  });
+
+  it("upserts a source idempotently across batches", async () => {
+    await ingestPublicationBatch({
+      payload: payloadWithSource(
+        { name: "USTC News", organizationLevel: "university" },
+        "batch-source-first",
+      ),
+      principal,
+    });
+    await ingestPublicationBatch({
+      payload: payloadWithSource(
+        { name: "中国科学技术大学新闻网", organizationLevel: "office" },
+        "batch-source-second",
+      ),
+      principal,
+    });
+
+    expect(fake.state.sources.size).toBe(1);
+    expect(fake.state.sources.get("ustc-news")).toMatchObject({
+      name: "中国科学技术大学新闻网",
+      organizationLevel: "office",
+    });
+  });
+
+  it("leaves a persisted level untouched for a minimal descriptor", async () => {
+    await ingestPublicationBatch({
+      payload: payloadWithSource(
+        { organizationLevel: "college" },
+        "batch-source-full",
+      ),
+      principal,
+    });
+    await ingestPublicationBatch({
+      payload: publicationIngestionBatchRequestSchema.parse({
+        ...parsedFixture,
+        batchId: "batch-source-minimal",
+        clientRunId: "run-source",
+        sources: [{ id: "ustc-news", name: "USTC News" }],
+      }),
+      principal,
+    });
+
+    expect(fake.state.sources.get("ustc-news")).toMatchObject({
+      organizationLevel: "college",
+    });
+  });
+});
+
 describe("publication ingestion transaction", () => {
   beforeEach(() => fake.clear());
 

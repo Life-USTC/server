@@ -22,6 +22,8 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // the shell gains another importer (e.g. the weather page split the 525 B
 // `sun` icon into its own chunk). The Young client controls reuse the shell
 // bootstrap helper, splitting it into one shared chunk; retain the gzip cap.
+// /news/sources is a public entry surface of the same shape as /news, so it
+// gets a budget from day one rather than after its first regression.
 const budgets = {
   // The staged onboarding guide (#769) became a fourth importer of the
   // `user-round` Lucide icon, so Rollup promoted it from inlined in the user
@@ -34,6 +36,7 @@ const budgets = {
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },
   "/news/[id]": { gzipBytes: 221_000, requests: 82 },
+  "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
 let failed = false;

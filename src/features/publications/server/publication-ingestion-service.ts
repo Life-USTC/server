@@ -1,3 +1,4 @@
+import { parsePublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
 import type { PublicationIngestionBatchRequest } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import type { PublicationIngestionServicePrincipal } from "@/lib/auth/service-principal";
@@ -133,7 +134,9 @@ async function ingestWithRetry(
               create: {
                 id: source.id,
                 name: source.name,
-                organizationLevel: source.organizationLevel ?? "unknown",
+                organizationLevel: parsePublicationSourceOrganizationLevel(
+                  source.organizationLevel,
+                ),
                 allowedHosts: source.allowedHosts ?? [],
                 blockedHosts: source.blockedHosts ?? [],
                 seedUrls: source.seedUrls ?? [],
@@ -145,7 +148,12 @@ async function ingestWithRetry(
                 name: source.name,
                 ...(source.organizationLevel === undefined
                   ? {}
-                  : { organizationLevel: source.organizationLevel }),
+                  : {
+                      organizationLevel:
+                        parsePublicationSourceOrganizationLevel(
+                          source.organizationLevel,
+                        ),
+                    }),
                 ...(source.allowedHosts === undefined
                   ? {}
                   : { allowedHosts: source.allowedHosts }),

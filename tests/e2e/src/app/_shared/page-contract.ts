@@ -562,17 +562,44 @@ export async function assertPageContract(
         page.getByRole("searchbox", { name: /搜索|Search/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("textbox", { name: /来源标识|Source ID/i }),
+        page.getByRole("listbox", { name: /^(来源|Sources)$/i }),
       ).toBeVisible();
-      await expect(page.getByRole("combobox")).toBeVisible();
+      await expect(
+        page.getByRole("group", {
+          name: /按组织层级筛选|Filter by organization level/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("combobox", { name: /类型|Type/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "news");
+      return;
+    }
+
+    case "/news/sources": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /新闻来源目录|News source directory/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: /返回新闻与通知|Back to news and notices/i,
+        }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "news-sources");
       return;
     }
 
     case "/news/[id]": {
       await gotoContractPage(page, "/news", testInfo);
+      // Scoped to the results table: the page header also links to
+      // /news/sources, which would otherwise match first.
       const detailLink = page
-        .locator("#main-content a[href^='/news/']")
+        .locator("[data-slot='table-body'] a[href^='/news/']")
         .first();
       await expect(detailLink).toBeVisible();
       await detailLink.click();

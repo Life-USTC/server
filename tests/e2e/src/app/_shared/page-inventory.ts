@@ -31,7 +31,15 @@ export type PrimaryAction = {
   /** Stable id for the gate (not a DOM selector). */
   id: string;
   /** Role/name pair preferred by e2e/AGENTS.md, when applicable. */
-  role?: "button" | "link" | "tab" | "textbox" | "combobox" | "searchbox";
+  role?:
+    | "button"
+    | "checkbox"
+    | "combobox"
+    | "link"
+    | "listbox"
+    | "searchbox"
+    | "tab"
+    | "textbox";
   name?: string;
   testId?: string;
   /** Spec path relative to tests/e2e/ that exercises this action. */
@@ -96,6 +104,7 @@ const E2E = {
   oauthDevice: "src/app/oauth/device/test.ts",
   privacy: "src/app/privacy/test.ts",
   news: "src/app/news/test.ts",
+  newsSources: "src/app/news/sources/test.ts",
   search: "src/app/search/test.ts",
   sections: "src/app/sections/test.ts",
   sectionsJwId: "src/app/sections/[jwId]/page-contract.test.ts",
@@ -947,9 +956,32 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       },
       {
         id: "publication-source-filter",
-        role: "textbox",
+        role: "listbox",
         e2eSpec: E2E.news,
-        evidence: "支持来源筛选",
+        evidence: "支持来源多选筛选",
+      },
+      {
+        id: "publication-organization-level-filter",
+        role: "checkbox",
+        e2eSpec: E2E.news,
+        evidence: "支持按组织层级聚合筛选",
+      },
+    ],
+  },
+  {
+    routeId: "/news/sources",
+    samplePath: "/news/sources",
+    kind: "page",
+    auth: "public",
+    contractPath: "/news/sources",
+    e2eSpec: E2E.newsSources,
+    mobileScreenshots: ["public"],
+    primaryActions: [
+      {
+        id: "publication-source-directory-link",
+        role: "link",
+        e2eSpec: E2E.newsSources,
+        evidence: "来源条目链接到该来源的列表筛选",
       },
     ],
   },
