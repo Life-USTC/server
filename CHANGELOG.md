@@ -1,3 +1,10 @@
+## [1.120.3](https://github.com/Life-USTC/server/compare/v1.120.2...v1.120.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* **openapi:** emit a valid path template for SvelteKit rest routes ([#1090](https://github.com/Life-USTC/server/issues/1090)) ([4651fd9](https://github.com/Life-USTC/server/commit/4651fd9f20aa64873bcd0844e116da9bfb84a17b))
+
 ## [1.120.2](https://github.com/Life-USTC/server/compare/v1.120.1...v1.120.2) (2026-09-20)
 
 
