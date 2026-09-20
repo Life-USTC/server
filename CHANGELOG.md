@@ -1,3 +1,15 @@
+# [1.118.0](https://github.com/Life-USTC/server/compare/v1.117.0...v1.118.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **db:** bound Postgres connect and query waits so a wedged database cannot hang the Worker ([#1083](https://github.com/Life-USTC/server/issues/1083)) ([da9b797](https://github.com/Life-USTC/server/commit/da9b7974e04dda57691fcc0750429ac1e0b8b2f3))
+
+
+### Features
+
+* **ux:** improve first-login onboarding and avatar handling ([#1085](https://github.com/Life-USTC/server/issues/1085)) ([c10e600](https://github.com/Life-USTC/server/commit/c10e600709e387ad496e343445b7a6e7fe0c34e2)), closes [#769](https://github.com/Life-USTC/server/issues/769) [#1077](https://github.com/Life-USTC/server/issues/1077) [#769](https://github.com/Life-USTC/server/issues/769) [#1048](https://github.com/Life-USTC/server/issues/1048) [#769](https://github.com/Life-USTC/server/issues/769) [#769](https://github.com/Life-USTC/server/issues/769)
+
 # [1.117.0](https://github.com/Life-USTC/server/compare/v1.116.7...v1.117.0) (2026-09-19)
 
 
