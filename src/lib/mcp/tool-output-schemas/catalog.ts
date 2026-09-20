@@ -82,10 +82,27 @@ export const weatherFullSchema = z.union([
   weatherNoDataSchema,
 ]);
 
+// The compact shape stays list-sized: identity, timing and the three
+// classification badges. Everything else arrives with mode: "full".
 export const compactYoungEventSchema = youngEventSummarySchema.omit({
   department: true,
   organizer: true,
   imageUrl: true,
+  grades: true,
+  sponsor: true,
+  contactName: true,
+  contactTel: true,
+  duration: true,
+  serviceHour: true,
+  sumHours: true,
+  sumPersons: true,
+  partakeNum: true,
+  favCount: true,
+  limitNum: true,
+  createdAtUpstream: true,
+  auditedAt: true,
+  updatedAtUpstream: true,
+  places: true,
 });
 
 export const youngEventPaginationSchema =
@@ -105,9 +122,11 @@ export const youngEventListFullSchema = objectOutputSchema({
   source: paginatedYoungEventResponseSchema.shape.source,
 });
 
+// Default mode keeps the sanitized rich text — it is the point of fetching one
+// event — and only withholds the verbatim upstream payload.
 export const youngEventGetDefaultSchema = objectOutputSchema({
   youngId: z.string(),
-  event: youngEventSummarySchema.nullable(),
+  event: youngEventDetailSchema.omit({ rawJson: true }).nullable(),
 });
 
 export const youngEventGetFullSchema = objectOutputSchema({
@@ -343,7 +362,10 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   catalog_young_event_get: objectOutputSchema({
     youngId: z.string(),
     event: z
-      .union([youngEventSummarySchema, youngEventDetailSchema])
+      .union([
+        youngEventDetailSchema.omit({ rawJson: true }),
+        youngEventDetailSchema,
+      ])
       .nullable(),
   }),
   catalog_young_organizer_list: youngOrganizerListSchema,

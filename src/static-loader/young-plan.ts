@@ -48,6 +48,13 @@ function asShanghaiDateTime(value: unknown): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/** One scheduled venue slot from the `itemPlaceDTO.places` subtable. */
+export type YoungEventPlace = {
+  placeInfo?: string;
+  placeSt?: string;
+  placeEt?: string;
+};
+
 export type YoungEventBuild = {
   youngId: string;
   name: string;
@@ -55,6 +62,7 @@ export type YoungEventBuild = {
   department?: string;
   organizer?: string;
   status?: string;
+  /** Deprecated upstream key: empty on every record. Serialized as null. */
   registrationStatus?: string;
   location?: string;
   imageUrl?: string;
@@ -67,11 +75,33 @@ export type YoungEventBuild = {
   applyEndAt?: Date;
   isActive: boolean;
   rawJson: string;
+  /** Upstream rich text, stored verbatim; sanitized only on serialization. */
+  description?: string;
+  participationNotes?: string;
+  activityLevel?: string;
+  module?: string;
+  form?: string;
+  grades?: string;
+  sponsor?: string;
+  contactName?: string;
+  contactTel?: string;
+  duration?: number;
+  serviceHour?: number;
+  sumHours?: number;
+  sumPersons?: number;
+  partakeNum?: number;
+  favCount?: number;
+  limitNum?: number;
+  createdAtUpstream?: Date;
+  auditedAt?: Date;
+  updatedAtUpstream?: Date;
+  places?: YoungEventPlace[];
 };
 
 function mapYoungEventRow(
   row: SnapshotRow,
   isActive: boolean,
+  places?: YoungEventPlace[],
 ): YoungEventBuild | null {
   const youngId = asString(row.id);
   if (youngId == null) return null;
@@ -101,7 +131,68 @@ function mapYoungEventRow(
     applyEndAt: asShanghaiDateTime(row.applyEt),
     isActive,
     rawJson: JSON.stringify(raw),
+    description: asString(row.baseContent),
+    participationNotes: asString(row.conceive),
+    activityLevel: asString(row.activityLevel_dictText),
+    module: asString(row.module_dictText),
+    form: asString(row.form_dictText),
+    grades: asString(row.nj),
+    sponsor: asString(row.sponsor_dictText),
+    contactName: asString(row.linkMan),
+    contactTel: asString(row.tel),
+    duration: asFloat(row.duration),
+    serviceHour: asFloat(row.serviceHour),
+    sumHours: asFloat(row.sumHours),
+    sumPersons: asInt(row.sumPersons),
+    partakeNum: asInt(row.partakeNum),
+    favCount: asInt(row.favCount),
+    limitNum: asInt(row.itemLimitNum),
+    createdAtUpstream: asShanghaiDateTime(row.createTime),
+    auditedAt: asShanghaiDateTime(row.auditTime),
+    updatedAtUpstream: asShanghaiDateTime(row.updateTime),
+    places,
   };
+}
+
+/**
+ * The upstream `itemPlaceDTO.places` array lands in the snapshot as two nested
+ * subtables. Walk record store_id -> itemPlaceDTO.store_id -> places rows so
+ * per-slot venues survive the import instead of being dropped.
+ */
+function loadPlacesByRecordStoreId(
+  snapshot: Snapshot,
+  recordsTable: string,
+): Map<number, YoungEventPlace[]> {
+  const dtoTable = `${recordsTable}_itemPlaceDTO`;
+  const placesTable = `${dtoTable}_places`;
+  const result = new Map<number, YoungEventPlace[]>();
+  if (!snapshot.hasTable(dtoTable) || !snapshot.hasTable(placesTable)) {
+    return result;
+  }
+
+  const dtosByRecord = snapshot.queryGrouped(dtoTable);
+  const placesByDto = snapshot.queryGrouped(placesTable);
+  for (const [recordStoreId, dtos] of dtosByRecord) {
+    const places: YoungEventPlace[] = [];
+    for (const dto of dtos) {
+      const dtoStoreId = asInt(dto.store_id);
+      if (dtoStoreId == null) continue;
+      const rows = [...(placesByDto.get(dtoStoreId) ?? [])].sort(
+        (a, b) => (asInt(a.position) ?? 0) - (asInt(b.position) ?? 0),
+      );
+      for (const row of rows) {
+        const place: YoungEventPlace = {
+          placeInfo: asString(row.placeInfo),
+          placeSt: asString(row.placeSt),
+          placeEt: asString(row.placeEt),
+        };
+        if (place.placeInfo == null && place.placeSt == null) continue;
+        places.push(place);
+      }
+    }
+    if (places.length > 0) result.set(recordStoreId, places);
+  }
+  return result;
 }
 
 /**
@@ -115,15 +206,19 @@ export function loadYoungEvents(snapshot: Snapshot): YoungEventBuild[] | null {
 
   const merged = new Map<string, YoungEventBuild>();
   // Ended first so active rows win on a youngId conflict.
-  if (snapshot.hasTable(ENDED_TABLE)) {
-    for (const row of snapshot.queryAll(ENDED_TABLE)) {
-      const build = mapYoungEventRow(row, false);
-      if (build != null) merged.set(build.youngId, build);
-    }
-  }
-  if (snapshot.hasTable(ACTIVE_TABLE)) {
-    for (const row of snapshot.queryAll(ACTIVE_TABLE)) {
-      const build = mapYoungEventRow(row, true);
+  for (const [table, isActive] of [
+    [ENDED_TABLE, false],
+    [ACTIVE_TABLE, true],
+  ] as const) {
+    if (!snapshot.hasTable(table)) continue;
+    const placesByRecord = loadPlacesByRecordStoreId(snapshot, table);
+    for (const row of snapshot.queryAll(table)) {
+      const storeId = asInt(row.store_id);
+      const build = mapYoungEventRow(
+        row,
+        isActive,
+        storeId == null ? undefined : placesByRecord.get(storeId),
+      );
       if (build != null) merged.set(build.youngId, build);
     }
   }

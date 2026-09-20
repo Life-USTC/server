@@ -889,35 +889,67 @@ type WorkspaceOverview {
 }
 
 type YoungEvent {
+  activityLevel: String
   appliedCount: Int
   applyEndAt: DateTime
   applyStartAt: DateTime
+  auditedAt: DateTime
   capacity: Int
   category: String
+  contactName: String
+  contactTel: String
   createdAt: DateTime
+  createdAtUpstream: DateTime
   department: String
+
+  """
+  Sanitized upstream rich text. Only populated by the single-event query.
+  """
+  description: String
+  duration: Float
   endAt: DateTime
+  favCount: Int
+  form: String
+  grades: String
   hours: Float
   imageUrl: String
   isActive: Boolean!
   lastSeenAt: DateTime
+  limitNum: Int
   location: String
+  module: String
   name: String!
   organizer: String
   organizerId: String
-  registrationStatus: String
+  partakeNum: Int
+  participationNotes: String
+  places: [YoungEventPlace!]
+
+  """
+  The complete upstream record as a JSON string. Only populated by the
+  single-event query.
+  """
+  rawJson: String
+  registrationStatus: String @deprecated(reason: "Always null; upstream never populates it. Use status for the signup state.")
+  serviceHour: Float
   sourceMissing: Boolean!
+  sponsor: String
   startAt: DateTime
   status: String
+  sumHours: Float
+  sumPersons: Int
+  updatedAtUpstream: DateTime
   youngId: String!
 }
 
 input YoungEventFilter {
   active: Boolean
+  activityLevel: String
   category: String
   dateFrom: String
   dateTo: String
   dateUnknown: Boolean
+  module: String
   organizerId: String
   search: String
   timeBasis: YoungEventTimeBasis
@@ -928,6 +960,12 @@ type YoungEventPage {
   pageInfo: PageInfo!
   source: YoungSourceFreshness!
   unknownDateCount: Int!
+}
+
+type YoungEventPlace {
+  placeEt: String
+  placeInfo: String
+  placeSt: String
 }
 
 type YoungEventSubscription {
