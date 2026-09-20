@@ -41,10 +41,17 @@ vi.mock("@/lib/log/app-logger", () => ({
 }));
 
 import {
+  PUBLIC_SSR_CACHE_PURGE_PATH,
+  PUBLIC_SSR_CACHE_PURGE_SECRET_ENV,
+  PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER,
+} from "@/lib/cloudflare/public-ssr-cache-purge";
+import {
   INTERNAL_REQUEST_ID_HEADER,
   normalizePublicSsrObservedRoute,
 } from "@/lib/log/worker-entrypoint-observability";
 import worker, { PublicSsr } from "@/worker";
+
+const PURGE_SECRET = "edge-cache-purge-secret-value";
 
 async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   const globalScope = globalThis as typeof globalThis & {
@@ -508,6 +515,66 @@ describe("Worker routing entrypoint", () => {
         status: 410,
       }),
     );
+  });
+
+  it("hops the internal cache purge into the PublicSsr entrypoint", async () => {
+    const purgeCatalogRepresentations = vi
+      .fn()
+      .mockResolvedValue({ ok: true, tags: ["catalog"] });
+    const publicSsrStub = vi.fn(() => ({
+      fetch: vi.fn(),
+      purgeCatalogRepresentations,
+    }));
+
+    const response = await worker.fetch(
+      new Request(`https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`, {
+        headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: PURGE_SECRET },
+        method: "POST",
+      }),
+      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ purged: ["catalog"] });
+    // The zone purge cannot reach this cache, so the request must end up on
+    // the entrypoint that owns it rather than in the SvelteKit app.
+    expect(purgeCatalogRepresentations).toHaveBeenCalledTimes(1);
+    expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unauthenticated cache purge without reaching the entrypoint", async () => {
+    const purgeCatalogRepresentations = vi.fn();
+    const publicSsrStub = vi.fn(() => ({
+      fetch: vi.fn(),
+      purgeCatalogRepresentations,
+    }));
+
+    const response = await worker.fetch(
+      new Request(`https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`, {
+        method: "POST",
+      }),
+      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+    );
+
+    expect(response.status).toBe(401);
+    expect(purgeCatalogRepresentations).not.toHaveBeenCalled();
+    expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("purges only the catalog tag from the PublicSsr entrypoint cache", async () => {
+    const purge = vi.fn().mockResolvedValue({ success: true });
+    const entrypoint = new PublicSsr();
+    // `cache.purge()` is scoped to the calling entrypoint, so this method has
+    // to run here rather than in the default entrypoint or the Node loader.
+    Object.defineProperty(entrypoint, "ctx", { value: { cache: { purge } } });
+
+    await expect(entrypoint.purgeCatalogRepresentations()).resolves.toEqual({
+      ok: true,
+      tags: ["catalog"],
+    });
+    expect(purge).toHaveBeenCalledWith({ tags: ["catalog"] });
   });
 
   it("logs and acks each calendar dead-letter message without retrying", async () => {

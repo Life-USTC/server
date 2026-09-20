@@ -7,6 +7,12 @@
   "exports": {
     "PublicSsr": {
       "type": "worker",
+      // `cross_version_cache` stays off deliberately. Entries are partitioned
+      // per Worker version, so every deploy starts cold; sharing them across
+      // versions would serve HTML rendered by a previous version with no
+      // automatic invalidation. Invalidation is by `Cache-Tag` through
+      // `POST /_internal/edge-cache/purge`, which hops into this entrypoint —
+      // a zone purge cannot reach Workers Caching content.
       "cache": {
         "enabled": true
       }

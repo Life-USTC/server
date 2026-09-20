@@ -24,10 +24,25 @@ export const PUBLIC_SSR_MODE_HEADER = "x-life-public-ssr-mode";
 export const PUBLIC_SSR_NONCE_PLACEHOLDER = "life-ustc-public-ssr-nonce";
 export const PUBLIC_SSR_LOCALE_CACHE_PARAM = "__life_locale";
 export const PUBLIC_SSR_MODE_CACHE_PARAM = "__life_mode";
-export const PUBLIC_SSR_BROWSER_CACHE_CONTROL =
-  "public, max-age=0, stale-while-revalidate=300, stale-if-error=0";
-export const PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL =
-  "public, max-age=86400, stale-while-revalidate=300, stale-if-error=0";
+/** Shared-cache lifetime of a stored public SSR representation, in seconds. */
+export const PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS = 86_400;
+
+/**
+ * Cache-Control stored with the shared public SSR representation.
+ *
+ * `max-age=0` is deliberate: `personalizeCachedResponse` re-stamps a fresh
+ * nonce and request id on every hit, so a browser must never reuse a stored
+ * copy on its own. `s-maxage` applies to shared caches only, so it gives the
+ * Workers entrypoint cache a real lifetime without relaxing the browser rule.
+ * Without it the representation is not storable at all and every request is
+ * reported as `Cf-Cache-Status: DYNAMIC`.
+ *
+ * The lifetime is only safe because a committed catalog import purges this
+ * cache through the `PublicSsr` entrypoint — see
+ * `src/lib/cloudflare/public-ssr-cache-purge.ts`.
+ */
+export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = `public, max-age=0, s-maxage=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=300, stale-if-error=0`;
+export const PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL = `public, max-age=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=300, stale-if-error=0`;
 
 export type PublicSsrMode = "page" | "not-found";
 export type PublicSsrLocale = "en-us" | "zh-cn";
