@@ -53,11 +53,25 @@ jobs:
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
           STATIC_LOADER_DRY_RUN: "false"
           STATIC_LOADER_STATS_FILE: /tmp/static-load-stats.json
+          # A committed import must invalidate both cache layers. The zone
+          # purge does not reach the Workers entrypoint cache, so the loader
+          # also calls the Worker's authenticated internal purge route.
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          APP_PUBLIC_ORIGIN: ${{ vars.APP_PUBLIC_ORIGIN || 'https://life-ustc.tiankaima.dev' }}
+          EDGE_CACHE_PURGE_SECRET: ${{ secrets.EDGE_CACHE_PURGE_SECRET }}
         run: scripts/load-static-sqlite.sh
 
+      # Runs even when the loader exits non-zero: a failed post-import cache
+      # purge fails the step, and the import stats are exactly what is needed
+      # to tell that case apart from a failed import.
       - name: Report stats
-        if: success()
+        if: always()
         run: |
+          if [ ! -f /tmp/static-load-stats.json ]; then
+            echo 'No static load stats were produced.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           echo '## Static Load Stats' >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/static-load-stats.json >> "$GITHUB_STEP_SUMMARY"

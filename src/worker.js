@@ -26,6 +26,13 @@ import {
 import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
 import { CATALOG_EDGE_CACHE_TAG } from "./lib/catalog-edge-cache-tag";
 import {
+  handlePublicSsrCachePurgeRequest,
+  isPublicSsrCachePurgeRequest,
+  PUBLIC_SSR_CACHE_PURGE_PATH,
+  purgeEntrypointCatalogCache,
+  resolvePublicSsrCachePurgeSecret,
+} from "./lib/cloudflare/public-ssr-cache-purge";
+import {
   buildPublicNotFoundHtml,
   isLegacyCalendarSubscriptionFeedRequest,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
@@ -298,6 +305,18 @@ export class PublicSsr extends WorkerEntrypoint {
     );
     return prepareCachedRepresentation(response);
   }
+
+  /**
+   * Invalidate the cached public SSR representations.
+   *
+   * `cache.purge()` only affects the entrypoint that calls it, so this cannot
+   * live on the default entrypoint or in the Node static loader — both would
+   * purge a cache that never stored this HTML. The default entrypoint reaches
+   * it over RPC from the authenticated internal purge route.
+   */
+  async purgeCatalogRepresentations() {
+    return purgeEntrypointCatalogCache(this.ctx?.cache);
+  }
 }
 
 async function handleFetch(request, env, context, requestId, edgeObservation) {
@@ -317,6 +336,19 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       startMs,
     });
   };
+
+  // The Workers entrypoint cache can only be purged from inside `PublicSsr`,
+  // so the loader's post-import hook lands here and hops over RPC. Handle it
+  // before any routing so the internal path never reaches the app or the
+  // public SSR cache.
+  if (isPublicSsrCachePurgeRequest(request)) {
+    const purgeResponse = await handlePublicSsrCachePurgeRequest({
+      purge: () => context.exports.PublicSsr().purgeCatalogRepresentations(),
+      request,
+      secret: resolvePublicSsrCachePurgeSecret(env),
+    });
+    return finish(purgeResponse, "dynamic", PUBLIC_SSR_CACHE_PURGE_PATH);
+  }
 
   const legacyRedirect = resolveLegacyCatalogRedirect(request);
   if (legacyRedirect) {

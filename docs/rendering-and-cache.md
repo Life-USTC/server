@@ -34,6 +34,31 @@ bootstrap request. The state survives client navigation for the lifetime of the
 root layout only; it is not persisted in localStorage, KV, or another shared
 cache.
 
+## Cache layers and invalidation
+
+Public SSR HTML passes through two independent caches:
+
+| Layer | Driven by | Purged by |
+| --- | --- | --- |
+| Cloudflare zone/CDN | `Cloudflare-CDN-Cache-Control` | `POST /zones/{id}/purge_cache` by `Cache-Tag` |
+| Workers entrypoint cache (`exports.PublicSsr.cache`) | `Cache-Control` | `cache.purge()` **inside `PublicSsr`** |
+
+No zone-level purge — dashboard, API, or Terraform — affects Workers Caching
+content, so the two purges are not interchangeable. A committed static import
+runs both: the zone purge directly, and the entrypoint purge through the
+authenticated `POST /_internal/edge-cache/purge` route, which hops into
+`PublicSsr` over RPC. A failed purge fails the static-sync run rather than
+leaving stale HTML cached for the rest of the TTL.
+
+The stored representation keeps `max-age=0` so browsers always revalidate —
+`personalizeCachedResponse` re-stamps a per-request nonce and request id on
+every hit — and uses `s-maxage` for the shared-cache lifetime. A response with
+only `max-age=0` is not storable by a shared cache at all.
+
+`cache.cross_version_cache` stays off: entries are partitioned per Worker
+version, so a deploy starts cold, and sharing entries across versions would
+serve HTML rendered by an older version with no automatic invalidation.
+
 ## Contributor notes
 
 - Don't put user-specific data into a payload you intend to cache anonymously.

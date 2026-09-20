@@ -5,6 +5,7 @@ import {
   isLegacyCalendarSubscriptionFeedRequest,
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
+  PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,
   resolvePublicSsrMode as resolveBasePublicSsrMode,
   resolveCourseDetailTabRedirect,
   resolveLegacyCalendarFeedRedirect,
@@ -32,6 +33,30 @@ describe("public SSR gateway", () => {
     PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   ])("bounds stale-on-error cache fallback in %s", (cacheControl) => {
     expect(cacheControl).toContain("stale-if-error=0");
+  });
+
+  test("keeps the stored public SSR representation storable by a shared cache", () => {
+    // `max-age=0` alone makes a response non-storable, which is reported as
+    // `Cf-Cache-Status: DYNAMIC` and defeats the entrypoint cache entirely.
+    expect(PUBLIC_SSR_BROWSER_CACHE_CONTROL).toContain(
+      `s-maxage=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}`,
+    );
+    expect(PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS).toBeGreaterThan(0);
+  });
+
+  test("still forces browsers to revalidate every public SSR response", () => {
+    // `personalizeCachedResponse` re-stamps a per-request nonce and request id
+    // on each hit, so a browser must never reuse a stored copy on its own.
+    expect(PUBLIC_SSR_BROWSER_CACHE_CONTROL).toContain("max-age=0");
+    expect(PUBLIC_SSR_BROWSER_CACHE_CONTROL).not.toMatch(
+      /(^|[\s,])max-age=(?!0\b)\d+/,
+    );
+  });
+
+  test("expires both cache layers together", () => {
+    expect(PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL).toContain(
+      `max-age=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}`,
+    );
   });
 
   test.each([
