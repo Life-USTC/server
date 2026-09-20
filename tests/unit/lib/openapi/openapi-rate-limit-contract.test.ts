@@ -51,7 +51,7 @@ const EXPECTED_STORAGE_FAILURES = [
   ["get", "/api/publications/images/{hash}"],
   ["get", "/api/publications/objects/{kind}/{sha256}"],
   ["get", "/api/catalog/young-events/{youngId}/image"],
-  ["get", "/api/catalog/young-events/images/{...path}"],
+  ["get", "/api/catalog/young-events/images/{path}"],
   ["get", "/api/catalog/weather"],
 ] as const;
 
