@@ -18,6 +18,7 @@ import {
   writeOAuthEventAnalytics,
   writePageRequestAnalytics,
   writeQueueBatchAnalytics,
+  writeScheduledTaskAnalytics,
   writeWorkerRequestAnalytics,
   writeWorkspaceOverviewStageAnalytics,
   writeWorkspaceRouteStageAnalytics,
@@ -587,6 +588,58 @@ describe("Cloudflare Analytics Engine runtime events", () => {
         "known",
       ],
       doubles: [50, 3, 1, 4, 0, 4],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
+  });
+
+  it("attributes scheduled failures to a task and error class", () => {
+    const writeDataPoint = installAnalyticsBinding();
+
+    writeScheduledTaskAnalytics({
+      errorName: "PrismaClientKnownRequestError",
+      event: "error",
+      ioObservedDurationMs: 42,
+      task: "young-notifications",
+    });
+    writeScheduledTaskAnalytics({
+      event: "finish",
+      ioObservedDurationMs: 7,
+      task: "weather-refresh-ustc-gaoxin",
+    });
+    writeScheduledTaskAnalytics({
+      errorName: "Error",
+      event: "error",
+      ioObservedDurationMs: 1,
+      task: "user-private-task",
+    });
+
+    // The task is the index, so a failing cron task can be selected directly.
+    expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
+      indexes: ["scheduled:young-notifications"],
+      blobs: [
+        "scheduled_task_v1",
+        "error",
+        "young-notifications",
+        "PrismaClientKnownRequestError",
+      ],
+      doubles: [42],
+    });
+    expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
+      indexes: ["scheduled:weather-refresh-ustc-gaoxin"],
+      blobs: [
+        "scheduled_task_v1",
+        "finish",
+        "weather-refresh-ustc-gaoxin",
+        "none",
+      ],
+      doubles: [7],
+    });
+    // Anything outside the known task vocabulary collapses to "unknown" so the
+    // sink can never be widened into a free-text label.
+    expect(writeDataPoint).toHaveBeenNthCalledWith(3, {
+      indexes: ["scheduled:unknown"],
+      blobs: ["scheduled_task_v1", "error", "unknown", "Error"],
+      doubles: [1],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("private");
   });
