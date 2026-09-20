@@ -10,6 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 409:openApiErrorSchema
+ * @response 413:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
  */

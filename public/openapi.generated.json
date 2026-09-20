@@ -7152,6 +7152,16 @@
               }
             }
           },
+          "413": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "429": {
             "description": "Error response",
             "headers": {

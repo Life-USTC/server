@@ -1,3 +1,4 @@
+import { PUBLICATION_INGESTION_BATCH_MAX_BODY_BYTES } from "@/features/publications/lib/publication-ingestion-limits";
 import {
   ingestPublicationBatch,
   PublicationIngestionBadRequestError,
@@ -61,6 +62,7 @@ export async function postPublicationIngestionBatchRoute(request: Request) {
     request,
     publicationIngestionBatchRequestSchema,
     "Invalid publication ingestion batch",
+    { maxBytes: PUBLICATION_INGESTION_BATCH_MAX_BODY_BYTES },
   );
   if (parsedBody instanceof Response) return parsedBody;
 
