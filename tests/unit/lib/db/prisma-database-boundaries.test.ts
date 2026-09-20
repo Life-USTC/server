@@ -30,6 +30,16 @@ vi.mock("@/lib/log/app-logger", () => ({ logAppEvent: vi.fn() }));
 const poolConfig = {
   max: 3,
   idleTimeoutMillis: 5_000,
+  connectionTimeoutMillis: 5_000,
+  query_timeout: 15_000,
+};
+
+/** Retention crons get a longer budget, but never an unbounded one. */
+const maintenancePoolConfig = {
+  max: 3,
+  idleTimeoutMillis: 5_000,
+  connectionTimeoutMillis: 10_000,
+  query_timeout: 60_000,
 };
 
 describe("Prisma database boundaries", () => {
@@ -84,7 +94,7 @@ describe("Prisma database boundaries", () => {
       },
       {
         connectionString: "postgresql://maintenance.example/database",
-        ...poolConfig,
+        ...maintenancePoolConfig,
       },
     ]);
   });
