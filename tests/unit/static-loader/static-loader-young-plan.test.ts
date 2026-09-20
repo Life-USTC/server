@@ -23,7 +23,15 @@ function fakeSnapshot({
     metadata: () => metadata,
     hasTable: (table: string) => table in tables,
     queryAll: (table: string) => tables[table] ?? [],
-    queryGrouped: () => new Map(),
+    queryGrouped: (table: string, parentColumn = "parent_store_id") => {
+      const grouped = new Map<number, Record<string, unknown>[]>();
+      for (const row of tables[table] ?? []) {
+        const parent = row[parentColumn];
+        if (typeof parent !== "number") continue;
+        grouped.set(parent, [...(grouped.get(parent) ?? []), row]);
+      }
+      return grouped;
+    },
   } as unknown as Snapshot;
 }
 
@@ -176,6 +184,130 @@ describe("static young event plan", () => {
       isActive: true,
     });
     expect(builds?.[0]?.startAt).toBeUndefined();
+  });
+
+  it("maps the extended upstream columns and keeps the dead registrationStatus", () => {
+    const snapshot = fakeSnapshot({
+      tables: {
+        [ENDED_TABLE]: [
+          {
+            store_id: 1,
+            id: "ev1",
+            itemName: "活动",
+            baseContent: "<p>介绍</p>",
+            conceive: "<p>须知</p>",
+            activityLevel_dictText: "院级",
+            module_dictText: "美",
+            form_dictText: "提交作品",
+            nj: "1,2",
+            sponsor_dictText: "校团委",
+            linkMan: "张三",
+            tel: "13800000000",
+            duration: 2.5,
+            serviceHour: "2",
+            sumHours: 76,
+            sumPersons: 27,
+            partakeNum: 30,
+            favCount: 4,
+            itemLimitNum: 50,
+            createTime: "2026-08-08 23:53:40",
+            auditTime: "2026-08-10 10:24:19",
+            updateTime: "2026-08-11 08:00:00",
+            registrationStatus: "报名中",
+          },
+        ],
+      },
+    });
+
+    const build = loadYoungEvents(snapshot)?.[0];
+    expect(build).toMatchObject({
+      description: "<p>介绍</p>",
+      participationNotes: "<p>须知</p>",
+      activityLevel: "院级",
+      module: "美",
+      form: "提交作品",
+      grades: "1,2",
+      sponsor: "校团委",
+      contactName: "张三",
+      contactTel: "13800000000",
+      duration: 2.5,
+      serviceHour: 2,
+      sumHours: 76,
+      sumPersons: 27,
+      partakeNum: 30,
+      favCount: 4,
+      limitNum: 50,
+    });
+    expect(build?.createdAtUpstream?.toISOString()).toBe(
+      "2026-08-08T15:53:40.000Z",
+    );
+    expect(build?.auditedAt?.toISOString()).toBe("2026-08-10T02:24:19.000Z");
+    expect(build?.updatedAtUpstream?.toISOString()).toBe(
+      "2026-08-11T00:00:00.000Z",
+    );
+    // The column keeps mirroring upstream; only the serialization layer nulls
+    // it. The value also stays in the preserved upstream payload.
+    expect(build?.registrationStatus).toBe("报名中");
+    expect(
+      (JSON.parse(build?.rawJson ?? "{}") as Record<string, unknown>)
+        .registrationStatus,
+    ).toBe("报名中");
+  });
+
+  it("joins the itemPlaceDTO places subtables onto each record", () => {
+    const snapshot = fakeSnapshot({
+      tables: {
+        [ENDED_TABLE]: [
+          { store_id: 1, id: "ev1", itemName: "有场地" },
+          { store_id: 2, id: "ev2", itemName: "无场地" },
+        ],
+        [`${ENDED_TABLE}_itemPlaceDTO`]: [
+          { store_id: 10, parent_store_id: 1, itemId: "ev1" },
+        ],
+        [`${ENDED_TABLE}_itemPlaceDTO_places`]: [
+          {
+            store_id: 101,
+            parent_store_id: 10,
+            position: 1,
+            placeInfo: "西区活动中心",
+            placeSt: "2026-08-21 09:00:00",
+            placeEt: "2026-08-21 11:00:00",
+          },
+          {
+            store_id: 100,
+            parent_store_id: 10,
+            position: 0,
+            placeInfo: "东区礼堂",
+            placeSt: "2026-08-20 14:00:00",
+            placeEt: "2026-08-20 16:00:00",
+          },
+        ],
+      },
+    });
+
+    const builds = loadYoungEvents(snapshot);
+    expect(builds?.find((build) => build.youngId === "ev1")?.places).toEqual([
+      {
+        placeInfo: "东区礼堂",
+        placeSt: "2026-08-20 14:00:00",
+        placeEt: "2026-08-20 16:00:00",
+      },
+      {
+        placeInfo: "西区活动中心",
+        placeSt: "2026-08-21 09:00:00",
+        placeEt: "2026-08-21 11:00:00",
+      },
+    ]);
+    expect(
+      builds?.find((build) => build.youngId === "ev2")?.places,
+    ).toBeUndefined();
+  });
+
+  it("leaves places undefined when the subtables are absent", () => {
+    const snapshot = fakeSnapshot({
+      tables: { [ENDED_TABLE]: [{ store_id: 1, id: "ev1", itemName: "活动" }] },
+    });
+    expect(loadYoungEvents(snapshot)?.[0]?.places).toBeUndefined();
   });
 
   it("returns an empty list when the young tables exist but hold no rows", () => {

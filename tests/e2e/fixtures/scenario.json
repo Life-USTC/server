@@ -248,6 +248,13 @@
     "department": "校团委",
     "organizer": "学生会",
     "location": "东区图书馆",
-    "imageUrl": "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg"
+    "imageUrl": "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
+    "activityLevel": "校级",
+    "module": "智",
+    "form": "现场参与",
+    "sponsor": "校团委",
+    "contactName": "张三",
+    "contactTel": "13800000000",
+    "placeInfo": "东区图书馆一楼报告厅"
   }
 }

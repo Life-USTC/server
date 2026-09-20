@@ -25,7 +25,13 @@ import { manifest } from "./.svelte-kit/output/server/manifest.js";
 // /news/sources is a public entry surface of the same shape as /news, so it
 // gets a budget from day one rather than after its first regression.
 const budgets = {
-  "/": { gzipBytes: 195_000, requests: 71 },
+  // The staged onboarding guide (#769) became a fourth importer of the
+  // `user-round` Lucide icon, so Rollup promoted it from inlined in the user
+  // menu chunk to a shared 326 B chunk: `/` measures 72 requests and 194,386
+  // gzip bytes, up from 71 and 193,916. That is the shared-chunk split
+  // described above, not extra payload, so only the request count moves.
+  // Pinned to the measured 72, not above it, so the next split still trips.
+  "/": { gzipBytes: 195_000, requests: 72 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
   "/news": { gzipBytes: 232_000, requests: 88 },

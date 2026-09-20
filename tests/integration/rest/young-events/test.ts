@@ -3,8 +3,8 @@
  *
  * ## Endpoints
  * - `GET /api/catalog/young-events` — List second-classroom signup events with
- *   optional `active`, `category`, `search`, `page`/`pageSize` (and deprecated
- *   `limit` alias) filters.
+ *   optional `active`, `category`, `module`, `activityLevel`, `search`,
+ *   `page`/`pageSize` (and deprecated `limit` alias) filters.
  * - `GET /api/catalog/young-events/[youngId]` — Fetch one event by its
  *   young.ustc.edu.cn identifier.
  * - `GET /api/catalog/young-events/[youngId]/image` — Poster image proxy backed
@@ -13,8 +13,9 @@
  *
  * ## Response
  * - 200 list: `{ data: YoungEventSummary[], pagination: { page, pageSize, total, totalPages } }`
- * - 200 detail: `YoungEventDetail` (summary fields + `rawJson`); `imageUrl` is
- *   the local proxy path `/api/catalog/young-events/[youngId]/image` or null
+ * - 200 detail: `YoungEventDetail` (summary fields + sanitized `description`
+ *   and `participationNotes` + `rawJson`); `imageUrl` is the local proxy path
+ *   `/api/catalog/young-events/[youngId]/image` or null
  * - 400: `{ error: string }` on invalid query
  * - 404: `{ error: string }` on unknown youngId
  *
@@ -117,6 +118,69 @@ test.describe("GET /api/catalog/young-events 接口", () => {
     );
   });
 
+  test("详情返回结构化扩展字段与消毒后的正文", async ({ request }) => {
+    const response = await request.get(
+      `/api/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      activityLevel?: string | null;
+      module?: string | null;
+      form?: string | null;
+      sponsor?: string | null;
+      contactName?: string | null;
+      contactTel?: string | null;
+      description?: string | null;
+      participationNotes?: string | null;
+      places?: Array<{ placeInfo?: string | null }> | null;
+      registrationStatus?: string | null;
+    };
+    expect(body.activityLevel).toBe(DEV_SEED.youngEvent.activityLevel);
+    expect(body.module).toBe(DEV_SEED.youngEvent.module);
+    expect(body.form).toBe(DEV_SEED.youngEvent.form);
+    expect(body.sponsor).toBe(DEV_SEED.youngEvent.sponsor);
+    expect(body.contactName).toBe(DEV_SEED.youngEvent.contactName);
+    expect(body.contactTel).toBe(DEV_SEED.youngEvent.contactTel);
+    expect(body.places?.[0]?.placeInfo).toBe(DEV_SEED.youngEvent.placeInfo);
+    // Rich text is sanitized and its upstream images point at our own proxy.
+    expect(body.description).toContain(
+      "/api/catalog/young-events/images/group1/",
+    );
+    expect(body.description).not.toContain("young.ustc.edu.cn");
+    expect(body.participationNotes).toContain("学生证");
+    // Deprecated: still present for generated clients, always null.
+    expect(body).toHaveProperty("registrationStatus");
+    expect(body.registrationStatus).toBeNull();
+  });
+
+  test("module 与 activityLevel 精确筛选", async ({ request }) => {
+    const matched = await request.get(
+      `/api/catalog/young-events?module=${encodeURIComponent(DEV_SEED.youngEvent.module)}&activityLevel=${encodeURIComponent(DEV_SEED.youngEvent.activityLevel)}`,
+    );
+    expect(matched.status()).toBe(200);
+    const matchedBody = (await matched.json()) as {
+      data?: Array<{ youngId?: string }>;
+    };
+    expect(
+      matchedBody.data?.some(
+        (event) => event.youngId === DEV_SEED.youngEvent.youngId,
+      ),
+    ).toBe(true);
+
+    const missed = await request.get(
+      "/api/catalog/young-events?module=" + encodeURIComponent("劳"),
+    );
+    expect(missed.status()).toBe(200);
+    const missedBody = (await missed.json()) as {
+      data?: Array<{ youngId?: string }>;
+    };
+    expect(
+      missedBody.data?.some(
+        (event) => event.youngId === DEV_SEED.youngEvent.youngId,
+      ),
+    ).toBe(false);
+  });
+
   test("未知 youngId 的海报返回 404", async ({ request }) => {
     const response = await request.get(
       "/api/catalog/young-events/e2e-unknown-young-id/image",
@@ -129,6 +193,15 @@ test.describe("GET /api/catalog/young-events 接口", () => {
   test("无海报的已结束活动返回 404", async ({ request }) => {
     const response = await request.get(
       "/api/catalog/young-events/dev-scenario-young-event-ended/image",
+    );
+    expect(response.status()).toBe(404);
+    const body = (await response.json()) as { error?: string };
+    expect(typeof body.error).toBe("string");
+  });
+
+  test("按路径取图的代理拒绝越界路径", async ({ request }) => {
+    const response = await request.get(
+      "/api/catalog/young-events/images/group1/..%2F..%2Fsecret.jpg",
     );
     expect(response.status()).toBe(404);
     const body = (await response.json()) as { error?: string };

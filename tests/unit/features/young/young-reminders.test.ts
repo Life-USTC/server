@@ -7,8 +7,8 @@ import {
 const event = {
   name: "Workshop",
   location: "East campus",
-  status: null,
   registrationStatus: null,
+  status: null,
   sourceMissing: false,
   applyStartAt: new Date("2026-09-15T08:00:00+08:00"),
   applyEndAt: new Date("2026-09-16T10:00:00+08:00"),

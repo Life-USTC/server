@@ -4,7 +4,6 @@ import type {
   HomeworkDeadlineState,
   HomeworkDetailModel,
 } from "@/features/homeworks/lib/homework-presentation";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { cn } from "$lib/utils.js";
 import type {
   HomeworkDetailCopy,
@@ -23,46 +22,30 @@ export let relativeEtaLabel: HomeworkDetailRelativeFormatter;
 $: dueLabel = fmtDate(homework.submissionDueAt) || dateFallback;
 $: relativeLabel = relativeEtaLabel(homework.submissionDueAt, referenceDate);
 $: isOverdue = deadlineState === "overdue";
+// Keep #1026: no deadline reminder once the homework is completed, and none at
+// all when the section does not require completion (#1038).
+$: showRelativeLabel = Boolean(
+  homework.submissionDueAt &&
+    relativeLabel &&
+    homework.completionRequired &&
+    !homework.completed,
+);
 </script>
 
-<dl
-  aria-label={copy.submissionDue}
-  class="grid min-w-0 gap-4 rounded-xl bg-muted/40 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-5"
-  data-testid="homework-deadline-summary"
->
-  <div class="min-w-0">
-    <dt class="text-muted-foreground text-sm">{copy.submissionDue}</dt>
-    <dd class="mt-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">
-      {dueLabel}
-    </dd>
-    {#if homework.completionRequired && !homework.completed}
-      <dd
-        class={cn(
-          "mt-2 flex items-center gap-2 text-sm",
-          isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
-        )}
-      >
-        <span>{copy.relativeTime}</span>
-        <span aria-hidden="true">·</span>
-        <span>{relativeLabel}</span>
-      </dd>
-    {/if}
-  </div>
-
-  <div class="flex min-w-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-    <dt class="text-muted-foreground text-sm">{copy.statusLabel}</dt>
-    <dd>
-      <Badge
-        variant={homework.completionRequired && homework.completed
-          ? "secondary"
-          : "outline"}
-      >
-        {homework.completionRequired
-          ? homework.completed
-            ? copy.completedLabel
-            : copy.pendingLabel
-          : copy.noCompletionRequired}
-      </Badge>
-    </dd>
-  </div>
-</dl>
+<div class="min-w-0" data-testid="homework-deadline-summary">
+  <p class="text-muted-foreground text-sm">{copy.submissionDue}</p>
+  <p class="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+    {dueLabel}
+  </p>
+  {#if showRelativeLabel}
+    <p
+      aria-label={copy.relativeTime}
+      class={cn(
+        "mt-1 text-sm",
+        isOverdue ? "text-destructive font-medium" : "text-muted-foreground",
+      )}
+    >
+      {relativeLabel}
+    </p>
+  {/if}
+</div>

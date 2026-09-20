@@ -1,12 +1,14 @@
 import { authApi } from "@/lib/auth/core";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { isValidProfileUsername } from "../lib/profile-username";
 
 type ProfileUpdateInput = {
   headers: Headers;
   image: string | null;
   name: string;
+  trustedImageUrl?: string | null;
   userId: string;
   username: string;
 };
@@ -38,6 +40,7 @@ export async function updateOwnProfile(
   if (
     input.image &&
     input.image !== current.image &&
+    input.image !== input.trustedImageUrl &&
     !current.profilePictures.includes(input.image)
   ) {
     return { ok: false, reason: "avatar_invalid" };
@@ -66,6 +69,29 @@ export async function updateOwnProfile(
       headers: input.headers,
       returnHeaders: true,
     });
+    if (
+      input.trustedImageUrl &&
+      !current.profilePictures.includes(input.trustedImageUrl)
+    ) {
+      try {
+        await prisma.user.update({
+          where: { id: input.userId },
+          data: {
+            profilePictures: { push: input.trustedImageUrl },
+          },
+          select: { id: true },
+        });
+      } catch (error) {
+        // The current image already points at the processed object, so profile
+        // completion can succeed even if persisting the reusable option fails.
+        logAppEvent(
+          "warn",
+          "Failed to persist processed avatar as a profile option",
+          { source: "profile" },
+          error,
+        );
+      }
+    }
     return { headers: response.headers, ok: true };
   } catch (error) {
     if (!isPrismaUniqueConstraintError(error)) throw error;
