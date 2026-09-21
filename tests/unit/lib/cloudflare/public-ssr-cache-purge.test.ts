@@ -202,8 +202,59 @@ describe("public SSR cache purge endpoint", () => {
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "edge.cache.purge.error",
-      expect.objectContaining({ reason: "purge-threw" }),
+      expect.objectContaining({
+        detail: "Error: rpc failed",
+        reason: "purge-threw",
+      }),
       expect.any(Error),
     );
+  });
+
+  it("names the thrown fault in the body instead of only that it failed", async () => {
+    // The production incident: `ctx.exports.PublicSsr()` called without its
+    // Options argument threw before the RPC was dispatched. The old body was a
+    // bare `{ error: "Cache purge failed" }`, which is indistinguishable from
+    // every other fault — locating it took several rounds of guessing.
+    const response = await handlePublicSsrCachePurgeRequest({
+      purge: vi
+        .fn()
+        .mockRejectedValue(
+          new TypeError("parameter 1 is not of type 'Options'"),
+        ),
+      request: purgeRequest(),
+      secret: SECRET,
+    });
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      detail: "TypeError: parameter 1 is not of type 'Options'",
+      error: "Cache purge failed",
+      reason: "purge-threw",
+    });
+  });
+
+  it("describes a non-Error throw by type without echoing its value", async () => {
+    const response = await handlePublicSsrCachePurgeRequest({
+      purge: vi.fn().mockRejectedValue("secret-bearing-string"),
+      request: purgeRequest(),
+      secret: SECRET,
+    });
+
+    expect(response.status).toBe(502);
+    const body = (await response.json()) as { detail: string };
+    expect(body.detail).toBe("string");
+    expect(JSON.stringify(body)).not.toContain("secret-bearing-string");
+  });
+
+  it("bounds the thrown detail so a huge message cannot flood the log", async () => {
+    const response = await handlePublicSsrCachePurgeRequest({
+      purge: vi.fn().mockRejectedValue(new Error("x".repeat(5_000))),
+      request: purgeRequest(),
+      secret: SECRET,
+    });
+
+    const body = (await response.json()) as { detail: string };
+    expect(body.detail).toHaveLength(200);
+    expect(body.detail.startsWith("Error: ")).toBe(true);
   });
 });

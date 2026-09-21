@@ -78,6 +78,25 @@ async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   }
 }
 
+/**
+ * Mirror the runtime contract of `ctx.exports.<Entrypoint>(...)`: the binding
+ * is a constructor that *requires* an Options argument. Calling it bare throws
+ * `TypeError: parameter 1 is not of type 'Options'` before any RPC is
+ * dispatched — measured against workerd with a minimal repro, not assumed.
+ *
+ * A stub that ignores its arguments accepts both `PublicSsr()` and
+ * `PublicSsr({})`, which is precisely how a bare purge call reached production
+ * while every test stayed green. Keep new `exports` stubs on this helper.
+ */
+function publicSsrExportStub<T>(build: () => T) {
+  return vi.fn((...args: unknown[]): T => {
+    if (args.length === 0 || typeof args[0] !== "object" || args[0] === null) {
+      throw new TypeError("parameter 1 is not of type 'Options'");
+    }
+    return build();
+  });
+}
+
 describe("Worker routing entrypoint", () => {
   beforeEach(() => {
     appFetchMock.mockReset();
@@ -215,7 +234,9 @@ describe("Worker routing entrypoint", () => {
         {},
         {
           exports: {
-            PublicSsr: vi.fn(() => ({ fetch: publicSsrFetchMock })),
+            PublicSsr: publicSsrExportStub(() => ({
+              fetch: publicSsrFetchMock,
+            })),
           },
           waitUntil: vi.fn(),
         },
@@ -313,7 +334,7 @@ describe("Worker routing entrypoint", () => {
     });
     const publicSsrFetchMock = vi.fn().mockResolvedValue(cachedResponse);
     const exports = {
-      PublicSsr: vi.fn(() => ({ fetch: publicSsrFetchMock })),
+      PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
     };
     const context = { exports, waitUntil: vi.fn() };
 
@@ -521,7 +542,7 @@ describe("Worker routing entrypoint", () => {
     const purgeCatalogRepresentations = vi
       .fn()
       .mockResolvedValue({ ok: true, tags: ["catalog"] });
-    const publicSsrStub = vi.fn(() => ({
+    const publicSsrStub = publicSsrExportStub(() => ({
       fetch: vi.fn(),
       purgeCatalogRepresentations,
     }));
@@ -543,9 +564,38 @@ describe("Worker routing entrypoint", () => {
     expect(appFetchMock).not.toHaveBeenCalled();
   });
 
+  it("constructs the PublicSsr purge binding with an Options argument", async () => {
+    const purgeCatalogRepresentations = vi
+      .fn()
+      .mockResolvedValue({ ok: true, tags: ["catalog"] });
+    const publicSsrStub = publicSsrExportStub(() => ({
+      fetch: vi.fn(),
+      purgeCatalogRepresentations,
+    }));
+
+    const response = await worker.fetch(
+      new Request(`https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`, {
+        headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: PURGE_SECRET },
+        method: "POST",
+      }),
+      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+    );
+
+    // The bare `PublicSsr()` this replaces threw before the RPC was ever
+    // dispatched, so the endpoint answered 502 and the entrypoint cache was
+    // never cleared. Pin the argument itself — asserting only that the purge
+    // method ran is what let the bare call ship.
+    expect(publicSsrStub).toHaveBeenCalledTimes(1);
+    expect(publicSsrStub.mock.calls[0]).toHaveLength(1);
+    expect(publicSsrStub.mock.calls[0]?.[0]).toBeTypeOf("object");
+    expect(response.status).toBe(200);
+    expect(purgeCatalogRepresentations).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects an unauthenticated cache purge without reaching the entrypoint", async () => {
     const purgeCatalogRepresentations = vi.fn();
-    const publicSsrStub = vi.fn(() => ({
+    const publicSsrStub = publicSsrExportStub(() => ({
       fetch: vi.fn(),
       purgeCatalogRepresentations,
     }));

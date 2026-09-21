@@ -343,7 +343,10 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
   // public SSR cache.
   if (isPublicSsrCachePurgeRequest(request)) {
     const purgeResponse = await handlePublicSsrCachePurgeRequest({
-      purge: () => context.exports.PublicSsr().purgeCatalogRepresentations(),
+      // `ctx.exports.X()` requires an Options argument: calling it bare throws
+      // `TypeError: parameter 1 is not of type 'Options'` before the RPC is
+      // ever dispatched, so the purge never reached `cache.purge()` at all.
+      purge: () => context.exports.PublicSsr({}).purgeCatalogRepresentations(),
       request,
       secret: resolvePublicSsrCachePurgeSecret(env),
     });
