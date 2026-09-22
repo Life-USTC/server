@@ -5,7 +5,7 @@
     "": {
       "name": "life-ustc-server",
       "dependencies": {
-        "@better-auth/cimd": "1.7.4",
+        "@better-auth/cimd": "1.7.5",
         "@better-auth/core": "1.7.2",
         "@better-auth/mcp": "1.7.2",
         "@better-auth/oauth-provider": "1.7.4",
@@ -87,9 +87,6 @@
       },
     },
   },
-  "patchedDependencies": {
-    "@better-auth/cimd@1.7.4": "patches/@better-auth%2Fcimd@1.7.4.patch",
-  },
   "overrides": {
     "@better-auth/core": "1.7.2",
     "@better-auth/oauth-provider": "1.7.2",
@@ -137,7 +134,7 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, "sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA=="],
 
-    "@better-auth/cimd": ["@better-auth/cimd@1.7.4", "", { "peerDependencies": { "@better-auth/core": "^1.7.4", "@better-auth/oauth-provider": "^1.7.4", "better-auth": "^1.7.4", "better-call": "1.4.0" } }, "sha512-GxtLqVzAmA9Q5PiXYq7RfIkEWyp8AFBklPmzfH94+6MXz1PJaqYTLN7RsxpO4lhTkrtLkisCI0XXFZ+UWzm4TA=="],
+    "@better-auth/cimd": ["@better-auth/cimd@1.7.5", "", { "peerDependencies": { "@better-auth/core": "^1.7.5", "@better-auth/oauth-provider": "^1.7.5", "better-auth": "^1.7.5", "better-call": "1.4.0" } }, "sha512-7mQF9eWZ0gkYt57zTuUKYcA4w07CvQM5Cr9D7N0qmiPNjyNHGAZoe29L3a8k6OIrI0+rGFAGb0qOXwaOWidLPw=="],
 
     "@better-auth/core": ["@better-auth/core@1.7.2", "", { "dependencies": { "@opentelemetry/semantic-conventions": "^1.41.1", "@standard-schema/spec": "^1.1.0", "zod": "^4.3.6" }, "peerDependencies": { "@better-auth/utils": "0.4.2", "@better-fetch/fetch": "1.3.1", "@cloudflare/workers-types": ">=4", "@opentelemetry/api": "^1.9.0", "better-call": "1.4.0", "jose": "^6.1.0", "kysely": "^0.28.5 || ^0.29.0", "nanostores": "^1.0.1" }, "optionalPeers": ["@cloudflare/workers-types", "@opentelemetry/api"] }, "sha512-j0nM4ygsWbF/fcYRoKtDn8gn8uLXkmC+075HqSqsJEAV828cJR9bvYBCUQ1zmxNyRBk6Iz/qXsA0Zm2oksiOTg=="],
 

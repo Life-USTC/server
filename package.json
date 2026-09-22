@@ -54,7 +54,7 @@
     "integration:test:parallel": "bash tests/ci/integration-parallel-local.sh"
   },
   "dependencies": {
-    "@better-auth/cimd": "1.7.4",
+    "@better-auth/cimd": "1.7.5",
     "@better-auth/core": "1.7.2",
     "@better-auth/mcp": "1.7.2",
     "@better-auth/oauth-provider": "1.7.4",
