@@ -3342,6 +3342,44 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -3381,6 +3419,44 @@
           },
           "404": {
             "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

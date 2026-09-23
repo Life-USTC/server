@@ -4,7 +4,12 @@ import {
   getDemoTodos,
   simulateDemoTodoCreate,
 } from "@/features/demo/server/demo-fixtures";
-import { badRequest, jsonResponse } from "@/lib/api/responses";
+import { checkDemoRateLimit } from "@/features/demo/server/demo-rate-limit";
+import {
+  badRequest,
+  jsonResponse,
+  rateLimitResponse,
+} from "@/lib/api/responses";
 import { apiRequestContext } from "@/lib/log/api-observability-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import type { RequestHandler } from "./$types";
@@ -33,10 +38,18 @@ export const GET: RequestHandler = async ({ request }) => {
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST: RequestHandler = async ({ request }) => {
   const principal = await requireDemoApiScope(request, "demo:todo:write");
   if (principal instanceof Response) return principal;
+  const rateLimit = await checkDemoRateLimit(
+    request,
+    "todo-create",
+    getDemoSessionAuditId(principal.sessionId),
+  );
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.reason);
   let body: { title?: unknown } | null;
   try {
     body = (await request.json()) as { title?: unknown } | null;
