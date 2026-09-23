@@ -207,6 +207,10 @@ describe("public SSR gateway", () => {
     expect(resolvePublicSsrMode(request("/catalog/bus/map"))).toBeNull();
   });
 
+  test("keeps the anonymous demo page dynamic", () => {
+    expect(resolvePublicSsrMode(request("/demo"))).toBeNull();
+  });
+
   test.each([
     "/catalog/courses/11145",
     "/catalog/teachers/42",

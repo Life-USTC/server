@@ -64,6 +64,7 @@ const STATIC_PUBLIC_PATHS = new Set([
 const STATIC_PUBLIC_ROOTS = ["/api/docs"];
 const DIRECT_REQUEST_PATHS = new Set([
   "/",
+  "/demo",
   "/error",
   "/llms.txt",
   "/metrics",

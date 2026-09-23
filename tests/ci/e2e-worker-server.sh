@@ -123,6 +123,10 @@ wrangler_args=(
   --var
   "APP_PUBLIC_ORIGIN:${worker_origin}"
 )
+if [[ "${DEMO_MODE_ENABLED:-}" == "true" ]]; then
+  : "${DEMO_SIGNING_SECRET:?Set the E2E-only demo signing secret}"
+  wrangler_args+=(--var "DEMO_MODE_ENABLED:true" --var "DEMO_SIGNING_SECRET:${DEMO_SIGNING_SECRET}")
+fi
 if [[ -n "${E2E_PERSIST_TO:-}" ]]; then
   wrangler_args+=("--persist-to=${E2E_PERSIST_TO}")
 fi
