@@ -1,3 +1,10 @@
+## [1.120.4](https://github.com/Life-USTC/server/compare/v1.120.3...v1.120.4) (2026-09-23)
+
+
+### Bug Fixes
+
+* **cache:** make post-import invalidation fail safely ([#1100](https://github.com/Life-USTC/server/issues/1100)) ([522c071](https://github.com/Life-USTC/server/commit/522c0711b1cc7ea3b90718148ca51841f446130d))
+
 ## [1.120.3](https://github.com/Life-USTC/server/compare/v1.120.2...v1.120.3) (2026-09-20)
 
 
