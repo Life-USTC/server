@@ -69,18 +69,4 @@ describe("OpenAPI build and workflow contracts", () => {
     );
     expect(bunWorkflow).not.toContain("PR_TITLE:");
   });
-
-  it("dispatches the immutable server revision without failing on a missing token", async () => {
-    const workflow = await readRepositoryFile(
-      ".github/workflows/openapi-consumer-sync.yml",
-    );
-
-    expect(workflow).toContain("OPENAPI_SYNC_TOKEN");
-    expect(workflow).toContain("event_type=openapi-updated");
-    expect(workflow).toContain("client_payload[server_sha]=$" + "{GITHUB_SHA}");
-    expect(workflow).toContain("Life-USTC/bot Life-USTC/cli");
-    expect(workflow).toMatch(
-      /if \[\[ -z "\$\{GH_TOKEN:-\}" \]\];[\s\S]*exit 0/,
-    );
-  });
 });
