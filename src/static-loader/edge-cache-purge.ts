@@ -9,7 +9,6 @@ import {
 export { CATALOG_EDGE_CACHE_TAG };
 
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
-const MAX_ERROR_BODY_LENGTH = 500;
 
 export type EdgeCachePurgeResult =
   | { ok: true; skipped: false }
@@ -38,26 +37,37 @@ export async function purgeCloudflareCacheByTags(
     return { ok: false, skipped: true as const };
   }
 
-  const response = await fetch(
-    `${CLOUDFLARE_API_BASE}/zones/${zoneId}/purge_cache`,
-    {
-      body: JSON.stringify({ tags: [...tags] }),
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        "Content-Type": "application/json",
+  let response: Response;
+  try {
+    response = await fetch(
+      `${CLOUDFLARE_API_BASE}/zones/${zoneId}/purge_cache`,
+      {
+        body: JSON.stringify({ tags: [...tags] }),
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
       },
-      method: "POST",
-    },
-  );
+    );
+  } catch {
+    throw new Error("Cloudflare zone cache purge request failed");
+  }
 
   if (!response.ok) {
-    const body = await response.text();
     throw new Error(
-      `Cloudflare cache purge failed (${response.status}): ${body.slice(
-        0,
-        MAX_ERROR_BODY_LENGTH,
-      )}`,
+      `Cloudflare zone cache purge failed (HTTP ${response.status})`,
     );
+  }
+
+  let result: { success?: unknown };
+  try {
+    result = (await response.json()) as { success?: unknown };
+  } catch {
+    throw new Error("Cloudflare zone cache purge returned invalid JSON");
+  }
+  if (result?.success !== true) {
+    throw new Error("Cloudflare zone cache purge was rejected");
   }
 
   return { ok: true, skipped: false as const };
@@ -78,21 +88,22 @@ export async function purgeWorkerEntrypointCache(): Promise<EdgeCachePurgeResult
     return { ok: false, skipped: true as const };
   }
 
-  const response = await fetch(
-    new URL(PUBLIC_SSR_CACHE_PURGE_PATH, origin).toString(),
-    {
-      headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: secret },
-      method: "POST",
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      new URL(PUBLIC_SSR_CACHE_PURGE_PATH, origin).toString(),
+      {
+        headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: secret },
+        method: "POST",
+      },
+    );
+  } catch {
+    throw new Error("Worker entrypoint cache purge request failed");
+  }
 
   if (!response.ok) {
-    const body = await response.text();
     throw new Error(
-      `Worker entrypoint cache purge failed (${response.status}): ${body.slice(
-        0,
-        MAX_ERROR_BODY_LENGTH,
-      )}`,
+      `Worker entrypoint cache purge failed (HTTP ${response.status})`,
     );
   }
 
