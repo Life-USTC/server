@@ -9,9 +9,11 @@ test("demo session reads fixtures and marks writes as simulated", async ({
   page,
 }) => {
   await page.goto("/demo");
-  await page.getByRole("button", { name: "Enter isolated demo" }).click();
+  await page
+    .getByRole("button", { name: /进入独立演示|Enter isolated demo/ })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Sample todos" }),
+    page.getByRole("heading", { name: /样例待办|Sample todos/ }),
   ).toBeVisible();
 
   const tokenResponse = await page.request.post("/api/demo/token");

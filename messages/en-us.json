@@ -1234,6 +1234,14 @@
       "raw_page": "Raw page"
     }
   },
+  "demoPage": {
+    "eyebrow": "Isolated demo",
+    "title": "Demo workspace",
+    "description": "This session uses fixed examples. Changes are simulated and never written to the application database.",
+    "sampleTodos": "Sample todos",
+    "enter": "Enter isolated demo",
+    "priority": { "high": "High", "medium": "Medium" }
+  },
   "busMap": {
     "title": "Transit Map",
     "subtitle": "Live shuttle bus network across USTC campuses",

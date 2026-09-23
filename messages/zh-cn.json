@@ -2898,6 +2898,14 @@
       "raw_page": "原始页面"
     }
   },
+  "demoPage": {
+    "eyebrow": "隔离演示",
+    "title": "演示工作台",
+    "description": "此会话只使用固定样例。所有修改均为模拟，不会写入应用数据库。",
+    "sampleTodos": "样例待办",
+    "enter": "进入独立演示",
+    "priority": { "high": "高", "medium": "中" }
+  },
   "busMap": {
     "title": "线路图",
     "subtitle": "科大校区班车线路实时概览",
