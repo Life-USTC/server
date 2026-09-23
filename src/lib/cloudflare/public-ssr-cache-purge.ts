@@ -70,14 +70,24 @@ function boundedDetail(value: string) {
   return value.slice(0, MAX_DETAIL_LENGTH);
 }
 
+function describeThrown(error: unknown) {
+  if (error instanceof TypeError) return "TypeError";
+  if (error instanceof Error) return "Error";
+  return typeof error;
+}
+
 function summarizePurgeErrors(
   errors: readonly { code?: number; message?: string }[] | undefined,
 ) {
   if (!errors || errors.length === 0) return undefined;
   return boundedDetail(
     errors
-      .map((error) => `${error.code ?? "unknown"}: ${error.message ?? ""}`)
-      .join("; "),
+      .map((error) =>
+        typeof error.code === "number" && Number.isSafeInteger(error.code)
+          ? String(error.code)
+          : "unknown",
+      )
+      .join(","),
   );
 }
 
@@ -117,7 +127,7 @@ export async function purgeEntrypointCatalogCache(
     result = await cache.purge({ tags: [...PUBLIC_SSR_CACHE_PURGE_TAGS] });
   } catch (error) {
     return {
-      detail: boundedDetail(error instanceof Error ? error.name : typeof error),
+      detail: describeThrown(error),
       ok: false,
       reason: "purge-threw",
     };
@@ -189,18 +199,19 @@ export async function handlePublicSsrCachePurgeRequest(input: {
   try {
     result = await input.purge();
   } catch (error) {
-    logAppEvent(
-      "error",
-      "edge.cache.purge.error",
-      {
-        event: "edge.cache.purge.error",
-        outcome: "error",
-        reason: "purge-threw",
-        source: "worker-entrypoint",
-      },
-      error,
-    );
-    return jsonResponse(502, { error: "Cache purge failed" });
+    const detail = describeThrown(error);
+    logAppEvent("error", "edge.cache.purge.error", {
+      detail,
+      event: "edge.cache.purge.error",
+      outcome: "error",
+      reason: "purge-threw",
+      source: "worker-entrypoint",
+    });
+    return jsonResponse(502, {
+      detail,
+      error: "Cache purge failed",
+      reason: "purge-threw",
+    });
   }
 
   if (!result.ok) {

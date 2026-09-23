@@ -13,7 +13,7 @@ function logger() {
 }
 
 function okResponse() {
-  return new Response("{}", { status: 200 });
+  return new Response('{"success":true}', { status: 200 });
 }
 
 function configureBothLayers() {
@@ -118,6 +118,47 @@ describe("post-import cache purge", () => {
       expect.stringContaining("Workers entrypoint"),
       expect.any(Error),
     );
+  });
+
+  it("does not log a rejected entrypoint response body", async () => {
+    configureBothLayers();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) =>
+      String(input).endsWith(PUBLIC_SSR_CACHE_PURGE_PATH)
+        ? new Response(`private body ${PURGE_SECRET}`, { status: 502 })
+        : okResponse(),
+    );
+    const log = logger();
+
+    const report = await runPostImportCachePurge({ outcome: "committed" }, log);
+
+    expect(report.workerEntrypoint).toBe("failed");
+    expect(String(log.error.mock.calls[0]?.[1])).not.toContain(PURGE_SECRET);
+    expect(String(log.error.mock.calls[0]?.[1])).toContain("HTTP 502");
+  });
+
+  it("treats a successful HTTP status with a rejected zone purge as failure", async () => {
+    configureBothLayers();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) =>
+      String(input).includes("/zones/")
+        ? new Response(
+            JSON.stringify({
+              success: false,
+              errors: [{ message: PURGE_SECRET }],
+            }),
+            { status: 200 },
+          )
+        : okResponse(),
+    );
+    const log = logger();
+
+    const report = await runPostImportCachePurge({ outcome: "committed" }, log);
+
+    expect(report).toEqual({
+      failed: true,
+      workerEntrypoint: "purged",
+      zone: "failed",
+    });
+    expect(String(log.error.mock.calls[0]?.[1])).not.toContain(PURGE_SECRET);
   });
 
   it("never sends the secret to an unconfigured origin", async () => {
