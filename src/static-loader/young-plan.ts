@@ -62,6 +62,17 @@ export type YoungEventPlace = {
   placeEt?: string;
 };
 
+type YoungPlaceSnapshot = {
+  places: YoungEventPlace[];
+  rawItemPlaceDTO: Record<string, unknown> | Record<string, unknown>[];
+};
+
+function upstreamColumns(row: SnapshotRow): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(row).filter(([key]) => !INTERNAL_COLUMNS.has(key)),
+  );
+}
+
 export type YoungEventBuild = {
   youngId: string;
   name: string;
@@ -109,15 +120,13 @@ export type YoungEventBuild = {
 function mapYoungEventRow(
   row: SnapshotRow,
   isActive: boolean,
-  places?: YoungEventPlace[],
+  placeSnapshot?: YoungPlaceSnapshot,
 ): YoungEventBuild | null {
   const youngId = asString(row.id);
   if (youngId == null) return null;
 
-  const raw: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(row)) {
-    if (!INTERNAL_COLUMNS.has(key)) raw[key] = value;
-  }
+  const raw = upstreamColumns(row);
+  if (placeSnapshot) raw.itemPlaceDTO = placeSnapshot.rawItemPlaceDTO;
 
   return {
     youngId,
@@ -160,7 +169,7 @@ function mapYoungEventRow(
     createdAtUpstream: asShanghaiDateTime(row.createTime),
     auditedAt: asShanghaiDateTime(row.auditTime),
     updatedAtUpstream: asShanghaiDateTime(row.updateTime),
-    places,
+    places: placeSnapshot?.places,
   };
 }
 
@@ -172,10 +181,10 @@ function mapYoungEventRow(
 function loadPlacesByRecordStoreId(
   snapshot: Snapshot,
   recordsTable: string,
-): Map<number, YoungEventPlace[]> {
+): Map<number, YoungPlaceSnapshot> {
   const dtoTable = `${recordsTable}_itemPlaceDTO`;
   const placesTable = `${dtoTable}_places`;
-  const result = new Map<number, YoungEventPlace[]>();
+  const result = new Map<number, YoungPlaceSnapshot>();
   if (!snapshot.hasTable(dtoTable) || !snapshot.hasTable(placesTable)) {
     return result;
   }
@@ -184,12 +193,17 @@ function loadPlacesByRecordStoreId(
   const placesByDto = snapshot.queryGrouped(placesTable);
   for (const [recordStoreId, dtos] of dtosByRecord) {
     const places: YoungEventPlace[] = [];
+    const rawDtos: Record<string, unknown>[] = [];
     for (const dto of dtos) {
       const dtoStoreId = asInt(dto.store_id);
       if (dtoStoreId == null) continue;
       const rows = [...(placesByDto.get(dtoStoreId) ?? [])].sort(
         (a, b) => (asInt(a.position) ?? 0) - (asInt(b.position) ?? 0),
       );
+      rawDtos.push({
+        ...upstreamColumns(dto),
+        places: rows.map(upstreamColumns),
+      });
       for (const row of rows) {
         const place: YoungEventPlace = {
           placeInfo: asString(row.placeInfo),
@@ -200,7 +214,12 @@ function loadPlacesByRecordStoreId(
         places.push(place);
       }
     }
-    if (places.length > 0) result.set(recordStoreId, places);
+    if (rawDtos.length > 0) {
+      result.set(recordStoreId, {
+        places,
+        rawItemPlaceDTO: rawDtos.length === 1 ? rawDtos[0] : rawDtos,
+      });
+    }
   }
   return result;
 }

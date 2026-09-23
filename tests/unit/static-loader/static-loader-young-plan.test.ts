@@ -284,6 +284,8 @@ describe("static young event plan", () => {
             store_id: 100,
             parent_store_id: 10,
             position: 0,
+            id: "slot-east",
+            createTime: 1785139693000,
             placeInfo: "东区礼堂",
             placeSt: "2026-08-20 14:00:00",
             placeEt: "2026-08-20 16:00:00",
@@ -308,6 +310,17 @@ describe("static young event plan", () => {
     expect(
       builds?.find((build) => build.youngId === "ev2")?.places,
     ).toBeUndefined();
+    const raw = JSON.parse(
+      builds?.find((build) => build.youngId === "ev1")?.rawJson ?? "{}",
+    ) as Record<string, unknown>;
+    expect(raw.itemPlaceDTO).toMatchObject({
+      itemId: "ev1",
+      places: [
+        { id: "slot-east", createTime: 1785139693000 },
+        { placeInfo: "西区活动中心" },
+      ],
+    });
+    expect(raw.itemPlaceDTO).not.toHaveProperty("store_id");
   });
 
   it("leaves places undefined when the subtables are absent", () => {
