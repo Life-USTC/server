@@ -115,7 +115,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.5.1",
-    "@vitest/coverage-v8": "5.0.0",
+    "@vitest/coverage-v8": "5.0.1",
     "ajv": "^8.20.0",
     "bits-ui": "^2.19.0",
     "devalue": "5.9.2",
