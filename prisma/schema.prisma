@@ -1092,17 +1092,9 @@ model Publication {
   sourceId          String
   canonicalUrl      String
   title             String
-  author            String?
   publishedAt       DateTime?
-  updatedAtSource   DateTime?
-  category          String?
   summary           String?
-  bodyText          String?
-  sourcePageUrl     String?
-  extractionMethod  String?
-  rawMetadata       Json?
   publicationType   PublicationType
-  classifierVersion String?
   currentRevisionId String?         @unique
   firstSeenAt       DateTime        @default(now())
   lastSeenAt        DateTime        @default(now())
@@ -1998,10 +1990,9 @@ model YoungEvent {
   organizer          String?
   organizerId        String?
   status             String?
-  /// Deprecated: upstream never populates this and every interface serializes
-  /// it as null. Kept so generated clients keep a required property; removal
-  /// is a separate, deliberately labelled breaking change.
-  registrationStatus String?
+  activityStatusCode String?
+  signupStatusCode   String?
+  requiresSignup     Boolean?
   location           String?
   imageUrl           String?
   hours              Float?

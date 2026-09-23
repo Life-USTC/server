@@ -57,8 +57,34 @@ const PUBLICATION_READ_INCLUDE = {
   },
 } satisfies Prisma.PublicationInclude;
 
+// Lists need revision metadata and object links, but never article bodies or
+// raw crawler metadata. Keep the wide read for the detail endpoint only.
+const PUBLICATION_LIST_SELECT = {
+  id: true,
+  canonicalUrl: true,
+  publicationType: true,
+  source: PUBLICATION_READ_INCLUDE.source,
+  currentRevision: {
+    select: {
+      id: true,
+      revisionHash: true,
+      observedAt: true,
+      isTombstone: true,
+      publicationType: true,
+      title: true,
+      author: true,
+      publishedAt: true,
+      updatedAtSource: true,
+      category: true,
+      summary: true,
+      sourcePageUrl: true,
+      objectLinks: PUBLICATION_READ_INCLUDE.currentRevision.include.objectLinks,
+    },
+  },
+} satisfies Prisma.PublicationSelect;
+
 type PublicPublicationRecord = Prisma.PublicationGetPayload<{
-  include: typeof PUBLICATION_READ_INCLUDE;
+  select: typeof PUBLICATION_LIST_SELECT;
 }>;
 
 type PublicPublicationRevision = NonNullable<
@@ -503,7 +529,7 @@ export async function listPublications(
         ? []
         : await prisma.publication.findMany({
             where: { id: { in: folded.ids } },
-            include: PUBLICATION_READ_INCLUDE,
+            select: PUBLICATION_LIST_SELECT,
           });
     const recordById = new Map(records.map((record) => [record.id, record]));
     const data = folded.ids.flatMap((id) => {
@@ -533,7 +559,7 @@ export async function listPublications(
   const [records, total] = await prisma.$transaction([
     prisma.publication.findMany({
       where,
-      include: PUBLICATION_READ_INCLUDE,
+      select: PUBLICATION_LIST_SELECT,
       orderBy: [
         { publishedAt: { sort: "desc", nulls: "last" } },
         { lastSeenAt: "desc" },
@@ -561,7 +587,11 @@ export async function listPublications(
   };
 }
 
-async function findAlsoPublishedIn(record: PublicPublicationRecord) {
+async function findAlsoPublishedIn(record: {
+  id: string;
+  normalizedTitle: string;
+  publishedDateShanghai: Date;
+}) {
   const siblings = await prisma.publication.findMany({
     where: {
       ...publicPublicationWhere(),

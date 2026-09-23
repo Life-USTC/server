@@ -913,7 +913,8 @@ describe("publication ingestion transaction", () => {
 
       const publication = [...fake.state.publications.values()][0];
       expect(publication?.title).toBe("Original title");
-      expect(publication?.bodyText).toBe("Original body");
+      const revision = [...fake.state.revisions.values()][0];
+      expect(revision?.bodyText).toBe("Original body");
       expect(fake.state.revisions.size).toBe(1);
       expect(fake.state.objects.size).toBe(0);
       expect(fake.state.links.size).toBe(0);

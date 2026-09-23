@@ -102,7 +102,9 @@ describe("static young event plan", () => {
             businessDeptName: "校团委",
             organizer_dictText: "学生会",
             itemStatus_dictText: "进行中",
-            registrationStatus: "报名中",
+            itemStatus: "26",
+            applyStatus: "26",
+            needApply: "1",
             placeInfo: "东区图书馆",
             pic: "https://example.com/pic.jpg",
             validHour: "2.5",
@@ -130,7 +132,9 @@ describe("static young event plan", () => {
       department: "校团委",
       organizer: "学生会",
       status: "进行中",
-      registrationStatus: "报名中",
+      activityStatusCode: "26",
+      signupStatusCode: "26",
+      requiresSignup: true,
       location: "东区图书馆",
       imageUrl: "https://example.com/pic.jpg",
       hours: 2.5,
@@ -186,7 +190,7 @@ describe("static young event plan", () => {
     expect(builds?.[0]?.startAt).toBeUndefined();
   });
 
-  it("maps the extended upstream columns and keeps the dead registrationStatus", () => {
+  it("maps the extended upstream columns and preserves raw data", () => {
     const snapshot = fakeSnapshot({
       tables: {
         [ENDED_TABLE]: [
@@ -213,7 +217,9 @@ describe("static young event plan", () => {
             createTime: "2026-08-08 23:53:40",
             auditTime: "2026-08-10 10:24:19",
             updateTime: "2026-08-11 08:00:00",
-            registrationStatus: "报名中",
+            itemStatus: "34",
+            applyStatus: "28",
+            needApply: "1",
           },
         ],
       },
@@ -237,6 +243,9 @@ describe("static young event plan", () => {
       partakeNum: 30,
       favCount: 4,
       limitNum: 50,
+      activityStatusCode: "34",
+      signupStatusCode: "28",
+      requiresSignup: true,
     });
     expect(build?.createdAtUpstream?.toISOString()).toBe(
       "2026-08-08T15:53:40.000Z",
@@ -245,13 +254,11 @@ describe("static young event plan", () => {
     expect(build?.updatedAtUpstream?.toISOString()).toBe(
       "2026-08-11T00:00:00.000Z",
     );
-    // The column keeps mirroring upstream; only the serialization layer nulls
-    // it. The value also stays in the preserved upstream payload.
-    expect(build?.registrationStatus).toBe("报名中");
+    // The raw upstream record remains available even after adding typed columns.
     expect(
       (JSON.parse(build?.rawJson ?? "{}") as Record<string, unknown>)
-        .registrationStatus,
-    ).toBe("报名中");
+        .applyStatus,
+    ).toBe("28");
   });
 
   it("joins the itemPlaceDTO places subtables onto each record", () => {
@@ -277,6 +284,8 @@ describe("static young event plan", () => {
             store_id: 100,
             parent_store_id: 10,
             position: 0,
+            id: "slot-east",
+            createTime: 1785139693000,
             placeInfo: "东区礼堂",
             placeSt: "2026-08-20 14:00:00",
             placeEt: "2026-08-20 16:00:00",
@@ -301,6 +310,17 @@ describe("static young event plan", () => {
     expect(
       builds?.find((build) => build.youngId === "ev2")?.places,
     ).toBeUndefined();
+    const raw = JSON.parse(
+      builds?.find((build) => build.youngId === "ev1")?.rawJson ?? "{}",
+    ) as Record<string, unknown>;
+    expect(raw.itemPlaceDTO).toMatchObject({
+      itemId: "ev1",
+      places: [
+        { id: "slot-east", createTime: 1785139693000 },
+        { placeInfo: "西区活动中心" },
+      ],
+    });
+    expect(raw.itemPlaceDTO).not.toHaveProperty("store_id");
   });
 
   it("leaves places undefined when the subtables are absent", () => {
