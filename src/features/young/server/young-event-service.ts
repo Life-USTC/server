@@ -37,12 +37,9 @@ export type YoungEventSummary = {
   organizer: string | null;
   organizerId: string | null;
   status: string | null;
-  /**
-   * Deprecated. Upstream never populates this, so it is always null; use
-   * `status` for the real signup state. Kept so generated clients keep a
-   * property they already declare as required.
-   */
-  registrationStatus: string | null;
+  activityStatusCode: string | null;
+  signupStatusCode: string | null;
+  requiresSignup: boolean | null;
   location: string | null;
   imageUrl: string | null;
   hours: number | null;
@@ -119,6 +116,9 @@ export const YOUNG_EVENT_SELECT = {
   organizer: true,
   organizerId: true,
   status: true,
+  activityStatusCode: true,
+  signupStatusCode: true,
+  requiresSignup: true,
   location: true,
   imageUrl: true,
   hours: true,
@@ -201,9 +201,9 @@ export function toYoungEventSummary(
     organizer: record.organizer,
     organizerId: record.organizerId,
     status: record.status,
-    // Deliberately not read from the column: the field is dead upstream and is
-    // reported as null everywhere until its removal ships on its own.
-    registrationStatus: null,
+    activityStatusCode: record.activityStatusCode,
+    signupStatusCode: record.signupStatusCode,
+    requiresSignup: record.requiresSignup,
     location: record.location,
     imageUrl: record.imageUrl ? youngEventImageUrl(record.youngId) : null,
     hours: record.hours,

@@ -15750,10 +15750,17 @@
                   "nullable": true,
                   "type": "string"
                 },
-                "registrationStatus": {
+                "activityStatusCode": {
                   "nullable": true,
-                  "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
                   "type": "string"
+                },
+                "signupStatusCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "requiresSignup": {
+                  "nullable": true,
+                  "type": "boolean"
                 },
                 "location": {
                   "nullable": true,
@@ -15939,7 +15946,9 @@
                 "organizer",
                 "organizerId",
                 "status",
-                "registrationStatus",
+                "activityStatusCode",
+                "signupStatusCode",
+                "requiresSignup",
                 "location",
                 "imageUrl",
                 "hours",
@@ -23684,10 +23693,17 @@
                       "nullable": true,
                       "type": "string"
                     },
-                    "registrationStatus": {
+                    "activityStatusCode": {
                       "nullable": true,
-                      "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
                       "type": "string"
+                    },
+                    "signupStatusCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "requiresSignup": {
+                      "nullable": true,
+                      "type": "boolean"
                     },
                     "location": {
                       "nullable": true,
@@ -23873,7 +23889,9 @@
                     "organizer",
                     "organizerId",
                     "status",
-                    "registrationStatus",
+                    "activityStatusCode",
+                    "signupStatusCode",
+                    "requiresSignup",
                     "location",
                     "imageUrl",
                     "hours",
@@ -29127,10 +29145,17 @@
             "nullable": true,
             "type": "string"
           },
-          "registrationStatus": {
+          "activityStatusCode": {
             "nullable": true,
-            "description": "Deprecated: always null. Upstream never populates it; use status for the signup state.",
             "type": "string"
+          },
+          "signupStatusCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "requiresSignup": {
+            "nullable": true,
+            "type": "boolean"
           },
           "location": {
             "nullable": true,
@@ -29325,7 +29350,9 @@
           "organizer",
           "organizerId",
           "status",
-          "registrationStatus",
+          "activityStatusCode",
+          "signupStatusCode",
+          "requiresSignup",
           "location",
           "imageUrl",
           "hours",

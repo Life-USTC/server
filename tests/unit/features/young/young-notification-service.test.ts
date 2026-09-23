@@ -38,7 +38,7 @@ const event = {
   youngId: "42",
   name: "Workshop",
   location: "East",
-  registrationStatus: null,
+  signupStatusCode: null,
   status: null,
   sourceMissing: false,
   startAt: new Date("2035-09-15T10:30:00+08:00"),

@@ -48,6 +48,13 @@ function asShanghaiDateTime(value: unknown): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+function asBinaryFlag(value: unknown): boolean | undefined {
+  const text = asString(value);
+  if (text === "1") return true;
+  if (text === "0") return false;
+  return undefined;
+}
+
 /** One scheduled venue slot from the `itemPlaceDTO.places` subtable. */
 export type YoungEventPlace = {
   placeInfo?: string;
@@ -62,8 +69,9 @@ export type YoungEventBuild = {
   department?: string;
   organizer?: string;
   status?: string;
-  /** Deprecated upstream key: empty on every record. Serialized as null. */
-  registrationStatus?: string;
+  activityStatusCode?: string;
+  signupStatusCode?: string;
+  requiresSignup?: boolean;
   location?: string;
   imageUrl?: string;
   hours?: number;
@@ -119,7 +127,9 @@ function mapYoungEventRow(
     organizer:
       asString(row.organizer_dictText) ?? asString(row.sponsor_dictText),
     status: asString(row.itemStatus_dictText),
-    registrationStatus: asString(row.registrationStatus),
+    activityStatusCode: asString(row.itemStatus),
+    signupStatusCode: asString(row.applyStatus),
+    requiresSignup: asBinaryFlag(row.needApply),
     location: asString(row.placeInfo),
     imageUrl: asString(row.pic),
     hours: asFloat(row.validHour) ?? asFloat(row.hours),

@@ -122,7 +122,6 @@ export async function createPublicationFixture(prefix: string) {
           sourceId: officeSourceId,
           canonicalUrl: officeUrl,
           title: officeTitle,
-          sourcePageUrl: officeUrl,
           publicationType: "notice",
           publishedAt: officePublishedAt,
         },
@@ -156,8 +155,6 @@ export async function createPublicationFixture(prefix: string) {
           title: itemTitle,
           summary:
             "A deterministic publication used by the news page E2E test.",
-          bodyText: "Legacy plain text must not be used as the rendered body.",
-          sourcePageUrl: itemUrl,
           publicationType: "news",
           publishedAt: itemPublishedAt,
         },

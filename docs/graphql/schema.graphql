@@ -890,6 +890,7 @@ type WorkspaceOverview {
 
 type YoungEvent {
   activityLevel: String
+  activityStatusCode: String
   appliedCount: Int
   applyEndAt: DateTime
   applyStartAt: DateTime
@@ -930,8 +931,9 @@ type YoungEvent {
   single-event query.
   """
   rawJson: String
-  registrationStatus: String @deprecated(reason: "Always null; upstream never populates it. Use status for the signup state.")
+  requiresSignup: Boolean
   serviceHour: Float
+  signupStatusCode: String
   sourceMissing: Boolean!
   sponsor: String
   startAt: DateTime
