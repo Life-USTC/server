@@ -47,9 +47,9 @@ const DCR_CLIENT_SCOPE = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
-  restReadScope("me"),
-  restReadScope("todo"),
-  restWriteScope("todo"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.todo"),
 ].join(" ");
 
 test.describe("OAuth 提供者", () => {
@@ -59,6 +59,7 @@ test.describe("OAuth 提供者", () => {
       openid,
       openidCompatibility,
       protectedResource,
+      protectedResourceHead,
       authServerMcpCompatibility,
       openidMcpCompatibility,
       authServerMcpRelative,
@@ -72,6 +73,9 @@ test.describe("OAuth 提供者", () => {
       request.get("/api/auth/.well-known/openid-configuration"),
       request.get("/.well-known/openid-configuration/api/auth"),
       request.get("/.well-known/oauth-protected-resource/api/mcp"),
+      request.fetch("/.well-known/oauth-protected-resource/api/mcp", {
+        method: "HEAD",
+      }),
       request.get("/.well-known/oauth-authorization-server/api/mcp", {
         maxRedirects: 0,
       }),
@@ -100,6 +104,8 @@ test.describe("OAuth 提供者", () => {
     expect(openid.status()).toBe(200);
     expect(openidCompatibility.status()).toBe(200);
     expect(protectedResource.status()).toBe(200);
+    expect(protectedResourceHead.status()).toBe(200);
+    expect(await protectedResourceHead.body()).toHaveLength(0);
     expect(authServerMcpCompatibility.status()).toBe(307);
     expect(openidMcpCompatibility.status()).toBe(307);
     expect(authServerMcpRelative.status()).toBe(307);
@@ -138,8 +144,12 @@ test.describe("OAuth 提供者", () => {
     const protectedResourceBody = (await protectedResource.json()) as {
       scopes_supported?: string[];
     };
-    expect(protectedResourceBody.scopes_supported).toContain("todo:read");
-    expect(protectedResourceBody.scopes_supported).toContain("todo:write");
+    expect(protectedResourceBody.scopes_supported).toContain(
+      "workspace.todo:read",
+    );
+    expect(protectedResourceBody.scopes_supported).toContain(
+      "workspace.todo:write",
+    );
     expect(protectedResourceBody.scopes_supported).not.toContain("admin:read");
     expect(protectedResourceBody.scopes_supported).not.toContain("admin:write");
     expect(protectedResourceBody.scopes_supported).not.toContain("mcp:tools");
@@ -168,6 +178,7 @@ test.describe("OAuth 提供者", () => {
       "/api/auth/oauth2/register",
       {
         data: {
+          application_type: "native",
           client_name: `e2e-public-${Date.now()}`,
           redirect_uris: [REDIRECT_URI],
           token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -177,7 +188,7 @@ test.describe("OAuth 提供者", () => {
         },
       },
     );
-    expect(registrationResponse.status()).toBe(200);
+    expect(registrationResponse.status()).toBe(201);
     const registrationBody = (await registrationResponse.json()) as {
       client_id?: string;
       client_name?: string;
@@ -278,7 +289,7 @@ test.describe("OAuth 提供者", () => {
       },
     );
 
-    expect(registrationResponse.status()).toBe(200);
+    expect(registrationResponse.status()).toBe(201);
     const registrationBody = (await registrationResponse.json()) as {
       client_id?: string;
       grant_types?: string[];
@@ -291,6 +302,26 @@ test.describe("OAuth 提供者", () => {
     expect(registrationBody.redirect_uris).toEqual([]);
   });
 
+  test("Bearer-only 资源服务器拒绝强制 DPoP 的动态注册", async ({
+    request,
+  }) => {
+    const response = await request.post("/api/auth/oauth2/register", {
+      data: {
+        client_name: `e2e-dpop-only-${Date.now()}`,
+        dpop_bound_access_tokens: true,
+        redirect_uris: [REDIRECT_URI],
+        token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "invalid_client_metadata",
+      error_description:
+        "DPoP-bound access tokens are not supported by this Bearer-only resource server",
+    });
+  });
+
   test("loopback 授权接受 127.0.0.1 DCR 客户端的 localhost 别名", async ({
     page,
     request,
@@ -299,17 +330,17 @@ test.describe("OAuth 提供者", () => {
       "/api/auth/oauth2/register",
       {
         data: {
+          application_type: "native",
           client_name: `e2e-loopback-${Date.now()}`,
           redirect_uris: [LOOPBACK_REDIRECT_URI],
           token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
           grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
           response_types: [OAUTH_CODE_RESPONSE_TYPE],
           scope: DCR_CLIENT_SCOPE,
-          type: "native",
         },
       },
     );
-    expect(registrationResponse.status()).toBe(200);
+    expect(registrationResponse.status()).toBe(201);
     const registrationBody = (await registrationResponse.json()) as {
       client_id?: string;
     };

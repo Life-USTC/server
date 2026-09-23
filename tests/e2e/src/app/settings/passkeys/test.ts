@@ -7,7 +7,7 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/accounts 通行密钥", () => {
+test.describe("/account/settings/accounts 通行密钥", () => {
   test.describe.configure({ mode: "serial" });
 
   test("注册、退出、通行密钥登录、重命名和删除", async ({ page }, testInfo) => {
@@ -30,14 +30,14 @@ test.describe("/settings/accounts 通行密钥", () => {
       },
     );
 
-    await signInAsDebugUser(page, "/settings/accounts", undefined, {
+    await signInAsDebugUser(page, "/account/settings/accounts", undefined, {
       ui: true,
     });
     const user = await getCurrentSessionUser(page);
     await deletePasskeysForUserFixture(user.id);
 
     try {
-      await gotoAndWaitForReady(page, "/settings/accounts");
+      await gotoAndWaitForReady(page, "/account/settings/accounts");
       const passkeyCard = page.locator("[data-passkey-settings]");
       await expect(passkeyCard).toBeVisible();
 
@@ -49,7 +49,9 @@ test.describe("/settings/accounts 通行密钥", () => {
         .click();
 
       await expect(
-        passkeyCard.getByText(/通行密钥已添加|Passkey added/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥已添加|Passkey added/i }),
       ).toBeVisible();
       await expect(
         passkeyCard.getByLabel(/重命名 E2E laptop|Rename E2E laptop/i),
@@ -73,7 +75,9 @@ test.describe("/settings/accounts 通行密钥", () => {
         .getByRole("button", { name: /保存名称|Save name/i })
         .click();
       await expect(
-        passkeyCard.getByText(/通行密钥名称已更新|Passkey name updated/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥名称已更新|Passkey name updated/i }),
       ).toBeVisible();
       await expect(
         passkeyCard.getByLabel(
@@ -87,14 +91,14 @@ test.describe("/settings/accounts 通行密钥", () => {
 
       await gotoAndWaitForReady(
         page,
-        "/signin?callbackUrl=%2Fsettings%2Faccounts",
+        "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Faccounts",
       );
       await page
         .getByRole("button", {
           name: /使用通行密钥登录|Sign in with a passkey/i,
         })
         .click();
-      await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
+      await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
       await expect(
         page
           .locator("[data-passkey-settings]")
@@ -122,6 +126,11 @@ test.describe("/settings/accounts 通行密钥", () => {
       await expect(
         page.getByText(/尚未添加通行密钥|No passkeys yet/i),
       ).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /通行密钥已删除|Passkey deleted/i }),
+      ).toBeVisible();
     } finally {
       await deletePasskeysForUserFixture(user.id);
       await cdp.send("WebAuthn.removeVirtualAuthenticator", {
@@ -139,11 +148,14 @@ test.describe("/settings/accounts 通行密钥", () => {
       });
     });
 
-    const zhLocaleResponse = await page.request.post("/api/locale", {
-      data: { locale: "zh-cn" },
-    });
+    const zhLocaleResponse = await page.request.post(
+      "/api/account/preferences",
+      {
+        data: { locale: "zh-cn" },
+      },
+    );
     expect(zhLocaleResponse.status()).toBe(200);
-    await gotoAndWaitForReady(page, "/signin");
+    await gotoAndWaitForReady(page, "/account/sign-in");
     const passkeyButton = page.getByRole("button", {
       name: /使用通行密钥登录|Sign in with a passkey/i,
     });
@@ -158,11 +170,14 @@ test.describe("/settings/accounts 通行密钥", () => {
       "settings-passkeys/unsupported-zh-cn",
     );
 
-    const enLocaleResponse = await page.request.post("/api/locale", {
-      data: { locale: "en-us" },
-    });
+    const enLocaleResponse = await page.request.post(
+      "/api/account/preferences",
+      {
+        data: { locale: "en-us" },
+      },
+    );
     expect(enLocaleResponse.status()).toBe(200);
-    await gotoAndWaitForReady(page, "/signin");
+    await gotoAndWaitForReady(page, "/account/sign-in");
     await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
     await expect(
       page.getByText(
@@ -178,7 +193,7 @@ test.describe("/settings/accounts 通行密钥", () => {
 
   test("移动端通行密钥设置不产生横向溢出", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/account/settings/accounts");
 
     const passkeyCard = page.locator("[data-passkey-settings]");
     await passkeyCard.scrollIntoViewIfNeeded();
@@ -186,11 +201,13 @@ test.describe("/settings/accounts 通行密钥", () => {
     await expect(
       passkeyCard.getByLabel(/通行密钥名称|Passkey name/i),
     ).toBeVisible();
-    await expect(
-      passkeyCard.getByRole("button", {
-        name: /添加通行密钥|Add passkey/i,
-      }),
-    ).toBeVisible();
+    const addPasskeyButton = passkeyCard.getByRole("button", {
+      name: /添加通行密钥|Add passkey/i,
+    });
+    await expect(addPasskeyButton).toBeVisible();
+    const addPasskeyBox = await addPasskeyButton.boundingBox();
+    expect(addPasskeyBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(addPasskeyBox?.height ?? 0).toBeGreaterThanOrEqual(44);
     await expect
       .poll(() =>
         page.evaluate(
@@ -213,13 +230,13 @@ test.describe("/settings/accounts 通行密钥", () => {
       });
     });
 
-    await gotoAndWaitForReady(page, "/signin");
+    await gotoAndWaitForReady(page, "/account/sign-in");
     await page
       .getByRole("button", {
         name: /使用通行密钥登录|Sign in with a passkey/i,
       })
       .click();
-    await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
     await expect(
       page.getByText(/验证已取消|verification was cancelled/i),
     ).toBeVisible();
@@ -239,20 +256,20 @@ test.describe("/settings/accounts 通行密钥", () => {
         }),
     );
 
-    await gotoAndWaitForReady(page, "/signin");
+    await gotoAndWaitForReady(page, "/account/sign-in");
     await page
       .getByRole("button", {
         name: /使用通行密钥登录|Sign in with a passkey/i,
       })
       .click();
-    await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
     await expect(
       page.getByText(/无法使用通行密钥登录|Unable to sign in with a passkey/i),
     ).toBeVisible();
   });
 
   test("注册会话过旧时提示用户重新登录", async ({ page }) => {
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/account/settings/accounts");
     await page.route(
       "**/api/auth/passkey/generate-register-options**",
       (route) =>
@@ -265,7 +282,7 @@ test.describe("/settings/accounts 通行密钥", () => {
           status: 401,
         }),
     );
-    await gotoAndWaitForReady(page, "/settings/accounts");
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
 
     const passkeyCard = page.locator("[data-passkey-settings]");
     await passkeyCard
@@ -291,7 +308,7 @@ test.describe("/settings/accounts 通行密钥", () => {
         status: 500,
       }),
     );
-    await gotoAndWaitForReady(page, "/settings/accounts");
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
 
     const passkeyCard = page.locator("[data-passkey-settings]");
     await expect(

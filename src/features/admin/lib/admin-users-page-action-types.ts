@@ -23,9 +23,11 @@ export type AdminUsersActionConfig = {
     expiresAt: string;
     reason: string;
   };
+  onSuccess?: (action: "update" | "suspend" | "lift") => void;
   replaceUser: (user: AdminUserRow) => void;
   setLiftingSuspension: (value: boolean) => void;
   setMessage: (value: string | null) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
   setSaving: (value: boolean) => void;
   setSuspending: (value: boolean) => void;
 };

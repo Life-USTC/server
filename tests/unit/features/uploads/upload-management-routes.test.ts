@@ -1,0 +1,80 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const {
+  deleteOwnedUploadMock,
+  getAuditRequestMetadataMock,
+  listUploadsMock,
+  renameOwnedUploadMock,
+  requireAuthMock,
+  requireWriteAuthMock,
+} = vi.hoisted(() => ({
+  deleteOwnedUploadMock: vi.fn(),
+  getAuditRequestMetadataMock: vi.fn(),
+  listUploadsMock: vi.fn(),
+  renameOwnedUploadMock: vi.fn(),
+  requireAuthMock: vi.fn(),
+  requireWriteAuthMock: vi.fn(),
+}));
+
+vi.mock("@/features/uploads/server/upload-service", () => ({
+  deleteOwnedUpload: deleteOwnedUploadMock,
+  listUploads: listUploadsMock,
+  renameOwnedUpload: renameOwnedUploadMock,
+}));
+
+vi.mock("@/lib/auth/api-auth", () => ({
+  requireAuthPrincipal: requireAuthMock,
+  requireWriteAuth: requireWriteAuthMock,
+  requireWriteAuthPrincipal: requireWriteAuthMock,
+}));
+
+vi.mock("@/lib/audit/write-audit-log", () => ({
+  getAuditRequestMetadata: getAuditRequestMetadataMock,
+}));
+
+describe("上传管理路由", () => {
+  beforeEach(() => {
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
+    getAuditRequestMetadataMock.mockReturnValue({
+      ipAddress: "127.0.0.1",
+      userAgent: "unit-test",
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("序列化存储清理失败且不报告删除成功", async () => {
+    deleteOwnedUploadMock.mockResolvedValue({
+      ok: false,
+      error: "storage_delete_failed",
+    });
+    const { deleteUploadRoute } = await import(
+      "@/lib/api/routes/upload-management-routes"
+    );
+
+    const response = await deleteUploadRoute(
+      new Request("https://example.test/api/workspace/uploads/upload-1", {
+        method: "DELETE",
+      }),
+      { id: "upload-1" },
+    );
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to delete upload object",
+    });
+    expect(deleteOwnedUploadMock).toHaveBeenCalledWith({
+      audit: {
+        channel: "rest",
+        ipAddress: "127.0.0.1",
+        subjectUserId: "user-1",
+        userAgent: "unit-test",
+        userId: "user-1",
+      },
+      id: "upload-1",
+      userId: "user-1",
+    });
+  });
+});

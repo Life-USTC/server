@@ -44,15 +44,13 @@ export let user: ProfileSummaryUser;
       </Item.Root>
     </Item.Group>
 
-    <Item.Group class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-3">
       {#each stats as stat}
-        <Item.Root class="items-start" variant="outline">
-          <Item.Content>
-            <Item.Description>{stat.label}</Item.Description>
-            <Item.Title>{stat.value}</Item.Title>
-          </Item.Content>
-        </Item.Root>
+        <div class="grid gap-0.5">
+          <span class="text-muted-foreground text-sm">{stat.label}</span>
+          <span class="text-sm leading-snug font-medium">{stat.value}</span>
+        </div>
       {/each}
-    </Item.Group>
+    </div>
   </Card.Content>
 </Card.Root>

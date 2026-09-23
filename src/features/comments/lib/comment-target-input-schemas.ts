@@ -43,6 +43,7 @@ const mcpPositiveIntegerTargetIdSchema = z.number().int().positive();
 export const commentTargetQueryInputSchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: z.string().optional(),
+  youngId: z.string().trim().min(1).optional(),
   sectionId: commentTargetIntegerStringSchema.optional(),
   sectionJwId: commentTargetIntegerStringSchema.optional(),
   courseJwId: commentTargetIntegerStringSchema.optional(),
@@ -54,6 +55,7 @@ export const commentTargetQueryInputSchema = z.object({
 export const commentTargetMutationInputSchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: commentTargetIdReferenceSchema.optional(),
+  youngId: z.string().trim().min(1).optional(),
   sectionId: commentTargetIdReferenceSchema.optional(),
   sectionJwId: positiveIntegerTargetIdReferenceSchema.optional(),
   courseJwId: positiveIntegerTargetIdReferenceSchema.optional(),
@@ -67,8 +69,14 @@ export const commentMcpTargetReadInputSchema = z.object({
   targetId: mcpCommentTargetIdSchema
     .optional()
     .describe(
-      "Internal target id matching REST /api/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
+      "Internal target id matching REST /api/community/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
     ),
+  youngId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Public young-event identifier for second-classroom comments."),
   sectionJwId: mcpPositiveIntegerTargetIdSchema
     .optional()
     .describe("Public JW section id for section or section-teacher comments."),

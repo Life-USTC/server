@@ -1,0 +1,76 @@
+type HomeworkCompletionState = {
+  completionRequired?: boolean;
+  completion?: unknown | null;
+};
+
+type HomeworkSectionLabel = {
+  teacherName?: string | null;
+  courseName?: string | null;
+  semesterName?: string | null;
+};
+
+type HomeworkWithSection = {
+  id: number | string;
+  section?: {
+    code?: string | null;
+    courseName?: string | null;
+    jwId?: number | null;
+    semesterName?: string | null;
+  } | null;
+};
+
+export function homeworkStatusLabel(
+  homework: HomeworkCompletionState,
+  labels: {
+    completed: string;
+    noCompletionRequired: string;
+    pending: string;
+  },
+) {
+  if (homework.completionRequired === false) {
+    return labels.noCompletionRequired;
+  }
+  return homework.completion ? labels.completed : labels.pending;
+}
+
+export function homeworkSectionOptionLabel(
+  section: HomeworkSectionLabel,
+  fallback: string,
+) {
+  return (
+    [section.courseName ?? fallback, section.teacherName, section.semesterName]
+      .filter(Boolean)
+      .join(" · ") || fallback
+  );
+}
+
+export function homeworkSectionHref(
+  homework: HomeworkWithSection,
+  fallbackHref: string,
+) {
+  return homework.section?.jwId
+    ? `/catalog/sections/${homework.section.jwId}`
+    : fallbackHref;
+}
+
+export function homeworkCourseLabel(
+  homework: HomeworkWithSection,
+  fallback: string,
+) {
+  const section = homework.section;
+  return (
+    [section?.courseName, section?.code, section?.semesterName]
+      .filter((part): part is string => Boolean(part))
+      .join(" · ") || fallback
+  );
+}
+
+export function homeworkCompletionActionLabel(
+  homework: HomeworkCompletionState,
+  labels: {
+    markComplete: string;
+    markIncomplete: string;
+  },
+) {
+  return homework.completion ? labels.markIncomplete : labels.markComplete;
+}

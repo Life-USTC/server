@@ -30,6 +30,10 @@ export type AdminUsersCopy = {
   noVerifiedEmail: string;
   profileRoleDescription: string;
   profileRoleTitle: string;
+  confirmRoleChange: string;
+  grantAdminConfirmDescription: string;
+  revokeAdminConfirmDescription: string;
+  roleChangeConfirmTitle: string;
   role: string;
   saveAction: string;
   saving: string;
@@ -37,6 +41,9 @@ export type AdminUsersCopy = {
   subtitle: string;
   suspendDescription: string;
   suspendTitle: string;
+  updateSuspensionAction: string;
+  updateSuspensionConfirmDescription: string;
+  updateSuspensionConfirmTitle: string;
   suspending: string;
   suspendedStatus: string;
   suspension: string;

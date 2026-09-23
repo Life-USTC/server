@@ -3,10 +3,11 @@ import { page as _page } from "$app/stores";
 import RouteErrorCard from "./_components/RouteErrorCard.svelte";
 
 function contextualBackHref(pathname: string) {
-  if (/^\/courses\/[^/]+/.test(pathname)) return "/courses";
-  if (/^\/sections\/[^/]+/.test(pathname)) return "/sections";
-  if (/^\/teachers\/[^/]+/.test(pathname)) return "/teachers";
-  if (pathname.startsWith("/settings")) return "/settings/profile";
+  if (/^\/catalog\/courses\/[^/]+/.test(pathname)) return "/catalog/courses";
+  if (/^\/catalog\/sections\/[^/]+/.test(pathname)) return "/catalog/sections";
+  if (/^\/catalog\/teachers\/[^/]+/.test(pathname)) return "/catalog/teachers";
+  if (pathname.startsWith("/account/settings"))
+    return "/account/settings/profile";
   return "/";
 }
 

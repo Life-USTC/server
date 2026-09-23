@@ -9,8 +9,11 @@
   "rules": {
     "identified-by-name": "Teacher objects are naturally identified by name.",
     "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.",
-    "public-list-cache": "Teacher REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store. Server-side list data may still use short locale-keyed runtime caching. Localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
-    "mobile-detail-hierarchy": "Teacher detail pages use a responsive title size and expose context navigation as a touch-scrollable horizontal row on mobile."
+    "public-list-cache": "Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",
+    "mobile-detail-hierarchy": "Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab rail on mobile.",
+    "detail-canonical-url": "The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
+    "bounded-detail-history": "Teacher detail returns the 20 most recent Section offerings plus the total Section count. Public teacher payloads explicitly select allowed fields and never expose source-only columns such as age, postcode, QQ, or WeChat.",
+    "public-detail-cache": "Anonymous REST, MCP, and single-entity GraphQL Teacher reads share a revision-, locale-, ID-, and response-shape-scoped runtime cache. Missing entities are not cached."
   },
   "capabilities": {
     "teacher-list": {
@@ -21,15 +24,15 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/teachers"]
+        "pages": ["/catalog/teachers"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/teachers",
+            "path": "/api/catalog/teachers",
             "returns": "PaginatedResponse<TeacherSummary>",
             "notes": [
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
+              "REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
             ]
           }
         ]
@@ -38,15 +41,16 @@
         "queries": [
           {
             "name": "teachers",
+            "parent": "Catalog",
             "arguments": {
               "page": "PageInput",
               "filter": "TeacherFilter"
             },
             "returns": "TeacherPage!",
-            "rest_equivalent": "GET /api/teachers",
-            "mcp_equivalent": "search_teachers",
+            "rest_equivalent": "GET /api/catalog/teachers",
+            "mcp_equivalent": "catalog_teacher_search",
             "notes": [
-              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+              "PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100, and search within 2-200 characters."
             ]
           }
         ]
@@ -54,9 +58,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "search_teachers",
+            "name": "catalog_teacher_search",
             "returns": "PaginatedResponse<TeacherSummary>",
-            "rest_equivalent": "GET /api/teachers",
+            "rest_equivalent": "GET /api/catalog/teachers",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
@@ -80,16 +84,19 @@
       "auth": "anon",
       "links": {
         "models": ["Teacher"],
-        "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+        "ui": ["Detail Hero", "Detail Two-Column Stream", "Basic Info Card"]
       },
       "web": {
-        "pages": ["/teachers/[id]"]
+        "pages": ["/catalog/teachers/[id]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/teachers/[id]",
-            "returns": "TeacherDetail"
+            "path": "/api/catalog/teachers/[id]",
+            "returns": "TeacherDetail",
+            "notes": [
+              "sections is a newest-first preview capped at 20 records; _count.sections is the complete historical total."
+            ]
           }
         ]
       },
@@ -97,19 +104,22 @@
         "queries": [
           {
             "name": "teacher",
-            "arguments": { "id": "Int!" },
+            "parent": "Catalog",
+            "arguments": {
+              "id": "Int!"
+            },
             "returns": "Teacher",
-            "rest_equivalent": "GET /api/teachers/[id]",
-            "mcp_equivalent": "get_teacher_by_id"
+            "rest_equivalent": "GET /api/catalog/teachers/[id]",
+            "mcp_equivalent": "catalog_teacher_get"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_teacher_by_id",
+            "name": "catalog_teacher_get",
             "returns": "{ found: Boolean, teacher: TeacherDetail? }",
-            "rest_equivalent": "GET /api/teachers/[id]"
+            "rest_equivalent": "GET /api/catalog/teachers/[id]"
           }
         ]
       },
@@ -125,7 +135,7 @@
           "teacher.address (if not null)",
           "section.semester.nameCn (Badge)",
           "section.course.namePrimary + nameSecondary",
-          "section.code (Badge, monospace)",
+          "section.code (Plain monospace text)",
           "section.credits (or empty)",
           "comment.id",
           "comment.author.name",

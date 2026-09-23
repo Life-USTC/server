@@ -14,9 +14,9 @@ export let targetHref: (comment: AdminModerationComment) => string;
     <p class="whitespace-pre-wrap text-sm">{comment.body}</p>
   </Item.Content>
   <Item.Actions class="flex-wrap">
-    <Button href={targetHref(comment)} size="sm" variant="outline">{copy.openTarget}</Button>
+    <Button href={targetHref(comment)} variant="outline">{copy.openTarget}</Button>
     {#if comment.user?.id}
-      <Button href={`/admin/users?search=${encodeURIComponent(comment.user.id)}`} size="sm" variant="outline">{copy.manageUser}</Button>
+      <Button href={`/admin/users?search=${encodeURIComponent(comment.user.id)}`} variant="outline">{copy.manageUser}</Button>
     {/if}
   </Item.Actions>
 </Item.Root>

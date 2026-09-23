@@ -1,14 +1,13 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
-import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
@@ -17,41 +16,31 @@ let {
   closeMenus,
   copy,
   currentPathname,
+  dockAboveFooter = false,
   isActiveLink,
-  locale,
-  localeMenuOpen,
   mobileNavGroups,
   navGroups,
   profileHref,
-  setLocale,
-  setLocaleMenuOpen,
-  setThemeMenuOpen,
-  setThemeMode,
   setUserMenuOpen,
-  themeMenuOpen,
-  themeMode,
+  showAccountFooter = true,
   user,
   userMenuOpen,
+  viewerLoading,
 }: {
   avatarFallback: string;
   closeMenus: () => void;
   copy: LayoutCopy;
   currentPathname: string;
+  dockAboveFooter?: boolean;
   isActiveLink: (link: ShellLink) => boolean;
-  locale: "en-us" | "zh-cn";
-  localeMenuOpen: boolean;
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
-  setLocale: (locale: "en-us" | "zh-cn") => void;
-  setLocaleMenuOpen: (open: boolean) => void;
-  setThemeMenuOpen: (open: boolean) => void;
-  setThemeMode: (mode: ThemeMode) => void;
   setUserMenuOpen: (open: boolean) => void;
-  themeMenuOpen: boolean;
-  themeMode: ThemeMode;
+  showAccountFooter?: boolean;
   user: LayoutUserSummary;
   userMenuOpen: boolean;
+  viewerLoading: boolean;
 } = $props();
 
 // biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
@@ -177,10 +166,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
 
                         {#if ownActive || childActive}
                           <Sidebar.MenuSub>
@@ -262,10 +253,12 @@ function closeMobileSidebar(): void {
                                 <Icon />
                               {/if}
                               <span>{link.label}</span>
-                              {@render badge(link.badge)}
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        {#if link.badge != null && link.badge > 0}
+                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
+                        {/if}
                       </Sidebar.MenuItem>
                     {/if}
                   {/each}
@@ -279,7 +272,13 @@ function closeMobileSidebar(): void {
   </nav>
 {/snippet}
 
-<Sidebar.Root collapsible="icon" data-testid="app-sidebar">
+<Sidebar.Root
+  class={dockAboveFooter
+    ? "top-0! bottom-16! h-auto! max-h-none!"
+    : undefined}
+  collapsible="icon"
+  data-testid="app-sidebar"
+>
   {#if sidebar.isMobile}
     {@render navigation(mobileNavGroups, true)}
   {:else}
@@ -287,33 +286,32 @@ function closeMobileSidebar(): void {
     <Sidebar.Rail />
   {/if}
 
-  <Sidebar.Footer class="border-t">
-    <AppUserMenu
-      {avatarFallback}
-      {closeMenus}
-      {copy}
-      {currentPathname}
-      {profileHref}
-      {setUserMenuOpen}
-      {user}
-      {userMenuOpen}
-    />
-    <div
-      class="text-muted-foreground px-1 text-xs font-medium group-data-[collapsible=icon]:hidden"
-    >
-      {copy.nav.groups.preferences}
-    </div>
-    <AppPreferencesMenu
-      {copy}
-      {locale}
-      {localeMenuOpen}
-      mobile={sidebar.isMobile}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {themeMenuOpen}
-      {themeMode}
-    />
-  </Sidebar.Footer>
+  {#if showAccountFooter || sidebar.isMobile}
+    <Sidebar.Footer class="h-16 justify-center border-t p-2">
+      {#if viewerLoading}
+        <div
+          aria-hidden="true"
+          class="flex h-12 items-center gap-2 px-2"
+          data-testid="sidebar-viewer-loading"
+        >
+          <Skeleton class="size-8 rounded-lg bg-sidebar-accent" />
+          <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
+            <Skeleton class="h-3 w-24 rounded bg-sidebar-accent" />
+            <Skeleton class="h-2.5 w-16 rounded bg-sidebar-accent" />
+          </div>
+        </div>
+      {:else}
+        <AppUserMenu
+          {avatarFallback}
+          {closeMenus}
+          {copy}
+          {currentPathname}
+          {profileHref}
+          {setUserMenuOpen}
+          {user}
+          {userMenuOpen}
+        />
+      {/if}
+    </Sidebar.Footer>
+  {/if}
 </Sidebar.Root>

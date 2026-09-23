@@ -5,58 +5,6 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function uploadFileFromDashboard(
-  page: Page,
-  options: {
-    filename: string;
-    mimeType?: string;
-    contents: string;
-  },
-) {
-  const createResponsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/uploads") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  const completeResponsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/uploads/complete") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  const putResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === "PUT" &&
-      response.status() === 200 &&
-      response.url().startsWith("http"),
-  );
-
-  await page.locator("input#upload-file").setInputFiles({
-    name: options.filename,
-    mimeType: options.mimeType ?? "text/plain",
-    buffer: Buffer.from(options.contents),
-  });
-
-  const createResponse = await createResponsePromise;
-  const createBody = (await createResponse.json()) as { url?: string };
-  expect(createBody.url).toMatch(/^https?:\/\//);
-
-  await putResponsePromise;
-
-  const completeResponse = await completeResponsePromise;
-  const completeBody = (await completeResponse.json()) as {
-    upload?: { id?: string; filename?: string };
-  };
-  expect(typeof completeBody.upload?.id).toBe("string");
-
-  const row = await expectUploadRow(page, options.filename);
-  return {
-    row,
-    uploadId: completeBody.upload?.id as string,
-  };
-}
-
 export async function expectUploadRow(page: Page, filename: string) {
   const row = page
     .locator("tr")
@@ -70,7 +18,9 @@ export async function expectUploadRow(page: Page, filename: string) {
 
 export async function deleteUploadById(page: Page, uploadId: string) {
   await cleanupUploadAuditLogsForE2e(uploadId);
-  const response = await page.request.delete(`/api/uploads/${uploadId}`);
+  const response = await page.request.delete(
+    `/api/workspace/uploads/${uploadId}`,
+  );
   expect(response.status()).toBe(200);
   await cleanupUploadAuditLogsForE2e(uploadId);
 }
@@ -89,7 +39,7 @@ export async function createUploadedFileViaApi(
     contents: string;
   },
 ) {
-  const uploadSessionResponse = await request.post("/api/uploads", {
+  const uploadSessionResponse = await request.post("/api/workspace/uploads", {
     data: {
       filename: options.filename,
       contentType: options.mimeType ?? "text/plain",
@@ -113,13 +63,16 @@ export async function createUploadedFileViaApi(
   });
   expect(putResponse.status(), await putResponse.text()).toBe(200);
 
-  const completeResponse = await request.post("/api/uploads/complete", {
-    data: {
-      key: uploadSessionBody.key,
-      filename: options.filename,
-      contentType: options.mimeType ?? "text/plain",
+  const completeResponse = await request.post(
+    "/api/workspace/uploads/complete",
+    {
+      data: {
+        key: uploadSessionBody.key,
+        filename: options.filename,
+        contentType: options.mimeType ?? "text/plain",
+      },
     },
-  });
+  );
   expect(completeResponse.status()).toBe(200);
   const completeBody = (await completeResponse.json()) as {
     upload?: { id?: string; key?: string; filename?: string };

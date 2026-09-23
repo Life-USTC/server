@@ -1,0 +1,147 @@
+name: Bun job
+
+on:
+  workflow_call:
+    outputs:
+      artifact-url:
+        description: URL for the uploaded artifact, when artifact upload is enabled.
+        value: ${{ jobs.run.outputs.artifact-url }}
+    inputs:
+      job-phase:
+        required: true
+        type: string
+      timeout-minutes:
+        required: false
+        type: number
+        default: 30
+      webhook-secret:
+        required: false
+        type: string
+        default: ""
+      extra-env:
+        required: false
+        type: string
+        default: ""
+      upload-artifact-name:
+        required: false
+        type: string
+        default: ""
+      upload-artifact-path:
+        required: false
+        type: string
+        default: ""
+      upload-artifact-no-files-found:
+        required: false
+        type: string
+        default: ignore
+      upload-artifact-retention-days:
+        required: false
+        type: number
+        default: 14
+      upload-artifact-always:
+        required: false
+        type: boolean
+        default: false
+      upload-artifact-include-hidden-files:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+    outputs:
+      artifact-url: ${{ steps.upload-artifact.outputs.artifact-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Configure job environment
+        shell: bash
+        env:
+          JOB_PHASE: ${{ inputs.job-phase }}
+        run: |
+          {
+            # Static checks and the production build need a Prisma datasource
+            # during preparation, but they never connect to this address.
+            echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_ci"
+            if [ "$JOB_PHASE" = "ci:verify" ] || [ "$JOB_PHASE" = "ci:unit" ]; then
+              echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
+            fi
+            if [ -n "${{ inputs.webhook-secret }}" ]; then
+              echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
+              echo "WEBHOOK_LOGIN_ENABLED=true"
+            fi
+            if [ -n "${{ inputs.extra-env }}" ]; then
+              printf '%s\n' "${{ inputs.extra-env }}"
+            fi
+          } >> "$GITHUB_ENV"
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Run job phase
+        shell: bash
+        env:
+          JOB_PHASE: ${{ inputs.job-phase }}
+        run: |
+          case "$JOB_PHASE" in
+            ci:verify)
+              bash tests/ci/retry.test.sh
+              bash tests/ci/seed-guard.test.sh
+              bash tests/ci/runtime-database-parity.test.sh
+              bash tests/ci/e2e-full-suite-parity.test.sh
+              bash tests/ci/integration-parallel-local.test.sh
+              bash tests/ci/e2e-worker-server.test.sh
+              bash tests/ci/e2e-parallel-cleanup.test.sh
+              bash tests/ci/worker-request-id-platform.test.sh
+              bun run app:prepare
+              bunx wrangler types --include-runtime=false --check
+              bunx biome check
+              bunx svelte-check --tsconfig ./tsconfig.json
+              bunx tsc --noEmit -p tsconfig.typecheck.json
+              bunx tsc --noEmit -p tsconfig.typecheck.tests.json
+              bunx tsc --noEmit -p tsconfig.typecheck.operational.json
+              ;;
+            ci:unit)
+              bun run app:prepare
+              bunx vitest run --coverage
+              ;;
+            ci:e2e:build-artifacts)
+              bun run app:prepare
+              bun run build
+              bash tests/ci/public-route-client-budget.test.sh
+              ;;
+            *)
+              echo "::error::Unknown Bun job phase: $JOB_PHASE"
+              exit 1
+              ;;
+          esac
+
+      - name: Verify OpenAPI parity
+        if: ${{ inputs.job-phase == 'ci:verify' }}
+        shell: bash
+        run: bun run openapi:check
+
+      - name: Verify canonical GraphQL schema snapshot
+        if: ${{ inputs.job-phase == 'ci:verify' }}
+        shell: bash
+        env:
+          GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
+        run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
+
+      - name: Upload artifact
+        id: upload-artifact
+        if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.upload-artifact-name }}
+          path: ${{ inputs.upload-artifact-path }}
+          if-no-files-found: ${{ inputs.upload-artifact-no-files-found }}
+          retention-days: ${{ inputs.upload-artifact-retention-days }}
+          include-hidden-files: ${{ inputs.upload-artifact-include-hidden-files }}

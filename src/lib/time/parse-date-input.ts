@@ -15,22 +15,16 @@ const DATE_TIME_WITHOUT_TZ_PATTERN =
 const DATE_TIME_WITH_TZ_PATTERN =
   /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/i;
 const EXPLICIT_TIMEZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/i;
-const DATE_TIME_WITHOUT_TZ_FORMATS = [
-  "YYYY-MM-DDTHH:mm",
-  "YYYY-MM-DDTHH:mm:ss",
-  "YYYY-MM-DDTHH:mm:ss.S",
-  "YYYY-MM-DDTHH:mm:ss.SS",
-  "YYYY-MM-DDTHH:mm:ss.SSS",
-] as const;
-
 function isStrictDateOnly(value: string) {
   return dayjs(value, "YYYY-MM-DD", true).isValid();
 }
 
 function isStrictDateTimeWithoutTimezone(value: string) {
-  return DATE_TIME_WITHOUT_TZ_FORMATS.some((format) =>
-    dayjs(value, format, true).isValid(),
-  );
+  const fractionLength = value.match(/\.(\d{1,3})$/)?.[1]?.length ?? 0;
+  const format = value.includes(":", 16)
+    ? `YYYY-MM-DDTHH:mm:ss${fractionLength ? `.${"S".repeat(fractionLength)}` : ""}`
+    : "YYYY-MM-DDTHH:mm";
+  return dayjs(value, format, true).isValid();
 }
 
 function hasStrictDateTimeWithTimezone(value: string) {

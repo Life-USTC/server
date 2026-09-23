@@ -5,6 +5,7 @@ import {
   generateUserCalendarAction,
 } from "./calendar-route-actions";
 import {
+  canonicalSectionsCalendarUrl,
   parseSectionCalendarJwId,
   parseSectionsCalendarIds,
   parseUserCalendarRawUserId,
@@ -16,6 +17,11 @@ export async function getSectionsCalendarRoute(request: Request) {
     const sectionIds = parseSectionsCalendarIds(request);
     if (sectionIds instanceof Response) {
       return sectionIds;
+    }
+
+    const canonicalUrl = canonicalSectionsCalendarUrl(request, sectionIds);
+    if (canonicalUrl) {
+      return Response.redirect(canonicalUrl, 308);
     }
 
     return await generateSectionsCalendarAction(sectionIds);

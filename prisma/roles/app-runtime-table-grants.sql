@@ -1,0 +1,137 @@
+-- Shared app-runtime grants for catalog reads, owner RLS tables, and community writes.
+-- Included by production and CI runtime bootstrap scripts.
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO life_ustc_runtime;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO life_ustc_runtime;
+
+DO $revoke_auth_tables$
+DECLARE
+  auth_table text;
+BEGIN
+  FOREACH auth_table IN ARRAY ARRAY[
+    'Account',
+    'Authenticator',
+    'DeviceCode',
+    'Jwks',
+    'OAuthAccessToken',
+    'OAuthClient',
+    'OAuthConsent',
+    'OAuthGrantUsageDaily',
+    'OAuthRefreshToken',
+    'Passkey',
+    'Session',
+    'VerificationToken',
+    'VerifiedEmail',
+    'oauthClientAssertion',
+    'oauthClientResource',
+    'oauthResource'
+  ]
+  LOOP
+    IF to_regclass(format('public.%I', auth_table)) IS NOT NULL THEN
+      EXECUTE format(
+        'REVOKE ALL ON TABLE %I FROM life_ustc_runtime',
+        auth_table
+      );
+    END IF;
+  END LOOP;
+END
+$revoke_auth_tables$;
+
+-- The metrics endpoint receives sanitized aggregates through its SECURITY
+-- DEFINER function and must never read the singleton cache directly.
+REVOKE ALL ON TABLE "PrometheusMetricsCache" FROM life_ustc_runtime;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
+  "Todo",
+  "CatalogLinkClick",
+  "WorkspaceLinkPin",
+  "BusUserPreference",
+  "UserUstcIdentity",
+  "UserSectionSubscription",
+  "UserYoungEventSubscription",
+  "UserYoungOrganizerSubscription",
+  "YoungNotification",
+  "Upload",
+  "UploadPending",
+  "HomeworkCompletion"
+TO life_ustc_runtime;
+GRANT SELECT ON TABLE "OAuthGrantUsageDaily" TO life_ustc_runtime;
+GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
+TO life_ustc_runtime;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE "Comment" TO life_ustc_runtime;
+GRANT INSERT, DELETE ON TABLE "CommentAttachment" TO life_ustc_runtime;
+GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
+GRANT INSERT, UPDATE, DELETE ON TABLE "Description" TO life_ustc_runtime;
+GRANT INSERT ON TABLE "DescriptionEdit" TO life_ustc_runtime;
+GRANT INSERT ON TABLE "AuditLog" TO life_ustc_runtime;
+GRANT INSERT ON TABLE
+  "FeatureOperationEvent",
+  "RuntimeIssueEvent"
+TO life_ustc_runtime;
+
+-- The weather writer upserts hourly observations through the app runtime.
+GRANT SELECT, INSERT, UPDATE ON TABLE "WeatherObservation"
+TO life_ustc_runtime;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE "UserSuspension" TO life_ustc_runtime;
+GRANT SELECT, INSERT, UPDATE ON TABLE
+  "PublicationSource",
+  "Publication",
+  "PublicationRevision",
+  "PublicationImageSource",
+  "PublicationRevisionImageSource",
+  "PublicationObject",
+  "PublicationObjectLink",
+  "IngestionRun",
+  "IngestionBatch",
+  "IngestionBatchObject",
+  "PublicationEventOutbox"
+TO life_ustc_runtime;
+
+DO $publication_ingestion_runtime_policies$
+DECLARE
+  table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'PublicationSource',
+    'Publication',
+    'PublicationRevision',
+    'PublicationImageSource',
+    'PublicationRevisionImageSource',
+    'PublicationObject',
+    'PublicationObjectLink',
+    'IngestionRun',
+    'IngestionBatch',
+    'IngestionBatchObject',
+    'PublicationEventOutbox'
+  ]
+  LOOP
+    EXECUTE format(
+      'ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',
+      table_name
+    );
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON public.%I',
+      table_name || '_runtime_access',
+      table_name
+    );
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR ALL TO life_ustc_runtime USING (true) WITH CHECK (true)',
+      table_name || '_runtime_access',
+      table_name
+    );
+  END LOOP;
+END
+$publication_ingestion_runtime_policies$;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "BusScheduleVersion"
+TO life_ustc_runtime;
+GRANT INSERT, UPDATE ON TABLE "BusCampus", "BusRoute"
+TO life_ustc_runtime;
+GRANT INSERT, DELETE ON TABLE "BusRouteStop", "BusTrip"
+TO life_ustc_runtime;
+GRANT UPDATE ("name", "username", "profilePictures", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
+TO life_ustc_runtime;
+
+REVOKE ALL ON public."PrometheusCounter",public."PrometheusCounterEpoch" FROM life_ustc_runtime;

@@ -15,6 +15,8 @@ import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminUsersRoute(request: Request) {
@@ -59,7 +61,15 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
       );
       if (parsedBody instanceof Response) return parsedBody;
 
-      const result = await updateAdminUser(admin.userId, parsed.id, parsedBody);
+      const result = await updateAdminUser(
+        admin.userId,
+        parsed.id,
+        parsedBody,
+        {
+          channel: "rest",
+          requestId: getAuditRequestMetadata(request).requestId,
+        },
+      );
       if (!result.ok) {
         if (result.reason === "invalid_username")
           return badRequest("Invalid username");
@@ -67,9 +77,11 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
           return badRequest("Username already taken");
         }
         if (result.reason === "cannot_demote_self") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("Admins cannot remove their own admin role");
         }
         if (result.reason === "cannot_remove_last_admin") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("At least one admin must remain");
         }
         return notFound("User not found");
@@ -77,6 +89,6 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
 
       return jsonResponse({ user: result.user });
     },
-    { requireActive: true },
+    { requireRecent: true },
   );
 }

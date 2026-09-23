@@ -10,7 +10,9 @@
     "attached-to-section": "Exams are attached to sections and are high-priority time events.",
     "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
     "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters.",
-    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
+    "completion-time-zone": "Exam completion uses the Asia/Shanghai calendar date and local HHMM times. When no exam time is available, the completion instant is the end of its exam date (23:59:59.999 Shanghai time); the exact end instant counts as completed.",
+    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged.",
+    "section-exam-query": "A public section exam read fetches section context and its ordered exam children in one top-level Section query."
   },
   "capabilities": {
     "cross-section-exam-list": {
@@ -20,13 +22,13 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/dashboard/exams"]
+        "pages": ["/workspace/exams"]
       },
       "rest": "unavailable",
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "exams",
             "arguments": {
               "filter": "ExamFilter",
@@ -34,8 +36,8 @@
             },
             "returns": "ExamPage!",
             "auth": "user",
-            "required_scopes": ["exam:read"],
-            "mcp_equivalent": "list_my_exams",
+            "required_scopes": ["workspace.exam:read"],
+            "mcp_equivalent": "workspace_exam_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",
               "Each Exam.examRooms(page: PageInput) field returns ExamRoomPage! with the shared default page 1/pageSize 20 and maximum pageSize 100."
@@ -46,11 +48,11 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_exams",
+            "name": "workspace_exam_list",
             "returns": "{ exams: ExamEntry[] }",
             "notes": [
               "Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].",
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           }
         ]
@@ -60,6 +62,7 @@
           "exam.examDate",
           "exam.startTime - endTime",
           "exam.examMode",
+          "exam.examBatch.id",
           "exam.examBatch.namePrimary",
           "exam.examType",
           "exam.examTakeCount",
@@ -79,13 +82,13 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": "unavailable",
       "mcp": {
         "tools": [
           {
-            "name": "list_exams_by_section",
+            "name": "catalog_section_exam_list",
             "returns": "{ found: Boolean, section: Section?, exams: ExamEntry[] }",
             "notes": ["Returns a single section's exams[]."]
           }
@@ -96,6 +99,7 @@
           "exam.examDate",
           "exam.startTime - endTime",
           "exam.examMode",
+          "exam.examBatch.id",
           "exam.examBatch.namePrimary",
           "exam.examRooms[]"
         ]

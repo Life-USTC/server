@@ -1,4 +1,4 @@
-import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
+import { getCachedCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { prisma } from "@/lib/db/prisma";
 
 export function resolveSectionCodeMatchSemester(semesterId?: number) {
@@ -6,5 +6,5 @@ export function resolveSectionCodeMatchSemester(semesterId?: number) {
     ? prisma.semester.findUnique({
         where: { id: semesterId },
       })
-    : getCurrentSemester(new Date());
+    : getCachedCurrentSemester(new Date());
 }

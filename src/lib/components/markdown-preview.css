@@ -1,3 +1,24 @@
+.markdown-preview {
+  display: flow-root;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview > * + *,
+.markdown-preview :where(blockquote, li, .markdown-directive) > * + * {
+  margin-block-start: 1em;
+}
+
+.markdown-preview p {
+  text-indent: 2em;
+}
+
+.markdown-preview :where(li, th, td, figcaption) p,
+.markdown-preview .markdown-directive-center p,
+.markdown-preview p:has(img) {
+  text-indent: 0;
+}
+
 .markdown-preview :where(h1, h2) {
   font-size: 1rem;
   font-weight: 600;
@@ -21,6 +42,11 @@
   padding-left: 1.25rem;
 }
 
+.markdown-preview :where(li, li > p) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .markdown-preview ul {
   list-style: disc;
 }
@@ -33,16 +59,47 @@
   border-left: 4px solid var(--color-border);
   color: var(--color-muted-foreground);
   padding-left: 1rem;
-  white-space: pre-wrap;
 }
 
 .markdown-preview pre {
-  background: var(--color-muted);
+  background:
+    linear-gradient(to right, var(--color-muted), var(--color-muted)),
+    linear-gradient(to left, var(--color-muted), var(--color-muted)) 100% 0,
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-foreground) 20%, transparent),
+      transparent
+    ),
+    linear-gradient(
+      to left,
+      color-mix(in srgb, var(--color-foreground) 20%, transparent),
+      transparent
+    )
+    100% 0;
+  background-attachment: local, local, scroll, scroll;
+  background-color: var(--color-muted);
+  background-repeat: no-repeat;
+  background-size:
+    2rem 100%,
+    2rem 100%,
+    0.75rem 100%,
+    0.75rem 100%;
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
   font-size: 0.75rem;
   overflow-x: auto;
   padding: 0.75rem;
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
+}
+
+.markdown-preview pre::-webkit-scrollbar {
+  height: 0.375rem;
+}
+
+.markdown-preview pre::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 0.1875rem;
 }
 
 .markdown-preview code {
@@ -107,7 +164,6 @@
   border: 1px solid var(--color-border);
   border-radius: 0.375rem;
   padding: 0.75rem;
-  white-space: pre-wrap;
 }
 
 .markdown-preview .markdown-directive-center {

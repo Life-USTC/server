@@ -1,45 +1,5 @@
-import {
-  getPrismaClient,
-  requireAdminPage,
-} from "@/features/admin/server/admin-page-auth";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { getPrisma } from "@/lib/db/prisma";
-
-export async function getAdminHomeData(request: Request) {
-  await requireAdminPage(request);
-  const prisma = await getPrismaClient();
-  const [
-    users,
-    comments,
-    activeComments,
-    deletedComments,
-    homeworks,
-    oauthClients,
-    suspensions,
-    busVersions,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.comment.count(),
-    prisma.comment.count({ where: { status: "active" } }),
-    prisma.comment.count({ where: { status: "deleted" } }),
-    prisma.homework.count({ where: { deletedAt: null } }),
-    prisma.oAuthClient.count(),
-    prisma.userSuspension.count({ where: { liftedAt: null } }),
-    prisma.busScheduleVersion.count(),
-  ]);
-
-  return {
-    summary: {
-      users,
-      comments,
-      activeComments,
-      deletedComments,
-      homeworks,
-      oauthClients,
-      suspensions,
-      busVersions,
-    },
-  };
-}
 
 export async function getAdminSummary(locale = "zh-cn") {
   const prisma = getPrisma(locale);
@@ -48,7 +8,7 @@ export async function getAdminSummary(locale = "zh-cn") {
       prisma.user.count(),
       prisma.comment.count(),
       prisma.homework.count(),
-      prisma.oAuthClient.count(),
+      authPrisma.oAuthClient.count(),
       prisma.userSuspension.count({ where: { liftedAt: null } }),
     ]);
 

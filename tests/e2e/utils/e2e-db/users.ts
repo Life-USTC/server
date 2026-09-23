@@ -1,16 +1,88 @@
+import { createLocalAccountIssuer } from "@better-auth/core/db";
+import { hashPassword } from "better-auth/crypto";
 import { deleteAuditLogsForUsersAndTargetsUntilStable } from "../../../shared/audit-cleanup";
+import { DEV_SEED } from "../dev-seed";
 import { generateToken } from "./core";
 import { withE2ePrisma } from "./prisma";
 
+const DEBUG_USER_ID = "cmqw1sr9g0001bqt44c3s0kqa";
+const DEBUG_USER_EMAIL = "dev-user@debug.local";
+const DEBUG_USER_PASSWORD = "dev-debug-password";
+
+/**
+ * Restore the named debug fixture after the destructive account-deletion E2E.
+ * This is an owner-side test operation; the Worker auth role never provisions
+ * users or credentials.
+ */
+export async function restoreDebugUserFixture() {
+  const image = `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.debugAvatarSeed}`;
+  const password = await hashPassword(DEBUG_USER_PASSWORD);
+  const credentialIssuer = createLocalAccountIssuer("credential");
+
+  await withE2ePrisma(async (prisma) => {
+    await prisma.user.upsert({
+      where: { id: DEBUG_USER_ID },
+      update: {
+        email: DEBUG_USER_EMAIL,
+        emailVerified: true,
+        name: DEV_SEED.debugName,
+        image,
+        profilePictures: [image],
+        username: DEV_SEED.debugUsername,
+        isAdmin: false,
+      },
+      create: {
+        id: DEBUG_USER_ID,
+        email: DEBUG_USER_EMAIL,
+        emailVerified: true,
+        name: DEV_SEED.debugName,
+        image,
+        profilePictures: [image],
+        username: DEV_SEED.debugUsername,
+        isAdmin: false,
+      },
+    });
+
+    await prisma.account.upsert({
+      where: {
+        issuer_providerAccountId: {
+          issuer: credentialIssuer,
+          providerAccountId: DEBUG_USER_ID,
+        },
+      },
+      update: {
+        userId: DEBUG_USER_ID,
+        type: "credential",
+        provider: "credential",
+        issuer: credentialIssuer,
+        password,
+      },
+      create: {
+        userId: DEBUG_USER_ID,
+        type: "credential",
+        provider: "credential",
+        issuer: credentialIssuer,
+        providerAccountId: DEBUG_USER_ID,
+        password,
+      },
+    });
+  });
+}
+
 function buildUserCalendarFeedPath(userId: string, token: string): string {
-  return `/api/users/${userId}:${token}/calendar.ics`;
+  return `/api/calendar-feeds/${userId}:${token}.ics`;
 }
 
 export async function getUserProfileById(userId: string) {
   return await withE2ePrisma((prisma) =>
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, username: true, image: true },
+      select: {
+        name: true,
+        username: true,
+        image: true,
+        profilePictures: true,
+      },
     }),
   );
 }
@@ -44,12 +116,14 @@ export async function updateUserProfileById(
     name?: string | null;
     username?: string | null;
     image?: string | null;
+    profilePictures?: string[];
   },
 ) {
   const normalizedData: {
     name?: string;
     username?: string | null;
     image?: string | null;
+    profilePictures?: string[];
   } = {};
 
   if ("name" in data) {
@@ -61,6 +135,9 @@ export async function updateUserProfileById(
   if ("image" in data) {
     normalizedData.image = data.image ?? null;
   }
+  if ("profilePictures" in data) {
+    normalizedData.profilePictures = data.profilePictures ?? [];
+  }
 
   await withE2ePrisma((prisma) =>
     prisma.user.update({
@@ -71,35 +148,29 @@ export async function updateUserProfileById(
 }
 
 export async function getUserSubscribedSectionIds(userId: string) {
-  const user = await withE2ePrisma((prisma) =>
-    prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: {
-        subscribedSections: {
-          select: { id: true },
-          orderBy: { id: "asc" },
-        },
-      },
+  const rows = await withE2ePrisma((prisma) =>
+    prisma.userSectionSubscription.findMany({
+      where: { userId },
+      select: { sectionId: true },
+      orderBy: { sectionId: "asc" },
     }),
   );
 
-  return user.subscribedSections.map((section) => section.id);
+  return rows.map((row) => row.sectionId);
 }
 
 export async function replaceUserSubscribedSectionIds(
   userId: string,
   sectionIds: number[],
 ) {
-  await withE2ePrisma((prisma) =>
-    prisma.user.update({
-      where: { id: userId },
-      data: {
-        subscribedSections: {
-          set: sectionIds.map((id) => ({ id })),
-        },
-      },
-    }),
-  );
+  await withE2ePrisma(async (prisma) => {
+    await prisma.userSectionSubscription.deleteMany({ where: { userId } });
+    if (sectionIds.length === 0) return;
+    await prisma.userSectionSubscription.createMany({
+      data: sectionIds.map((sectionId) => ({ userId, sectionId })),
+      skipDuplicates: true,
+    });
+  });
 }
 
 export async function deletePasskeysForUserFixture(userId: string) {

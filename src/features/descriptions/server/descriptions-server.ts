@@ -20,6 +20,7 @@ export async function getDescriptionPayload(
   targetType: DescriptionTargetType,
   targetId: number | string,
   viewerOverride?: DescriptionViewer,
+  options: { includeHistory?: boolean } = {},
 ): Promise<DescriptionPayload> {
   const target = resolveDescriptionTarget(targetType, targetId);
   const viewer =
@@ -29,12 +30,13 @@ export async function getDescriptionPayload(
     return emptyDescriptionPayload(viewer);
   }
 
-  return getResolvedDescriptionPayload(target, viewer);
+  return getResolvedDescriptionPayload(target, viewer, options);
 }
 
 export async function getResolvedDescriptionPayload(
   target: ResolvedDescriptionTarget,
   viewerOverride?: DescriptionViewer,
+  { includeHistory = true }: { includeHistory?: boolean } = {},
 ): Promise<DescriptionPayload> {
   const viewer =
     viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
@@ -48,18 +50,19 @@ export async function getResolvedDescriptionPayload(
     },
   });
 
-  const history = description
-    ? await prisma.descriptionEdit.findMany({
-        where: { descriptionId: description.id },
-        include: {
-          editor: {
-            select: { id: true, name: true, image: true, username: true },
+  const history =
+    description && includeHistory
+      ? await prisma.descriptionEdit.findMany({
+          where: { descriptionId: description.id },
+          include: {
+            editor: {
+              select: { id: true, name: true, image: true, username: true },
+            },
           },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      })
-    : [];
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : [];
 
   return {
     description: serializeDescriptionRecord(description),

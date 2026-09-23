@@ -6,32 +6,52 @@ import type { RequestHandler } from "./$types";
 
 const STATIC_ROUTES = [
   "/",
-  "/courses",
-  "/sections",
-  "/teachers",
-  "/bus",
-  "/links",
-  "/bus-map",
-  "/api/docs/tag/sections",
+  "/catalog/courses",
+  "/catalog/sections",
+  "/catalog/teachers",
+  "/catalog/bus",
+  "/catalog/links",
+  "/catalog/bus/map",
+  "/catalog/weather",
+  "/catalog/young-events",
+  "/api/docs/tag/catalog-section",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
   "/privacy",
   "/terms",
 ];
 
 async function getEntityUrls(origin: string) {
-  const [courses, sections, teachers] = await Promise.all([
+  const [courses, sections, teachers, youngEvents] = await Promise.all([
     prisma.course.findMany({ select: { jwId: true } }),
     prisma.section.findMany({
       where: { retiredAt: null },
       select: { jwId: true },
     }),
     prisma.teacher.findMany({ select: { id: true } }),
+    // Only signup-open events are worth indexing; ended events churn quickly.
+    prisma.youngEvent.findMany({
+      where: { isActive: true },
+      select: { youngId: true },
+    }),
   ]);
 
-  const courseUrls = courses.map(({ jwId }) => `${origin}/courses/${jwId}`);
-  const sectionUrls = sections.map(({ jwId }) => `${origin}/sections/${jwId}`);
-  const teacherUrls = teachers.map(({ id }) => `${origin}/teachers/${id}`);
+  const courseUrls = courses.map(
+    ({ jwId }) => `${origin}/catalog/courses/${jwId}`,
+  );
+  const sectionUrls = sections.map(
+    ({ jwId }) => `${origin}/catalog/sections/${jwId}`,
+  );
+  const teacherUrls = teachers.map(
+    ({ id }) => `${origin}/catalog/teachers/${id}`,
+  );
+  const youngEventUrls = youngEvents.map(
+    ({ youngId }) => `${origin}/catalog/young-events/${youngId}`,
+  );
 
-  return [...courseUrls, ...sectionUrls, ...teacherUrls];
+  return [...courseUrls, ...sectionUrls, ...teacherUrls, ...youngEventUrls];
 }
 
 async function loadSitemapUrls() {

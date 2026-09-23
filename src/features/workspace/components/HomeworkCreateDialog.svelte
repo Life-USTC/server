@@ -1,0 +1,100 @@
+<script lang="ts">
+import type { SubmitFunction } from "@sveltejs/kit";
+import { enhance } from "$app/forms";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
+import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
+import type {
+  WorkspaceHomeworkCommentsCopy,
+  WorkspaceHomeworkCreateCopy,
+  WorkspaceHomeworkCreateSection,
+  WorkspaceHomeworkDateShortcut,
+} from "./workspace-homework-create-types";
+
+export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
+export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
+export let commentsCopy: WorkspaceHomeworkCommentsCopy;
+export let createHomeworkAction: SubmitFunction;
+export let createHomeworkAdvancedOpen: boolean;
+export let createHomeworkError: string;
+export let createHomeworkPublishedAt: string;
+export let createHomeworkSectionId: string;
+export let createHomeworkSubmissionDueAt: string;
+export let createHomeworkSubmissionStartAt: string;
+export let homeworkSectionLabel: (
+  section: WorkspaceHomeworkCreateSection,
+) => string;
+export let homeworksCopy: WorkspaceHomeworkCreateCopy;
+export let isCreatingHomework: boolean;
+export let locale: string;
+export let onClose: () => void;
+export let open: boolean;
+export let sections: WorkspaceHomeworkCreateSection[];
+export let toShanghaiDateTimeLocalValue: (value: Date) => string;
+</script>
+
+{#if open}
+  <Dialog.Root
+    open={true}
+    onOpenChange={(nextOpen) => {
+      if (!nextOpen) onClose();
+    }}
+  >
+    <Dialog.Content
+      aria-describedby={undefined}
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(84dvh,52rem)] sm:max-h-[min(84dvh,52rem)] sm:max-w-6xl"
+    >
+      <form
+        class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        method="POST"
+        action="?/createHomework"
+        use:enhance={createHomeworkAction}
+      >
+        <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+          <Dialog.Title class="break-words">{homeworksCopy.createTitle}</Dialog.Title>
+        </Dialog.Header>
+        <ScrollArea class="h-0 min-h-0 flex-1">
+          <HomeworkCreateFormFields
+            {locale}
+            {applyHomeworkDueAtSemesterEnd}
+            {applyHomeworkStartNow}
+            {commentsCopy}
+            bind:createHomeworkAdvancedOpen
+            {createHomeworkError}
+            bind:createHomeworkPublishedAt
+            bind:createHomeworkSectionId
+            bind:createHomeworkSubmissionDueAt
+            bind:createHomeworkSubmissionStartAt
+            {homeworkSectionLabel}
+            {homeworksCopy}
+            {isCreatingHomework}
+            {sections}
+            {toShanghaiDateTimeLocalValue}
+          />
+        </ScrollArea>
+        <Dialog.Footer class="mx-0 mb-0 shrink-0">
+          <Button
+            disabled={isCreatingHomework}
+            type="button"
+            variant="outline"
+            onclick={onClose}
+          >
+            {homeworksCopy.cancel}
+          </Button>
+          <Button
+            data-testid="workspace-homework-create"
+            disabled={isCreatingHomework}
+            type="submit"
+          >
+            {#if isCreatingHomework}
+              <Spinner data-icon="inline-start" />
+            {/if}
+            {isCreatingHomework ? homeworksCopy.saving : homeworksCopy.createAction}
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
+  </Dialog.Root>
+{/if}

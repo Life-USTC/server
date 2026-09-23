@@ -1,4 +1,5 @@
 import type { APIRequestContext } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { withE2ePrisma } from "./e2e-db/prisma";
 
 export type DescriptionAuditAction =
@@ -30,10 +31,6 @@ type DescriptionTargetSnapshot = {
   original: DescriptionSnapshot | null;
   target: DescriptionTargetReference;
 };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function newAuditWhere(snapshot: DescriptionSnapshot) {
   const where = {
@@ -112,7 +109,7 @@ async function findDescriptionIdForTarget(
   target: DescriptionTargetReference,
 ) {
   const response = await request.get(
-    `/api/descriptions?${descriptionTargetSearchParams(target).toString()}`,
+    `/api/community/descriptions?${descriptionTargetSearchParams(target).toString()}`,
   );
   if (response.status() !== 200) {
     throw new Error(
@@ -144,13 +141,15 @@ export async function waitForDescriptionAuditRows(
   snapshot: DescriptionSnapshot,
   expectedNewRows: number,
 ) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const count = await withE2ePrisma((prisma) =>
-      prisma.auditLog.count({ where: newAuditWhere(snapshot) }),
-    );
-    if (count >= expectedNewRows) return;
-    await sleep(25);
-  }
+  await expect
+    .poll(
+      () =>
+        withE2ePrisma((prisma) =>
+          prisma.auditLog.count({ where: newAuditWhere(snapshot) }),
+        ),
+      { timeout: 1_000, intervals: [25] },
+    )
+    .toBeGreaterThanOrEqual(expectedNewRows);
 }
 
 export async function restoreDescriptionSnapshot(
@@ -175,7 +174,18 @@ export async function restoreDescriptionSnapshot(
   }
 
   await restoreOnce();
-  await sleep(50);
+  await expect
+    .poll(
+      () =>
+        withE2ePrisma((prisma) =>
+          prisma.description.findUnique({
+            where: { id: snapshot.id },
+            select: { content: true },
+          }),
+        ),
+      { timeout: 1_000, intervals: [50] },
+    )
+    .toMatchObject({ content: snapshot.content });
   await restoreOnce();
 }
 
@@ -214,6 +224,11 @@ export async function restoreDescriptionTargetSnapshot(
   }
 
   await deleteCreatedDescriptionOnce();
-  await sleep(50);
+  await expect
+    .poll(() => findDescriptionIdForTarget(request, snapshot.target), {
+      timeout: 1_000,
+      intervals: [50],
+    })
+    .toBeNull();
   await deleteCreatedDescriptionOnce();
 }

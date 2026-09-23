@@ -20,7 +20,7 @@ export let toggleReply: (comment: CommentNode) => void;
 </script>
 
 <div class="flex flex-wrap items-start justify-between gap-3">
-  <div class="flex min-w-0 items-start gap-3">
+  <div class="flex min-w-0 flex-1 items-start gap-3">
     <Avatar.Root>
       {#if !comment.authorHidden && comment.author?.image}
         <Avatar.Image src={comment.author.image} alt={authorName(comment)} />
@@ -35,7 +35,9 @@ export let toggleReply: (comment: CommentNode) => void;
         {#if comment.visibility === "logged_in_only"}<Badge variant="outline">{commentCopy.visibilityLoggedIn}</Badge>{/if}
         {#if comment.status !== "active"}<Badge variant="outline">{statusLabel(comment.status)}</Badge>{/if}
         {#if comment.contextLabel}
-          <Badge variant="outline">{commentCopy.postedIn} {comment.contextLabel}</Badge>
+          <Badge class="h-auto max-w-full whitespace-normal break-words text-left" variant="outline">
+            {commentCopy.postedIn} {comment.contextLabel}
+          </Badge>
         {/if}
       </div>
       <div class="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">

@@ -4,8 +4,10 @@ import {
   type ToolAnnotations,
 } from "@modelcontextprotocol/sdk/types.js";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
+import { observeMcpFeature } from "./feature-observability";
 import {
   getMcpToolOutputSchema,
+  getMcpToolOutputSchemaForMode,
   getMcpToolOutputSchemaNames,
   hasMcpToolOutputSchema,
   type McpToolOutputSchema,
@@ -14,12 +16,15 @@ import {
   getExplicitMcpToolScopeNames,
   getRequiredMcpScopes,
   hasExplicitMcpToolScopes,
+  isPublicMcpTool,
 } from "./tool-scopes";
 
-type ToolSecurityScheme = {
-  type: "oauth2";
-  scopes: string[];
-};
+type ToolSecurityScheme =
+  | { type: "noauth" }
+  | {
+      type: "oauth2";
+      scopes: string[];
+    };
 
 type ToolDescriptorDefaults = {
   title: string;
@@ -50,26 +55,23 @@ type ToolDescriptorWithAuthMetadata = Record<string, unknown> & {
 };
 
 const OPEN_WORLD_WRITE_TOOLS = new Set([
-  "add_comment_reaction",
-  "create_comment",
-  "create_homework_on_section",
-  "delete_homework_on_section",
-  "delete_own_comment",
-  "remove_comment_reaction",
-  "update_homework_on_section",
-  "update_own_comment",
-  "upsert_description",
+  "community_comment_reaction_add",
+  "community_comment_create",
+  "community_section_homework_create",
+  "community_section_homework_delete",
+  "community_comment_delete",
+  "community_comment_reaction_remove",
+  "community_section_homework_update",
+  "community_comment_update",
+  "community_description_set",
 ]);
 
-const DESTRUCTIVE_WRITE_PREFIXES = [
-  "delete_",
-  "remove_",
-  "rename_",
-  "save_",
-  "set_",
-  "unsubscribe_",
-  "update_",
-  "upsert_",
+const DESTRUCTIVE_WRITE_SUFFIXES = [
+  "_delete",
+  "_remove",
+  "_rename",
+  "_set",
+  "_update",
 ];
 
 const listCompatibilityInstalled = new WeakSet<McpServer>();
@@ -87,7 +89,7 @@ function isWriteScope(scope: string) {
 }
 
 function isDestructiveWriteTool(name: string) {
-  return DESTRUCTIVE_WRITE_PREFIXES.some((prefix) => name.startsWith(prefix));
+  return DESTRUCTIVE_WRITE_SUFFIXES.some((suffix) => name.endsWith(suffix));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -132,12 +134,15 @@ export function installMcpToolListCompatibility(server: McpServer) {
 export function getMcpToolDescriptorDefaults(
   name: string,
 ): ToolDescriptorDefaults {
+  const isPublic = isPublicMcpTool(name);
   const requiredScopes = getRequiredMcpScopes(name);
   const scopes =
     requiredScopes.length > 0 ? requiredScopes : [...PUBLIC_REST_SCOPES];
-  const isWrite = scopes.some(isWriteScope);
+  const isWrite = !isPublic && scopes.some(isWriteScope);
   const title = humanizeToolName(name);
-  const securitySchemes: ToolSecurityScheme[] = [{ type: "oauth2", scopes }];
+  const securitySchemes: ToolSecurityScheme[] = isPublic
+    ? [{ type: "noauth" }]
+    : [{ type: "oauth2", scopes }];
 
   return {
     title,
@@ -162,10 +167,13 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
+    const hasExplicitOutputSchema = config.outputSchema !== undefined;
+    const outputSchema = (config.outputSchema ??
+      defaults.outputSchema) as McpToolOutputSchema;
     const mergedConfig = {
       ...config,
       title: config.title ?? defaults.title,
-      outputSchema: config.outputSchema ?? defaults.outputSchema,
+      outputSchema,
       annotations: {
         ...defaults.annotations,
         ...config.annotations,
@@ -176,12 +184,45 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
         securitySchemes:
           config._meta?.securitySchemes ?? defaults.securitySchemes,
       },
-    } as typeof config;
+    } as unknown as typeof config;
 
-    const registered = registerTool(name, mergedConfig, callback);
+    const validatedCallback = (async (args: unknown, extra: unknown) => {
+      let validatingOutput = false;
+      return observeMcpFeature(
+        name,
+        args,
+        extra,
+        async () => {
+          const result = await (
+            callback as unknown as (
+              args: unknown,
+              extra: unknown,
+            ) => unknown | Promise<unknown>
+          )(args, extra);
+          if (isRecord(result) && isRecord(result.structuredContent)) {
+            const mode =
+              isRecord(args) && args.mode === "full" ? "full" : "default";
+            const validationSchema = hasExplicitOutputSchema
+              ? outputSchema
+              : getMcpToolOutputSchemaForMode(name, mode);
+            validatingOutput = true;
+            validationSchema.parse(result.structuredContent);
+            validatingOutput = false;
+          }
+          return result;
+        },
+        () => validatingOutput,
+      );
+    }) as unknown as typeof callback;
+
+    const registered = registerTool(name, mergedConfig, validatedCallback);
     names.add(name);
     return registered;
   }) as typeof server.registerTool;
+}
+
+export function getRegisteredMcpToolCount(server: McpServer) {
+  return registeredToolNames.get(server)?.size;
 }
 
 export function assertRegisteredMcpToolMetadata(server: McpServer) {

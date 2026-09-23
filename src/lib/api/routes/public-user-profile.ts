@@ -2,29 +2,15 @@ import {
   getUserProfileById,
   getUserProfileByUsername,
 } from "@/features/profile/server/user-profile-page-data";
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteSearchParams,
-} from "@/lib/api/helpers";
-import { publicUserProfileQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
 
-export async function getPublicUserProfileRoute(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = parseRouteSearchParams(
-    searchParams,
-    publicUserProfileQuerySchema,
-    "Invalid public profile query",
-  );
-  if (query instanceof Response) return query;
-
+export async function getCommunityUserRoute(identifier: string) {
   try {
-    const profile = query.username
-      ? await getUserProfileByUsername(query.username)
-      : query.userId
-        ? await getUserProfileById(query.userId)
-        : null;
+    const normalized = identifier.trim();
+    const profile = normalized
+      ? ((await getUserProfileByUsername(normalized.toLowerCase())) ??
+        (await getUserProfileById(normalized)))
+      : null;
 
     if (!profile) return notFound("User not found");
 

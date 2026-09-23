@@ -5,11 +5,13 @@ export function sectionHomeworkAuditActionLabel(
   action: string,
   copy: {
     auditCreated: string;
+    auditUpdated: string;
     auditDeleted: string;
   },
 ) {
   return homeworkAuditActionLabel(action, {
     created: copy.auditCreated,
+    updated: copy.auditUpdated,
     deleted: copy.auditDeleted,
   });
 }

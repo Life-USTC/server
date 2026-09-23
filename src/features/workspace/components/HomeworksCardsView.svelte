@@ -1,0 +1,146 @@
+<script lang="ts">
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
+import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
+import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
+
+type HomeworkDateFormatter = (
+  value: Date | string | null | undefined,
+) => string;
+type HomeworkOverduePredicate = (
+  value: Date | string | null | undefined,
+) => boolean;
+type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
+
+export let filteredHomeworkItems: WorkspaceHomeworkItem[];
+export let hasHomeworkItems: boolean;
+export let onClearFilter: () => void;
+export let fmtDate: HomeworkDateFormatter;
+export let homeworkCompletionActionLabel: HomeworkAction;
+export let homeworkCopy: Record<string, string>;
+export let homeworkEtaLabel: HomeworkDateFormatter;
+export let homeworkIsOverdue: HomeworkOverduePredicate;
+export let homeworkSectionHref: HomeworkAction;
+export let homeworksCopy: Record<string, string>;
+export let homeworkSavingById: Record<string, boolean>;
+export let selectedHomework: WorkspaceHomeworkItem | null;
+export let toggleHomeworkCompletion: (
+  homework: WorkspaceHomeworkItem,
+) => void | Promise<void>;
+
+function summaryBadges(homework: WorkspaceHomeworkItem) {
+  return homeworkSummaryBadges(
+    {
+      completed: Boolean(homework.completion),
+      completionRequired: homework.completionRequired,
+      isMajor: homework.isMajor === true,
+      requiresTeam: homework.requiresTeam === true,
+    },
+    {
+      completed: homeworksCopy.completedLabel,
+      major: homeworksCopy.tagMajor,
+      team: homeworksCopy.tagTeam,
+    },
+  );
+}
+</script>
+
+<div class="min-w-0" data-testid="workspace-homeworks-cards">
+  {#if filteredHomeworkItems.length > 0}
+    <Item.Group class="gap-0">
+      {#each filteredHomeworkItems as homework, index (homework.id)}
+        <Item.Root
+          class="items-start gap-3 px-2 py-3"
+          id={`homework-${homework.id}`}
+        >
+          <Item.Content class="min-w-0 gap-1">
+            <Item.Title class="line-clamp-none w-full min-w-0">
+              <button
+                class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left underline-offset-4 hover:underline"
+                type="button"
+                onclick={() => {
+                  selectedHomework = homework;
+                }}
+              >
+                <span class="line-clamp-2 min-w-0 max-w-full break-words">
+                  {homework.title}
+                </span>
+              </button>
+            </Item.Title>
+            <Item.Description
+              class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
+            >
+              <a
+                class="max-w-full break-words hover:underline"
+                href={homeworkSectionHref(homework)}
+              >
+                {homework.section?.courseName ?? homeworkCopy.section}
+              </a>
+              <span aria-hidden="true">·</span>
+              <span class="max-w-full break-words"
+                >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
+              >
+              {#if homework.completionRequired === false}
+                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
+              {:else if !homework.completion}
+                <Badge variant={homeworkIsOverdue(homework.submissionDueAt) ? "destructive" : "ghost"}>
+                  {homeworkEtaLabel(homework.submissionDueAt)}
+                </Badge>
+              {/if}
+              {#each summaryBadges(homework) as badge (badge.key)}
+                <Badge variant={badge.variant}>{badge.label}</Badge>
+              {/each}
+            </Item.Description>
+          </Item.Content>
+          <Item.Actions class="shrink-0 self-start">
+            {#if homework.completionRequired !== false}
+              <TableIconButton
+                className="size-11"
+                disabled={homeworkSavingById[homework.id]}
+                label={homeworkSavingById[homework.id]
+                  ? homeworksCopy.saving
+                  : homeworkCompletionActionLabel(homework)}
+                variant={homework.completion ? "secondary" : "default"}
+                onclick={() => toggleHomeworkCompletion(homework)}
+              >
+                {#if homeworkSavingById[homework.id]}
+                  <Spinner data-icon="inline-start" />
+                {:else if homework.completion}
+                  <RefreshCw data-icon="inline-start" />
+                {:else}
+                  <CheckCircleIcon data-icon="inline-start" />
+                {/if}
+              </TableIconButton>
+            {/if}
+            <TableIconButton
+              className="size-11"
+              label={homeworksCopy.viewDetails}
+              variant="outline"
+              onclick={() => {
+                selectedHomework = homework;
+              }}
+            >
+              <ArrowUpRight data-icon="inline-start" />
+            </TableIconButton>
+          </Item.Actions>
+        </Item.Root>
+        {#if index < filteredHomeworkItems.length - 1}
+          <Item.Separator class="my-0" />
+        {/if}
+      {/each}
+    </Item.Group>
+  {:else}
+    <WorkspaceTaskEmptyState
+            title={homeworksCopy.filterEmptyTitle}
+            description={hasHomeworkItems ? homeworksCopy.filterEmptyDescription : undefined}
+            clearFilterLabel={homeworksCopy.clearFilter}
+            onClearFilter={hasHomeworkItems ? onClearFilter : undefined}
+          />
+  {/if}
+</div>

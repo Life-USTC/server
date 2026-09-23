@@ -1,6 +1,10 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, test } from "@playwright/test";
+import { decodeJwt } from "jose";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
@@ -10,14 +14,16 @@ import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import {
   expectAccessTokenCannotInitializeMcp,
   issueAccessToken,
+  issueAccessTokenForClient,
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
+  registerPublicClient,
 } from "./helpers";
 
 test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("不透明 access token（token exchange 未带 resource）被 /api/mcp 拒绝", async ({
+  test("授权码已绑定 resource 时 token exchange 可省略 resource", async ({
     page,
     request,
   }) => {
@@ -31,7 +37,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       includeResourceInTokenExchange: false,
     });
 
-    expect(accessToken.split(".").length).toBeLessThan(3);
+    expect(accessToken.split(".").length).toBe(3);
 
     const response = await request.post("/api/mcp", {
       data: {
@@ -42,7 +48,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
           protocolVersion: "2025-03-26",
           capabilities: {},
           clientInfo: {
-            name: "opaque-token-e2e-client",
+            name: "code-bound-resource-e2e-client",
             version: "1.0.0",
           },
         },
@@ -54,20 +60,64 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       },
     });
 
-    expect(response.status()).toBe(401);
-    expect(response.headers()["www-authenticate"]).toContain(
-      'error="invalid_token"',
-    );
-    expect(response.headers()["www-authenticate"]).toContain(
-      "resource_metadata=",
-    );
-    await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
+    expect(response.status()).toBe(200);
   });
 
-  test("不透明 MCP access token 被受保护 REST 路由拒绝", async ({
+  test("同一客户端增权后签发精确绑定且包含累计 scope 的 MCP token", async ({
     page,
     request,
   }) => {
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const baselineScopes = [
+      restReadScope("account.profile"),
+      OAUTH_OFFLINE_ACCESS_SCOPE,
+    ];
+    const expandedScopes = [...baselineScopes, restReadScope("workspace.todo")];
+    await signInAsDebugUser(page, "/");
+    const clientId = await registerPublicClient(
+      request,
+      expandedScopes.join(" "),
+    );
+
+    const baseline = await issueAccessTokenForClient(page, request, {
+      clientId,
+      resource,
+      scope: baselineScopes.join(" "),
+    });
+    expect(baseline.response.status()).toBe(200);
+
+    const expanded = await issueAccessTokenForClient(page, request, {
+      clientId,
+      resource,
+      scope: expandedScopes.join(" "),
+    });
+    expect(expanded.response.status()).toBe(200);
+    expect(typeof expanded.tokenBody.access_token).toBe("string");
+    const accessToken = expanded.tokenBody.access_token as string;
+    const claims = decodeJwt(accessToken);
+    expect(claims[OAUTH_GRANT_ID_CLAIM]).toEqual(expect.any(String));
+    expect(new Set(String(claims.scope).split(" "))).toEqual(
+      new Set(expandedScopes),
+    );
+
+    const transport = new StreamableHTTPClientTransport(new URL(resource), {
+      requestInit: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const client = new Client({
+      name: "incremental-scope-e2e-client",
+      version: "1.0.0",
+    });
+    await client.connect(transport);
+    try {
+      await expect(
+        client.callTool({ name: "workspace_todo_list", arguments: {} }),
+      ).resolves.toMatchObject({ structuredContent: { success: true } });
+    } finally {
+      await transport.close();
+    }
+  });
+
+  test("MCP resource JWT 被受保护 REST 路由拒绝", async ({ page, request }) => {
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
 
@@ -78,9 +128,9 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
       includeResourceInTokenExchange: false,
     });
 
-    expect(accessToken.split(".").length).toBeLessThan(3);
+    expect(accessToken.split(".").length).toBe(3);
 
-    const response = await request.get("/api/todos", {
+    const response = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -187,7 +237,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     const restClientScopes = [
       ...DEFAULT_OAUTH_CLIENT_SCOPES,
       OAUTH_OFFLINE_ACCESS_SCOPE,
-      restReadScope("todo"),
+      restReadScope("workspace.todo"),
     ];
     await signInAsDebugUser(page, "/");
 

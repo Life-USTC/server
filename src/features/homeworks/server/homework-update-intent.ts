@@ -65,3 +65,23 @@ export function hasHomeworkUpdateIntentChanges(intent: HomeworkUpdateIntent) {
     intent.description !== undefined || intent.homeworkUpdates !== undefined
   );
 }
+
+const HOMEWORK_AUDITABLE_UPDATE_FIELDS = [
+  "title",
+  "isMajor",
+  "requiresTeam",
+  "publishedAt",
+  "submissionStartAt",
+  "submissionDueAt",
+] as const;
+
+export function homeworkUpdateChangedFields(intent: HomeworkUpdateIntent) {
+  const fields: string[] = [];
+  if (intent.description !== undefined) fields.push("description");
+  if (intent.homeworkUpdates) {
+    for (const field of HOMEWORK_AUDITABLE_UPDATE_FIELDS) {
+      if (Object.hasOwn(intent.homeworkUpdates, field)) fields.push(field);
+    }
+  }
+  return fields;
+}

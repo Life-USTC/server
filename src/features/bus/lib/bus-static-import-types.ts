@@ -28,7 +28,8 @@ export type BusStaticPayload = {
   campuses: BusStaticCampus[];
   routes: BusStaticRoute[];
   weekday_routes: BusStaticRouteSchedule[];
-  weekend_routes: BusStaticRouteSchedule[];
+  saturday_routes: BusStaticRouteSchedule[];
+  sunday_routes: BusStaticRouteSchedule[];
   message?: {
     message?: string;
     url?: string;

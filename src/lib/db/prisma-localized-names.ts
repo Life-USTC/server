@@ -1,44 +1,19 @@
 import { Prisma } from "@/generated/prisma/client";
-
-const normalizeName = (value?: string | null) => {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
-};
-
-const getNamePrimary = (
-  locale: string,
-  nameCn: string,
-  nameEn?: string | null,
-) => {
-  const english = normalizeName(nameEn);
-  if (locale === "en-us" && english) {
-    return english;
-  }
-  return nameCn;
-};
-
-const getNameSecondary = (
-  locale: string,
-  nameCn: string,
-  nameEn?: string | null,
-) => {
-  const english = normalizeName(nameEn);
-  if (locale === "en-us") {
-    return english ? nameCn : null;
-  }
-  return english;
-};
+import {
+  localizedNamePrimary,
+  localizedNameSecondary,
+} from "@/lib/localized-name";
 
 const localizedNameResult = (locale: string) => ({
   namePrimary: {
     needs: { nameCn: true, nameEn: true },
     compute: ({ nameCn, nameEn }: { nameCn: string; nameEn?: string | null }) =>
-      getNamePrimary(locale, nameCn, nameEn),
+      localizedNamePrimary(locale, nameCn, nameEn),
   },
   nameSecondary: {
     needs: { nameCn: true, nameEn: true },
     compute: ({ nameCn, nameEn }: { nameCn: string; nameEn?: string | null }) =>
-      getNameSecondary(locale, nameCn, nameEn),
+      localizedNameSecondary(locale, nameCn, nameEn),
   },
 });
 

@@ -1,3 +1,22 @@
+type Account {
+  clientActivity(cursor: String, limit: Int = 30): AccountClientActivityPage!
+  profile: UserProfile!
+}
+
+type AccountClientActivity {
+  action: String!
+  channel: String!
+  createdAt: DateTime!
+  id: ID!
+  outcome: String!
+  targetType: String
+}
+
+type AccountClientActivityPage {
+  items: [AccountClientActivity!]!
+  nextCursor: String
+}
+
 type BatchMutationError {
   code: BatchMutationErrorCode!
   message: String!
@@ -8,6 +27,7 @@ enum BatchMutationErrorCode {
   FORBIDDEN
   LOCKED
   NOT_FOUND
+  SUSPENDED
 }
 
 type BusCampus {
@@ -55,10 +75,12 @@ type BusRouteStop {
 type BusRouteTimetable {
   alternateRoutes: [BusRoute!]!
   route: BusRoute!
+  saturday: [BusTripSlot!]!
+  saturdayPageInfo: PageInfo!
+  sunday: [BusTripSlot!]!
+  sundayPageInfo: PageInfo!
   weekday: [BusTripSlot!]!
   weekdayPageInfo: PageInfo!
-  weekend: [BusTripSlot!]!
-  weekendPageInfo: PageInfo!
 }
 
 type BusStopTime {
@@ -74,9 +96,38 @@ type BusTripSlot {
 type Campus {
   code: String
   id: Int!
-  jwId: Int
+  jwId: Int!
   nameCn: String!
   nameEn: String
+}
+
+type Catalog {
+  busRoutes(page: PageInput): BusRoutePage!
+  busTimetable(now: DateTime, page: PageInput, routeId: Int!, versionKey: String): BusRouteTimetable
+  course(jwId: Int!): Course
+  courses(filter: CourseFilter, page: PageInput): CoursePage!
+  currentSemester: Semester
+  links(query: String): [CatalogLink!]!
+  roomMap(code: String!): RoomMap!
+  section(jwId: Int!): Section
+  sections(filter: SectionFilter, page: PageInput): SectionPage!
+  semesters(page: PageInput): SemesterPage!
+  teacher(id: Int!): Teacher
+  teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+  weather(locationKey: String!): WeatherSnapshot
+  youngEvent(youngId: String!): YoungEvent
+  youngEvents(filter: YoungEventFilter, page: PageInput): YoungEventPage!
+  youngOrganizer(organizerId: String!): YoungOrganizer
+  youngOrganizers(page: PageInput, search: String): YoungOrganizerPage!
+}
+
+type CatalogLink {
+  description: String!
+  group: String!
+  icon: String!
+  slug: String!
+  title: String!
+  url: String!
 }
 
 type CommentDeleteBatchPayload {
@@ -117,11 +168,24 @@ enum CommentTargetType {
   SECTION
   SECTION_TEACHER
   TEACHER
+  YOUNG_EVENT
 }
 
 enum CommentVisibility {
   LOGGED_IN_ONLY
   PUBLIC
+}
+
+type Community {
+  user(identifier: String!): CommunityUser
+}
+
+type CommunityUser {
+  createdAt: DateTime!
+  id: ID!
+  image: String
+  name: String!
+  username: String
 }
 
 input CompleteUploadSessionInput {
@@ -170,6 +234,7 @@ input CreateCommentInput {
   targetType: CommentTargetType!
   teacherId: ID
   visibility: CommentVisibility = PUBLIC
+  youngId: String
 }
 
 input CreateHomeworkInput {
@@ -194,23 +259,6 @@ input CreateUploadSessionInput {
   contentType: String
   filename: String!
   size: Float!
-}
-
-input DashboardLinkPinBatchItemInput {
-  pinned: Boolean!
-  slug: String!
-}
-
-type DashboardLinkPinBatchMutationPayload {
-  maxPinnedLinks: Int!
-  pinnedSlugs: [String!]!
-}
-
-type DashboardLinkPinMutationPayload {
-  maxPinnedLinks: Int!
-  pinned: Boolean!
-  pinnedSlugs: [String!]!
-  slug: String!
 }
 
 scalar Date
@@ -288,6 +336,7 @@ type Homework {
   commentCount: Int!
   completed: Boolean!
   completedAt: DateTime
+  completionRequired: Boolean!
   createdAt: DateTime!
   id: ID!
   isMajor: Boolean!
@@ -347,33 +396,37 @@ type HomeworkPage {
 }
 
 type Mutation {
-  addCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
-  completeUploadSession(input: CompleteUploadSessionInput!): UploadCompletionPayload!
-  createComment(input: CreateCommentInput!): CommentMutationPayload!
-  createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
-  createTodo(input: CreateTodoInput!): TodoMutationPayload!
-  createUploadSession(input: CreateUploadSessionInput!): UploadSessionPayload!
-  deleteComment(id: ID!): DeleteMutationPayload!
-  deleteComments(ids: [ID!]!): CommentDeleteBatchPayload!
-  deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
-  deleteTodo(id: ID!): DeleteMutationPayload!
-  deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
-  deleteUpload(id: ID!): UploadDeleteMutationPayload!
-  removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
-  renameUpload(filename: String!, id: ID!): UploadMutationPayload!
-  saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
-  setDashboardLinkPinState(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
-  setDashboardLinkPinStates(items: [DashboardLinkPinBatchItemInput!]!): DashboardLinkPinBatchMutationPayload!
-  setHomeworkCompletion(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
-  setHomeworkCompletions(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
-  setTodoCompletions(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
-  subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-  unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-  updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
-  updateHomework(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
-  updateSectionSubscriptions(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
-  updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
-  upsertDescription(input: UpsertDescriptionInput!): DescriptionMutationPayload!
+  busPreferencesSet(input: BusPreferenceInput!): BusPreferenceMutationPayload!
+  commentCreate(input: CreateCommentInput!): CommentMutationPayload!
+  commentDelete(id: ID!): DeleteMutationPayload!
+  commentReactionAdd(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  commentReactionRemove(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  commentUpdate(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
+  commentsDelete(ids: [ID!]!): CommentDeleteBatchPayload!
+  descriptionSet(input: UpsertDescriptionInput!): DescriptionMutationPayload!
+  homeworkCompletionSet(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
+  homeworkCompletionsSet(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
+  homeworkCreate(input: CreateHomeworkInput!): HomeworkMutationPayload!
+  homeworkDelete(id: ID!): HomeworkDeleteMutationPayload!
+  homeworkUpdate(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
+  linkPinSet(pinned: Boolean!, slug: String!): WorkspaceLinkPinMutationPayload!
+  linkPinsSet(items: [WorkspaceLinkPinBatchItemInput!]!): WorkspaceLinkPinBatchMutationPayload!
+  subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
+  subscriptionKindUpdate(jwId: Int!, kind: SubscriptionKind!): SubscriptionKindPayload!
+  subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
+  subscriptionsImport(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
+  todoCompletionsSet(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
+  todoCreate(input: CreateTodoInput!): TodoMutationPayload!
+  todoDelete(id: ID!): DeleteMutationPayload!
+  todoUpdate(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
+  todosDelete(ids: [ID!]!): TodoDeleteBatchPayload!
+  uploadDelete(id: ID!): UploadDeleteMutationPayload!
+  uploadRename(filename: String!, id: ID!): UploadMutationPayload!
+  uploadSessionComplete(input: CompleteUploadSessionInput!): UploadCompletionPayload!
+  uploadSessionCreate(input: CreateUploadSessionInput!): UploadSessionPayload!
+  youngEventSubscriptionSet(input: YoungEventSubscriptionInput!, youngId: String!): YoungEventSubscriptionState!
+  youngNotificationRead(id: ID!): DeleteMutationPayload!
+  youngOrganizerSubscriptionSet(organizerId: ID!, subscribed: Boolean!): YoungOrganizerSubscriptionState!
 }
 
 type NamedCatalogValue {
@@ -394,18 +447,36 @@ input PageInput {
   pageSize: Int = 20
 }
 
+type PersonalCalendarEvent {
+  at: DateTime
+  endsAt: DateTime
+  id: ID!
+  location: String
+  title: String!
+  type: String!
+  url: String!
+  youngId: String
+}
+
+type PersonalCalendarEventPage {
+  items: [PersonalCalendarEvent!]!
+  pageInfo: PageInfo!
+}
+
 type Query {
-  busRoutes(page: PageInput): BusRoutePage!
-  busTimetable(now: DateTime, page: PageInput, routeId: Int!, versionKey: String): BusRouteTimetable
-  course(jwId: Int!): Course
-  courses(filter: CourseFilter, page: PageInput): CoursePage!
-  currentSemester: Semester
-  section(jwId: Int!): Section
-  sections(filter: SectionFilter, page: PageInput): SectionPage!
-  semesters(page: PageInput): SemesterPage!
-  teacher(id: Int!): Teacher
-  teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
-  viewer: Viewer
+  account: Account
+  catalog: Catalog!
+  community: Community!
+  workspace: Workspace
+}
+
+type RoomMap {
+  building: String
+  code: String!
+  floor: String
+  imageUrl: String
+  sourceImageUrl: String
+  status: String!
 }
 
 type Schedule {
@@ -416,7 +487,7 @@ type Schedule {
   experiment: String
   id: Int!
   lessonType: String
-  periods: Int!
+  periods: Float!
   room: ScheduleRoom
   scheduleGroup: ScheduleGroup!
   section: Section!
@@ -465,7 +536,7 @@ type Section {
   limitCount: Int
   openDepartment: Department
   period: Int
-  periodsPerWeek: Int
+  periodsPerWeek: Float
   remark: String
   semester: Semester
   stdCount: Int
@@ -495,7 +566,6 @@ type SectionPage {
 enum SectionSubscriptionBatchAction {
   ADD
   REMOVE
-  SET
 }
 
 type SectionSubscriptionBatchPayload {
@@ -528,18 +598,39 @@ type SemesterPage {
   pageInfo: PageInfo!
 }
 
+type SubscribedSection {
+  kind: SubscriptionKind!
+  section: Section!
+}
+
+type SubscribedSectionPage {
+  items: [SubscribedSection!]!
+  pageInfo: PageInfo!
+}
+
+enum SubscriptionKind {
+  auditor
+  regular
+  teaching_assistant
+}
+
+type SubscriptionKindPayload {
+  kind: SubscriptionKind!
+  sectionJwId: Int!
+}
+
 type Teacher {
   address: String
   code: String
   department: Department
   email: String
   id: Int!
+  jwId: Int!
   mobile: String
   nameCn: String!
   nameEn: String
   personId: Int
   sectionCount: Int!
-  teacherId: Int
   teacherTitle: NamedCatalogValue
   telephone: String
 }
@@ -689,26 +780,102 @@ input UpsertDescriptionInput {
 
 type UserProfile {
   createdAt: DateTime!
-  email: String!
+  email: String
   id: ID!
   image: String
-  isAdmin: Boolean!
+  isAdmin: Boolean
   name: String!
   updatedAt: DateTime!
   username: String
 }
 
-type Viewer {
-  exams(filter: ExamFilter, page: PageInput): ExamPage!
-  homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
-  overview(atTime: DateTime): ViewerOverview!
-  profile: UserProfile!
-  schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
-  subscribedSections(page: PageInput): SectionPage!
-  todos(filter: TodoFilter, page: PageInput): TodoPage!
+type WeatherAlert {
+  content: String
+  issuedAt: DateTime
+  level: String
+  title: String!
 }
 
-type ViewerOverview {
+type WeatherCondition {
+  icon: String!
+  text: String!
+}
+
+type WeatherCurrent {
+  condition: WeatherCondition!
+  feelsLike: Float
+  humidity: Float
+  pressure: Float
+  temperature: Float!
+  visibility: Float
+  windDirection: String
+  windSpeed: Float
+}
+
+type WeatherDaily {
+  condition: WeatherCondition
+  date: Date!
+  temperatureHigh: Float!
+  temperatureLow: Float!
+}
+
+type WeatherHourly {
+  at: DateTime!
+  condition: WeatherCondition
+  precipitationAmount: Float
+  precipitationProbability: Float
+  temperature: Float!
+}
+
+type WeatherLocation {
+  adcode: String!
+  key: String!
+  name: String!
+}
+
+type WeatherSnapshot {
+  alerts: [WeatherAlert!]!
+  current: WeatherCurrent!
+  daily: [WeatherDaily!]!
+  fetchedAt: DateTime!
+  hourly: [WeatherHourly!]!
+  location: WeatherLocation!
+  providers: [String!]!
+}
+
+type Workspace {
+  calendarEvents(dateFrom: String, dateTo: String, page: PageInput): PersonalCalendarEventPage!
+  exams(filter: ExamFilter, page: PageInput): ExamPage!
+  homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
+  overview(atTime: DateTime): WorkspaceOverview!
+  schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
+  subscribedSections(page: PageInput): SubscribedSectionPage!
+  todos(filter: TodoFilter, page: PageInput): TodoPage!
+  youngEventSubscription(youngId: String!): YoungEventSubscriptionState!
+  youngEventSubscriptions(page: PageInput): YoungEventSubscriptionPage!
+  youngNotifications(page: PageInput, unread: Boolean = false): YoungNotificationPage!
+  youngOrganizerSubscription(organizerId: ID!): YoungOrganizerSubscriptionState!
+  youngOrganizerSubscriptions(page: PageInput): YoungOrganizerSubscriptionPage!
+}
+
+input WorkspaceLinkPinBatchItemInput {
+  pinned: Boolean!
+  slug: String!
+}
+
+type WorkspaceLinkPinBatchMutationPayload {
+  maxPinnedLinks: Int!
+  pinnedSlugs: [String!]!
+}
+
+type WorkspaceLinkPinMutationPayload {
+  maxPinnedLinks: Int!
+  pinned: Boolean!
+  pinnedSlugs: [String!]!
+  slug: String!
+}
+
+type WorkspaceOverview {
   atTime: DateTime!
   completedTodos: Int!
   dueSoonHomeworks: Int!
@@ -719,4 +886,182 @@ type ViewerOverview {
   today: Date!
   todaySchedules: Int!
   upcomingExams: Int!
+}
+
+type YoungEvent {
+  activityLevel: String
+  appliedCount: Int
+  applyEndAt: DateTime
+  applyStartAt: DateTime
+  auditedAt: DateTime
+  capacity: Int
+  category: String
+  contactName: String
+  contactTel: String
+  createdAt: DateTime
+  createdAtUpstream: DateTime
+  department: String
+
+  """
+  Sanitized upstream rich text. Only populated by the single-event query.
+  """
+  description: String
+  duration: Float
+  endAt: DateTime
+  favCount: Int
+  form: String
+  grades: String
+  hours: Float
+  imageUrl: String
+  isActive: Boolean!
+  lastSeenAt: DateTime
+  limitNum: Int
+  location: String
+  module: String
+  name: String!
+  organizer: String
+  organizerId: String
+  partakeNum: Int
+  participationNotes: String
+  places: [YoungEventPlace!]
+
+  """
+  The complete upstream record as a JSON string. Only populated by the
+  single-event query.
+  """
+  rawJson: String
+  registrationStatus: String @deprecated(reason: "Always null; upstream never populates it. Use status for the signup state.")
+  serviceHour: Float
+  sourceMissing: Boolean!
+  sponsor: String
+  startAt: DateTime
+  status: String
+  sumHours: Float
+  sumPersons: Int
+  updatedAtUpstream: DateTime
+  youngId: String!
+}
+
+input YoungEventFilter {
+  active: Boolean
+  activityLevel: String
+  category: String
+  dateFrom: String
+  dateTo: String
+  dateUnknown: Boolean
+  module: String
+  organizerId: String
+  search: String
+  timeBasis: YoungEventTimeBasis
+}
+
+type YoungEventPage {
+  items: [YoungEvent!]!
+  pageInfo: PageInfo!
+  source: YoungSourceFreshness!
+  unknownDateCount: Int!
+}
+
+type YoungEventPlace {
+  placeEt: String
+  placeInfo: String
+  placeSt: String
+}
+
+type YoungEventSubscription {
+  createdAt: DateTime!
+  event: YoungEvent!
+  remindDeadline: Boolean!
+  remindSignup: Boolean!
+  remindStart: Boolean!
+  youngId: String!
+}
+
+input YoungEventSubscriptionInput {
+  remindDeadline: Boolean
+  remindSignup: Boolean
+  remindStart: Boolean
+  subscribed: Boolean!
+}
+
+type YoungEventSubscriptionPage {
+  items: [YoungEventSubscription!]!
+  pageInfo: PageInfo!
+}
+
+type YoungEventSubscriptionState {
+  remindDeadline: Boolean!
+  remindSignup: Boolean!
+  remindStart: Boolean!
+  subscribed: Boolean!
+  youngId: String!
+}
+
+enum YoungEventTimeBasis {
+  activity
+  registration
+}
+
+type YoungNotification {
+  body: String!
+  createdAt: DateTime!
+  expiresAt: DateTime
+  id: ID!
+  kind: String!
+  organizerId: ID
+  readAt: DateTime
+  title: String!
+  youngId: String
+}
+
+type YoungNotificationPage {
+  items: [YoungNotification!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizer {
+  activeCount: Int!
+  historyCount: Int!
+  id: String!
+  name: String!
+  normalizedName: String!
+  totalCount: Int!
+  upcomingCount: Int!
+}
+
+type YoungOrganizerPage {
+  items: [YoungOrganizer!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizerReference {
+  id: ID!
+  name: String!
+}
+
+type YoungOrganizerSubscription {
+  createdAt: DateTime!
+  organizer: YoungOrganizerReference!
+  organizerId: ID!
+}
+
+type YoungOrganizerSubscriptionPage {
+  items: [YoungOrganizerSubscription!]!
+  pageInfo: PageInfo!
+}
+
+type YoungOrganizerSubscriptionState {
+  organizerId: ID!
+  subscribed: Boolean!
+}
+
+type YoungSourceFreshness {
+  lastSyncedAt: DateTime
+  status: YoungSourceStatus!
+}
+
+enum YoungSourceStatus {
+  fresh
+  stale
+  unknown
 }

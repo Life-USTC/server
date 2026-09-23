@@ -64,11 +64,11 @@ export async function createSectionCalendar(
   const calendar = createCalendar(
     `${section.course.nameCn} (${section.code})`,
     `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
-    `${ICAL_SITE_URL}/sections/${section.jwId}`,
+    `${ICAL_SITE_URL}/catalog/sections/${section.jwId}`,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, [section], geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, [section], geoData, roomMaps, locale);
   return calendar;
 }
 
@@ -82,8 +82,8 @@ export async function createMultiSectionCalendar(
     ICAL_SITE_URL,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, roomMaps, locale);
   return calendar;
 }
 
@@ -91,11 +91,21 @@ export async function createUserCalendar({
   sections,
   homeworks,
   todos,
+  youngEvents = [],
   locale = "zh-cn",
 }: {
   sections: CalendarSection[];
   homeworks: CalendarHomework[];
   todos: CalendarTodo[];
+  youngEvents?: Array<{
+    youngId: string;
+    name: string;
+    startAt: Date | null;
+    endAt: Date | null;
+    location: string | null;
+    sourceMissing: boolean;
+    lastSeenAt: Date | null;
+  }>;
   locale?: AppLocale;
 }) {
   const calendar = createCalendar(
@@ -104,10 +114,27 @@ export async function createUserCalendar({
     ICAL_SITE_URL,
   );
 
-  const [geoData, imgRules] = await loadLocationAssets();
-  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
+  const [geoData, roomMaps] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, roomMaps, locale);
   for (const homework of homeworks)
     createHomeworkEvent(homework, calendar, locale);
   for (const todo of todos) createTodoEvent(todo, calendar, locale);
+  for (const event of youngEvents) {
+    if (!event.startAt) continue;
+    calendar.createEvent({
+      id: `young-${event.youngId}@life-ustc`,
+      start: event.startAt,
+      ...(event.endAt && event.endAt > event.startAt
+        ? { end: event.endAt }
+        : {}),
+      summary: event.name,
+      location: event.location ?? undefined,
+      url: `${ICAL_SITE_URL}/catalog/young-events/${encodeURIComponent(event.youngId)}`,
+      description: event.sourceMissing
+        ? "来源暂缺，请核实校方信息 / Source unavailable; verify official details."
+        : "订阅活动不等于校方报名 / Subscribing does not register attendance.",
+      lastModified: event.lastSeenAt ?? undefined,
+    });
+  }
   return calendar;
 }

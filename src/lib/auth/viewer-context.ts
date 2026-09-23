@@ -1,3 +1,4 @@
+import { getCloudflareRuntimeContext } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -12,6 +13,10 @@ export type ViewerContext = {
   suspensionExpiresAt: string | null;
 };
 
+export interface ViewerContextInstrumentation {
+  onQuery?: () => void;
+}
+
 type ViewerAuthData = {
   user: {
     id: string;
@@ -22,7 +27,36 @@ type ViewerAuthData = {
   suspension: Awaited<ReturnType<typeof findActiveSuspension>>;
 };
 
-export async function findActiveSuspension(userId: string) {
+const viewerContextCacheKey = Symbol("life-ustc.cloudflare.viewer-context");
+
+function getRequestViewerCache() {
+  const context = getCloudflareRuntimeContext();
+  if (!context) return undefined;
+  let cache = context.cache.get(viewerContextCacheKey) as
+    | Map<string, Promise<ViewerContext>>
+    | undefined;
+  if (!cache) {
+    cache = new Map();
+    context.cache.set(viewerContextCacheKey, cache);
+  }
+  return cache;
+}
+
+function notifyViewerContextQuery(
+  instrumentation?: ViewerContextInstrumentation,
+): void {
+  try {
+    instrumentation?.onQuery?.();
+  } catch {
+    // Instrumentation must never change authentication behavior.
+  }
+}
+
+export async function findActiveSuspension(
+  userId: string,
+  instrumentation?: ViewerContextInstrumentation,
+) {
+  notifyViewerContextQuery(instrumentation);
   const now = new Date();
   return prisma.userSuspension.findFirst({
     where: {
@@ -34,7 +68,11 @@ export async function findActiveSuspension(userId: string) {
   });
 }
 
-async function findViewerUser(userId: string) {
+async function findViewerUser(
+  userId: string,
+  instrumentation?: ViewerContextInstrumentation,
+) {
+  notifyViewerContextQuery(instrumentation);
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, name: true, image: true, isAdmin: true },
@@ -43,10 +81,11 @@ async function findViewerUser(userId: string) {
 
 export async function getViewerAuthDataForUserId(
   userId: string,
+  instrumentation?: ViewerContextInstrumentation,
 ): Promise<ViewerAuthData | null> {
   const [user, suspension] = await Promise.all([
-    findViewerUser(userId),
-    findActiveSuspension(userId),
+    findViewerUser(userId, instrumentation),
+    findActiveSuspension(userId, instrumentation),
   ]);
 
   if (!user) {
@@ -56,12 +95,19 @@ export async function getViewerAuthDataForUserId(
   return { user, suspension };
 }
 
-export async function getViewerContext(
-  options: { includeAdmin?: boolean; userId?: string | null } = {},
+async function loadViewerContext(
+  options: {
+    includeAdmin?: boolean;
+    userId?: string | null;
+    instrumentation?: ViewerContextInstrumentation;
+  } = {},
 ): Promise<ViewerContext> {
   const data =
     typeof options.userId === "string"
-      ? await getViewerAuthDataForUserId(options.userId)
+      ? await getViewerAuthDataForUserId(
+          options.userId,
+          options.instrumentation,
+        )
       : null;
 
   if (!data) {
@@ -92,4 +138,21 @@ export async function getViewerContext(
       ? toShanghaiIsoString(suspension.expiresAt)
       : null,
   };
+}
+
+export function getViewerContext(
+  options: {
+    includeAdmin?: boolean;
+    userId?: string | null;
+    instrumentation?: ViewerContextInstrumentation;
+  } = {},
+): Promise<ViewerContext> {
+  const cache = getRequestViewerCache();
+  if (!cache) return loadViewerContext(options);
+  const key = `${options.userId ?? "anonymous"}:${options.includeAdmin === true}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const viewer = loadViewerContext(options);
+  cache.set(key, viewer);
+  return viewer;
 }

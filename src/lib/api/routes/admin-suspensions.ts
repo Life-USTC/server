@@ -12,6 +12,8 @@ import {
 } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { logAdminSecurityEvent } from "@/lib/audit/security-events";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminSuspensionsRoute(request: Request) {
@@ -33,12 +35,16 @@ export async function postAdminSuspensionRoute(request: Request) {
       );
       if (parsedBody instanceof Response) return parsedBody;
 
-      const result = await createAdminSuspension(admin.userId, parsedBody);
+      const result = await createAdminSuspension(admin.userId, parsedBody, {
+        channel: "rest",
+        requestId: getAuditRequestMetadata(request).requestId,
+      });
       if (!result.ok) {
         if (result.reason === "invalid_expires_at") {
           return badRequest("Invalid expiresAt");
         }
         if (result.reason === "cannot_suspend_self") {
+          logAdminSecurityEvent(request, "self_protection");
           return badRequest("Admins cannot suspend themselves");
         }
         return notFound("User not found");
@@ -49,7 +55,7 @@ export async function postAdminSuspensionRoute(request: Request) {
         `/api/admin/suspensions/${encodeURIComponent(result.suspension.id)}`,
       );
     },
-    { requireActive: true },
+    { requireRecent: true },
   );
 }
 
@@ -65,11 +71,14 @@ export async function patchAdminSuspensionRoute(
       if (parsed instanceof Response) return parsed;
       const id = parsed.id;
 
-      const result = await liftAdminSuspension(admin.userId, id);
+      const result = await liftAdminSuspension(admin.userId, id, {
+        channel: "rest",
+        requestId: getAuditRequestMetadata(request).requestId,
+      });
       if (!result.ok) return notFound();
 
       return jsonResponse({ suspension: result.suspension });
     },
-    { requireActive: true },
+    { requireRecent: true },
   );
 }

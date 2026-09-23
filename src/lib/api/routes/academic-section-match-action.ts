@@ -1,5 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
-import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import { handleRouteError } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { matchSectionCodesResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 
 export async function matchSectionCodesAction(
   codes: readonly string[],
@@ -19,7 +21,7 @@ export async function matchSectionCodesAction(
     return handleRouteError("No semester found", new Error("No semester"), 404);
   }
 
-  return jsonResponse({
+  return schemaJsonResponse(matchSectionCodesResponseSchema, {
     semester: matches.semester,
     matchedCodes: matches.matchedCodes,
     unmatchedCodes: matches.unmatchedCodes,

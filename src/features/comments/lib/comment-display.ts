@@ -8,11 +8,13 @@ export function commentTargetLabel(
     tabSection: string;
     tabSectionTeacher: string;
     tabTeacher: string;
+    tabYoungEvent?: string;
   },
 ) {
   if (type === "course") return copy.tabCourse;
   if (type === "teacher") return copy.tabTeacher;
   if (type === "section-teacher") return copy.tabSectionTeacher;
+  if (type === "young-event") return copy.tabYoungEvent ?? "this young event";
   return copy.tabSection;
 }
 

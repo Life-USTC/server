@@ -11,29 +11,90 @@ jobs:
     name: Check
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_ci
       job-phase: ci:verify
 
+  test-unit:
+    name: Unit test coverage
+    permissions:
+      contents: read
+    uses: ./.github/workflows/bun-job.yml
+    with:
+      job-phase: ci:unit
+      upload-artifact-name: vitest-coverage
+      upload-artifact-path: coverage
+      upload-artifact-no-files-found: warn
+      upload-artifact-always: true
+
   test-integration:
-    name: MCP Integration Test
-    needs: check
+    name: MCP Integration Test (${{ matrix.index }}/4)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - index: 1
+            database: life_ustc_integration_1
+          - index: 2
+            database: life_ustc_integration_2
+          - index: 3
+            database: life_ustc_integration_3
+          - index: 4
+            database: life_ustc_integration_4
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_integration
+      # Runtime connection URLs are derived from this disposable database.
+      database-name: ${{ matrix.database }}
       job-phase: ci:integration
+      vitest-shard: ${{ matrix.index }}/4
+      timeout-minutes: 60
+
+  test-rest:
+    name: REST API Test (${{ matrix.shard }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1/2
+            database: life_ustc_rest_1
+            artifact: api-1
+          - shard: 2/2
+            database: life_ustc_rest_2
+            artifact: api-2
+    needs: build-e2e-artifacts
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: ${{ matrix.database }}
+      job-phase: ci:rest
+      e2e-shard: ${{ matrix.shard }}
+      timeout-minutes: 60
+      download-artifact-name: e2e-svelte-kit
+      download-artifact-path: .svelte-kit
+      upload-artifact-name: playwright-report-integration-${{ matrix.artifact }}
+      # Keep API Playwright and Worker-supervisor diagnostics when integration
+      # infrastructure fails before a report can be rendered.
+      upload-artifact-path: playwright-report/
+      upload-artifact-no-files-found: ignore
+      upload-artifact-always: true
+  test-rls:
+    name: PostgreSQL RLS Isolation Test
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_rls
+      job-phase: ci:rls
 
   build-e2e-artifacts:
     name: Build E2E artifacts
-    needs: check
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
+    uses: ./.github/workflows/bun-job.yml
     with:
-      database-name: life_ustc_e2e
       webhook-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts
@@ -44,13 +105,12 @@ jobs:
 
   static-loader-image:
     name: Static Loader Image
-    needs: check
     permissions:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
       - name: Build static loader image
@@ -109,7 +169,6 @@ jobs:
             -v "${report_dir}:/tmp/static-loader-report" \
             -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
             -e STATIC_LOADER_DRY_RUN=true \
-            -e STATIC_LOADER_BOOTSTRAP_IMPORT_STATE=true \
             -e STATIC_LOADER_MIN_SEMESTER=401 \
             -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
             life-ustc-static-loader:check
@@ -120,10 +179,10 @@ jobs:
               report.mode !== "dry-run" ||
               report.outcome !== "rolled-back" ||
               report.databaseRecordCounts !== null ||
-              report.reconciliation?.sectionLifecycle?.enabled !== false ||
+              report.reconciliation?.sectionPresence?.status !== "applied" ||
               !Number.isInteger(
-                report.reconciliation?.sectionLifecycle
-                  ?.retirementCandidateCount,
+                report.reconciliation?.sectionPresence
+                  ?.missingSectionCount,
               ) ||
               !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
             ) {
@@ -133,27 +192,40 @@ jobs:
 
   test-e2e:
     name: E2E Test (${{ matrix.shard }})
-    needs:
-      - check
-      - build-e2e-artifacts
-      - test-integration
+    needs: build-e2e-artifacts
     strategy:
       fail-fast: false
       matrix:
         include:
-          - shard: 1/4
+          - shard: 1/8
             artifact: shard-1
-          - shard: 2/4
+            database: life_ustc_e2e_1
+          - shard: 2/8
             artifact: shard-2
-          - shard: 3/4
+            database: life_ustc_e2e_2
+          - shard: 3/8
             artifact: shard-3
-          - shard: 4/4
+            database: life_ustc_e2e_3
+          - shard: 4/8
             artifact: shard-4
+            database: life_ustc_e2e_4
+          - shard: 5/8
+            artifact: shard-5
+            database: life_ustc_e2e_5
+          - shard: 6/8
+            artifact: shard-6
+            database: life_ustc_e2e_6
+          - shard: 7/8
+            artifact: shard-7
+            database: life_ustc_e2e_7
+          - shard: 8/8
+            artifact: shard-8
+            database: life_ustc_e2e_8
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_dev
+      database-name: ${{ matrix.database }}
       install-playwright: true
       webhook-secret: e2e-ci-secret
       extra-env: |
@@ -164,6 +236,32 @@ jobs:
       job-phase: ci:e2e:test
       e2e-shard: ${{ matrix.shard }}
       upload-artifact-name: playwright-report-${{ matrix.artifact }}
+      # Includes Playwright output and attempt-specific Wrangler logs/status
+      # written under playwright-report/worker/ by the E2E server wrapper.
+      upload-artifact-path: playwright-report/
+      upload-artifact-no-files-found: ignore
+      upload-artifact-always: true
+
+  test-visual-regression:
+    name: Visual regression (opt-in)
+    if: ${{ vars.VISUAL_REGRESSION == '1' }}
+    needs: build-e2e-artifacts
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_visual
+      install-playwright: true
+      webhook-secret: e2e-ci-secret
+      extra-env: |
+        NO_PROXY=127.0.0.1,localhost,::1
+        VISUAL_REGRESSION=1
+      download-artifact-name: e2e-svelte-kit
+      download-artifact-path: .svelte-kit
+      job-phase: ci:visual-regression
+      timeout-minutes: 45
+      upload-artifact-name: playwright-report-visual
+      # Includes visual Playwright output and attempt-specific Worker logs.
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
@@ -171,7 +269,7 @@ jobs:
   publish-e2e-html-report:
     name: Publish E2E HTML report
     needs: test-e2e
-    if: always()
+    if: ${{ always() && needs.test-e2e.result != 'skipped' }}
     continue-on-error: true
     runs-on: ubuntu-latest
     concurrency:
@@ -183,12 +281,26 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
+      - name: Check report publication credentials
+        id: report-auth
+        shell: bash
+        env:
+          E2E_ARTIFACTS_TOKEN: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
+        run: |
+          if [[ -n "${E2E_ARTIFACTS_TOKEN}" ]]; then
+            echo "available=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+            echo "E2E report publication skipped: E2E_ARTIFACTS_TOKEN is unavailable."
+          fi
+
       - name: Checkout e2e-snapshot-artifacts repo
-        uses: actions/checkout@v6
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Life-USTC/e2e-snapshot-artifacts
           ref: main
@@ -197,20 +309,25 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
       - name: Install dependencies
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         run: bun install --frozen-lockfile
 
       - name: Download all Playwright report artifacts
-        uses: actions/download-artifact@v8
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: downloaded-reports
           pattern: playwright-report-*
 
       - name: Merge blob reports into HTML
+        id: merge-report
+        if: ${{ steps.report-auth.outputs.available == 'true' }}
         run: |
           mkdir -p all-blobs
           for dir in downloaded-reports/playwright-report-*; do
@@ -220,9 +337,16 @@ jobs:
               cp "$blob" "all-blobs/${scope}-$(basename "$blob")"
             done
           done
+          if ! find all-blobs -maxdepth 1 -type f -name '*.zip' -print -quit | grep -q .; then
+            echo "available=false" >> "${GITHUB_OUTPUT}"
+            echo "E2E HTML report publication skipped: no Playwright blob reports were uploaded."
+            exit 0
+          fi
+          echo "available=true" >> "${GITHUB_OUTPUT}"
           bunx playwright merge-reports all-blobs --config playwright.report.config.ts
 
       - name: Publish report to e2e-snapshot-artifacts branch
+        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
         env:
           REPORTS_TO_KEEP: 20
           RUN_ID: ${{ github.run_id }}
@@ -279,6 +403,7 @@ jobs:
           git push --force origin HEAD:main
 
       - name: Comment report link on commit and PR
+        if: ${{ steps.report-auth.outputs.available == 'true' && steps.merge-report.outputs.available == 'true' }}
         env:
           RUN_ID: ${{ github.run_id }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

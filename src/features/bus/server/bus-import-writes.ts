@@ -1,5 +1,6 @@
 import {
   buildBusRouteNameData,
+  normalizeBusCampusCoordinates,
   normalizeBusCampusName,
 } from "../lib/bus-import-route-data";
 import type {
@@ -12,7 +13,8 @@ export function assertBusRouteConsistency(payload: BusStaticPayload) {
   const routeIds = new Set(payload.routes.map((route) => route.id));
   for (const schedule of [
     ...payload.weekday_routes,
-    ...payload.weekend_routes,
+    ...payload.saturday_routes,
+    ...payload.sunday_routes,
   ]) {
     if (!routeIds.has(schedule.route.id)) {
       throw new Error(
@@ -27,18 +29,19 @@ export async function upsertBusCampuses(
   payload: BusStaticPayload,
 ) {
   for (const campus of payload.campuses) {
+    const { latitude, longitude } = normalizeBusCampusCoordinates(campus);
     await prisma.busCampus.upsert({
       where: { id: campus.id },
       update: {
         nameCn: normalizeBusCampusName(campus.name),
-        latitude: campus.latitude,
-        longitude: campus.longitude,
+        latitude,
+        longitude,
       },
       create: {
         id: campus.id,
         nameCn: normalizeBusCampusName(campus.name),
-        latitude: campus.latitude,
-        longitude: campus.longitude,
+        latitude,
+        longitude,
       },
     });
   }
@@ -76,25 +79,22 @@ export async function upsertBusRoutes(
 export async function createBusTripsForDayType(
   prisma: BusImportWritePrisma,
   versionId: number,
-  dayType: "weekday" | "weekend",
+  dayType: "weekday" | "saturday" | "sunday",
   schedules: BusStaticRouteSchedule[],
 ) {
-  let trips = 0;
+  const trips = schedules.flatMap((schedule) =>
+    schedule.time.map((stopTimes, position) => ({
+      versionId,
+      routeId: schedule.route.id,
+      dayType,
+      position,
+      stopTimes,
+    })),
+  );
 
-  for (const schedule of schedules) {
-    for (let position = 0; position < schedule.time.length; position += 1) {
-      await prisma.busTrip.create({
-        data: {
-          versionId,
-          routeId: schedule.route.id,
-          dayType,
-          position,
-          stopTimes: schedule.time[position],
-        },
-      });
-      trips += 1;
-    }
+  if (trips.length > 0) {
+    await prisma.busTrip.createMany({ data: trips });
   }
 
-  return trips;
+  return trips.length;
 }

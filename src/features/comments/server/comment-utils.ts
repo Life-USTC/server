@@ -8,8 +8,38 @@ import { verifyCommentTargetEntity } from "./comment-target-verification";
 
 export type { CommentTargetType };
 
+export type CommentTargetCourseMetadata = {
+  jwId: number | null;
+  nameCn: string | null;
+};
+
+export type CommentTargetSectionMetadata = {
+  code: string | null;
+  course?: CommentTargetCourseMetadata | null;
+  jwId: number | null;
+};
+
+export type CommentTargetMetadataSource = {
+  course?: CommentTargetCourseMetadata | null;
+  homework?: {
+    section?: Pick<CommentTargetSectionMetadata, "code" | "jwId"> | null;
+    title: string | null;
+  } | null;
+  section?: CommentTargetSectionMetadata | null;
+  sectionTeacher?: {
+    section?: CommentTargetSectionMetadata | null;
+    sectionId: number | null;
+    teacher?: { nameCn: string | null } | null;
+    teacherId: number | null;
+  } | null;
+  teacher?: { nameCn: string | null } | null;
+  youngEvent?: { name: string | null; youngId: string } | null;
+};
+
 export type ResolvedCommentTarget = {
   homeworkId: string | null;
+  youngEventId?: number | null;
+  youngId?: string | null;
   sectionId: number | null;
   sectionTeacherId: number | null;
   targetId: number | string | null;
@@ -19,6 +49,8 @@ export type ResolvedCommentTarget = {
   empty: boolean;
   /** True when the underlying target entity was verified to exist in the DB. */
   verified: boolean;
+  /** Metadata selected while resolving a list target, when available. */
+  targetMetadata?: CommentTargetMetadataSource | null;
 };
 
 export { resolveSectionTeacherId };
@@ -34,6 +66,7 @@ export async function resolveCommentTarget(input: {
   sectionId?: unknown;
   targetType: CommentTargetType;
   teacherId?: unknown;
+  youngId?: unknown;
 }): Promise<ResolvedCommentTarget | null> {
   const normalizedTargetId = parseInteger(input.rawTargetId);
   const homeworkId =
@@ -42,6 +75,10 @@ export async function resolveCommentTarget(input: {
       : null;
   const sectionId = parseInteger(input.sectionId);
   const teacherId = parseInteger(input.teacherId);
+  const youngId =
+    typeof input.youngId === "string" && input.youngId.trim().length > 0
+      ? input.youngId.trim()
+      : null;
 
   let whereTarget: Record<string, number | string> | null = null;
   let sectionTeacherId: number | null = null;
@@ -56,6 +93,8 @@ export async function resolveCommentTarget(input: {
     whereTarget = { teacherId: normalizedTargetId };
   } else if (input.targetType === "homework" && homeworkId) {
     whereTarget = { homeworkId };
+  } else if (input.targetType === "young-event" && normalizedTargetId) {
+    whereTarget = { youngEventId: normalizedTargetId };
   } else if (input.targetType === "section-teacher") {
     if (input.allowDirectSectionTeacherId && normalizedTargetId) {
       sectionTeacherId = normalizedTargetId;
@@ -95,6 +134,11 @@ export async function resolveCommentTarget(input: {
   return {
     empty,
     homeworkId,
+    youngEventId:
+      typeof whereTarget.youngEventId === "number"
+        ? whereTarget.youngEventId
+        : null,
+    youngId,
     sectionId,
     sectionTeacherId,
     targetId: input.targetType === "homework" ? homeworkId : normalizedTargetId,

@@ -1,5 +1,8 @@
 <script lang="ts">
-import * as Accordion from "$lib/components/ui/accordion/index.js";
+import {
+  detailDefinitionListClass,
+  detailDefinitionTermClass,
+} from "$lib/components/detail-definition-list";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
@@ -16,40 +19,29 @@ export let sectionCopy: SectionBasicInfoCopy;
 export let yesNo: (value: boolean | null | undefined) => string;
 </script>
 
-<Accordion.Root type="single">
-  <Accordion.Item value="more-details">
-    <Accordion.Trigger>{sectionCopy.moreDetails}</Accordion.Trigger>
-    <Accordion.Content>
-      <dl class="grid gap-3 text-sm">
-        <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-muted-foreground">{sectionCopy.teachLanguage}</dt>
-          <dd>{primaryName(section.teachLanguage) || notAvailable}</dd>
-        </div>
-        <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-muted-foreground">{sectionCopy.roomType}</dt>
-          <dd>{primaryName(section.roomType) || notAvailable}</dd>
-        </div>
-        <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-muted-foreground">{commonCopy.undergraduateGraduate}</dt>
-          <dd>{yesNo(section.graduateAndPostgraduate)}</dd>
-        </div>
-        <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-muted-foreground">{sectionCopy.periodsPerWeek}</dt>
-          <dd>
-            {section.timesPerWeek ?? notAvailable} x {section.periodsPerWeek ?? notAvailable}
-          </dd>
-        </div>
-        {#each periodDetailRows as [label, value]}
-          <div class="flex items-baseline justify-between gap-4">
-            <dt class="text-muted-foreground">{label}</dt>
-            <dd>{value}</dd>
-          </div>
-        {/each}
-        <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-muted-foreground">{sectionCopy.department}</dt>
-          <dd>{primaryName(section.openDepartment) || notAvailable}</dd>
-        </div>
-      </dl>
-    </Accordion.Content>
-  </Accordion.Item>
-</Accordion.Root>
+<section class="grid gap-3">
+  <h3 class="text-sm font-semibold tracking-tight">{sectionCopy.moreDetails}</h3>
+  <dl class={detailDefinitionListClass}>
+    <dt class={detailDefinitionTermClass}>{sectionCopy.teachLanguage}</dt>
+    <dd class="m-0 min-w-0">{primaryName(section.teachLanguage) || notAvailable}</dd>
+
+    <dt class={detailDefinitionTermClass}>{sectionCopy.roomType}</dt>
+    <dd class="m-0 min-w-0">{primaryName(section.roomType) || notAvailable}</dd>
+
+    <dt class={detailDefinitionTermClass}>{commonCopy.undergraduateGraduate}</dt>
+    <dd class="m-0 min-w-0">{yesNo(section.graduateAndPostgraduate)}</dd>
+
+    <dt class={detailDefinitionTermClass}>{sectionCopy.periodsPerWeek}</dt>
+    <dd class="m-0 min-w-0">
+      {section.timesPerWeek ?? notAvailable} x {section.periodsPerWeek ?? notAvailable}
+    </dd>
+
+    {#each periodDetailRows as [label, value]}
+      <dt class={detailDefinitionTermClass}>{label}</dt>
+      <dd class="m-0 min-w-0">{value}</dd>
+    {/each}
+
+    <dt class={detailDefinitionTermClass}>{sectionCopy.department}</dt>
+    <dd class="m-0 min-w-0">{primaryName(section.openDepartment) || notAvailable}</dd>
+  </dl>
+</section>

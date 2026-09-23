@@ -1,6 +1,5 @@
 import { asRecord, requireMethod } from "@/lib/oauth/provider-api-guards";
 import type {
-  GenericOAuthApi,
   OAuthProviderApi,
   OAuthProviderMetadataAuth,
 } from "@/lib/oauth/provider-api-types";
@@ -53,24 +52,5 @@ export function asOAuthProviderMetadataAuth(
         "getOpenIdConfig",
       ),
     },
-  };
-}
-
-export function asGenericOAuthApi(api: unknown): GenericOAuthApi {
-  const record = asRecord(
-    api,
-    "Better Auth generic OAuth API is unavailable: expected an object API surface",
-  );
-  return {
-    signInWithOAuth2: requireMethod(
-      record,
-      "Better Auth generic OAuth API",
-      "signInWithOAuth2",
-    ),
-    oAuth2LinkAccount: requireMethod(
-      record,
-      "Better Auth generic OAuth API",
-      "oAuth2LinkAccount",
-    ),
   };
 }

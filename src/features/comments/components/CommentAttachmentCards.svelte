@@ -24,8 +24,7 @@ export let openLabel: string;
         <Item.Actions>
           <Button
             class="w-fit"
-            href={`/api/uploads/${attachment.uploadId}/download?preview=1`}
-            size="sm"
+            href={`/api/workspace/uploads/${attachment.uploadId}/download?preview=1`}
             target="_blank"
             variant="outline"
           >

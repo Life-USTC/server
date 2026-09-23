@@ -2,11 +2,13 @@ import { sectionCompactInclude } from "@/features/catalog/server/academic-query-
 import { resolveSectionCodeMatchSemester } from "@/features/catalog/server/section-code-match-semester";
 import { buildSectionCodeSuggestions } from "@/features/catalog/server/section-code-match-suggestions";
 import type { MatchedSectionCodes } from "@/features/catalog/server/section-code-match-types";
+import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
+import { toSectionCompactDto } from "./academic-summary-dto-mappers";
 
 export async function findSectionCodeMatches(
   codes: string[],
-  locale = "zh-cn",
+  locale: AppLocale = "zh-cn",
   semesterId?: number,
 ): Promise<MatchedSectionCodes | null> {
   const semester = await resolveSectionCodeMatchSemester(semesterId);
@@ -25,7 +27,10 @@ export async function findSectionCodeMatches(
     orderBy: [{ code: "asc" }, { jwId: "asc" }],
   });
 
-  const matchedCodes = sections.map((section) => section.code);
+  const sectionDtos = sections.map((section) =>
+    toSectionCompactDto(section, locale),
+  );
+  const matchedCodes = sectionDtos.map((section) => section.code);
   const matchedCodeSet = new Set(matchedCodes);
   const unmatchedCodes = codes.filter((code) => !matchedCodeSet.has(code));
   const suggestions = await buildSectionCodeSuggestions({
@@ -42,7 +47,7 @@ export async function findSectionCodeMatches(
     matchedCodes,
     unmatchedCodes,
     suggestions,
-    sections,
-    total: sections.length,
+    sections: sectionDtos,
+    total: sectionDtos.length,
   };
 }

@@ -33,6 +33,37 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     await expect(page.locator("table").first()).toBeVisible();
   });
 
+  test("桌面和移动端共享段落间距与首行缩进，图片和列表不缩进", async ({
+    page,
+  }) => {
+    await gotoAndWaitForReady(page, "/guides/markdown-support");
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const paragraph = page.locator(".markdown-preview > p + p").first();
+      const metrics = await paragraph.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          fontSize: Number.parseFloat(style.fontSize),
+          indent: Number.parseFloat(style.textIndent),
+          gap: Number.parseFloat(style.marginBlockStart),
+        };
+      });
+      expect(metrics.indent).toBeCloseTo(metrics.fontSize * 2);
+      expect(metrics.gap).toBeCloseTo(metrics.fontSize);
+      await expect(page.locator(".markdown-preview li").first()).toHaveCSS(
+        "text-indent",
+        "0px",
+      );
+      await expect(
+        page.locator(".markdown-preview p:has(img)").first(),
+      ).toHaveCSS("text-indent", "0px");
+      await expect(
+        page.locator(".markdown-directive-center p").first(),
+      ).toHaveCSS("text-indent", "0px");
+    }
+  });
+
   test("KaTeX Size3 字体在 CSP 下可加载", async ({ page }, testInfo) => {
     const fontConsoleErrors: string[] = [];
     page.on("console", (message) => {

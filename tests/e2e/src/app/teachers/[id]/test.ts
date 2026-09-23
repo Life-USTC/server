@@ -10,7 +10,7 @@
  * - teacher.telephone / mobile / address (if not null)
  * - section.semester.nameCn (badge)
  * - section.course.namePrimary + nameSecondary
- * - section.code (badge, monospace)
+ * - section.code (plain monospace text)
  * - section.credits (or empty)
  * - comment.id, author.name, author.image, body, createdAt
  * - description.content (Markdown-rendered via DescriptionLoader)
@@ -25,7 +25,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  cleanupCommentsForE2e,
+  openCommentComposer,
+} from "../../../../utils/comments";
 import {
   restoreDescriptionTargetSnapshot,
   snapshotDescriptionTargetForE2e,
@@ -45,14 +48,14 @@ async function navigateToSeedTeacher(
 ) {
   await gotoAndWaitForReady(
     page,
-    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
   );
   const detailLink = page
-    .locator("#main-content a[href^='/teachers/']:visible")
+    .locator("#main-content a[href^='/catalog/teachers/']:visible")
     .first();
   await expect(detailLink).toBeVisible();
   await detailLink.click();
-  await expect(page).toHaveURL(/\/teachers\/\d+/);
+  await expect(page).toHaveURL(/\/catalog\/teachers\/\d+/);
   await waitForUiSettled(page);
 }
 
@@ -61,24 +64,34 @@ async function jumpToTeacherSection(
   name: RegExp,
   selector: string,
 ) {
-  const link = page
-    .getByTestId("detail-section-nav")
-    .getByRole("link", { name })
-    .first();
-  await expect(link).toBeVisible();
-  await link.click();
+  const hash = selector.replace(/^#/, "");
+  if (hash === "sections" || hash === "comments" || hash === "introduction") {
+    await gotoAndWaitForReady(
+      page,
+      `${page.url().split("#")[0]}${hash === "introduction" ? "#introduction" : `#${hash}`}`,
+    );
+    await expect(page.locator(selector)).toBeVisible();
+    return;
+  }
+
+  const heading = page.getByRole("heading", { name }).first();
+  await expect(heading).toBeVisible();
+  await heading.scrollIntoViewIfNeeded();
   await expect(page.locator(selector)).toBeVisible();
 }
 
-test.describe("/teachers/[id] 教师详情页", () => {
+test.describe("/catalog/teachers/[id] 教师详情页", () => {
   test.describe.configure({ mode: "serial" });
 
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/teachers/[id]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/catalog/teachers/[id]",
+      testInfo,
+    });
   });
 
   test("无效参数返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/teachers/999999999", {
+    await gotoAndWaitForReady(page, "/catalog/teachers/999999999", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();
@@ -152,7 +165,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
     await jumpToTeacherSection(
       page,
       /授课班级|Teaching Sections/i,
-      "#teacher-sections",
+      "#sections",
     );
 
     // section.semester.nameCn badge
@@ -165,7 +178,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
         .filter({ visible: true })
         .first(),
     ).toBeVisible();
-    // section.code badge (monospace)
+    // section.code (plain monospace text)
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     // section.credits
     await expect(
@@ -180,41 +193,38 @@ test.describe("/teachers/[id] 教师详情页", () => {
     await jumpToTeacherSection(
       page,
       /授课班级|Teaching Sections/i,
-      "#teacher-sections",
+      "#sections",
     );
 
     const sectionLink = page
-      .locator("tbody a[href^='/sections/']:visible")
+      .locator("tbody a[href^='/catalog/sections/']:visible")
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
     await captureStepScreenshot(page, testInfo, "teacher/section-link");
   });
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
+  test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav).toBeVisible();
+    await expect(page.locator("#introduction")).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /简介|Description/i }),
+      page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
-    ).toBeVisible();
-    await expect(
-      nav.getByRole("link", { name: /评论|Comments/i }),
+      page.getByRole("heading", { name: /评论|Comments/i }),
     ).toBeVisible();
 
-    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-    await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
+    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+    await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+    await expect(page.locator("#comments")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
-  test("移动端教师标题与详情导航保持紧凑", async ({ page }, testInfo) => {
+  test("移动端教师标题与流式区块保持紧凑", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await navigateToSeedTeacher(page);
 
@@ -224,13 +234,8 @@ test.describe("/teachers/[id] 教师详情页", () => {
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
 
-    const nav = page.getByTestId("detail-section-nav");
-    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
-      "flex-direction",
-      "row",
-    );
-    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
-    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+    await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
+    await expect(page.locator("#comments")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
   });
@@ -240,10 +245,10 @@ test.describe("/teachers/[id] 教师详情页", () => {
   test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({
     page,
   }, testInfo) => {
-    test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/teachers");
+    test.setTimeout(90_000);
+    await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
-    const teacherId = page.url().match(/\/teachers\/(\d+)/)?.[1];
+    const teacherId = page.url().match(/\/catalog\/teachers\/(\d+)/)?.[1];
     expect(teacherId).toBeTruthy();
     if (!teacherId) {
       throw new Error("Expected teacher id in URL");
@@ -255,34 +260,34 @@ test.describe("/teachers/[id] 教师详情页", () => {
     );
 
     try {
-      await jumpToTeacherSection(
-        page,
-        /简介|Description/i,
-        "#teacher-description",
-      );
-      const descCard = page
-        .locator('[data-slot="card"]')
-        .filter({ has: page.getByText(/简介|Description/i) })
-        .first();
-      await expect(descCard).toBeVisible();
+      await jumpToTeacherSection(page, /简介|Description/i, "#introduction");
+      const introduction = page.locator("#introduction");
+      await expect(introduction).toBeVisible();
 
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
       const content = `e2e-teacher-desc-${Date.now()}`;
-      await descCard.locator("textarea").first().fill(content);
+      const editor = introduction.locator(
+        '[data-slot="markdown-editor"] textarea',
+      );
+      const editButton = introduction.getByTestId("description-edit");
+      await expect(editButton).toBeVisible({ timeout: 60_000 });
+      await editButton.scrollIntoViewIfNeeded();
+      await editButton.click();
+      await expect(editor).toBeVisible();
+      await editor.fill(content);
 
       const saveResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/descriptions") &&
+          r.url().includes("/api/community/descriptions") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await introduction.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
       await waitForUiSettled(page);
 
-      // description.content rendered
+      // description.content rendered in the description tabpanel
       await expect(
-        descCard
+        introduction
           .getByRole("tabpanel", { name: /简介|Description/i })
           .getByText(content),
       ).toBeVisible();
@@ -291,17 +296,17 @@ test.describe("/teachers/[id] 教师详情页", () => {
         page.getByText(DEV_SEED.debugName, { exact: false }).first(),
       ).toBeVisible();
       // description.lastEditedAt — some date/time text present near description
-      await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+      await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
 
       await captureStepScreenshot(
         page,
         testInfo,
         "teacher/description-updated",
       );
-    } finally {
       if (snapshot.original) {
         await waitForDescriptionAuditRows(snapshot.original, 1);
       }
+    } finally {
       await restoreDescriptionTargetSnapshot(page.request, snapshot);
     }
   });
@@ -310,44 +315,43 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("已登录用户可发布、编辑与删除评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/teachers");
+    await signInAsDebugUser(page, "/catalog/teachers");
     await navigateToSeedTeacher(page);
     let commentId: string | undefined;
 
     try {
       await expect(async () => {
-        if (!page.url().includes("/teachers/")) {
+        if (!page.url().includes("/catalog/teachers/")) {
           await navigateToSeedTeacher(page);
         }
-        await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-        await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
+        await jumpToTeacherSection(page, /评论|Comments/i, "#comments");
+        await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
       });
 
-      const anonymousCheckbox = page.getByRole("checkbox", {
-        name: /匿名|Anonymous/i,
-      });
+      const composer = await openCommentComposer(page);
+      const anonymousCheckbox = page
+        .locator("#comments")
+        .getByRole("checkbox", {
+          name: /匿名|Anonymous/i,
+        });
       if (await anonymousCheckbox.isChecked()) {
         await anonymousCheckbox.click();
       }
       await expect(anonymousCheckbox).not.toBeChecked();
 
       const body = `e2e-teacher-comment-${Date.now()}`;
-      const composer = page
-        .locator("#teacher-comments")
-        .getByRole("textbox", { name: /评论内容|Comment body/i })
-        .first();
-      await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
       await page
+        .locator("#comments")
         .getByRole("button", { name: /发布评论|Post comment/i })
         .click();
       const createdCommentResponse = await createResponse;
@@ -363,6 +367,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
         .filter({ hasText: body })
         .first();
       await expect(commentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已发布|Comment posted/i }),
+      ).toBeVisible();
       // comment.body
       await expect(commentCard.getByText(body).first()).toBeVisible();
       // comment.createdAt (timestamp text)
@@ -388,7 +397,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
       await editTextarea.fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "PATCH" &&
           r.status() === 200,
       );
@@ -401,6 +410,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
         .filter({ hasText: editedBody })
         .first();
       await expect(editedCommentCard).toBeVisible();
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已更新|Comment updated/i }),
+      ).toBeVisible();
 
       // Delete
       await editedCommentCard.hover();
@@ -413,7 +427,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
       ).toHaveCount(0);
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
@@ -424,9 +438,21 @@ test.describe("/teachers/[id] 教师详情页", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: /评论已删除|Comment deleted/i }),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([commentId]);
     }
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/catalog/teachers/[id]/[section]",
+    testInfo,
   });
 });

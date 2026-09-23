@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 export const sectionCalendarInclude = {
   course: true,
@@ -26,34 +27,65 @@ export const sectionCalendarInclude = {
 export async function getIncompleteHomeworkCalendarItems(
   userId: string,
   sectionIds: number[],
+  now = new Date(),
 ) {
   if (sectionIds.length === 0) return [];
 
-  return prisma.homework.findMany({
-    where: {
-      deletedAt: null,
-      sectionId: { in: sectionIds },
-      submissionDueAt: { not: null },
-      homeworkCompletions: {
-        none: {
-          userId,
+  const teachingAssistantSubscription = {
+    kind: "teaching_assistant",
+    userId,
+  } satisfies Prisma.UserSectionSubscriptionWhereInput;
+
+  return withUserDbContext(userId, (tx) =>
+    tx.homework.findMany({
+      where: {
+        AND: [
+          {
+            deletedAt: null,
+            sectionId: { in: sectionIds },
+            submissionDueAt: { not: null },
+            homeworkCompletions: {
+              none: {
+                userId,
+              },
+            },
+          },
+          {
+            OR: [
+              {
+                section: {
+                  sectionSubscriptions: {
+                    none: teachingAssistantSubscription,
+                  },
+                },
+              },
+              {
+                section: {
+                  sectionSubscriptions: {
+                    some: teachingAssistantSubscription,
+                  },
+                },
+                submissionDueAt: { gt: now },
+              },
+            ],
+          },
+        ],
+      },
+      include: {
+        description: {
+          select: {
+            content: true,
+          },
+        },
+        section: {
+          include: {
+            course: true,
+          },
         },
       },
-    },
-    include: {
-      description: {
-        select: {
-          content: true,
-        },
-      },
-      section: {
-        include: {
-          course: true,
-        },
-      },
-    },
-    orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-  });
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+    }),
+  );
 }
 
 export async function getSectionForCalendar(sectionJwId: number) {
@@ -86,27 +118,34 @@ export async function getUserCalendarAccessRecord(userId: string) {
 }
 
 export async function getUserCalendarRecord(userId: string) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      subscribedSections: {
-        where: { retiredAt: null },
-        include: sectionCalendarInclude,
-      },
-      todos: {
-        where: {
-          completed: false,
-          dueAt: { not: null },
+  return withUserDbContext(userId, (tx) =>
+    tx.user.findUnique({
+      where: { id: userId },
+      include: {
+        youngEventSubscriptions: { include: { event: true } },
+        sectionSubscriptions: {
+          where: { section: { retiredAt: null } },
+          include: {
+            section: {
+              include: sectionCalendarInclude,
+            },
+          },
         },
-        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          dueAt: true,
-          priority: true,
+        todos: {
+          where: {
+            completed: false,
+            dueAt: { not: null },
+          },
+          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            dueAt: true,
+            priority: true,
+          },
         },
       },
-    },
-  });
+    }),
+  );
 }

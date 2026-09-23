@@ -24,9 +24,9 @@ export type ShellCopy = {
     selector: string;
   };
   menu: {
-    authorizedApps: string;
     home: string;
     me: string;
+    personalPage: string;
     settings: string;
     signIn: string;
     signOut: string;

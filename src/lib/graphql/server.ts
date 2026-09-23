@@ -1,6 +1,11 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { createYoga } from "graphql-yoga";
-import { GraphqlAuthError } from "./auth";
+import { logAppEvent } from "@/lib/log/app-logger";
+import {
+  finishGraphqlPrincipalUsage,
+  GraphqlAuthError,
+  type GraphqlPrincipal,
+} from "./auth";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
 import {
   createGraphqlContext,
@@ -14,6 +19,17 @@ import { graphqlSchema } from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
 
 class GraphqlBodyTooLargeError extends Error {}
+
+async function cancelReader(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  reason?: unknown,
+) {
+  try {
+    await reader.cancel(reason);
+  } catch {
+    // Cancellation is cleanup; the primary request failure remains authoritative.
+  }
+}
 
 function graphqlErrorResponse(
   status: number,
@@ -45,6 +61,19 @@ function noStore(response: Response) {
   });
 }
 
+async function graphqlResponseHasErrors(response: Response) {
+  if (response.status >= 400) return true;
+  try {
+    const payload = (await response.clone().json()) as
+      | { errors?: unknown[] }
+      | Array<{ errors?: unknown[] }>;
+    const results = Array.isArray(payload) ? payload : [payload];
+    return results.some((result) => (result.errors?.length ?? 0) > 0);
+  } catch {
+    return false;
+  }
+}
+
 async function readBodyWithinLimit(
   request: Request,
   signal: AbortSignal,
@@ -62,7 +91,7 @@ async function readBodyWithinLimit(
   const chunks: Uint8Array[] = [];
   let total = 0;
   const onAbort = () => {
-    void reader.cancel(signal.reason);
+    void cancelReader(reader, signal.reason);
   };
   signal.addEventListener("abort", onAbort, { once: true });
 
@@ -74,7 +103,7 @@ async function readBodyWithinLimit(
 
       total += value.byteLength;
       if (total > GRAPHQL_LIMITS.bodyBytes) {
-        await reader.cancel();
+        await cancelReader(reader);
         throw new GraphqlBodyTooLargeError();
       }
       chunks.push(value);
@@ -92,8 +121,8 @@ async function readBodyWithinLimit(
   return body;
 }
 
-export function createGraphqlRequestHandler(production: boolean) {
-  const yoga = createYoga<GraphqlServerContext, GraphqlContext>({
+export function createGraphqlYoga(production: boolean) {
+  return createYoga<GraphqlServerContext, GraphqlContext>({
     schema: graphqlSchema,
     graphqlEndpoint: GRAPHQL_ENDPOINT,
     fetchAPI: { Response },
@@ -108,10 +137,15 @@ export function createGraphqlRequestHandler(production: boolean) {
       ...createGraphqlSecurityPlugins(production),
     ],
   });
+}
+
+export function createGraphqlRequestHandler(production: boolean) {
+  const yoga = createGraphqlYoga(production);
 
   return async function handleGraphqlRequest(event: RequestEvent) {
     const { request } = event;
     const deadline = createDeadline(request.signal, GRAPHQL_LIMITS.timeoutMs);
+    let principal: GraphqlPrincipal | undefined;
 
     try {
       const init: RequestInit = {
@@ -123,8 +157,22 @@ export function createGraphqlRequestHandler(production: boolean) {
         init.body = await readBodyWithinLimit(request, deadline.signal);
       }
 
-      return noStore(await yoga.fetch(request.url, init, event));
+      const principalRef: { current?: GraphqlPrincipal } = {};
+      const serverContext: GraphqlServerContext = {
+        ...event,
+        principalRef,
+      };
+      const response = await yoga.fetch(request.url, init, serverContext);
+      principal = principalRef.current;
+      if (principal) {
+        await finishGraphqlPrincipalUsage(
+          principal,
+          (await graphqlResponseHasErrors(response)) ? "error" : "success",
+        );
+      }
+      return noStore(response);
     } catch (error) {
+      if (principal) await finishGraphqlPrincipalUsage(principal, "error");
       if (error instanceof GraphqlAuthError) {
         return graphqlErrorResponse(error.status, error.code, error.message, {
           requiredScopes: error.requiredScopes,
@@ -144,6 +192,18 @@ export function createGraphqlRequestHandler(production: boolean) {
           "GraphQL request timed out.",
         );
       }
+      logAppEvent(
+        "error",
+        "GraphQL request failed",
+        {
+          event: "graphql.request.failed",
+          phase: "transport",
+          ...(event.locals.requestId
+            ? { requestId: event.locals.requestId }
+            : {}),
+        },
+        error,
+      );
       return graphqlErrorResponse(
         500,
         "INTERNAL_SERVER_ERROR",

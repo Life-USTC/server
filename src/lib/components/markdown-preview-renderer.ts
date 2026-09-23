@@ -13,6 +13,7 @@ import {
   remarkCalloutDirectives,
   remarkImageAttributes,
   remarkInlineExtensions,
+  remarkShiftHeadings,
 } from "./markdown-preview-plugins";
 import {
   markdownSanitizeSchema,
@@ -23,7 +24,12 @@ function normalizeMarkdownInput(value: string) {
   return value.replace(/^::::/gm, ":::");
 }
 
-function createProcessor(options: { remarkPlugins?: PluggableList } = {}) {
+type MarkdownRenderOptions = {
+  headingOffset?: number;
+  remarkPlugins?: PluggableList;
+};
+
+function createProcessor(options: MarkdownRenderOptions = {}) {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -32,7 +38,8 @@ function createProcessor(options: { remarkPlugins?: PluggableList } = {}) {
     .use(remarkEmoji)
     .use(remarkCalloutDirectives)
     .use(remarkImageAttributes)
-    .use(remarkInlineExtensions);
+    .use(remarkInlineExtensions)
+    .use(remarkShiftHeadings, { offset: options.headingOffset ?? 0 });
 
   if (options.remarkPlugins?.length) {
     processor.use({ plugins: options.remarkPlugins });
@@ -51,14 +58,22 @@ const defaultProcessor = createProcessor();
 
 export function renderMarkdown(
   value: string,
-  options: { remarkPlugins?: PluggableList } = {},
+  options: MarkdownRenderOptions = {},
 ) {
   try {
-    const processor = options.remarkPlugins?.length
-      ? createProcessor(options)
-      : defaultProcessor;
+    const processor =
+      options.remarkPlugins?.length || options.headingOffset
+        ? createProcessor(options)
+        : defaultProcessor;
     return String(processor.processSync(normalizeMarkdownInput(value)));
   } catch {
     return "";
   }
+}
+
+export function renderEmbeddedMarkdown(
+  value: string,
+  options: Omit<MarkdownRenderOptions, "headingOffset"> = {},
+) {
+  return renderMarkdown(value, { ...options, headingOffset: 2 });
 }

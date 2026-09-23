@@ -1,21 +1,16 @@
 <script lang="ts">
-import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
-import InfoIcon from "@lucide/svelte/icons/info";
-import ListIcon from "@lucide/svelte/icons/list";
-import MessageSquareIcon from "@lucide/svelte/icons/message-square";
-import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
+import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
-import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
-  formatCatalogDetailMessage as formatMessage,
-  courseDetailPrimaryName as primaryName,
-  courseDetailSecondaryName as secondaryName,
-  teacherNames,
-} from "../lib/course-detail-display";
+  catalogLocalizedDisplayName,
+  catalogPrimaryName as primaryName,
+} from "../lib/catalog-list-display";
+import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
@@ -42,6 +37,7 @@ type CourseDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
+    comments: { loadFailed: string; retry: string };
     common: { courses: string; home: string };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
@@ -71,49 +67,50 @@ type PageData = {
 
 export let data: PageData;
 
+let DescriptionCard:
+  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
+  | null = null;
+let CommentsPanel:
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null = null;
+let descriptionLoadError = false;
+let commentsLoadError = false;
+let detailModulesLoading = true;
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  descriptionLoadError = false;
+  commentsLoadError = false;
+
+  const [descriptionModule, commentsModule] = await Promise.allSettled([
+    import("@/features/descriptions/components/DescriptionCard.svelte"),
+    import("@/features/comments/components/CommentsPanel.svelte"),
+  ]);
+
+  if (descriptionModule.status === "fulfilled") {
+    DescriptionCard = descriptionModule.value.default;
+  } else {
+    descriptionLoadError = true;
+  }
+
+  if (commentsModule.status === "fulfilled") {
+    CommentsPanel = commentsModule.value.default;
+  } else {
+    commentsLoadError = true;
+  }
+
+  detailModulesLoading = false;
+}
+
+onMount(() => {
+  void loadDetailModules();
+});
+
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
-$: displayName = primaryName(data.course) || data.course.code;
-$: secondaryDisplayName = secondaryName(data.course);
-$: courseBaseHref = `/courses/${data.course.jwId}`;
-$: commentsCount = data.commentsData
-  ? Object.values(data.commentsData.commentMap).reduce(
-      (sum, comments) => sum + comments.length,
-      0,
-    )
-  : 0;
-$: sectionNavItems = [
-  {
-    href: courseBaseHref,
-    icon: InfoIcon,
-    key: "overview" as const,
-    label: copy.course.basicInfo,
-  },
-  {
-    href: `${courseBaseHref}/introduction`,
-    icon: BookOpenTextIcon,
-    key: "introduction" as const,
-    label: copy.courseDetail.tabs.description,
-  },
-  {
-    href: `${courseBaseHref}/sections`,
-    icon: ListIcon,
-    key: "sections" as const,
-    label: copy.courseDetail.teachingSections,
-    meta: data.course.sections.length,
-  },
-  {
-    href: `${courseBaseHref}/comments`,
-    icon: MessageSquareIcon,
-    key: "comments" as const,
-    label: copy.courseDetail.tabs.comments,
-    meta: data.commentsData ? commentsCount : undefined,
-  },
-];
-$: activeNavItem =
-  sectionNavItems.find((item) => item.key === data.detailSection) ??
-  sectionNavItems[0];
+$: displayName =
+  catalogLocalizedDisplayName(data.course, data.locale) || data.course.code;
 </script>
 
 <svelte:head>
@@ -122,91 +119,116 @@ $: activeNavItem =
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="bg-card px-4 sm:px-5 lg:px-6">
+  <div class="bg-card">
+    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
-      description={secondaryDisplayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet eyebrowContent()}
-        <Badge class="font-mono" variant="outline">{data.course.code}</Badge>
-      {/snippet}
-      {#snippet after()}
-        <div class="flex flex-wrap gap-2">
-          {#if data.course.educationLevel}
-            <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
-          {/if}
-          {#if data.course.category}
-            <Badge variant="ghost">{primaryName(data.course.category)}</Badge>
-          {/if}
-          {#if data.course.classType}
-            <Badge variant="ghost">{primaryName(data.course.classType)}</Badge>
-          {/if}
-          {#if data.course.type}
-            <Badge variant="ghost">{primaryName(data.course.type)}</Badge>
-          {/if}
-        </div>
-      {/snippet}
-    </PageHeader>
+    />
+    </div>
   </div>
 
-  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
-    <DetailSectionNav
-      activeHref={activeNavItem?.href ?? courseBaseHref}
-      ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
-      items={sectionNavItems}
-      label={copy.common.courses}
-    />
+  <div class="min-w-0 min-h-0 overflow-y-auto" data-detail-scroll-container>
+    <div class="page-frame page-frame-content grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6">
+      <div class="grid min-w-0 gap-10">
+        <section id="introduction" class="scroll-mt-4">
+          {#key `description:course:${data.course.id}`}
+            {#if DescriptionCard}
+              <svelte:component
+                this={DescriptionCard}
+                targetType="course"
+                targetId={data.course.id}
+                initialData={data.descriptionData}
+                locale={data.locale as "en-us" | "zh-cn"}
+                copy={copy.descriptions}
+                heading={copy.courseDetail.tabs.description}
+                showTitle={false}
+              />
+            {:else if data.descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {copy.courseDetail.tabs.description}
+              </h2>
+              <div class="markdown-preview" data-slot="markdown-preview">
+                {@html data.descriptionData.description.renderedHtml}
+              </div>
+            {:else if descriptionLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.descriptions.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.descriptions.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.courseDetail.tabs.description}>
+                <Skeleton class="h-5 w-28" />
+                <Skeleton class="h-4 w-full" />
+                <Skeleton class="h-4 w-11/12" />
+                <Skeleton class="h-4 w-4/5" />
+              </div>
+            {/if}
+          {/key}
+        </section>
 
-    <div
-      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
-      data-detail-scroll-container
-    >
-      {#if data.detailSection === "overview"}
-      <section id="course-overview">
-        <CourseDetailBasicInfo
-          copy={detailCopy}
-          course={data.course}
-          {primaryName}
-        />
-      </section>
-      {:else if data.detailSection === "introduction"}
-      <section id="course-description">
-        {#key `description:course:${data.course.id}`}
-          <DescriptionCard
-            targetType="course"
-            targetId={data.course.id}
-            initialData={data.descriptionData}
-            locale={data.locale as "en-us" | "zh-cn"}
-            copy={copy.descriptions}
+        <section id="sections" class="scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {copy.courseDetail.teachingSections}
+          </h2>
+          <p class="mb-4 text-sm text-muted-foreground">
+            {copy.courseDetail.teachingSectionsDescription}
+          </p>
+          <CourseDetailSections
+            copy={detailCopy}
+            course={data.course}
+            locale={data.locale}
+            {notAvailable}
+            {primaryName}
           />
-        {/key}
-      </section>
-      {:else if data.detailSection === "sections"}
-      <section id="course-sections">
-        <CourseDetailSections
-          copy={detailCopy}
-          course={data.course}
-          {notAvailable}
-          {primaryName}
-          {teacherNames}
-        />
-      </section>
-      {:else if data.detailSection === "comments"}
-      <section id="course-comments">
-        {#key `comments:course:${data.course.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            permalinkBaseHref={commentTargetPermalinkBaseHref({
-              courseJwId: data.course.jwId,
-              type: "course",
-            })}
-            targetType="course"
-            targetId={data.course.id}
+        </section>
+
+        <section id="comments" class="scroll-mt-4">
+          {#key `comments:course:${data.course.id}`}
+            {#if CommentsPanel}
+              <svelte:component
+                this={CommentsPanel}
+                initialData={data.commentsData}
+                permalinkBaseHref={commentTargetPermalinkBaseHref({
+                  courseJwId: data.course.jwId,
+                  type: "course",
+                })}
+                targetType="course"
+                targetId={data.course.id}
+                heading={copy.courseDetail.tabs.comments}
+              />
+            {:else if commentsLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.comments.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.courseDetail.tabs.comments}>
+                <Skeleton class="h-5 w-24" />
+                <Skeleton class="h-16 w-full" />
+              </div>
+            {/if}
+          {/key}
+        </section>
+      </div>
+
+      <aside class="grid min-w-0 gap-6 lg:sticky lg:top-4">
+        <section id="overview">
+          <CourseDetailBasicInfo
+            copy={detailCopy}
+            course={data.course}
+            {primaryName}
           />
-        {/key}
-      </section>
-      {/if}
+        </section>
+      </aside>
     </div>
   </div>
 </section>

@@ -14,6 +14,9 @@ export type CatalogHiddenFilter = {
 import SearchIcon from "@lucide/svelte/icons/search";
 import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import XIcon from "@lucide/svelte/icons/x";
+import { onMount } from "svelte";
+import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
+import PageSearchShortcutHint from "$lib/components/shell/PageSearchShortcutHint.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -33,6 +36,10 @@ export let searchId: string;
 export let searchLabel: string;
 export let searchPlaceholder: string;
 export let searchValue: string;
+
+let searchInput: HTMLInputElement | null = null;
+
+onMount(() => mountPageSearchShortcut(() => searchInput));
 </script>
 
 <div
@@ -63,15 +70,19 @@ export let searchValue: string;
         <SearchIcon aria-hidden="true" />
       </InputGroup.Addon>
       <InputGroup.Input
-          id={searchId}
-          name="search"
-          placeholder={searchPlaceholder}
-          type="search"
-          value={searchValue}
-          oninput={(event: Event) => {
-            searchValue = (event.currentTarget as HTMLInputElement).value;
-          }}
-        />
+        id={searchId}
+        bind:ref={searchInput}
+        name="search"
+        placeholder={searchPlaceholder}
+        type="search"
+        value={searchValue}
+        oninput={(event: Event) => {
+          searchValue = (event.currentTarget as HTMLInputElement).value;
+        }}
+      />
+      <InputGroup.Addon align="inline-end">
+        <PageSearchShortcutHint />
+      </InputGroup.Addon>
     </InputGroup.Root>
     {#each hiddenFilters as filter}
       {#if filter.value}
@@ -87,13 +98,16 @@ export let searchValue: string;
         <Sheet.Trigger>
           {#snippet child({ props })}
             <Button
+              {...props}
               aria-label={activeFilters.length > 0
                 ? `${filterTitle} (${activeFilters.length})`
                 : filterTitle}
-              class="relative h-11 w-full min-w-0 min-[420px]:w-auto"
+              class={cn(
+                "relative h-11 w-full min-w-0 min-[420px]:w-auto",
+                typeof props.class === "string" ? props.class : undefined,
+              )}
               type="button"
               variant="outline"
-              {...props}
             >
               <SlidersHorizontalIcon aria-hidden="true" data-icon="inline-start" />
               <span class="min-w-0 truncate">{filterTitle}</span>

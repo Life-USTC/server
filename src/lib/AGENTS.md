@@ -1,53 +1,46 @@
 # src/lib/
 
-Infrastructure and shared helpers.
-
-## Directories
-
-```
-api/       Request/response, schemas, status
-api/routes/ HTTP route adapters; scoped feature-import exception
-auth/      Session resolution, permissions
-components/ Shared UI primitives and layout components
-db/        Prisma instances
-mcp/       MCP server (see mcp/AGENTS.md)
-oauth/     OAuth provider, tokens
-storage/   Cloudflare R2 object helpers
-security/  CSP, content security
-time/      Date parsing, serialization
-text/      Pure string/text helpers
-log/       Structured logging
-```
-
-## Key Imports
-
-```typescript
-// API
-import {
-  buildPaginatedResponse,
-  handleRouteError,
-  jsonResponse,
-} from "@/lib/api/helpers";
-
-// Auth
-import { requireAuth, requireWriteAuth, resolveApiUserId } from "@/lib/auth/api-auth";
-
-// DB
-import { prisma, getPrisma } from "@/lib/db/prisma";
-
-// Time
-import { parseDateInput } from "@/lib/time/parse-date-input";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-```
+Infrastructure and shared helpers. No business rules (`src/features/` owns those).
 
 ## Rules
 
-- No business logic (use `src/features/`)
-- `src/lib/api/routes` is the scoped HTTP adapter exception: it may import feature server code to parse HTTP requests, call features, and serialize responses
-- `src/lib/api/schemas` is the scoped API schema contract exception: it may import feature-owned constants or schema helpers to describe request/response/OpenAPI shapes, but feature rules stay in `src/features/`
-- Do not import route adapters from features, page actions, or generic `src/lib` helpers; `src/routes/api/**/+server.ts` should stay thin and delegate to them
-- No raw `@prisma/client` imports outside approved adapters/scripts
-- Use shared helpers
-- OAuth: never log tokens/secrets
+- `src/lib/api/routes` may import feature server code as HTTP adapters (parse →
+  call feature → serialize). Don't import those adapters from features, page
+  actions, or generic `src/lib` helpers; keep `src/routes/api/**/+server.ts` thin.
+- `src/lib/api/schemas` may import feature-owned constants/helpers for OpenAPI
+  shapes only.
+- Features import Cloudflare runtime and env through `src/lib/ports/`
+  (`runtime.ts`, `env.ts`), not `src/lib/adapters/` directly.
+- Pagination for domain code: `@/lib/pagination`. REST may keep using
+  `@/lib/api/helpers` (re-exports).
+- If adapter imports from `@/features` grow, update the matching boundary tests
+  under `tests/unit/*-boundary.test.ts` (workspace / settings / auth-prisma).
+- No raw `@prisma/client` outside approved adapters/scripts.
+- Never log OAuth tokens/secrets.
 
-See root `AGENTS.md` for patterns.
+## Common imports
+
+```typescript
+import {
+  buildPaginatedResponse,
+  normalizePagination,
+} from "@/lib/pagination";
+import {
+  handleRouteError,
+  jsonResponse,
+} from "@/lib/api/helpers";
+import {
+  requireAuth,
+  requireWriteAuth,
+  resolveSessionUserId,
+} from "@/lib/auth/api-auth";
+import { prisma, getPrisma } from "@/lib/db/prisma";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+```
+
+`requireAuth` callers must declare the accepted OAuth feature/action scope.
+Optional personalization must use `resolveSessionUserId`; it never accepts a
+Bearer token.
+
+More detail: `components/`, `graphql/`, `mcp/`.

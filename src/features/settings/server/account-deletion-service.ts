@@ -1,40 +1,78 @@
+import { type AuditLogParams, fireAuditLog } from "@/lib/audit/write-audit-log";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 type DeleteOwnAccountResult =
   | { ok: true }
-  | { ok: false; reason: "cannot_remove_last_admin" | "not_found" };
+  | {
+      ok: false;
+      reason: "cannot_remove_last_admin" | "not_found" | "unauthorized";
+    };
+
+export type AccountDeletionAuditContext = Pick<
+  AuditLogParams,
+  "channel" | "ipAddress" | "requestId" | "userAgent"
+> & { sessionId: string };
 
 export async function deleteOwnAccount(
   userId: string,
+  audit: AccountDeletionAuditContext,
 ): Promise<DeleteOwnAccountResult> {
-  return runSerializableTransaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { id: true, isAdmin: true },
-    });
-    if (!user) return { ok: false, reason: "not_found" };
+  userId = userId.trim();
+  if (!userId) throw new Error("Account deletion user ID is required");
 
-    if (user.isAdmin) {
-      const adminCount = await tx.user.count({ where: { isAdmin: true } });
-      if (adminCount <= 1) {
-        return { ok: false, reason: "cannot_remove_last_admin" };
-      }
+  try {
+    const auditId = crypto.randomUUID();
+    const [row] = await runSerializableTransaction(
+      (tx) =>
+        tx.$queryRaw<
+          Array<{
+            status:
+              | "cannot_remove_last_admin"
+              | "deleted"
+              | "not_found"
+              | "unauthorized";
+          }>
+        >`SELECT public.delete_own_account(
+          ${userId},
+          ${auditId},
+          ${audit.channel ?? "web"},
+          ${audit.ipAddress ?? null},
+          ${audit.userAgent ?? null},
+          ${audit.sessionId},
+          ${audit.requestId ?? null}
+        ) AS status`,
+      "Failed to delete account",
+      authPrisma,
+    );
+    if (!row || row.status === "not_found") {
+      await fireAuditLog({
+        action: "account_delete",
+        outcome: "denied",
+        targetType: "user",
+        metadata: { reason: "not_found", selfService: true },
+        ...audit,
+      });
+      return { ok: false, reason: "not_found" };
     }
-
-    await tx.auditLog.updateMany({
-      where: { userId },
-      data: { userId: null },
-    });
-    await tx.userSuspension.updateMany({
-      where: { createdById: userId },
-      data: { createdById: null },
-    });
-    await tx.userSuspension.updateMany({
-      where: { liftedById: userId },
-      data: { liftedById: null },
-    });
-    await tx.user.delete({ where: { id: userId } });
-
+    if (row.status === "cannot_remove_last_admin") {
+      return { ok: false, reason: "cannot_remove_last_admin" };
+    }
+    if (row.status === "unauthorized") {
+      return { ok: false, reason: "unauthorized" };
+    }
     return { ok: true };
-  }, "Failed to delete account");
+  } catch (error) {
+    await fireAuditLog({
+      action: "account_delete",
+      outcome: "failure",
+      subjectUserId: userId,
+      targetId: userId,
+      targetType: "user",
+      userId,
+      metadata: { selfService: true },
+      ...audit,
+    });
+    throw error;
+  }
 }

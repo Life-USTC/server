@@ -1,35 +1,53 @@
-import { apiRequestContext } from "@/lib/log/api-observability-context";
+import { completeApiRequestContext } from "@/lib/log/api-observability-context";
 import {
   recordApiRequestError,
   recordApiRequestFinish,
 } from "@/lib/log/api-observability-recording";
+import { elapsedMs } from "@/lib/log/observability-clock";
+import { finishOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 
 type ApiRouteHandler<TRequest extends Request, TArgs extends unknown[]> = (
   request: TRequest,
   ...args: TArgs
 ) => Response | Promise<Response>;
 
+export function recordObservedApiResponse(request: Request, status: number) {
+  const context = completeApiRequestContext(request);
+  if (!context) return false;
+
+  recordApiRequestFinish({
+    ...context,
+    ioObservedDurationMs: elapsedMs(context.startMs),
+    status,
+  });
+  return true;
+}
+
+export function recordObservedApiError(request: Request, error: unknown) {
+  const context = completeApiRequestContext(request);
+  if (!context) return false;
+
+  recordApiRequestError({
+    ...context,
+    error,
+    ioObservedDurationMs: elapsedMs(context.startMs),
+  });
+  return true;
+}
+
 export function observedApiRoute<
   TRequest extends Request,
   TArgs extends unknown[],
 >(handler: ApiRouteHandler<TRequest, TArgs>): ApiRouteHandler<TRequest, TArgs> {
   return async (request, ...args) => {
-    const context = apiRequestContext(request);
-
     try {
       const response = await handler(request, ...args);
-      recordApiRequestFinish({
-        ...context,
-        durationMs: Date.now() - context.startMs,
-        status: response.status,
-      });
+      await finishOAuthRequestUsage(request, response.status);
+      recordObservedApiResponse(request, response.status);
       return response;
     } catch (error) {
-      recordApiRequestError({
-        ...context,
-        durationMs: Date.now() - context.startMs,
-        error,
-      });
+      await finishOAuthRequestUsage(request, 500);
+      recordObservedApiError(request, error);
       throw error;
     }
   };

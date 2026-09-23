@@ -2,42 +2,18 @@ import type {
   BusMapActiveTrip,
   BusMapRouteEdge,
 } from "@/features/bus/lib/bus-types";
-import {
-  NODE_R,
-  ROUTE_PALETTE,
-  SVG_H,
-  SVG_W,
-} from "./bus-transit-map-constants";
-import { canonicalPerpendicular, type Pos } from "./bus-transit-map-geometry";
+import { ROUTE_PALETTE } from "./bus-transit-map-constants";
+import { canonicalPerpendicular } from "./bus-transit-map-routes";
+import type { Pos } from "./bus-transit-map-types";
 
-type LabelOffset = {
-  dx: number;
-  dy: number;
-  textAnchor: "start" | "middle" | "end";
-};
+export {
+  estimateCampusLabelWidth,
+  labelOffset,
+} from "./bus-transit-map-labels";
 
 export function routeColor(routeId: number, allRouteIds: number[]): string {
   const index = allRouteIds.indexOf(routeId);
   return ROUTE_PALETTE[index >= 0 ? index % ROUTE_PALETTE.length : 0];
-}
-
-export function labelOffset(position: Pos, label?: string): LabelOffset {
-  if (position.y > SVG_H * 0.75) {
-    return position.x < SVG_W / 2
-      ? { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" }
-      : { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
-  }
-  if (label?.includes("东区")) {
-    return { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
-  }
-  if (label?.includes("南区")) {
-    return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
-  }
-  return {
-    dx: 0,
-    dy: position.y < SVG_H / 2 ? NODE_R + 18 : -(NODE_R + 8),
-    textAnchor: "middle",
-  };
 }
 
 export function hhmmToMin(value: string | null): number | null {

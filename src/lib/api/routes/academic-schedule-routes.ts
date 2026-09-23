@@ -1,12 +1,10 @@
 import type { ScheduleListFilters } from "@/features/catalog/lib/schedule-filters";
 import { listPublicSchedules } from "@/features/catalog/server/schedule-read-model";
-import {
-  handleRouteError,
-  jsonResponse,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { paginatedScheduleResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
 
 export async function getSchedulesRoute(request: Request) {
   try {
@@ -40,7 +38,8 @@ export async function getSchedulesRoute(request: Request) {
       weekday: parsedQuery.weekday,
     } satisfies ScheduleListFilters;
 
-    return jsonResponse(
+    return schemaJsonResponse(
+      paginatedScheduleResponseSchema,
       await listPublicSchedules({
         filters,
         locale: localeResolution.locale,

@@ -1,33 +1,15 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CommentTargetLookupRecord } from "./comment-read-model";
-import type { CommentTargetType, ResolvedCommentTarget } from "./comment-utils";
-
-type CommentTargetCourseMetadata = {
-  jwId: number | null;
-  nameCn: string | null;
-};
-
-type CommentTargetSectionMetadata = {
-  code: string | null;
-  course?: CommentTargetCourseMetadata | null;
-  jwId: number | null;
-};
-
-type CommentTargetMetadataSource = {
-  course?: CommentTargetCourseMetadata | null;
-  homework?: {
-    section?: Pick<CommentTargetSectionMetadata, "code" | "jwId"> | null;
-    title: string | null;
-  } | null;
-  section?: CommentTargetSectionMetadata | null;
-  sectionTeacher?: {
-    section?: CommentTargetSectionMetadata | null;
-    sectionId: number | null;
-    teacher?: { nameCn: string | null } | null;
-    teacherId: number | null;
-  } | null;
-  teacher?: { nameCn: string | null } | null;
-};
+import {
+  countCommentStageQuery,
+  createCommentStageCounter,
+  observeCommentStage,
+} from "./comment-stage-analytics";
+import type {
+  CommentTargetMetadataSource,
+  CommentTargetType,
+  ResolvedCommentTarget,
+} from "./comment-utils";
 
 const emptyPublicCommentTargetMetadataFields = {
   courseJwId: null,
@@ -45,6 +27,8 @@ const emptyPublicCommentTargetMetadataFields = {
   sectionTeacherTeacherId: null,
   sectionTeacherTeacherName: null,
   teacherName: null,
+  youngEventName: null,
+  youngId: null,
 } as const;
 
 function publicCommentTargetMetadataPayload(
@@ -71,6 +55,8 @@ function publicCommentTargetMetadataPayload(
     sectionTeacherTeacherId: source?.sectionTeacher?.teacherId ?? null,
     sectionTeacherTeacherName: source?.sectionTeacher?.teacher?.nameCn ?? null,
     teacherName: source?.teacher?.nameCn ?? null,
+    youngEventName: source?.youngEvent?.name ?? null,
+    youngId: source?.youngEvent?.youngId ?? null,
   };
 }
 
@@ -85,12 +71,29 @@ function baseCommentListTargetPayload(
     teacherId: target.teacherId,
     sectionTeacherId: target.sectionTeacherId,
     homeworkId: target.homeworkId,
+    youngEventId: target.youngEventId ?? null,
   };
 }
 
 export async function commentListTargetPayload(
   targetType: CommentTargetType,
   target: ResolvedCommentTarget,
+) {
+  const counter = createCommentStageCounter({
+    dbContext: "none",
+    dbLabel: "app",
+  });
+  return observeCommentStage({
+    counter,
+    stage: "target.payload",
+    work: () => loadCommentListTargetPayload(targetType, target, counter),
+  });
+}
+
+async function loadCommentListTargetPayload(
+  targetType: CommentTargetType,
+  target: ResolvedCommentTarget,
+  counter: ReturnType<typeof createCommentStageCounter>,
 ) {
   const base = {
     ...baseCommentListTargetPayload(targetType, target),
@@ -100,10 +103,18 @@ export async function commentListTargetPayload(
         : null,
   };
 
+  if (target.targetMetadata !== undefined) {
+    return {
+      ...base,
+      ...publicCommentTargetMetadataPayload(target.targetMetadata),
+    };
+  }
+
   if (
     targetType === "section" &&
     typeof target.whereTarget.sectionId === "number"
   ) {
+    countCommentStageQuery(counter);
     const section = await prisma.section.findUnique({
       where: { id: target.whereTarget.sectionId },
       select: {
@@ -122,6 +133,7 @@ export async function commentListTargetPayload(
     targetType === "course" &&
     typeof target.whereTarget.courseId === "number"
   ) {
+    countCommentStageQuery(counter);
     const course = await prisma.course.findUnique({
       where: { id: target.whereTarget.courseId },
       select: { jwId: true, nameCn: true },
@@ -136,6 +148,7 @@ export async function commentListTargetPayload(
     targetType === "teacher" &&
     typeof target.whereTarget.teacherId === "number"
   ) {
+    countCommentStageQuery(counter);
     const teacher = await prisma.teacher.findUnique({
       where: { id: target.whereTarget.teacherId },
       select: { nameCn: true },
@@ -147,6 +160,7 @@ export async function commentListTargetPayload(
   }
 
   if (targetType === "homework" && target.homeworkId) {
+    countCommentStageQuery(counter);
     const homework = await prisma.homework.findUnique({
       where: { id: target.homeworkId },
       select: {
@@ -160,8 +174,24 @@ export async function commentListTargetPayload(
     };
   }
 
+  if (
+    targetType === "young-event" &&
+    typeof target.whereTarget.youngEventId === "number"
+  ) {
+    countCommentStageQuery(counter);
+    const youngEvent = await prisma.youngEvent.findUnique({
+      where: { id: target.whereTarget.youngEventId },
+      select: { name: true, youngId: true },
+    });
+    return {
+      ...base,
+      ...publicCommentTargetMetadataPayload({ youngEvent }),
+    };
+  }
+
   if (targetType === "section-teacher") {
     if (target.sectionTeacherId) {
+      countCommentStageQuery(counter);
       const sectionTeacher = await prisma.sectionTeacher.findUnique({
         where: { id: target.sectionTeacherId },
         select: {
@@ -184,6 +214,8 @@ export async function commentListTargetPayload(
     }
 
     if (target.sectionId && target.teacherId) {
+      countCommentStageQuery(counter);
+      countCommentStageQuery(counter);
       const [section, teacher] = await Promise.all([
         prisma.section.findUnique({
           where: { id: target.sectionId },
@@ -225,6 +257,7 @@ export function commentThreadTargetPayload(comment: CommentTargetLookupRecord) {
     teacherId: comment.teacherId ?? null,
     sectionTeacherId: comment.sectionTeacherId ?? null,
     homeworkId: comment.homework?.id ?? null,
+    youngEventId: comment.youngEventId ?? null,
     ...publicCommentTargetMetadataPayload(comment),
   };
 }

@@ -68,6 +68,7 @@ export function buildSectionClassCalendarEvents({
     kind: "class" as const,
     date: schedule.date ?? null,
     dateKey: buildDateKey(schedule.date),
+    roomCodes: schedule.room?.code ? [schedule.room.code] : [],
     title: sectionCopy.classEventTitle,
     meta: `${formatTime(schedule.startTime, notAvailable)}-${formatTime(schedule.endTime, notAvailable)} · ${roomLabel(schedule, sectionCopy)}`,
     badges: [
@@ -76,16 +77,20 @@ export function buildSectionClassCalendarEvents({
             week: String(schedule.weekIndex),
           })
         : null,
-      `${sectionCopy.units} ${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
+      schedule.startUnit || schedule.endUnit
+        ? `${sectionCopy.units} ${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`
+        : null,
       ...schedule.teachers.map(teacherName),
     ].filter((badge): badge is string => Boolean(badge)),
     details: [
       ...calendarDetail(sectionCopy.week, schedule.weekIndex, notAvailable),
-      ...calendarDetail(
-        sectionCopy.units,
-        `${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
-        notAvailable,
-      ),
+      ...(schedule.startUnit || schedule.endUnit
+        ? calendarDetail(
+            sectionCopy.units,
+            `${schedule.startUnit ?? "?"}-${schedule.endUnit ?? "?"}`,
+            notAvailable,
+          )
+        : []),
       ...roomDetailRows(schedule, sectionCopy, notAvailable),
       ...calendarDetail(
         sectionCopy.teacher,

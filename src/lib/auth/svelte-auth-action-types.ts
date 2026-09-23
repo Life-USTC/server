@@ -16,19 +16,6 @@ export type SignInResult = {
   url: string;
 };
 
-export type GenericOAuthWithHeaders = {
-  signInWithOAuth2(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
-  oAuth2LinkAccount(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
-};
-
 export type SocialLinkWithHeaders = {
   linkSocialAccount(input: {
     body: {

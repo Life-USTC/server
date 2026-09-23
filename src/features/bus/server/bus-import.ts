@@ -20,6 +20,32 @@ import {
   upsertBusRoutes,
 } from "./bus-import-writes";
 
+export type BusImportStage =
+  | "find-existing-version"
+  | "refresh-existing-version"
+  | "disable-previous-versions"
+  | "upsert-campuses"
+  | "upsert-routes"
+  | "upsert-version"
+  | "create-weekday-trips"
+  | "create-saturday-trips"
+  | "create-sunday-trips";
+
+export class BusImportStageError extends Error {
+  readonly stage: BusImportStage;
+
+  constructor(stage: BusImportStage, cause: unknown) {
+    const detail = cause instanceof Error ? `: ${cause.message}` : "";
+    super(`Bus import failed at ${stage}${detail}`, { cause });
+    this.name = "BusImportStageError";
+    this.stage = stage;
+  }
+}
+
+export function getBusImportFailureStage(error: unknown) {
+  return error instanceof BusImportStageError ? error.stage : undefined;
+}
+
 export async function importBusStaticPayload(
   prisma: BusImportPrisma,
   payload: BusStaticPayload,
@@ -34,62 +60,81 @@ export async function importBusStaticPayload(
   const effectiveUntil = options?.effectiveUntil ?? null;
 
   return prisma.$transaction(async (tx) => {
-    const existing = await findExistingBusScheduleVersion(tx, {
-      checksum,
-      versionKey,
-    });
+    let stage: BusImportStage = "find-existing-version";
+    try {
+      const existing = await findExistingBusScheduleVersion(tx, {
+        checksum,
+        versionKey,
+      });
 
-    if (existing) {
-      await refreshExistingBusScheduleVersion(tx, {
+      if (existing) {
+        stage = "refresh-existing-version";
+        await refreshExistingBusScheduleVersion(tx, {
+          checksum,
+          effectiveFrom,
+          effectiveUntil,
+          existingId: existing.id,
+          payload,
+          versionKey,
+          versionTitle,
+        });
+      }
+
+      if (options?.disablePreviousVersions !== false) {
+        stage = "disable-previous-versions";
+        await disablePreviousBusScheduleVersions(tx, {
+          existingId: existing?.id,
+          versionKey,
+        });
+      }
+
+      stage = "upsert-campuses";
+      await upsertBusCampuses(tx, payload);
+      stage = "upsert-routes";
+      await upsertBusRoutes(tx, payload);
+
+      stage = "upsert-version";
+      const version = await upsertImportedBusScheduleVersion(tx, {
         checksum,
         effectiveFrom,
         effectiveUntil,
-        existingId: existing.id,
+        existingId: existing?.id,
         payload,
         versionKey,
         versionTitle,
       });
+
+      stage = "create-weekday-trips";
+      const weekdayTrips = await createBusTripsForDayType(
+        tx,
+        version.id,
+        "weekday",
+        payload.weekday_routes,
+      );
+      stage = "create-saturday-trips";
+      const saturdayTrips = await createBusTripsForDayType(
+        tx,
+        version.id,
+        "saturday",
+        payload.saturday_routes,
+      );
+      stage = "create-sunday-trips";
+      const sundayTrips = await createBusTripsForDayType(
+        tx,
+        version.id,
+        "sunday",
+        payload.sunday_routes,
+      );
+
+      return {
+        versionId: version.id,
+        versionKey: version.key,
+        campuses: payload.campuses.length,
+        routes: payload.routes.length,
+        trips: weekdayTrips + saturdayTrips + sundayTrips,
+      };
+    } catch (error) {
+      throw new BusImportStageError(stage, error);
     }
-
-    if (options?.disablePreviousVersions !== false) {
-      await disablePreviousBusScheduleVersions(tx, {
-        existingId: existing?.id,
-        versionKey,
-      });
-    }
-
-    await upsertBusCampuses(tx, payload);
-    await upsertBusRoutes(tx, payload);
-
-    const version = await upsertImportedBusScheduleVersion(tx, {
-      checksum,
-      effectiveFrom,
-      effectiveUntil,
-      existingId: existing?.id,
-      payload,
-      versionKey,
-      versionTitle,
-    });
-
-    const weekdayTrips = await createBusTripsForDayType(
-      tx,
-      version.id,
-      "weekday",
-      payload.weekday_routes,
-    );
-    const weekendTrips = await createBusTripsForDayType(
-      tx,
-      version.id,
-      "weekend",
-      payload.weekend_routes,
-    );
-
-    return {
-      versionId: version.id,
-      versionKey: version.key,
-      campuses: payload.campuses.length,
-      routes: payload.routes.length,
-      trips: weekdayTrips + weekendTrips,
-    };
   });
 }

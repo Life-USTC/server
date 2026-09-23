@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import {
   busCampusSchema,
@@ -17,34 +18,50 @@ export const viewerContextSchema = z.object({
   suspensionExpiresAt: dateTimeSchema.nullable(),
 });
 
-export const calendarSubscriptionSchema = z.object({
+export const calendarSubscriptionSchema = z.strictObject({
   userId: z.string(),
-  sections: z.array(sectionCompactSchema),
-  calendarPath: z.string(),
-  calendarUrl: z.string(),
+  sections: z.array(
+    sectionCompactSchema.extend({ kind: subscriptionKindSchema }),
+  ),
   note: z.string(),
 });
 
-export const currentCalendarSubscriptionResponseSchema = z.object({
-  subscription: calendarSubscriptionSchema.nullable(),
+export const calendarSubscriptionWithFeedSchema =
+  calendarSubscriptionSchema.extend({
+    calendarPath: z
+      .string()
+      .nullable()
+      .describe(
+        "Private calendar feed path. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+    calendarUrl: z
+      .url()
+      .nullable()
+      .describe(
+        "Private calendar feed URL. Populated only for OAuth tokens with workspace.calendar-feed:read.",
+      ),
+  });
+
+export const currentCalendarSubscriptionResponseSchema = z.strictObject({
+  subscription: calendarSubscriptionWithFeedSchema.nullable(),
 });
 
-export const calendarSubscriptionCreateResponseSchema = z.object({
+export const calendarSubscriptionResponseSchema = z.strictObject({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
 export const calendarSubscriptionAppendResponseSchema =
-  calendarSubscriptionCreateResponseSchema.extend({
+  calendarSubscriptionResponseSchema.extend({
     addedCount: z.number().int().nonnegative(),
     alreadySubscribedCount: z.number().int().nonnegative(),
   });
 
 export const calendarSubscriptionRemoveResponseSchema =
-  calendarSubscriptionCreateResponseSchema;
+  calendarSubscriptionResponseSchema;
 
-export const calendarSubscriptionImportResponseSchema = z.object({
+export const calendarSubscriptionImportResponseSchema = z.strictObject({
   success: z.boolean(),
-  semester: z.object({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),
@@ -60,9 +77,9 @@ export const calendarSubscriptionImportResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
-const calendarSubscriptionResolvedSectionsSchema = z.object({
+const calendarSubscriptionResolvedSectionsSchema = z.strictObject({
   semester: z
-    .object({
+    .strictObject({
       id: z.number().int(),
       nameCn: z.string().nullable(),
       code: z.string().nullable(),
@@ -82,15 +99,15 @@ export const calendarSubscriptionQueryResponseSchema =
 
 export const calendarSubscriptionBatchResponseSchema =
   calendarSubscriptionResolvedSectionsSchema.extend({
-    action: z.enum(["add", "remove", "set"]),
+    action: z.enum(["add", "remove"]),
     addedCount: z.number().int().nonnegative(),
     removedCount: z.number().int().nonnegative(),
     unchangedCount: z.number().int().nonnegative(),
     subscription: calendarSubscriptionSchema.nullable(),
   });
 
-export const matchSectionCodesResponseSchema = z.object({
-  semester: z.object({
+export const matchSectionCodesResponseSchema = z.strictObject({
+  semester: z.strictObject({
     id: z.number().int(),
     nameCn: z.string().nullable(),
     code: z.string().nullable(),
@@ -102,10 +119,46 @@ export const matchSectionCodesResponseSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 
-export const dashboardLinkPinResponseSchema = z.object({
+export const workspaceLinkPinResponseSchema = z.object({
   pinnedSlugs: z.array(z.string()),
   maxPinnedLinks: z.number().int().positive(),
   error: z.string().nullable(),
+});
+
+export const catalogLinkListResponseSchema = z.object({
+  links: z.array(
+    z.object({
+      slug: z.string(),
+      title: z.string(),
+      url: z.url(),
+      description: z.string(),
+      titlePinyin: z.string(),
+      descriptionPinyin: z.string(),
+      category: z.enum(["academic", "community", "services", "campus"]),
+      icon: z.enum([
+        "book-open",
+        "clipboard-list",
+        "building",
+        "graduation-cap",
+        "mail",
+        "monitor-play",
+        "network",
+        "school",
+        "users",
+      ]),
+      group: z.enum([
+        "mostClicked",
+        "study",
+        "life",
+        "tech",
+        "classroom",
+        "external",
+        "graduate",
+        "leastClicked",
+      ]),
+      locale: z.enum(["zh-cn", "en-us"]),
+    }),
+  ),
 });
 
 export const openApiDocumentResponseSchema = z.object({
@@ -132,9 +185,31 @@ export const meResponseSchema = z.object({
   name: z.string().nullable(),
   image: z.string().nullable(),
   username: z.string().nullable(),
-  isAdmin: z.boolean(),
+  isAdmin: z.boolean().nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
+});
+
+export const accountClientActivityResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      outcome: z.enum(["success", "denied", "failure"]),
+      channel: z.enum([
+        "web",
+        "rest",
+        "graphql",
+        "mcp",
+        "auth",
+        "webhook",
+        "system",
+      ]),
+      createdAt: dateTimeSchema,
+      targetType: z.string().nullable(),
+    }),
+  ),
+  nextCursor: z.string().nullable(),
 });
 
 export const publicUserProfileResponseSchema = z.object({

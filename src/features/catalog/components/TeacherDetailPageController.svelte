@@ -1,18 +1,14 @@
 <script lang="ts">
-import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
-import InfoIcon from "@lucide/svelte/icons/info";
-import ListIcon from "@lucide/svelte/icons/list";
-import MessageSquareIcon from "@lucide/svelte/icons/message-square";
-import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
+import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
-import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import {
   type CatalogNamed,
+  catalogLocalizedDisplayName,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import type {
@@ -41,7 +37,7 @@ type TeacherDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
-    comments: { title: string };
+    comments: { loadFailed: string; retry: string; title: string };
     common: { home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
@@ -60,52 +56,49 @@ type PageData = {
 
 export let data: PageData;
 
+let DescriptionCard:
+  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
+  | null = null;
+let CommentsPanel:
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null = null;
+let descriptionLoadError = false;
+let commentsLoadError = false;
+let detailModulesLoading = true;
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  descriptionLoadError = false;
+  commentsLoadError = false;
+
+  const [descriptionModule, commentsModule] = await Promise.allSettled([
+    import("@/features/descriptions/components/DescriptionCard.svelte"),
+    import("@/features/comments/components/CommentsPanel.svelte"),
+  ]);
+
+  if (descriptionModule.status === "fulfilled") {
+    DescriptionCard = descriptionModule.value.default;
+  } else {
+    descriptionLoadError = true;
+  }
+
+  if (commentsModule.status === "fulfilled") {
+    CommentsPanel = commentsModule.value.default;
+  } else {
+    commentsLoadError = true;
+  }
+
+  detailModulesLoading = false;
+}
+
+onMount(() => {
+  void loadDetailModules();
+});
+
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
-$: displayName = primaryName(data.teacher);
-$: secondaryDisplayName = secondaryName(data.teacher);
-$: teacherDescription = data.teacher.department
-  ? primaryName(data.teacher.department)
-  : secondaryDisplayName;
-$: teacherBaseHref = `/teachers/${data.teacher.id}`;
-$: commentsCount = data.commentsData
-  ? Object.values(data.commentsData.commentMap).reduce(
-      (sum, comments) => sum + comments.length,
-      0,
-    )
-  : 0;
-$: sectionNavItems = [
-  {
-    href: teacherBaseHref,
-    icon: InfoIcon,
-    key: "overview" as const,
-    label: copy.teacherDetail.basicInfo,
-  },
-  {
-    href: `${teacherBaseHref}/introduction`,
-    icon: BookOpenTextIcon,
-    key: "introduction" as const,
-    label: copy.descriptions.title,
-  },
-  {
-    href: `${teacherBaseHref}/sections`,
-    icon: ListIcon,
-    key: "sections" as const,
-    label: copy.teacherDetail.teachingSectionsTitle,
-    meta: data.teacher.sections.length,
-  },
-  {
-    href: `${teacherBaseHref}/comments`,
-    icon: MessageSquareIcon,
-    key: "comments" as const,
-    label: copy.comments.title,
-    meta: data.commentsData ? commentsCount : undefined,
-  },
-];
-$: activeNavItem =
-  sectionNavItems.find((item) => item.key === data.detailSection) ??
-  sectionNavItems[0];
+$: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 </script>
 
 <svelte:head>
@@ -114,89 +107,116 @@ $: activeNavItem =
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="bg-card px-4 sm:px-5 lg:px-6">
+  <div class="bg-card">
+    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
     <PageHeader
       title={displayName}
-      description={teacherDescription}
-      eyebrow={copy.common.teachers}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet after()}
-        <div class="flex flex-wrap gap-2">
-          {#if data.teacher.department}
-            <Badge class="font-mono" variant="outline">{primaryName(data.teacher.department)}</Badge>
-          {/if}
-          {#if data.teacher.teacherTitle}
-            <Badge variant="ghost">{primaryName(data.teacher.teacherTitle)}</Badge>
-          {/if}
-          {#if data.teacher.email}
-            <Badge variant="secondary">{data.teacher.email}</Badge>
-          {/if}
-        </div>
-      {/snippet}
-    </PageHeader>
+    />
+    </div>
   </div>
 
-  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
-    <DetailSectionNav
-      activeHref={activeNavItem?.href ?? teacherBaseHref}
-      ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
-      items={sectionNavItems}
-      label={copy.common.teachers}
-    />
+  <div class="min-w-0 min-h-0 overflow-y-auto" data-detail-scroll-container>
+    <div class="page-frame page-frame-content grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6">
+      <div class="grid min-w-0 gap-10">
+        <section id="introduction" class="scroll-mt-4">
+          {#key `description:teacher:${data.teacher.id}`}
+            {#if DescriptionCard}
+              <svelte:component
+                this={DescriptionCard}
+                targetType="teacher"
+                targetId={data.teacher.id}
+                initialData={data.descriptionData}
+                locale={data.locale as "en-us" | "zh-cn"}
+                copy={copy.descriptions}
+                heading={copy.descriptions.title}
+                showTitle={false}
+              />
+            {:else if data.descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {copy.descriptions.title}
+              </h2>
+              <div class="markdown-preview" data-slot="markdown-preview">
+                {@html data.descriptionData.description.renderedHtml}
+              </div>
+            {:else if descriptionLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.descriptions.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.descriptions.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.descriptions.title}>
+                <Skeleton class="h-5 w-28" />
+                <Skeleton class="h-4 w-full" />
+                <Skeleton class="h-4 w-11/12" />
+                <Skeleton class="h-4 w-4/5" />
+              </div>
+            {/if}
+          {/key}
+        </section>
 
-    <div
-      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
-      data-detail-scroll-container
-    >
-      {#if data.detailSection === "overview"}
-      <section id="teacher-overview">
-        <TeacherDetailBasicInfo
-          copy={detailCopy}
-          {displayName}
-          {notAvailable}
-          {primaryName}
-          {secondaryDisplayName}
-          teacher={data.teacher}
-        />
-      </section>
-      {:else if data.detailSection === "introduction"}
-      <section id="teacher-description">
-        {#key `description:teacher:${data.teacher.id}`}
-          <DescriptionCard
-            targetType="teacher"
-            targetId={data.teacher.id}
-            initialData={data.descriptionData}
-            locale={data.locale as "en-us" | "zh-cn"}
-            copy={copy.descriptions}
+        <section id="sections" class="scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {copy.teacherDetail.teachingSectionsTitle}
+          </h2>
+          <p class="mb-4 text-sm text-muted-foreground">
+            {copy.teacherDetail.teachingSectionsDescription}
+          </p>
+          <TeacherDetailSections
+            copy={detailCopy}
+            locale={data.locale}
+            {notAvailable}
+            teacher={data.teacher}
           />
-        {/key}
-      </section>
-      {:else if data.detailSection === "sections"}
-      <section id="teacher-sections">
-        <TeacherDetailSections
-          copy={detailCopy}
-          {notAvailable}
-          {primaryName}
-          {secondaryName}
-          teacher={data.teacher}
-        />
-      </section>
-      {:else if data.detailSection === "comments"}
-      <section id="teacher-comments">
-        {#key `comments:teacher:${data.teacher.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            permalinkBaseHref={commentTargetPermalinkBaseHref({
-              teacherId: data.teacher.id,
-              type: "teacher",
-            })}
-            targetType="teacher"
-            targetId={data.teacher.id}
+        </section>
+
+        <section id="comments" class="scroll-mt-4">
+          {#key `comments:teacher:${data.teacher.id}`}
+            {#if CommentsPanel}
+              <svelte:component
+                this={CommentsPanel}
+                initialData={data.commentsData}
+                permalinkBaseHref={commentTargetPermalinkBaseHref({
+                  teacherId: data.teacher.id,
+                  type: "teacher",
+                })}
+                targetType="teacher"
+                targetId={data.teacher.id}
+                heading={copy.comments.title}
+              />
+            {:else if commentsLoadError}
+              <Alert.Root variant="destructive">
+                <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+                <Alert.Action>
+                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                    {copy.comments.retry}
+                  </Button>
+                </Alert.Action>
+              </Alert.Root>
+            {:else if detailModulesLoading}
+              <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
+                <Skeleton class="h-5 w-24" />
+                <Skeleton class="h-16 w-full" />
+              </div>
+            {/if}
+          {/key}
+        </section>
+      </div>
+
+      <aside class="grid min-w-0 gap-6 lg:sticky lg:top-4">
+        <section id="overview">
+          <TeacherDetailBasicInfo
+            copy={detailCopy}
+            {notAvailable}
+            {primaryName}
+            teacher={data.teacher}
           />
-        {/key}
-      </section>
-      {/if}
+        </section>
+      </aside>
     </div>
   </div>
 </section>

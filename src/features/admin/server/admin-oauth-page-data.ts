@@ -1,7 +1,5 @@
-import {
-  getPrismaClient,
-  requireAdminPage,
-} from "@/features/admin/server/admin-page-auth";
+import { requireAdminPage } from "@/features/admin/server/admin-page-auth";
+import { authPrisma } from "@/lib/db/auth-prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import {
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
@@ -12,8 +10,7 @@ import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function getAdminOAuthPage(request: Request) {
   await requireAdminPage(request);
-  const prisma = await getPrismaClient();
-  const clients = await prisma.oAuthClient.findMany({
+  const clients = await authPrisma.oAuthClient.findMany({
     select: {
       clientId: true,
       name: true,

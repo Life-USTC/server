@@ -1,0 +1,356 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  getBusPreference,
+  saveBusPreference,
+} from "@/features/bus/server/bus-service";
+import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
+
+const rlsTestUserIds = ["rls-test-user-a", "rls-test-user-b"] as const;
+const adminPrisma = createFixturePrisma();
+
+describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
+  "personal preference PostgreSQL row security",
+  () => {
+    let firstUserId = "";
+    let secondUserId = "";
+    let adminUserId = "";
+
+    async function clearPreferences(userId: string) {
+      await withUserDbContext(userId, async () => {
+        await prisma.catalogLinkClick.deleteMany({ where: { userId } });
+        await prisma.workspaceLinkPin.deleteMany({ where: { userId } });
+        await prisma.busUserPreference.deleteMany({ where: { userId } });
+      });
+    }
+
+    beforeAll(async () => {
+      const users = await prisma.user.findMany({
+        where: { id: { in: [...rlsTestUserIds] } },
+        select: { id: true },
+        orderBy: { id: "asc" },
+      });
+      if (users.length !== 2) throw new Error("Expected two RLS test users");
+      firstUserId = users[0].id;
+      secondUserId = users[1].id;
+      const admin = await prisma.user.findFirst({
+        where: { isAdmin: true },
+        select: { id: true },
+      });
+      if (!admin) throw new Error("Expected a seeded admin user");
+      adminUserId = admin.id;
+    });
+
+    beforeEach(async () => {
+      await Promise.all([
+        clearPreferences(firstUserId),
+        clearPreferences(secondUserId),
+      ]);
+    });
+
+    afterAll(async () => {
+      for (const userId of [firstUserId, secondUserId]) {
+        if (!userId) continue;
+        await clearPreferences(userId);
+      }
+      await Promise.all([
+        prisma.$disconnect(),
+        disconnectTestPrisma(adminPrisma),
+      ]);
+    });
+
+    it("defaults every protected preference table to no rows or writes", async () => {
+      const hiddenRows = await withUserDbContext(firstUserId, async (tx) => {
+        const click = await tx.catalogLinkClick.create({
+          data: { userId: firstUserId, slug: "missing-context-hidden-click" },
+          select: { id: true },
+        });
+        const pin = await tx.workspaceLinkPin.create({
+          data: { userId: firstUserId, slug: "missing-context-hidden-pin" },
+          select: { id: true },
+        });
+        await tx.busUserPreference.create({ data: { userId: firstUserId } });
+        return { click, pin };
+      });
+
+      await expect(prisma.catalogLinkClick.findMany()).resolves.toEqual([]);
+      await expect(prisma.workspaceLinkPin.findMany()).resolves.toEqual([]);
+      await expect(prisma.busUserPreference.findMany()).resolves.toEqual([]);
+      await expect(
+        prisma.catalogLinkClick.updateMany({
+          where: { id: hiddenRows.click.id },
+          data: { count: 99 },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.catalogLinkClick.deleteMany({
+          where: { id: hiddenRows.click.id },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.workspaceLinkPin.updateMany({
+          where: { id: hiddenRows.pin.id },
+          data: { slug: "missing-context-hidden-pin-updated" },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.workspaceLinkPin.deleteMany({
+          where: { id: hiddenRows.pin.id },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.busUserPreference.updateMany({
+          where: { userId: firstUserId },
+          data: { showDepartedTrips: true },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.busUserPreference.deleteMany({
+          where: { userId: firstUserId },
+        }),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        prisma.catalogLinkClick.create({
+          data: { userId: firstUserId, slug: "missing-context" },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.workspaceLinkPin.create({
+          data: { userId: firstUserId, slug: "missing-context" },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.busUserPreference.create({ data: { userId: firstUserId } }),
+      ).rejects.toThrow();
+    });
+
+    it("isolates concurrent owners across clicks, pins, and bus preferences", async () => {
+      await Promise.all(
+        [firstUserId, secondUserId].map((userId, index) =>
+          withUserDbContext(userId, async () => {
+            await prisma.catalogLinkClick.create({
+              data: { userId, slug: `rls-click-${index}` },
+            });
+            await prisma.workspaceLinkPin.create({
+              data: { userId, slug: `rls-pin-${index}` },
+            });
+            await prisma.busUserPreference.create({ data: { userId } });
+          }),
+        ),
+      );
+
+      const [firstRows, secondRows] = await Promise.all(
+        [firstUserId, secondUserId].map((userId) =>
+          withUserDbContext(userId, async () => ({
+            clicks: await prisma.catalogLinkClick.findMany({
+              select: { userId: true },
+            }),
+            pins: await prisma.workspaceLinkPin.findMany({
+              select: { userId: true },
+            }),
+            preferences: await prisma.busUserPreference.findMany({
+              select: { userId: true },
+            }),
+          })),
+        ),
+      );
+      expect(firstRows).toEqual({
+        clicks: [{ userId: firstUserId }],
+        pins: [{ userId: firstUserId }],
+        preferences: [{ userId: firstUserId }],
+      });
+      expect(secondRows).toEqual({
+        clicks: [{ userId: secondUserId }],
+        pins: [{ userId: secondUserId }],
+        preferences: [{ userId: secondUserId }],
+      });
+      await expect(
+        withUserDbContext(adminUserId, async (tx) => ({
+          clicks: await tx.catalogLinkClick.findMany({
+            where: { userId: { in: [firstUserId, secondUserId] } },
+          }),
+          pins: await tx.workspaceLinkPin.findMany({
+            where: { userId: { in: [firstUserId, secondUserId] } },
+          }),
+          preferences: await tx.busUserPreference.findMany({
+            where: { userId: { in: [firstUserId, secondUserId] } },
+          }),
+        })),
+      ).resolves.toEqual({ clicks: [], pins: [], preferences: [] });
+    });
+
+    it("blocks cross-owner updates and deletes on preference records", async () => {
+      const firstRows = await withUserDbContext(firstUserId, async () => {
+        const click = await prisma.catalogLinkClick.create({
+          data: { userId: firstUserId, slug: "rls-cross-owner-click" },
+          select: { id: true },
+        });
+        const pin = await prisma.workspaceLinkPin.create({
+          data: { userId: firstUserId, slug: "rls-cross-owner-pin" },
+          select: { id: true },
+        });
+        await prisma.busUserPreference.create({
+          data: { userId: firstUserId },
+        });
+        return { click, pin };
+      });
+
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.catalogLinkClick.update({
+            where: { id: firstRows.click.id },
+            data: { count: 99 },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.workspaceLinkPin.delete({
+            where: { id: firstRows.pin.id },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.catalogLinkClick.updateMany({
+            where: { userId: firstUserId },
+            data: { count: 99 },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(firstUserId, () =>
+          prisma.catalogLinkClick.update({
+            where: { id: firstRows.click.id },
+            data: { userId: secondUserId },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.workspaceLinkPin.deleteMany({
+            where: { userId: firstUserId },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.busUserPreference.updateMany({
+            where: { userId: firstUserId },
+            data: { showDepartedTrips: true },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.busUserPreference.deleteMany({
+            where: { userId: firstUserId },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+    });
+
+    it("uses the real bus preference service chain with RLS enabled", async () => {
+      const campuses = await prisma.busCampus.findMany({
+        orderBy: { id: "asc" },
+        select: { id: true },
+        take: 2,
+      });
+      if (campuses.length < 2) throw new Error("Expected two seeded campuses");
+      const expected = {
+        preferredOriginCampusId: campuses[0].id,
+        preferredDestinationCampusId: campuses[1].id,
+        showDepartedTrips: true,
+      };
+
+      await expect(
+        saveBusPreference(firstUserId, expected),
+      ).resolves.toMatchObject({ ok: true, preference: expected });
+      await expect(getBusPreference(firstUserId)).resolves.toEqual(expected);
+      await expect(getBusPreference(secondUserId)).resolves.not.toEqual(
+        expected,
+      );
+    });
+
+    it("rejects forged ownership on every protected preference table", async () => {
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.catalogLinkClick.create({
+            data: { userId: firstUserId, slug: "forged-click" },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.workspaceLinkPin.create({
+            data: { userId: firstUserId, slug: "forged-pin" },
+          }),
+        ),
+      ).rejects.toThrow();
+      await withUserDbContext(firstUserId, () =>
+        prisma.busUserPreference.deleteMany({ where: { userId: firstUserId } }),
+      );
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.busUserPreference.create({
+            data: { userId: firstUserId },
+          }),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("keeps self-service account deletion cascades inside owner context", async () => {
+      const accountDeletionUserId = `rls-acct-del-${crypto.randomUUID()}`;
+      await authPrisma.user.create({
+        data: {
+          id: accountDeletionUserId,
+          email: `${accountDeletionUserId}@example.invalid`,
+          updatedAt: new Date(),
+        },
+      });
+      const deletionSession = await authPrisma.session.create({
+        data: {
+          expires: new Date(Date.now() + 60 * 60 * 1000),
+          sessionToken: crypto.randomUUID(),
+          userId: accountDeletionUserId,
+        },
+        select: { id: true },
+      });
+
+      await withUserDbContext(accountDeletionUserId, () =>
+        prisma.todo.create({
+          data: {
+            title: "[rls-test] account cascade",
+            userId: accountDeletionUserId,
+          },
+        }),
+      );
+
+      await expect(
+        deleteOwnAccount(accountDeletionUserId, {
+          channel: "system",
+          sessionId: deletionSession.id,
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(
+        prisma.user.findUnique({ where: { id: accountDeletionUserId } }),
+      ).resolves.toBeNull();
+      await expect(
+        adminPrisma.auditLog.findFirst({
+          where: {
+            action: "account_delete",
+            outcome: "success",
+            metadata: { path: ["selfService"], equals: true },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+      ).resolves.toMatchObject({
+        subjectUserId: null,
+        targetId: null,
+        userId: null,
+      });
+    });
+  },
+);

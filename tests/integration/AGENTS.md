@@ -1,41 +1,59 @@
 # tests/integration/
 
-Integration tests with in-process MCP harness.
-
-## Shared Setup
-
-Use the repo root `AGENTS.md` for the canonical command list, shared dev-seed flow,
-and `DEV_SEED_ANCHOR` guidance. This scoped guide only adds integration-specific
-notes.
-
-Run the integration test sequence from `$life-ustc-dev-loop`:
+MCP in-process harness + REST Playwright contracts. Full recipes: root
+`AGENTS.md` (same shape as CI `ci:integration`).
 
 ```bash
-bun run db:migrate:deploy
-bunx prisma db seed
+export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
+export ALLOW_DATABASE_SEED=true
+source tests/ci/setup-runtime-database.sh
 bunx vitest run --config vitest.integration.config.ts
+bun run build && bun run rest:test
 ```
 
-## Harness
+## REST (`tests/integration/rest/`)
 
-Use `tests/integration/utils/mcp-harness.ts` for the in-process authenticated
-MCP client/server pair. Keep setup examples there; this guide only records
-integration-specific caveats.
+REST-only Playwright (`playwright.api.config.ts`) with `_harness/auth.ts`
+request-based debug sign-in.
 
-MCP tool coverage is split by feature into `tests/integration/mcp-*.test.ts`
-and shares helpers from `tests/integration/utils/mcp-tool-test-utils.ts`.
-Keep integration file parallelism disabled unless those shared seeded-user
-mutations are made fully isolated.
+## MCP layout
+
+```text
+tests/integration/mcp/
+  workspace/ · catalog/ · community/ · bus/
+  profile.test.ts
+  _harness/      client, context, fixtures, cleanup
+```
+
+## Harness (`_harness/`)
+
+- `createMcpHarness` / `createAnonymousMcpHarness` — `client.ts`
+- `createMcpToolTestContext()` — shared seed user, read-mostly
+- `createIsolatedMcpToolTestContext()` — throwaway user for mutations; read
+  `context.client` / `context.userId` at call time (don't destructure early)
+- `createSubscribedIsolatedMcpToolTestContext()` — isolated + seed section
+- `createEphemeralMcpUser()` — single-`it` user; call `close()` after cleanup
+- App queries: `createTestPrisma()` from `tests/shared/prisma.ts` (restricted role).
+- Fixture setup, cleanup, and authoritative DB assertions: `createFixturePrisma()`.
+  Never pass that owner client into application services or add user context around
+  a service call to compensate for missing context inside the application.
+
+`fileParallelism` is off — auth row-count tests flake under concurrent session
+writes. Prefer file-level isolation for mutating suites.
+
+Run isolated local shards with `bun run integration:test:parallel`. It creates
+four disposable PostgreSQL containers, applies the production role bootstrap to
+each, and removes them on exit. Existing databases are not used. Set
+`INTEGRATION_SHARDS=1` through `8` to choose concurrency and
+`INTEGRATION_REPORT_ROOT` to retain logs at a chosen path. Test filters and role
+filters pass through; files inside each shard stay serial. The runner enables
+RLS, authentication-role, function-owner, and maintenance-role contract tests
+by default. Explicitly setting any of those four gates to a value other than
+`true` is rejected so required tests cannot be silently skipped.
+The local runner requires Bash, Docker, Bun, `psql`, and Linux `setsid`.
 
 ## Conventions
 
-- Use `DEV_SEED_ANCHOR.date` / `.recommendedAtTime` from `tests/fixtures/dev-seed.ts` instead of hardcoding shared seed dates.
-- Write mutations use unique markers `[integration-test] ...`
-- Clean up created data within test group
-- Read-only assertions against seed need no cleanup
-
-## Relationship to Other Layers
-
-- **Unit**: Pure functions, no DB
-- **Integration**: DB required, in-process MCP
-- **E2E**: Browser + built server
+- `DEV_SEED_ANCHOR` from `tests/fixtures/dev-seed.ts`
+- Mutation markers: `[integration-test] ...`
+- Clean up created data; pass explicit `userId` into audit helpers when isolated

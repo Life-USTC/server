@@ -1,5 +1,5 @@
 import {
-  createTestPrisma,
+  createFixturePrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../../../shared/prisma";
@@ -7,7 +7,7 @@ import {
 export async function withE2ePrisma<T>(
   callback: (prisma: TestPrismaClient) => Promise<T>,
 ) {
-  const prisma = createTestPrisma();
+  const prisma = createFixturePrisma();
   try {
     return await callback(prisma);
   } finally {

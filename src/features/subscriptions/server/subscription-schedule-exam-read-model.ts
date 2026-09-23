@@ -1,15 +1,27 @@
 import {
+  scheduleTeacherContextSelect,
   sectionCatalogInclude,
-  teacherListInclude,
 } from "@/features/catalog/server/academic-query-includes";
+import { toScheduleEntryDto } from "@/features/catalog/server/schedule-read-model";
 import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import {
+  type ScheduleEntryDto,
+  subscribedScheduleEntrySchema,
+} from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import {
+  overviewExamSelect,
+  overviewScheduleSelect,
+} from "./subscription-overview-selects";
+import {
+  getSubscribedSectionIds,
   getSubscribedSectionIdsForSemester,
   withSubscribedSections,
 } from "./subscription-read-model-shared";
@@ -21,10 +33,40 @@ const subscribedScheduleInclude = {
       roomType: true,
     },
   },
-  teachers: { include: teacherListInclude },
+  teachers: { select: scheduleTeacherContextSelect },
   section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
+
+export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof subscribedScheduleInclude;
+}>;
+
+export function toSubscribedScheduleEntryDto(
+  input: SubscribedScheduleRecord,
+  locale: AppLocale,
+) {
+  const schedule = toScheduleEntryDto(input, locale) satisfies ScheduleEntryDto;
+  return subscribedScheduleEntrySchema.parse({
+    ...schedule,
+    teachers: schedule.teachers.map((teacher, index) => {
+      const source = input.teachers[index];
+      return {
+        ...teacher,
+        teacherTitle: source.teacherTitle
+          ? {
+              id: source.teacherTitle.id,
+              jwId: source.teacherTitle.jwId,
+              code: source.teacherTitle.code,
+              enabled: source.teacherTitle.enabled,
+              ...toLocalizedNameDto(source.teacherTitle, locale),
+            }
+          : null,
+        _count: { sections: source._count.sections },
+      };
+    }),
+  });
+}
 
 const subscribedExamInclude = {
   examBatch: true,
@@ -133,24 +175,27 @@ export async function listSubscribedSchedules(
     async (ids) => {
       const localizedPrisma = getPrisma(locale);
       const dateFilter = dateRangeFilter(dateFrom, dateTo);
-
-      return localizedPrisma.schedule.findMany({
+      const query = {
         where: {
           sectionId: { in: ids },
           section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
           ...(weekday ? { weekday } : {}),
         },
-        include: subscribedScheduleInclude,
         orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
+      } satisfies Prisma.ScheduleFindManyArgs;
+
+      return localizedPrisma.schedule.findMany({
+        ...query,
+        include: subscribedScheduleInclude,
       });
     },
     resolvedSectionIds,
   );
 }
 
-export function listSubscribedSchedulePage(
+export async function listSubscribedSchedulePage(
   userId: string,
   {
     locale = DEFAULT_LOCALE,
@@ -171,14 +216,15 @@ export function listSubscribedSchedulePage(
     };
   },
 ) {
+  const sectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : await getSubscribedSectionIds(userId);
   const localizedPrisma = getPrisma(locale);
   const dateFilter = dateRangeFilter(dateFrom, dateTo);
   const where = {
-    section: {
-      subscribedUsers: { some: { id: userId } },
-      retiredAt: null,
-      ...(semesterId !== undefined ? { semesterId } : {}),
-    },
+    sectionId: { in: sectionIds },
+    section: { retiredAt: null },
     ...(dateFilter ? { date: dateFilter } : {}),
     ...(weekday ? { weekday } : {}),
   } satisfies Prisma.ScheduleWhereInput;
@@ -209,6 +255,90 @@ export async function countUpcomingSubscribedExams({
   return prisma.exam.count({
     where: upcomingKnownExamWhere({ atTime, sectionIds }),
   });
+}
+
+export async function listTodaySubscribedSchedulesWithCount(
+  userId: string,
+  {
+    todayStart,
+    tomorrowStart,
+    includeItems = true,
+    locale = DEFAULT_LOCALE,
+    limit,
+    sectionIds,
+  }: {
+    todayStart: Date;
+    tomorrowStart: Date;
+    includeItems?: boolean;
+    locale?: string;
+    limit?: number;
+    sectionIds?: readonly number[];
+  },
+) {
+  return withSubscribedSections(
+    userId,
+    async (ids) => {
+      const where = {
+        sectionId: { in: ids },
+        section: { retiredAt: null },
+        date: { gte: todayStart, lt: tomorrowStart },
+      } satisfies Prisma.ScheduleWhereInput;
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.schedule.count({ where }),
+        includeItems
+          ? localizedPrisma.schedule.findMany({
+              where,
+              select: overviewScheduleSelect,
+              orderBy: subscribedScheduleOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
+      return { total, items };
+    },
+    sectionIds,
+    { total: 0, items: [] },
+  );
+}
+
+export async function listUpcomingSubscribedExamsWithCount(
+  userId: string,
+  {
+    atTime,
+    includeItems = true,
+    locale = DEFAULT_LOCALE,
+    limit,
+    sectionIds,
+  }: {
+    atTime: Date;
+    includeItems?: boolean;
+    locale?: string;
+    limit?: number;
+    sectionIds?: readonly number[];
+  },
+) {
+  return withSubscribedSections(
+    userId,
+    async (ids) => {
+      const where = upcomingKnownExamWhere({ atTime, sectionIds: ids });
+      const localizedPrisma = getPrisma(locale);
+      const [total, items] = await Promise.all([
+        localizedPrisma.exam.count({ where }),
+        includeItems
+          ? localizedPrisma.exam.findMany({
+              where,
+              select: overviewExamSelect,
+              orderBy: subscribedExamOrderBy,
+              ...(limit ? { take: limit } : {}),
+            })
+          : Promise.resolve([]),
+      ]);
+      return { total, items };
+    },
+    sectionIds,
+    { total: 0, items: [] },
+  );
 }
 
 export async function listSubscribedExams(
@@ -255,7 +385,7 @@ export async function listSubscribedExams(
   );
 }
 
-export function listSubscribedExamPage(
+export async function listSubscribedExamPage(
   userId: string,
   {
     locale = DEFAULT_LOCALE,
@@ -276,13 +406,14 @@ export function listSubscribedExamPage(
     };
   },
 ) {
+  const sectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : await getSubscribedSectionIds(userId);
   const localizedPrisma = getPrisma(locale);
   const where = {
-    section: {
-      subscribedUsers: { some: { id: userId } },
-      retiredAt: null,
-      ...(semesterId !== undefined ? { semesterId } : {}),
-    },
+    sectionId: { in: sectionIds },
+    section: { retiredAt: null },
     ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
   } satisfies Prisma.ExamWhereInput;
 
@@ -298,34 +429,5 @@ export function listSubscribedExamPage(
     () => localizedPrisma.exam.count({ where }),
     pagination.page,
     pagination.pageSize,
-  );
-}
-
-export async function listUpcomingSubscribedExams(
-  userId: string,
-  {
-    atTime,
-    locale = DEFAULT_LOCALE,
-    limit,
-    sectionIds,
-  }: {
-    atTime: Date;
-    locale?: string;
-    limit?: number;
-    sectionIds?: readonly number[];
-  },
-) {
-  return withSubscribedSections(
-    userId,
-    async (ids) => {
-      const localizedPrisma = getPrisma(locale);
-      return localizedPrisma.exam.findMany({
-        where: upcomingKnownExamWhere({ atTime, sectionIds: ids }),
-        include: subscribedExamInclude,
-        orderBy: subscribedExamOrderBy,
-        ...(limit ? { take: limit } : {}),
-      });
-    },
-    sectionIds,
   );
 }

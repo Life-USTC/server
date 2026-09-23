@@ -34,21 +34,37 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 async function useChineseLocale(page: Page) {
-  const response = await page.request.post("/api/locale", {
+  const response = await page.request.post("/api/account/preferences", {
     data: { locale: "zh-cn" },
   });
   expect(response.status()).toBe(200);
 }
 
-test.describe("/sections 班级搜索页", () => {
+test.describe("/catalog/sections 班级搜索页", () => {
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/sections", testInfo });
+    await assertPageContract(page, {
+      routePath: "/catalog/sections",
+      testInfo,
+    });
+  });
+
+  test("无匹配班级时显示明确空状态且不渲染结果链接", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/sections?search=e2e-no-matching-section-7f3c9a",
+    );
+
+    await expect(page.getByText(/未找到班级|No sections found/i)).toBeVisible();
+    await expect(
+      page.locator("#main-content a[href^='/catalog/sections/']"),
+    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
   });
 
   test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
-        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
         baseURL,
       ),
     );
@@ -69,7 +85,7 @@ test.describe("/sections 班级搜索页", () => {
     await useChineseLocale(page);
     await gotoAndWaitForReady(
       page,
-      `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+      `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
       { testInfo, screenshotLabel: "sections-list" },
     );
     await expectNoPageHorizontalOverflow(page);
@@ -133,7 +149,7 @@ test.describe("/sections 班级搜索页", () => {
     await page.keyboard.press("Escape");
 
     const detailLink = page
-      .locator("#main-content a[href^='/sections/']:visible")
+      .locator("#main-content a[href^='/catalog/sections/']:visible")
       .first();
     await expect(detailLink).toBeVisible();
     const box = await detailLink.boundingBox();
@@ -142,7 +158,7 @@ test.describe("/sections 班级搜索页", () => {
     await captureStepScreenshot(page, testInfo, "sections-mobile-list");
     await detailLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     expect(runtimeErrors).toEqual([]);
@@ -156,14 +172,14 @@ test.describe("/sections 班级搜索页", () => {
     });
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
     await page.setViewportSize({ width: 390, height: 844 });
-    const localeResponse = await page.request.post("/api/locale", {
+    const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "en-us" },
     });
     expect(localeResponse.status()).toBe(200);
 
     await gotoAndWaitForReady(
       page,
-      `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+      `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
     );
 
     await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
@@ -182,7 +198,7 @@ test.describe("/sections 班级搜索页", () => {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(
         page,
-        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
       );
       await expectNoPageHorizontalOverflow(page);
 
@@ -316,7 +332,7 @@ test.describe("/sections 班级搜索页", () => {
     await useChineseLocale(page);
     for (const width of [1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/sections");
+      await gotoAndWaitForReady(page, "/catalog/sections");
 
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
       await expect(page).toHaveTitle(/班级/);
@@ -326,11 +342,14 @@ test.describe("/sections 班级搜索页", () => {
 
       const documentGeometry = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,
+        scrollbarGutter: getComputedStyle(document.documentElement)
+          .scrollbarGutter,
         scrollWidth: document.documentElement.scrollWidth,
       }));
       expect(documentGeometry.scrollWidth).toBeLessThanOrEqual(
         documentGeometry.clientWidth,
       );
+      expect(documentGeometry.scrollbarGutter).toBe("stable");
 
       if (width === 1024) {
         const cards = page.getByTestId("catalog-results-cards");
@@ -375,14 +394,48 @@ test.describe("/sections 班级搜索页", () => {
         const container = node as HTMLElement;
         const results = container.closest<HTMLElement>("section");
         const table = container.querySelector("table");
+        const headerCells = Array.from(
+          container.querySelectorAll<HTMLTableCellElement>("thead th"),
+        );
+        const firstRowCells = Array.from(
+          container.querySelectorAll<HTMLTableCellElement>(
+            "tbody tr:first-child td",
+          ),
+        );
         const cells = Array.from(
           container.querySelectorAll<HTMLElement>("th, td"),
         );
-        if (!results || !table || cells.length === 0)
+        if (
+          !results ||
+          !table ||
+          cells.length === 0 ||
+          headerCells.length !== firstRowCells.length
+        )
           throw new Error("Sections table geometry missing");
 
         const containerBox = container.getBoundingClientRect();
         const resultsStyle = getComputedStyle(results);
+        const columnAlignment = headerCells.map((header, index) => {
+          const cell = firstRowCells[index];
+          const target = cell?.querySelector<HTMLElement>("a") ?? cell;
+          if (!cell || !target)
+            throw new Error("Sections table column content missing");
+          const headerStyle = getComputedStyle(header);
+          const targetStyle = getComputedStyle(target);
+          const headerBox = header.getBoundingClientRect();
+          const targetBox = target.getBoundingClientRect();
+          const rightAligned = headerStyle.textAlign === "right";
+          const headerEdge = rightAligned
+            ? headerBox.right - Number.parseFloat(headerStyle.paddingRight)
+            : headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
+          const cellEdge = rightAligned
+            ? targetBox.right - Number.parseFloat(targetStyle.paddingRight)
+            : targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
+          return {
+            alignment: headerStyle.textAlign,
+            offset: Math.abs(headerEdge - cellEdge),
+          };
+        });
         const overflowingCells = cells.flatMap((cell, index) =>
           cell.scrollWidth > cell.clientWidth + 1
             ? [
@@ -397,6 +450,7 @@ test.describe("/sections 班级搜索页", () => {
         );
         return {
           clientWidth: container.clientWidth,
+          columnAlignment,
           cellsWithinContainer: cells.every((cell) => {
             const cellBox = cell.getBoundingClientRect();
             return (
@@ -440,6 +494,19 @@ test.describe("/sections 班级搜索页", () => {
       );
       expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
       expect(geometry.cellsWithinContainer).toBe(true);
+      expect(
+        geometry.columnAlignment.map((column) => column.alignment),
+      ).toEqual(["left", "left", "left", "left", "right", "right", "left"]);
+      expect(
+        Math.max(...geometry.columnAlignment.map((column) => column.offset)),
+      ).toBeLessThanOrEqual(1);
+      const sectionCode = page
+        .locator('table:visible [data-slot="catalog-code"]')
+        .first();
+      await expect(sectionCode).toBeVisible();
+      await expect(
+        sectionCode.locator('xpath=ancestor::*[@data-slot="badge"]'),
+      ).toHaveCount(0);
       expect(geometry.resultsBackgroundIsTransparent).toBe(true);
       expect(geometry.resultsBorderRadius).toBe(0);
       expect(geometry.resultsBorderWidth).toBe(0);
@@ -460,7 +527,7 @@ test.describe("/sections 班级搜索页", () => {
   test("结构化筛选、高级语法与清除", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 320, height: 900 });
     await useChineseLocale(page);
-    await gotoAndWaitForReady(page, "/sections", {
+    await gotoAndWaitForReady(page, "/catalog/sections", {
       testInfo,
       screenshotLabel: "sections",
     });
@@ -490,7 +557,7 @@ test.describe("/sections 班级搜索页", () => {
     );
     await expect(page).toHaveURL(/sort=code/);
     await expect(page).toHaveURL(/order=desc/);
-    await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toContainText(
       DEV_SEED.teacher.nameCn,
@@ -498,24 +565,19 @@ test.describe("/sections 班级搜索页", () => {
     await captureStepScreenshot(page, testInfo, "sections-structured-results");
 
     await page.getByRole("link", { name: /^清除$/ }).click();
-    await expect(page).toHaveURL(/\/sections$/);
+    await expect(page).toHaveURL(/\/catalog\/sections$/);
     await captureStepScreenshot(page, testInfo, "sections-clear");
   });
 
   test("学期筛选保留种子数据结果", async ({ page }, testInfo) => {
     const filter = await getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
-      await gotoAndWaitForReady(page, "/sections", {
-        testInfo,
-        screenshotLabel: "sections",
-      });
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+      throw new Error("Expected the seeded section to have a semester fixture");
     }
 
     await gotoAndWaitForReady(
       page,
-      `/sections?semesterId=${filter.semesterId}`,
+      `/catalog/sections?semesterId=${filter.semesterId}`,
       { testInfo, screenshotLabel: "sections-semester" },
     );
     await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));

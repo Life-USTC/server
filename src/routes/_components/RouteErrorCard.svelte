@@ -30,13 +30,13 @@ $: description = isNotFound
   ? errorCopy.notFoundDescription
   : ($page.error?.message ?? errorCopy.error);
 $: backLabel =
-  backHref === "/courses"
+  backHref === "/catalog/courses"
     ? ($page.data?.copy?.nav?.courses ?? errorCopy.backHome)
-    : backHref === "/sections"
+    : backHref === "/catalog/sections"
       ? ($page.data?.copy?.nav?.sections ?? errorCopy.backHome)
-      : backHref === "/teachers"
+      : backHref === "/catalog/teachers"
         ? ($page.data?.copy?.nav?.teachers ?? errorCopy.backHome)
-        : backHref.startsWith("/settings")
+        : backHref.startsWith("/account/settings")
           ? ($page.data?.copy?.menu?.settings ?? errorCopy.backHome)
           : errorCopy.backHome;
 </script>

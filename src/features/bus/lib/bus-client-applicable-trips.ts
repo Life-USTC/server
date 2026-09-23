@@ -1,5 +1,5 @@
-import { buildComputedStopTime } from "./bus-client-stop-times";
 import type { BusApplicableRoute, BusApplicableTrip } from "./bus-client-types";
+import { buildComputedStopTime } from "./bus-stop-time-computation";
 import type { BusTripSummary } from "./bus-types";
 
 export function buildApplicableBusTrips({
@@ -12,7 +12,7 @@ export function buildApplicableBusTrips({
   startStop,
   trips,
 }: {
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   endIndex: number;
   endStop: BusApplicableRoute["endStop"];
   nowMinutes: number;

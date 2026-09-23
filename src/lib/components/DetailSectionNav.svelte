@@ -6,14 +6,17 @@ import { cn } from "$lib/utils.js";
 type DetailSectionNavItem = {
   href: string;
   icon?: Component;
+  key?: string;
   label: string;
   meta?: string | number;
 };
 
 export let ariaLabel: string;
 export let activeHref = "";
+export let activeKey = "";
 export let items: DetailSectionNavItem[];
 export let label = "";
+export let onSelect: ((key: string) => void) | undefined = undefined;
 
 let canScrollLeft = false;
 let canScrollRight = false;
@@ -80,7 +83,11 @@ onMount(() => {
 });
 </script>
 
-<div class="min-w-0" style="--sidebar-width: 14rem;">
+<nav
+  aria-label={ariaLabel || label}
+  class="min-w-0"
+  style="--sidebar-width: 14rem;"
+>
   <Sidebar.Root
     collapsible="none"
     class={cn(
@@ -107,15 +114,27 @@ onMount(() => {
         <Sidebar.GroupContent>
           <Sidebar.Menu class="w-max min-w-full flex-row pr-8 lg:w-full lg:min-w-0 lg:flex-col lg:pr-0">
             {#each items as item}
-              {@const active = item.href === activeHref}
+              {@const active = onSelect
+                ? item.key === activeKey
+                : item.href === activeHref}
               <Sidebar.MenuItem class="shrink-0">
                 <Sidebar.MenuButton isActive={active}>
                   {#snippet child({ props })}
                     <a
                       {...props}
+                      class={cn(
+                        typeof props.class === "string" ? props.class : undefined,
+                        "min-h-11 lg:min-h-8",
+                      )}
+                      data-sveltekit-preload-data="off"
                       use:revealActive={active}
                       href={item.href}
                       aria-current={active ? "page" : undefined}
+                      onclick={(event) => {
+                        if (!onSelect || !item.key) return;
+                        event.preventDefault();
+                        onSelect(item.key);
+                      }}
                     >
                       {#if item.icon}
                         <svelte:component this={item.icon} />
@@ -136,4 +155,4 @@ onMount(() => {
       </Sidebar.Group>
     </Sidebar.Content>
   </Sidebar.Root>
-</div>
+</nav>

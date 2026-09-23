@@ -10,12 +10,13 @@ import {
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("/settings/authorizations OAuth 授权", () => {
+test.describe("/account/settings/authorizations OAuth 授权", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/authorizations");
+    await expectRequiresSignIn(page, "/account/settings/authorizations");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -29,7 +30,7 @@ test.describe("/settings/authorizations OAuth 授权", () => {
     const name = `E2E Calendar ${Date.now()}`;
     const scopes = ["calendar:read", "profile"];
 
-    await signInAsDebugUser(page, "/settings/authorizations");
+    await signInAsDebugUser(page, "/account/settings/authorizations");
     const user = await getCurrentSessionUser(page);
     await deleteOAuthClientsByName(name);
     const authorization = await createOAuthAuthorizationFixture({
@@ -39,26 +40,34 @@ test.describe("/settings/authorizations OAuth 授权", () => {
     });
 
     try {
-      await gotoAndWaitForReady(page, "/settings/authorizations");
-      await page.locator("#app-user-menu").getByRole("button").click();
-      const menuLink = page.getByRole("menuitem", {
+      await gotoAndWaitForReady(page, "/account/settings");
+      const authorizationsTab = page.getByRole("link", {
         name: /已授权应用|Authorized apps/i,
       });
-      await expect(menuLink).toHaveAttribute(
-        "href",
-        "/settings/authorizations",
+      await expect(authorizationsTab).toBeVisible();
+      await authorizationsTab.click();
+      await expect(page).toHaveURL(
+        /\/account\/settings\/authorizations(?:\?.*)?$/,
       );
-      await expect(menuLink).toHaveAttribute("aria-current", "page");
-      await page.keyboard.press("Escape");
 
       const region = page.getByRole("region", {
         name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
       });
+      const authorizationItem = region
+        .getByRole("listitem")
+        .filter({ hasText: name });
       await expect(region).toBeVisible();
-      await expect(region.getByText(name, { exact: true })).toBeVisible();
-      await expect(region.getByText(authorization.clientUri)).toBeVisible();
-      for (const scope of scopes) {
-        await expect(region.getByText(scope, { exact: true })).toBeVisible();
+      await expect(
+        authorizationItem.getByText(name, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        authorizationItem.getByText(authorization.clientUri),
+      ).toBeVisible();
+      for (const scope of [
+        /查看您的个人资料|View your profile information/i,
+        /读取你的日历|Read your calendar/i,
+      ]) {
+        await expect(authorizationItem.getByText(scope)).toBeVisible();
       }
 
       const pageText = await page.locator("#main-content").innerText();
@@ -66,7 +75,7 @@ test.describe("/settings/authorizations OAuth 授权", () => {
       expect(pageText).not.toContain(authorization.clientSecret);
       expect(pageText).not.toContain(authorization.redirectUri);
 
-      const revokeButton = region
+      const revokeButton = authorizationItem
         .getByRole("button", { name: /撤销|Revoke/i })
         .first();
       await revokeButton.click();
@@ -74,29 +83,49 @@ test.describe("/settings/authorizations OAuth 授权", () => {
       await expect(dialog).toContainText(name);
       await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
       await expect(dialog).not.toBeVisible();
-      await expect(region.getByText(name, { exact: true })).toBeVisible();
+      await expect(
+        authorizationItem.getByText(name, { exact: true }),
+      ).toBeVisible();
 
       await revokeButton.click();
       await dialog.getByRole("button", { name: /撤销|Revoke/i }).click();
 
       await expect(dialog).not.toBeVisible();
-      await expect(page).toHaveURL(
-        /\/settings\/authorizations\?message=AuthorizationRevoked$/,
-      );
+      const revokeSuccessText = /已撤销应用授权|Application access revoked/i;
+      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
       await expect(
-        page.getByText(/已撤销应用授权|Application access revoked/i),
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: revokeSuccessText }),
       ).toBeVisible();
+      await expect(
+        page
+          .locator('[data-slot="alert"][role="alert"]')
+          .filter({ hasText: revokeSuccessText }),
+      ).toHaveCount(0);
       await expect(region.getByText(name, { exact: true })).toHaveCount(0);
-      await expect(
-        region.getByText(/暂无已授权应用|No authorized applications/i),
-      ).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,
         "settings-authorizations-revoked",
       );
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
+      await expect(
+        page
+          .locator("[data-sonner-toast]")
+          .filter({ hasText: revokeSuccessText }),
+      ).toHaveCount(0);
+      await expect(region.getByText(name, { exact: true })).toHaveCount(0);
     } finally {
       await deleteOAuthClientsByName(name);
     }
+  });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, {
+    routePath: "/account/settings/authorizations",
+    testInfo,
   });
 });

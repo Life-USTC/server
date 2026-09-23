@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Public User Profile by ID Page (`/u/id/[uid]`)
+ * E2E tests for the unified Public User Profile Page (`/community/users/[identifier]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
  * - user.image (avatar)
@@ -10,7 +10,7 @@
  * - weeks[].date / weeks[].count, totalContributions
  *
  * ## Rules
- * - Profiles with usernames redirect to the canonical /u/[username] route
+ * - The same route accepts either a username or user ID
  * - Raw internal user IDs are not rendered as public profile metadata
  *
  * ## Edge Cases
@@ -31,27 +31,22 @@ import { assertPageContract } from "../../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("/u/id/[uid]", () => {
+test.describe("/community/users/[identifier] by ID", () => {
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/community/users/[identifier]",
+      testInfo,
+    });
   });
 
-  test("有用户名的 ID 地址 308 到规范资料页且不显示内部 ID", async ({
-    page,
-  }, testInfo) => {
+  test("ID 地址直接解析资料且不显示内部 ID", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
     const user = await getCurrentSessionUser(page);
 
-    const redirectResponse = await page.request.get(`/u/id/${user.id}`, {
-      maxRedirects: 0,
-    });
-    expect(redirectResponse.status()).toBe(308);
-    expect(redirectResponse.headers().location).toMatch(
-      new RegExp(`/u/${DEV_SEED.debugUsername}$`),
-    );
-
-    await gotoAndWaitForReady(page, `/u/id/${user.id}`);
-    await expect(page).toHaveURL(new RegExp(`/u/${DEV_SEED.debugUsername}$`));
+    const response = await page.request.get(`/community/users/${user.id}`);
+    expect(response.status()).toBe(200);
+    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+    await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
 
     await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
     await expect(
@@ -74,13 +69,13 @@ test.describe("/u/id/[uid]", () => {
     try {
       await updateUserProfileById(user.id, { username: null });
       await page.context().clearCookies();
-      const response = await page.request.get(`/u/id/${user.id}`, {
+      const response = await page.request.get(`/community/users/${user.id}`, {
         maxRedirects: 0,
       });
       expect(response.status()).toBe(200);
 
-      await gotoAndWaitForReady(page, `/u/id/${user.id}`);
-      await expect(page).toHaveURL(new RegExp(`/u/id/${user.id}$`));
+      await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+      await expect(page).toHaveURL(new RegExp(`/community/users/${user.id}$`));
       await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
       await expect(page.getByText(user.id, { exact: true })).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "u-id/no-username");
@@ -97,7 +92,10 @@ test.describe("/u/id/[uid]", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.debugUsername}`,
+    );
 
     const scrollRegion = page.locator("[data-profile-heatmap-scroll]");
     const cells = page.locator("[data-profile-contribution-cell]");
@@ -112,6 +110,27 @@ test.describe("/u/id/[uid]", () => {
     const firstLabel = await firstCell.getAttribute("aria-label");
     const mobileCellBox = await firstCell.boundingBox();
     expect(mobileCellBox?.width).toBeGreaterThanOrEqual(20);
+    expect(
+      await cells.evaluateAll(
+        (elements) =>
+          elements.filter((element) => element.getAttribute("tabindex") === "0")
+            .length,
+      ),
+    ).toBe(1);
+    await firstCell.focus();
+    await firstCell.press("ArrowRight");
+    await expect(cells.nth(1)).toBeFocused();
+    const columnCount = Number(
+      await page
+        .locator("[data-profile-contribution-grid]")
+        .getAttribute("aria-colcount"),
+    );
+    await cells.nth(1).press("ArrowDown");
+    await expect(cells.nth(columnCount + 1)).toBeFocused();
+    await cells.nth(columnCount + 1).press("Home");
+    await expect(cells.nth(columnCount)).toBeFocused();
+    await cells.nth(columnCount).press("End");
+    await expect(cells.nth(columnCount * 2 - 1)).toBeFocused();
     await firstCell.click();
     await expect(page.locator("[data-profile-contribution-detail]")).toHaveText(
       firstLabel ?? "",
@@ -127,14 +146,17 @@ test.describe("/u/id/[uid]", () => {
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-mobile");
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.debugUsername}`,
+    );
     const desktopCellBox = await cells.first().boundingBox();
     expect(desktopCellBox?.width).toBeGreaterThanOrEqual(15);
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-desktop");
   });
 
   test("不存在的用户 ID 返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/u/id/non-existing-user-id", {
+    await gotoAndWaitForReady(page, "/community/users/non-existing-user-id", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();

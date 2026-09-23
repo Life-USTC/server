@@ -6,17 +6,16 @@ import OAuthAuthorizeConsentPanel from "./OAuthAuthorizeConsentPanel.svelte";
 import OAuthAuthorizeErrorPanel from "./OAuthAuthorizeErrorPanel.svelte";
 import OAuthAuthorizeSidePanel from "./OAuthAuthorizeSidePanel.svelte";
 
-type OAuthAuthorizeCopy = {
-  description: string;
-  scopesLabel: string;
-  title: string;
-};
-
 type PageData = {
+  clientHost?: string;
   clientName?: string;
-  copy?: OAuthAuthorizeCopy;
+  copy?: Record<string, string>;
+  hint?: string;
+  locale?: string;
   message?: string;
   oauthQuery?: string;
+  redirectHost?: string;
+  redirectIsLoopback?: boolean;
   scope?: string;
   scopes?: Array<{ label: string; value: string }>;
   state: string;
@@ -31,9 +30,7 @@ $: pageTitle =
     ? (data.title ?? "OAuth")
     : (data.copy?.title ?? "OAuth");
 $: pageDescription =
-  data.state === "error"
-    ? (data.message ?? "")
-    : (data.copy?.description ?? "");
+  data.state === "error" ? "" : (data.copy?.description ?? "");
 </script>
 
 <svelte:head><title>{pageTitle} - Life@USTC</title></svelte:head>
@@ -41,7 +38,15 @@ $: pageDescription =
 <section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-2xl place-items-center px-4 py-10">
   <Card.Root class="w-full">
     <Card.Header class="gap-5 p-6">
-      <OAuthAuthorizeSidePanel {appName} />
+      <OAuthAuthorizeSidePanel
+        {appName}
+        clientHost={data.clientHost}
+        clientHostLabel={data.copy?.clientHostLabel}
+        redirectHost={data.redirectHost}
+        redirectHostLabel={data.copy?.redirectHostLabel}
+        redirectIsLoopback={data.redirectIsLoopback ?? false}
+        loopbackRedirectWarning={data.copy?.loopbackRedirectWarning}
+      />
       <PageHeader
         class="py-0"
         title={pageTitle}
@@ -53,12 +58,13 @@ $: pageDescription =
     <Card.Content class="grid gap-5 p-6">
       {#if data.state === "error"}
         <OAuthAuthorizeErrorPanel
+          hint={data.hint}
           message={data.message ?? ""}
-          title={data.title ?? "OAuth"}
         />
       {:else if data.copy}
         <OAuthAuthorizeConsentPanel
           copy={data.copy}
+          locale={data.locale ?? "zh-cn"}
           oauthQuery={data.oauthQuery ?? ""}
           scope={data.scope ?? ""}
           scopes={data.scopes ?? []}

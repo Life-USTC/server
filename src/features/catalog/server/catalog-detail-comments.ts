@@ -1,33 +1,28 @@
-import { getCommentsPayload } from "@/features/comments/server/comments-server";
+import { emptyDescriptionPayload } from "@/features/descriptions/server/description-payload";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 
 export async function loadCatalogDetailCommentsData({
-  includeComments,
+  includeDescription,
+  includeDescriptionHistory,
   targetId,
   type,
   viewer,
 }: {
-  includeComments: boolean;
+  includeDescription: boolean;
+  includeDescriptionHistory: boolean;
   targetId: number;
   type: "course" | "teacher";
   viewer: ViewerContext;
 }) {
-  const [descriptionData, comments] = await Promise.all([
-    getDescriptionPayload(type, targetId, viewer),
-    includeComments
-      ? getCommentsPayload({ type, targetId }, viewer)
-      : Promise.resolve(null),
-  ]);
+  const descriptionData = includeDescription
+    ? await getDescriptionPayload(type, targetId, viewer, {
+        includeHistory: includeDescriptionHistory,
+      })
+    : emptyDescriptionPayload(viewer);
 
   return {
-    commentsData: comments
-      ? {
-          commentMap: { [type]: comments.comments },
-          hiddenCount: comments.hiddenCount,
-          viewer,
-        }
-      : null,
+    commentsData: null,
     descriptionData,
   };
 }

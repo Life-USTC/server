@@ -1,9 +1,15 @@
 import { withE2ePrisma } from "./prisma";
 
-export async function createTempCoursesFixture(options: {
+export type TempCoursesFixtureOptions = {
   count: number;
+  nameCn?: string;
+  nameEn?: string;
   prefix: string;
-}) {
+};
+
+export async function createTempCoursesFixture(
+  options: TempCoursesFixtureOptions,
+) {
   return await withE2ePrisma(async (prisma) => {
     await prisma.course.deleteMany({
       where: { code: { startsWith: options.prefix } },
@@ -18,7 +24,8 @@ export async function createTempCoursesFixture(options: {
       data: Array.from({ length: options.count }, (_, index) => ({
         code: `${options.prefix}-${String(index).padStart(2, "0")}`,
         jwId: firstJwId + index,
-        nameCn: `${options.prefix}-${String(index).padStart(2, "0")}`,
+        nameCn: `${options.nameCn ?? options.prefix}-${String(index).padStart(2, "0")}`,
+        nameEn: options.nameEn,
       })),
     });
 

@@ -24,6 +24,13 @@ export const commentThreadResponseSchema = z.object({
   target: commentThreadTargetSchema,
 });
 
+export const commentRepliesResponseSchema = z.object({
+  rootId: z.string(),
+  thread: z.array(commentNodeSchema),
+  nextCursor: z.string().nullable(),
+  viewer: viewerContextSchema,
+});
+
 export const commentUpdateResponseSchema = z.object({
   success: z.boolean(),
   comment: commentNodeSchema,
@@ -37,7 +44,7 @@ export const commentBatchDeleteResponseSchema = z.object({
         success: z.literal(false),
         id: z.string(),
         error: z.object({
-          code: z.enum(["not_found", "forbidden", "locked"]),
+          code: z.enum(["not_found", "forbidden", "locked", "suspended"]),
           message: z.string(),
         }),
       }),

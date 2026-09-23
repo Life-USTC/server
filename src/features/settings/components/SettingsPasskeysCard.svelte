@@ -1,6 +1,7 @@
 <script lang="ts">
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 import {
   isPasskeySupported,
   passkeyAuthClient,
@@ -8,7 +9,6 @@ import {
 } from "$lib/auth/passkey-client";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -19,7 +19,7 @@ import SettingsPasskeyRow from "./SettingsPasskeyRow.svelte";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Status = {
-  kind: "error" | "success";
+  kind: "error";
   message: string;
 };
 
@@ -61,10 +61,8 @@ async function addPasskey() {
       return;
     }
     name = "";
-    status = {
-      kind: "success",
-      message: copy.settings.passkeys.added,
-    };
+    status = null;
+    toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
   } catch {
     status = {
@@ -77,12 +75,13 @@ async function addPasskey() {
 }
 </script>
 
-<Card.Root data-passkey-settings>
-  <Card.Header>
-    <Card.Title>{copy.settings.passkeys.title}</Card.Title>
-    <Card.Description>{copy.settings.passkeys.description}</Card.Description>
-  </Card.Header>
-  <Card.Content class="flex flex-col gap-4">
+<section class="grid gap-4" data-passkey-settings>
+  <div class="grid gap-1">
+    <h2 class="text-base font-normal tracking-tight">{copy.settings.passkeys.title}</h2>
+    <p class="text-muted-foreground text-sm">{copy.settings.passkeys.description}</p>
+  </div>
+
+  <div class="flex flex-col gap-4">
     {#if supported === false}
       <Alert.Root>
         <Fingerprint />
@@ -93,8 +92,8 @@ async function addPasskey() {
       </Alert.Root>
     {/if}
 
-    {#if status}
-      <Alert.Root variant={status.kind === "error" ? "destructive" : "default"}>
+    {#if status && status.kind === "error"}
+      <Alert.Root variant="destructive">
         <Alert.Description>{status.message}</Alert.Description>
       </Alert.Root>
     {/if}
@@ -153,7 +152,6 @@ async function addPasskey() {
             onclick={() => {
               void $passkeyQuery.refetch();
             }}
-            size="sm"
             type="button"
             variant="outline"
           >
@@ -180,9 +178,10 @@ async function addPasskey() {
             reportStatus={(nextStatus) => {
               status = nextStatus;
             }}
+            onSuccess={(message) => toast.success(message)}
           />
         {/each}
       </Item.Group>
     {/if}
-  </Card.Content>
-</Card.Root>
+  </div>
+</section>

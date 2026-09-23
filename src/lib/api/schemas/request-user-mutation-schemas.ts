@@ -37,10 +37,6 @@ function hasCalendarSubscriptionSelection(
   return (input.sectionIds?.length ?? 0) > 0 || (input.codes?.length ?? 0) > 0;
 }
 
-export const calendarSubscriptionCreateRequestSchema = z.object({
-  sectionIds: subscriptionSectionIdsSchema.optional(),
-});
-
 export const calendarSubscriptionAppendRequestSchema = z.object({
   sectionIds: subscriptionSectionIdsSchema,
 });
@@ -54,55 +50,29 @@ export const calendarSubscriptionQueryRequestSchema =
     "sectionIds or codes is required",
   );
 
-export const calendarSubscriptionBatchActionSchema = z.enum([
-  "add",
-  "remove",
-  "set",
-]);
+export const calendarSubscriptionBatchActionSchema = z.enum(["add", "remove"]);
 
 export const calendarSubscriptionBatchRequestSchema =
   calendarSubscriptionSelectionRequestSchema
     .extend({
       action: calendarSubscriptionBatchActionSchema,
     })
-    .superRefine((input, context) => {
-      if (input.action === "set") {
-        if (input.semesterId === undefined) {
-          context.addIssue({
-            code: "custom",
-            message: "semesterId is required when action is set",
-            path: ["semesterId"],
-          });
-        }
-        return;
-      }
-
-      if (hasCalendarSubscriptionSelection(input)) {
-        return;
-      }
-
-      context.addIssue({
-        code: "custom",
-        message: "sectionIds or codes is required",
-        path: ["sectionIds"],
-      });
-    });
+    .refine(
+      hasCalendarSubscriptionSelection,
+      "sectionIds or codes is required",
+    );
 
 export const localeUpdateRequestSchema = z.object({
   locale: z.enum(APP_LOCALES),
 });
 
-export const dashboardLinkVisitRequestSchema = z.object({
-  slug: z.string().trim().min(1),
-});
-
-export const dashboardLinkPinRequestSchema = z.object({
+export const workspaceLinkPinRequestSchema = z.object({
   slug: z.string().trim().min(1),
   returnTo: z.string().trim().optional(),
   action: z.enum(["pin", "unpin"]).optional(),
 });
 
-export const dashboardLinkPinBatchRequestSchema = z.object({
+export const workspaceLinkPinBatchRequestSchema = z.object({
   items: z
     .array(
       z.object({

@@ -1,6 +1,7 @@
 export type AdminCreateOAuthClientInput = {
   headers: Headers;
   body: {
+    application_type: "native" | "web";
     client_name: string;
     redirect_uris: string[];
     token_endpoint_auth_method: string;
@@ -57,17 +58,4 @@ export type OAuthProviderMetadataAuth = {
     getOAuthServerConfig: (...args: unknown[]) => unknown;
     getOpenIdConfig: (...args: unknown[]) => unknown;
   };
-};
-
-export type GenericOAuthApi = {
-  signInWithOAuth2(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
-  oAuth2LinkAccount(input: {
-    body: { providerId: string; callbackURL: string };
-    headers: Headers;
-    returnHeaders: true;
-  }): Promise<{ headers: Headers; response: unknown }>;
 };

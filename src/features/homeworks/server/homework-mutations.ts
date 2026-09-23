@@ -1,9 +1,16 @@
+import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
+import {
+  type HomeworkAuditContext,
+  homeworkAuditAttribution,
+} from "./homework-audit";
 import { updateHomeworkDescription } from "./homework-description";
 import {
   type HomeworkUpdateIntent,
   hasHomeworkUpdateIntentChanges,
+  homeworkUpdateChangedFields,
 } from "./homework-update-intent";
 import {
   type HomeworkWriteAuthError,
@@ -21,13 +28,14 @@ export async function updateHomework(input: {
   homeworkId: string;
   update: HomeworkUpdateIntent;
   userId: string;
+  audit?: HomeworkAuditContext;
 }) {
   const writer = await requireActiveHomeworkWriter(input.userId);
   if (!writer.ok) return writer;
 
   const homework = await prisma.homework.findUnique({
     where: { id: input.homeworkId },
-    select: { id: true, deletedAt: true },
+    select: { id: true, deletedAt: true, sectionId: true },
   });
 
   if (!homework) {
@@ -56,6 +64,20 @@ export async function updateHomework(input: {
         homeworkId: input.homeworkId,
         userId: input.userId,
       });
+
+      await writeAuditLog(
+        {
+          action: "homework_update",
+          ...homeworkAuditAttribution(input.userId, input.audit),
+          targetId: input.homeworkId,
+          targetType: "homework",
+          metadata: {
+            sectionId: homework.sectionId,
+            changedFields: homeworkUpdateChangedFields(input.update),
+          },
+        },
+        tx,
+      );
     });
 
   try {
@@ -65,10 +87,13 @@ export async function updateHomework(input: {
     await writeHomeworkUpdate();
   }
 
+  scheduleInvalidateCalendarExportsForSection(homework.sectionId);
+
   return { ok: true as const };
 }
 
 export async function deleteHomework(input: {
+  audit?: HomeworkAuditContext;
   homeworkId: string;
   userId: string;
 }) {
@@ -78,7 +103,6 @@ export async function deleteHomework(input: {
       where: { id: input.homeworkId },
       select: {
         id: true,
-        title: true,
         createdById: true,
         deletedAt: true,
         sectionId: true,
@@ -109,16 +133,19 @@ export async function deleteHomework(input: {
       },
     });
 
-    await tx.homeworkAuditLog.create({
-      data: {
-        action: "deleted",
-        sectionId: homework.sectionId,
-        homeworkId: homework.id,
-        actorId: input.userId,
-        titleSnapshot: homework.title,
+    await writeAuditLog(
+      {
+        action: "homework_delete",
+        ...homeworkAuditAttribution(input.userId, input.audit),
+        targetId: homework.id,
+        targetType: "homework",
+        metadata: { sectionId: homework.sectionId },
       },
-    });
+      tx,
+    );
   });
+
+  scheduleInvalidateCalendarExportsForSection(homework.sectionId);
 
   return { ok: true as const, alreadyDeleted: false };
 }

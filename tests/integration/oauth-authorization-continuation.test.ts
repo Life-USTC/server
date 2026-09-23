@@ -1,26 +1,31 @@
 import { makeSignature } from "better-auth/crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { authPostRoute } from "@/lib/api/routes/auth";
-import { prisma } from "@/lib/db/prisma";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import { createFixturePrisma } from "../shared/prisma";
 
-const AUTH_SECRET =
-  "oauth-authorization-continuation-test-secret-at-least-32-bytes";
+const fixturePrisma = createFixturePrisma();
 
-const { authHandlerMock, getSessionFromHeadersMock } = vi.hoisted(() => ({
-  authHandlerMock: vi.fn(),
-  getSessionFromHeadersMock: vi.fn(),
-}));
+const { authHandlerMock, authSecret, getSessionFromHeadersMock } = vi.hoisted(
+  () => ({
+    authHandlerMock: vi.fn(),
+    authSecret:
+      "oauth-authorization-continuation-test-secret-at-least-32-bytes",
+    getSessionFromHeadersMock: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: {
-    $context: Promise.resolve({ secret: AUTH_SECRET }),
+    $context: Promise.resolve({ secret: authSecret }),
     handler: authHandlerMock,
   },
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
-describe.sequential("OAuth authorization continuation grant binding", () => {
+describe("OAuth authorization continuation grant binding", {
+  concurrent: false,
+}, () => {
   const marker = crypto.randomUUID();
   const clientId = `oauth-continuation-${marker}`;
   const verificationIdentifiers: string[] = [];
@@ -39,12 +44,24 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       code_challenge_method: "S256",
       exp: String(Math.floor(Date.now() / 1000) + 600),
     });
-    query.set("sig", await makeSignature(query.toString(), AUTH_SECRET));
+    for (const name of [...new Set([...query.keys(), "ba_param"])].sort()) {
+      query.append("ba_param", name);
+    }
+    const canonical = new URLSearchParams(
+      [...query.entries()].sort(([keyA, valueA], [keyB, valueB]) => {
+        if (keyA < keyB) return -1;
+        if (keyA > keyB) return 1;
+        if (valueA < valueB) return -1;
+        if (valueA > valueB) return 1;
+        return 0;
+      }),
+    );
+    query.set("sig", await makeSignature(canonical.toString(), authSecret));
     return query.toString();
   }
 
   beforeAll(async () => {
-    const user = await prisma.user.create({
+    const user = await fixturePrisma.user.create({
       data: {
         email: `oauth-continuation-${marker}@example.test`,
         name: "OAuth continuation user",
@@ -52,7 +69,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       select: { id: true },
     });
     userId = user.id;
-    await prisma.oAuthClient.create({
+    await fixturePrisma.oAuthClient.create({
       data: {
         clientId,
         name: "OAuth continuation client",
@@ -60,7 +77,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
         scopes: ["profile"],
       },
     });
-    const consent = await prisma.oAuthConsent.create({
+    const consent = await fixturePrisma.oAuthConsent.create({
       data: {
         clientId,
         scopes: ["profile"],
@@ -77,13 +94,13 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       };
       const signed = new URLSearchParams(body.oauth_query);
       const state = signed.get("state") ?? "";
-      for (const field of ["sig", "exp", "ba_iat", "ba_pl"]) {
+      for (const field of ["sig", "exp", "ba_iat", "ba_pl", "ba_param"]) {
         signed.delete(field);
       }
       const code = `continuation-${state}-${marker}`;
       const identifier = await hashOAuthClientSecretForDbStorage(code);
       verificationIdentifiers.push(identifier);
-      await prisma.verificationToken.create({
+      await fixturePrisma.verificationToken.create({
         data: {
           identifier,
           token: JSON.stringify({
@@ -103,12 +120,12 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
   });
 
   afterAll(async () => {
-    await prisma.verificationToken.deleteMany({
+    await fixturePrisma.verificationToken.deleteMany({
       where: { identifier: { in: verificationIdentifiers } },
     });
-    await prisma.oAuthClient.deleteMany({ where: { clientId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.$disconnect();
+    await fixturePrisma.oAuthClient.deleteMany({ where: { clientId } });
+    await fixturePrisma.user.deleteMany({ where: { id: userId } });
+    await fixturePrisma.$disconnect();
   });
 
   it.each([
@@ -136,34 +153,37 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
       path: "/api/auth/oauth2/continue",
       prompt: "consent",
     },
-  ])("真实 binder 为 $name continuation 绑定委托前 generation", async (entry) => {
-    const state = `${entry.name}-${marker}`;
-    const oauthQuery = await signedOAuthQuery(entry.prompt, state);
-    const request = new Request(`https://life.example${entry.path}`, {
-      body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
+  ])(
+    "真实 binder 为 $name continuation 绑定委托前 generation",
+    async (entry) => {
+      const state = `${entry.name}-${marker}`;
+      const oauthQuery = await signedOAuthQuery(entry.prompt, state);
+      const request = new Request(`https://life.example${entry.path}`, {
+        body: JSON.stringify({ ...entry.body, oauth_query: oauthQuery }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
 
-    const response = await authPostRoute(request);
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      url: expect.stringContaining("code="),
-    });
+      const response = await authPostRoute(request);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        url: expect.stringContaining("code="),
+      });
 
-    const code = `continuation-${state}-${marker}`;
-    const row = await prisma.verificationToken.findFirstOrThrow({
-      where: {
-        identifier: await hashOAuthClientSecretForDbStorage(code),
-      },
-      select: { token: true },
-    });
-    expect(JSON.parse(row.token)).toMatchObject({
-      referenceId: grantId,
-      type: "authorization_code",
-      userId,
-    });
-  });
+      const code = `continuation-${state}-${marker}`;
+      const row = await fixturePrisma.verificationToken.findFirstOrThrow({
+        where: {
+          identifier: await hashOAuthClientSecretForDbStorage(code),
+        },
+        select: { token: true },
+      });
+      expect(JSON.parse(row.token)).toMatchObject({
+        referenceId: grantId,
+        type: "authorization_code",
+        userId,
+      });
+    },
+  );
 
   it("login 前无 session 时绑定登录后 code user 的当前 generation", async () => {
     getSessionFromHeadersMock.mockResolvedValueOnce(null);
@@ -183,7 +203,7 @@ describe.sequential("OAuth authorization continuation grant binding", () => {
     const response = await authPostRoute(request);
     expect(response.status).toBe(200);
     const code = `continuation-${state}-${marker}`;
-    const row = await prisma.verificationToken.findFirstOrThrow({
+    const row = await fixturePrisma.verificationToken.findFirstOrThrow({
       where: {
         identifier: await hashOAuthClientSecretForDbStorage(code),
       },

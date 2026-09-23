@@ -13,7 +13,7 @@ export async function getAdminCommentsRoute(request: Request) {
   return withAdminApiRoute(
     request,
     "Failed to fetch moderation queue",
-    async () => {
+    async (admin) => {
       const parsed = parseRouteQuery(
         getRequestSearchParams(request),
         adminCommentsQuerySchema,
@@ -28,6 +28,7 @@ export async function getAdminCommentsRoute(request: Request) {
       const { query: parsedQuery, pagination } = parsed;
       const status = normalizeAdminCommentStatusFilter(parsedQuery.status);
       const result = await listAdminModerationComments({
+        adminUserId: admin.userId,
         pageSize: pagination.pageSize,
         skip: pagination.skip,
         status,

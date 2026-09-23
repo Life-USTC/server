@@ -1,11 +1,42 @@
+import { getUserSubscriptionKinds } from "@/features/subscriptions/server/subscription-kind";
 import type { Prisma } from "@/generated/prisma/client";
-import { getPrisma } from "@/lib/db/prisma";
+import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
+import { attachHomeworkCompletionRequired } from "../lib/homework-completion-state";
 
 const homeworkItemUserSelect = {
   select: { id: true, name: true, username: true, image: true },
 } as const;
 
-export function homeworkItemIncludeForViewer(viewerUserId?: string | null) {
+/**
+ * The section homework list projection deliberately contains only scalar
+ * state and the comment aggregate needed by list surfaces. Descriptions,
+ * section/course context, and editor relations belong to the detail read.
+ */
+export function homeworkItemSummarySelect() {
+  return {
+    id: true,
+    title: true,
+    isMajor: true,
+    requiresTeam: true,
+    publishedAt: true,
+    submissionStartAt: true,
+    submissionDueAt: true,
+    createdAt: true,
+    updatedAt: true,
+    deletedAt: true,
+    sectionId: true,
+    createdById: true,
+    updatedById: true,
+    deletedById: true,
+    _count: {
+      select: {
+        comments: { where: { status: { not: "deleted" } } },
+      },
+    },
+  } satisfies Prisma.HomeworkSelect;
+}
+
+export function homeworkItemInclude() {
   return {
     section: {
       include: {
@@ -22,19 +53,63 @@ export function homeworkItemIncludeForViewer(viewerUserId?: string | null) {
         comments: { where: { status: { not: "deleted" } } },
       },
     },
-    ...(viewerUserId
-      ? {
-          homeworkCompletions: {
-            where: { userId: viewerUserId },
-            select: { completedAt: true },
-          },
-        }
-      : {}),
   } satisfies Prisma.HomeworkInclude;
+}
+
+export async function withHomeworkCompletionsForViewer<
+  T extends { id: string },
+>(
+  homeworks: T[],
+  viewerUserId?: string | null,
+): Promise<Array<T & { homeworkCompletions: Array<{ completedAt: Date }> }>> {
+  if (!viewerUserId || homeworks.length === 0) {
+    return attachHomeworkCompletionsForViewer(homeworks, []);
+  }
+
+  const completions = await withUserDbContext(viewerUserId, (tx) =>
+    tx.homeworkCompletion.findMany({
+      where: {
+        userId: viewerUserId,
+        homeworkId: { in: homeworks.map((homework) => homework.id) },
+      },
+      select: { homeworkId: true, completedAt: true },
+    }),
+  );
+  return attachHomeworkCompletionsForViewer(homeworks, completions);
+}
+
+export function attachHomeworkCompletionsForViewer<T extends { id: string }>(
+  homeworks: T[],
+  completions: Array<{ homeworkId: string; completedAt: Date }>,
+): Array<T & { homeworkCompletions: Array<{ completedAt: Date }> }> {
+  const completionByHomeworkId = new Map(
+    completions.map(({ homeworkId, completedAt }) => [
+      homeworkId,
+      { completedAt },
+    ]),
+  );
+
+  return homeworks.map((homework) => {
+    const completion = completionByHomeworkId.get(homework.id);
+    return {
+      ...homework,
+      homeworkCompletions: completion ? [completion] : [],
+    };
+  });
+}
+
+export async function withHomeworkCompletionRequiredForViewer<
+  T extends { sectionId: number },
+>(homeworks: T[], viewerUserId?: string | null) {
+  const subscriptionKinds = viewerUserId
+    ? await getUserSubscriptionKinds(viewerUserId)
+    : new Map<number, string>();
+  return attachHomeworkCompletionRequired(homeworks, subscriptionKinds);
 }
 
 export function homeworkItemResponse<
   Homework extends {
+    completionRequired?: boolean;
     _count: { comments: number };
     homeworkCompletions?: Array<{ completedAt: Date | string | null }>;
   },
@@ -42,6 +117,7 @@ export function homeworkItemResponse<
   const { homeworkCompletions, _count, ...rest } = homework;
   return {
     ...rest,
+    completionRequired: homework.completionRequired !== false,
     completion: homeworkCompletions?.[0] ?? null,
     commentCount: _count.comments,
   };
@@ -54,9 +130,20 @@ export async function getHomeworkItemById(input: {
 }) {
   const homework = await getPrisma(input.locale).homework.findUnique({
     where: { id: input.homeworkId },
-    include: homeworkItemIncludeForViewer(input.userId),
+    include: homeworkItemInclude(),
   });
-  return homework ? homeworkItemResponse(homework) : null;
+  if (!homework) return null;
+
+  const [homeworkWithCompletion] = await withHomeworkCompletionsForViewer(
+    [homework],
+    input.userId,
+  );
+  const [homeworkWithRequirement] =
+    await withHomeworkCompletionRequiredForViewer(
+      [homeworkWithCompletion],
+      input.userId,
+    );
+  return homeworkItemResponse(homeworkWithRequirement);
 }
 
 export async function requireHomeworkItemById(

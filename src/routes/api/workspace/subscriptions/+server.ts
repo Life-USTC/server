@@ -1,0 +1,34 @@
+import {
+  deleteCalendarSubscriptionsRoute,
+  patchCalendarSubscriptionsRoute,
+} from "@/lib/api/routes/calendar-subscriptions";
+import { svelteRequestHandler } from "@/lib/api/svelte-route";
+import { observedApiRoute } from "@/lib/log/api-observability";
+
+/**
+ * Append section subscriptions.
+ * @body calendarSubscriptionAppendRequestSchema
+ * @response calendarSubscriptionAppendResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
+ */
+export const PATCH = svelteRequestHandler(
+  observedApiRoute(patchCalendarSubscriptionsRoute),
+);
+
+/**
+ * Remove section subscriptions.
+ * @body calendarSubscriptionRemoveRequestSchema
+ * @response calendarSubscriptionRemoveResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
+ */
+export const DELETE = svelteRequestHandler(
+  observedApiRoute(deleteCalendarSubscriptionsRoute),
+);

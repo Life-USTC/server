@@ -6,6 +6,7 @@ import {
   getVariableValues,
 } from "graphql";
 import type { AppLocale } from "@/i18n/config";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import type { RestFeature } from "@/lib/oauth/constants";
 import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
 import type { GraphqlPrincipal } from "./auth";
@@ -13,7 +14,10 @@ import { GRAPHQL_LIMITS } from "./constants";
 import type { GraphqlContext } from "./context";
 import { formatMaskedGraphqlError } from "./error-masking";
 import { createGraphqlLoaders } from "./loaders";
-import { recordGraphqlOperationObservation } from "./observability";
+import {
+  countInternalGraphqlErrors,
+  recordGraphqlOperationObservation,
+} from "./observability";
 import {
   analyzeGraphqlOperation,
   type GraphqlOperationAnalysis,
@@ -183,14 +187,14 @@ function headerValue(
   return typeof value === "string" ? value.slice(0, 512) : undefined;
 }
 
-function safeRequestHeaders(
+export function safeGraphqlRequestHeaders(
   requestInfo: RegisteredGraphqlOperationRequestInfo | undefined,
 ) {
   const headers = new Headers();
   for (const name of [
     "user-agent",
-    "x-forwarded-for",
-    "x-real-ip",
+    "cf-connecting-ip",
+    "cf-ray",
     "x-request-id",
   ]) {
     const value =
@@ -202,7 +206,7 @@ function safeRequestHeaders(
   return headers;
 }
 
-function safeRequestUrl(value: URL | string | undefined) {
+export function safeGraphqlRequestUrl(value: URL | string | undefined) {
   try {
     const url = new URL(value?.toString() ?? "http://mcp.local/api/mcp");
     return url.protocol === "http:" || url.protocol === "https:"
@@ -283,9 +287,10 @@ export async function runRegisteredGraphqlOperation(input: {
     );
   }
 
-  const startedAt = Date.now();
+  const startedAt = monotonicNowMs();
   let analysis = errorAnalysis(operation);
   let errorCount = 0;
+  let internalErrorCount = 0;
   const deadline = createDeadline(input.signal, GRAPHQL_LIMITS.timeoutMs);
 
   try {
@@ -309,9 +314,9 @@ export async function runRegisteredGraphqlOperation(input: {
       );
     }
 
-    const request = new Request(safeRequestUrl(input.requestInfo?.url), {
+    const request = new Request(safeGraphqlRequestUrl(input.requestInfo?.url), {
       method: "POST",
-      headers: safeRequestHeaders(input.requestInfo),
+      headers: safeGraphqlRequestHeaders(input.requestInfo),
       signal: deadline.signal,
     });
     const context: GraphqlContext = {
@@ -337,6 +342,7 @@ export async function runRegisteredGraphqlOperation(input: {
 
     const errors = result.errors?.map(formatMaskedGraphqlError);
     errorCount = errors?.length ?? 0;
+    internalErrorCount = countInternalGraphqlErrors(errors);
     return operationResult(operation, {
       data: result.data as Record<string, unknown> | null | undefined,
       errors,
@@ -362,14 +368,16 @@ export async function runRegisteredGraphqlOperation(input: {
     const formatted = formatMaskedGraphqlError(
       new GraphQLError(originalError.message, { originalError }),
     );
+    internalErrorCount = countInternalGraphqlErrors([formatted]);
     return operationResult(operation, { errors: [formatted] });
   } finally {
     deadline.cleanup();
     recordGraphqlOperationObservation({
       ...analysis,
       authMode: input.principal.kind,
-      durationMs: Date.now() - startedAt,
       errorCount,
+      internalErrorCount,
+      ioObservedDurationMs: elapsedMs(startedAt),
       requestId: input.requestInfo?.requestId,
     });
   }

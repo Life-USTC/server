@@ -12,16 +12,17 @@ export async function findExistingBusScheduleVersion(
     versionKey: string;
   },
 ) {
-  const [byKey, byChecksum] = await Promise.all([
-    prisma.busScheduleVersion.findUnique({
-      where: { key: versionKey },
-      select: { id: true, key: true, checksum: true },
-    }),
-    prisma.busScheduleVersion.findUnique({
-      where: { checksum },
-      select: { id: true, key: true, checksum: true },
-    }),
-  ]);
+  const byKey = await prisma.busScheduleVersion.findUnique({
+    where: { key: versionKey },
+    select: { id: true, key: true, checksum: true },
+  });
+  const byChecksum =
+    byKey?.checksum === checksum
+      ? byKey
+      : await prisma.busScheduleVersion.findUnique({
+          where: { checksum },
+          select: { id: true, key: true, checksum: true },
+        });
 
   if (byKey && byChecksum && byKey.id !== byChecksum.id) {
     throw new Error(

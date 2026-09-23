@@ -13,7 +13,7 @@
     "agent": "OAuth-authorized third-party client or MCP caller; inherits user permissions after authorization; does not inherit admin by default."
   },
   "terms": {
-    "sectionSubscription": "In-app follow relationship; not equivalent to official course enrollment.",
+    "sectionSubscription": "In-app section subscription; not equivalent to official course enrollment.",
     "homework": "Class-attached learning task; completion state is tracked per user independently.",
     "todo": "Personal user task; not attached to any class."
   },

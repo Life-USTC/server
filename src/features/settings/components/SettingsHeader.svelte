@@ -8,5 +8,4 @@ export let copy: SettingsCopy;
 <PageHeader
   title={copy.settings.title}
   description={copy.settings.description}
-  eyebrow={copy.settings.workspaceBadge}
 />

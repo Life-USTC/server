@@ -41,7 +41,7 @@ export async function createTodoAction(
 
   return createdJsonResponse(
     { id: todo.id },
-    `/api/todos/${encodeURIComponent(todo.id)}`,
+    `/api/workspace/todos/${encodeURIComponent(todo.id)}`,
   );
 }
 

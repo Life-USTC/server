@@ -1,7 +1,10 @@
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
+import { monotonicNowMs } from "@/lib/log/observability-clock";
 
 type ApiRequestObservabilityContext = {
+  completed: boolean;
   requestId: string;
+  /** Monotonic timestamp supplied by the request lifecycle. */
   startMs: number;
 };
 
@@ -12,25 +15,25 @@ const apiRequestObservabilityContexts = new WeakMap<
 
 export function setApiRequestObservabilityContext(
   request: Request,
-  context: ApiRequestObservabilityContext,
+  context: Omit<ApiRequestObservabilityContext, "completed">,
 ) {
-  apiRequestObservabilityContexts.set(request, context);
+  apiRequestObservabilityContexts.set(request, {
+    ...context,
+    completed: false,
+  });
 }
 
 function getRequestId(request: Request) {
   return (
     apiRequestObservabilityContexts.get(request)?.requestId ??
-    request.headers.get("x-request-id") ??
-    "unknown"
+    crypto.randomUUID()
   );
 }
 
 function getRequestStartMs(request: Request) {
   const contextStartMs = apiRequestObservabilityContexts.get(request)?.startMs;
-  if (contextStartMs) return contextStartMs;
-
-  const value = Number(request.headers.get("x-request-start-ms"));
-  return Number.isFinite(value) && value > 0 ? value : Date.now();
+  if (contextStartMs !== undefined) return contextStartMs;
+  return monotonicNowMs();
 }
 
 function inferAuthMode(request: Request) {
@@ -41,13 +44,39 @@ function inferAuthMode(request: Request) {
   return cookie.includes("better-auth.session_token") ? "cookie" : "anonymous";
 }
 
+export function getApiRequestObservabilityRequestId(request: Request) {
+  return apiRequestObservabilityContexts.get(request)?.requestId;
+}
+
+function getOrCreateApiRequestContext(request: Request) {
+  const existing = apiRequestObservabilityContexts.get(request);
+  if (existing) return existing;
+
+  const context: ApiRequestObservabilityContext = {
+    completed: false,
+    requestId: getRequestId(request),
+    startMs: getRequestStartMs(request),
+  };
+  apiRequestObservabilityContexts.set(request, context);
+  return context;
+}
+
 export function apiRequestContext(request: Request) {
   const url = new URL(request.url);
+  const context = getOrCreateApiRequestContext(request);
   return {
     authMode: inferAuthMode(request),
     method: request.method,
-    requestId: getRequestId(request),
+    requestId: context.requestId,
     route: normalizeApiRoutePath(url.pathname),
-    startMs: getRequestStartMs(request),
+    startMs: context.startMs,
   };
+}
+
+export function completeApiRequestContext(request: Request) {
+  const stored = getOrCreateApiRequestContext(request);
+  if (stored.completed) return undefined;
+
+  stored.completed = true;
+  return apiRequestContext(request);
 }

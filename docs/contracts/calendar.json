@@ -4,60 +4,73 @@
     "anon": "Can browse calendar information on public section detail pages.",
     "user": "Can browse the personal calendar view.",
     "admin": "Has no special calendar view separate from regular users.",
-    "agent": "Can read timeline information with the same semantics through OAuth REST and MCP."
+    "agent": "Can read the complete personal date-range calendar through REST, GraphQL and MCP with workspace.calendar:read. REST/GraphQL use pagination."
   },
   "rules": {
-    "views": "Provides selectable semester, month, and week views.",
+    "views": "Course-subscribed workspaces provide semester, month, and week views with subscribed activities overlaid. Activity-only workspaces provide day, week, and month views without requiring course subscriptions.",
     "retired-sections": "Current/public collection calendars, personal calendar views, feeds, and calendar event tools exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription relationships.",
     "mobile-agenda-first": "At mobile widths, the personal calendar presents the selected week as a vertically readable agenda with time, title, type, and available location context. Previous week, today, next week, and iCal actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable grid views.",
-    "week-starts-sunday": "The week view starts on Sunday.",
-    "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."
+    "week-starts-sunday": "Existing academic grids start on Sunday; activity calendars use Monday-start weeks.",
+    "subscription-badges": "Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as a localized top-right badge in desktop grids and mobile agendas. Regular subscriptions show no badge; course titles and public calendars are unchanged.",
+    "event-card-types": "Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity events.",
+    "teaching-assistant-homework": "Personal calendar views, event sources, and iCal feeds preserve actual completion records but exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed promptly."
   },
   "capabilities": {
     "personal-calendar-view": {
       "title": "Personal Calendar View",
       "auth": "user",
       "links": {
-        "models": ["Schedule", "Homework", "Exam", "Todo"]
+        "models": ["Schedule", "Homework", "Exam", "Todo", "YoungEvent"]
       },
       "web": {
-        "pages": ["/dashboard/calendar"]
+        "pages": ["/workspace/calendar"]
       },
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/api/workspace/calendar/events",
+            "returns": "PersonalCalendarEventPage"
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
-            "name": "list_my_calendar_events",
+            "name": "workspace_calendar_event_list",
             "returns": "{ events: CalendarEvent[] }",
             "notes": [
-              "Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.",
-              "Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.",
-              "The deprecated summary input returns the same compact events[] structure as default; full adds raw event fields without changing the collection type."
+              "Returns course, exam, homework, todo, and subscribed Young activity events unified by overlapping date range.",
+              "Each item has type, at, endsAt, and payload; young_event carries a public activity summary.",
+              "Date-only bounds include full Shanghai days, paired bounds or seven-day default, maximum 366 days."
             ]
           },
           {
-            "name": "get_my_7days_timeline",
-            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
+            "name": "workspace_calendar_timeline_get",
+            "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
+            "notes": [
+              "Requires workspace.calendar:read, matching workspace_calendar_event_list; workspace.overview:read is not required."
+            ]
           },
           {
-            "name": "list_my_schedules",
+            "name": "workspace_schedule_list",
             "returns": "{ schedules: ScheduleEntry[] }",
             "notes": [
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           },
           {
-            "name": "list_my_exams",
+            "name": "workspace_exam_list",
             "returns": "{ exams: ExamEntry[] }",
             "notes": [
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           }
         ]
       },
       "display": {
         "fields": [
-          "calendarEvents (schedules + exams + homeworks + todos)",
+          "calendarEvents (schedules + exams + homeworks + todos + subscribed young events)",
           "schedule.date, startTime, endTime",
           "exam.examDate, startTime, endTime, examMode, examRooms",
           "homework.submissionDueAt",
@@ -76,7 +89,7 @@
         "ui": ["Context Tabs"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": "stable",
       "display": {

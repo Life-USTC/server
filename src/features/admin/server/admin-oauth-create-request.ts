@@ -24,15 +24,37 @@ export async function parseAdminOAuthCreateRequest(
   const scopesResult = resolveOAuthClientScopes(
     form.getAll("scopes").map(String).filter(Boolean),
   );
-  if (!name) return { error: fail(400, { message: copy.clientNameRequired }) };
+  if (!name) {
+    return {
+      error: fail(400, {
+        message: copy.clientNameRequired,
+        variant: "destructive" as const,
+      }),
+    };
+  }
   if (!isSupportedOAuthClientAuthMethod(tokenEndpointAuthMethod)) {
-    return { error: fail(400, { message: copy.unsupportedAuthMethod }) };
+    return {
+      error: fail(400, {
+        message: copy.unsupportedAuthMethod,
+        variant: "destructive" as const,
+      }),
+    };
   }
   if (redirectUris.length === 0) {
-    return { error: fail(400, { message: copy.redirectUrisRequired }) };
+    return {
+      error: fail(400, {
+        message: copy.redirectUrisRequired,
+        variant: "destructive" as const,
+      }),
+    };
   }
   if ("error" in scopesResult) {
-    return { error: fail(400, { message: scopesResult.error }) };
+    return {
+      error: fail(400, {
+        message: scopesResult.error,
+        variant: "destructive" as const,
+      }),
+    };
   }
 
   return {

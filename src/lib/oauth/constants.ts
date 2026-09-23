@@ -25,9 +25,14 @@ export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";
 export const OAUTH_OFFLINE_ACCESS_SCOPE = "offline_access";
-export const OAUTH_REST_READ_SCOPE = "rest:read";
-export const OAUTH_REST_WRITE_SCOPE = "rest:write";
-export const MCP_TOOLS_SCOPE = "mcp:tools";
+export const OAUTH_PROVIDER_CLAIMS_SUPPORTED = [
+  "sub",
+  "name",
+  "preferred_username",
+  "picture",
+  "email",
+  "email_verified",
+] as const;
 export const DEFAULT_OAUTH_CLIENT_SCOPES = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
@@ -51,40 +56,77 @@ export function isSupportedOAuthClientAuthMethod(
 }
 
 export const REST_FEATURES = [
-  "me",
-  "todo",
-  "homework",
-  "subscription",
-  "comment",
-  "description",
-  "upload",
-  "dashboard",
-  "bus",
-  "course",
-  "section",
-  "teacher",
-  "schedule",
-  "exam",
+  "account.client-activity",
+  "account.profile",
+  "catalog.bus",
+  "catalog.course",
+  "catalog.exam",
+  "catalog.link",
+  "catalog.schedule",
+  "catalog.section",
+  "catalog.teacher",
+  "community.comment",
+  "community.description",
+  "community.section-homework",
+  "community.user",
+  "workspace.bus-preferences",
+  "workspace.calendar",
+  "workspace.calendar-feed",
+  "workspace.exam",
+  "workspace.homework",
+  "workspace.link-pin",
+  "workspace.overview",
+  "workspace.schedule",
+  "workspace.subscription",
+  "workspace.young-subscription",
+  "workspace.young-notification",
+  "workspace.todo",
+  "workspace.upload",
   "admin",
 ] as const;
 
 export type RestFeature = (typeof REST_FEATURES)[number];
 
+export const READ_ONLY_REST_FEATURES = [
+  "account.client-activity",
+  "workspace.calendar-feed",
+] as const satisfies readonly RestFeature[];
+
+export type ReadOnlyRestFeature = (typeof READ_ONLY_REST_FEATURES)[number];
+
+export function isReadOnlyRestFeature(
+  feature: RestFeature,
+): feature is ReadOnlyRestFeature {
+  return (READ_ONLY_REST_FEATURES as readonly RestFeature[]).includes(feature);
+}
+
 export const PUBLIC_REST_FEATURES = [
-  "me",
-  "todo",
-  "homework",
-  "subscription",
-  "comment",
-  "description",
-  "upload",
-  "dashboard",
-  "bus",
-  "course",
-  "section",
-  "teacher",
-  "schedule",
-  "exam",
+  "account.client-activity",
+  "account.profile",
+  "catalog.bus",
+  "catalog.course",
+  "catalog.exam",
+  "catalog.link",
+  "catalog.schedule",
+  "catalog.section",
+  "catalog.teacher",
+  "community.comment",
+  "community.description",
+  "community.section-homework",
+  "community.user",
+  "workspace.bus-preferences",
+  "workspace.calendar",
+  "workspace.calendar-feed",
+  "workspace.exam",
+  "workspace.homework",
+  "workspace.link-pin",
+  "workspace.overview",
+  "workspace.schedule",
+  "workspace.subscription",
+  "workspace.young-subscription",
+  "workspace.young-notification",
+  "workspace.todo",
+  "workspace.upload",
 ] as const satisfies readonly RestFeature[];
 
 export type PublicRestFeature = (typeof PUBLIC_REST_FEATURES)[number];
@@ -97,26 +139,6 @@ export function restWriteScope(feature: RestFeature) {
   return `${feature}:write` as const;
 }
 
-export const MCP_FEATURES = [
-  "profile",
-  "todo",
-  "homework",
-  "subscription",
-  "calendar",
-  "comment",
-  "description",
-  "upload",
-  "dashboard",
-  "bus",
-  "course",
-  "section",
-  "teacher",
-  "schedule",
-  "exam",
-] as const;
+export const MCP_FEATURES = PUBLIC_REST_FEATURES;
 
 export type McpFeature = (typeof MCP_FEATURES)[number];
-
-export function mcpScope(feature: McpFeature) {
-  return `mcp:${feature}` as const;
-}

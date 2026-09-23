@@ -29,7 +29,6 @@ export const DEV_SEED = {
   previousSemesterScheduleDates: s.previousSemester.scheduleDates,
   course: {
     jwId: s.courses[0].jwId,
-    legacyJwId: s.courses[0].legacyJwId,
     code: s.courses[0].code,
     nameCn: s.courses[0].nameCn,
     nameEn: s.courses[0].nameEn,
@@ -65,6 +64,7 @@ export const DEV_SEED = {
     code: previousSection.code,
   },
   teacher: {
+    jwId: s.teachers[0].jwId,
     code: s.teachers[0].code,
     nameCn: s.teachers[0].nameCn,
     nameEn: s.teachers[0].nameEn,
@@ -104,9 +104,9 @@ export const DEV_SEED = {
     overdueTitle: s.todos.overdueTitle,
     completedTitle: s.todos.completedTitle,
   },
-  dashboardLinks: {
-    pinnedSlugs: s.dashboardLinks.pinnedSlugs,
-    overviewLimit: s.dashboardLinks.overviewLimit,
+  catalogLinks: {
+    pinnedSlugs: s.catalogLinks.pinnedSlugs,
+    overviewLimit: s.catalogLinks.overviewLimit,
   },
   bus: {
     versionKey: s.bus.versionKey,
@@ -121,6 +121,22 @@ export const DEV_SEED = {
     recommendedDeparture: s.bus.recommendedDeparture,
   },
   suspensions: { reasonKeyword: s.suspensions.reasonKeyword },
+  youngEvent: {
+    youngId: s.youngEvent.youngId,
+    name: s.youngEvent.name,
+    category: s.youngEvent.category,
+    department: s.youngEvent.department,
+    organizer: s.youngEvent.organizer,
+    location: s.youngEvent.location,
+    imageUrl: s.youngEvent.imageUrl,
+    activityLevel: s.youngEvent.activityLevel,
+    module: s.youngEvent.module,
+    form: s.youngEvent.form,
+    sponsor: s.youngEvent.sponsor,
+    contactName: s.youngEvent.contactName,
+    contactTel: s.youngEvent.contactTel,
+    placeInfo: s.youngEvent.placeInfo,
+  },
 } as const;
 
 export const DEV_SCENARIO_MARKER = "[DEV-SCENARIO]";

@@ -9,8 +9,38 @@ export const teacherIdPathParamsSchema = z.object({
   id: integerStringSchema,
 });
 
+export const communityUserIdentifierPathParamsSchema = z.object({
+  identifier: z.string().trim().min(1),
+});
+
 export const jwIdPathParamsSchema = z.object({
   jwId: integerStringSchema,
+});
+
+export const youngEventYoungIdPathParamsSchema = z.object({
+  youngId: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Upstream young.ustc.edu.cn event identifier."),
+});
+
+export const youngEventImagePathParamsSchema = z.object({
+  path: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "Upstream young.ustc.edu.cn image path, e.g. `group1/M00/00/00/example.png`. May contain slashes.",
+    ),
+});
+
+export const youngOrganizerIdPathParamsSchema = z.object({
+  organizerId: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Stable local Young organizer identifier."),
 });
 
 export const userCalendarPathParamsSchema = z.object({
@@ -21,4 +51,12 @@ export const userCalendarPathParamsSchema = z.object({
     .describe(
       "User ID. Token-bearing feed URLs may also use the userId:token path segment form.",
     ),
+});
+
+export const calendarFeedCredentialPathParamsSchema = z.object({
+  credential: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Opaque user-and-token calendar feed credential."),
 });

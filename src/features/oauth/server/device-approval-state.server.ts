@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { normalizeUserCode } from "@/lib/oauth/device-code";
 import { getDeviceApprovalFailureReason } from "./device-approval-validation.server";
 import { requireDeviceUserId } from "./device-auth.server";

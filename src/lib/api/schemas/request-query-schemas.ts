@@ -8,28 +8,38 @@ export {
   catalogLocaleQuerySchema,
   coursesQuerySchema,
   schedulesQuerySchema,
+  sectionDetailQuerySchema,
   sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   teachersQuerySchema,
 } from "./catalog-query-schemas";
 export {
+  commentRepliesQuerySchema,
   commentsQuerySchema,
   descriptionsQuerySchema,
+  homeworkAuditQuerySchema,
   homeworksQuerySchema,
   sectionsCalendarQuerySchema,
+  subscribedHomeworksQuerySchema,
   uploadsQuerySchema,
   userCalendarQuerySchema,
 } from "./content-query-schemas";
 export {
+  accountClientActivityQuerySchema,
   busNextDeparturesQuerySchema,
   busPreferenceRequestSchema,
   busQuerySchema,
   busRouteSearchQuerySchema,
+  catalogLinkVisitQuerySchema,
   compactOverviewQuerySchema,
-  dashboardLinkVisitQuerySchema,
   publicUserProfileQuerySchema,
   semestersQuerySchema,
   subscribedSchedulesQuerySchema,
   todosQuerySchema,
   uploadObjectQuerySchema,
 } from "./misc-query-schemas";
+export { weatherQuerySchema } from "./weather-schemas";
+export {
+  youngEventsQuerySchema,
+  youngOrganizersQuerySchema,
+} from "./young-event-schemas";

@@ -1,16 +1,25 @@
 <script lang="ts">
 import { page } from "$app/stores";
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import AppShell from "$lib/components/shell/AppShell.svelte";
+import { Toaster } from "$lib/components/ui/sonner";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
 
 export let data: LayoutData;
 
 $: socialMetadata = $page.data.socialMetadata;
+$: documentTitle = socialMetadata?.title ?? "Life@USTC";
 </script>
 
 <svelte:head>
-  <title>Life@USTC</title>
+  <title>{documentTitle}</title>
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="192x192"
+    href={appIconUrl}
+  />
   <link rel="canonical" href={socialMetadata.canonicalUrl} />
   <meta name="description" content={socialMetadata.description} />
   <meta property="og:title" content={socialMetadata.title} />
@@ -38,3 +47,12 @@ $: socialMetadata = $page.data.socialMetadata;
 <AppShell {data}>
   <slot />
 </AppShell>
+
+<Toaster
+  mobileOffset={{
+    bottom: "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)",
+    left: "1rem",
+    right: "1rem",
+  }}
+  position="bottom-right"
+/>

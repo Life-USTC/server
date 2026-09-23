@@ -6,6 +6,45 @@ import {
 import { sectionPageScheduleSelect } from "@/features/section-detail/server/section-page-schedule-select";
 import type { Prisma } from "@/generated/prisma/client";
 
+export const sectionPageTeachersSelect = {
+  select: entityNameSelect,
+} satisfies Prisma.Section$teachersArgs;
+
+export const sectionPageTeachersWithDepartmentSelect = {
+  select: {
+    ...entityNameSelect,
+    department: {
+      select: localizedNameSelect,
+    },
+  },
+} satisfies Prisma.Section$teachersArgs;
+
+export const SECTION_RELATED_PREVIEW_LIMIT = 20;
+
+export const sectionPageRelatedSectionSelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  semesterId: true,
+  semester: { select: { endDate: true, nameCn: true, startDate: true } },
+  teachers: {
+    select: {
+      id: true,
+      ...localizedNameSelect,
+    },
+  },
+} satisfies Prisma.SectionSelect;
+
+export const sectionPageDescriptionSelect = {
+  id: true,
+  content: true,
+  updatedAt: true,
+  lastEditedAt: true,
+  lastEditedBy: {
+    select: { id: true, name: true, image: true, username: true },
+  },
+} satisfies Prisma.DescriptionSelect;
+
 export const sectionPageSelect = {
   id: true,
   jwId: true,
@@ -25,7 +64,6 @@ export const sectionPageSelect = {
   periodsPerWeek: true,
   stdCount: true,
   limitCount: true,
-  dateTimePlaceText: true,
   scheduleRemark: true,
   remark: true,
   courseId: true,
@@ -53,17 +91,7 @@ export const sectionPageSelect = {
   roomType: {
     select: localizedNameSelect,
   },
-  description: {
-    select: { content: true, updatedAt: true, lastEditedAt: true },
-  },
-  teachers: {
-    select: {
-      ...entityNameSelect,
-      department: {
-        select: localizedNameSelect,
-      },
-    },
-  },
+  teachers: sectionPageTeachersWithDepartmentSelect,
   adminClasses: {
     select: {
       ...entityNameSelect,

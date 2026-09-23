@@ -18,7 +18,7 @@ export type BusImportWritePrisma = {
     updateMany(args: unknown): Promise<unknown>;
   };
   busTrip: {
-    create(args: unknown): Promise<unknown>;
+    createMany(args: unknown): Promise<unknown>;
     deleteMany(args: unknown): Promise<unknown>;
   };
 };

@@ -12,6 +12,7 @@ const USTC_PROVIDER = {
   "@type": "CollegeOrUniversity",
   name: "University of Science and Technology of China",
 } as const;
+const STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH = 500;
 
 function breadcrumbList({
   canonicalUrl,
@@ -64,7 +65,12 @@ function addDescription(
   description: string | null | undefined,
 ) {
   const value = description?.trim();
-  return value ? { ...entity, description: value } : entity;
+  if (!value) return entity;
+  const compactDescription =
+    value.length > STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH
+      ? `${value.slice(0, STRUCTURED_DATA_DESCRIPTION_MAX_LENGTH - 1)}…`
+      : value;
+  return { ...entity, description: compactDescription };
 }
 
 export function buildCourseStructuredData({
@@ -98,7 +104,7 @@ export function buildCourseStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/courses",
+      listPath: "/catalog/courses",
     }),
   );
 }
@@ -121,10 +127,10 @@ export function buildSectionStructuredData({
   const instructor = instructors
     .filter((teacher) => teacher.name)
     .map((teacher) => ({
-      "@id": `${new URL(`/teachers/${teacher.id}`, canonicalUrl).href}#person`,
+      "@id": `${new URL(`/catalog/teachers/${teacher.id}`, canonicalUrl).href}#person`,
       "@type": "Person",
       name: teacher.name,
-      url: new URL(`/teachers/${teacher.id}`, canonicalUrl).href,
+      url: new URL(`/catalog/teachers/${teacher.id}`, canonicalUrl).href,
     }));
   const entity = addDescription(
     {
@@ -132,10 +138,10 @@ export function buildSectionStructuredData({
       "@type": "CourseInstance",
       ...(instructor.length > 0 ? { instructor } : {}),
       isPartOf: {
-        "@id": `${new URL(`/courses/${course.jwId}`, canonicalUrl).href}#course`,
+        "@id": `${new URL(`/catalog/courses/${course.jwId}`, canonicalUrl).href}#course`,
         "@type": "Course",
         name: course.name,
-        url: new URL(`/courses/${course.jwId}`, canonicalUrl).href,
+        url: new URL(`/catalog/courses/${course.jwId}`, canonicalUrl).href,
       },
       name,
       url: canonicalUrl,
@@ -149,7 +155,7 @@ export function buildSectionStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/sections",
+      listPath: "/catalog/sections",
     }),
   );
 }
@@ -174,7 +180,7 @@ export function buildTeacherStructuredData({
       canonicalUrl,
       entityName: name,
       labels,
-      listPath: "/teachers",
+      listPath: "/catalog/teachers",
     }),
   );
 }

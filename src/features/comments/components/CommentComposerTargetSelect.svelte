@@ -14,7 +14,10 @@ export let viewer: ViewerContext;
 </script>
 
 {#if postTargetOptions.length > 1}
-  <Field.Field class="max-w-sm">
+  <Field.Field
+    class="max-w-sm"
+    data-disabled={!viewer.isAuthenticated || viewer.isSuspended ? "true" : undefined}
+  >
     <Field.Label for="comment-composer-target">
       {commentCopy.commentTargetPlaceholder}
     </Field.Label>

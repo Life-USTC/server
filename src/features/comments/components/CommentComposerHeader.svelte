@@ -1,6 +1,5 @@
 <script lang="ts">
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Card from "$lib/components/ui/card/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
@@ -19,9 +18,9 @@ $: controlsDisabled = !viewer.isAuthenticated || viewer.isSuspended;
 $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
 </script>
 
-<Card.Header class="min-[420px]:grid-cols-[1fr_auto]">
-  <Card.Title>{commentCopy.postAction}</Card.Title>
-  <Card.Description>{commentCopy.subtitle}</Card.Description>
+<div class="grid auto-rows-min items-start gap-1 min-[420px]:grid-cols-[1fr_auto]">
+  <h3 class="text-base font-medium leading-snug">{commentCopy.postAction}</h3>
+  <p class="text-muted-foreground text-sm">{commentCopy.subtitle}</p>
   <div
     class="mt-2 w-full min-[420px]:col-start-2 min-[420px]:row-span-2 min-[420px]:row-start-1 min-[420px]:mt-0 min-[420px]:w-60 min-[420px]:justify-self-end"
   >
@@ -60,4 +59,4 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
       </Field.Field>
     </Field.Group>
   </div>
-</Card.Header>
+</div>

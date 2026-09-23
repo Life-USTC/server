@@ -5,25 +5,20 @@ import type {
 } from "@/lib/auth/oauth-profile-types";
 import {
   fallbackEmail,
-  firstBooleanValue,
   firstProfileName,
   firstStringValue,
   profileEmail,
   profileImage,
   profileName,
 } from "@/lib/auth/oauth-profile-values";
+import { isPublishableUserEmail } from "@/lib/auth/oauth-user-email";
+import { stageSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
 
 export function mapOidcProfileToUser(profile: OAuthProfile) {
-  const accountId = firstStringValue(profile, ["sub", "id", "user_id"]);
-  if (!accountId) {
-    throw new Error("OIDC profile is missing a stable account identifier");
-  }
+  const accountId = getOidcAccountSubject(profile);
 
-  const email = profileEmail(profile.email);
-  const emailVerified = firstBooleanValue(profile, [
-    "email_verified",
-    "emailVerified",
-  ]);
+  // USTC passport does not expose a real mailbox; keep a local unique email for
+  // Better Auth and ignore passport fake_email placeholders.
   const displayName =
     firstProfileName(profile, [
       "name",
@@ -32,36 +27,73 @@ export function mapOidcProfileToUser(profile: OAuthProfile) {
       "email",
     ]) ?? `USTC User ${accountId}`;
 
-  return {
-    id: accountId,
-    email: email ?? fallbackEmail("oidc", accountId),
+  const image = profileImage(profile.picture);
+  stageSocialVerifiedEmail({
+    provider: "oidc",
+    accountId,
+    email: null,
+    emailVerified: false,
     name: displayName,
-    image: profileImage(profile.picture),
-    emailVerified: Boolean(email && emailVerified),
+    image: image ?? null,
+  });
+
+  return {
+    email: fallbackEmail("oidc", accountId),
+    name: displayName,
+    image,
+    emailVerified: false,
   };
+}
+
+export function getOidcAccountSubject(profile: OAuthProfile) {
+  const accountId = firstStringValue(profile, ["sub", "id", "user_id"]);
+  if (!accountId) {
+    throw new Error("OIDC profile is missing a stable account identifier");
+  }
+  return accountId;
 }
 
 export function mapGithubProfileToUser(profile: GithubProfile) {
   const email = profileEmail(profile.email);
+  stageSocialVerifiedEmail({
+    provider: "github",
+    accountId: String(profile.id),
+    email: isPublishableUserEmail(email) ? email : null,
+    // GitHub user:email returns account mailboxes; treat as verified for
+    // OAuth client publication once stored in VerifiedEmail.
+    emailVerified: isPublishableUserEmail(email),
+    name: profileName(profile.name ?? profile.login) || null,
+    image: profileImage(profile.avatar_url) ?? null,
+  });
+
   return {
     email: email ?? fallbackEmail("github", profile.id),
     name: profileName(profile.name ?? profile.login),
     image: profileImage(profile.avatar_url),
-    // GitHub may return unverified or hidden emails; do not mark
-    // fallback/local emails as verified.
     emailVerified: false,
   };
 }
 
 export function mapGoogleProfileToUser(profile: GoogleProfile) {
   const email = profileEmail(profile.email);
+  const emailVerified =
+    email !== null && typeof profile.email_verified === "boolean"
+      ? profile.email_verified
+      : false;
+
+  stageSocialVerifiedEmail({
+    provider: "google",
+    accountId: profile.sub,
+    email: isPublishableUserEmail(email) && emailVerified ? email : null,
+    emailVerified,
+    name: profileName(profile.name) || null,
+    image: profileImage(profile.picture) ?? null,
+  });
+
   return {
     email: email ?? fallbackEmail("google", profile.sub),
     name: profileName(profile.name),
     image: profileImage(profile.picture),
-    emailVerified:
-      email !== null && typeof profile.email_verified === "boolean"
-        ? profile.email_verified
-        : false,
+    emailVerified,
   };
 }

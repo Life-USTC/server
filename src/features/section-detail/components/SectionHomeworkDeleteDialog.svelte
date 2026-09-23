@@ -1,6 +1,6 @@
 <script lang="ts">
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type HomeworkTarget = {
   title: string;
@@ -19,6 +19,19 @@ export let homeworkCopy: {
 export let onCancel: () => void;
 export let onConfirm: () => void | Promise<void>;
 export let target: HomeworkTarget;
+
+let pending = false;
+
+async function confirmDelete(event: MouseEvent) {
+  event.preventDefault();
+  if (pending) return;
+  pending = true;
+  try {
+    await onConfirm();
+  } finally {
+    pending = false;
+  }
+}
 </script>
 
 <AlertDialog.Root
@@ -37,16 +50,20 @@ export let target: HomeworkTarget;
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer>
-      <AlertDialog.Cancel variant="secondary" type="button">
+      <AlertDialog.Cancel disabled={pending} variant="secondary" type="button">
         {homeworkCopy.cancel}
       </AlertDialog.Cancel>
-      <Button
+      <AlertDialog.Action
+        disabled={pending}
         type="button"
         variant="destructive"
-        onclick={onConfirm}
+        onclick={confirmDelete}
       >
+        {#if pending}
+          <Spinner data-icon="inline-start" />
+        {/if}
         {homeworkCopy.deleteAction}
-      </Button>
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

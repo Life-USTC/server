@@ -1,8 +1,8 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import AdminBusDialogs from "@/features/admin/components/AdminBusDialogs.svelte";
 import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
-import AdminBusStatusAlert from "@/features/admin/components/AdminBusStatusAlert.svelte";
-import AdminBusSummaryStats from "@/features/admin/components/AdminBusSummaryStats.svelte";
+import AdminBusStatusAlerts from "@/features/admin/components/AdminBusStatusAlerts.svelte";
 import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminBusControllerDefaultState } from "@/features/admin/lib/admin-bus-controller-default-state";
@@ -21,15 +21,16 @@ type PageData = {
     adminBus: AdminBusCopy;
   };
   locale: string;
-  summary: {
-    active?: string | null;
-    campuses: number;
-    routes: number;
-    versions: number;
-  };
   versions: AdminBusVersion[];
 };
-type ActionData = Record<string, unknown> | null | undefined;
+
+type ActionData =
+  | {
+      message?: string;
+      variant?: "destructive" | "default";
+    }
+  | null
+  | undefined;
 
 export let data: PageData;
 export let form: ActionData;
@@ -71,11 +72,24 @@ function isPending(actionKey: string) {
   return pendingAction === actionKey;
 }
 
-const enhancedAction = createPendingEnhancedAction({
+const baseEnhancedAction = createPendingEnhancedAction({
   setPendingAction: (value) => {
     pendingAction = value;
   },
 });
+
+function enhancedAction(actionKey: string, onSuccess?: () => void) {
+  return baseEnhancedAction(actionKey, () => {
+    onSuccess?.();
+    toast.success(
+      actionKey === "import"
+        ? copy.importSuccess
+        : actionKey.startsWith("activate-")
+          ? copy.activated
+          : copy.deleted,
+    );
+  });
+}
 </script>
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
@@ -90,10 +104,7 @@ const enhancedAction = createPendingEnhancedAction({
     />
   {/snippet}
   {#snippet feedback()}
-    <AdminBusStatusAlert {form} />
-  {/snippet}
-  {#snippet summary()}
-    <AdminBusSummaryStats {copy} summary={data.summary} />
+    <AdminBusStatusAlerts {form} />
   {/snippet}
   <AdminBusVersions
     {copy}

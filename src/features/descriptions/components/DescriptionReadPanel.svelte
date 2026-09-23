@@ -1,7 +1,6 @@
 <script lang="ts">
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import DescriptionHistoryList from "./DescriptionHistoryList.svelte";
 import type {
@@ -18,6 +17,8 @@ export let description: DescriptionContent;
 export let formatDate: (value: string | null | undefined) => string;
 export let history: DescriptionHistoryItem[];
 
+$: showHistoryTabs = history.length > 0;
+
 function handlePanelTabChange(value: string) {
   if (value === "description" || value === "history") {
     activePanelTab = value;
@@ -25,29 +26,27 @@ function handlePanelTabChange(value: string) {
 }
 </script>
 
-<Tabs.Root value={activePanelTab} onValueChange={handlePanelTabChange}>
-  <Tabs.List aria-label={copy.title}>
-    <Tabs.Trigger value="description">
-      {copy.title}
-    </Tabs.Trigger>
-    <Tabs.Trigger value="history">
-      {formatDescriptionCopy(copy.historyTitle, { count: String(history.length) })}
-    </Tabs.Trigger>
-  </Tabs.List>
+{#if showHistoryTabs}
+  <Tabs.Root value={activePanelTab} onValueChange={handlePanelTabChange}>
+    <Tabs.List class="w-full" aria-label={copy.title}>
+      <Tabs.Trigger class="flex-1" value="description">
+        {copy.title}
+      </Tabs.Trigger>
+      <Tabs.Trigger class="flex-1" value="history">
+        {formatDescriptionCopy(copy.historyTitle, { count: String(history.length) })}
+      </Tabs.Trigger>
+    </Tabs.List>
 
-  <Tabs.Content value="history">
-    <DescriptionHistoryList {copy} {formatDate} {history} />
-  </Tabs.Content>
+    <Tabs.Content value="history">
+      <DescriptionHistoryList {copy} {formatDate} {history} />
+    </Tabs.Content>
 
-  <Tabs.Content value="description">
-    {#if description.content}
-      <RenderedMarkdown html={description.renderedHtml} />
-    {:else}
-      <Empty.Root class="min-h-24">
-        <Empty.Header>
-          <Empty.Title>{copy.empty}</Empty.Title>
-        </Empty.Header>
-      </Empty.Root>
-    {/if}
-  </Tabs.Content>
-</Tabs.Root>
+    <Tabs.Content value="description">
+      {#if description.content}
+        <RenderedMarkdown html={description.renderedHtml} />
+      {/if}
+    </Tabs.Content>
+  </Tabs.Root>
+{:else if description.content}
+  <RenderedMarkdown html={description.renderedHtml} />
+{/if}

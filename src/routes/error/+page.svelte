@@ -8,12 +8,16 @@ import * as Card from "$lib/components/ui/card/index.js";
 $: copy = getOAuthCopy(($page.data.locale ?? "zh-cn") as AppLocale);
 $: errorCode = $page.url.searchParams.get("error");
 $: message =
-  errorCode === "consent_failed" ? copy.errorConsentFailed : copy.errorGeneric;
+  errorCode === "consent_failed"
+    ? copy.errorConsentFailed
+    : errorCode === "recent_auth_required"
+      ? copy.errorRecentAuthRequired
+      : copy.errorGeneric;
 </script>
 
 <svelte:head><title>{copy.errorPageTitle} - Life@USTC</title></svelte:head>
 
-<main class="grid min-h-[calc(100vh-8rem)] place-items-center px-4">
+<div class="grid min-h-[calc(100vh-8rem)] place-items-center px-4">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
       <Card.Title>
@@ -28,4 +32,4 @@ $: message =
       <Button href="/" variant="outline">{copy.returnHome}</Button>
     </Card.Content>
   </Card.Root>
-</main>
+</div>

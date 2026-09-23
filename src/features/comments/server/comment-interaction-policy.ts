@@ -2,6 +2,7 @@ import type {
   CommentStatus,
   CommentVisibility,
 } from "@/generated/prisma/client";
+import { isLoggedInOnlyCommentVisibleToViewer } from "./comment-visibility-policy";
 
 type CommentInteractionComment = {
   status: CommentStatus | string;
@@ -19,7 +20,7 @@ export function canViewerWriteCommentInteraction(
 ) {
   if (!viewer.isAuthenticated || viewer.isSuspended) return false;
   if (comment.status !== "active") return false;
-  if (comment.visibility === "logged_in_only" && !viewer.isAuthenticated) {
+  if (!isLoggedInOnlyCommentVisibleToViewer(comment.visibility, viewer)) {
     return false;
   }
   return true;

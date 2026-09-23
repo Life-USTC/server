@@ -3,6 +3,7 @@ import {
   suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
+import { identifyObservedUser } from "@/lib/db/observability-context";
 import {
   getJwksUrlForOAuthVerification,
   getOAuthRestAudienceUrls,
@@ -10,10 +11,10 @@ import {
 } from "@/lib/mcp/urls";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import type { RestFeature } from "@/lib/oauth/constants";
+import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 import {
   type FeatureScopeRequirement,
   hasRequiredFeatureScope,
-  isFeatureScope,
 } from "@/lib/oauth/scope-registry";
 import {
   checkUserMutationRateLimit,
@@ -26,36 +27,46 @@ import { hasRequestAuthSignal } from "./request-auth-signal";
 
 export type RestBearerScopeRequirement = FeatureScopeRequirement;
 
+export type ApiPrincipal =
+  | {
+      kind: "session";
+      userId: string;
+      sessionId?: string;
+    }
+  | {
+      kind: "oauth";
+      userId: string;
+      clientId: string;
+      grantId?: string;
+      sessionId?: string;
+      scopes: Set<string>;
+    };
+
 export type RestAuthOptions = {
-  bearerScope?: RestBearerScopeRequirement;
+  bearerScope: RestBearerScopeRequirement;
   rateLimit?: {
     action?: string;
     tier?: UserMutationRateLimitTier;
   };
 };
 
-function hasAnyRestScope(scopes: Set<string>): boolean {
-  return [...scopes].some(isFeatureScope);
-}
-
 async function getLocalJwks() {
   const { authApi } = await import("@/lib/auth/core");
   return authApi.getJwks({});
 }
 
-/**
- * Resolve the authenticated user ID from a request.
- *
- * Checks in order:
- * 1. Bearer token in the `Authorization` header (OAuth access token)
- * 2. Session cookie via Better Auth
- */
-export async function resolveApiUserId(
+/** Resolve either a scoped OAuth principal or a Better Auth session. */
+export async function resolveApiPrincipal(
   request: Request,
-  options: RestAuthOptions = {},
-): Promise<string | null> {
+  options: RestAuthOptions,
+): Promise<ApiPrincipal | null> {
   const bearer = parseBearerAuthorizationHeader(request.headers);
   if (bearer) {
+    // A bearer token is only meaningful when the route declares the exact
+    // feature/action it accepts. Optional session-only routes must not turn an
+    // unrelated OAuth scope into ambient access to private workspace data.
+    const requirement = options.bearerScope;
+
     const token = bearer.token ?? "";
     if (!token) return null;
     try {
@@ -78,13 +89,24 @@ export async function resolveApiUserId(
         return null;
       }
 
-      const requirement = options.bearerScope;
-      if (requirement) {
-        if (!hasRequiredFeatureScope(verified.scope, requirement)) return null;
-      } else {
-        if (!hasAnyRestScope(verified.scope)) return null;
-      }
-      return verified.sub;
+      if (!hasRequiredFeatureScope(verified.scope, requirement)) return null;
+      registerOAuthRequestUsage(request, {
+        userId: verified.sub,
+        clientId: verified.clientId,
+        grantId: verified.grantId,
+        channel: "rest",
+        feature: requirement.feature,
+        action: requirement.action,
+      });
+      identifyObservedUser(verified.sub, "oauth");
+      return {
+        kind: "oauth",
+        userId: verified.sub,
+        clientId: verified.clientId,
+        ...(verified.grantId ? { grantId: verified.grantId } : {}),
+        ...(verified.sessionId ? { sessionId: verified.sessionId } : {}),
+        scopes: verified.scope,
+      };
     } catch {
       return null;
     }
@@ -94,7 +116,20 @@ export async function resolveApiUserId(
 
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
-  return session?.user?.id ?? null;
+  if (!session?.user?.id) return null;
+  identifyObservedUser(session.user.id, "session");
+  return {
+    kind: "session",
+    userId: session.user.id,
+    ...(session.session?.id ? { sessionId: session.session.id } : {}),
+  };
+}
+
+export async function resolveScopedApiUserId(
+  request: Request,
+  bearerScope: RestBearerScopeRequirement,
+): Promise<string | null> {
+  return (await resolveApiPrincipal(request, { bearerScope }))?.userId ?? null;
 }
 
 export async function resolveSessionUserId(
@@ -112,10 +147,20 @@ export async function resolveSessionUserId(
 
 export async function requireAuth(
   request: Request,
-  options: RestAuthOptions = {},
+  options: RestAuthOptions,
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request, options);
-  if (!userId) return unauthorized();
+  const principal = await requireAuthPrincipal(request, options);
+  if (principal instanceof Response) return principal;
+  return { userId: principal.userId };
+}
+
+export async function requireAuthPrincipal(
+  request: Request,
+  options: RestAuthOptions,
+): Promise<ApiPrincipal | Response> {
+  const principal = await resolveApiPrincipal(request, options);
+  if (!principal) return unauthorized();
+  const { userId } = principal;
 
   const scope = options.bearerScope;
   if (scope?.action === "write") {
@@ -133,23 +178,35 @@ export async function requireAuth(
     }
   }
 
-  return { userId };
+  return principal;
 }
 
 /**
  * Require write access for a REST feature.
  *
- * Currently all callers are upload routes, so it defaults to the upload
+ * Currently all callers are upload routes, so it defaults to the workspace
+ * upload
  * feature. Callers may override the feature when needed.
  */
 export async function requireWriteAuth(
   request: Request,
-  feature: RestFeature = "upload",
+  feature: RestFeature = "workspace.upload",
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request, {
+  const principal = await requireWriteAuthPrincipal(request, feature);
+  return principal instanceof Response
+    ? principal
+    : { userId: principal.userId };
+}
+
+export async function requireWriteAuthPrincipal(
+  request: Request,
+  feature: RestFeature = "workspace.upload",
+): Promise<ApiPrincipal | Response> {
+  const principal = await resolveApiPrincipal(request, {
     bearerScope: { feature, action: "write" },
   });
-  if (!userId) return unauthorized();
+  if (!principal) return unauthorized();
+  const { userId } = principal;
   const { getViewerAuthDataForUserId } = await import("./viewer-context");
   const data = await getViewerAuthDataForUserId(userId);
   if (!data) return unauthorized();
@@ -166,5 +223,5 @@ export async function requireWriteAuth(
       USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
     );
   }
-  return { userId };
+  return principal;
 }

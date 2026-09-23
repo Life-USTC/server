@@ -2,7 +2,6 @@
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentComposerActions from "./CommentComposerActions.svelte";
@@ -65,7 +64,7 @@ let composerDisabled = $derived(!viewer.isAuthenticated || viewer.isSuspended);
 let composerDisabledAttr = $derived(composerDisabled ? "true" : undefined);
 </script>
 
-<Card.Root>
+<div class="grid gap-4">
   <CommentComposerHeader
     {commentCopy}
     bind:isAnonymous
@@ -73,59 +72,57 @@ let composerDisabledAttr = $derived(composerDisabled ? "true" : undefined);
     bind:visibility
     {visibilityOptions}
   />
-  <Card.Content>
-    <Field.Group>
-      <CommentComposerTargetSelect
-        {commentCopy}
-        bind:postTargetKey
-        {postTargetOptions}
-        {viewer}
+  <Field.Group>
+    <CommentComposerTargetSelect
+      {commentCopy}
+      bind:postTargetKey
+      {postTargetOptions}
+      {viewer}
+    />
+    <Field.Field data-disabled={composerDisabledAttr}>
+      <Field.Title id={composerEditorLabelId} class="sr-only">
+        {commentCopy.markdownCommentLabel}
+      </Field.Title>
+      <MarkdownEditor
+        bind:value={body}
+        aria-labelledby={composerEditorLabelId}
+        disabled={composerDisabled}
+        guideLabel={commentCopy.markdownGuide}
+        {isDragActive}
+        modeLabel={commentCopy.markdownModeLabel}
+        placeholder={viewer.isAuthenticated
+          ? commentCopy.editorPlaceholder
+          : commentCopy.loginToComment}
+        previewEmptyLabel={commentCopy.previewEmpty}
+        remarkPlugins={campusReferenceMarkdownPlugins}
+        tabPreviewLabel={commentCopy.tabPreview}
+        tabWriteLabel={commentCopy.tabWrite}
+        ondragleave={() => {
+          isDragActive = false;
+        }}
+        ondragover={(event: DragEvent) => {
+          event.preventDefault();
+          isDragActive = true;
+        }}
+        ondrop={handleEditorDrop}
+        onkeydown={handleSubmitShortcut}
       />
-      <Field.Field data-disabled={composerDisabledAttr}>
-        <Field.Title id={composerEditorLabelId} class="sr-only">
-          {commentCopy.markdownCommentLabel}
-        </Field.Title>
-        <MarkdownEditor
-          bind:value={body}
-          aria-labelledby={composerEditorLabelId}
-          disabled={composerDisabled}
-          guideLabel={commentCopy.markdownGuide}
-          {isDragActive}
-          modeLabel={commentCopy.markdownModeLabel}
-          placeholder={viewer.isAuthenticated
-            ? commentCopy.editorPlaceholder
-            : commentCopy.loginToComment}
-          previewEmptyLabel={commentCopy.previewEmpty}
-          remarkPlugins={campusReferenceMarkdownPlugins}
-          tabPreviewLabel={commentCopy.tabPreview}
-          tabWriteLabel={commentCopy.tabWrite}
-          ondragleave={() => {
-            isDragActive = false;
-          }}
-          ondragover={(event: DragEvent) => {
-            event.preventDefault();
-            isDragActive = true;
-          }}
-          ondrop={handleEditorDrop}
-          onkeydown={handleSubmitShortcut}
-        />
-      </Field.Field>
-      <CommentAttachmentPills
-        files={uploadedFiles}
-        removeLabel={commentCopy.removeAttachment}
-        onRemove={removeAttachment}
-      />
-      <CommentComposerActions
-        {body}
-        {commentCopy}
-        {signInHref}
-        {submitComment}
-        {submitting}
-        {uploadCopy}
-        {uploading}
-        {uploadFile}
-        {viewer}
-      />
-    </Field.Group>
-  </Card.Content>
-</Card.Root>
+    </Field.Field>
+    <CommentAttachmentPills
+      files={uploadedFiles}
+      removeLabel={commentCopy.removeAttachment}
+      onRemove={removeAttachment}
+    />
+    <CommentComposerActions
+      {body}
+      {commentCopy}
+      {signInHref}
+      {submitComment}
+      {submitting}
+      {uploadCopy}
+      {uploading}
+      {uploadFile}
+      {viewer}
+    />
+  </Field.Group>
+</div>

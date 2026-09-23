@@ -35,15 +35,13 @@ export {
 export {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
-  calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
-  dashboardLinkPinBatchRequestSchema,
-  dashboardLinkPinRequestSchema,
-  dashboardLinkVisitRequestSchema,
   localeUpdateRequestSchema,
   todoBatchDeleteRequestSchema,
   todoCompletionBatchRequestSchema,
   todoCreateRequestSchema,
   todoUpdateRequestSchema,
+  workspaceLinkPinBatchRequestSchema,
+  workspaceLinkPinRequestSchema,
 } from "@/lib/api/schemas/request-user-mutation-schemas";

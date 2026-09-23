@@ -1,42 +1,42 @@
+import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { listCourseSummaries } from "@/features/catalog/server/course-section-queries";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
+import {
+  cachedCatalogListRuntimeData,
+  catalogListCacheNamespace,
+} from "@/lib/catalog-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
   toLoadData,
 } from "@/lib/load-data-utils";
-import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const COURSE_LIST_CACHE_TTL_MS = 60_000;
 
 export async function getCourseListPage(
   url: URL,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return cachedPublicRuntimeData(
-    publicRuntimeCacheKey(`course-list:${locale}`, url.searchParams),
-    COURSE_LIST_CACHE_TTL_MS,
-    () => getUncachedCourseListPage(url, locale),
+  const searchParams = normalizeCatalogListQuery(
+    "/catalog/courses",
+    url.searchParams,
+  );
+  const namespace = catalogListCacheNamespace("courses", locale, "page");
+  return cachedCatalogListRuntimeData(namespace, url.origin, searchParams, () =>
+    getUncachedCourseListPage(searchParams, locale),
   );
 }
 
 async function getUncachedCourseListPage(
-  url: URL,
+  searchParams: URLSearchParams,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const page = parsePositivePage(url.searchParams.get("page"));
-  const search = optionalValue(url.searchParams.get("search"));
-  const educationLevelId = optionalValue(
-    url.searchParams.get("educationLevelId"),
-  );
-  const categoryId = optionalValue(url.searchParams.get("categoryId"));
-  const classTypeId = optionalValue(url.searchParams.get("classTypeId"));
+  const page = parsePositivePage(searchParams.get("page"));
+  const search = optionalValue(searchParams.get("search"));
+  const educationLevelId = optionalValue(searchParams.get("educationLevelId"));
+  const categoryId = optionalValue(searchParams.get("categoryId"));
+  const classTypeId = optionalValue(searchParams.get("classTypeId"));
   const prisma = getPrisma(locale);
 
   const [result, educationLevels, categories, classTypes, messages] =

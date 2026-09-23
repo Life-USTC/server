@@ -53,7 +53,7 @@ $: deviceResult = data.result === "approved" ? "approved" : "denied";
   <Card.Root class="grid gap-0 p-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
     <DeviceSidePanel />
 
-    <Card.Content class="grid gap-5 p-6">
+    <Card.Content class="grid min-w-0 gap-5 p-4 sm:p-6">
       {#if data.state === "result"}
         <DeviceResultPanel copy={data.copy} result={deviceResult} />
       {:else if data.state === "error"}

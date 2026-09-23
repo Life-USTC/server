@@ -7,9 +7,13 @@
     "agent": "After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability."
   },
   "rules": {
+    "web-list-state": "The Web todo list preserves the explicitly selected completion filter, including empty results. Local create, edit, completion and delete results are reflected without reloading or resurrecting stale rows when switching filters.",
+    "web-due-order": "The Web todo list puts undated items first, then orders dated items by absolute distance from the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This order applies to every completion filter and updates after edits.",
+    "web-detail": "Completed todo detail titles are struck through. Priority uses the same badge as the list. Footer actions are delete, completion toggle, then edit, with icons and accessible mobile controls.",
     "purely-personal": "Todo is a purely personal object and is not bound to any section.",
     "due-date-calendar": "Only incomplete todos with a due date appear in the calendar.",
     "completed-retained": "Completed todos retain history but no longer occupy urgent information areas.",
+    "bounded-summary-read": "REST todo summaries default to 100 items and accept at most 200. The complete incomplete/completed/overdue counts are fused into one RLS-scoped aggregate statement and remain independent of list filters; the bounded list is loaded in one additional statement.",
     "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
   },
   "capabilities": {
@@ -20,12 +24,12 @@
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/dashboard/todos"]
+        "pages": ["/workspace/todos"]
       },
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "todos",
             "arguments": {
               "filter": "TodoFilter",
@@ -33,9 +37,9 @@
             },
             "returns": "TodoPage!",
             "auth": "user",
-            "required_scopes": ["todo:read"],
-            "rest_equivalent": "GET /api/todos",
-            "mcp_equivalent": "list_my_todos",
+            "required_scopes": ["workspace.todo:read"],
+            "rest_equivalent": "GET /api/workspace/todos",
+            "mcp_equivalent": "workspace_todo_list",
             "notes": [
               "Ownership comes from the authenticated principal; PageInput defaults to 1/20 and caps pageSize at 100."
             ]
@@ -43,58 +47,64 @@
         ],
         "mutations": [
           {
-            "name": "createTodo",
-            "arguments": { "input": "CreateTodoInput!" },
+            "name": "todoCreate",
+            "arguments": {
+              "input": "CreateTodoInput!"
+            },
             "returns": "TodoMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
-            "rest_equivalent": "POST /api/todos",
-            "mcp_equivalent": "create_my_todo"
+            "required_scopes": ["workspace.todo:write"],
+            "rest_equivalent": "POST /api/workspace/todos",
+            "mcp_equivalent": "workspace_todo_create"
           },
           {
-            "name": "updateTodo",
+            "name": "todoUpdate",
             "arguments": {
               "id": "ID!",
               "input": "UpdateTodoInput!"
             },
             "returns": "TodoMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
-            "rest_equivalent": "PATCH /api/todos/[id]",
-            "mcp_equivalent": "update_my_todo"
+            "required_scopes": ["workspace.todo:write"],
+            "rest_equivalent": "PATCH /api/workspace/todos/[id]",
+            "mcp_equivalent": "workspace_todo_update"
           },
           {
-            "name": "deleteTodo",
-            "arguments": { "id": "ID!" },
+            "name": "todoDelete",
+            "arguments": {
+              "id": "ID!"
+            },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
-            "rest_equivalent": "DELETE /api/todos/[id]",
-            "mcp_equivalent": "delete_my_todo"
+            "required_scopes": ["workspace.todo:write"],
+            "rest_equivalent": "DELETE /api/workspace/todos/[id]",
+            "mcp_equivalent": "workspace_todo_delete"
           },
           {
-            "name": "setTodoCompletions",
+            "name": "todoCompletionsSet",
             "arguments": {
               "items": "[TodoCompletionBatchItemInput!]!"
             },
             "returns": "TodoCompletionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
-            "rest_equivalent": "PATCH /api/todos/batch",
-            "mcp_equivalent": "update_my_todo",
+            "required_scopes": ["workspace.todo:write"],
+            "rest_equivalent": "PATCH /api/workspace/todos/batch",
+            "mcp_equivalent": "workspace_todo_update",
             "notes": [
               "Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics.",
               "Missing and non-owned todos are reported on their result item without aborting valid updates."
             ]
           },
           {
-            "name": "deleteTodos",
-            "arguments": { "ids": "[ID!]!" },
+            "name": "todosDelete",
+            "arguments": {
+              "ids": "[ID!]!"
+            },
             "returns": "TodoDeleteBatchPayload!",
             "auth": "user",
-            "required_scopes": ["todo:write"],
-            "rest_equivalent": "DELETE /api/todos/batch",
-            "mcp_equivalent": "delete_my_todo",
+            "required_scopes": ["workspace.todo:write"],
+            "rest_equivalent": "DELETE /api/workspace/todos/batch",
+            "mcp_equivalent": "workspace_todo_delete",
             "notes": [
               "Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics."
             ]
@@ -104,12 +114,13 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/todos",
+            "path": "/api/workspace/todos",
             "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
             "notes": [
-              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
+              "Returns the same count summary as workspace_todo_list plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
               "Supports completed, priority, dueBefore, dueAfter, and limit query parameters.",
-              "REST and MCP share the same limit bounds: 1-200."
+              "REST defaults limit to 100. REST and MCP share the same explicit limit bounds: 1-200.",
+              "Summary counts cover all of the current user's todos regardless of list filters and are computed in one aggregate statement."
             ]
           }
         ]
@@ -117,9 +128,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_todos",
+            "name": "workspace_todo_list",
             "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
-            "rest_equivalent": "GET /api/todos?completed=false&limit=50",
+            "rest_equivalent": "GET /api/workspace/todos?completed=false&limit=50",
             "notes": [
               "Default parameters: includeCompleted=false, limit=50.",
               "REST and MCP share the same limit bounds: 1-200.",
@@ -134,6 +145,7 @@
           "todo.content (description)",
           "todo.priority",
           "todo.dueAt",
+          "detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority, completion), then content; completion/edit/delete stay in the footer",
           "completed status action button",
           "filter: incomplete/completed/all",
           "mobile compact toolbar with direct completion filters and overflow display-mode control"
@@ -147,26 +159,26 @@
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/dashboard/todos"]
+        "pages": ["/workspace/todos"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/todos",
+            "path": "/api/workspace/todos",
             "method": "POST",
             "status": 201,
             "returns": "{ id: String }"
           },
           {
-            "path": "/api/todos/[id]",
+            "path": "/api/workspace/todos/[id]",
             "method": "PATCH",
             "returns": "{ success: Boolean, todo: TodoItem }",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {
-            "path": "/api/todos/batch",
+            "path": "/api/workspace/todos/batch",
             "method": "PATCH",
             "returns": "{ results: Array<{ success: Boolean, todoId: String, completed: Boolean, todo?: TodoItem, error?: { code, message } }> }",
             "notes": [
@@ -175,12 +187,15 @@
             ]
           },
           {
-            "path": "/api/todos/[id]",
+            "path": "/api/workspace/todos/[id]",
             "method": "DELETE",
-            "returns": "{ success: Boolean }"
+            "returns": "{ success: Boolean }",
+            "notes": [
+              "Missing todos and other users' todos hidden by row security return 404, including for admin callers."
+            ]
           },
           {
-            "path": "/api/todos/batch",
+            "path": "/api/workspace/todos/batch",
             "method": "DELETE",
             "returns": "{ results: Array<{ success: Boolean, id: String, error?: { code, message } }> }",
             "notes": [
@@ -193,22 +208,22 @@
       "mcp": {
         "tools": [
           {
-            "name": "create_my_todo",
+            "name": "workspace_todo_create",
             "returns": "{ success: Boolean, id: String }",
-            "rest_equivalent": "POST /api/todos"
+            "rest_equivalent": "POST /api/workspace/todos"
           },
           {
-            "name": "update_my_todo",
+            "name": "workspace_todo_update",
             "returns": "{ success: Boolean, todo: TodoItem }",
-            "rest_equivalent": "PATCH /api/todos/[id]",
+            "rest_equivalent": "PATCH /api/workspace/todos/[id]",
             "notes": [
-              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read. Missing todos and other users' todos hidden by row security return 404, including for admin callers."
             ]
           },
           {
-            "name": "delete_my_todo",
+            "name": "workspace_todo_delete",
             "returns": "{ success: Boolean }",
-            "rest_equivalent": "DELETE /api/todos/[id]"
+            "rest_equivalent": "DELETE /api/workspace/todos/[id]"
           }
         ]
       },

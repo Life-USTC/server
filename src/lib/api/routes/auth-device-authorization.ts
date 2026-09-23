@@ -7,7 +7,10 @@ import {
 } from "@/lib/api/routes/auth-device-authorization-helpers";
 import { parseDeviceAuthorizationForm } from "@/lib/api/routes/auth-device-form-parsing";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   DEVICE_CODE_EXPIRES_IN,
@@ -57,9 +60,18 @@ async function runDeviceAuthorizationPostRoute(
       requestedResources: resolvedClient.requestedResources,
     });
   } catch (err) {
+    logAppEvent(
+      "error",
+      "OAuth device authorization grant creation failed",
+      {
+        event: "oauth.device-authorization.failed",
+        phase: "create-grant",
+      },
+      err,
+    );
     logOAuthDebug("device-auth.error", request, {
       reason: "prisma_create_failed",
-      error: err instanceof Error ? err.message : String(err),
+      errorName: getSafeErrorName(err),
     });
     return deviceAuthJsonError(
       500,
@@ -94,13 +106,13 @@ async function runDeviceAuthorizationPostRoute(
 }
 
 async function postRoute(request: Request): Promise<Response> {
-  const start = Date.now();
+  const start = monotonicNowMs();
   const path = new URL(request.url).pathname;
   try {
     const response = await runDeviceAuthorizationPostRoute(request);
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "device-authorization.response",
+      ioObservedDurationMs: elapsedMs(start),
       method: request.method,
       path,
       status: response.status,
@@ -108,8 +120,8 @@ async function postRoute(request: Request): Promise<Response> {
     return response;
   } catch (err) {
     writeOAuthEventAnalytics({
-      durationMs: Date.now() - start,
       event: "device-authorization.error",
+      ioObservedDurationMs: elapsedMs(start),
       method: request.method,
       path,
       status: 500,

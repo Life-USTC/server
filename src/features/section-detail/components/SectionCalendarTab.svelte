@@ -1,66 +1,139 @@
 <script lang="ts">
-import CalendarIcon from "@lucide/svelte/icons/calendar";
-import type { CalendarGridWeek } from "$lib/components/calendar/types";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import { formatMessage } from "@/features/section-detail/lib/display";
+import {
+  calendarEventDetail,
+  calendarEventLocation,
+  calendarEventTime,
+} from "@/features/section-detail/lib/section-calendar-display";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import SectionCalendarMonthView from "./SectionCalendarMonthView.svelte";
-import SectionCalendarUnscheduledEvents from "./SectionCalendarUnscheduledEvents.svelte";
-import type {
-  SectionCalendarCopy,
-  SectionCalendarEvent,
-} from "./section-calendar-tab-types";
+import * as Table from "$lib/components/ui/table/index.js";
+import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
-export let calendarGridWeeks: CalendarGridWeek[];
-export let calendarMonthLabel: string;
-export let calendarMonthOffset: number;
-export let dateTimePlaceText: string | null | undefined;
-export let formatMessage: (
-  template: string,
-  values: Record<string, string>,
-) => string;
-export let openCalendarDialog: () => void;
 export let sectionCalendarEvents: SectionCalendarEvent[];
-export let sectionCopy: SectionCalendarCopy;
-export let todayCalendarMonthOffset: number;
+export let roomMapCopy: RoomMapCopy;
+export let sectionCopy: {
+  calendarEmpty: string;
+  date: string;
+  dateTBD: string;
+  examEvent: string;
+  lecture: string;
+  lectureNumber: string;
+  location: string;
+  time: string;
+  week: string;
+};
 export let unscheduledCalendarEvents: SectionCalendarEvent[];
+
+/** Campus date → YYYY-MM-DD. */
+function formatYyyyMmDd(value: string | Date | null | undefined) {
+  if (value == null) return "";
+  try {
+    return formatShanghaiDate(value);
+  } catch {
+    return "";
+  }
+}
+
+function lectureLabel(event: SectionCalendarEvent) {
+  if (event.kind === "exam") return sectionCopy.examEvent;
+  return formatMessage(sectionCopy.lectureNumber, {
+    num: String(classLectureNumberById.get(event.id) ?? ""),
+  });
+}
+
+$: datedEvents = sectionCalendarEvents
+  .filter((event) => event.dateKey)
+  .slice()
+  .sort((left, right) => {
+    const leftKey = left.dateKey ?? "";
+    const rightKey = right.dateKey ?? "";
+    if (leftKey !== rightKey) return leftKey.localeCompare(rightKey);
+    return left.meta.localeCompare(right.meta);
+  });
+
+$: classLectureNumberById = new Map(
+  datedEvents
+    .filter((event) => event.kind === "class")
+    .map((event, index) => [event.id, index + 1] as const),
+);
 </script>
 
-<section class="grid gap-4">
-  <div class="flex flex-wrap items-center justify-end gap-3">
-    <Button size="sm" variant="outline" type="button" onclick={openCalendarDialog}>
-      <CalendarIcon data-icon="inline-start" />
-      {sectionCopy.addToCalendar}
-    </Button>
+{#if datedEvents.length > 0 || unscheduledCalendarEvents.length > 0}
+  <div class="min-w-0 max-w-full">
+    <Table.Root
+      class="min-w-[42rem] md:min-w-0"
+      containerLabel={sectionCopy.lecture}
+      data-testid="section-calendar-table"
+    >
+    <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
+    <Table.Header>
+      <Table.Row>
+        <Table.Head scope="col">{sectionCopy.lecture}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.date}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.week}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.time}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.location}</Table.Head>
+      </Table.Row>
+    </Table.Header>
+    <Table.Body>
+      {#each datedEvents as event (event.id)}
+        <Table.Row>
+          <Table.Cell class="whitespace-nowrap">{lectureLabel(event)}</Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {calendarEventDetail(event, sectionCopy.week, "—")}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {calendarEventTime(event, "—")}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {#if event.roomCodes?.length}
+              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                {#each event.roomCodes as room (room)}
+                  <RoomMapPreview code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
+                {/each}
+              </div>
+            {:else}
+              {calendarEventLocation(event, "—")}
+            {/if}
+          </Table.Cell>
+        </Table.Row>
+      {/each}
+      {#each unscheduledCalendarEvents as event (event.id)}
+        <Table.Row>
+          <Table.Cell class="whitespace-nowrap">{lectureLabel(event)}</Table.Cell>
+          <Table.Cell class="whitespace-nowrap">{sectionCopy.dateTBD}</Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {calendarEventDetail(event, sectionCopy.week, "—")}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {calendarEventTime(event, "—")}
+          </Table.Cell>
+          <Table.Cell class="whitespace-nowrap">
+            {#if event.roomCodes?.length}
+              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                {#each event.roomCodes as room (room)}
+                  <RoomMapPreview code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
+                {/each}
+              </div>
+            {:else}
+              {calendarEventLocation(event, "—")}
+            {/if}
+          </Table.Cell>
+        </Table.Row>
+      {/each}
+    </Table.Body>
+    </Table.Root>
   </div>
-
-  {#if dateTimePlaceText}
-    <Alert.Root>
-      <Alert.Description>{dateTimePlaceText}</Alert.Description>
-    </Alert.Root>
-  {/if}
-
-  {#if sectionCalendarEvents.length > 0}
-    <SectionCalendarMonthView
-      bind:calendarMonthOffset
-      {calendarGridWeeks}
-      {calendarMonthLabel}
-      {formatMessage}
-      {sectionCopy}
-      {todayCalendarMonthOffset}
-    />
-
-    {#if unscheduledCalendarEvents.length > 0}
-      <SectionCalendarUnscheduledEvents
-        {sectionCopy}
-        events={unscheduledCalendarEvents}
-      />
-    {/if}
-  {:else}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Description>{sectionCopy.calendarEmpty}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
-  {/if}
-</section>
+{:else}
+  <Empty.Root class="min-h-20 border-0 px-2 py-6">
+    <Empty.Header>
+      <Empty.Description>{sectionCopy.calendarEmpty}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
+{/if}

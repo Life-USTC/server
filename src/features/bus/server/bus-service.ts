@@ -12,7 +12,7 @@ export {
   searchBusRoutes,
 } from "./bus-query-service";
 export {
-  getBusDashboardSnapshot,
   getBusTimetableData,
+  getBusTimetableSnapshot,
 } from "./bus-timetable-data";
 export { getBusMapData } from "./bus-transit-map";

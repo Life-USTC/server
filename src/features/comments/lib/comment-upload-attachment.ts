@@ -31,7 +31,7 @@ export async function uploadCommentAttachment({
   validateCommentUploadFile({ file, formatSize, summary, uploadCopy });
   const contentType = commentUploadContentType(file);
 
-  const createResult = await apiClient.POST("/api/uploads", {
+  const createResult = await apiClient.POST("/api/workspace/uploads", {
     body: {
       filename: file.name,
       contentType,
@@ -53,13 +53,16 @@ export async function uploadCommentAttachment({
   });
   if (!putResponse.ok) throw new Error(uploadCopy.toastUploadErrorDescription);
 
-  const completeResult = await apiClient.POST("/api/uploads/complete", {
-    body: {
-      key: uploadStart.data.key,
-      filename: file.name,
-      contentType,
+  const completeResult = await apiClient.POST(
+    "/api/workspace/uploads/complete",
+    {
+      body: {
+        key: uploadStart.data.key,
+        filename: file.name,
+        contentType,
+      },
     },
-  });
+  );
   if (!completeResult.response.ok)
     throw new Error(uploadCopy.toastUploadErrorDescription);
   const completed = uploadCompleteResponseSchema.safeParse(completeResult.data);

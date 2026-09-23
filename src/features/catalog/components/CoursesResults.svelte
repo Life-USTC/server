@@ -1,10 +1,16 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
@@ -20,9 +26,9 @@ export let courseLabels: CourseListLabels;
 export let data: CourseListResultData;
 export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let totalPages: number;
 
+$: locale = $appPage.data.locale ?? "zh-cn";
 $: courseSummaryBase = catalogShowingSummary(
   courseLabels.showing,
   data.data.length,
@@ -43,81 +49,80 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="xl:hidden">
-      <Item.Group>
-        {#each data.data as course}
-          {@const courseHref = `/courses/${course.jwId}`}
-          <Item.Root variant="outline" size="sm">
-            {#snippet child({ props })}
-              <a href={courseHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{primaryName(course)}</Item.Title>
-                  {#if secondaryName(course)}
-                    <Item.Description>{secondaryName(course)}</Item.Description>
-                  {/if}
-                </Item.Content>
-                <Item.Actions>
-                  <Badge variant="outline">{course.code}</Badge>
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start">
-                  <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
-                  <span>{course.category ? primaryName(course.category) : "-"}</span>
-                  <span>{course.classType ? primaryName(course.classType) : "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <Item.Group class="gap-0" role="list">
+        {#each data.data as course, index}
+          {@const courseHref = `/catalog/courses/${course.jwId}`}
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={courseHref} {...props}>
+                  <Item.Content>
+                    <Item.Title>{catalogLocalizedDisplayName(course, locale)}</Item.Title>
+                  </Item.Content>
+                  <Item.Actions>
+                    <TruncatedCode text={course.code} />
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start">
+                    <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+                    <span>{course.category ? primaryName(course.category) : "-"}</span>
+                    <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+            {#if index < data.data.length - 1}
+              <Item.Separator />
+            {/if}
+          </div>
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden xl:block">
+      {/snippet}
+      {#snippet desktop()}
       <Table.Root>
         <Table.Header>
           <Table.Row>
-            <Table.Head class="min-w-72">{courseLabels.courseName}</Table.Head>
-            <Table.Head class="w-28">{courseLabels.courseCode}</Table.Head>
-            <Table.Head class="w-36">{courseLabels.educationLevel}</Table.Head>
-            <Table.Head class="w-40">{courseLabels.category}</Table.Head>
-            <Table.Head class="w-36">{courseLabels.classType}</Table.Head>
+            <Table.Head>{courseLabels.courseName}</Table.Head>
+            <Table.Head>{courseLabels.courseCode}</Table.Head>
+            <Table.Head>{courseLabels.educationLevel}</Table.Head>
+            <Table.Head>{courseLabels.category}</Table.Head>
+            <Table.Head>{courseLabels.classType}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each data.data as course}
-            {@const courseHref = `/courses/${course.jwId}`}
-            <Table.Row>
-              <Table.Cell class="min-w-72 p-0 align-top">
+            {@const courseHref = `/catalog/courses/${course.jwId}`}
+            <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Cell class="p-0">
                 <CatalogTableLink href={courseHref}>
-                  <span class="font-medium">{primaryName(course)}</span>
-                  {#if secondaryName(course)}
-                    <span class="block text-muted-foreground text-xs">{secondaryName(course)}</span>
-                  {/if}
+                  <TruncatedText
+                    text={catalogLocalizedDisplayName(course, locale)}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={courseHref}>
-                  <Badge variant="outline">{course.code}</Badge>
-                </CatalogTableLink>
+              <Table.Cell>
+                <TruncatedCode text={course.code} />
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={courseHref}>
-                  {course.educationLevel ? primaryName(course.educationLevel) : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.educationLevel
+                  ? primaryName(course.educationLevel)
+                  : "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={courseHref}>
-                  {course.category ? primaryName(course.category) : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.category
+                  ? catalogLocalizedDisplayName(course.category, locale)
+                  : "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={courseHref}>
-                  {course.classType ? primaryName(course.classType) : "-"}
-                </CatalogTableLink>
+              <Table.Cell>
+                {course.classType ? primaryName(course.classType) : "-"}
               </Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty

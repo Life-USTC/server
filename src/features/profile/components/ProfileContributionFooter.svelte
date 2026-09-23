@@ -30,6 +30,7 @@ export let stats: ProfileStat[];
       <span
         aria-label={item.label}
         class={cn("size-3 rounded-[2px]", item.className)}
+        role="img"
         title={item.label}
       ></span>
     {/each}

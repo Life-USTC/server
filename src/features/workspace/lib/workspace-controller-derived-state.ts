@@ -1,0 +1,113 @@
+import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
+import type { ExamFilter } from "./exams";
+import { filterExamRows } from "./exams";
+import { referenceDate } from "./overview-dates";
+import { filterTodos, sortTodosByDueDistance } from "./todos";
+import { workspaceExamRows } from "./workspace-controller-display";
+import {
+  type CalendarData,
+  type CatalogLinkItem,
+  type ExamRow,
+  type HomeworkItem,
+  isSignedWorkspaceData,
+  type SignedWorkspaceData,
+  type TodoFilter,
+  type TodoItem,
+  type WorkspacePageData,
+} from "./workspace-controller-helpers";
+import { groupCatalogLinks } from "./workspace-link-ui";
+
+export function applyLocalHomeworkItemsToSignedData(
+  signedData: SignedWorkspaceData | null,
+  homeworkItems: HomeworkItem[],
+) {
+  if (!signedData?.homeworks) return signedData;
+
+  return {
+    ...signedData,
+    homeworks: {
+      ...signedData.homeworks,
+      homeworkSummaries: homeworkItems,
+    },
+    navStats: {
+      ...signedData.navStats,
+      pendingHomeworksCount: homeworkItems.filter((item) =>
+        isHomeworkPendingForViewer(
+          item,
+          referenceDate(signedData.referenceNow),
+        ),
+      ).length,
+    },
+  };
+}
+
+export function applyLocalTodoItemsToSignedData(
+  signedData: SignedWorkspaceData | null,
+  todoItems: TodoItem[],
+) {
+  if (!signedData?.todos) return signedData;
+
+  return {
+    ...signedData,
+    todos: todoItems,
+    navStats: {
+      ...signedData.navStats,
+      pendingTodosCount: todoItems.filter((todo) => !todo.completed).length,
+    },
+  };
+}
+
+export function buildWorkspaceControllerDerivedState(input: {
+  catalogLinkGroupLabels: Record<CatalogLinkGroup, string>;
+  data: WorkspacePageData;
+  dateFallback: string;
+  examFilter: ExamFilter;
+  linkSearchQuery: string;
+  notAvailable: string;
+  currentCatalogLinkItems: CatalogLinkItem[];
+  currentOverviewLinkItems: CatalogLinkItem[];
+  currentTodoItems: TodoItem[];
+  todoFilter: TodoFilter;
+}) {
+  const signedData = isSignedWorkspaceData(input.data) ? input.data : null;
+  const homeworkItems = signedData?.homeworks
+    ? signedData.homeworks.homeworkSummaries
+    : [];
+  const todoItems: TodoItem[] = signedData?.todos ? input.currentTodoItems : [];
+  const examRows: ExamRow[] = signedData?.subscriptions
+    ? workspaceExamRows(signedData.subscriptions, signedData.referenceNow, {
+        dateFallback: input.dateFallback,
+        notAvailable: input.notAvailable,
+      })
+    : [];
+  const catalogLinkItems = signedData?.links
+    ? input.currentCatalogLinkItems
+    : [];
+  const overviewLinkItems = signedData?.overview
+    ? input.currentOverviewLinkItems
+    : [];
+
+  return {
+    calendarData: (signedData?.overview?.calendar ??
+      null) as CalendarData | null,
+    catalogLinkItems,
+    examRows,
+    filteredExamRows: filterExamRows(examRows, input.examFilter),
+    filteredTodos: sortTodosByDueDistance(
+      filterTodos(todoItems, input.todoFilter),
+      referenceDate(signedData?.referenceNow),
+    ),
+    homeworkItems,
+    overviewLinkItems,
+    signedData,
+    signedLinkGroups: signedData?.links
+      ? groupCatalogLinks(
+          catalogLinkItems,
+          input.linkSearchQuery,
+          input.catalogLinkGroupLabels,
+        )
+      : [],
+    todoItems,
+  };
+}

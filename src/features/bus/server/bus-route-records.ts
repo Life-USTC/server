@@ -2,6 +2,7 @@ import type { AppLocale } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildBusRouteNameData,
+  normalizeBusCampusCoordinates,
   normalizeBusCampusName,
 } from "../lib/bus-import-route-data";
 import type { RouteRecord } from "../lib/bus-route-record-types";
@@ -30,14 +31,15 @@ function toCampusSummary(
   campus: BusStaticCampus,
 ): BusCampusSummary {
   const nameCn = normalizeBusCampusName(campus.name);
+  const { latitude, longitude } = normalizeBusCampusCoordinates(campus);
   return {
     id: campus.id,
     nameCn,
     nameEn: null,
     namePrimary: nameCn,
     nameSecondary: null,
-    latitude: campus.latitude,
-    longitude: campus.longitude,
+    latitude,
+    longitude,
   };
 }
 

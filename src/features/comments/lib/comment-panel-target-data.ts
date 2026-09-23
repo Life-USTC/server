@@ -12,12 +12,14 @@ export function resolveCommentTargets({
   targets,
   targetType,
   teacherId,
+  youngId,
 }: {
   copy: {
     tabCourse: string;
     tabSection: string;
     tabSectionTeacher: string;
     tabTeacher: string;
+    tabYoungEvent?: string;
   };
   permalinkBaseHref?: string | null;
   sectionId: number | null;
@@ -25,6 +27,7 @@ export function resolveCommentTargets({
   targets: CommentTargetOption[];
   targetType: CommentTargetType;
   teacherId: number | null;
+  youngId?: string | null;
 }) {
   if (targets.length > 0) return targets;
   return [
@@ -36,6 +39,7 @@ export function resolveCommentTargets({
       targetId,
       teacherId,
       type: targetType,
+      youngId,
     },
   ];
 }
@@ -62,8 +66,15 @@ export function commentTargetPayload(
 ) {
   return {
     targetType: target?.type ?? fallbackType,
-    targetId: target?.targetId ?? undefined,
+    targetId:
+      target?.type === "young-event"
+        ? undefined
+        : (target?.targetId ?? undefined),
     sectionId: target?.sectionId ?? undefined,
     teacherId: target?.teacherId ?? undefined,
+    youngId:
+      target?.type === "young-event"
+        ? (target.youngId ?? undefined)
+        : undefined,
   };
 }

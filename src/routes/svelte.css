@@ -10,7 +10,7 @@
     sans-serif;
 
   --radius: 0.5rem;
-  --background: #f6f8fa;
+  --background: #ffffff;
   --foreground: #27272a;
   --card: #ffffff;
   --card-foreground: #27272a;
@@ -187,5 +187,23 @@ html {
   body {
     background: var(--background);
     color: var(--foreground);
+  }
+}
+
+@layer components {
+  .page-frame {
+    @apply mx-auto w-full min-w-0 max-w-7xl;
+  }
+
+  .page-frame-reading {
+    @apply max-w-4xl;
+  }
+
+  .page-frame-content {
+    @apply max-w-6xl;
+  }
+
+  .page-frame-full {
+    @apply max-w-none;
   }
 }

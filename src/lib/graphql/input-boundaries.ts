@@ -1,4 +1,11 @@
 import { GraphQLError } from "graphql";
+import { BUS_VERSION_KEY_PATTERN } from "@/features/bus/lib/bus-version-key";
+import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
+import {
+  WEATHER_LOCATIONS,
+  type WeatherLocationKey,
+} from "@/features/weather/server/weather-types";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { GRAPHQL_LIMITS } from "./constants";
 
 function badUserInput(message: string): never {
@@ -50,7 +57,17 @@ function validateOptionalText(
 }
 
 export function validateGraphqlSearch(value: string | null | undefined) {
-  return validateOptionalText(value, "search", GRAPHQL_LIMITS.searchChars);
+  const search = validateOptionalText(
+    value,
+    "search",
+    GRAPHQL_LIMITS.searchChars,
+  );
+  if (search !== undefined && search.length < GRAPHQL_LIMITS.searchMinChars) {
+    badUserInput(
+      `search must contain at least ${GRAPHQL_LIMITS.searchMinChars} characters.`,
+    );
+  }
+  return search;
 }
 
 export function validateGraphqlTeacherCode(value: string | null | undefined) {
@@ -70,16 +87,76 @@ export function validateGraphqlWeekday(value: number | null | undefined) {
 }
 
 export function validateGraphqlVersionKey(value: string | null | undefined) {
+  value = value?.trim();
   const versionKey = validateOptionalText(
     value,
     "versionKey",
     GRAPHQL_LIMITS.versionKeyChars,
   );
-  if (
-    versionKey !== undefined &&
-    !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(versionKey)
-  ) {
+  if (versionKey !== undefined && !BUS_VERSION_KEY_PATTERN.test(versionKey)) {
     badUserInput("versionKey has an invalid format.");
   }
   return versionKey;
+}
+
+export function requireGraphqlYoungEventId(value: string): string {
+  const youngId = validateOptionalText(
+    value.trim(),
+    "youngId",
+    GRAPHQL_LIMITS.versionKeyChars,
+  );
+  if (!youngId) {
+    badUserInput("youngId must be a non-empty string.");
+  }
+  return youngId;
+}
+
+export function requireGraphqlYoungOrganizerId(value: string): string {
+  const organizerId = validateOptionalText(
+    value.trim(),
+    "organizerId",
+    GRAPHQL_LIMITS.versionKeyChars,
+  );
+  if (!organizerId) {
+    badUserInput("organizerId must be a non-empty string.");
+  }
+  return organizerId;
+}
+
+export function validateGraphqlYoungDate(
+  value: string | null | undefined,
+  name: "dateFrom" | "dateTo",
+) {
+  if (value == null) return undefined;
+  const date = value.trim();
+  if (!date || !(parseDateInput(date) instanceof Date)) {
+    badUserInput(`${name} must be a valid Shanghai date or date-time.`);
+  }
+  return date;
+}
+
+const WEATHER_LOCATION_KEYS = new Set(
+  WEATHER_LOCATIONS.map((location) => location.key),
+);
+
+export function validateGraphqlWeatherLocationKey(
+  value: string,
+): WeatherLocationKey {
+  const locationKey = validateOptionalText(
+    value,
+    "locationKey",
+    GRAPHQL_LIMITS.versionKeyChars,
+  ) as WeatherLocationKey | undefined;
+  if (!locationKey || !WEATHER_LOCATION_KEYS.has(locationKey)) {
+    badUserInput(
+      `locationKey must be one of: ${[...WEATHER_LOCATION_KEYS].join(", ")}.`,
+    );
+  }
+  return locationKey;
+}
+
+export function validateGraphqlRoomCode(value: string) {
+  const parsed = roomCodeSchema.safeParse(value);
+  if (!parsed.success) badUserInput("Invalid room code.");
+  return parsed.data;
 }

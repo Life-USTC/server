@@ -5,7 +5,7 @@ import {
 
 export type SectionHomeworkView = "cards" | "list";
 
-const homeworkViewStorageKey = "life-ustc-dashboard-homework-view-mode";
+const homeworkViewStorageKey = "life-ustc-workspace-homework-view-mode";
 
 export function persistSectionHomeworkView(nextView: SectionHomeworkView) {
   setLocalStorageItem(homeworkViewStorageKey, nextView);

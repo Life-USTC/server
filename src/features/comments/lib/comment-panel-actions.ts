@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/client";
+import { idResponseSchema } from "@/lib/api/schemas/misc-response-schema-core";
 
 export async function submitCommentRequest(input: {
   attachmentIds: string[];
@@ -9,7 +10,7 @@ export async function submitCommentRequest(input: {
   targetPayload: Record<string, unknown>;
   visibility: string;
 }) {
-  const result = await apiClient.POST("/api/comments", {
+  const result = await apiClient.POST("/api/community/comments", {
     body: {
       ...input.targetPayload,
       body: input.body,
@@ -20,6 +21,9 @@ export async function submitCommentRequest(input: {
     },
   });
   if (!result.response.ok) throw new Error(input.submitFailed);
+  const parsed = idResponseSchema.safeParse(result.data);
+  if (!parsed.success) throw new Error(input.submitFailed);
+  return parsed.data.id;
 }
 
 export async function saveCommentEditRequest(input: {
@@ -30,14 +34,17 @@ export async function saveCommentEditRequest(input: {
   submitFailed: string;
   visibility: string;
 }) {
-  const result = await apiClient.PATCH(`/api/comments/${input.commentId}`, {
-    body: {
-      body: input.body,
-      visibility: input.visibility,
-      isAnonymous: input.isAnonymous,
-      attachmentIds: input.attachmentIds,
+  const result = await apiClient.PATCH(
+    `/api/community/comments/${input.commentId}`,
+    {
+      body: {
+        body: input.body,
+        visibility: input.visibility,
+        isAnonymous: input.isAnonymous,
+        attachmentIds: input.attachmentIds,
+      },
     },
-  });
+  );
   if (!result.response.ok) throw new Error(input.submitFailed);
 }
 
@@ -47,7 +54,7 @@ export async function submitCommentReactionRequest(input: {
   shouldRemove: boolean;
   type: string;
 }) {
-  const path = `/api/comments/${input.commentId}/reactions`;
+  const path = `/api/community/comments/${input.commentId}/reactions`;
   const result = input.shouldRemove
     ? await apiClient.DELETE(path, { params: { query: { type: input.type } } })
     : await apiClient.POST(path, { body: { type: input.type } });
@@ -58,6 +65,8 @@ export async function deleteCommentRequest(input: {
   commentId: string;
   submitFailed: string;
 }) {
-  const result = await apiClient.DELETE(`/api/comments/${input.commentId}`);
+  const result = await apiClient.DELETE(
+    `/api/community/comments/${input.commentId}`,
+  );
   if (!result.response.ok) throw new Error(input.submitFailed);
 }

@@ -26,7 +26,7 @@ async function updateSectionSubscription({
       ? await subscriptions.subscribeUserToSectionByJwId(userId, jwId)
       : await subscriptions.unsubscribeUserFromSectionByJwId(userId, jwId);
   if (!result) return fail(404, { error: copy.operationFailed });
-  throw redirect(303, `/sections/${jwId}`);
+  throw redirect(303, `/catalog/sections/${jwId}`);
 }
 
 export function subscribeSectionAction(input: {

@@ -13,12 +13,12 @@ export async function tokenRequestFingerprint(
       origin: request.headers.get("origin") ?? null,
       contentType: request.headers.get("content-type") ?? null,
       hasResource: fd.has("resource"),
-      resource: fd.get("resource") ?? null,
+      resourceCount: fd.getAll("resource").length,
       hasCodeVerifier: fd.has("code_verifier"),
       grantType: fd.get("grant_type") ?? null,
-      debugNonce: request.headers.get("x-debug-nonce") ?? null,
-      forwarded: request.headers.get("x-forwarded-for") ?? null,
-      via: request.headers.get("via") ?? null,
+      debugNoncePresent: request.headers.has("x-debug-nonce"),
+      forwardedPresent: request.headers.has("x-forwarded-for"),
+      viaPresent: request.headers.has("via"),
       ...(typeof redirectUri === "string"
         ? { redirectSummary: summarizeOAuthRedirectUri(redirectUri) }
         : {}),
@@ -36,7 +36,7 @@ export async function tokenErrorBody(
     const json = await cloned.json();
     return {
       error: json.error,
-      error_description: json.error_description,
+      errorDescriptionPresent: Boolean(json.error_description),
     };
   } catch {
     return undefined;

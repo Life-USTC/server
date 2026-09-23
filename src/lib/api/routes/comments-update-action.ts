@@ -8,7 +8,9 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import type { ApiPrincipal } from "@/lib/auth/api-auth";
 
 type CommentUpdateBody = z.infer<typeof commentUpdateRequestSchema>;
 
@@ -16,8 +18,9 @@ export async function updateCommentAction(
   request: Request,
   id: string,
   parsedBody: CommentUpdateBody,
-  userId: string,
+  principal: ApiPrincipal,
 ) {
+  const userId = principal.userId;
   const content = parsedBody.body;
   const visibility = parsedBody.visibility;
   const isAnonymous = parsedBody.isAnonymous;
@@ -28,7 +31,10 @@ export async function updateCommentAction(
 
   const result = await updateOwnComment({
     attachmentIds,
-    auditMetadata: getAuditRequestMetadata(request),
+    auditMetadata: {
+      ...getAuditRequestMetadata(request),
+      ...attributionFromApiPrincipal(principal),
+    },
     body: content,
     hasAttachmentUpdate,
     id,

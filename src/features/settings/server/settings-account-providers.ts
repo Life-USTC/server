@@ -1,3 +1,4 @@
+import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
 import type { SettingsAccountProvider } from "@/features/settings/server/settings-page-data";
 
 export const SETTINGS_ACCOUNT_PROVIDERS = [
@@ -14,6 +15,7 @@ type LinkedAccount = {
 
 export function buildSettingsAccountProviders(
   linkedAccounts: LinkedAccount[],
+  ustcIdentities: UserUstcIdentitySummary,
 ): SettingsAccountProvider[] {
   return SETTINGS_ACCOUNT_PROVIDERS.map<SettingsAccountProvider>((provider) => {
     const account = linkedAccounts.find(
@@ -24,6 +26,7 @@ export function buildSettingsAccountProviders(
       linked: Boolean(account),
       accountId: account?.id ?? null,
       providerAccountId: account?.providerAccountId ?? null,
+      ustcIdentities: provider.id === "oidc" && account ? ustcIdentities : null,
     };
   });
 }

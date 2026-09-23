@@ -1,7 +1,9 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
+import SquarePen from "@lucide/svelte/icons/square-pen";
+import TableIconButton from "$lib/components/TableIconButton.svelte";
+import TableRowActions from "$lib/components/TableRowActions.svelte";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
-import { cn } from "$lib/utils.js";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -20,54 +22,55 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Table.Row
-  class={cn(
-    "border-l-4",
-    comment.status === "active"
-      ? "border-l-success"
-      : comment.status === "deleted"
-        ? "border-l-destructive"
-        : "border-l-warning",
-  )}
->
-  <Table.Cell class="max-w-md">
-    <p class="line-clamp-2 whitespace-pre-wrap text-sm">{comment.body}</p>
-    {#if comment.moderationNote}
-      <p class="mt-1 line-clamp-1 text-muted-foreground text-xs">
-        {copy.moderationNote}: {comment.moderationNote}
-      </p>
-    {/if}
+<Table.Row class="group">
+  <Table.Cell>
+    <div class="grid min-w-0 gap-1">
+      <TruncatedText
+        class="text-sm"
+        lines={2}
+        preserveWhitespace
+        text={comment.body}
+      />
+      {#if comment.moderationNote}
+        <TruncatedText
+          class="text-muted-foreground text-xs"
+          text={`${copy.moderationNote}: ${comment.moderationNote}`}
+        />
+      {/if}
+    </div>
+  </Table.Cell>
+  <Table.Cell class="max-w-0">
+    {@const author = commentAuthorLabel(comment)}
+    <span class="block max-w-full truncate" title={author}>{author}</span>
   </Table.Cell>
   <Table.Cell>
-    {commentAuthorLabel(comment)}
-  </Table.Cell>
-  <Table.Cell class="max-w-sm">
     <a
-      class="hover:underline"
+      class="block min-w-0 max-w-full overflow-hidden hover:underline"
       href={targetHref(comment)}
+      title={targetLabel(comment)}
     >
-      {targetLabel(comment)}
+      <TruncatedText text={targetLabel(comment)} />
     </a>
   </Table.Cell>
-  <Table.Cell>
+  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
     {formatDate(comment.createdAt)}
   </Table.Cell>
-  <Table.Cell>
+  <Table.Cell class="text-center">
     <ModerationStatusBadge
       label={statusLabel(comment.status)}
       status={comment.status}
     />
   </Table.Cell>
-  <Table.Cell class="text-right">
-    <Button
-      size="sm"
-      type="button"
-      variant="outline"
-      onclick={() => {
-        onManage(comment);
-      }}
-    >
-      {copy.manageComment}
-    </Button>
+  <Table.Cell class="w-14 min-w-14 text-right">
+    <TableRowActions class="justify-end">
+      <TableIconButton
+        label={copy.manageComment}
+        onclick={() => {
+          onManage(comment);
+        }}
+      >
+        <SquarePen />
+      </TableIconButton>
+    </TableRowActions>
   </Table.Cell>
 </Table.Row>

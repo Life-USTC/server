@@ -17,8 +17,8 @@ function routeOpacity(routeId: number) {
 }
 
 function routeStrokeWidth(routeId: number) {
-  if (hoveredRoute === routeId) return 5.5;
-  return activeRouteIds.has(routeId) ? 4.5 : 3.5;
+  if (hoveredRoute === routeId) return 7;
+  return activeRouteIds.has(routeId) ? 5.5 : 4.5;
 }
 </script>
 
@@ -28,7 +28,7 @@ function routeStrokeWidth(routeId: number) {
     <path
       d={routePath.path}
       stroke={routeColor(route.routeId, allRouteIds)}
-      stroke-width="10"
+      stroke-width="14"
       stroke-linecap="round"
       stroke-linejoin="round"
       fill="none"

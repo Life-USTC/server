@@ -1,0 +1,1 @@
+export const WORKSPACE_OVERVIEW_PREVIEW_LIMIT = 5;

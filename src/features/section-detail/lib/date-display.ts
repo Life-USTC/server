@@ -11,22 +11,25 @@ import {
 export function formatDate(
   value: string | Date | null | undefined,
   fallback: string,
+  locale?: string,
 ) {
-  return formatCampusDate(value, fallback);
+  return formatCampusDate(value, fallback, locale);
 }
 
 export function formatDateTime(
   value: string | Date | null | undefined,
   fallback: string,
+  locale?: string,
 ) {
-  return formatCampusDateTime(value, fallback);
+  return formatCampusDateTime(value, fallback, locale);
 }
 
 export function formatMonth(
   value: string | Date | null | undefined,
   fallback: string,
+  locale?: string,
 ) {
-  return formatCampusDate(value, fallback, undefined, {
+  return formatCampusDate(value, fallback, locale, {
     month: "long",
     year: "numeric",
   });

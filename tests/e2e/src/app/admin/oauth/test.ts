@@ -22,6 +22,7 @@ import {
   gotoAndWaitForReady,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
@@ -104,13 +105,11 @@ test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) =
   await captureStepScreenshot(page, testInfo, "admin-oauth-unauthorized");
 });
 
-test("/admin/oauth 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin/oauth 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/oauth", "/admin/oauth");
-  await expect(page.getByText("404").first()).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "admin-oauth-404");
+  await expect(page.getByText("403").first()).toBeVisible();
+  await expect(page.getByText("Forbidden").first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-oauth-403");
 });
 
 test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", async ({
@@ -128,6 +127,7 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
     ).toBeVisible();
 
     for (const [index, pattern] of CLIENT_PATTERNS.entries()) {
+      if (index > 0) await gotoAndWaitForReady(page, "/admin/oauth");
       const name = names[index];
       const dialog = await openCreateDialog(page);
       await expect(
@@ -137,7 +137,11 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       await dialog.getByLabel(/应用名称|Application Name/i).fill(name);
       await dialog
         .getByLabel(/重定向 URI|Redirect URIs/i)
-        .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`);
+        .fill(
+          pattern.method === "none"
+            ? `${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`
+            : `https://client.example/oauth-e2e/${pattern.suffix}/callback`,
+        );
 
       const emailScope = dialog.getByRole("checkbox", {
         name: /查看您的邮箱地址|View your email address/i,
@@ -158,6 +162,24 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       );
       if (secret) secrets.push(secret);
 
+      const doneButton = credentialsDialog.getByRole("button", {
+        name: /完成|Done/i,
+      });
+      const savedAcknowledgement = credentialsDialog.getByRole("checkbox", {
+        name: /我已安全保存客户端密钥|I have saved the client secret securely/i,
+      });
+      if (pattern.expectSecret) {
+        await expect(doneButton).toBeDisabled();
+        await page.keyboard.press("Escape");
+        await expect(credentialsDialog).toBeVisible();
+        await savedAcknowledgement.click();
+        await expect(savedAcknowledgement).toBeChecked();
+        await expect(doneButton).toBeEnabled();
+      } else {
+        await expect(savedAcknowledgement).toHaveCount(0);
+        await expect(doneButton).toBeEnabled();
+      }
+
       const persisted = await getOAuthClientByName(name);
       expect(persisted).toMatchObject({
         disabled: false,
@@ -168,9 +190,7 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
       });
       expect(persisted?.scopes).toContain("email");
 
-      await credentialsDialog
-        .getByRole("button", { name: /完成|Done/i })
-        .click();
+      await doneButton.click();
       await expect(credentialsDialog).toBeHidden();
       if (secret) {
         await expect(page.getByText(secret, { exact: true })).toHaveCount(0);
@@ -196,7 +216,9 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
           .filter({ hasText: pattern.trustLabel }),
       ).toBeVisible();
       await expect(row.getByText(/已启用|Enabled/i)).toBeVisible();
-      await expect(row.getByText("openid", { exact: true })).toBeVisible();
+      await expect(
+        row.locator("td").nth(2).locator('[data-slot="truncated-text"]'),
+      ).toContainText("openid");
     }
 
     await gotoAndWaitForReady(page, "/admin/oauth");
@@ -251,6 +273,75 @@ test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
   }
 });
 
+test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完整提示", async ({
+  page,
+}, testInfo) => {
+  const prefix = `e2e-oauth-table-${Date.now()}`;
+  const longName = `${prefix}-long`;
+  const shortName = `${prefix}-short`;
+  const longScopes = [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "calendar:read",
+    "calendar:write",
+    "subscriptions:read",
+    "subscriptions:write",
+    `overflow-probe:${"scope-token-".repeat(24)}`,
+  ];
+
+  try {
+    await createOAuthClientFixture({ name: longName, scopes: longScopes });
+    await createOAuthClientFixture({ name: shortName, scopes: ["openid"] });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signInAsDevAdmin(page, "/admin/oauth");
+
+    const longRow = page.getByRole("row").filter({ hasText: longName });
+    const shortRow = page.getByRole("row").filter({ hasText: shortName });
+    await expect(longRow).toBeVisible();
+    await expect(shortRow).toBeVisible();
+
+    const typeBadges = longRow
+      .locator("td")
+      .nth(1)
+      .locator('[data-slot="badge"]');
+    await expect(typeBadges).toHaveCount(3);
+    const badgeTops = await typeBadges.evaluateAll((badges) =>
+      badges.map((badge) => badge.getBoundingClientRect().top),
+    );
+    expect(Math.max(...badgeTops) - Math.min(...badgeTops)).toBeLessThan(1);
+
+    const scopesText = longRow
+      .locator("td")
+      .nth(2)
+      .locator('[data-slot="truncated-text"]');
+    const scopesGeometry = await scopesText.evaluate((node) => ({
+      clientWidth: node.clientWidth,
+      scrollWidth: node.scrollWidth,
+    }));
+    expect(scopesGeometry.scrollWidth).toBeGreaterThan(
+      scopesGeometry.clientWidth,
+    );
+    await scopesText.hover();
+    await expect(
+      page.locator('[data-slot="tooltip-content"]:visible'),
+    ).toHaveText(longScopes.join(", "));
+
+    const [longBox, shortBox] = await Promise.all([
+      longRow.boundingBox(),
+      shortRow.boundingBox(),
+    ]);
+    expect(
+      Math.abs((longBox?.height ?? 0) - (shortBox?.height ?? 0)),
+    ).toBeLessThan(1);
+    await captureStepScreenshot(page, testInfo, "admin-oauth/table-overflow");
+  } finally {
+    await deleteOAuthClientsByName(longName);
+    await deleteOAuthClientsByName(shortName);
+  }
+});
+
 test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async ({
   page,
 }, testInfo) => {
@@ -282,4 +373,8 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async (
   } finally {
     await deleteOAuthClientsByName(name);
   }
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin/oauth", testInfo });
 });

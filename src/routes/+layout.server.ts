@@ -20,5 +20,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
       title: copy.metadata.title,
     }),
     user: layoutUserSummary(locals.authUser),
+    resolveViewerOnClient: locals.publicSsr,
   };
 };

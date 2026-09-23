@@ -1,3 +1,4 @@
+import type { HomeworkAuditContext } from "@/features/homeworks/server/homework-audit";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import type { AppLocale } from "@/i18n/config";
@@ -15,6 +16,7 @@ export async function updateHomeworkAction(
   userId: string,
   locale: AppLocale,
   parsedBody: Parameters<typeof parseUpdateHomeworkInput>[0],
+  audit?: HomeworkAuditContext,
 ) {
   const parsedUpdate = parseUpdateHomeworkInput(parsedBody, userId);
   if (parsedUpdate instanceof Response) return parsedUpdate;
@@ -23,6 +25,7 @@ export async function updateHomeworkAction(
     homeworkId: id,
     update: parsedUpdate,
     userId,
+    audit,
   });
   if (!result.ok) {
     if (result.error === "no_changes") return badRequest("No changes");

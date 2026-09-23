@@ -6,12 +6,14 @@ import {
 } from "@/features/settings/server/settings-account-actions";
 import { revokeSettingsAuthorizationAction } from "@/features/settings/server/settings-authorization-actions";
 import { updateSettingsProfileAction } from "@/features/settings/server/settings-profile-action";
+import { rotateSettingsCalendarTokenAction } from "@/features/settings/server/settings-security-actions";
 import type { AppLocale } from "@/i18n/config";
 
 type SettingsActionEvent = {
   cookies: Cookies;
   locals: {
     locale: AppLocale;
+    requestId: string;
   };
   request: Request;
   url: URL;
@@ -31,13 +33,32 @@ export const settingsPageActions = {
       url,
     }),
   unlinkAccount: async ({ locals, request, url }: SettingsActionEvent) =>
-    unlinkSettingsAccountAction({ locale: locals.locale, request, url }),
+    unlinkSettingsAccountAction({
+      locale: locals.locale,
+      request,
+      requestId: locals.requestId,
+      url,
+    }),
   linkAccount: async ({ cookies, locals, request, url }: SettingsActionEvent) =>
-    linkSettingsAccountAction({ cookies, locale: locals.locale, request, url }),
+    linkSettingsAccountAction({
+      cookies,
+      locale: locals.locale,
+      request,
+      requestId: locals.requestId,
+      url,
+    }),
   revokeAuthorization: async ({ locals, request, url }: SettingsActionEvent) =>
     revokeSettingsAuthorizationAction({
       locale: locals.locale,
       request,
+      requestId: locals.requestId,
+      url,
+    }),
+  rotateCalendarToken: async ({ locals, request, url }: SettingsActionEvent) =>
+    rotateSettingsCalendarTokenAction({
+      locale: locals.locale,
+      request,
+      requestId: locals.requestId,
       url,
     }),
   deleteAccount: async ({
@@ -50,6 +71,7 @@ export const settingsPageActions = {
       cookies,
       locale: locals.locale,
       request,
+      requestId: locals.requestId,
       url,
     }),
 };

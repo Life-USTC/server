@@ -1,12 +1,14 @@
+import {
+  emptyDescriptionData,
+  emptyDescriptionPayload,
+} from "@/features/descriptions/lib/description-empty-payload";
 import type {
   DescriptionData,
   DescriptionHistoryItem,
-  DescriptionPayload,
-  DescriptionViewer,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
+import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 
 export type {
   DescriptionData,
@@ -15,6 +17,8 @@ export type {
   DescriptionViewer,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
+
+export { emptyDescriptionData, emptyDescriptionPayload };
 
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -36,27 +40,6 @@ type DescriptionHistoryRecord = {
   previousContent?: string | null;
 };
 
-export function emptyDescriptionData(): DescriptionData {
-  return {
-    id: null,
-    content: "",
-    renderedHtml: "",
-    updatedAt: null,
-    lastEditedAt: null,
-    lastEditedBy: null,
-  };
-}
-
-export function emptyDescriptionPayload(
-  viewer: DescriptionViewer,
-): DescriptionPayload {
-  return {
-    description: emptyDescriptionData(),
-    history: [],
-    viewer,
-  };
-}
-
 export function serializeDescriptionRecord(
   description: DescriptionRecord | null | undefined,
 ): DescriptionData {
@@ -65,7 +48,7 @@ export function serializeDescriptionRecord(
   return {
     id: description.id,
     content: description.content ?? "",
-    renderedHtml: renderMarkdown(description.content ?? "", {
+    renderedHtml: renderEmbeddedMarkdown(description.content ?? "", {
       remarkPlugins: campusReferenceMarkdownPlugins,
     }),
     updatedAt: description.updatedAt

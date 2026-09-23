@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { cn } from "$lib/utils.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 import type { CalendarGridWeek } from "./types";
@@ -15,6 +14,7 @@ export let variant: "week" | "month" = "week";
 </script>
 
 <div
+  role="gridcell"
   aria-current={day.isToday ? "date" : undefined}
   class={cn(
     "border-border p-2",
@@ -24,17 +24,10 @@ export let variant: "week" | "month" = "week";
     day.isMuted ? "bg-muted/40 text-muted-foreground" : "bg-background",
   )}
 >
-  <div class="flex items-start justify-between gap-2">
-    <div>
-      <div class="font-medium text-xs">{day.label}</div>
-      {#if day.sublabel}
-        <div class="text-muted-foreground text-xs">{day.sublabel}</div>
-      {/if}
-    </div>
-    {#if day.events.length > 0}
-      <Badge class="h-5 min-w-5 px-1" variant="outline">
-        {day.events.length}
-      </Badge>
+  <div>
+    <div class="font-medium text-xs">{day.label}</div>
+    {#if day.sublabel}
+      <div class="text-muted-foreground text-xs">{day.sublabel}</div>
     {/if}
   </div>
   <div class="mt-3 grid gap-1.5">
@@ -42,8 +35,10 @@ export let variant: "week" | "month" = "week";
       <CalendarEventChip
         href={event.href}
         label={event.label}
+            badge={event.badge}
         title={event.title}
         tooltip={event.tooltip}
+        tooltipDetail={event.tooltipDetail}
         meta={event.meta}
         detail={event.detail}
         tone={event.tone}
@@ -55,9 +50,11 @@ export let variant: "week" | "month" = "week";
       {/if}
     {/each}
     {#if day.events.length > eventLimit}
-      <span class="text-muted-foreground text-xs">
-        {moreLabel(day.events.length - eventLimit)}
-      </span>
+      {#if day.moreHref}
+        <a class="text-muted-foreground text-xs underline" href={day.moreHref}>{moreLabel(day.events.length - eventLimit)}</a>
+      {:else}
+        <span class="text-muted-foreground text-xs">{moreLabel(day.events.length - eventLimit)}</span>
+      {/if}
     {/if}
   </div>
 </div>

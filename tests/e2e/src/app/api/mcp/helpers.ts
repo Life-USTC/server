@@ -6,10 +6,8 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  PUBLIC_REST_FEATURES,
-  restReadScope,
-  restWriteScope,
 } from "@/lib/oauth/constants";
+import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -25,10 +23,7 @@ async function generateCodeChallenge(codeVerifier: string) {
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  ...PUBLIC_REST_FEATURES.flatMap((feature) => [
-    restReadScope(feature),
-    restWriteScope(feature),
-  ]),
+  ...PUBLIC_REST_SCOPES,
 ];
 export const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
 export const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");
@@ -43,6 +38,12 @@ async function resumeConsentIfSignInPage(page: Page) {
       name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
     })
     .first();
+  const expectConsentDestination = async () => {
+    await expect(page.getByText(/回调主机|Redirect host/i)).toBeVisible();
+    await expect(
+      page.getByText(/本地应用|application on your device/i),
+    ).toBeVisible();
+  };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const visibleTarget = await Promise.race([
@@ -57,6 +58,7 @@ async function resumeConsentIfSignInPage(page: Page) {
     ]);
 
     if (visibleTarget === "allow") {
+      await expectConsentDestination();
       return;
     }
     if (visibleTarget === "signin") {
@@ -66,11 +68,16 @@ async function resumeConsentIfSignInPage(page: Page) {
   }
 
   await allowButton.waitFor({ state: "visible" });
+  await expectConsentDestination();
 }
 
-async function registerPublicClient(request: Page["request"], scope: string) {
+export async function registerPublicClient(
+  request: Page["request"],
+  scope: string,
+) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
+      application_type: "native",
       client_name: `mcp-e2e-${Date.now()}`,
       redirect_uris: [REDIRECT_URI],
       token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -79,7 +86,7 @@ async function registerPublicClient(request: Page["request"], scope: string) {
       scope,
     },
   });
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   const body = (await response.json()) as { client_id?: string };
   expect(typeof body.client_id).toBe("string");
   return body.client_id as string;
@@ -132,6 +139,47 @@ async function authorizeAndGetCode(
   return code as string;
 }
 
+export async function issueAccessTokenForClient(
+  page: Page,
+  request: Page["request"],
+  options: {
+    clientId: string;
+    scope: string;
+    resource?: string;
+    /** Whether to repeat the authorization request's `resource` at token exchange. */
+    includeResourceInTokenExchange?: boolean;
+  },
+) {
+  const codeVerifier =
+    "mcp-public-client-verifier-012345678901234567890123456789";
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  const code = await authorizeAndGetCode(page, options.clientId, {
+    scope: options.scope,
+    codeChallenge,
+    resource: options.resource,
+  });
+
+  const includeResourceInToken =
+    options.includeResourceInTokenExchange !== false && options.resource;
+  const tokenResponse = await request.post("/api/auth/oauth2/token", {
+    form: {
+      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+      client_id: options.clientId,
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri: REDIRECT_URI,
+      ...(includeResourceInToken ? { resource: options.resource } : {}),
+    },
+  });
+
+  const tokenBody = (await tokenResponse.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  return { response: tokenResponse, tokenBody };
+}
+
 export async function issueAccessToken(
   page: Page,
   request: Page["request"],
@@ -139,7 +187,7 @@ export async function issueAccessToken(
     scope: string;
     clientScopes: string[];
     resource?: string;
-    /** Omit `resource` on token exchange → opaque access token (ChatGPT-style). */
+    /** Whether to repeat the authorization request's `resource` at token exchange. */
     includeResourceInTokenExchange?: boolean;
   },
 ) {
@@ -148,35 +196,15 @@ export async function issueAccessToken(
     options.clientScopes.join(" "),
   );
 
-  const codeVerifier =
-    "mcp-public-client-verifier-012345678901234567890123456789";
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-  const code = await authorizeAndGetCode(page, clientId, {
-    scope: options.scope,
-    codeChallenge,
-    resource: options.resource,
-  });
-
-  const includeResourceInToken =
-    options.includeResourceInTokenExchange !== false && options.resource;
-
-  const tokenResponse = await request.post("/api/auth/oauth2/token", {
-    form: {
-      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
-      client_id: clientId,
-      code,
-      code_verifier: codeVerifier,
-      redirect_uri: REDIRECT_URI,
-      ...(includeResourceInToken ? { resource: options.resource } : {}),
-    },
-  });
+  const { response: tokenResponse, tokenBody } =
+    await issueAccessTokenForClient(page, request, {
+      clientId,
+      scope: options.scope,
+      resource: options.resource,
+      includeResourceInTokenExchange: options.includeResourceInTokenExchange,
+    });
 
   expect(tokenResponse.status()).toBe(200);
-  const tokenBody = (await tokenResponse.json()) as {
-    access_token?: string;
-    refresh_token?: string;
-  };
   expect(typeof tokenBody.access_token).toBe("string");
 
   return {
@@ -229,7 +257,7 @@ export async function createAuthenticatedMcpClient(
 export async function getCurrentSubscriptionSectionIds(
   request: Page["request"],
 ) {
-  const response = await request.get("/api/calendar-subscriptions/current");
+  const response = await request.get("/api/workspace/subscriptions/current");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -242,7 +270,7 @@ export async function getCurrentSubscriptionSectionIds(
 }
 
 export async function getSeedSectionId(request: Page["request"]) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -259,14 +287,26 @@ export async function getSeedSectionId(request: Page["request"]) {
   return seedSection.id;
 }
 
-export async function replaceCalendarSubscription(
+export async function setCalendarSubscriptionForTest(
   request: Page["request"],
   sectionIds: number[],
 ) {
-  const response = await request.post("/api/calendar-subscriptions", {
-    data: { sectionIds },
-  });
-  expect(response.status()).toBe(200);
+  const currentSectionIds = await getCurrentSubscriptionSectionIds(request);
+  if (currentSectionIds.length > 0) {
+    const removeResponse = await request.delete(
+      "/api/workspace/subscriptions",
+      {
+        data: { sectionIds: currentSectionIds },
+      },
+    );
+    expect(removeResponse.status()).toBe(200);
+  }
+  if (sectionIds.length > 0) {
+    const appendResponse = await request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds },
+    });
+    expect(appendResponse.status()).toBe(200);
+  }
 }
 
 export function getTextContent(result: unknown) {
@@ -364,7 +404,7 @@ export async function saveBusPreference(
   request: Page["request"],
   preference: BusPreference,
 ) {
-  const response = await request.post("/api/bus/preferences", {
+  const response = await request.post("/api/workspace/bus-preferences", {
     data: {
       preferredOriginCampusId: preference.preferredOriginCampusId ?? null,
       preferredDestinationCampusId:

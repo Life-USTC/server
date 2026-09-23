@@ -1,59 +1,59 @@
 # Documentation Index
 
-`AGENTS.md` is the canonical instruction surface for coding agents. This index
-is the project map: start here, then follow the closest source of truth.
+Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
+[`$life-ustc-implement`](../.agents/skills/life-ustc-implement/SKILL.md).
 
-## Start Here
+## Start here
 
-- [Root agent guide](../AGENTS.md) - setup, commands, architecture boundaries, testing, and definition of done.
-- [Repo skills](../.agents/skills/) - reusable task workflows; `$life-ustc-dev-loop` is the single source of truth for checks, tests, and verification.
-- [README](../README.md) - short project entry point and local quick start.
-- [Contracts](contracts/) - modular JSON product/API/GraphQL/MCP contracts.
-- [Interface hierarchy](interface-hierarchy.md) - shared Web, REST, GraphQL, MCP, Bot, and CLI information architecture.
+- [AGENTS.md](../AGENTS.md) — layout and local checks
+- [README](../README.md) — product overview
+- [Contracts](contracts/)
+- [Interface hierarchy](interface-hierarchy.md)
+- [Rendering and cache](rendering-and-cache.md) — which pages may be anonymously cached
 
-## Read by Task
+## Read by task
 
 | Task | Read first |
 |------|------------|
-| Understand the system | [Root agent guide](../AGENTS.md), then the closest scoped `AGENTS.md` |
-| Run a PR/check workflow | `$life-ustc-pr-workflow` in [repo skills](../.agents/skills/) |
-| Change a feature | `docs/contracts/<module>.json`, then `src/features/` and related routes/tools |
-| Refine UI or layout | `$life-ustc-dev-loop` → UI verification, affected component/page, and related Playwright spec |
-| Change REST behavior | `$life-ustc-dev-loop` → API/MCP verification, route handler, route OpenAPI JSDoc, `docs/contracts/openapi.json` |
-| Change GraphQL behavior | `docs/contracts/graphql.json`, the affected module contract, canonical SDL snapshot, then GraphQL route/resolver tests |
-| Change MCP behavior | `$life-ustc-dev-loop` → API/MCP verification, `src/lib/mcp/AGENTS.md`, tool handler, `docs/contracts/mcp.json` |
-| Change data shape | `prisma/schema.prisma` and migrations |
-| Change setup or operations | [README](../README.md), [Observability](observability.md), closest scoped `AGENTS.md` |
+| Find your way around | Nearest `AGENTS.md` under the folder you are editing |
+| Add or change behavior | `$life-ustc-implement`, then `docs/contracts/<module>.json` |
+| UI / layout | Feature components + Playwright under `tests/e2e/` |
+| REST | Route handler, OpenAPI JSDoc, `docs/contracts/openapi.json` |
+| GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
+| MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
+| Data shape | `prisma/schema.prisma` + migrations |
+| Weather / young events / news | Module contracts `weather.json`, `young-event.json`, `publications.json` |
+| Env / CI | `.env.example`, `.github/workflows/AGENTS.md` |
 
-## Keep In Sync
+## Keep in sync
 
-| Change area | Update docs |
-|-------------|-------------|
-| Public REST API, route params, response shape, or status | Route OpenAPI JSDoc in `src/routes/api/**/+server.ts`; `docs/contracts/openapi.json` when contract coverage changes; regenerate with `bun run build`. |
-| GraphQL field, input, output, request budget, or schema resource | Matching `docs/contracts/<module>.json`; `docs/contracts/graphql.json`; canonical SDL snapshot and GraphQL tests. |
-| MCP tool, input parameter, auth behavior, output shape, or compaction | Matching `docs/contracts/<module>.json`; integration tests under `tests/integration/`. |
-| User-visible web behavior, permissions, workflows, or labels | Matching `docs/contracts/<module>.json`; both message files when text changes. |
-| Prisma model, enum, relation, migration, or seed contract | `prisma/schema.prisma`, migrations, and shared seed files when tests depend on it. |
-| Setup, environment, Docker, CI, release, or operations | `README.md`, `.env.example`, `.github/workflows/AGENTS.md`, or the closest operational doc. |
-| Architecture boundary or recurring agent mistake | The nearest scoped `AGENTS.md` for always-on rules, or `.agents/skills` for reusable workflows. |
+| Change area | Update |
+|-------------|--------|
+| Public REST | Route OpenAPI JSDoc; `openapi.json` when coverage changes; `bun run openapi:check` |
+| GraphQL | Module contract; `graphql.json`; SDL snapshot + tests |
+| MCP | Module contract; `tests/integration/` |
+| User-visible web | Module contract; both message files when text changes |
+| Prisma / seed | schema, migrations, shared seed files |
+| Setup / CI | `.env.example`, `.github/workflows/AGENTS.md` |
+| Layout / boundaries | Root or nearest `AGENTS.md` |
+| How to split a change | `.agents/skills/life-ustc-implement` |
 
-## Major Docs
+## Major docs
 
-- [.agents/skills](../.agents/skills/) - checked-in reusable agent workflows.
-- [docs/AGENTS.md](AGENTS.md) - documentation editing rules.
-- [docs/contracts/AGENTS.md](contracts/AGENTS.md) - contract JSON workflow and validation.
-- [docs/contracts.schema.json](contracts.schema.json) - schema for contract files.
-- [docs/contracts/_product.json](contracts/_product.json) - product roles, workflow, and display conventions.
-- [docs/contracts/openapi.json](contracts/openapi.json) - OpenAPI contract surface.
-- [docs/contracts/graphql.json](contracts/graphql.json) - GraphQL contract surface.
-- [docs/graphql/mutation-capabilities.json](graphql/mutation-capabilities.json) - REST/GraphQL/MCP business-write parity matrix and intentional exclusions.
-- [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
-- [docs/contracts/security.json](contracts/security.json) - security and permission expectations.
-- [docs/observability.md](observability.md) - production logs, metrics, alerts, and dashboard guidance.
-- [docs/interface-hierarchy.md](interface-hierarchy.md) - canonical cross-surface hierarchy, naming, compatibility, locale, cache, and SEO policy.
+- [contracts/AGENTS.md](contracts/AGENTS.md)
+- [contracts.schema.json](contracts.schema.json)
+- [rendering-and-cache.md](rendering-and-cache.md)
+- [interface-hierarchy.md](interface-hierarchy.md)
+- [conventions/homework-naming.md](conventions/homework-naming.md)
+- [graphql/mutation-capabilities.json](graphql/mutation-capabilities.json)
+- Generated OpenAPI: [`public/openapi.generated.json`](../public/openapi.generated.json)
 
-## Verification
+`bun run build` regenerates the deployed OpenAPI document. Commit that generated
+snapshot and use `bun run openapi:check` as the clean-tree drift gate. Pull
+requests with an intentional breaking change require the
+`api-breaking-approved` label. Intentional GraphQL breaking changes require the
+separate `graphql-breaking-approved` label. Both canonical generated contracts
+remain checked even when their base-compatibility gate is approved.
 
-- Use `$life-ustc-dev-loop` for the canonical check, test, integration, E2E, and handoff sequences.
-- Core aliases remain in `package.json`: `bun run app:prepare`, `bun run build`, `bun run dev`, `bun run e2e:server`.
-- Regenerate Prisma/OpenAPI artifacts with `bun run build`.
+Production monitoring, role grants, and deploy runbooks are **not** published in
+this repository.

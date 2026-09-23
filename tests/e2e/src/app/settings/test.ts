@@ -1,9 +1,9 @@
 /**
- * E2E tests for the Settings Hub Page (`/settings`)
+ * E2E tests for the Settings Hub Page (`/account/settings`)
  *
  * ## Data Represented
  * - Central settings page using semantic child paths.
- * - Sections: profile (default), preferences, accounts, content, danger.
+ * - Sections: profile (default), preferences, accounts, authorizations, danger.
  * - Each child route renders a different section component server-side.
  * - Layout requires authentication (`requireSignedInUserId`).
  *
@@ -14,24 +14,25 @@
  *
  * ## Edge Cases
  * - Unauthenticated → redirects to /signin
- * - `/settings` and invalid legacy `?tab` values redirect to profile
+ * - `/account/settings` and invalid legacy `?tab` values redirect to profile
  */
 import { expect, test } from "@playwright/test";
 import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
 
-test.describe("/settings 设置中心", () => {
+test.describe("/account/settings 设置中心", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings");
+    await expectRequiresSignIn(page, "/account/settings");
     await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
   test("默认进入个人资料标签并显示种子用户数据", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings");
+    await signInAsDebugUser(page, "/account/settings");
 
-    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
     await expect(page.locator("input#name")).toBeVisible();
     await expect(page.locator("input#username")).toHaveValue(
       DEV_SEED.debugUsername,
@@ -44,9 +45,10 @@ test.describe("/settings 设置中心", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await signInAsDebugUser(page, "/settings");
+    await signInAsDebugUser(page, "/account/settings");
 
-    const navigation = page.locator("[data-settings-navigation]");
+    const navigation = page.getByTestId("detail-section-nav");
+    const scrollViewport = navigation.locator('[data-sidebar="content"]');
     const activePanel = page.locator("[data-settings-active-panel]");
     const profileLink = navigation.getByRole("link", {
       name: /个人资料|Profile/i,
@@ -54,46 +56,47 @@ test.describe("/settings 设置中心", () => {
 
     await expect(profileLink).toHaveAttribute("aria-current", "page");
     await expect
-      .poll(() => {
-        const wrapper = navigation.locator("..");
-        return Promise.all([
-          wrapper.getAttribute("data-overflow-left"),
-          wrapper.getAttribute("data-overflow-right"),
-        ]);
-      })
+      .poll(() =>
+        Promise.all([
+          navigation.getAttribute("data-overflow-left"),
+          navigation.getAttribute("data-overflow-right"),
+        ]),
+      )
       .toEqual(["false", "true"]);
-    const mobileNavigationBox = await navigation.boundingBox();
+    const mobileNavigationBox = await scrollViewport.boundingBox();
     const mobilePanelBox = await activePanel.boundingBox();
     expect(mobileNavigationBox?.height).toBeLessThan(80);
     expect(mobilePanelBox?.y).toBeLessThan(844);
     await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, "/settings");
+    await gotoAndWaitForReady(page, "/account/settings");
     const desktopNavigationBox = await navigation.boundingBox();
     const desktopPanelBox = await activePanel.boundingBox();
     expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
+    expect(desktopNavigationBox?.width).toBe(224);
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
   });
 
   test("移动端直接打开末尾标签时当前项保持可见", async ({ page }) => {
-    const localeResponse = await page.request.post("/api/locale", {
+    const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
     await page.setViewportSize({ width: 375, height: 900 });
-    await signInAsDebugUser(page, "/settings/danger");
+    await signInAsDebugUser(page, "/account/settings/danger");
 
-    const navigation = page.locator("[data-settings-navigation]");
+    const navigation = page.getByTestId("detail-section-nav");
+    const scrollViewport = navigation.locator('[data-sidebar="content"]');
     const activeLink = navigation.locator('a[aria-current="page"]');
 
     for (const width of [280, 320, 375]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/settings/danger");
+      await gotoAndWaitForReady(page, "/account/settings/danger");
       await expect(activeLink).toBeVisible();
       await expect
         .poll(() =>
-          navigation.evaluate((nav) => {
+          scrollViewport.evaluate((nav) => {
             const link = nav.querySelector<HTMLElement>(
               'a[aria-current="page"]',
             );
@@ -140,7 +143,7 @@ test.describe("/settings 设置中心", () => {
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings");
+    await signInAsDebugUser(page, "/account/settings");
 
     // Navigate to accounts tab
     const accountsTab = page.getByRole("link", {
@@ -148,7 +151,7 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(accountsTab).toBeVisible();
     await accountsTab.click();
-    await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
 
@@ -158,13 +161,14 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(dangerTab).toBeVisible();
     await dangerTab.click();
-    await expect(page).toHaveURL(/\/settings\/danger(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/settings\/danger(?:\?.*)?$/);
     await expect(
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("region", { name: /删除账户|Delete Account/i }),
-    ).toHaveAttribute("data-settings-danger-region", "true");
+      page.getByRole("heading", { name: /删除账户|Delete Account/i }),
+    ).toBeVisible();
+    await expect(page.locator("[data-settings-danger-region]")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-danger-tab");
 
     // Navigate back to profile tab
@@ -173,28 +177,27 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(profileTab).toBeVisible();
     await profileTab.click();
-    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
     await expect(page.locator("input#name")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-profile-tab");
   });
 
   test("设置语义路径渲染对应分区", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/accounts");
-    await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
+    await signInAsDebugUser(page, "/account/settings/accounts");
+    await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/settings/content");
-    await expect(
-      page.getByRole("link", { name: /浏览班级|Browse sections/i }),
-    ).toBeVisible();
-
-    await gotoAndWaitForReady(page, "/settings/danger");
+    await gotoAndWaitForReady(page, "/account/settings/danger");
     await expect(
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
 
-    await gotoAndWaitForReady(page, "/settings/profile");
+    await gotoAndWaitForReady(page, "/account/settings/profile");
     await expect(page.locator("input#name")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-path-profile");
   });
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/account/settings", testInfo });
 });

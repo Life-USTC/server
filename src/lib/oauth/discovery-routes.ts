@@ -4,11 +4,11 @@ import {
   createDiscoveryMetadataRoute,
   createDiscoveryRedirectRoute,
   getAuthServerMetadataResponse,
+  getMcpProtectedResourceMetadataResponse,
   getOpenIdMetadataResponse,
 } from "@/lib/oauth/discovery-metadata";
 import {
   getGraphqlServerUrl,
-  getMcpServerUrl,
   getOAuthAuthorizationServerMetadataUrl,
   getOAuthIssuerUrl,
   getOAuthOpenIdConfigurationUrl,
@@ -60,11 +60,7 @@ const DISCOVERY_TARGETS = {
   },
   protectedResourceMetadata: {
     type: "metadata",
-    getResponse: () =>
-      getProtectedResourceMetadataResponse({
-        documentationPath: "/api/docs/tag/sections",
-        resource: getMcpServerUrl(),
-      }),
+    getResponse: getMcpProtectedResourceMetadataResponse,
   },
   protectedResourceAlias: {
     type: "redirect",

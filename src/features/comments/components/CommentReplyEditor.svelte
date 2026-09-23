@@ -119,10 +119,9 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
         uploadFile(file, "reply");
       }}
     />
-    <Button size="sm" type="button" variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
+    <Button type="button" variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
     <Button
       disabled={!replyDraft.trim() || replyDisabled || submitting || uploading}
-      size="sm"
       type="button"
       onclick={() => {
         if (replyDisabled) return;

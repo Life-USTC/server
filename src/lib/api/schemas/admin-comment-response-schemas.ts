@@ -29,6 +29,7 @@ const adminCommentBaseSchema = z.object({
   teacherId: z.number().int().nullable(),
   sectionTeacherId: z.number().int().nullable(),
   homeworkId: z.string().nullable(),
+  youngEventId: z.number().int().nullable(),
 });
 
 const adminCommentSchema = adminCommentBaseSchema.extend({
@@ -72,6 +73,9 @@ const adminCommentSchema = adminCommentBaseSchema.extend({
       }),
       teacher: z.object({ nameCn: z.string() }),
     })
+    .nullable(),
+  youngEvent: z
+    .object({ id: z.number().int(), name: z.string(), youngId: z.string() })
     .nullable(),
 });
 

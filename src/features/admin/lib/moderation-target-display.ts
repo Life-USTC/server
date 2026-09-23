@@ -4,9 +4,17 @@ import type {
   ModerationDescriptionLike,
 } from "@/features/admin/lib/moderation-display-types";
 import {
+  courseDetailPagePath,
+  teacherDetailPagePath,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
   commentPermalinkHref,
   commentTargetPermalinkBaseHref,
 } from "@/features/comments/lib/comment-panel-links";
+import {
+  sectionDetailHomeworkPath,
+  sectionDetailPagePath,
+} from "@/features/section-detail/lib/section-detail-tab";
 
 export function visibleModerationComments<T extends ModerationCommentLike>(
   comments: T[],
@@ -28,6 +36,7 @@ export function visibleModerationComments<T extends ModerationCommentLike>(
       comment.sectionTeacher?.section?.code,
       comment.sectionTeacher?.section?.course?.nameCn,
       comment.sectionTeacher?.teacher?.nameCn,
+      comment.youngEvent?.name,
     ]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(needle)),
@@ -53,10 +62,19 @@ export function moderationTargetLabel(
   if (item.course) return `${item.course.nameCn} ${item.course.code}`;
   if (item.teacher) return item.teacher.nameCn;
   if (item.homework) return item.homework.title;
+  if (item.youngEvent) return item.youngEvent.name;
   return copy.unknownTarget;
 }
 
 export function moderationTargetHref(comment: ModerationCommentLike) {
+  if (comment.youngEvent?.youngId)
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        type: "young-event",
+        youngId: comment.youngEvent.youngId,
+      }),
+      String(comment.id),
+    );
   if (comment.sectionTeacher?.section?.jwId)
     return commentPermalinkHref(
       commentTargetPermalinkBaseHref({
@@ -99,21 +117,23 @@ export function moderationTargetHref(comment: ModerationCommentLike) {
       String(comment.id),
     );
   }
-  return `/comments/${comment.id}`;
+  return `/community/comments/${comment.id}`;
 }
 
 export function moderationDescriptionTargetHref(
   description: ModerationDescriptionLike,
 ) {
-  if (description.homework?.section?.jwId) {
-    return `/sections/${description.homework.section.jwId}/homework#homework-${description.homework.id}`;
+  if (description.homework?.section?.jwId && description.homework.id) {
+    return sectionDetailHomeworkPath(description.homework.section.jwId, {
+      homeworkId: description.homework.id,
+    });
   }
   if (description.section?.jwId)
-    return `/sections/${description.section.jwId}/introduction`;
+    return sectionDetailPagePath(description.section.jwId, "introduction");
   if (description.course?.jwId)
-    return `/courses/${description.course.jwId}/introduction`;
+    return courseDetailPagePath(description.course.jwId, "introduction");
   if (description.teacher?.id)
-    return `/teachers/${description.teacher.id}/introduction`;
+    return teacherDetailPagePath(description.teacher.id, "introduction");
   if (description.homework?.id) return "/admin/moderation?tab=homeworks";
   return "/admin/moderation?tab=descriptions";
 }

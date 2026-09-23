@@ -6,6 +6,7 @@ declare global {
     interface Locals {
       authUser: AppSession["user"] | null;
       locale: AppLocale;
+      publicSsr: boolean;
       requestId: string;
     }
   }

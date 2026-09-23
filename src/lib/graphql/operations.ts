@@ -1,6 +1,4 @@
 import {
-  assertScalarType,
-  buildSchema,
   type DocumentNode,
   type FragmentDefinitionNode,
   getOperationAST,
@@ -16,41 +14,16 @@ import {
 } from "graphql";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { GRAPHQL_LIMITS } from "./constants";
-import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   analyzeGraphqlOperation,
   countGraphqlTopLevelFields,
 } from "./operation-analysis";
 import { persistedGraphqlOperationDefinitions } from "./operation-definitions";
-import { graphqlTypeDefs } from "./schema";
+import type { PersistedGraphqlOperationDefinition } from "./operation-types";
+import { graphqlOperationValidationSchema } from "./validation-schema";
 
-function buildOperationValidationSchema() {
-  // Keep registry validation on this module's GraphQL.js realm. Yoga can be
-  // loaded through a separate module realm under Vitest/worktree installs.
-  const schema = buildSchema(graphqlTypeDefs);
-  for (const implementation of [graphqlDateScalar, graphqlDateTimeScalar]) {
-    const scalar = assertScalarType(schema.getType(implementation.name));
-    scalar.serialize = implementation.serialize;
-    scalar.parseValue = implementation.parseValue;
-    scalar.parseLiteral = implementation.parseLiteral;
-  }
-  return schema;
-}
-
-export const graphqlOperationValidationSchema =
-  buildOperationValidationSchema();
-
-export type PersistedGraphqlOperationDefinition = Readonly<{
-  description: string;
-  destructive: boolean;
-  document: string;
-  id: string;
-  openWorld: boolean;
-  readOnly: boolean;
-  requiresConfirmation: boolean;
-  scopes: readonly string[];
-  title: string;
-}>;
+export type { PersistedGraphqlOperationDefinition } from "./operation-types";
+export { graphqlOperationValidationSchema } from "./validation-schema";
 
 export type PersistedGraphqlOperationVariable = Readonly<{
   name: string;
@@ -276,20 +249,23 @@ export function createPersistedGraphqlOperationRegistry(
       );
       const rootField = rootFields[0].name.value;
 
-      if (operation.operation === "query" && rootField === "viewer") {
-        const viewerFields =
+      if (
+        operation.operation === "query" &&
+        (rootField === "account" || rootField === "workspace")
+      ) {
+        const scopeFields =
           rootFields[0].selectionSet?.selections.filter(
             (selection) => selection.kind === Kind.FIELD,
           ) ?? [];
         requireInvariant(
-          viewerFields.length === 1 &&
+          scopeFields.length === 1 &&
             rootFields[0].selectionSet?.selections.length === 1,
-          `viewer operation "${definition.id}" must select exactly one Viewer field`,
+          `${rootField} operation "${definition.id}" must select exactly one field`,
         );
         requireInvariant(
           definition.scopes.length === 1 &&
             definition.scopes[0].endsWith(":read"),
-          `viewer operation "${definition.id}" requires exactly one read scope`,
+          `${rootField} operation "${definition.id}" requires exactly one read scope`,
         );
       } else if (operation.operation === "query") {
         requireInvariant(

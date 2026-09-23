@@ -4,30 +4,6 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
-    inputs:
-      dry-run:
-        description: "Simulate data writes and roll them back; migrations still deploy and locks are acquired"
-        required: false
-        default: false
-        type: boolean
-      bootstrap_import_state:
-        description: "Initialize the global import watermark (manual only; committed runs require the exact snapshot SHA below)"
-        required: false
-        default: false
-        type: boolean
-      retire_missing_sections:
-        description: "Retire missing Sections (manual runs only; requires both approval fields below)"
-        required: false
-        default: false
-        type: boolean
-      expected_snapshot_sha256:
-        description: "Exact snapshot SHA-256 approved from a preceding bootstrap/retirement dry run"
-        required: false
-        type: string
-      expected_section_retirement_candidates:
-        description: "Exact missing-Section candidate count approved from a preceding dry run"
-        required: false
-        type: string
 
 concurrency:
   group: static-sync
@@ -36,16 +12,20 @@ concurrency:
 jobs:
   sync:
     name: Sync static snapshot to production database
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
@@ -57,31 +37,41 @@ jobs:
 
       - name: Generate Prisma client
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_generate
         run: bun run db:generate
 
       - name: Deploy Prisma migrations
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
         run: bun run db:migrate:deploy
 
       - name: Load static snapshot
         id: load
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
           STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL || 'https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite' }}
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
-          STATIC_LOADER_DRY_RUN: ${{ inputs.dry-run || 'false' }}
-          STATIC_LOADER_BOOTSTRAP_IMPORT_STATE: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap_import_state || false }}
-          STATIC_LOADER_RETIRE_MISSING_SECTIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.retire_missing_sections || false }}
-          STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_snapshot_sha256 || '' }}
-          STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_section_retirement_candidates || '' }}
+          STATIC_LOADER_DRY_RUN: "false"
           STATIC_LOADER_STATS_FILE: /tmp/static-load-stats.json
+          # A committed import must invalidate both cache layers. The zone
+          # purge does not reach the Workers entrypoint cache, so the loader
+          # also calls the Worker's authenticated internal purge route.
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          APP_PUBLIC_ORIGIN: ${{ vars.APP_PUBLIC_ORIGIN || 'https://life-ustc.tiankaima.dev' }}
+          EDGE_CACHE_PURGE_SECRET: ${{ secrets.EDGE_CACHE_PURGE_SECRET }}
         run: scripts/load-static-sqlite.sh
 
+      # Runs even when the loader exits non-zero: a failed post-import cache
+      # purge fails the step, and the import stats are exactly what is needed
+      # to tell that case apart from a failed import.
       - name: Report stats
-        if: success()
+        if: always()
         run: |
+          if [ ! -f /tmp/static-load-stats.json ]; then
+            echo 'No static load stats were produced.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           echo '## Static Load Stats' >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/static-load-stats.json >> "$GITHUB_STEP_SUMMARY"

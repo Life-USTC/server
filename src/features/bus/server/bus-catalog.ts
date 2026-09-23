@@ -62,7 +62,10 @@ export async function getBusRouteTimetable(input: {
   });
 
   const weekdayTrips = routeTrips.filter((trip) => trip.dayType === "weekday");
-  const weekendTrips = routeTrips.filter((trip) => trip.dayType === "weekend");
+  const saturdayTrips = routeTrips.filter(
+    (trip) => trip.dayType === "saturday",
+  );
+  const sundayTrips = routeTrips.filter((trip) => trip.dayType === "sunday");
 
   const firstCampusId = record.stops[0]?.campus.id;
   const lastCampusId = record.stops[record.stops.length - 1]?.campus.id;
@@ -80,7 +83,8 @@ export async function getBusRouteTimetable(input: {
   return {
     route: listing,
     weekday: busTripsToSlots(weekdayTrips),
-    weekend: busTripsToSlots(weekendTrips),
+    saturday: busTripsToSlots(saturdayTrips),
+    sunday: busTripsToSlots(sundayTrips),
     alternateRoutes,
   };
 }

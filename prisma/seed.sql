@@ -1,3 +1,13 @@
+\if :{?allow_database_seed}
+\else
+DO $seed_guard$
+BEGIN
+  RAISE EXCEPTION
+    'Refusing to run prisma/seed.sql without the explicit allow_database_seed psql variable.';
+END
+$seed_guard$;
+\endif
+
 BEGIN;
 SET CONSTRAINTS ALL DEFERRED;
 
@@ -27,15 +37,23 @@ SET row_security = off;
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9e0000bqt4j4a16ffb', '校园管理员', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-admin', '2026-06-27 07:38:09.794', '2026-06-27 07:38:09.794', '{}', 'dev-admin', true, NULL, 'dev-admin@debug.local', true) ON CONFLICT DO NOTHING;
-INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'Dev User', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user', '2026-06-27 07:38:09.796', '2026-06-27 07:38:09.796', '{}', 'dev-user', false, NULL, 'dev-user@debug.local', true) ON CONFLICT DO NOTHING;
+-- A destructive E2E scenario can recreate the debug principal with a new id.
+-- Restore the named fixture identity before inserting rows that reference it.
+DELETE FROM public."User"
+WHERE email = 'dev-user@debug.local'
+  AND id <> 'cmqw1sr9g0001bqt44c3s0kqa';
+
+INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9e0000bqt4j4a16ffb', '校园管理员', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-admin', '2026-06-27 07:38:09.794', '2026-06-27 07:38:09.794', ARRAY['https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-admin'], 'dev-admin', true, NULL, 'dev-admin@debug.local', true) ON CONFLICT DO NOTHING;
+INSERT INTO public."User" (id, name, image, "createdAt", "updatedAt", "profilePictures", username, "isAdmin", "calendarFeedToken", email, "emailVerified") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'Dev User', 'https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user', '2026-06-27 07:38:09.796', '2026-06-27 07:38:09.796', ARRAY['https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user'], 'dev-user', false, NULL, 'dev-user@debug.local', true) ON CONFLICT DO NOTHING;
 
 
 --
 -- Data for Name: Account; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Account" ("userId", type, provider, "providerAccountId", refresh_token, access_token, expires_at, token_type, scope, id_token, session_state, "createdAt", "updatedAt", id, "accessTokenExpiresAt", "refreshTokenExpiresAt", password) VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'oidc', 'dev-scenario-oidc', 'dev-user-account', NULL, 'scenario-access-token', 1777564740, 'Bearer', 'openid profile email', NULL, NULL, '2026-06-27 07:38:10.042', '2026-06-27 07:38:10.042', 'cmqw1srga0021bqt4me6hh68q', NULL, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO public."Account" ("userId", type, provider, issuer, "providerAccountId", refresh_token, access_token, expires_at, token_type, scope, id_token, session_state, "createdAt", "updatedAt", id, "accessTokenExpiresAt", "refreshTokenExpiresAt", password) VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 'oidc', 'dev-scenario-oidc', 'local:oauth:dev-scenario-oidc', 'dev-user-account', NULL, 'scenario-access-token', 1777564740, 'Bearer', 'openid profile email', NULL, NULL, '2026-06-27 07:38:10.042', '2026-06-27 07:38:10.042', 'cmqw1srga0021bqt4me6hh68q', NULL, NULL, NULL) ON CONFLICT DO NOTHING;
+INSERT INTO public."Account" (id, "userId", type, provider, issuer, "providerAccountId", "createdAt", "updatedAt", password) VALUES ('cmqw1srgb0002bqt4me6hh68q', 'cmqw1sr9e0000bqt4j4a16ffb', 'credential', 'credential', 'local:credential', 'cmqw1sr9e0000bqt4j4a16ffb', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000000000000000000000000000:f1a739e562abd28d3695de7a5e88f9c61abc630fcbd0ce110e27fefabfd0bec08cd4dde2be66c48b7d05cca05cd7c8e2cb96f3509dc50e89ef8169bfc58b7cc8') ON CONFLICT (issuer, "providerAccountId") DO UPDATE SET "userId" = EXCLUDED."userId", type = EXCLUDED.type, provider = EXCLUDED.provider, password = EXCLUDED.password, "updatedAt" = CURRENT_TIMESTAMP;
+INSERT INTO public."Account" (id, "userId", type, provider, issuer, "providerAccountId", "createdAt", "updatedAt", password) VALUES ('cmqw1srgc0003bqt4me6hh68q', 'cmqw1sr9g0001bqt44c3s0kqa', 'credential', 'credential', 'local:credential', 'cmqw1sr9g0001bqt44c3s0kqa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000000000000000000000000000:747fcadcfff0059f6477db7547d7ed3facf9ae1a970fede795fecdeeb1117209c46dc78278c386e7168b77c7e78ccec1a3efa8939f743725b50d9e32f04599d5') ON CONFLICT (issuer, "providerAccountId") DO UPDATE SET "userId" = EXCLUDED."userId", type = EXCLUDED.type, provider = EXCLUDED.provider, password = EXCLUDED.password, "updatedAt" = CURRENT_TIMESTAMP;
 
 
 --
@@ -76,12 +94,12 @@ INSERT INTO public."Building" (id, "jwId", "nameCn", "nameEn", code, "campusId")
 -- Data for Name: BusCampus; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (1, '东区', NULL, 117.268264, 31.83892) ON CONFLICT DO NOTHING;
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (2, '西区', NULL, 117.256645, 31.839258) ON CONFLICT DO NOTHING;
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (3, '北区', NULL, 117.268125, 31.841933) ON CONFLICT DO NOTHING;
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (4, '南区', NULL, 117.283853, 31.822112) ON CONFLICT DO NOTHING;
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (5, '先研院', NULL, 117.129257, 31.826345) ON CONFLICT DO NOTHING;
-INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (6, '高新', NULL, 117.129369, 31.820447) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (1, '东区', NULL, 31.83892, 117.268264) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (2, '西区', NULL, 31.839258, 117.256645) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (3, '北区', NULL, 31.841933, 117.268125) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (4, '南区', NULL, 31.822112, 117.283853) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (5, '先研院', NULL, 31.826345, 117.129257) ON CONFLICT DO NOTHING;
+INSERT INTO public."BusCampus" (id, "nameCn", "nameEn", latitude, longitude) VALUES (6, '高新', NULL, 31.820447, 117.129369) ON CONFLICT DO NOTHING;
 
 
 --
@@ -117,7 +135,7 @@ INSERT INTO public."BusRouteStop" (id, "routeId", "campusId", "stopOrder") VALUE
 -- Data for Name: BusScheduleVersion; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."BusScheduleVersion" (id, key, title, checksum, "sourceMessage", "sourceUrl", "rawJson", "effectiveFrom", "effectiveUntil", "isEnabled", "importedAt", "createdAt", "updatedAt") VALUES (1, 'static-bus-structured', 'Static Structured Bus Timetable', '50ad13be65bfb29bd4db352fb60973dc92b875b112674f6085cad85e982fda58', '校车运营数据仅供测试使用。', 'https://github.com/Life-USTC/static', '{"routes": [{"id": 1, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 3, "name": "北区", "latitude": 117.268125, "longitude": 31.841933}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}]}, {"id": 3, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 4, "name": "南区", "latitude": 117.283853, "longitude": 31.822112}]}, {"id": 7, "campuses": [{"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}]}, {"id": 8, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}]}], "message": {"url": "https://github.com/Life-USTC/static", "message": "校车运营数据仅供测试使用。"}, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 3, "name": "北区", "latitude": 117.268125, "longitude": 31.841933}, {"id": 4, "name": "南区", "latitude": 117.283853, "longitude": 31.822112}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}], "weekday_routes": [{"id": 1, "time": [["07:30", null, "07:40"], ["09:20", null, "09:30"], ["18:40", null, "18:50"], ["21:15", null, "21:25"]], "route": {"id": 1, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 3, "name": "北区", "latitude": 117.268125, "longitude": 31.841933}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}]}}, {"id": 3, "time": [["08:30", "08:45"], ["12:35", "12:50"], ["17:45", "18:00"]], "route": {"id": 3, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 4, "name": "南区", "latitude": 117.283853, "longitude": 31.822112}]}}, {"id": 7, "time": [["08:00", "08:05", null, "08:50"], ["14:30", "14:35", null, "15:25"], ["18:30", "18:35", null, "19:25"]], "route": {"id": 7, "campuses": [{"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}]}}, {"id": 8, "time": [["06:50", "07:00", null, "07:40"], ["12:50", "13:00", null, "13:40"], ["21:20", "21:30", null, "22:00"]], "route": {"id": 8, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}]}}], "weekend_routes": [{"id": 1, "time": [["07:30", null, "07:40"], ["17:30", null, "17:40"], ["21:15", null, "21:25"]], "route": {"id": 1, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 3, "name": "北区", "latitude": 117.268125, "longitude": 31.841933}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}]}}, {"id": 3, "time": [["11:45", "12:00"], ["19:00", "19:15"]], "route": {"id": 3, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 4, "name": "南区", "latitude": 117.283853, "longitude": 31.822112}]}}, {"id": 7, "time": [["08:00", "08:05", null, "08:50"], ["21:50", "21:55", null, "22:40"]], "route": {"id": 7, "campuses": [{"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}]}}, {"id": 8, "time": [["07:00", "07:10", null, "07:50"], ["18:30", "18:40", null, "19:30"]], "route": {"id": 8, "campuses": [{"id": 1, "name": "东区", "latitude": 117.268264, "longitude": 31.83892}, {"id": 2, "name": "西区", "latitude": 117.256645, "longitude": 31.839258}, {"id": 5, "name": "先研院", "latitude": 117.129257, "longitude": 31.826345}, {"id": 6, "name": "高新", "latitude": 117.129369, "longitude": 31.820447}]}}]}', '2026-04-22', NULL, true, '2026-06-27 07:38:10.061', '2026-06-27 07:38:10.061', '2026-06-27 07:38:10.061') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusScheduleVersion" (id, key, title, checksum, "sourceMessage", "sourceUrl", "rawJson", "effectiveFrom", "effectiveUntil", "isEnabled", "importedAt", "createdAt", "updatedAt") VALUES (1, 'static-bus-structured', 'Static Structured Bus Timetable', '90bde309057e162f2f918984cdfdb923486b199e128b21caa6ab0f13a9920b8c', '校车运营数据仅供测试使用。', 'https://github.com/Life-USTC/static', '{"routes":[{"id":1,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":3,"name":"北区","latitude":31.841933,"longitude":117.268125},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645}]},{"id":3,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":4,"name":"南区","latitude":31.822112,"longitude":117.283853}]},{"id":7,"campuses":[{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264}]},{"id":8,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369}]}],"message":{"url":"https://github.com/Life-USTC/static","message":"校车运营数据仅供测试使用。"},"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":3,"name":"北区","latitude":31.841933,"longitude":117.268125},{"id":4,"name":"南区","latitude":31.822112,"longitude":117.283853},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369}],"weekday_routes":[{"id":1,"time":[["07:30",null,"07:40"],["09:20",null,"09:30"],["18:40",null,"18:50"],["21:15",null,"21:25"]],"route":{"id":1,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":3,"name":"北区","latitude":31.841933,"longitude":117.268125},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645}]}},{"id":3,"time":[["08:30","08:45"],["12:35","12:50"],["17:45","18:00"]],"route":{"id":3,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":4,"name":"南区","latitude":31.822112,"longitude":117.283853}]}},{"id":7,"time":[["08:00","08:05",null,"08:50"],["14:30","14:35",null,"15:25"],["18:30","18:35",null,"19:25"]],"route":{"id":7,"campuses":[{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264}]}},{"id":8,"time":[["06:50","07:00",null,"07:40"],["12:50","13:00",null,"13:40"],["21:20","21:30",null,"22:00"]],"route":{"id":8,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369}]}}],"saturday_routes":[],"sunday_routes":[{"id":1,"time":[["07:30",null,"07:40"],["17:30",null,"17:40"],["21:15",null,"21:25"]],"route":{"id":1,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":3,"name":"北区","latitude":31.841933,"longitude":117.268125},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645}]}},{"id":3,"time":[["11:45","12:00"],["19:00","19:15"]],"route":{"id":3,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":4,"name":"南区","latitude":31.822112,"longitude":117.283853}]}},{"id":7,"time":[["08:00","08:05",null,"08:50"],["21:50","21:55",null,"22:40"]],"route":{"id":7,"campuses":[{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264}]}},{"id":8,"time":[["07:00","07:10",null,"07:50"],["18:30","18:40",null,"19:30"]],"route":{"id":8,"campuses":[{"id":1,"name":"东区","latitude":31.83892,"longitude":117.268264},{"id":2,"name":"西区","latitude":31.839258,"longitude":117.256645},{"id":5,"name":"先研院","latitude":31.826345,"longitude":117.129257},{"id":6,"name":"高新","latitude":31.820447,"longitude":117.129369}]}}]}', '2026-04-22', NULL, true, '2026-06-27 07:38:10.061', '2026-06-27 07:38:10.061', '2026-06-27 07:38:10.061') ON CONFLICT DO NOTHING;
 
 
 --
@@ -137,15 +155,15 @@ INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position",
 INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (11, 1, 8, 'weekday', 0, '["06:50", "07:00", null, "07:40"]') ON CONFLICT DO NOTHING;
 INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (12, 1, 8, 'weekday', 1, '["12:50", "13:00", null, "13:40"]') ON CONFLICT DO NOTHING;
 INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (13, 1, 8, 'weekday', 2, '["21:20", "21:30", null, "22:00"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (14, 1, 1, 'weekend', 0, '["07:30", null, "07:40"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (15, 1, 1, 'weekend', 1, '["17:30", null, "17:40"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (16, 1, 1, 'weekend', 2, '["21:15", null, "21:25"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (17, 1, 3, 'weekend', 0, '["11:45", "12:00"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (18, 1, 3, 'weekend', 1, '["19:00", "19:15"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (19, 1, 7, 'weekend', 0, '["08:00", "08:05", null, "08:50"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (20, 1, 7, 'weekend', 1, '["21:50", "21:55", null, "22:40"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (21, 1, 8, 'weekend', 0, '["07:00", "07:10", null, "07:50"]') ON CONFLICT DO NOTHING;
-INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (22, 1, 8, 'weekend', 1, '["18:30", "18:40", null, "19:30"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (14, 1, 1, 'sunday', 0, '["07:30", null, "07:40"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (15, 1, 1, 'sunday', 1, '["17:30", null, "17:40"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (16, 1, 1, 'sunday', 2, '["21:15", null, "21:25"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (17, 1, 3, 'sunday', 0, '["11:45", "12:00"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (18, 1, 3, 'sunday', 1, '["19:00", "19:15"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (19, 1, 7, 'sunday', 0, '["08:00", "08:05", null, "08:50"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (20, 1, 7, 'sunday', 1, '["21:50", "21:55", null, "22:40"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (21, 1, 8, 'sunday', 0, '["07:00", "07:10", null, "07:50"]') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position", "stopTimes") VALUES (22, 1, 8, 'sunday', 1, '["18:30", "18:40", null, "19:30"]') ON CONFLICT DO NOTHING;
 
 
 --
@@ -206,14 +224,13 @@ INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId",
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (2, 9901004, 'MATH2001', '线性代数进阶', 'Advanced Linear Algebra', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (4, 9901001, 'IS3003', '密码工程原理与实践', 'Cryptographic Engineering: Principles and Practice', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 
-INSERT INTO public."CourseAlias" ("jwId", "courseId") VALUES (19901001, 4) ON CONFLICT DO NOTHING;
 
 
 --
 -- Data for Name: Department; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Department" (id, code, "nameCn", "nameEn", "isCollege") VALUES (1, 'DPT-IS', '网络空间安全学院', 'School of Cyber Science and Technology', true) ON CONFLICT DO NOTHING;
+INSERT INTO public."Department" (id, "jwId", code, "nameCn", "nameEn", "isCollege") VALUES (1, 9910071, 'DPT-IS', '网络空间安全学院', 'School of Cyber Science and Technology', true) ON CONFLICT DO NOTHING;
 
 
 --
@@ -234,7 +251,12 @@ INSERT INTO public."RoomType" (id, "jwId", "nameCn", "nameEn", code) VALUES (1, 
 -- Data for Name: Semester; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', '2026-04-08', '2026-09-06') ON CONFLICT DO NOTHING;
+-- Keep the named current-semester fixture active after its canonical end date.
+-- Its anchored start still contains the seeded schedules and due dates. Use an
+-- explicit Shanghai calendar day because current-semester lookups normalize to
+-- that timezone too. A modest horizon covers time between reseeds, while
+-- updating by jwId lets repeated seeds refresh the fixture indefinitely.
+INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (1, 9900001, '2026年春季学期', '421', DATE '2026-04-08', GREATEST(DATE '2026-09-06', (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Shanghai')::date + 180)) ON CONFLICT ("jwId") DO UPDATE SET "startDate" = EXCLUDED."startDate", "endDate" = EXCLUDED."endDate";
 INSERT INTO public."Semester" (id, "jwId", "nameCn", code, "startDate", "endDate") VALUES (2, 9900000, '2025年秋季学期', '420', '2025-10-21', '2026-03-30') ON CONFLICT DO NOTHING;
 
 
@@ -281,9 +303,9 @@ INSERT INTO public."TeacherTitle" (id, "jwId", "nameCn", "nameEn", code, enabled
 -- Data for Name: Teacher; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, NULL, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, NULL, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Teacher" (id, "personId", "teacherId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, NULL, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (1, 9910101, NULL, 'T2401001', '林璟锵', 'Lin Jingqiang', NULL, 'jqlin@ustc.edu.cn', NULL, '13800001111', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (2, 9910102, NULL, 'T2401002', '王伟', 'Wang Wei', NULL, 'wangwei@ustc.edu.cn', NULL, '13800002222', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Teacher" (id, "jwId", "personId", code, "nameCn", "nameEn", age, email, telephone, mobile, address, postcode, qq, wechat, "departmentId", "teacherTitleId") VALUES (3, 9910103, NULL, 'T2401003', '童中华', 'Tong Zhonghua', NULL, 'zhtong@ustc.edu.cn', NULL, '13800003333', '中国科学技术大学', NULL, NULL, NULL, 1, 1) ON CONFLICT DO NOTHING;
 
 
 --
@@ -336,24 +358,24 @@ INSERT INTO public."CommentReaction" (id, type, "createdAt", "commentId", "userI
 
 
 --
--- Data for Name: DashboardLinkClick; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: CatalogLinkClick; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001rbqt4hw3745va', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', 6, '2026-04-29 02:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001sbqt4qxj6mt2a', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', 5, '2026-04-29 03:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001tbqt4hou8tuds', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', 4, '2026-04-29 04:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001ubqt4s4f8uffi', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', 3, '2026-04-29 05:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001vbqt4ixame69s', 'cmqw1sr9g0001bqt44c3s0kqa', 'icourse', 2, '2026-04-29 06:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001rbqt4hw3745va', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', 6, '2026-04-29 02:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001sbqt4qxj6mt2a', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', 5, '2026-04-29 03:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001tbqt4hou8tuds', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', 4, '2026-04-29 04:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001ubqt4s4f8uffi', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', 3, '2026-04-29 05:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
+INSERT INTO public."CatalogLinkClick" (id, "userId", slug, count, "lastClickedAt", "createdAt", "updatedAt") VALUES ('cmqw1srg4001vbqt4ixame69s', 'cmqw1sr9g0001bqt44c3s0kqa', 'icourse', 2, '2026-04-29 06:00:00', '2026-06-27 07:38:10.036', '2026-06-27 07:38:10.036') ON CONFLICT DO NOTHING;
 
 
 --
--- Data for Name: DashboardLinkPin; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: WorkspaceLinkPin; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001wbqt481a7iqs3', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001xbqt4tep8wgdo', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001ybqt4y7cwzufi', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
-INSERT INTO public."DashboardLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001zbqt4c1erutxb', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001wbqt481a7iqs3', 'cmqw1sr9g0001bqt44c3s0kqa', 'jw', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001xbqt4tep8wgdo', 'cmqw1sr9g0001bqt44c3s0kqa', 'confession-wall', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001ybqt4y7cwzufi', 'cmqw1sr9g0001bqt44c3s0kqa', 'mail', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
+INSERT INTO public."WorkspaceLinkPin" (id, "userId", slug, "createdAt", "updatedAt") VALUES ('cmqw1srg5001zbqt4c1erutxb', 'cmqw1sr9g0001bqt44c3s0kqa', 'official', '2026-06-27 07:38:10.037', '2026-06-27 07:38:10.037') ON CONFLICT DO NOTHING;
 
 
 --
@@ -409,7 +431,7 @@ INSERT INTO public."DescriptionEdit" (id, "descriptionId", "editorId", "previous
 -- Data for Name: ExamBatch; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."ExamBatch" (id, "nameCn", "nameEn") VALUES (1, '2026年春季学期 期末考试', 'Final Exam 2026 Spring') ON CONFLICT DO NOTHING;
+INSERT INTO public."ExamBatch" (id, "jwId", "nameCn", "nameEn") VALUES (1, 9910081, '2026年春季学期 期末考试', 'Final Exam 2026 Spring') ON CONFLICT DO NOTHING;
 
 
 --
@@ -433,19 +455,19 @@ INSERT INTO public."ExamRoom" (id, room, count, "examId") VALUES (4, '一教101'
 
 
 --
--- Data for Name: HomeworkAuditLog; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: AuditLog homework events; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000bbqt45m41c8yz', 'created', '迭代一需求拆解', '2026-04-28 01:30:00', 2, 'cmqw1srez0002bqt4l5neqtsa', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000cbqt4fh6youwv', 'created', '逾期实验数据补交', '2026-04-28 01:30:00', 1, 'cmqw1srez0003bqt45qjilal7', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000dbqt4r8m6dvjn', 'created', '今日课堂反馈整理', '2026-04-28 01:30:00', 4, 'cmqw1srez0004bqt4qy3jviis', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000ebqt4x9esknto', 'created', '迭代二系统设计评审', '2026-04-28 01:30:00', 3, 'cmqw1srez0005bqt41y0wbcrp', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000fbqt4pxda9iz9', 'created', '线性变换证明题', '2026-04-28 01:30:00', 2, 'cmqw1srez0006bqt4j01p7cwx', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000gbqt4lnl6nmjt', 'created', '特征值综合练习', '2026-04-28 01:30:00', 1, 'cmqw1srez0007bqt4p55o2ara', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000hbqt4t2eglceu', 'created', '实验报告与误差分析', '2026-04-28 01:30:00', 4, 'cmqw1srez0008bqt467yuqdec', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000ibqt4vc5ewmkm', 'created', '历史学期复盘作业', '2026-04-28 01:30:00', 3, 'cmqw1srez0009bqt4i5lpmutg', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srf6000jbqt4rx8zra45', 'created', '已删除作业', '2026-04-28 01:30:00', 2, 'cmqw1srez000abqt4el2uqvbq', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."HomeworkAuditLog" (id, action, "titleSnapshot", "createdAt", "sectionId", "homeworkId", "actorId") VALUES ('cmqw1srfa000kbqt4qvp0n59l', 'deleted', '已删除作业', '2026-04-29 04:05:00', 2, 'cmqw1srez000abqt4el2uqvbq', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000bbqt45m41c8yz', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0002bqt4l5neqtsa', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000cbqt4fh6youwv', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0003bqt45qjilal7', 'homework', '{"sectionId":1}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000dbqt4r8m6dvjn', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0004bqt4qy3jviis', 'homework', '{"sectionId":4}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000ebqt4x9esknto', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0005bqt41y0wbcrp', 'homework', '{"sectionId":3}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000fbqt4pxda9iz9', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0006bqt4j01p7cwx', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000gbqt4lnl6nmjt', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0007bqt4p55o2ara', 'homework', '{"sectionId":1}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000hbqt4t2eglceu', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0008bqt467yuqdec', 'homework', '{"sectionId":4}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000ibqt4vc5ewmkm', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez0009bqt4i5lpmutg', 'homework', '{"sectionId":3}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srf6000jbqt4rx8zra45', 'homework_create', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez000abqt4el2uqvbq', 'homework', '{"sectionId":2}', '2026-04-28 01:30:00') ON CONFLICT DO NOTHING;
+INSERT INTO public."AuditLog" (id, action, outcome, channel, "userId", "subjectUserId", "targetId", "targetType", metadata, "createdAt") VALUES ('cmqw1srfa000kbqt4qvp0n59l', 'homework_delete', 'success', 'web', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1sr9g0001bqt44c3s0kqa', 'cmqw1srez000abqt4el2uqvbq', 'homework', '{"sectionId":2}', '2026-04-29 04:05:00') ON CONFLICT DO NOTHING;
 
 
 --
@@ -512,15 +534,15 @@ INSERT INTO public."ScheduleGroup" (id, "jwId", no, "limitCount", "stdCount", "a
 -- Data for Name: Schedule; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (1, 2, '2026-05-01', 5, 1530, 1700, NULL, '东校区体育场', NULL, 2, NULL, 9, 10, NULL, 2, 4) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (2, 2, '2026-04-30', 4, 1400, 1545, NULL, NULL, NULL, 2, NULL, 7, 8, 1, 2, 1) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (3, 2, '2026-05-01', 5, 1400, 1545, NULL, NULL, NULL, 2, NULL, 7, 8, 1, 1, 8) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (4, 2, '2026-03-29', 7, 1400, 1545, NULL, NULL, NULL, 2, NULL, 7, 8, 1, 3, 5) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (5, 2, '2026-05-01', 5, 830, 1015, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 4, 6) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (6, 2, '2026-05-02', 6, 1400, 1545, NULL, NULL, NULL, 2, NULL, 7, 8, 1, 4, 7) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (7, 2, '2026-04-29', 3, 830, 1015, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 2, 4) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (8, 2, '2026-03-28', 6, 830, 1015, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 3, 3) ON CONFLICT DO NOTHING;
-INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (9, 2, '2026-04-30', 4, 830, 1015, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 1, 2) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (1, 2, '2026-05-01', 5, 1530, 1700, NULL, '东校区体育场', NULL, 2, NULL, 0, 0, NULL, 2, 4) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (2, 2, '2026-04-30', 4, 1400, 1535, NULL, NULL, NULL, 2, NULL, 6, 7, 1, 2, 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (3, 2, '2026-05-01', 5, 1400, 1535, NULL, NULL, NULL, 2, NULL, 6, 7, 1, 1, 8) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (4, 2, '2026-03-29', 7, 1400, 1535, NULL, NULL, NULL, 2, NULL, 6, 7, 1, 3, 5) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (5, 2, '2026-05-01', 5, 750, 925, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 4, 6) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (6, 2, '2026-05-02', 6, 1400, 1535, NULL, NULL, NULL, 2, NULL, 6, 7, 1, 4, 7) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (7, 2, '2026-04-29', 3, 840, 1030, NULL, NULL, NULL, 2, NULL, 2, 3, 1, 2, 4) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (8, 2, '2026-03-28', 6, 750, 925, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 3, 3) ON CONFLICT DO NOTHING;
+INSERT INTO public."Schedule" (id, periods, date, weekday, "startTime", "endTime", experiment, "customPlace", "lessonType", "weekIndex", "exerciseClass", "startUnit", "endUnit", "roomId", "sectionId", "scheduleGroupId") VALUES (9, 2, '2026-04-30', 4, 750, 925, NULL, NULL, NULL, 2, NULL, 1, 2, 1, 1, 2) ON CONFLICT DO NOTHING;
 
 
 --
@@ -557,7 +579,7 @@ INSERT INTO public."Todo" (id, title, content, completed, priority, "dueAt", "cr
 -- Data for Name: UploadPending; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."UploadPending" (id, key, filename, "contentType", size, "expiresAt", "createdAt", "updatedAt", "userId") VALUES ('cmqw1srg60020bqt4ojzcp279', 'dev-scenario/pending-lab-template.xlsx', 'pending-lab-template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 52000, '2026-04-30 15:59:00', '2026-06-27 07:38:10.038', '2026-06-27 07:38:10.038', 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."UploadPending" (id, key, filename, "contentType", size, "expiresAt", "createdAt", "updatedAt", "userId", "attemptId", phase) VALUES ('cmqw1srg60020bqt4ojzcp279', 'dev-scenario/pending-lab-template.xlsx', 'pending-lab-template.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 52000, '2026-04-30 15:59:00', '2026-06-27 07:38:10.038', '2026-06-27 07:38:10.038', 'cmqw1sr9g0001bqt44c3s0kqa', 'dev-seed-pending-lab-template', 'reserved') ON CONFLICT DO NOTHING;
 
 
 --
@@ -621,13 +643,59 @@ INSERT INTO public."_SectionTeachers" ("A", "B") VALUES (2, 2) ON CONFLICT DO NO
 
 
 --
--- Data for Name: _UserCalendarSections; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: UserSectionSubscription; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (1, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (2, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (3, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
-INSERT INTO public."_UserCalendarSections" ("A", "B") VALUES (4, 'cmqw1sr9g0001bqt44c3s0kqa') ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 1) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 2) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 3) ON CONFLICT DO NOTHING;
+INSERT INTO public."UserSectionSubscription" ("userId", "sectionId") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', 4) ON CONFLICT DO NOTHING;
+
+
+--
+-- Data for Name: YoungEvent; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+INSERT INTO public."YoungOrganizer" (id, name, "normalizedName", "createdAt") VALUES ('dev-scenario-young-organizer', '学生会', '学生会', '2026-06-27 07:38:10.000') ON CONFLICT DO NOTHING;
+INSERT INTO public."YoungEvent" ("youngId", name, category, department, organizer, "organizerId", status, location, "imageUrl", hours, capacity, "appliedCount", "startAt", "endAt", "applyStartAt", "applyEndAt", "isActive", "rawJson", description, "participationNotes", "activityLevel", module, form, grades, sponsor, "contactName", "contactTel", duration, "serviceHour", "sumHours", "sumPersons", "partakeNum", "favCount", "limitNum", "createdAtUpstream", "auditedAt", "updatedAtUpstream", places) VALUES ('dev-scenario-young-event', '第二课堂示例活动', '单次项目', '校团委', '学生会', 'dev-scenario-young-organizer', '进行中', '东区图书馆', 'group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg', 2, 30, 5, '2026-05-10 06:00:00+00', '2026-05-10 08:00:00+00', '2026-04-28 16:00:00+00', '2026-05-09 15:59:59+00', true, '{"id": "dev-scenario-young-event", "itemName": "第二课堂示例活动", "pic": "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg"}'::jsonb, '<p>示例活动介绍。</p><img src="https://young.ustc.edu.cn/login/group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg" alt="" width="640" height="360" />', '<p>请携带学生证现场签到。</p>', '校级', '智', '现场参与', '1,2,3,4', '校团委', '张三', '13800000000', 2.5, 1.5, 76, 27, 30, 4, 50, '2026-04-20 01:00:00+00', '2026-04-22 02:30:00+00', '2026-04-25 03:00:00+00', '[{"placeInfo": "东区图书馆一楼报告厅", "placeSt": "2026-05-10 14:00:00", "placeEt": "2026-05-10 16:00:00"}]'::jsonb) ON CONFLICT DO NOTHING;
+INSERT INTO public."YoungEvent" ("youngId", name, category, "isActive", "rawJson") VALUES ('dev-scenario-young-event-ended', '第二课堂已结束活动', '单次项目', false, '{"id": "dev-scenario-young-event-ended"}'::jsonb) ON CONFLICT DO NOTHING;
+
+-- Account-deletion tests intentionally exercise ON DELETE SET NULL. Restore
+-- ownership on the named scenario rows so reseeding is a complete reset.
+UPDATE public."Homework"
+SET
+  "createdById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "updatedById" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "deletedById" = CASE
+    WHEN id = 'cmqw1srez000abqt4el2uqvbq'
+      THEN 'cmqw1sr9g0001bqt44c3s0kqa'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srez%';
+
+UPDATE public."Comment"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "moderatedById" = CASE
+    WHEN id = 'cmqw1srfh000sbqt4rlvla7qd'
+      THEN 'cmqw1sr9e0000bqt4j4a16ffb'
+    ELSE NULL
+  END
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."Description"
+SET "lastEditedById" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."DescriptionEdit"
+SET "editorId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
+
+UPDATE public."AuditLog"
+SET
+  "userId" = 'cmqw1sr9g0001bqt44c3s0kqa',
+  "subjectUserId" = 'cmqw1sr9g0001bqt44c3s0kqa'
+WHERE id LIKE 'cmqw1srf%';
 
 
 --
@@ -850,6 +918,46 @@ SELECT pg_catalog.setval('public."VerifiedEmail_id_seq"', 1, true);
 --
 -- PostgreSQL database dump complete
 --
+
+-- Keep the generated snapshot's fixed sequence values from moving a reused
+-- database backwards. This also repairs databases seeded by older snapshots.
+DO $$
+DECLARE
+  item record;
+  table_max bigint;
+  sequence_last bigint;
+  sequence_called boolean;
+BEGIN
+  FOR item IN
+    SELECT
+      seq_ns.nspname AS sequence_schema,
+      seq.relname AS sequence_name,
+      tbl_ns.nspname AS table_schema,
+      tbl.relname AS table_name,
+      attr.attname AS column_name
+    FROM pg_class AS seq
+    JOIN pg_namespace AS seq_ns ON seq_ns.oid = seq.relnamespace
+    JOIN pg_depend AS dep ON dep.objid = seq.oid AND dep.deptype IN ('a', 'i')
+    JOIN pg_class AS tbl ON tbl.oid = dep.refobjid
+    JOIN pg_namespace AS tbl_ns ON tbl_ns.oid = tbl.relnamespace
+    JOIN pg_attribute AS attr ON attr.attrelid = tbl.oid AND attr.attnum = dep.refobjsubid
+    WHERE seq.relkind = 'S' AND tbl_ns.nspname = 'public'
+  LOOP
+    EXECUTE format('SELECT max(%I)::bigint FROM %I.%I', item.column_name, item.table_schema, item.table_name)
+      INTO table_max;
+    EXECUTE format('SELECT last_value::bigint, is_called FROM %I.%I', item.sequence_schema, item.sequence_name)
+      INTO sequence_last, sequence_called;
+    IF table_max IS NOT NULL
+      AND (sequence_last < table_max OR (NOT sequence_called AND sequence_last = table_max))
+    THEN
+      PERFORM setval(
+        format('%I.%I', item.sequence_schema, item.sequence_name)::regclass,
+        table_max,
+        true
+      );
+    END IF;
+  END LOOP;
+END $$;
 
 
 

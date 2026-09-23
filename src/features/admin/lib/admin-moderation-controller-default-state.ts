@@ -1,8 +1,7 @@
+import type { PendingModerationServerAction } from "./moderation-page-client-actions";
+
 export type AdminModerationPendingServerAction =
-  | "description"
-  | "deleteHomework"
-  | "liftSuspension"
-  | null;
+  PendingModerationServerAction | null;
 
 export function createAdminModerationControllerDefaultState<
   Comment,
@@ -14,6 +13,7 @@ export function createAdminModerationControllerDefaultState<
     _customExpiresAt: "",
     _descriptionDraft: "",
     _dialogMessage: "",
+    _dialogMessageVariant: "default" as "destructive" | "default",
     _isRefreshingQueue: false,
     _isSavingComment: false,
     _isSuspendingUser: false,

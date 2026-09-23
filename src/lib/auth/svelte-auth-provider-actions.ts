@@ -1,9 +1,7 @@
-import { asGenericOAuthApi } from "@/lib/oauth/provider-api";
 import type { DebugProviderId } from "./provider-ids";
 import type {
   AuthActionInput,
   AuthActionResponse,
-  GenericOAuthWithHeaders,
   SocialLinkWithHeaders,
 } from "./svelte-auth-action-types";
 
@@ -36,19 +34,7 @@ export async function signInOidcProvider(
   input: AuthActionInput,
   providerId: string,
 ): Promise<AuthActionResponse> {
-  const { betterAuthInstance } = await import("@/lib/auth/core");
-  const genericOAuthApi = asGenericOAuthApi(
-    betterAuthInstance.api,
-  ) as unknown as GenericOAuthWithHeaders;
-  const response = await genericOAuthApi.signInWithOAuth2({
-    body: {
-      providerId,
-      callbackURL: input.callbackUrl,
-    },
-    headers: input.headers,
-    returnHeaders: true,
-  });
-  return { headers: response.headers, result: response.response };
+  return signInSocialProvider(input, providerId);
 }
 
 export async function signInSocialProvider(
@@ -71,19 +57,7 @@ export async function linkOidcAccount(
   input: AuthActionInput,
   providerId: string,
 ): Promise<AuthActionResponse> {
-  const { betterAuthInstance } = await import("@/lib/auth/core");
-  const genericOAuthApi = asGenericOAuthApi(
-    betterAuthInstance.api,
-  ) as unknown as GenericOAuthWithHeaders;
-  const response = await genericOAuthApi.oAuth2LinkAccount({
-    body: {
-      providerId,
-      callbackURL: input.callbackUrl,
-    },
-    headers: input.headers,
-    returnHeaders: true,
-  });
-  return { headers: response.headers, result: response.response };
+  return linkSocialAccount(input, providerId);
 }
 
 export async function linkSocialAccount(

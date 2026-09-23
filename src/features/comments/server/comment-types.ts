@@ -37,6 +37,10 @@ export type CommentNode = {
   parentId: string | null;
   rootId: string | null;
   replies: CommentNode[];
+  /** Opaque cursor for the next bounded reply page; null when complete. */
+  repliesNextCursor: string | null;
+  /** Redacted structural node used when bounded ancestry omits a parent. */
+  isAncestryPlaceholder?: boolean;
   attachments: CommentAttachment[];
   reactions: CommentReaction[];
   canReact: boolean;
@@ -58,10 +62,18 @@ export type CommentViewer = {
 };
 
 export type CommentTarget = {
-  type: "section" | "course" | "teacher" | "section-teacher" | "homework";
+  type:
+    | "section"
+    | "course"
+    | "teacher"
+    | "section-teacher"
+    | "homework"
+    | "young-event";
   targetId?: number | null;
   sectionId?: number | null;
   teacherId?: number | null;
   sectionTeacherId?: number | null;
   homeworkId?: string | null;
+  youngEventId?: number | null;
+  youngId?: string | null;
 };

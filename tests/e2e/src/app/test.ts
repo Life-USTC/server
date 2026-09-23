@@ -20,8 +20,8 @@ test("/", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/", testInfo });
 });
 
-test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+test("/ 登录用户的旧 tab 永久重定向至语义 workspace 路径", async ({ page }) => {
+  await signInAsDebugUser(page, "/workspace");
 
   const response = await page.request.get(
     "/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
@@ -30,7 +30,7 @@ test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async
 
   expect(response.status()).toBe(308);
   expect(response.headers().location).toBe(
-    "/dashboard/calendar?calendarView=week&calendarSemester=42&utm_source=ignored",
+    "/workspace/calendar?calendarView=week&calendarSemester=42&utm_source=ignored",
   );
 });
 
@@ -42,49 +42,84 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: /先从公开校园工具开始|Start with public campus tools/i,
+      name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
     }),
   ).toBeVisible();
+  const main = page.locator("#main-content");
   await expect(
-    page.getByRole("link", { name: /浏览课程|Browse courses/i }),
+    main.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
   // Bus and links are independent public destinations in the shell.
+  await expect(main.getByRole("link", { name: /^(校车|Bus)$/i })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+    main.getByRole("link", { name: /^(网站|Websites)$/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /^(网站|Websites)$/i }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
+    main.locator('a[href="/account/sign-in"]').first(),
   ).toBeVisible();
   await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 
-test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
+test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testInfo) => {
+  const browserIssues: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" || message.type() === "warning") {
+      browserIssues.push(`${message.type()}: ${message.text()}`);
+    }
+  });
+  page.on("pageerror", (error) =>
+    browserIssues.push(`pageerror: ${error.message}`),
+  );
+
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoAndWaitForReady(page, "/");
 
-  await page
-    .locator("[data-shell-topbar]")
-    .getByRole("button", { name: /^菜单$|^Menu$/i })
-    .click();
+  const topbar = page.locator("[data-shell-topbar]");
+  for (const button of [
+    topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    topbar.getByRole("button", { name: /语言|Language/i }),
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ]) {
+    await expect(button).toBeVisible();
+    const box = await button.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+  await expect(
+    topbar.getByRole("link", { name: /^(登录|Sign in)$/i }),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "shell/anonymous-mobile-topbar");
+
+  await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  await expect(
+    sidebar.getByRole("button", { name: /语言|Language/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /主题|Theme/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toHaveCount(0);
   for (const name of [
     /^(校车|Shuttle Bus)$/i,
     /^(网站|Websites)$/i,
     /^(课程|Courses)$/i,
     /^(班级|Sections)$/i,
     /^(教师|Teachers)$/i,
+    /^(移动应用|Mobile App)$/i,
+    /^(Presto 机器人|Presto Bot)$/i,
+    /^MCP$/i,
+    /^(命令行|CLI)$/i,
   ]) {
     await expect(sidebar.getByRole("link", { name })).toBeVisible();
   }
   for (const name of [
     /^(待办|Todos)$/i,
     /^(考试|Exams)$/i,
-    /^(关注班级|Section Management)$/i,
+    /^(教学班订阅|Section Subscriptions)$/i,
   ]) {
     await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
   }
@@ -93,6 +128,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
       name: /移动主导航|Mobile primary navigation/i,
     }),
   ).toHaveCount(0);
+  expect(browserIssues).toEqual([]);
 });
 
 test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
@@ -240,6 +276,34 @@ test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
   await expect(page.locator("#main-content")).toBeFocused();
 });
 
+test("/ shell 只保留滚动区域的顺序焦点", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDebugUser(page, "/workspace/todos");
+
+  const main = page.locator("#main-content");
+  const scrollRegion = page.locator("[data-shell-scroll-container]");
+  await expect(main).toHaveAttribute("tabindex", "-1");
+  await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+  await expect(scrollRegion).toHaveRole("region");
+
+  const labels = await Promise.all([
+    main.getAttribute("aria-label"),
+    scrollRegion.getAttribute("aria-label"),
+  ]);
+  expect(labels[1]).toBeTruthy();
+  expect(labels[0]).not.toBe(labels[1]);
+
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await page.keyboard.press("Tab");
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(main).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(main).not.toBeFocused();
+});
+
 test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");
@@ -268,7 +332,7 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
 
 test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAsDebugUser(page, "/dashboard/calendar");
+  await signInAsDebugUser(page, "/workspace/calendar");
 
   const sidebar = page.getByTestId("app-sidebar");
   const navigation = sidebar.getByRole("navigation", {
@@ -281,13 +345,13 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
     /^(作业|Homework)$/i,
     /^(待办|Todos)$/i,
     /^(考试|Exams)$/i,
-    /^(关注班级|Section Management)$/i,
+    /^(教学班订阅|Section Subscriptions)$/i,
   ]) {
     await expect(navigation.getByRole("link", { name })).toBeVisible();
   }
 
   await expect(
-    navigation.getByRole("link", { name: /^(仪表盘|Dashboard)$/i }),
+    navigation.getByRole("link", { name: /^(工作区|Workspace)$/i }),
   ).toHaveCount(0);
   await expect(
     navigation.getByRole("button", { name: /^Toggle /i }),
@@ -297,47 +361,149 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
     navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
   ).toHaveAttribute("aria-current", "page");
 
-  const explore = navigation.getByRole("button", {
-    name: /^(发现|Explore)$/i,
+  const catalog = navigation.getByRole("button", {
+    name: /^(课程目录|Catalog)$/i,
   });
-  await expect(explore).toHaveAttribute("aria-expanded", "false");
-  await explore.click();
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
 });
 
+test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  await expect(page.locator("#app-logo")).toBeVisible();
+  await expect(page.locator('[data-shell-topbar] a[href="/"]')).toBeHidden();
+  await expect
+    .poll(() =>
+      page.locator('[data-slot="sidebar-wrapper"]').evaluate((element) => {
+        const style = getComputedStyle(element);
+        return [
+          style.getPropertyValue("--sidebar-width").trim(),
+          style.getPropertyValue("--sidebar-width-icon").trim(),
+        ];
+      }),
+    )
+    .toEqual(["16rem", "3rem"]);
+
+  const topbar = page.locator("[data-shell-topbar]");
+  await expect(
+    topbar.getByRole("button", { name: /语言|Language/i }),
+  ).toBeVisible();
+  await expect(
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ).toBeVisible();
+
+  const sidebar = page.getByTestId("app-sidebar");
+  await expect(
+    sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /语言|Language/i }),
+  ).toHaveCount(0);
+  await expect(
+    sidebar.getByRole("button", { name: /主题|Theme/i }),
+  ).toHaveCount(0);
+});
+
+test("/ shell 平板视口菜单按钮可通过键盘展开侧边栏", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  const menuTrigger = page
+    .locator("[data-shell-topbar]")
+    .getByRole("button", { name: /^菜单$|^Menu$/i });
+
+  // The trigger must remain visible (not hidden at the `md` breakpoint) and
+  // must be part of the tab order, not merely present in the DOM.
+  await expect(menuTrigger).toBeVisible();
+  await expect(menuTrigger).toHaveJSProperty("tabIndex", 0);
+
+  const sidebarRoot = page.locator('[data-slot="sidebar"]');
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+  await expect(sidebarRoot).toHaveAttribute("data-collapsible", "icon");
+
+  const coursesLink = page
+    .getByTestId("app-sidebar")
+    .getByRole("link", { name: /^(课程|Courses)$/i });
+  // The link stays in the accessibility tree while icon-collapsed (only its
+  // label is visually truncated), so assert on the rendered width instead of
+  // presence/absence.
+  const collapsedBox = await coursesLink.boundingBox();
+  expect(collapsedBox?.width ?? 0).toBeLessThan(40);
+
+  // Reach the trigger purely via the keyboard and activate it with Enter.
+  await menuTrigger.focus();
+  await expect(menuTrigger).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+  await expect(sidebarRoot).not.toHaveAttribute("data-collapsible", "icon");
+  await expect(menuTrigger).toHaveAttribute("aria-expanded", "true");
+  await expect(coursesLink).toBeVisible();
+  // The sidebar width animates via a CSS transition, so poll until it settles
+  // instead of asserting on a single synchronous measurement.
+  await expect
+    .poll(async () => (await coursesLink.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(100);
+
+  // Space must also operate the control per standard button semantics.
+  await menuTrigger.focus();
+  await page.keyboard.press("Space");
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+  await expect(menuTrigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("/ shell 平板视口侧边栏 rail 控件可通过键盘聚焦并展开", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/workspace/overview");
+
+  const rail = page.locator('[data-sidebar="rail"]');
+  await expect(rail).toHaveJSProperty("tabIndex", 0);
+
+  const sidebarRoot = page.locator('[data-slot="sidebar"]');
+  await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
+
+  await rail.focus();
+  await expect(rail).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
+});
+
 test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAsDebugUser(page, "/dashboard/calendar");
+  await signInAsDebugUser(page, "/workspace/calendar");
 
   const navigation = page.getByTestId("app-sidebar").getByRole("navigation", {
     name: /主导航|Primary navigation/i,
   });
-  const explore = navigation.getByRole("button", {
-    name: /^(发现|Explore)$/i,
+  const catalog = navigation.getByRole("button", {
+    name: /^(课程目录|Catalog)$/i,
   });
 
-  await explore.click();
-  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
-  await explore.click();
-  await expect(explore).toHaveAttribute("aria-expanded", "false");
+  await catalog.click();
+  await expect(catalog).toHaveAttribute("aria-expanded", "false");
 
   await page.evaluate(() => {
     const link = document.createElement("a");
     link.dataset.testNavigation = "courses";
-    link.href = "/courses";
+    link.href = "/catalog/courses";
     link.textContent = "Navigate to Courses";
     document.querySelector("#main-content")?.append(link);
   });
   await page.locator('[data-test-navigation="courses"]').click();
-  await page.waitForURL("**/courses");
+  await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
 
-  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toHaveAttribute("aria-current", "page");
@@ -346,7 +512,7 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
 
 test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDevAdmin(page, "/dashboard/todos");
+  await signInAsDevAdmin(page, "/workspace/todos");
 
   const primaryNavigation = page.getByRole("navigation", {
     name: /移动主导航|Mobile primary navigation/i,
@@ -377,13 +543,15 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
   const topbar = page.locator("[data-shell-topbar]");
   await expect(
     topbar.getByRole("button", { name: /语言|Language/i }),
-  ).toHaveCount(0);
-  await expect(topbar.getByRole("button", { name: /主题|Theme/i })).toHaveCount(
-    0,
-  );
+  ).toBeVisible();
+  await expect(
+    topbar.getByRole("button", { name: /主题|Theme/i }),
+  ).toBeVisible();
 
   for (const button of [
     topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    topbar.getByRole("button", { name: /语言|Language/i }),
+    topbar.getByRole("button", { name: /主题|Theme/i }),
   ]) {
     const box = await button.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -405,10 +573,10 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
   ).toBeVisible();
   await expect(
     sidebar.getByRole("button", { name: /语言|Language/i }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     sidebar.getByRole("button", { name: /主题|Theme/i }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
   ).toBeVisible();
@@ -424,7 +592,7 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
 
 test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDebugUser(page, "/settings/preferences");
+  await signInAsDebugUser(page, "/account/settings/preferences");
 
   const primaryNavigation = page.getByRole("navigation", {
     name: /移动主导航|Mobile primary navigation/i,
@@ -469,7 +637,9 @@ test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
 
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
-  const profileItem = page.getByRole("menuitem", { name: /^(我的|Me)$/i });
+  const profileItem = page.getByRole("menuitem", {
+    name: /^(个人主页|Personal page)$/i,
+  });
   await expect(profileItem).toBeFocused();
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(resolve)),
@@ -525,7 +695,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .getByTestId("app-sidebar")
     .getByRole("link", { name: /^(课程|Courses)$/i })
     .click();
-  await page.waitForURL("**/courses");
+  await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
 
   await expect
@@ -562,13 +732,27 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }
   await expect(
     page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
   ).toBeVisible();
-
+  await expect(catalogGroup).toBeDisabled();
   await expect(coursesLink).toBeVisible();
-  await coursesLink.click();
+  await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
+  // Icon-mode labels animate margin/opacity for 200ms; clicking before that
+  // can land on the neighboring Sections icon instead of Courses.
+  await expect
+    .poll(async () =>
+      Math.round(
+        await coursesLink.evaluate(
+          (element) => element.getBoundingClientRect().width,
+        ),
+      ),
+    )
+    .toBeLessThanOrEqual(40);
 
-  await page.waitForURL("**/courses");
+  await Promise.all([
+    page.waitForURL("**/catalog/courses"),
+    coursesLink.click(),
+  ]);
   await waitForUiSettled(page);
-  await expect(page).toHaveURL(/\/courses(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/catalog\/courses(?:\?.*)?$/);
 });
 
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
@@ -604,7 +788,7 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
       page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
     ).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
+    await captureStepScreenshot(page, testInfo, "workspace-overview-empty");
   } finally {
     await updateUserProfileById(sessionUser.id, originalProfile);
     await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
@@ -615,6 +799,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
+  await page.setViewportSize({ height: 844, width: 390 });
   await signInAsDebugUser(page, "/");
 
   const sessionUser = await getCurrentSessionUser(page);
@@ -634,6 +819,11 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
   try {
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitForUiSettled(page);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
 
     await expect(
       page.getByText(
@@ -647,27 +837,28 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       page.getByRole("link", { name: /查看往期课表|View Past Schedule/i }),
     ).toHaveAttribute(
       "href",
-      `/dashboard/calendar?calendarSemester=${previousSemester.semesterId}`,
+      `/workspace/calendar?calendarSemester=${previousSemester.semesterId}`,
     );
     await expect(
       page.getByRole("link", { name: /查看往期班级|View Past Sections/i }),
     ).toBeVisible();
 
-    const response = await page.request.get("/api/me/subscriptions/homeworks");
+    const response = await page.request.get("/api/workspace/homeworks");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ title?: string }>;
-      sectionIds?: number[];
+      data?: Array<{ sectionId?: number; title?: string }>;
     };
-    expect(body.sectionIds).toEqual([previousSection.id]);
-    expect(body.homeworks).toEqual(
+    expect(
+      body.data?.every((item) => item.sectionId === previousSection.id),
+    ).toBe(true);
+    expect(body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: DEV_SEED.homeworks.historicalTitle }),
       ]),
     );
 
     const schedulesResponse = await page.request.get(
-      `/api/me/subscriptions/schedules?dateFrom=${DEV_SEED.previousSemesterScheduleDates[0]}&dateTo=${DEV_SEED.previousSemesterScheduleDates[1]}`,
+      `/api/workspace/schedules?dateFrom=${DEV_SEED.previousSemesterScheduleDates[0]}&dateTo=${DEV_SEED.previousSemesterScheduleDates[1]}`,
     );
     expect(schedulesResponse.status()).toBe(200);
     const schedulesBody = (await schedulesResponse.json()) as {
@@ -681,15 +872,18 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       ]),
     );
 
-    await captureStepScreenshot(page, testInfo, "dashboard-history-recovery");
+    await captureStepScreenshot(page, testInfo, "workspace-history-recovery");
     await page
       .getByRole("link", { name: /查看往期作业|View Past Homework/i })
       .click();
-    await expect(page).toHaveURL(/\/dashboard\/homeworks/);
+    await expect(page).toHaveURL(/\/workspace\/homeworks/);
     await expect(
-      page.getByText(DEV_SEED.homeworks.historicalTitle),
+      page
+        .getByText(DEV_SEED.homeworks.historicalTitle)
+        .filter({ visible: true }),
     ).toBeVisible();
 
+    await page.setViewportSize({ height: 900, width: 1280 });
     await page.goto("/");
     await waitForUiSettled(page);
     await page
@@ -697,7 +891,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       .click();
     await expect(page).toHaveURL(
       new RegExp(
-        `/dashboard/calendar\\?calendarSemester=${previousSemester.semesterId}$`,
+        `/workspace/calendar\\?calendarSemester=${previousSemester.semesterId}$`,
       ),
     );
     await expect(

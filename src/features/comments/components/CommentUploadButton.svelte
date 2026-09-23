@@ -17,7 +17,6 @@ function openFilePicker() {
 
 <Button
   {disabled}
-  size="sm"
   type="button"
   variant="outline"
   onclick={openFilePicker}

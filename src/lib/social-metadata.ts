@@ -1,8 +1,13 @@
 import type { AppLocale } from "@/i18n/config";
+import {
+  buildSocialCardUrl,
+  SOCIAL_CARD_HEIGHT,
+  SOCIAL_CARD_WIDTH,
+  type SocialCardOptions,
+  socialCardTitle,
+} from "@/lib/social-card";
 
-export const SOCIAL_CARD_PATH = "/images/social-card.png";
-export const SOCIAL_CARD_WIDTH = 1200;
-export const SOCIAL_CARD_HEIGHT = 630;
+export { SOCIAL_CARD_HEIGHT, SOCIAL_CARD_WIDTH } from "@/lib/social-card";
 
 const openGraphLocales = {
   "en-us": "en_US",
@@ -28,6 +33,7 @@ export type SocialMetadata = {
 };
 
 export function buildSocialMetadata({
+  card,
   canonicalPath,
   description,
   imageAlt,
@@ -35,6 +41,7 @@ export function buildSocialMetadata({
   origin,
   title,
 }: {
+  card?: Partial<SocialCardOptions>;
   canonicalPath: string;
   description: string;
   imageAlt: string;
@@ -58,7 +65,11 @@ export function buildSocialMetadata({
       alt: imageAlt,
       height: SOCIAL_CARD_HEIGHT,
       type: "image/png",
-      url: new URL(SOCIAL_CARD_PATH, canonicalUrl.origin).href,
+      url: buildSocialCardUrl(canonicalUrl.origin, {
+        subtitle: description,
+        title: socialCardTitle(title),
+        ...card,
+      }),
       width: SOCIAL_CARD_WIDTH,
     },
     locale: openGraphLocales[locale],
@@ -66,6 +77,33 @@ export function buildSocialMetadata({
     title,
     twitterCard: "summary_large_image",
     type: "website",
+  };
+}
+
+export function updateSocialMetadata(
+  metadata: SocialMetadata,
+  changes: {
+    card?: Partial<SocialCardOptions>;
+    description?: string;
+    title?: string;
+  },
+): SocialMetadata {
+  const description = changes.description ?? metadata.description;
+  const title = changes.title ?? metadata.title;
+  const origin = new URL(metadata.canonicalUrl).origin;
+
+  return {
+    ...metadata,
+    description,
+    image: {
+      ...metadata.image,
+      url: buildSocialCardUrl(origin, {
+        subtitle: description,
+        title: socialCardTitle(title),
+        ...changes.card,
+      }),
+    },
+    title,
   };
 }
 

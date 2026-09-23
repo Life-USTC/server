@@ -1,17 +1,11 @@
 import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
-export function buildSubscribedHomeworkInclude(
-  userId: string,
-  includeEditors: boolean,
-) {
+export function buildSubscribedHomeworkInclude(includeEditors: boolean) {
   return {
     section: { include: sectionCatalogInclude },
     description: true,
-    homeworkCompletions: {
-      where: { userId },
-      select: { completedAt: true },
-    },
     ...(includeEditors
       ? {
           createdBy: {
@@ -28,15 +22,20 @@ export function buildSubscribedHomeworkInclude(
   } satisfies Prisma.HomeworkInclude;
 }
 
-export function buildDashboardHomeworkSelect(userId: string) {
+export function buildWorkspaceHomeworkSelect() {
   return {
     id: true,
+    sectionId: true,
     title: true,
     publishedAt: true,
     submissionStartAt: true,
     submissionDueAt: true,
     description: { select: { content: true } },
-    homeworkCompletions: { where: { userId }, select: { completedAt: true } },
-    section: { select: { jwId: true, course: true } },
+    section: {
+      select: {
+        jwId: true,
+        course: { select: localizedNameSelect },
+      },
+    },
   } satisfies Prisma.HomeworkSelect;
 }

@@ -57,11 +57,15 @@ type DeviceGrantTokenTransaction = {
       create: {
         clientId: string;
         grantId: string;
+        requestedUserInfoClaims: string[];
+        resources: string[];
         scopes: string[];
         userId: string;
       };
       update: {
         grantId: string;
+        requestedUserInfoClaims: string[];
+        resources: string[];
         scopes: string[];
       };
     }) => Promise<unknown>;
@@ -103,6 +107,7 @@ function resolveAccessTokenAudiences(resources: string[], scopes: string[]) {
 
 export async function signResourceBoundOAuthAccessToken(input: {
   clientId: string;
+  confirmation?: { jkt: string };
   expiresAt: number;
   grantId?: string;
   issuedAt: number;
@@ -131,6 +136,7 @@ export async function signResourceBoundOAuthAccessToken(input: {
         iss: getCanonicalOAuthIssuer(),
         iat: input.issuedAt,
         exp: input.expiresAt,
+        ...(input.confirmation ? { cnf: input.confirmation } : {}),
         ...(input.grantId ? { [OAUTH_GRANT_ID_CLAIM]: input.grantId } : {}),
       },
     },
@@ -211,11 +217,15 @@ export async function issueDeviceGrantTokens(
         create: {
           clientId: input.clientId,
           grantId,
+          requestedUserInfoClaims: [],
+          resources: input.resources,
           scopes: input.scopes,
           userId: input.userId,
         },
         update: {
           grantId,
+          requestedUserInfoClaims: [],
+          resources: input.resources,
           scopes: input.scopes,
         },
       });

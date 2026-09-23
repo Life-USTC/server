@@ -27,7 +27,7 @@ export type BusApplicableRoute = {
 
 function indexTripsByRoute(
   trips: BusTripSummary[],
-  dayType: "weekday" | "weekend",
+  dayType: "weekday" | "saturday" | "sunday",
 ) {
   const tripsByRoute = new Map<number, BusTripSummary[]>();
   for (const trip of trips) {
@@ -44,7 +44,7 @@ function indexTripsByRoute(
 
 export function buildApplicableBusRoutes(input: {
   data: BusTimetableData;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   originCampusId: number;
   destinationCampusId: number;
   showDepartedTrips: boolean;

@@ -1,0 +1,53 @@
+import { createTodo } from "@/features/todos/server/todo-service";
+import {
+  getUserId,
+  jsonToolResult,
+  parseOptionalFieldDate,
+  resolveMcpMode,
+} from "@/lib/mcp/tools/_shared/helpers";
+import type {
+  McpMode,
+  TodoPriority,
+  ToolExtra,
+} from "@/lib/mcp/tools/workspace/profile-tool-todo-common";
+
+export async function createMyTodoAction(
+  {
+    title,
+    content,
+    priority,
+    dueAt,
+    mode,
+  }: {
+    title: string;
+    content?: string | null;
+    priority: TodoPriority;
+    dueAt?: string | null;
+    mode?: McpMode;
+  },
+  extra: ToolExtra,
+) {
+  const userId = getUserId(extra.authInfo);
+  const parsedDueAt = parseOptionalFieldDate("dueAt", dueAt);
+  if (!parsedDueAt.ok) {
+    return parsedDueAt.result;
+  }
+
+  const todo = await createTodo({
+    userId,
+    title,
+    content,
+    priority,
+    dueAt: parsedDueAt.value,
+  });
+
+  return jsonToolResult(
+    {
+      success: true,
+      id: todo.id,
+    },
+    {
+      mode: resolveMcpMode(mode),
+    },
+  );
+}

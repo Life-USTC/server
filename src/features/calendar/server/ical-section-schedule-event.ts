@@ -3,15 +3,16 @@ import { ICAL_SITE_URL } from "@/features/calendar/server/ical-event-constants";
 import {
   buildLocationField,
   type GeoData,
-  type ImgRules,
   parseTimeHHMM,
+  type RoomMaps,
   toCategories,
 } from "@/features/calendar/server/ical-event-utils";
 import { getIcalLabels } from "@/features/calendar/server/ical-labels";
+import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
+import { lookupRoomMap } from "@/features/rooms/server/room-map-service";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
-import { lookupBuildingImagePath } from "@/shared/lib/location/location-utils";
 
 export function createScheduleEvent(
   schedule: Prisma.ScheduleGetPayload<{
@@ -23,7 +24,7 @@ export function createScheduleEvent(
   section: Prisma.SectionGetPayload<{ include: { course: true } }>,
   calendar: ICalCalendar,
   geoData: GeoData,
-  imgRules: ImgRules,
+  roomMaps: RoomMaps,
   locale: AppLocale,
 ) {
   if (!schedule.date) return;
@@ -43,17 +44,18 @@ export function createScheduleEvent(
           .join(", ")
       : "";
 
+  const code = roomCodeSchema.safeParse(schedule.room?.code);
+  const roomMap = code.success ? lookupRoomMap(code.data, roomMaps) : null;
+  const imageUrl = roomMap?.imageUrl;
+
   const description = [
     section.course.nameCn,
+    imageUrl && `${L.roomMapPrefix}${roomMap?.code}: ${imageUrl}`,
     teacherNames && `${L.teacherPrefix}${teacherNames}`,
     schedule.experiment && `${L.experimentPrefix}${schedule.experiment}`,
   ]
     .filter(Boolean)
     .join("\n");
-
-  const buildingImg = schedule.room?.code
-    ? lookupBuildingImagePath(imgRules, schedule.room.code)
-    : null;
 
   calendar.createEvent({
     start,
@@ -71,6 +73,6 @@ export function createScheduleEvent(
       section.code,
       section.course.code,
     ]),
-    attachments: buildingImg ? [buildingImg] : undefined,
+    attachments: imageUrl ? [imageUrl] : undefined,
   });
 }

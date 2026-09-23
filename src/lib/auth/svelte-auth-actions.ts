@@ -20,7 +20,7 @@ export async function signInFromSvelteAction(
   input: AuthActionInput,
 ): Promise<SignInResult> {
   const decision = resolveAuthProviderDecision(input.providerId);
-  if (decision.kind === "none") return { url: "/signin" };
+  if (decision.kind === "none") return { url: "/account/sign-in" };
 
   const response =
     decision.kind === "debug"

@@ -6,15 +6,10 @@ import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.s
 import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,
-  AdminModerationDescriptionOption,
 } from "./admin-moderation-description-types";
 
 export let copy: AdminModerationDescriptionCopy;
-export let descriptionContentOptions: AdminModerationDescriptionOption[];
-export let descriptionTargetOptions: AdminModerationDescriptionOption[];
 export let descriptions: AdminModerationDescription[];
-export let descriptionContentFilter: string | null | undefined;
-export let descriptionTargetFilter: string | null | undefined;
 export let descriptionTargetHref: (
   description: AdminModerationDescription,
 ) => string;
@@ -27,13 +22,9 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<section class="grid gap-3">
+<section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   <AdminModerationDescriptionSummary
     {copy}
-    {descriptionContentFilter}
-    {descriptionContentOptions}
-    {descriptionTargetFilter}
-    {descriptionTargetOptions}
     count={descriptions.length}
     {formatMessage}
   />
@@ -44,6 +35,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {descriptions}
       {formatDate}
       {formatMessage}
+      manageLabel={copy.manageDescription}
       {onManage}
       {targetLabel}
     />
@@ -56,7 +48,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {targetLabel}
     />
   {:else}
-    <Empty.Root class="min-h-24">
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
         <Empty.Description>{copy.noDescriptions}</Empty.Description>
       </Empty.Header>

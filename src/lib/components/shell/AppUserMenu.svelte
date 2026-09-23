@@ -1,6 +1,5 @@
 <script lang="ts">
 import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
-import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LogOutIcon from "@lucide/svelte/icons/log-out";
 import SettingsIcon from "@lucide/svelte/icons/settings";
 import UserRoundIcon from "@lucide/svelte/icons/user-round";
@@ -27,11 +26,10 @@ function closeAccountNavigation() {
 }
 
 function isSettingsPath(pathname: string) {
-  return pathname === "/settings" || pathname.startsWith("/settings/");
-}
-
-function isAuthorizationsPath(pathname: string) {
-  return pathname === "/settings/authorizations";
+  return (
+    pathname === "/account/settings" ||
+    pathname.startsWith("/account/settings/")
+  );
 }
 </script>
 
@@ -90,7 +88,7 @@ function isAuthorizationsPath(pathname: string) {
                   href={profileHref}
                 >
                   <UserRoundIcon />
-                  {copy.menu.me}
+                  {copy.menu.personalPage}
                 </a>
               {/snippet}
             </DropdownMenu.Item>
@@ -98,32 +96,17 @@ function isAuthorizationsPath(pathname: string) {
               {#snippet child({ props })}
                 <a
                   {...props}
-                  aria-current={isSettingsPath(currentPathname) &&
-                  !isAuthorizationsPath(currentPathname)
+                  aria-current={isSettingsPath(currentPathname)
                     ? "page"
                     : undefined}
-                  href="/settings/preferences"
+                  href="/account/settings/preferences"
                 >
                   <SettingsIcon />
                   {copy.menu.settings}
                 </a>
               {/snippet}
             </DropdownMenu.Item>
-            <DropdownMenu.Item onSelect={closeAccountNavigation}>
-              {#snippet child({ props })}
-                <a
-                  {...props}
-                  aria-current={isAuthorizationsPath(currentPathname)
-                    ? "page"
-                    : undefined}
-                  href="/settings/authorizations"
-                >
-                  <KeyRoundIcon />
-                  {copy.menu.authorizedApps}
-                </a>
-              {/snippet}
-            </DropdownMenu.Item>
-            <form method="POST" action="/signout">
+            <form method="POST" action="/account/sign-out">
               <DropdownMenu.Item>
                 {#snippet child({ props })}
                   <button {...props} type="submit">

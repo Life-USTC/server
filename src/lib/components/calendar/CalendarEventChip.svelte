@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
@@ -6,10 +7,12 @@ import type { CalendarTone } from "./types";
 
 export let href: string | undefined = undefined;
 export let label = "";
+export let badge: string | undefined = undefined;
 export let title = "";
 export let meta = "";
 export let detail = "";
 export let tooltip = "";
+export let tooltipDetail = "";
 export let tone: CalendarTone = "primary";
 export let done = false;
 
@@ -30,22 +33,50 @@ function eventChipProps(
   };
 }
 
-$: tooltipText = tooltip || title || label;
+$: tooltipBody = tooltipDetail || detail || title;
 </script>
 
 {#snippet chipContent()}
-  <Item.Content class="gap-0">
-    <Item.Title class="max-w-full">{label}</Item.Title>
-    {#if title}
-      <Item.Description class="max-w-full line-clamp-1">{title}</Item.Description>
-    {/if}
+  {#if badge}
+    <Badge
+      variant="destructive"
+      class="absolute -top-2 right-1 z-10 rounded-md bg-destructive px-1 text-destructive-foreground"
+      data-testid="calendar-subscription-badge"
+    >{badge}</Badge>
+  {/if}
+  <Item.Content class="w-full min-w-0 overflow-hidden gap-0.5">
+    <Item.Title class="block w-full min-w-0 max-w-full truncate">
+      {label}
+    </Item.Title>
     {#if meta}
-      <Item.Description class="max-w-full line-clamp-1">{meta}</Item.Description>
+      <Item.Description class="block w-full min-w-0 max-w-full truncate">
+        {meta}
+      </Item.Description>
     {/if}
     {#if detail}
-      <Item.Description class="max-w-full line-clamp-1">{detail}</Item.Description>
+      <Item.Description class="block w-full min-w-0 max-w-full truncate">
+        {detail}
+      </Item.Description>
+    {:else if title}
+      <Item.Description class="block w-full min-w-0 max-w-full truncate">
+        {title}
+      </Item.Description>
     {/if}
   </Item.Content>
+{/snippet}
+
+{#snippet tooltipContent()}
+  <div class="grid max-w-xs gap-0.5 text-left whitespace-normal">
+    <div class="font-medium text-xs leading-snug">{label}</div>
+    {#if meta}
+      <div class="text-xs leading-snug opacity-80">{meta}</div>
+    {/if}
+    {#if tooltipBody}
+      <div class="text-xs leading-snug break-words opacity-80">{tooltipBody}</div>
+    {:else if tooltip && tooltip !== label}
+      <div class="text-xs leading-snug break-words opacity-80">{tooltip}</div>
+    {/if}
+  </div>
 {/snippet}
 
 <Tooltip.Root>
@@ -53,7 +84,7 @@ $: tooltipText = tooltip || title || label;
     {#snippet child({ props })}
       <Item.Root
         class={cn(
-          "min-w-0 no-underline",
+          "relative min-w-0 flex-col flex-nowrap items-stretch no-underline",
           tone === "warning"
             ? "border-warning/25 bg-warning/10 hover:border-warning/45 hover:bg-warning/15"
             : tone === "success"
@@ -84,5 +115,7 @@ $: tooltipText = tooltip || title || label;
       </Item.Root>
     {/snippet}
   </Tooltip.Trigger>
-  <Tooltip.Content>{tooltipText}</Tooltip.Content>
+  <Tooltip.Content class="items-start py-2">
+    {@render tooltipContent()}
+  </Tooltip.Content>
 </Tooltip.Root>

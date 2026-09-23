@@ -1,0 +1,51 @@
+import type { RequestHandler } from "@sveltejs/kit";
+import { getHomeworkDetailRoute } from "@/lib/api/routes/homework-detail-read-route";
+import {
+  deleteHomeworkRoute,
+  patchHomeworkRoute,
+} from "@/lib/api/routes/homework-mutation-routes";
+import { observedApiRoute } from "@/lib/log/api-observability";
+
+/**
+ * Read one shared section homework with its detail relations and audit history.
+ * @pathParams resourceIdPathParamsSchema
+ * @response homeworkDetailResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 404:openApiErrorSchema
+ */
+export const GET: RequestHandler = ({ request, params }) =>
+  observedApiRoute(() => getHomeworkDetailRoute(request, { id: params.id }))(
+    request,
+  );
+
+/**
+ * Update one shared section homework.
+ * @pathParams resourceIdPathParamsSchema
+ * @body homeworkUpdateRequestSchema
+ * @response homeworkUpdateResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
+ */
+export const PATCH: RequestHandler = ({ request, params }) =>
+  observedApiRoute(() => patchHomeworkRoute(request, { id: params.id }))(
+    request,
+  );
+
+/**
+ * Soft delete one shared section homework.
+ * @pathParams resourceIdPathParamsSchema
+ * @response successResponseSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
+ */
+export const DELETE: RequestHandler = ({ request, params }) =>
+  observedApiRoute(() => deleteHomeworkRoute(request, { id: params.id }))(
+    request,
+  );

@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/i18n/config";
 
 export type ICalLabels = {
+  roomMapPrefix: string;
   courseCategory: string;
   examCategory: string;
   homeworkCategory: string;
@@ -26,6 +27,7 @@ export type ICalLabels = {
 
 const LABELS: Record<AppLocale, ICalLabels> = {
   "zh-cn": {
+    roomMapPrefix: "教室地图：",
     courseCategory: "课程",
     examCategory: "考试",
     homeworkCategory: "作业",
@@ -49,6 +51,7 @@ const LABELS: Record<AppLocale, ICalLabels> = {
     examLocationTbd: "考场待定",
   },
   "en-us": {
+    roomMapPrefix: "Room map: ",
     courseCategory: "Course",
     examCategory: "Exam",
     homeworkCategory: "Homework",

@@ -37,7 +37,24 @@ export async function buildUserCalendarExport(
   user: UserCalendarRecord,
   userId: string,
 ) {
-  const sectionIds = user.subscribedSections.map((section) => section.id);
+  const subscribedSections = user.sectionSubscriptions.map(
+    ({ section, kind }) => ({
+      ...section,
+      course: {
+        ...section.course,
+        nameCn:
+          kind === "teaching_assistant"
+            ? `[TA] ${section.course.nameCn}`
+            : section.course.nameCn,
+      },
+    }),
+  );
+  const taSectionIds = new Set(
+    user.sectionSubscriptions
+      .filter((row) => row.kind === "teaching_assistant")
+      .map((row) => row.sectionId),
+  );
+  const sectionIds = subscribedSections.map((section) => section.id);
   const homeworks = await getIncompleteHomeworkCalendarItems(
     userId,
     sectionIds,
@@ -45,13 +62,27 @@ export async function buildUserCalendarExport(
   const todos = userCalendarTodoItems(user.todos);
 
   const calendar = await createUserCalendar({
-    sections: user.subscribedSections,
-    homeworks,
+    sections: subscribedSections,
+    homeworks: homeworks.map((homework) =>
+      taSectionIds.has(homework.sectionId)
+        ? {
+            ...homework,
+            section: {
+              ...homework.section,
+              course: {
+                ...homework.section.course,
+                nameCn: `[TA] ${homework.section.course.nameCn}`,
+              },
+            },
+          }
+        : homework,
+    ),
     todos,
+    youngEvents: user.youngEventSubscriptions.map(({ event }) => event),
   });
 
   return {
-    cacheControl: "private, max-age=300",
+    cacheControl: "private, max-age=1800",
     filename: "life-ustc-subscriptions.ics",
     text: calendar.toString(),
   };

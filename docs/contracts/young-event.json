@@ -1,0 +1,176 @@
+{
+  "name": "Young Events",
+  "access": {
+    "anon": "Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.",
+    "user": "Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.",
+    "admin": "Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.",
+    "agent": "Can read second-classroom (第二课堂) signup events from young.ustc.edu.cn."
+  },
+  "rules": {
+    "public-no-signin": "Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn, so sign-in is not a prerequisite for browsing.",
+    "static-snapshot-sourced": "Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs) into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once and caches it in R2.",
+    "snapshot-authoritative": "A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It never infers cancellation. Incomplete snapshots leave existing rows unchanged.",
+    "organizer-identity": "Organizer names use Unicode NFKC, trim, whitespace collapse, and lowercase. Exact normalized names resolve to stable local YoungOrganizer IDs; matching never uses fuzzy similarity.",
+    "raw-payload-preserved": "Curated columns cover the high-value upstream fields, including the rich-text description and participation notes, the 第二课堂 module, activity level and participation form, attendance and hour counters, the sponsor and contact person, and the per-slot venue list. The complete upstream record stays available under rawJson for REST, GraphQL, and MCP consumers.",
+    "rich-text-sanitized": "description and participationNotes are stored exactly as young.ustc.edu.cn published them. Every interface sanitizes them at serialization time with the shared markdown whitelist (no scripts, iframes, or event handlers) and rewrites young.ustc.edu.cn image URLs to the local cached proxy, so no client ever renders raw upstream HTML or calls the upstream image host.",
+    "registration-status-deprecated": "registrationStatus is deprecated and always null. young.ustc.edu.cn leaves the key empty on every record, so the real signup state is status. The property stays in the REST, GraphQL, and MCP payloads and the column stays in the database so existing generated clients keep working; removing it is a separate breaking change.",
+    "image-proxy-cached": "The public imageUrl is a local proxy path (/api/catalog/young-events/[youngId]/image). On first miss the route fetches https://young.ustc.edu.cn/login/<pic>, stores bytes in R2 under young-events/images/<pic>, and serves immutable year-long cache headers. Final responses are also held in the per-colo Cache API keyed by youngId for their Cache-Control TTL (200 long-term, 404 for 300s, 502 for 60s); the 503 storage-unavailable response is never cached.",
+    "shanghai-local-times": "Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only range boundaries use Asia/Shanghai day boundaries.",
+    "date-range-overlap": "dateFrom/dateTo include every overlapping interval selected by timeBasis=activity or registration. Rows missing the selected start time are counted in unknownDateCount and can be paginated with dateUnknown=true. A missing end time is treated as a point at the known start.",
+    "read-only": "Events are imported facts; no transport exposes writes."
+  },
+  "capabilities": {
+    "young-event": {
+      "title": "Second-Classroom Events",
+      "auth": "anon",
+      "web": {
+        "pages": [
+          "/catalog/young-events",
+          "/catalog/young-events/[youngId]",
+          "/catalog/young-events/calendar",
+          "/catalog/young-events/organizers",
+          "/catalog/young-events/organizers/[organizerId]"
+        ]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/catalog/young-events",
+            "returns": "paginated YoungEvent summaries with unknownDateCount and source",
+            "notes": [
+              "Optional query parameters: active, category, module, activityLevel, search, organizerId, dateFrom, dateTo, timeBasis, page, pageSize.",
+              "Summaries carry the structured upstream fields (module, activityLevel, form, grades, sponsor, contactName, contactTel, duration, serviceHour, sumHours, sumPersons, partakeNum, favCount, limitNum, createdAtUpstream, auditedAt, updatedAtUpstream, places) but not the rich-text bodies, which only the detail route returns.",
+              "Date ranges include overlapping known intervals; unknown start times are counted separately and available through the paginated dateUnknown filter. source reports fresh, stale, or unknown snapshot freshness; sourceMissing marks rows absent from the latest complete snapshot.",
+              "Default order: signup-open (active) events first, then by startAt descending; imageUrl is the local cached proxy path."
+            ]
+          },
+          {
+            "path": "/api/catalog/young-events/[youngId]",
+            "returns": "single YoungEvent including the sanitized description and participationNotes, rawJson, and source lifecycle fields",
+            "notes": ["404 when the youngId is unknown."]
+          },
+          {
+            "path": "/api/catalog/young-organizers",
+            "returns": "paginated YoungOrganizer summaries with activity arrays",
+            "notes": [
+              "Optional query parameters: search, page, pageSize.",
+              "Each organizer has a stable id and totalCount, activeCount, upcomingCount, historyCount. Counts are independent facts; activity histories use the paginated event list filtered by organizerId."
+            ]
+          },
+          {
+            "path": "/api/catalog/young-organizers/[organizerId]",
+            "returns": "single YoungOrganizer with activity arrays",
+            "notes": ["404 when the organizer ID is unknown."]
+          },
+          {
+            "path": "/api/catalog/young-events/[youngId]/image",
+            "returns": "poster image bytes (Content-Type from the origin or the file extension)",
+            "notes": [
+              "Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic> and stores the result. Repeat requests are served from the per-colo Cache API keyed by youngId.",
+              "404 when the youngId is unknown or the event has no image (cached for 300s); 502 when the origin fetch fails (cached for 60s).",
+              "A companion route, GET /api/catalog/young-events/images/[...path], serves rich-text inline images by their upstream pic path. It shares the same R2 objects and validation; because the bytes are event-independent it skips the per-colo cache keyed by youngId."
+            ]
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "youngEvents",
+            "parent": "Catalog",
+            "arguments": {
+              "page": "PageInput",
+              "filter": "YoungEventFilter"
+            },
+            "returns": "YoungEventPage!",
+            "rest_equivalent": "GET /api/catalog/young-events",
+            "mcp_equivalent": "catalog_young_event_list",
+            "notes": [
+              "filter accepts module and activityLevel for exact matches."
+            ]
+          },
+          {
+            "name": "youngEvent",
+            "parent": "Catalog",
+            "arguments": {
+              "youngId": "String!"
+            },
+            "returns": "YoungEvent",
+            "rest_equivalent": "GET /api/catalog/young-events/[youngId]",
+            "mcp_equivalent": "catalog_young_event_get",
+            "notes": [
+              "Returns null when the youngId is unknown.",
+              "Only this query populates description, participationNotes, and rawJson; rawJson is a JSON string because the schema has no JSON scalar."
+            ]
+          },
+          {
+            "name": "youngOrganizers",
+            "parent": "Catalog",
+            "arguments": {
+              "page": "PageInput",
+              "search": "String"
+            },
+            "returns": "YoungOrganizerPage!",
+            "rest_equivalent": "GET /api/catalog/young-organizers",
+            "mcp_equivalent": "catalog_young_organizer_list"
+          },
+          {
+            "name": "youngOrganizer",
+            "parent": "Catalog",
+            "arguments": {
+              "organizerId": "String!"
+            },
+            "returns": "YoungOrganizer",
+            "rest_equivalent": "GET /api/catalog/young-organizers/[organizerId]",
+            "mcp_equivalent": "catalog_young_organizer_get"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "catalog_young_event_list",
+            "returns": "paginated event summaries with unknownDateCount and source",
+            "rest_equivalent": "GET /api/catalog/young-events",
+            "notes": [
+              "Accepts active, category, module, activityLevel, search, organizerId, dateFrom, dateTo, timeBasis, page, limit, and mode inputs.",
+              "Default mode returns compact summaries with category, module, activityLevel, and form; full mode adds the organizer, department, poster, counters, timestamps, and places."
+            ]
+          },
+          {
+            "name": "catalog_young_event_get",
+            "returns": "single event with the sanitized description and participationNotes; full mode adds rawJson",
+            "rest_equivalent": "GET /api/catalog/young-events/[youngId]",
+            "notes": ["Accepts youngId and mode inputs."]
+          },
+          {
+            "name": "catalog_young_organizer_list",
+            "returns": "paginated organizers with active, upcoming, and historical activities",
+            "rest_equivalent": "GET /api/catalog/young-organizers"
+          },
+          {
+            "name": "catalog_young_organizer_get",
+            "returns": "one organizer with active, upcoming, and historical activities",
+            "rest_equivalent": "GET /api/catalog/young-organizers/[organizerId]"
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "event name",
+          "category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form",
+          "rich-text description and participation notes, sanitized with proxied inline images",
+          "signup window, event time, and the upstream created, approved, and updated timestamps",
+          "capacity, seat limit, applied count, actual participants, and total attendances",
+          "credited hours, total credited hours, volunteer hours, and activity duration",
+          "sponsor, organizer, department, and the published contact name and phone",
+          "per-slot venues, falling back to the single location when there are none",
+          "target years and favorite count",
+          "status and source freshness",
+          "organizer and stable organizer ID",
+          "sourceMissing and lastSeenAt when applicable"
+        ]
+      }
+    }
+  }
+}

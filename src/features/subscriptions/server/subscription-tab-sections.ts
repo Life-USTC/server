@@ -1,3 +1,4 @@
+import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -38,8 +39,10 @@ export async function listSubscribedSectionsForSubscriptionsTab(
         jwId: true,
         code: true,
         credits: true,
-        course: { select: { namePrimary: true } },
-        semester: { select: { id: true, nameCn: true, startDate: true } },
+        course: { select: { code: true, jwId: true, namePrimary: true } },
+        semester: {
+          select: { id: true, nameCn: true, startDate: true, endDate: true },
+        },
         teachers: { select: { namePrimary: true } },
       };
       const examSelect = {
@@ -54,10 +57,7 @@ export async function listSubscribedSectionsForSubscriptionsTab(
             examTakeCount: true,
             examBatch: {
               select: {
-                nameCn: true,
-                nameEn: true,
-                namePrimary: true,
-                nameSecondary: true,
+                ...localizedNameSelect,
               },
             },
             examRooms: { select: { room: true, count: true } },
@@ -90,6 +90,8 @@ export function subscriptionSectionFromRow(
     code: row.code,
     credits: row.credits,
     course: {
+      code: row.course?.code ?? null,
+      jwId: row.course?.jwId ?? null,
       namePrimary: row.course?.namePrimary ?? null,
     },
     semester: row.semester
@@ -98,6 +100,9 @@ export function subscriptionSectionFromRow(
           nameCn: row.semester.nameCn,
           startDate: row.semester.startDate
             ? toShanghaiIsoString(row.semester.startDate)
+            : null,
+          endDate: row.semester.endDate
+            ? toShanghaiIsoString(row.semester.endDate)
             : null,
         }
       : null,

@@ -1,37 +1,41 @@
-import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
+import { shouldLogSuccessfulRequest } from "@/lib/log/request-log-sampling";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
-
-export function recordApiRequestStart(input: {
-  method: string;
-  pathname: string;
-  requestId: string;
-}) {
-  const route = normalizeApiRoutePath(input.pathname);
-
-  logApiRequest(input.method, route, 0, 0, {
-    event: "request.start",
-    requestId: input.requestId,
-  });
-}
 
 export function recordApiRequestFinish(input: {
   authMode: string;
-  durationMs: number;
+  ioObservedDurationMs: number;
   method: string;
   requestId: string;
   route: string;
   status: number;
 }) {
-  logApiRequest(input.method, input.route, input.status, input.durationMs, {
-    authMode: input.authMode,
-    event: "request.finish",
-    requestId: input.requestId,
-  });
+  if (
+    shouldLogSuccessfulRequest({
+      durationMs: input.ioObservedDurationMs,
+      requestId: input.requestId,
+      samplePercent: 1,
+      status: input.status,
+    })
+  ) {
+    logApiRequest(
+      input.method,
+      input.route,
+      input.status,
+      input.ioObservedDurationMs,
+      {
+        authMode: input.authMode,
+        event: "request.finish",
+        requestId: input.requestId,
+      },
+      input.status >= 500 ? "error" : "info",
+    );
+  }
   writeApiRequestAnalytics({
     authMode: input.authMode,
-    durationMs: input.durationMs,
     event: "finish",
+    ioObservedDurationMs: input.ioObservedDurationMs,
     method: input.method,
     route: input.route,
     status: input.status,
@@ -40,23 +44,30 @@ export function recordApiRequestFinish(input: {
 
 export function recordApiRequestError(input: {
   authMode: string;
-  durationMs: number;
   error: unknown;
+  ioObservedDurationMs: number;
   method: string;
   requestId: string;
   route: string;
 }) {
   const status = 500;
-  logApiRequest(input.method, input.route, status, input.durationMs, {
-    authMode: input.authMode,
-    errorName: input.error instanceof Error ? input.error.name : "unknown",
-    event: "request.error",
-    requestId: input.requestId,
-  });
+  logApiRequest(
+    input.method,
+    input.route,
+    status,
+    input.ioObservedDurationMs,
+    {
+      authMode: input.authMode,
+      errorName: getSafeErrorName(input.error),
+      event: "request.error",
+      requestId: input.requestId,
+    },
+    "error",
+  );
   writeApiRequestAnalytics({
     authMode: input.authMode,
-    durationMs: input.durationMs,
     event: "error",
+    ioObservedDurationMs: input.ioObservedDurationMs,
     method: input.method,
     route: input.route,
     status,

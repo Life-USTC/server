@@ -10,13 +10,13 @@ export const GET: RequestHandler = async ({ request }) => {
 
 ## Catalog
 
-- [Courses](${origin}/courses)
-- [Sections](${origin}/sections)
-- [Teachers](${origin}/teachers)
+- [Courses](${origin}/catalog/courses)
+- [Sections](${origin}/catalog/sections)
+- [Teachers](${origin}/catalog/teachers)
 
 ## Developer interfaces
 
-- [REST API documentation](${origin}/api/docs/tag/sections)
+- [REST API documentation](${origin}/api/docs/tag/catalog-section)
 - [MCP protected resource metadata](${origin}/.well-known/oauth-protected-resource/api/mcp)
 - [MCP endpoint](${origin}/api/mcp)
 

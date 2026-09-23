@@ -6,7 +6,10 @@ import {
   listSubscribedSectionPage,
 } from "@/features/subscriptions/server/subscription-read-model";
 import { listTodoPage } from "@/features/todos/server/todo-service";
-import { prisma } from "@/lib/db/prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 describe("viewer page services", () => {
   let firstSectionId = 0;
@@ -16,7 +19,7 @@ describe("viewer page services", () => {
   let userEmails: string[] = [];
 
   beforeAll(async () => {
-    const sections = await prisma.section.findMany({
+    const sections = await fixturePrisma.section.findMany({
       where: {
         schedules: { some: {} },
         homeworks: { some: { deletedAt: null } },
@@ -38,19 +41,19 @@ describe("viewer page services", () => {
       `integration-viewer-b-${marker}@example.test`,
     ];
     const [firstUser, secondUser] = await Promise.all([
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[0],
           name: "Viewer Page A",
-          subscribedSections: { connect: { id: firstSectionId } },
+          sectionSubscriptions: { create: { sectionId: firstSectionId } },
         },
         select: { id: true },
       }),
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[1],
           name: "Viewer Page B",
-          subscribedSections: { connect: { id: secondSectionId } },
+          sectionSubscriptions: { create: { sectionId: secondSectionId } },
         },
         select: { id: true },
       }),
@@ -58,7 +61,7 @@ describe("viewer page services", () => {
     firstUserId = firstUser.id;
     secondUserId = secondUser.id;
 
-    await prisma.todo.createMany({
+    await fixturePrisma.todo.createMany({
       data: [
         {
           title: `[integration-test] viewer-a-1-${marker}`,
@@ -81,11 +84,14 @@ describe("viewer page services", () => {
 
   afterAll(async () => {
     if (userEmails.length > 0) {
-      await prisma.user.deleteMany({
+      await fixturePrisma.user.deleteMany({
         where: { email: { in: userEmails } },
       });
     }
-    await prisma.$disconnect();
+    await Promise.all([
+      runtimePrisma.$disconnect(),
+      fixturePrisma.$disconnect(),
+    ]);
   });
 
   it("paginates todos without crossing owners", async () => {
@@ -119,11 +125,11 @@ describe("viewer page services", () => {
       listSubscribedExamPage(firstUserId, { pagination }),
     ]);
     const [homeworkTotal, scheduleTotal, examTotal] = await Promise.all([
-      prisma.homework.count({
+      fixturePrisma.homework.count({
         where: { deletedAt: null, sectionId: firstSectionId },
       }),
-      prisma.schedule.count({ where: { sectionId: firstSectionId } }),
-      prisma.exam.count({ where: { sectionId: firstSectionId } }),
+      fixturePrisma.schedule.count({ where: { sectionId: firstSectionId } }),
+      fixturePrisma.exam.count({ where: { sectionId: firstSectionId } }),
     ]);
 
     expect(sections.pagination.total).toBe(1);

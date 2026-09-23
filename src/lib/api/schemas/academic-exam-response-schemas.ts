@@ -1,25 +1,30 @@
 import * as z from "zod";
-import { localizedCourseBaseSchema } from "./academic-course-response-schemas";
+import {
+  localizedCourseBaseSchema,
+  localizedNameFields,
+} from "./academic-course-response-schemas";
 import {
   sectionBaseSchema,
   semesterSchema,
 } from "./academic-section-base-response-schemas";
 import { dateTimeSchema } from "./response-schema-primitives";
 
-export const examRoomSchema = z.object({
+export const examRoomSchema = z.strictObject({
   id: z.number().int(),
   room: z.string(),
   count: z.number().int(),
   examId: z.number().int(),
 });
 
-export const examBatchSchema = z.object({
+export const examBatchSchema = z.strictObject({
   id: z.number().int(),
+  jwId: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  ...localizedNameFields,
 });
 
-export const examSchema = z.object({
+export const examSchema = z.strictObject({
   id: z.number().int(),
   jwId: z.number().int(),
   examType: z.number().int().nullable(),

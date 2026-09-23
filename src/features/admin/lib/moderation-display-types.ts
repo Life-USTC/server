@@ -38,6 +38,10 @@ export type ModerationCommentLike = {
     } | null;
     teacher?: { nameCn: string } | null;
   } | null;
+  youngEvent?: {
+    name: string;
+    youngId: string;
+  } | null;
 };
 
 export type ModerationDescriptionLike = {
@@ -57,4 +61,8 @@ export type ModerationDescriptionLike = {
     section?: { jwId?: number | null } | null;
   } | null;
   sectionTeacher?: null;
+  youngEvent?: {
+    name: string;
+    youngId: string;
+  } | null;
 };

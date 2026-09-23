@@ -1,4 +1,5 @@
 <script lang="ts">
+import { toast } from "svelte-sonner";
 import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { createAdminUsersControllerDefaultState } from "@/features/admin/lib/admin-users-controller-default-state";
 import {
@@ -46,6 +47,7 @@ let {
   isSaving: _isSaving,
   isSuspending: _isSuspending,
   message: _message,
+  messageVariant: _messageVariant,
   selectedUser,
   suspendDuration,
   suspendExpiresAt,
@@ -94,6 +96,7 @@ function _openDialog(user: AdminUser) {
   suspendExpiresAt = "";
   suspendReason = "";
   _message = null;
+  _messageVariant = "default";
 }
 
 function closeDialog() {
@@ -121,6 +124,16 @@ const {
     username: editUsername,
   }),
   getSelectedUser: () => selectedUser,
+  onSuccess: (action) => {
+    toast.success(
+      action === "update"
+        ? _copy.updateSuccess
+        : action === "suspend"
+          ? _copy.suspendSuccess
+          : _copy.liftSuccess,
+    );
+    _message = null;
+  },
   getSuspendState: () => ({
     duration: suspendDuration,
     expiresAt: suspendExpiresAt,
@@ -132,6 +145,9 @@ const {
   },
   setMessage: (value) => {
     _message = value;
+  },
+  setMessageVariant: (value) => {
+    _messageVariant = value;
   },
   setSaving: (value) => {
     _isSaving = value;
@@ -153,6 +169,7 @@ const {
   formatDate={_formatDate}
   formatMessage={formatAdminUserMessage}
   message={_message}
+  messageVariant={_messageVariant}
   onSelect={_openDialog}
   pageHref={_pageHref}
   pagination={data.pagination}
@@ -172,6 +189,7 @@ const {
   isSuspending={_isSuspending}
   liftSelectedSuspension={_liftSelectedSuspension}
   message={_message}
+  messageVariant={_messageVariant}
   moderationCopy={_moderationCopy}
   saveSelectedUser={_saveSelectedUser}
   {selectedUser}

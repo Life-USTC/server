@@ -1,11 +1,11 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import { buttonVariants } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
+import { cn } from "$lib/utils.js";
 import type {
   SettingsCopy,
   SettingsDeleteAccountAction,
@@ -19,94 +19,86 @@ export let isDeletingAccount: boolean;
 export let isMounted: boolean;
 </script>
 
-<Card.Root
+<section
   aria-labelledby="settings-danger-title"
-  class="bg-destructive/5 ring-destructive/40"
+  class="grid gap-4"
   data-settings-danger-region
-  role="region"
 >
-  <Card.Header>
-    <Card.Title class="text-destructive" id="settings-danger-title">
+  <div class="grid gap-1">
+    <h2 class="text-destructive text-base font-normal tracking-tight" id="settings-danger-title">
       {copy.profile.deleteAccountTitle}
-    </Card.Title>
-    <Card.Description>
+    </h2>
+    <p class="text-muted-foreground text-sm">
       {copy.profile.deleteAccountDescription}
-    </Card.Description>
-  </Card.Header>
-  <Card.Content class="grid gap-4">
-    <Button
-      class="w-fit"
+    </p>
+  </div>
+
+  <AlertDialog.Root
+    open={isDeleteAccountOpen}
+    onOpenChange={(open) => {
+      if (!open && isDeletingAccount) return;
+      isDeleteAccountOpen = open;
+      deleteConfirmValue = "";
+    }}
+  >
+    <AlertDialog.Trigger
       type="button"
+      class={cn(buttonVariants({ variant: "destructive" }), "w-fit")}
       disabled={!isMounted}
-      variant="destructive"
-      onclick={() => {
-        isDeleteAccountOpen = true;
-        deleteConfirmValue = "";
-      }}
     >
       {copy.profile.deleteAccount}
-    </Button>
-    {#if isDeleteAccountOpen}
-      <AlertDialog.Root
-        open={true}
-        onOpenChange={(open) => {
-          if (!open) {
-            isDeleteAccountOpen = false;
-            deleteConfirmValue = "";
-          }
-        }}
+    </AlertDialog.Trigger>
+
+    <AlertDialog.Content class="max-w-md sm:max-w-md">
+      <form
+        method="POST"
+        action="?/deleteAccount"
+        use:enhance={deleteAccountAction}
       >
-        <AlertDialog.Content class="max-w-md sm:max-w-md">
+        <Field.Group class="gap-4">
           <AlertDialog.Header>
             <AlertDialog.Title>{copy.profile.deleteAccountConfirmTitle}</AlertDialog.Title>
             <AlertDialog.Description>
               {copy.profile.deleteAccountConfirmDescription}
             </AlertDialog.Description>
           </AlertDialog.Header>
-          <form
-            method="POST"
-            action="?/deleteAccount"
-            class="flex flex-col gap-4 px-5 py-4"
-            use:enhance={deleteAccountAction}
-          >
-            <Field.Group>
-              <Field.Field>
-                <Field.Label for="delete-confirm">
-                  {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
-                </Field.Label>
-                <Input
-                  id="delete-confirm"
-                  name="confirm"
-                  placeholder="DELETE"
-                  pattern="DELETE"
-                  required
-                  disabled={!isMounted || isDeletingAccount}
-                  bind:value={deleteConfirmValue}
-                />
-              </Field.Field>
-            </Field.Group>
-            <AlertDialog.Footer class="px-0 pb-0">
-              <AlertDialog.Cancel
-                variant="secondary"
-                type="button"
-                disabled={isDeletingAccount}
-              >
-                {copy.profile.cancel}
-              </AlertDialog.Cancel>
-              <Button
-                type="submit"
-                disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
-                variant="destructive"
-              >
-                {#if isDeletingAccount}
-                  <Spinner data-icon="inline-start" />
-                {/if}
-                {copy.profile.deleteAccount}
-              </Button>
-            </AlertDialog.Footer>
-          </form>
-        </AlertDialog.Content>
-      </AlertDialog.Root>
-    {/if}
-  </Card.Content>
-</Card.Root>
+
+          <Field.Field>
+            <Field.Label for="delete-confirm">
+              {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
+            </Field.Label>
+            <Input
+              id="delete-confirm"
+              name="confirm"
+              placeholder="DELETE"
+              pattern="DELETE"
+              required
+              disabled={!isMounted || isDeletingAccount}
+              bind:value={deleteConfirmValue}
+            />
+          </Field.Field>
+
+          <AlertDialog.Footer>
+            <AlertDialog.Cancel
+              type="button"
+              disabled={isDeletingAccount}
+              variant="secondary"
+            >
+              {copy.profile.cancel}
+            </AlertDialog.Cancel>
+            <AlertDialog.Action
+              type="submit"
+              disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
+              variant="destructive"
+            >
+              {#if isDeletingAccount}
+                <Spinner data-icon="inline-start" />
+              {/if}
+              {copy.profile.deleteAccount}
+            </AlertDialog.Action>
+          </AlertDialog.Footer>
+        </Field.Group>
+      </form>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
+</section>

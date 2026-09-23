@@ -1,6 +1,7 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { AppLocale } from "@/i18n/config";
 
 type SectionDetailHomeworkMessages = Record<string, string> &
@@ -15,6 +16,7 @@ export type SectionDetailNamed = {
 };
 
 export type SectionDetailTeacher = SectionDetailNamed & {
+  department?: SectionDetailNamed | null;
   id: string | number;
 };
 
@@ -25,6 +27,7 @@ export type SectionDetailSemester = {
 };
 
 export type SectionDetailScheduleRoom = SectionDetailNamed & {
+  code?: string | null;
   building?:
     | (SectionDetailNamed & {
         campus?: SectionDetailNamed | null;
@@ -69,6 +72,7 @@ export type SectionDetailSection = {
   dateTimePlaceText?: string | null;
   designPeriods?: number | null;
   examMode?: SectionDetailNamed | null;
+  examCount: number;
   exams: SectionDetailExam[];
   experimentPeriods?: number | null;
   graduateAndPostgraduate?: boolean | null;
@@ -77,7 +81,6 @@ export type SectionDetailSection = {
   limitCount?: number | null;
   machinePeriods?: number | null;
   openDepartment?: SectionDetailNamed | null;
-  otherSections?: SectionDetailRelatedSection[];
   period?: number | null;
   periodsPerWeek?: number | null;
   practicePeriods?: number | null;
@@ -85,8 +88,9 @@ export type SectionDetailSection = {
   retiredAt?: string | Date | null;
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
-  sameSemesterOtherTeachers: SectionDetailRelatedSection[];
-  sameTeacherOtherSemesters: SectionDetailRelatedSection[];
+  scheduleCount: number;
+  otherCourseSectionCount: number;
+  otherCourseSections: SectionDetailRelatedSection[];
   semester?: SectionDetailSemester | null;
   semesterId?: number | null;
   stdCount?: number | null;
@@ -153,13 +157,17 @@ export type SectionDetailCopy = {
   };
   homeworks: SectionDetailHomeworkMessages & {
     auditCreated: string;
+    auditUpdated: string;
     auditDeleted: string;
     auditTitle: string;
     auditEmpty: string;
     auditMeta: string;
     calendarButtonLabel: string;
+    advancedHide: string;
+    advancedShow: string;
     cancel: string;
     completedLabel: string;
+    commentsTitle: string;
     contentHistoryAction: string;
     contentHistoryActor: string;
     createAction: string;
@@ -170,22 +178,36 @@ export type SectionDetailCopy = {
     descriptionEmpty: string;
     descriptionLabel: string;
     descriptionPlaceholder: string;
+    dueDateShortcuts: string;
+    timeShortcuts: string;
     editAction: string;
+    filterIncomplete: string;
     helperClear: string;
+    helperBeforeMonday: string;
     helperMonth: string;
+    helperNextClass: string;
+    helperNextWeek: string;
     helperPublishNow: string;
     helperSemesterEnd: string;
     helperSemesterStart: string;
     helperStartNow: string;
+    helperThisWeek: string;
     helperWeek: string;
     loginToCreate: string;
     markComplete: string;
     markIncomplete: string;
+    moreDetails: string;
+    pendingLabel: string;
+    noCompletionRequired: string;
     publishedAt: string;
+    relativeTime: string;
     saveChanges: string;
+    saving: string;
+    sectionLabel: string;
     showCreate: string;
     submissionDue: string;
     submissionStart: string;
+    statusLabel: string;
     subtitle: string;
     tagDefault: string;
     tagMajor: string;
@@ -204,6 +226,7 @@ export type SectionDetailCopy = {
     calendarEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
+    calendarUrlDescription: string;
     calendarUrlLabel: string;
     cardsView: string;
     classEventTitle: string;
@@ -214,19 +237,24 @@ export type SectionDetailCopy = {
     copyToClipboard: string;
     courseComments: string;
     credits: string;
+    date: string;
     dateTBD: string;
     department: string;
     designPeriods: string;
     examBatch: string;
     examCount: string;
+    examDate: string;
+    examDateTBD: string;
     examEvent: string;
     examLegend: string;
     examMode: string;
+    examTime: string;
     exams: string;
     experimentPeriods: string;
     location: string;
     loginRequired: string;
     listView: string;
+    learnMoreAboutICalendar: string;
     machinePeriods: string;
     no: string;
     noTeacher: string;
@@ -234,24 +262,29 @@ export type SectionDetailCopy = {
     noTeachersListed: string;
     notAvailable: string;
     operationFailed: string;
+    pleaseRetry: string;
     otherSections: string;
     period: string;
     periodsPerWeek: string;
     practicePeriods: string;
     remark: string;
+    room: string;
     roomTbd: string;
     roomType: string;
-    sameSemesterOtherTeachers: string;
-    sameTeacherOtherSemesters: string;
     schedulingDetails: string;
     sectionComments: string;
     sectionCode: string;
     semester: string;
     subscribeLabel: string;
+    subscribeSuccess: string;
     subscribing: string;
     subscriptionDisclaimer: string;
     subscriptionMissing: string;
+    subscriptionPrivacyNote: string;
+    subscriptionUrlDescription: string;
     subscriptionUrlLabel: string;
+    summaryCapacityMeta: string;
+    scheduleRemark: string;
     tabs: {
       calendar: string;
       comments: string;
@@ -265,9 +298,11 @@ export type SectionDetailCopy = {
     teachingSection: string;
     testPeriods: string;
     theoryPeriods: string;
+    time: string;
     title: string;
     units: string;
     unsubscribeLabel: string;
+    unsubscribeSuccess: string;
     unsubscribing: string;
     due: string;
     flags: string;
@@ -292,10 +327,12 @@ export type SectionDetailCopy = {
       shortWednesday: string;
     };
     weekNumber: string;
-    viewAllCourseSections: string;
+    lecture: string;
+    lectureNumber: string;
     viewAllSubscriptions: string;
     yes: string;
   };
+  roomMap: RoomMapCopy;
   metadata: {
     pages: {
       sectionDetail: string;
@@ -351,7 +388,6 @@ export type SectionDetailPageData = {
   viewer: {
     isSubscribed?: boolean;
     signedIn?: boolean;
-    subscriptionIcsUrl?: string | null;
   };
 };
 
@@ -362,6 +398,7 @@ export type SectionDetailActionData =
 
 export type SectionHomework = {
   completion: { completedAt: string | null } | null;
+  completionRequired?: boolean;
   commentCount?: number;
   createdById?: string | null;
   description?: { content?: string | null; renderedHtml?: string } | null;

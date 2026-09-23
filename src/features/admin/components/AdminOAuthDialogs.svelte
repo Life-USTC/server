@@ -13,6 +13,8 @@ import type {
 } from "./admin-oauth-create-types";
 
 type CreatedClientForm = {
+  message?: string;
+  variant?: "destructive" | "default";
   createdClientId?: string | null;
   createdClientRedirectUris?: string[];
   createdClientScopes?: string[];
@@ -25,7 +27,9 @@ export let authPatterns: AuthPatternOption[];
 export let closeCreateDialog: () => void;
 export let closeCredentialsDialog: () => void;
 export let copy: AdminOAuthCopy;
-export let copyText: (value: string, message: string) => void;
+export let copyMessage: string;
+export let copyMessageVariant: "destructive" | "default";
+export let copyText: (value: string, message: string) => Promise<boolean>;
 export let createClientAction: SubmitFunction;
 export let credentialsJson: string;
 export let deleteClientAction: SubmitFunction;
@@ -46,7 +50,6 @@ export let selectedAuthPattern: AuthPatternOption;
 export let selectedScopes: string[];
 export let setPendingDeleteClient: (client: AdminOAuthClient | null) => void;
 export let showCreateDialog: boolean;
-export let toggleScope: (scope: string, checked: boolean) => void;
 export let clientTypeLabel: (method: string) => string;
 </script>
 
@@ -67,7 +70,6 @@ export let clientTypeLabel: (method: string) => string;
   bind:selectedAuthMethod
   {selectedAuthPattern}
   bind:selectedScopes
-  {toggleScope}
 />
 
 <AdminOAuthCredentialsDialog
@@ -76,6 +78,8 @@ export let clientTypeLabel: (method: string) => string;
   {clientTypeLabel}
   close={closeCredentialsDialog}
   {copy}
+  {copyMessage}
+  {copyMessageVariant}
   {copyText}
   {credentialsJson}
   redirectUris={form?.createdClientRedirectUris ?? []}

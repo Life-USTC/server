@@ -5,9 +5,7 @@ import {
   signInAsDevAdmin,
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
-  appSidebar,
   expandWorkspaceSidebarGroup,
   sidebarNavigationLink,
   visibleText,
@@ -21,15 +19,61 @@ import {
   resolveSeedSectionId,
   resolveSeedTeacherId,
 } from "../../../utils/seed-lookups";
+import type { UiQualityAllowlist } from "../../../utils/ui-quality";
 
 type PageContractCase = {
   routePath: string;
   testInfo?: TestInfo;
 };
 
+const API_REFERENCE_UI_QUALITY_EXCEPTIONS = {
+  structure: [
+    {
+      match: /^main: expected exactly one visible main landmark, found 2$/,
+      reason:
+        "Scalar renders its own main landmark inside the application's documented API reference shell.",
+    },
+  ],
+  "duplicate-id": [
+    {
+      match: /^#scalar-client-\d+-\d+: 2 elements use the same id$/,
+      reason:
+        "Scalar duplicates hidden client examples for responsive render modes; the ids are third-party generated.",
+    },
+  ],
+  "invalid-link": [
+    {
+      match: /^a: visible link has no href$/,
+      reason:
+        "Scalar renders operation toggles as anchors without hrefs inside its generated API reference DOM.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
+const YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS = {
+  "broken-image": [
+    {
+      match:
+        /^img: visible image (?:did not finish loading|has no decoded pixels): .*\/api\/catalog\/young-events\/[^/]+\/image$/,
+      reason:
+        "Poster images are proxied lazily from young.ustc.edu.cn on an R2 cache miss; CI network to the origin is not guaranteed.",
+    },
+  ],
+} satisfies UiQualityAllowlist;
+
+function getContractUiQuality(routePath: string): UiQualityAllowlist {
+  if (routePath.startsWith("/api/docs")) {
+    return API_REFERENCE_UI_QUALITY_EXCEPTIONS;
+  }
+  if (routePath === "/catalog/young-events/[youngId]") {
+    return YOUNG_EVENT_DETAIL_UI_QUALITY_EXCEPTIONS;
+  }
+  return {};
+}
+
 function getContractWaitUntil(routePath: string) {
   if (
-    routePath === "/api/docs/tag/sections" ||
+    routePath === "/api/docs/tag/catalog-section" ||
     routePath === "/guides/markdown-support"
   ) {
     return "load" as const;
@@ -48,27 +92,26 @@ async function maybeCapture(
   await captureStepScreenshot(page, testInfo, name);
 }
 
-function escapeForRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function localizedNamePattern(nameCn: string, nameEn: string) {
-  return new RegExp(`${escapeForRegExp(nameCn)}|${escapeForRegExp(nameEn)}`);
-}
-
 async function gotoContractPage(
   page: Page,
   path: string,
   testInfo: TestInfo | undefined,
 ) {
   const response = await gotoAndWaitForReady(page, path, {
+    browserHealth: {},
+    expectMeaningfulContent: true,
+    expectNoHorizontalOverflow: true,
+    uiQuality: getContractUiQuality(path),
     waitUntil: getContractWaitUntil(path),
     testInfo,
     screenshotLabel: "contract",
   });
 
   if (response) {
-    expect(response.status()).toBeLessThan(500);
+    expect(
+      response.ok(),
+      `Expected ${path} to resolve to a successful document response, received ${response.status()}`,
+    ).toBe(true);
   }
 
   return response;
@@ -82,40 +125,54 @@ export async function assertPageContract(
   page: Page,
   { routePath, testInfo }: PageContractCase,
 ) {
-  if (routePath.startsWith("/settings/")) {
-    if (routePath === "/settings") {
+  if (routePath.startsWith("/account/settings/")) {
+    if (routePath === "/account/settings") {
       // handled explicitly below for explicitness
     } else {
       await signInAsDebugUser(page, routePath);
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       const expectedTab = routePath.split("/").pop();
-      const tabHeading =
+      const tabMarker =
         expectedTab === "profile"
-          ? /个人资料|Profile/i
+          ? page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i })
           : expectedTab === "accounts"
-            ? /账号关联|Accounts/i
-            : expectedTab === "content"
-              ? /内容偏好|Content/i
-              : expectedTab === "danger"
-                ? /危险|Danger/i
-                : /设置|Settings/i;
+            ? page.getByRole("region", {
+                name: /关联账户|Linked accounts/i,
+              })
+            : expectedTab === "preferences"
+              ? page.getByText(/外观|Appearance/i).first()
+              : expectedTab === "authorizations"
+                ? page.getByRole("region", {
+                    name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
+                  })
+                : expectedTab === "danger"
+                  ? page.getByRole("region", {
+                      name: /删除账户|Delete Account/i,
+                    })
+                  : page.getByRole("heading", { name: /设置|Settings/i });
       await expect(
-        page.getByRole("link", { name: /设置|Settings/i }),
+        page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: tabHeading }),
-      ).toBeVisible();
+      await expect(tabMarker).toBeVisible();
       return;
     }
   }
 
+  if (routePath === "/workspace/subscriptions/sections") {
+    await signInAsDebugUser(page, "/workspace/subscriptions");
+    await gotoContractPage(page, routePath, testInfo);
+    await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
+    await expectMainContent(page);
+    return;
+  }
+
   if (
-    routePath === "/dashboard/[tab]" ||
-    routePath.startsWith("/dashboard/") ||
-    routePath === "/dashboard"
+    routePath === "/workspace/[tab]" ||
+    routePath.startsWith("/workspace/") ||
+    routePath === "/workspace"
   ) {
-    await signInAsDebugUser(page, routePath === "/dashboard" ? "/" : routePath);
+    await signInAsDebugUser(page, routePath === "/workspace" ? "/" : routePath);
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
     await expandWorkspaceSidebarGroup(page);
@@ -129,10 +186,8 @@ export async function assertPageContract(
     case "/admin": {
       await signInAsDevAdmin(page, "/admin");
       await gotoContractPage(page, routePath, testInfo);
+      await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("link", { name: /管理员|Admin/i }),
-      ).toBeVisible();
       await expect(
         page.getByRole("link", { name: /用户管理|User Management/i }),
       ).toBeVisible();
@@ -143,9 +198,9 @@ export async function assertPageContract(
         page.getByRole("link", { name: /OAuth|OAuth 客户端/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /校车管理|Shuttle Bus/i }),
+        page.getByRole("link", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
-      await maybeCapture(page, testInfo, "admin-home");
+      await maybeCapture(page, testInfo, "admin-entry");
       return;
     }
 
@@ -154,7 +209,7 @@ export async function assertPageContract(
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /时刻表版本|Versions/i }),
+        page.getByRole("heading", { name: /校车管理|Bus Management/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: /导入|Import/i }),
@@ -184,8 +239,9 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { name: /OAuth|OAuth 客户端/i }),
       ).toBeVisible();
+      // Header + empty-state both expose Create Client; L1 only needs one.
       await expect(
-        page.getByRole("button", { name: /创建客户端|Create Client/i }),
+        page.getByRole("button", { name: /创建客户端|Create Client/i }).first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-oauth");
       return;
@@ -207,86 +263,62 @@ export async function assertPageContract(
       return;
     }
 
-    case "/sections/[jwId]": {
+    case "/catalog/sections/[jwId]": {
       await gotoContractPage(
         page,
-        `/sections/${DEV_SEED.section.jwId}`,
+        `/catalog/sections/${DEV_SEED.section.jwId}`,
         testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.course.nameCn,
-              DEV_SEED.course.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
+        page.getByRole("heading", { name: /日历|Calendar/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
 
-    case "/courses/[jwId]": {
+    case "/catalog/courses/[jwId]": {
       await gotoContractPage(
         page,
-        `/courses/${DEV_SEED.course.jwId}`,
+        `/catalog/courses/${DEV_SEED.course.jwId}`,
         testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .getByRole("link", { name: /班级|Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
-      await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.course.nameCn,
-              DEV_SEED.course.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
 
-    case "/teachers/[id]": {
+    case "/catalog/teachers/[id]": {
       await gotoContractPage(
         page,
-        `/teachers/${await resolveSeedTeacherId(page)}`,
+        `/catalog/teachers/${await resolveSeedTeacherId(page)}`,
         testInfo,
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
       await expect(
-        page
-          .getByTestId("detail-section-nav")
-          .getByRole("link", { name: /授课班级|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
-      await expect(
-        appSidebar(page)
-          .getByRole("link", {
-            name: localizedNamePattern(
-              DEV_SEED.teacher.nameCn,
-              DEV_SEED.teacher.nameEn,
-            ),
-          })
-          .first(),
-      ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "teachers-id");
       return;
     }
 
-    case "/u/[username]": {
-      await gotoContractPage(page, `/u/${DEV_SEED.adminUsername}`, testInfo);
+    case "/community/users/[identifier]": {
+      await gotoContractPage(
+        page,
+        `/community/users/${DEV_SEED.adminUsername}`,
+        testInfo,
+      );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.adminName)).toBeVisible();
       await expect(
@@ -296,36 +328,31 @@ export async function assertPageContract(
       return;
     }
 
-    case "/u/id/[uid]": {
-      await signInAsDevAdmin(page, "/");
-      const sessionUser = await getCurrentSessionUser(page);
-      await gotoContractPage(page, `/u/id/${sessionUser.id}`, testInfo);
-      await expectMainContent(page);
-      await expect(
-        visibleText(page, `@${DEV_SEED.adminUsername}`),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "u-id-uid");
-      return;
-    }
-
-    case "/comments/[id]": {
+    case "/community/comments/[id]": {
       await signInAsDebugUser(page);
       const sectionId = await resolveSeedSectionId(page);
-      const createResponse = await page.request.post("/api/comments", {
-        data: {
-          targetType: "section",
-          targetId: String(sectionId),
-          body: "e2e mapped route comment",
+      const createResponse = await page.request.post(
+        "/api/community/comments",
+        {
+          data: {
+            targetType: "section",
+            targetId: String(sectionId),
+            body: "e2e mapped route comment",
+          },
         },
-      });
+      );
       expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as { id?: string };
       expect(createBody.id).toBeTruthy();
 
-      await gotoContractPage(page, `/comments/${createBody.id}`, testInfo);
+      await gotoContractPage(
+        page,
+        `/community/comments/${createBody.id}`,
+        testInfo,
+      );
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}/comments(?:\\?.*)?#comment-${createBody.id}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}#comment-${createBody.id}$`,
         ),
       );
       await expectMainContent(page);
@@ -333,7 +360,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/comments/guide": {
+    case "/community/comments/guide": {
       await gotoContractPage(page, "/guides/markdown-support", testInfo);
       await expect(page.locator("#main-content")).toBeVisible();
       await expect(page.locator("pre").first()).toBeVisible();
@@ -342,7 +369,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/signin": {
+    case "/account/sign-in": {
       await gotoContractPage(page, routePath, testInfo);
       await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
@@ -351,7 +378,144 @@ export async function assertPageContract(
       return;
     }
 
-    case "/bus-map": {
+    case "/catalog/bus": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
+      ).toBeVisible();
+      // Mobile-only collapsible triggers are lg:hidden; assert desktop planner.
+      await expect(
+        page.locator("[data-testid='bus-start-stop-group']"),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Reverse|反向/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "bus");
+      return;
+    }
+
+    case "/catalog/rooms": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /教室位置|Room location/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByRole("textbox")).toBeVisible();
+      return;
+    }
+
+    case "/catalog/weather": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /天气|Weather/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          level: 2,
+          name: /本部|Main campus/,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 2, name: /高新校区|Gaoxin campus/ }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "weather");
+      return;
+    }
+
+    case "/catalog/young-events": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /第二课堂|Second Classroom/i,
+        }),
+      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.youngEvent.name)).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events");
+      return;
+    }
+
+    case "/catalog/young-events/[youngId]": {
+      await gotoContractPage(
+        page,
+        `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: DEV_SEED.youngEvent.name,
+        }),
+      ).toBeVisible();
+      await expect(
+        visibleText(page, DEV_SEED.youngEvent.location),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-youngId");
+      return;
+    }
+
+    case "/catalog/young-events/calendar": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/calendar?view=month&date=2026-05-10",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /活动日历|Event calendar/i,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("young-calendar")).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-calendar");
+      return;
+    }
+
+    case "/catalog/young-events/organizers": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/organizers",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /主办方|Organizers/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("searchbox")).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-organizers");
+      return;
+    }
+
+    case "/catalog/young-events/organizers/[organizerId]": {
+      await gotoContractPage(
+        page,
+        "/catalog/young-events/organizers/dev-scenario-young-organizer",
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /学生会|Students'? Union/i,
+        }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "young-events-organizer-detail");
+      return;
+    }
+
+    case "/catalog/bus/map": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(page.locator("svg").first()).toBeVisible();
@@ -362,10 +526,144 @@ export async function assertPageContract(
       return;
     }
 
-    case "/sections": {
+    case "/catalog/links": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("searchbox", {
+          name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /教务系统|Academic Affairs/i }).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "links");
+      return;
+    }
+
+    case "/search": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /搜索|Search/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("combobox")).toBeVisible();
+      await maybeCapture(page, testInfo, "search");
+      return;
+    }
+
+    case "/news": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { level: 1, name: /新闻|News/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("searchbox", { name: /搜索|Search/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("listbox", { name: /^(来源|Sources)$/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("group", {
+          name: /按组织层级筛选|Filter by organization level/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("combobox", { name: /类型|Type/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "news");
+      return;
+    }
+
+    case "/news/sources": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: /新闻来源目录|News source directory/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: /返回新闻与通知|Back to news and notices/i,
+        }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "news-sources");
+      return;
+    }
+
+    case "/news/[id]": {
+      await gotoContractPage(page, "/news", testInfo);
+      // Scoped to the results table: the page header also links to
+      // /news/sources, which would otherwise match first.
+      const detailLink = page
+        .locator("[data-slot='table-body'] a[href^='/news/']")
+        .first();
+      await expect(detailLink).toBeVisible();
+      await detailLink.click();
+      await expect(page).toHaveURL(/\/news\/[^/?]+$/);
+      await expectMainContent(page);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await maybeCapture(page, testInfo, "news-detail");
+      return;
+    }
+
+    case "/api/docs": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expect(page).toHaveURL(
+        /\/api\/docs\/tag\/catalog-section(?:\?.*)?$/,
+      );
+      await expectMainContent(page);
+      await maybeCapture(page, testInfo, "api-docs-redirect");
+      return;
+    }
+
+    case "/catalog/courses/[jwId]/[section]": {
       await gotoContractPage(
         page,
-        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}#introduction$`),
+      );
+      await expectMainContent(page);
+      return;
+    }
+
+    case "/catalog/sections/[jwId]/[section]": {
+      await gotoContractPage(
+        page,
+        `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#introduction$`),
+      );
+      await expectMainContent(page);
+      return;
+    }
+
+    case "/catalog/teachers/[id]/[section]": {
+      const teacherId = await resolveSeedTeacherId(page);
+      await gotoContractPage(
+        page,
+        `/catalog/teachers/${teacherId}/introduction`,
+        testInfo,
+      );
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/teachers/${teacherId}#introduction$`),
+      );
+      await expectMainContent(page);
+      return;
+    }
+
+    case "/catalog/sections": {
+      await gotoContractPage(
+        page,
+        `/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -389,10 +687,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/teachers": {
+    case "/catalog/teachers": {
       await gotoContractPage(
         page,
-        `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -415,10 +713,10 @@ export async function assertPageContract(
       return;
     }
 
-    case "/courses": {
+    case "/catalog/courses": {
       await gotoContractPage(
         page,
-        `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
         testInfo,
       );
       await expectMainContent(page);
@@ -436,24 +734,80 @@ export async function assertPageContract(
       return;
     }
 
-    case "/mobile-app": {
+    case "/usage/mobile": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
         page.getByRole("link", { name: /App Store|下载/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /打开仪表盘|Open Dashboard/i }).first(),
+        page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
       return;
     }
 
-    case "/oauth/authorize": {
+    case "/usage/bot": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByRole("heading", { name: /OAuth|授权|Authorize/i }),
+        page.getByRole("heading", { name: /Presto/i, level: 1 }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-bot");
+      return;
+    }
+
+    case "/usage/mcp": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page
+          .getByRole("button", {
+            name: /复制 MCP 端点|Copy MCP endpoint/i,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: /启用开发者模式|Enable Developer Mode/i,
+        }),
+      ).toHaveAttribute(
+        "href",
+        "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta",
+      );
+      await expect(
+        page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-mcp");
+      return;
+    }
+
+    case "/usage/cli": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
+      ).toHaveAttribute("href", "https://github.com/Life-USTC/CLI");
+      await expect(
+        page.getByText(
+          /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /life-ustc catalog course -s "线性代数" --no-interactive --limit 3/,
+        ),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "usage-cli");
+      return;
+    }
+
+    case "/oauth/authorize": {
+      // Bare authorize URL (no client_id / PKCE) redirects to sign-in.
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: /登录|Sign In/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "oauth-authorize");
       return;
@@ -478,8 +832,8 @@ export async function assertPageContract(
       return;
     }
 
-    case "/settings": {
-      await signInAsDebugUser(page, "/settings/profile");
+    case "/account/settings": {
+      await signInAsDebugUser(page, "/account/settings/profile");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(
@@ -507,7 +861,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/welcome": {
+    case "/account/welcome": {
       await expectRequiresSignIn(page, routePath);
       await maybeCapture(page, testInfo, "welcome");
       return;
@@ -519,18 +873,20 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", {
           level: 1,
-          name: /先从公开校园工具开始|Start with public campus tools/i,
+          name: /课程、课表与校园生活，一站搞定|Courses, schedules, and campus life/i,
         }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /浏览课程|Browse courses/i }),
+        page
+          .locator("#main-content")
+          .getByRole("link", { name: /^(课程|Courses)$/i }),
       ).toBeVisible();
       await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
       await maybeCapture(page, testInfo, "home");
       return;
     }
 
-    case "/api/docs/tag/sections": {
+    case "/api/docs/tag/catalog-section": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await waitForUiSettled(page);

@@ -1,10 +1,18 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  catalogLocalizedDisplayName,
+  catalogLocalizedNames,
+} from "@/features/catalog/lib/catalog-list-display";
 import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page as appPage } from "$app/stores";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
+import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
@@ -23,12 +31,11 @@ export let page: number;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 export let sectionEmptyDescription: () => string;
 export let sectionLabels: SectionListLabels;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let selectedSemester: SectionListSemester | null | undefined;
-export let teacherNames: (teachers: CatalogNamed[]) => string;
 export let totalPages: number;
 
 $: filters = data.filters as SectionListFilters;
+$: locale = $appPage.data.locale ?? "zh-cn";
 $: pagination = data.pagination as SectionListPagination;
 $: sectionSummaryBase = catalogShowingSummary(
   sectionLabels.showing,
@@ -41,7 +48,10 @@ $: sectionSearchSummary = optionalCatalogFilterSummary(
   "{query}",
 );
 $: sectionSemesterSummary = selectedSemester
-  ? sectionLabels.inSemester.replace("{semester}", selectedSemester.nameCn)
+  ? sectionLabels.inSemester.replace(
+      "{semester}",
+      formatSemesterName(locale, selectedSemester.nameCn),
+    )
   : "";
 </script>
 
@@ -54,25 +64,24 @@ $: sectionSemesterSummary = selectedSemester
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="xl:hidden" data-testid="catalog-results-cards">
-      <Item.Group>
-        {#each data.data as section}
-          {@const sectionHref = `/sections/${section.jwId}`}
-          <Item.Root variant="outline" size="sm">
+    <ResponsiveCollection>
+      {#snippet mobile()}
+      <div data-testid="catalog-results-cards">
+      <Item.Group class="gap-0" role="list">
+        {#each data.data as section, index}
+          {@const sectionHref = `/catalog/sections/${section.jwId}`}
+          <Item.Root role="listitem" size="sm">
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
                 <Item.Content>
-                  <Item.Title>{primaryName(section.course)}</Item.Title>
-                  {#if secondaryName(section.course)}
-                    <Item.Description>{secondaryName(section.course)}</Item.Description>
-                  {/if}
+                  <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
                   <Item.Description>
-                    {section.semester?.nameCn ?? sectionLabels.noSemester}
-                    · {teacherNames(section.teachers) || "-"}
+                    {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
+                    · {catalogLocalizedNames(section.teachers, locale) || "-"}
                   </Item.Description>
                 </Item.Content>
                 <Item.Actions>
-                  <Badge variant="outline">{section.code}</Badge>
+                  <TruncatedCode text={section.code} />
                 </Item.Actions>
                 <Item.Footer class="flex-wrap justify-start">
                   <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
@@ -82,10 +91,15 @@ $: sectionSemesterSummary = selectedSemester
               </a>
             {/snippet}
           </Item.Root>
+          {#if index < data.data.length - 1}
+            <Item.Separator aria-hidden="true" />
+          {/if}
         {/each}
       </Item.Group>
-    </div>
-    <div class="hidden min-w-0 max-w-full xl:block">
+      </div>
+      {/snippet}
+      {#snippet desktop()}
+      <div class="min-w-0 max-w-full">
       <Table.Root class="table-fixed">
         <Table.Header class="bg-muted/30">
           <Table.Row>
@@ -95,56 +109,49 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
             <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
             <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
-            <Table.Head class="w-28 text-right">{sectionLabels.campus}</Table.Head>
+            <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#each data.data as section}
-            {@const sectionHref = `/sections/${section.jwId}`}
-            <Table.Row>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref} nowrap>
-                  {section.semester?.nameCn ?? sectionLabels.noSemester}
-                </CatalogTableLink>
+            {@const sectionHref = `/catalog/sections/${section.jwId}`}
+            <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Cell class="align-top whitespace-nowrap">
+                {section.semester?.nameCn
+                  ? formatSemesterName(locale, section.semester.nameCn)
+                  : sectionLabels.noSemester}
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
-                  <span class="font-medium">{primaryName(section.course)}</span>
-                  {#if secondaryName(section.course)}
-                    <span class="block text-muted-foreground text-xs">{secondaryName(section.course)}</span>
-                  {/if}
+                  <TruncatedText
+                    text={catalogLocalizedDisplayName(section.course, locale)}
+                  />
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 align-top">
-                <CatalogTableLink href={sectionHref}>
-                  <Badge variant="outline">{section.code}</Badge>
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                <TruncatedCode text={section.code} />
               </Table.Cell>
-              <Table.Cell class="p-0 align-top whitespace-normal">
-                <CatalogTableLink href={sectionHref}>
-                  {teacherNames(section.teachers) || "-"}
-                </CatalogTableLink>
+              <Table.Cell class="align-top whitespace-normal">
+                <TruncatedText
+                  text={catalogLocalizedNames(section.teachers, locale) || "-"}
+                />
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.credits ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.credits ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref} numeric>
-                  {section.stdCount ?? 0} / {section.limitCount ?? "-"}
-                </CatalogTableLink>
+              <Table.Cell class="text-right align-top tabular-nums">
+                {section.stdCount ?? 0} / {section.limitCount ?? "-"}
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
-                <CatalogTableLink href={sectionHref}>
-                  {section.campus ? primaryName(section.campus) : "-"}
-                </CatalogTableLink>
+              <Table.Cell class="align-top">
+                {section.campus ? primaryName(section.campus) : "-"}
               </Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
       </Table.Root>
-    </div>
+      </div>
+      {/snippet}
+    </ResponsiveCollection>
   {:else}
     <div class="py-10">
       <CatalogResultsEmpty

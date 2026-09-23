@@ -4,7 +4,6 @@ import {
   compactArrayRelations,
   compactRelations,
   pick,
-  redactCalendarFeedLocation,
   transferScalarKeys,
 } from "./compact-helpers";
 
@@ -35,6 +34,33 @@ export function compactTeacherTitle(value: unknown) {
   ]);
 }
 
+export function compactYoungEvent(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, [
+    "youngId",
+    "organizerId",
+    "sourceMissing",
+    "lastSeenAt",
+    "createdAt",
+    "name",
+    "category",
+    "module",
+    "activityLevel",
+    "form",
+    "status",
+    "registrationStatus",
+    "location",
+    "hours",
+    "capacity",
+    "appliedCount",
+    "startAt",
+    "endAt",
+    "applyStartAt",
+    "applyEndAt",
+    "isActive",
+  ]);
+}
+
 export function compactCourse(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
@@ -45,22 +71,12 @@ export function compactCourse(value: unknown) {
     "nameEn",
     "namePrimary",
     "nameSecondary",
-    "credit",
-    "hours",
   ]);
 }
 
 export function compactSemester(value: unknown) {
   if (!isRecord(value)) return value;
-  return pick(value, [
-    "id",
-    "jwId",
-    "code",
-    "nameCn",
-    "namePrimary",
-    "startDate",
-    "endDate",
-  ]);
+  return pick(value, ["id", "jwId", "code", "nameCn", "startDate", "endDate"]);
 }
 
 export function compactCampus(
@@ -87,7 +103,6 @@ export function compactTeacher(value: unknown) {
     ...pick(value, [
       "id",
       "personId",
-      "teacherId",
       "code",
       "jwId",
       "nameCn",
@@ -111,10 +126,9 @@ export function compactSection(value: unknown) {
       "id",
       "jwId",
       "code",
-      "namePrimary",
-      "nameSecondary",
       "campusId",
       "openDepartmentId",
+      "kind",
     ]),
     ...compactRelations(value, {
       course: compactCourse,
@@ -130,15 +144,15 @@ export function compactSchedule(value: unknown) {
   if (!isRecord(value)) return value;
   const base = pick(value, [
     "id",
-    "jwId",
+    "periods",
     "date",
     "weekday",
     "startTime",
     "endTime",
     "weekIndex",
-    "createdAt",
-    "updatedAt",
     "customPlace",
+    "startUnit",
+    "endUnit",
   ]);
 
   if (Object.hasOwn(value, "room") && isRecord(value.room)) {
@@ -188,8 +202,6 @@ export function compactExam(value: unknown) {
       "examDate",
       "startTime",
       "endTime",
-      "createdAt",
-      "updatedAt",
       "examType",
       "examMode",
       "examTakeCount",
@@ -197,9 +209,7 @@ export function compactExam(value: unknown) {
     ...compactRelations(value, {
       section: compactSection,
       examBatch: (v) =>
-        isRecord(v)
-          ? pick(v, ["id", "jwId", "namePrimary", "nameSecondary"])
-          : v,
+        isRecord(v) ? pick(v, ["id", "namePrimary", "nameSecondary"]) : v,
     }),
     ...(Object.hasOwn(value, "examRooms") && Array.isArray(value.examRooms)
       ? {
@@ -244,6 +254,7 @@ export function compactHomework(value: unknown) {
       "title",
       "isMajor",
       "requiresTeam",
+      "completionRequired",
       "publishedAt",
       "submissionStartAt",
       "submissionDueAt",
@@ -288,7 +299,8 @@ export function compactBusRoute(value: unknown) {
       "descriptionSecondary",
       "routeId",
       "weekdayTrips",
-      "weekendTrips",
+      "saturdayTrips",
+      "sundayTrips",
       "stopCount",
     ]),
     ...compactArrayRelations(value, { stops: compactBusRouteStop }),
@@ -362,14 +374,6 @@ export function compactCalendarSubscription(value: unknown) {
     userId: value.userId,
     sectionCount: sections.length,
     sections,
-    calendarPath:
-      typeof value.calendarPath === "string"
-        ? redactCalendarFeedLocation(value.calendarPath)
-        : null,
-    calendarUrl:
-      typeof value.calendarUrl === "string"
-        ? redactCalendarFeedLocation(value.calendarUrl)
-        : null,
     note: value.note,
   };
 }

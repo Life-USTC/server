@@ -1,5 +1,8 @@
-import { verifyJwsAccessToken } from "better-auth/oauth2";
-import type { JSONWebKeySet, JWTVerifyOptions } from "jose";
+import {
+  getDpopJktFromPayload,
+  verifyJwsAccessToken,
+} from "better-auth/oauth2";
+import type { JSONWebKeySet, JWTPayload, JWTVerifyOptions } from "jose";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { expandScopeClaim } from "@/lib/oauth/scope-registry";
@@ -11,7 +14,15 @@ export interface VerifiedAccessToken {
   aud: string | string[];
   clientId?: string;
   grantId?: string;
+  sessionId?: string;
 }
+
+export type AccessTokenJwtVerificationOptions = {
+  jwksFetch?: () => Promise<JSONWebKeySet | undefined>;
+  jwksUrl: string;
+  issuer: string | string[];
+  audience: string | string[];
+};
 
 function getTokenScopes(scope: unknown): string[] {
   if (typeof scope === "string") {
@@ -27,21 +38,16 @@ function getTokenScopes(scope: unknown): string[] {
   return [];
 }
 
-export async function verifyAccessTokenJwt(
+export async function verifyAccessTokenJwtPayload(
   token: string,
-  options: {
-    jwksFetch?: () => Promise<JSONWebKeySet | undefined>;
-    jwksUrl: string;
-    issuer: string | string[];
-    audience: string | string[];
-  },
-): Promise<VerifiedAccessToken> {
+  options: AccessTokenJwtVerificationOptions,
+): Promise<JWTPayload> {
   const verifyOptions: JWTVerifyOptions &
     Required<Pick<JWTVerifyOptions, "issuer" | "audience">> = {
     issuer: options.issuer,
     audience: options.audience,
   };
-  const payload = options.jwksFetch
+  return options.jwksFetch
     ? await verifyJwsAccessToken(token, {
         jwksFetch: options.jwksFetch,
         verifyOptions,
@@ -52,16 +58,34 @@ export async function verifyAccessTokenJwt(
           audience: options.audience,
         })
       ).payload;
+}
+
+export async function verifyAccessTokenJwt(
+  token: string,
+  options: AccessTokenJwtVerificationOptions,
+): Promise<VerifiedAccessToken> {
+  const payload = await verifyAccessTokenJwtPayload(token, options);
+  if (getDpopJktFromPayload(payload)) {
+    throw new Error("DPoP-bound access token cannot be used as a bearer token");
+  }
   const sub = payload.sub;
   if (!sub) throw new Error("Missing sub claim");
+  const azp = typeof payload.azp === "string" ? payload.azp : undefined;
+  const clientIdClaim =
+    typeof payload.client_id === "string" ? payload.client_id : undefined;
+  if (azp && clientIdClaim && azp !== clientIdClaim) {
+    throw new Error("Conflicting OAuth client claims");
+  }
+  const clientId = clientIdClaim ?? azp;
   return {
     sub,
     scope: expandScopeClaim(payload.scope),
     tokenScopes: getTokenScopes(payload.scope),
     aud: payload.aud ?? [],
-    ...(typeof payload.azp === "string" ? { clientId: payload.azp } : {}),
+    ...(clientId ? { clientId } : {}),
     ...(typeof payload[OAUTH_GRANT_ID_CLAIM] === "string"
       ? { grantId: payload[OAUTH_GRANT_ID_CLAIM] }
       : {}),
+    ...(typeof payload.sid === "string" ? { sessionId: payload.sid } : {}),
   };
 }

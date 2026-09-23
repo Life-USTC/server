@@ -12,6 +12,7 @@ export async function loadCalendarEventSources({
   calendarDateStart,
   includeWindowEnd,
   locale,
+  now = new Date(),
   sectionIds,
   userId,
   windowEnd,
@@ -21,6 +22,7 @@ export async function loadCalendarEventSources({
   calendarDateStart: Date;
   includeWindowEnd: boolean;
   locale: string;
+  now?: Date;
   sectionIds?: readonly number[];
   userId: string;
   windowEnd: Date;
@@ -43,6 +45,7 @@ export async function loadCalendarEventSources({
       completed: false,
       dueAtFrom: windowStart,
       dueAtTo: windowEnd,
+      now,
       sectionIds: scopedSectionIds,
     }),
     listSubscribedExams(userId, {
@@ -63,7 +66,7 @@ export async function loadCalendarEventSources({
 
   return {
     exams,
-    homeworkItems: await withHomeworkItemState(homeworks),
+    homeworkItems: await withHomeworkItemState(homeworks, userId),
     schedules,
     todos,
   };

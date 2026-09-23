@@ -1,5 +1,6 @@
 import {
   buildRoutePoints,
+  computeMapViewBox,
   computeOffsets,
   layoutCampuses,
   pointsToPath,
@@ -16,6 +17,7 @@ export function buildBusMapViewState(
   locale: string,
 ) {
   const positions = mapData ? layoutCampuses(mapData.campuses) : new Map();
+  const viewBox = computeMapViewBox(positions, mapData?.campuses ?? []);
   const allRouteIds = mapData
     ? mapData.routes.map((route) => route.routeId)
     : [];
@@ -64,6 +66,7 @@ export function buildBusMapViewState(
           minute: "2-digit",
         })
       : "",
+    viewBox,
   };
 }
 
@@ -74,7 +77,9 @@ function totalTripsForToday(mapData: BusMapData | null | undefined) {
         total +
         (mapData.todayType === "weekday"
           ? route.weekdayTrips
-          : route.weekendTrips),
+          : mapData.todayType === "saturday"
+            ? route.saturdayTrips
+            : route.sundayTrips),
       0,
     ) ?? 0
   );

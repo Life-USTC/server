@@ -1,8 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import { jsonResponse } from "@/lib/api/helpers";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
-
-const SECTION_LIST_API_CACHE_TTL_MS = 60_000;
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { paginatedSectionResponseSchema } from "@/lib/api/schemas/response-schemas";
 
 export async function listSectionsAction(
   parsedQuery: {
@@ -25,17 +23,13 @@ export async function listSectionsAction(
   locale: AppLocale,
   cacheHeaders: HeadersInit,
 ) {
-  const result = await cachedPublicRuntimeData(
-    `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`,
-    SECTION_LIST_API_CACHE_TTL_MS,
-    () => listUncachedSectionsAction(parsedQuery, pagination, locale),
-  );
-  return jsonResponse(result, {
+  const result = await listSectionsActionData(parsedQuery, pagination, locale);
+  return schemaJsonResponse(paginatedSectionResponseSchema, result, {
     headers: cacheHeaders,
   });
 }
 
-async function listUncachedSectionsAction(
+async function listSectionsActionData(
   parsedQuery: {
     campusId?: number | string;
     courseId?: number | string;

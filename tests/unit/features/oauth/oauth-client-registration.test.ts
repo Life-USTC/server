@@ -1,0 +1,97 @@
+import { describe, expect, it } from "vitest";
+import {
+  resolveOAuthClientGrantTypes,
+  resolveOAuthClientScopes,
+} from "@/lib/oauth/client-registration";
+import {
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
+
+const TODO_READ_SCOPE = "workspace.todo:read";
+const TODO_WRITE_SCOPE = "workspace.todo:write";
+
+describe("resolveOAuthClientScopes", () => {
+  it("未请求 scope 时使用默认 OAuth profile scope", () => {
+    expect(resolveOAuthClientScopes()).toEqual({
+      scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE],
+    });
+  });
+
+  it("去重请求的 scope 并保留请求顺序", () => {
+    expect(
+      resolveOAuthClientScopes([
+        OAUTH_PROFILE_SCOPE,
+        TODO_READ_SCOPE,
+        OAUTH_PROFILE_SCOPE,
+      ]),
+    ).toEqual({
+      scopes: [OAUTH_PROFILE_SCOPE, TODO_READ_SCOPE],
+    });
+  });
+
+  it("接受空格分隔的请求 scope", () => {
+    expect(
+      resolveOAuthClientScopes(
+        `${OAUTH_OPENID_SCOPE} ${TODO_READ_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE} ${TODO_WRITE_SCOPE}`,
+      ),
+    ).toEqual({
+      scopes: [
+        OAUTH_OPENID_SCOPE,
+        TODO_READ_SCOPE,
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+        TODO_WRITE_SCOPE,
+      ],
+    });
+  });
+
+  it("拒绝不支持的请求 scope", () => {
+    expect(
+      resolveOAuthClientScopes([OAUTH_OPENID_SCOPE, "unknown_scope"]),
+    ).toEqual({
+      error: "Unsupported scopes requested: unknown_scope",
+    });
+  });
+
+  it("接受 canonical feature-action scope", () => {
+    expect(resolveOAuthClientScopes(["account.profile:read"])).toEqual({
+      scopes: ["account.profile:read"],
+    });
+  });
+
+  it("当前客户端活动 capability 只接受 read scope", () => {
+    expect(resolveOAuthClientScopes(["account.client-activity:read"])).toEqual({
+      scopes: ["account.client-activity:read"],
+    });
+    expect(resolveOAuthClientScopes(["account.client-activity:write"])).toEqual(
+      {
+        error: "Unsupported scopes requested: account.client-activity:write",
+      },
+    );
+  });
+
+  it("拒绝旧版 transport-prefixed scope", () => {
+    expect(resolveOAuthClientScopes(["rest:account.profile:read"])).toEqual({
+      error: "Unsupported scopes requested: rest:account.profile:read",
+    });
+  });
+
+  it("除非请求 offline access，否则使用 authorization-code 授权类型", () => {
+    expect(
+      resolveOAuthClientGrantTypes([OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE]),
+    ).toEqual([OAUTH_AUTHORIZATION_CODE_GRANT_TYPE]);
+
+    expect(
+      resolveOAuthClientGrantTypes([
+        OAUTH_OPENID_SCOPE,
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+      ]),
+    ).toEqual([
+      OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+      OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+    ]);
+  });
+});

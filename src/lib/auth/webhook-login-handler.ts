@@ -1,7 +1,10 @@
+import { timingSafeEqual } from "node:crypto";
 import type { GenericEndpointContext } from "@better-auth/core";
 import { setSessionCookie } from "better-auth/cookies";
 import { getOptionalTrimmedEnv } from "@/app-env";
-import { prisma } from "@/lib/db/prisma";
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
+import { fireAuditLog } from "@/lib/audit/write-audit-log";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
 function jsonError(status: number, body: Record<string, string>) {
@@ -11,6 +14,14 @@ function jsonError(status: number, body: Record<string, string>) {
       "content-type": "application/json",
     },
   });
+}
+
+function secretsEqual(provided: string | undefined, expected: string) {
+  if (!provided) return false;
+  const left = Buffer.from(provided);
+  const right = Buffer.from(expected);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
 }
 
 type WebhookLoginBody = {
@@ -41,10 +52,16 @@ type WebhookLoginContext = {
   request?: Request;
 };
 
+export function isWebhookLoginEnabled() {
+  const enabled = getOptionalTrimmedEnv("WEBHOOK_LOGIN_ENABLED");
+  const secret = getOptionalTrimmedEnv("WEBHOOK_SECRET");
+  return enabled === "true" && Boolean(secret);
+}
+
 export async function handleWebhookLogin(ctx: WebhookLoginContext) {
   const { secret, email, userId } = ctx.body;
   const webhookSecret = getOptionalTrimmedEnv("WEBHOOK_SECRET");
-  if (!webhookSecret || secret !== webhookSecret) {
+  if (!webhookSecret || !secretsEqual(secret, webhookSecret)) {
     logOAuthDebug("webhook-login.auth-failed", ctx.request, {
       reason: "invalid_or_missing_secret",
     });
@@ -82,7 +99,7 @@ export async function handleWebhookLogin(ctx: WebhookLoginContext) {
   const authUser = await ctx.context.internalAdapter.findUserById(user.id);
   if (!authUser) {
     logOAuthDebug("webhook-login.user-missing-in-adapter", ctx.request, {
-      userId: user.id,
+      reason: "adapter_lookup_miss",
     });
     return jsonError(404, { error: "User not found" });
   }
@@ -93,15 +110,24 @@ export async function handleWebhookLogin(ctx: WebhookLoginContext) {
     user: authUser as never,
   });
 
-  logOAuthDebug("webhook-login.success", ctx.request, {
+  const requestMeta = ctx.request ? getAuditRequestMetadata(ctx.request) : {};
+  await fireAuditLog({
+    action: "webhook_login",
     userId: authUser.id,
+    targetId: authUser.id,
+    targetType: "user",
+    metadata: {
+      lookup: email ? "email" : "userId",
+    },
+    ...requestMeta,
   });
+
+  logOAuthDebug("webhook-login.success", ctx.request, {});
 
   return ctx.json({
     ok: true,
     userId: authUser.id,
     email: authUser.email,
-    sessionToken: session.token,
     expires: new Date(session.expiresAt).toISOString(),
   });
 }

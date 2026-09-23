@@ -14,6 +14,8 @@
  * ## Edge Cases
  * - Already authenticated user navigating to /signin redirects away
  * - jwId is NOT displayed
+ * - Live USTC/GitHub/Google OAuth round-trips are not exercised in CI; set
+ *   `E2E_LIVE_OAUTH=1` locally with real provider credentials to test them.
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../utils/auth";
@@ -53,12 +55,81 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   ).toBeVisible();
 }
 
-test("/signin 页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/signin", testInfo });
+test("/account/sign-in 页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/account/sign-in", testInfo });
 });
 
-test("/signin 显示所有必填字段", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/signin", {
+test("/account/sign-in narrow mobile shell uses an accessible compact brand", async ({
+  page,
+}, testInfo) => {
+  for (const width of [280, 375, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoAndWaitForReady(page, "/account/sign-in", {
+      testInfo,
+      screenshotLabel: `signin-brand-${width}`,
+    });
+
+    const brand = page.locator("[data-shell-topbar] [data-shell-brand]");
+    if (width < 320) {
+      await expect(brand).toBeHidden();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      continue;
+    }
+
+    await expect(brand).toBeVisible();
+    await expect(brand).toHaveAttribute("aria-label", "Life@USTC");
+    await expect(brand).toHaveAttribute("title", "Life@USTC");
+    await expect(brand.locator("span")).toHaveClass(/sr-only/);
+    await expect(brand.locator("span")).not.toHaveClass(/truncate/);
+
+    const metrics = await brand.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        right: rect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    expect(metrics.clientWidth).toBe(44);
+    expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth);
+  }
+});
+
+test("/account/sign-in 320px actions and legal links stay inside the Card", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await gotoAndWaitForReady(page, "/account/sign-in", { testInfo });
+
+  const overflow = await page.locator('[data-slot="card"]').evaluate((card) => {
+    const elements = [
+      card,
+      ...Array.from(card.querySelectorAll<HTMLElement>("form, button, p")),
+    ];
+    return elements
+      .map((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        tag: element.tagName,
+      }))
+      .filter(({ clientWidth, scrollWidth }) => scrollWidth > clientWidth + 1);
+  });
+
+  expect(overflow).toEqual([]);
+  await expect(
+    page.locator('[data-slot="card"] a[href="/terms"]'),
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-slot="card"] a[href="/privacy"]'),
+  ).toBeVisible();
+});
+
+test("/account/sign-in 显示所有必填字段", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,
     screenshotLabel: "signin",
   });
@@ -85,8 +156,27 @@ test("/signin 显示所有必填字段", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/all-fields");
 });
 
-test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/signin", {
+test("/account/sign-in 显示账户未关联错误", async ({ page }) => {
+  await gotoAndWaitForReady(
+    page,
+    "/account/sign-in?error=OAuthAccountNotLinked",
+  );
+  await expect(
+    page.getByText(/此账户已关联到其他用户|already linked to another user/i),
+  ).toBeVisible();
+});
+
+test("/account/sign-in 已登录用户直接返回回调页面", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  await page.goto(
+    "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Fprofile",
+    { waitUntil: "domcontentloaded" },
+  );
+  await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
+});
+
+test("/account/sign-in 调试用户按钮可登录", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/account/sign-in", {
     testInfo,
     screenshotLabel: "signin",
   });
@@ -94,14 +184,14 @@ test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/initial");
 
   await signInAsDebugUser(page, "/", "/", { ui: true });
-  await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(page.locator("#app-user-menu")).toBeVisible();
   await captureStepScreenshot(page, testInfo, "signin/after-login");
 });
 
-test("/signin 调试用户可登出", async ({ page }, testInfo) => {
+test("/account/sign-in 调试用户可登出", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/", "/", { ui: true });
 
   await expectSignedOutAfterMenuClick(page);
@@ -109,7 +199,7 @@ test("/signin 调试用户可登出", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/after-sign-out");
 });
 
-test("/signin 调试管理员可登出", async ({ page }, testInfo) => {
+test("/account/sign-in 调试管理员可登出", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/", "/", { ui: true });
 
   await expectSignedOutAfterMenuClick(page);
@@ -117,13 +207,17 @@ test("/signin 调试管理员可登出", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/admin-after-sign-out");
 });
 
-test("/signin 登录后重定向到 callbackUrl", async ({ page }, testInfo) => {
+test("/account/sign-in 登录后重定向到 callbackUrl", async ({
+  page,
+}, testInfo) => {
   // callbackUrl preserved through the sign-in flow (user.yml post-login-redirect)
-  await gotoAndWaitForReady(page, "/signin?callbackUrl=%2Fsections", {
+  await gotoAndWaitForReady(page, "/account/sign-in?callbackUrl=%2Fsections", {
     testInfo,
     screenshotLabel: "signin-callback",
   });
-  await signInAsDebugUser(page, "/sections", "/sections", { ui: true });
-  await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
+  await signInAsDebugUser(page, "/catalog/sections", "/catalog/sections", {
+    ui: true,
+  });
+  await expect(page).toHaveURL(/\/catalog\/sections(?:\?.*)?$/);
   await captureStepScreenshot(page, testInfo, "signin/post-login-redirect");
 });

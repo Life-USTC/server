@@ -20,6 +20,7 @@ export type CourseListLabels = {
   courseCode: string;
   courseName: string;
   educationLevel: string;
+  filterDescription: string;
   noCoursesFound: string;
   searchFor: string;
   searchPlaceholder: string;

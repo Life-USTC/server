@@ -1,6 +1,6 @@
 # docs/contracts/
 
-Modular product/API/MCP contracts stored as formatted JSON.
+Modular product / API / MCP contracts as formatted JSON.
 
 ## Structure
 
@@ -16,38 +16,24 @@ Contract modules
   <module>.json
 ```
 
-## Workflow
-
-When behavior, API, MCP, parameters, or outputs change:
+## When behavior changes
 
 1. Update the affected `docs/contracts/<module>.json` first.
-2. Implement code changes.
-3. Run the check sequence from `$life-ustc-dev-loop` to validate the merged contract against schema, Prisma, REST, and MCP checks.
-4. Update relevant tests.
-
-If the user did not explicitly ask for documentation changes, ask before broad restructures or rewrites and keep any required doc edits tightly scoped.
+2. Implement via `$life-ustc-implement` (use-case + transports + tests).
+3. Validate with the local checks in root `AGENTS.md` for the transports you touched
+   (`openapi:check`, GraphQL SDL snapshot, integration).
 
 ## Queries
 
 ```bash
-# Single module
 jq '.capabilities | keys' docs/contracts/homework.json
 jq '.rules' docs/contracts/user.json
-
-# Models and enums
 rg '^model ' prisma/schema.prisma
-rg '^enum ' prisma/schema.prisma
-
-# All modules
 find docs/contracts -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \; | sort
 ```
 
-## Module Shape
+## Module shape
 
-Each module file contains:
-- `name`
-- `access`
-- `rules`
-- `capabilities`
-
-Keep module files focused. Shared UI, case, and audit metadata stays in the `_*.json` files; model and enum shape stays in `prisma/schema.prisma`.
+Each module has `name`, `access`, `rules`, `capabilities`. Shared UI / case /
+audit metadata stays in `_*.json`; model / enum shape stays in
+`prisma/schema.prisma`.

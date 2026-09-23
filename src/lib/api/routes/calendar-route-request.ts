@@ -2,7 +2,6 @@ import {
   badRequest,
   invalidParamResponse,
   parseInteger,
-  parseIntegerList,
   parseRouteInput,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
@@ -11,6 +10,8 @@ import {
   sectionsCalendarQuerySchema,
   userCalendarPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+
+export const MAX_MULTI_SECTION_CALENDAR_IDS = 50;
 
 export function parseSectionsCalendarIds(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -24,13 +25,44 @@ export function parseSectionsCalendarIds(request: Request) {
     return parsedQuery;
   }
 
-  const sectionIds = parseIntegerList(parsedQuery.sectionIds);
+  const rawSectionIds = parsedQuery.sectionIds.split(",");
+  const parsedSectionIds: number[] = [];
+  for (const value of rawSectionIds) {
+    const sectionId = parseInteger(value);
+    if (sectionId === null || sectionId <= 0) {
+      return badRequest("Invalid sectionIds parameter");
+    }
+    parsedSectionIds.push(sectionId);
+  }
 
-  if (sectionIds.length === 0) {
-    return badRequest("No valid section IDs provided");
+  const sectionIds = Array.from(new Set(parsedSectionIds)).sort(
+    (left, right) => left - right,
+  );
+  if (sectionIds.length > MAX_MULTI_SECTION_CALENDAR_IDS) {
+    return badRequest(
+      `sectionIds must contain at most ${MAX_MULTI_SECTION_CALENDAR_IDS} unique IDs`,
+    );
   }
 
   return sectionIds;
+}
+
+export function canonicalSectionsCalendarUrl(
+  request: Request,
+  sectionIds: readonly number[],
+) {
+  const url = new URL(request.url);
+  const canonicalIds = sectionIds.join(",");
+  if (
+    url.searchParams.size === 1 &&
+    url.searchParams.get("sectionIds") === canonicalIds
+  ) {
+    return null;
+  }
+
+  url.search = "";
+  url.searchParams.set("sectionIds", canonicalIds);
+  return url;
 }
 
 export function parseSectionCalendarJwId(params: { jwId: string }) {

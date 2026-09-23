@@ -1,66 +1,58 @@
 # src/features/
 
-Business domain logic.
+Domain use-cases. Put one function (or a small set) per behavior under
+`src/features/<domain>/server/`. REST / GraphQL / MCP / pages only parse
+auth/args, call that use-case, and map the result.
 
-## Structure
+Don't put business rules in `src/lib/api`, `src/lib/graphql`, or `src/lib/mcp`.
+MCP compact / `mode` shaping is presentation only.
 
-```
-dashboard/     Personal workspace pages, panels, overview, and assistant snapshots
-homeworks/     Section homework (not todos)
-todos/         Personal tasks
-comments/      Object-scoped discussions
-uploads/       Comment attachments
-descriptions/  Platform markdown content
-dashboard-links/ Link catalog
-bus/           Public timetable
-calendar/      Calendar export and iCal generation
-subscriptions/ Section subscription read/write services and import helpers
-```
+Example — workspace overview: REST `workspace-overview-route.ts`, GraphQL
+`workspace.overview` (`src/lib/graphql/workspace.ts`), and MCP tool
+`workspace_overview_get` (handlers under `workspace-overview-*.ts`) all call
+`getCompactOverview`. Shared asserts: `tests/shared/scenarios/`.
 
 ## Layout
 
-```
+```text
 feature/
-  server/      Server data functions
+  server/      Use-cases shared by all transports
   lib/         Domain utilities
+  components/  Feature-owned UI (when needed)
 ```
 
-## Key Rules
+Folders under this directory are the inventory. `workspace/` is the signed-in
+workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
+`subscriptions/` for section membership. Campus link product code stays in
+`catalog-links/` (and `catalog-link.json`).
 
-### homeworks/
-- Attached to section, not user
-- Signed-in, unsuspended can create/update
-- Delete: creator or admin only
-- Completion is per-user, separate from entity
+## Domain rules
 
-### todos/
-- Purely personal
-- User owns CRUD
-- Due date → calendar (if incomplete)
-
-### comments/
-- Scoped to section/course/teacher/homework
-- Audience visibility: public or logged-in-only; anonymous posting uses `isAnonymous`
-- Suspended can't create
-- Admin can moderate
-
-### uploads/
-- Comment attachments
-- Pending-upload flow
-- Check permissions for downloads
-
-### bus/
-- Public timetable
-- Signed-in preference save
-- Import idempotent by version
-
-### calendar/
-- Owns feature-specific calendar event queries and iCal export construction for sections, homework, and todos
-- Keep generic time helpers in `src/lib/time`; keep calendar event semantics here
-
-### subscriptions/
-- Owns section subscription reads/writes used by pages, REST routes, dashboard data, and MCP tools
-- Keep dashboard overview assembly in `dashboard/`; consume subscription services from here
-- Subscription import matching helpers belong here, while public section matching facts stay in `catalog/`
-
-See root `AGENTS.md` for auth, dates, Prisma patterns.
+| Domain | Notes |
+|--------|-------|
+| admin | Users, suspensions, moderation, OAuth clients, bus import governance |
+| api-docs | OpenAPI reference UI shell (no `server/` use-cases) |
+| auth | Sign-in page load and related helpers |
+| bus | Public timetable; signed-in preferences; import idempotent by version |
+| calendar | Feature event queries + iCal; generic time helpers stay in `src/lib/time` |
+| catalog | Courses, sections, teachers, schedules, exams, public list/detail pages |
+| comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
+| catalog-links | Campus link catalog + pin/visit preferences |
+| descriptions | Shared wiki-like text on course/section/teacher/homework |
+| homeworks | Attached to section; signed-in unsuspended create/update; delete creator/admin; completion is per-user |
+| markdown | Shared Markdown rendering helpers for guides/community |
+| mobile-app | Mobile app marketing/download page |
+| oauth | Device, consent, authorize, and client-registration policies |
+| profile | Public user profile pages and contribution summaries |
+| publications | News/publication list and detail; crawler ingestion; Web at `/news` |
+| search | Global search across catalog and links |
+| section-detail | Section detail page load and homework tab UI |
+| settings | Account settings, security, authorizations, deletion |
+| subscriptions | Section membership R/W + import match helpers; public section facts stay in `catalog/` |
+| todos | Personal CRUD; incomplete due dates feed calendar |
+| uploads | Comment attachments; pending-upload flow; shared download gate |
+| usage | Client usage guides (MCP, CLI, Bot, mobile) |
+| weather | Campus weather snapshot and history; Amap / Open-Meteo adapters |
+| welcome | First-login profile completion |
+| workspace | Signed-in workspace UI and overview assembly (routes `/workspace/*`) |
+| young | 第二课堂 young-event catalog list/detail, organizers, subscriptions, and the poster + rich-text image proxy (`young-event-html.ts` sanitizes upstream HTML for every transport) |

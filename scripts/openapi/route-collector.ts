@@ -48,15 +48,14 @@ const BINARY_REQUEST_BODY = {
 const FORM_URLENCODED_PATHS = new Set([
   "POST /api/auth/oauth2/token",
   "POST /api/auth/oauth2/device-authorization",
-  "POST /api/dashboard-links/pin",
-  "POST /api/dashboard-links/visit",
+  "POST /api/workspace/link-pins",
 ]);
 
 const REDIRECT_DESCRIPTIONS: Record<
   string,
   Record<string, { description: string; headers?: Record<string, unknown> }>
 > = {
-  "POST /api/dashboard-links/pin": {
+  "POST /api/workspace/link-pins": {
     "303": {
       description: "Redirect after pin/unpin",
       headers: {
@@ -67,20 +66,9 @@ const REDIRECT_DESCRIPTIONS: Record<
       },
     },
   },
-  "GET /api/dashboard-links/visit": {
+  "GET /api/catalog/links/resolve": {
     "307": {
-      description: "Temporary redirect to target link",
-      headers: {
-        Location: {
-          description: "Redirect target URL",
-          schema: { type: "string" },
-        },
-      },
-    },
-  },
-  "POST /api/dashboard-links/visit": {
-    "303": {
-      description: "Redirect after recording link click",
+      description: "Temporary redirect to target link after recording visit",
       headers: {
         Location: {
           description: "Redirect target URL",
@@ -138,35 +126,44 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-auth-.well-known-openid-configuration",
   "OPTIONS /api/auth/.well-known/openid-configuration":
     "options-api-auth-.well-known-openid-configuration",
-  "GET /api/bus": "queryBus",
-  "GET /api/bus/preferences": "getBusPreferences",
-  "POST /api/bus/preferences": "setBusPreferences",
-  "POST /api/calendar-subscriptions": "setCalendarSubscription",
-  "POST /api/calendar-subscriptions/batch": "batchUpdateCalendarSubscription",
-  "PATCH /api/calendar-subscriptions": "appendCalendarSubscriptionSections",
-  "GET /api/calendar-subscriptions/current": "getCurrentCalendarSubscription",
-  "POST /api/calendar-subscriptions/query": "queryCalendarSubscriptionSections",
-  "GET /api/comments": "listComments",
-  "POST /api/comments": "createComment",
-  "GET /api/comments/{id}": "getComment",
-  "PATCH /api/comments/{id}": "updateComment",
-  "DELETE /api/comments/{id}": "deleteComment",
-  "POST /api/comments/{id}/reactions": "addCommentReaction",
-  "DELETE /api/comments/{id}/reactions": "removeCommentReaction",
-  "GET /api/courses": "listCourses",
-  "GET /api/courses/{jwId}": "getCourse",
-  "POST /api/dashboard-links/pin": "pinDashboardLink",
-  "GET /api/dashboard-links/visit": "visitDashboardLink",
-  "POST /api/dashboard-links/visit": "recordDashboardLinkVisit",
-  "GET /api/descriptions": "getDescription",
-  "POST /api/descriptions": "upsertDescription",
+  "GET /api/catalog/bus": "catalog_bus_timetable_get",
+  "GET /api/catalog/bus/routes": "catalog_bus_route_search",
+  "GET /api/catalog/bus/next": "catalog_bus_departure_next",
+  "GET /api/catalog/rooms/{code}/map": "catalog_rooms_map",
+  "GET /api/catalog/weather": "catalog_weather_get",
+  "GET /api/workspace/bus-preferences": "workspace_bus_preferences_get",
+  "POST /api/workspace/bus-preferences": "workspace_bus_preferences_set",
+  "POST /api/workspace/subscriptions/batch": "batchUpdateCalendarSubscription",
+  "PATCH /api/workspace/subscriptions": "appendCalendarSubscriptionSections",
+  "GET /api/workspace/subscriptions/current": "getCurrentCalendarSubscription",
+  "POST /api/workspace/subscriptions/query":
+    "queryCalendarSubscriptionSections",
+  "GET /api/community/comments": "listComments",
+  "POST /api/community/comments": "createComment",
+  "GET /api/community/comments/{id}": "getComment",
+  "PATCH /api/community/comments/{id}": "updateComment",
+  "DELETE /api/community/comments/{id}": "deleteComment",
+  "DELETE /api/community/comments/batch": "delete-api-comments-batch",
+  "POST /api/community/comments/{id}/reactions": "addCommentReaction",
+  "DELETE /api/community/comments/{id}/reactions": "removeCommentReaction",
+  "GET /api/catalog/courses": "listCourses",
+  "GET /api/catalog/courses/{jwId}": "getCourse",
+  "GET /api/catalog/links": "catalog_link_list",
+  "GET /api/catalog/links/resolve": "catalog_link_resolve",
+  "GET /api/workspace/link-pins": "workspace_link_pin_list",
+  "POST /api/workspace/link-pins": "workspace_link_pin_set",
+  "POST /api/workspace/link-pins/batch": "workspace_link_pin_batch_set",
+  "GET /api/community/descriptions": "getDescription",
+  "POST /api/community/descriptions": "upsertDescription",
   "GET /api/health": "listHealth",
-  "GET /api/homeworks": "listHomeworks",
-  "POST /api/homeworks": "createHomework",
-  "PATCH /api/homeworks/{id}": "updateHomework",
-  "DELETE /api/homeworks/{id}": "deleteHomework",
-  "PUT /api/homeworks/{id}/completion": "setHomeworkCompletion",
-  "POST /api/locale": "setLocale",
+  "GET /api/community/section-homeworks": "community_section_homework_list",
+  "POST /api/community/section-homeworks": "community_section_homework_create",
+  "PATCH /api/community/section-homeworks/{id}":
+    "community_section_homework_update",
+  "DELETE /api/community/section-homeworks/{id}":
+    "community_section_homework_delete",
+  "PUT /api/workspace/homeworks/{id}/completion": "setHomeworkCompletion",
+  "POST /api/account/preferences": "setLocale",
   "GET /api/mcp": "listMcp",
   "POST /api/mcp": "createMcp",
   "GET /api/mcp/.well-known/oauth-authorization-server":
@@ -177,33 +174,42 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-mcp-.well-known-openid-configuration",
   "OPTIONS /api/mcp/.well-known/openid-configuration":
     "options-api-mcp-.well-known-openid-configuration",
-  "GET /api/me": "getMe",
-  "GET /api/me/subscriptions/homeworks": "getSubscribedHomeworks",
-  "GET /api/metadata": "getMetadata",
+  "GET /api/account/profile": "account_profile_get",
+  "GET /api/account/client-activity": "account_client_activity_list",
+  "GET /api/community/users/{identifier}": "community_user_get",
+  "GET /api/workspace/homeworks": "getSubscribedHomeworks",
+  "PUT /api/workspace/homeworks/completions": "put-api-homeworks-completions",
+  "GET /api/workspace/overview": "workspace_overview_get",
+  "GET /api/workspace/schedules": "workspace_schedule_list",
+  "GET /api/catalog/metadata": "getMetadata",
   "GET /api/openapi": "getOpenApiSpec",
-  "GET /api/schedules": "listSchedules",
-  "GET /api/sections": "listSections",
-  "GET /api/sections/{jwId}": "getSection",
-  "GET /api/sections/{jwId}/calendar.ics": "getSectionCalendar",
-  "GET /api/sections/{jwId}/schedule-groups": "getSectionScheduleGroups",
-  "GET /api/sections/{jwId}/schedules": "getSectionSchedules",
-  "GET /api/sections/calendar.ics": "getSectionsCalendar",
-  "POST /api/sections/match-codes": "matchSectionCodes",
-  "GET /api/semesters": "listSemesters",
-  "GET /api/semesters/current": "getCurrentSemester",
-  "GET /api/teachers": "listTeachers",
-  "GET /api/teachers/{id}": "getTeacher",
-  "GET /api/todos": "listTodos",
-  "POST /api/todos": "createTodo",
-  "PATCH /api/todos/{id}": "updateTodo",
-  "DELETE /api/todos/{id}": "deleteTodo",
-  "GET /api/uploads": "listUploads",
-  "POST /api/uploads": "createUpload",
-  "PATCH /api/uploads/{id}": "updateUpload",
-  "DELETE /api/uploads/{id}": "deleteUpload",
-  "GET /api/uploads/{id}/download": "downloadUpload",
-  "POST /api/uploads/complete": "completeUpload",
-  "GET /api/users/{userId}/calendar.ics": "getUserCalendar",
+  "GET /api/catalog/schedules": "listSchedules",
+  "GET /api/catalog/sections": "listSections",
+  "GET /api/catalog/sections/{jwId}": "getSection",
+  "GET /api/catalog/sections/{jwId}/calendar.ics": "getSectionCalendar",
+  "GET /api/catalog/sections/{jwId}/schedule-groups":
+    "getSectionScheduleGroups",
+  "GET /api/catalog/sections/{jwId}/schedules": "getSectionSchedules",
+  "GET /api/catalog/sections/calendar.ics": "getSectionsCalendar",
+  "POST /api/catalog/sections/match-codes": "matchSectionCodes",
+  "GET /api/catalog/semesters": "listSemesters",
+  "GET /api/catalog/semesters/current": "getCurrentSemester",
+  "GET /api/catalog/teachers": "listTeachers",
+  "GET /api/catalog/teachers/{id}": "getTeacher",
+  "GET /api/workspace/todos": "listTodos",
+  "POST /api/workspace/todos": "createTodo",
+  "PATCH /api/workspace/todos/{id}": "updateTodo",
+  "DELETE /api/workspace/todos/{id}": "deleteTodo",
+  "PATCH /api/workspace/todos/batch": "patch-api-todos-batch",
+  "DELETE /api/workspace/todos/batch": "delete-api-todos-batch",
+  "GET /api/workspace/uploads": "listUploads",
+  "POST /api/workspace/uploads": "createUpload",
+  "PATCH /api/workspace/uploads/{id}": "updateUpload",
+  "DELETE /api/workspace/uploads/{id}": "deleteUpload",
+  "GET /api/workspace/uploads/{id}/download": "downloadUpload",
+  "POST /api/workspace/uploads/complete": "completeUpload",
+  "PUT /api/workspace/uploads/object": "put-api-uploads-object",
+  "GET /api/calendar-feeds/{credential}.ics": "workspace_calendar_feed_export",
 };
 
 export interface RouteCollectorOptions {
@@ -244,7 +250,13 @@ function routeFileToOpenApiPath(filePath: string): string {
   const relative = filePath
     .replace(/^.*src\/routes\//, "/")
     .replace(/\/\+server\.ts$/, "");
-  return relative.replace(/\[([^\]]+)\]/g, "{$1}");
+  // SvelteKit rest parameters (`[...path]`) and optional parameters
+  // (`[[lang]]`) must collapse to a plain OpenAPI template name. Emitting
+  // `{...path}` produces a path whose positional parameter matches no declared
+  // parameter, which oapi-codegen rejects outright:
+  //   "path '/x/{...path}' has 1 positional parameters, but spec has 0 declared"
+  // That breaks client generation in every consumer repo, so normalise here.
+  return relative.replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}");
 }
 
 function extractMethods(
@@ -317,6 +329,7 @@ function buildOperation(
   let requestBody: Record<string, unknown> | undefined;
   const responses: Record<string, unknown> = {};
   let has401 = false;
+  let hasIngestionSecret = false;
 
   for (const docTag of tags) {
     switch (docTag.name) {
@@ -346,6 +359,16 @@ function buildOperation(
         );
         break;
       }
+      case "oauthScope": {
+        const scopes =
+          (operation["x-oauth-scopes"] as string[] | undefined) ?? [];
+        operation["x-oauth-scopes"] = [...scopes, docTag.text];
+        break;
+      }
+      case "ingestionSecret": {
+        hasIngestionSecret = true;
+        break;
+      }
     }
   }
 
@@ -359,12 +382,12 @@ function buildOperation(
     operation.responses = responses;
   }
 
-  const security = buildSecurity(routePath, method, tag, has401);
+  const security = buildSecurity(routePath, method, has401, hasIngestionSecret);
   if (security) {
     operation.security = security;
   }
 
-  if (tag === "Admin") {
+  if (routePath.startsWith("/api/admin/")) {
     operation["x-auth-role"] = "admin";
   }
 
@@ -519,26 +542,30 @@ function slugPath(path: string): string {
 }
 
 function buildTag(routePath: string): string {
-  if (routePath.startsWith("/api/admin/")) return "Admin";
-  if (routePath.startsWith("/api/bus")) return "Bus";
-  if (routePath.startsWith("/api/calendar-subscriptions")) return "Calendar";
-  if (routePath.startsWith("/api/comments")) return "Comments";
-  if (routePath.startsWith("/api/courses")) return "Courses";
-  if (routePath.startsWith("/api/dashboard-links")) return "DashboardLinks";
-  if (routePath.startsWith("/api/descriptions")) return "Descriptions";
-  if (routePath.startsWith("/api/homeworks")) return "Homeworks";
-  if (routePath === "/api/locale") return "Locale";
-  if (routePath === "/api/metadata") return "Metadata";
+  const [, api, scope, domain] = routePath.split("/");
+  if (
+    api === "api" &&
+    scope &&
+    domain &&
+    ["account", "admin", "catalog", "community", "workspace"].includes(scope)
+  ) {
+    const canonicalDomain =
+      {
+        homeworks: "homework",
+        links: "link",
+        "link-pins": "link-pin",
+        schedules: "schedule",
+        sections: "section",
+        "section-homeworks": "section-homework",
+        subscriptions: "subscription",
+        todos: "todo",
+        uploads: "upload",
+        users: "user",
+      }[domain] ?? domain;
+    return `${scope}.${canonicalDomain}`;
+  }
+  if (routePath.startsWith("/api/calendar-feeds/")) return "workspace.calendar";
   if (routePath === "/api/openapi") return "OpenAPI";
-  if (routePath.startsWith("/api/me")) return "Me";
-  if (routePath === "/api/schedules") return "Schedules";
-  if (routePath.startsWith("/api/sections")) return "Sections";
-  if (routePath.startsWith("/api/semesters")) return "Semesters";
-  if (routePath.startsWith("/api/teachers")) return "Teachers";
-  if (routePath.startsWith("/api/todos")) return "Todos";
-  if (routePath.startsWith("/api/uploads")) return "Uploads";
-  if (routePath === "/api/users/{userId}/calendar.ics") return "Calendar";
-  if (routePath.startsWith("/api/users")) return "Api";
   if (
     routePath.startsWith("/api/auth") ||
     routePath.startsWith("/api/mcp") ||
@@ -552,10 +579,14 @@ function buildTag(routePath: string): string {
 function buildSecurity(
   routePath: string,
   method: string,
-  tag: string,
   has401: boolean,
+  hasIngestionSecret: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
+
+  if (hasIngestionSecret) {
+    return [{ publicationIngestionSecret: [] }];
+  }
 
   if (routePath.startsWith("/api/auth")) {
     return undefined;
@@ -569,7 +600,7 @@ function buildSecurity(
     return [{ demoBearerAuth: [] }];
   }
 
-  if (tag === "Admin") {
+  if (routePath.startsWith("/api/admin/")) {
     return [{ sessionCookie: [] }];
   }
 
@@ -577,7 +608,11 @@ function buildSecurity(
     return [{ mcpBearerAuth: [] }];
   }
 
-  if (routePath === "/api/users/{userId}/calendar.ics") {
+  if (routePath === "/api/account/client-activity") {
+    return [{ bearerAuth: [] }];
+  }
+
+  if (routePath.startsWith("/api/calendar-feeds/")) {
     return [
       { bearerAuth: [] },
       { sessionCookie: [] },

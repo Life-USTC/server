@@ -1,50 +1,33 @@
 <script lang="ts">
-import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
-import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
-import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
-import InfoIcon from "@lucide/svelte/icons/info";
-import MessageSquareIcon from "@lucide/svelte/icons/message-square";
-import UsersIcon from "@lucide/svelte/icons/users";
+import CalendarIcon from "@lucide/svelte/icons/calendar";
 import type { SubmitFunction } from "@sveltejs/kit";
-import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
-import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
+import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
-import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
-import SectionExamSection from "./SectionExamSection.svelte";
-import SectionHomeworkTab from "./SectionHomeworkTab.svelte";
-import SectionTeachersCard from "./SectionTeachersCard.svelte";
-import type {
-  BooleanSetter,
-  FormatMessage,
-} from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
-export let calendarMonthLabel: string;
-export let calendarMonthOffset: number;
 export let canWriteHomework: boolean;
 export let commentTargets: SectionDetailMainContentProps["commentTargets"];
 export let commonCopy: SectionDetailMainContentProps["commonCopy"];
 export let courseName: string;
 export let courseSecondaryName: string;
 export let data: SectionDetailPageData;
+export let displaySection: SectionDetailSection;
+export let descriptionData: SectionDetailPageData["descriptionData"];
 export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
-export let formatMessage: FormatMessage;
 export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
-export let homeworkStatus: SectionDetailMainContentProps["homeworkStatus"];
-export let homeworkView: SectionDetailMainContentProps["homeworkView"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
@@ -52,88 +35,59 @@ export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHo
 export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
+export let roomMapCopy: SectionDetailMainContentProps["roomMapCopy"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
-export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalendarGridWeeks"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
-export let setHomeworkAuditDialogOpen: BooleanSetter;
-export let setHomeworkView: SectionDetailMainContentProps["setHomeworkView"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
+export let retryStreamPanels: () => void;
+export let streamError: string | null;
+export let streamLoading: boolean;
 export let subscriptionAction: (
   action: SubscriptionActionKey,
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
-export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];
 
+let DescriptionCard:
+  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
+  | null = null;
+let CommentsPanel:
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null = null;
+let SectionCalendarTab:
+  | typeof import("./SectionCalendarTab.svelte").default
+  | null = null;
+let SectionExamSection:
+  | typeof import("./SectionExamSection.svelte").default
+  | null = null;
+let SectionHomeworkTab:
+  | typeof import("./SectionHomeworkTab.svelte").default
+  | null = null;
+
+onMount(() => {
+  void (async () => {
+    DescriptionCard ??= (
+      await import("@/features/descriptions/components/DescriptionCard.svelte")
+    ).default;
+    SectionCalendarTab ??= (await import("./SectionCalendarTab.svelte"))
+      .default;
+    SectionExamSection ??= (await import("./SectionExamSection.svelte"))
+      .default;
+    SectionHomeworkTab ??= (await import("./SectionHomeworkTab.svelte"))
+      .default;
+    CommentsPanel ??= (
+      await import("@/features/comments/components/CommentsPanel.svelte")
+    ).default;
+  })();
+});
+
 $: sectionExamEvents = sectionCalendarEvents.filter(
   (event) => event.kind === "exam",
 );
-$: examSectionLabel = formatMessage(sectionCopy.exams, {
-  count: String(sectionExamEvents.length),
-});
-$: commentsCount = data.commentsData
-  ? Object.values(data.commentsData.commentMap).reduce(
-      (sum, comments) => sum + comments.length,
-      0,
-    )
-  : 0;
-$: sectionBaseHref = `/sections/${data.section.jwId}`;
-$: sectionNavItems = [
-  {
-    href: sectionBaseHref,
-    icon: InfoIcon,
-    key: "overview" as const,
-    label: sectionCopy.basicInfo,
-  },
-  {
-    href: `${sectionBaseHref}/introduction`,
-    icon: BookOpenTextIcon,
-    key: "introduction" as const,
-    label: data.copy.descriptions.title,
-  },
-  {
-    href: `${sectionBaseHref}/calendar`,
-    icon: CalendarDaysIcon,
-    key: "calendar" as const,
-    label: sectionCopy.tabs.calendar,
-    meta: sectionCalendarEvents.length,
-  },
-  {
-    href: `${sectionBaseHref}/exams`,
-    icon: GraduationCapIcon,
-    key: "exams" as const,
-    label: sectionCopy.tabs.exams,
-    meta: sectionExamEvents.length,
-  },
-  {
-    href: `${sectionBaseHref}/homework`,
-    icon: ClipboardListIcon,
-    key: "homework" as const,
-    label: sectionCopy.tabs.homeworks,
-    meta: data.detailSection === "homework" ? homeworks.length : undefined,
-  },
-  {
-    href: `${sectionBaseHref}/teachers`,
-    icon: UsersIcon,
-    key: "teachers" as const,
-    label: sectionCopy.teachers,
-    meta: data.section.teachers.length,
-  },
-  {
-    href: `${sectionBaseHref}/comments`,
-    icon: MessageSquareIcon,
-    key: "comments" as const,
-    label: sectionCopy.tabs.comments,
-    meta: data.commentsData ? commentsCount : undefined,
-  },
-];
-$: activeNavItem =
-  sectionNavItems.find((item) => item.key === data.detailSection) ??
-  sectionNavItems[0];
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
@@ -142,11 +96,9 @@ $: activeNavItem =
       courseName={courseName}
       courseSecondaryName={courseSecondaryName}
       formError={formError}
-      notAvailable={notAvailable}
       onOpenCalendar={openCalendarDialog}
       onOpenSubscribe={openSubscribeDialog}
-      primaryName={primaryName}
-      section={data.section}
+      section={displaySection}
       sectionCopy={sectionCopy}
       subscriptionAction={subscriptionAction}
       subscriptionPendingAction={subscriptionPendingAction}
@@ -154,106 +106,167 @@ $: activeNavItem =
     />
   </div>
 
-  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
-    <DetailSectionNav
-      activeHref={activeNavItem?.href ?? sectionBaseHref}
-      ariaLabel={sectionCopy.teachingSection}
-      items={sectionNavItems}
-      label={sectionCopy.teachingSection}
-    />
+  <div
+    class={cn(
+      "min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 pt-4 sm:px-5 lg:px-6 md:pb-4",
+      viewer.signedIn
+        ? "pb-[calc(9rem+max(0.75rem,env(safe-area-inset-bottom)))]"
+        : "pb-[calc(5rem+max(0.75rem,env(safe-area-inset-bottom)))]",
+    )}
+    aria-busy={streamLoading}
+    data-detail-scroll-container
+  >
+    {#if streamLoading}
+      <div
+        class="text-muted-foreground flex items-center justify-center gap-2 px-2 py-6 text-sm"
+        role="status"
+      >
+        <Spinner class="size-4 shrink-0" />
+        <span>{data.locale === "zh-cn" ? "加载中..." : "Loading..."}</span>
+      </div>
+    {/if}
 
-    <div
-      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
-      data-detail-scroll-container
-    >
-      {#if data.detailSection === "overview"}
-      <section id="section-overview">
+    {#if streamError}
+      <Alert.Root class="mb-6" role="alert" variant="destructive">
+        <Alert.Title>{streamError}</Alert.Title>
+        <Alert.Description class="flex flex-wrap items-center gap-3">
+          <span>{sectionCopy.pleaseRetry}</span>
+          <Button
+            size="sm"
+            type="button"
+            variant="outline"
+            onclick={retryStreamPanels}
+          >
+            {sectionCopy.pleaseRetry}
+          </Button>
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
+
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
+      <div class="grid min-w-0 grid-cols-1 gap-10">
+        <section id="introduction" class="scroll-mt-4">
+          {#key `description:section:${data.section.id}`}
+            {#if DescriptionCard}
+              <svelte:component
+                this={DescriptionCard}
+                targetType="section"
+                targetId={data.section.id}
+                initialData={descriptionData}
+                locale={data.locale}
+                copy={data.copy.descriptions}
+                heading={data.copy.descriptions.title}
+                showTitle={false}
+              />
+            {:else if descriptionData.description.renderedHtml}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">
+                {data.copy.descriptions.title}
+              </h2>
+              <div class="markdown-preview" data-slot="markdown-preview">
+                {@html descriptionData.description.renderedHtml}
+              </div>
+            {/if}
+          {/key}
+        </section>
+
+        <section id="calendar" class="min-w-0 scroll-mt-4">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold tracking-tight">
+              {sectionCopy.tabs.calendar}
+            </h2>
+            <Button variant="outline" type="button" onclick={openCalendarDialog}>
+              <CalendarIcon data-icon="inline-start" />
+              {sectionCopy.addToCalendar}
+            </Button>
+          </div>
+          {#if SectionCalendarTab}
+            <svelte:component
+              this={SectionCalendarTab}
+              {roomMapCopy}
+              {sectionCalendarEvents}
+              {sectionCopy}
+              {unscheduledCalendarEvents}
+            />
+          {/if}
+        </section>
+
+        <section id="exams" class="min-w-0 scroll-mt-4">
+          <h2 class="mb-3 text-lg font-semibold tracking-tight">
+            {sectionCopy.tabs.exams}
+          </h2>
+          {#if SectionExamSection}
+            <svelte:component
+              this={SectionExamSection}
+              events={sectionExamEvents}
+              {fmtDate}
+              heading={sectionCopy.tabs.exams}
+              {roomMapCopy}
+              {sectionCopy}
+            />
+          {/if}
+        </section>
+
+        <section id="homework" class="scroll-mt-4">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold tracking-tight">
+              {sectionCopy.tabs.homeworks}
+            </h2>
+            {#if canWriteHomework}
+              <Button type="button" onclick={openCreateHomeworkDialog}>
+                {homeworkCopy.showCreate}
+              </Button>
+            {:else if !(viewer.isAuthenticated ?? viewer.signedIn === true)}
+              <Button
+                href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${data.section.jwId}`)}`}
+                variant="outline"
+              >
+                {homeworkCopy.loginToCreate}
+              </Button>
+            {/if}
+          </div>
+          {#if SectionHomeworkTab}
+            <svelte:component
+              this={SectionHomeworkTab}
+              {fmtDateTime}
+              {homeworkCopy}
+              {homeworks}
+              {sectionCopy}
+              selectHomework={setSelectedHomework}
+            />
+          {/if}
+        </section>
+
+        <section id="comments" class="scroll-mt-4 min-w-0">
+          {#key `comments:section:${data.section.id}`}
+            {#if CommentsPanel}
+              <svelte:component
+                this={CommentsPanel}
+                initialData={data.commentsData}
+                targetType="section"
+                targetId={data.section.id}
+                targets={commentTargets}
+                showAllTargets
+                heading={sectionCopy.tabs.comments}
+              />
+            {/if}
+          {/key}
+        </section>
+      </div>
+
+      <aside class="min-w-0 lg:sticky lg:top-4" id="overview">
         <SectionBasicInfoCard
           {commonCopy}
           {notAvailable}
           {periodDetailRows}
           {primaryName}
-          section={data.section}
+          section={displaySection}
           {sectionCopy}
           {sectionTeachersLabel}
+          {teacherName}
+          teachers={displaySection.teachers}
           {yesNo}
         />
-      </section>
-      {:else if data.detailSection === "introduction"}
-      <section id="section-description">
-        {#key `description:section:${data.section.id}`}
-          <DescriptionCard
-            targetType="section"
-            targetId={data.section.id}
-            initialData={data.descriptionData}
-            locale={data.locale}
-            copy={data.copy.descriptions}
-          />
-        {/key}
-      </section>
-      {:else if data.detailSection === "calendar"}
-      <section id="tab-calendar">
-        <SectionCalendarTab
-          bind:calendarMonthOffset
-          calendarGridWeeks={sectionCalendarGridWeeks}
-          {calendarMonthLabel}
-          dateTimePlaceText={data.section.dateTimePlaceText}
-          {formatMessage}
-          {openCalendarDialog}
-          {sectionCalendarEvents}
-          {sectionCopy}
-          {todayCalendarMonthOffset}
-          {unscheduledCalendarEvents}
-        />
-      </section>
-      {:else if data.detailSection === "exams"}
-      <section id="tab-exams">
-        <SectionExamSection
-          events={sectionExamEvents}
-          {fmtDate}
-          {sectionCopy}
-        />
-      </section>
-      {:else if data.detailSection === "homework"}
-      <section id="tab-homework">
-        <SectionHomeworkTab
-          {canWriteHomework}
-          {fmtDateTime}
-          {homeworkCopy}
-          {homeworkStatus}
-          {homeworkView}
-          {homeworks}
-          isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
-          openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
-          {openCreateHomeworkDialog}
-          {sectionCopy}
-          sectionJwId={data.section.jwId}
-          selectHomework={setSelectedHomework}
-          {setHomeworkView}
-        />
-      </section>
-      {:else if data.detailSection === "teachers"}
-      <section id="section-teachers">
-        <SectionTeachersCard
-          {primaryName}
-          {sectionCopy}
-          {teacherName}
-          teachers={data.section.teachers}
-        />
-      </section>
-      {:else if data.detailSection === "comments"}
-      <section id="tab-comments">
-        {#key `comments:section:${data.section.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            targetType="section"
-            targetId={data.section.id}
-            targets={commentTargets}
-            showAllTargets
-          />
-        {/key}
-      </section>
-      {/if}
+      </aside>
     </div>
   </div>
 
@@ -266,7 +279,7 @@ $: activeNavItem =
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="p-3">
+    <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <SectionDetailPrimaryActions
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}

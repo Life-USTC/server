@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE } from "@/lib/oauth/constants";
 
 export type OAuthUserGrantIdentity = {

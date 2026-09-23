@@ -1,8 +1,21 @@
+import { cimd } from "@better-auth/cimd";
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import type { getAuthEnv } from "@/app-env";
 import { buildOAuthProviderPlugin } from "@/lib/auth/better-auth-oauth-provider-plugin";
 import { buildBetterAuthPasskeyPlugin } from "@/lib/auth/better-auth-passkey-plugin";
-import { mapOidcProfileToUser } from "@/lib/auth/oauth-profile";
+import {
+  allowCimdMetadataFetch,
+  fetchCimdMetadataResource,
+} from "@/lib/auth/cimd-fetch-policy";
+import {
+  getOidcAccountSubject,
+  mapOidcProfileToUser,
+} from "@/lib/auth/oauth-profile";
+import { socialVerifiedEmailPlugin } from "@/lib/auth/social-verified-email-plugin";
+import { buildUstcOidcProviderEndpoints } from "@/lib/auth/ustc-oidc-endpoints";
+import { ustcOidcIdentityPlugin } from "@/lib/auth/ustc-oidc-identity-plugin";
+import { stageUstcOidcIdentityFromProfile } from "@/lib/auth/ustc-oidc-identity-profile";
+import { isWebhookLoginEnabled } from "@/lib/auth/webhook-login-handler";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_OPENID_SCOPE } from "@/lib/oauth/constants";
@@ -14,9 +27,9 @@ export function buildBetterAuthPlugins(input: {
   authEnv: AuthEnv;
   authPublicOrigin: string;
   oauthProxySecret: string | undefined;
-  oidcDiscoveryUrl: string;
   oidcIssuer: string;
 }) {
+  const ustcOidcEndpoints = buildUstcOidcProviderEndpoints(input.oidcIssuer);
   return [
     jwt({
       jwt: {
@@ -33,22 +46,33 @@ export function buildBetterAuthPlugins(input: {
       currentURL: input.authPublicOrigin,
       ...(input.oauthProxySecret ? { secret: input.oauthProxySecret } : {}),
     }),
-    webhookLoginPlugin(),
+    ...(isWebhookLoginEnabled() ? [webhookLoginPlugin()] : []),
     buildBetterAuthPasskeyPlugin(),
+    ustcOidcIdentityPlugin(),
+    socialVerifiedEmailPlugin(),
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
+    }),
+    cimd({
+      fetchClientMetadataResource: fetchCimdMetadataResource,
+      isMetadataDocumentUrlAllowed: allowCimdMetadataFetch,
+      metadataProfile: "mcp-2026-07-28",
     }),
     genericOAuth({
       config: [
         {
           providerId: "oidc",
-          discoveryUrl: input.oidcDiscoveryUrl,
-          issuer: input.oidcIssuer,
+          ...ustcOidcEndpoints,
           clientId: input.authEnv.AUTH_OIDC_CLIENT_ID ?? "",
           clientSecret: input.authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
           scopes: [OAUTH_OPENID_SCOPE],
           pkce: true,
-          mapProfileToUser: mapOidcProfileToUser,
+          accountIssuer: input.oidcIssuer,
+          accountSubject: ({ profile }) => getOidcAccountSubject(profile),
+          mapProfileToUser: (profile) => {
+            stageUstcOidcIdentityFromProfile(profile);
+            return mapOidcProfileToUser(profile);
+          },
         },
       ],
     }),

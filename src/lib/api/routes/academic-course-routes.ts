@@ -1,18 +1,12 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
 import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import {
-  cachedPublicRuntimeData,
-  publicRuntimeCacheKey,
-} from "@/lib/public-runtime-cache";
-
-const COURSES_API_CACHE_TTL_MS = 60_000;
+  courseDetailSchema,
+  paginatedCourseResponseSchema,
+} from "@/lib/api/schemas/response-schemas";
 
 export async function getCoursesRoute(request: Request) {
   const localeResolution = resolvePublicCatalogLocale(request);
@@ -36,21 +30,15 @@ export async function getCoursesRoute(request: Request) {
   const { cacheHeaders, locale } = localeResolution;
 
   try {
-    const result = await cachedPublicRuntimeData(
-      publicRuntimeCacheKey(`api:courses:${locale}`, searchParams),
-      COURSES_API_CACHE_TTL_MS,
-      async () => {
-        const { listCourseSummaries } = await import(
-          "@/features/catalog/server/course-section-queries"
-        );
-        return listCourseSummaries({
-          filters,
-          locale,
-          pagination,
-        });
-      },
+    const { listCourseSummaries } = await import(
+      "@/features/catalog/server/course-section-queries"
     );
-    return jsonResponse(result, {
+    const result = await listCourseSummaries({
+      filters,
+      locale,
+      pagination,
+    });
+    return schemaJsonResponse(paginatedCourseResponseSchema, result, {
       headers: cacheHeaders,
     });
   } catch (error) {
@@ -83,7 +71,7 @@ export async function getCourseDetailRoute(
       return notFound("Course not found");
     }
 
-    return jsonResponse(course, {
+    return schemaJsonResponse(courseDetailSchema, course, {
       headers: localeResolution.cacheHeaders,
     });
   } catch (error) {

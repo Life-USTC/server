@@ -1,21 +1,35 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
+import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
+import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
+import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
+import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
+import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
+import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RouteIcon from "@lucide/svelte/icons/route";
-import ShieldIcon from "@lucide/svelte/icons/shield";
+import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+import SparklesIcon from "@lucide/svelte/icons/sparkles";
+import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
-import { afterNavigate } from "$app/navigation";
+import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
+import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
+import { shouldRedirectIncompleteProfileToWelcome } from "$lib/auth/auth-routing";
+import {
+  isApplePlatform,
+  isGlobalSearchShortcut,
+} from "$lib/browser/page-search-shortcut";
 import AppFooter from "$lib/components/shell/AppFooter.svelte";
 import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
@@ -31,6 +45,7 @@ import {
   resolveAvatarFallback,
   resolveProfileHref,
   shouldShowAppFooter,
+  shouldUseFocusedShell,
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import MobilePrimaryNav from "$lib/components/shell/MobilePrimaryNav.svelte";
@@ -41,54 +56,110 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
-import { cn } from "$lib/utils.js";
 import {
-  buildDetailSecondaryLinks,
-  buildSubscriptionSecondaryLinks,
-} from "./shell-nav-helpers";
+  getClientShellBootstrap,
+  type WorkspaceNavigationSummary,
+  workspaceNavigationFromPageData,
+} from "$lib/shell/shell-bootstrap";
+import { cn } from "$lib/utils.js";
+import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 type AppShellData = {
   copy: LayoutCopy;
   locale: "en-us" | "zh-cn";
+  resolveViewerOnClient: boolean;
   user: LayoutUserSummary;
 };
 
 export let data: AppShellData;
 
 let themeMode: ThemeMode = "system";
+let sidebarOpen = true;
+let globalSearchOpen = false;
+let GlobalSearchDialog:
+  | typeof import("$lib/components/shell/GlobalSearchDialog.svelte").default
+  | null = null;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
-let contentScrollContainer: HTMLDivElement | undefined;
+let contentScrollContainer: HTMLElement | undefined;
+let viewerLoading = data.resolveViewerOnClient && !data.user;
+let viewerUser = data.user;
+let workspaceNavigation: WorkspaceNavigationSummary | null = null;
+let shellBootstrapAbortController: AbortController | null = null;
+let shellBootstrapGeneration = 0;
 
-$: profileHref = resolveProfileHref(data.user);
-$: avatarFallback = resolveAvatarFallback(data.user);
+$: if (!data.resolveViewerOnClient || data.user) {
+  if (viewerUser?.id !== data.user?.id) {
+    cancelShellBootstrap();
+    workspaceNavigation = null;
+  }
+  viewerUser = data.user;
+  viewerLoading = false;
+}
+$: pageWorkspaceNavigation = workspaceNavigationFromPageData(
+  $page.data,
+  viewerUser?.id,
+);
+$: if (pageWorkspaceNavigation) {
+  workspaceNavigation = pageWorkspaceNavigation;
+}
+$: profileHref = resolveProfileHref(viewerUser);
+$: avatarFallback = resolveAvatarFallback(viewerUser);
 $: navGroups = buildShellNavGroups(
   data.copy,
-  Boolean(data.user),
-  data.user?.isAdmin ?? false,
+  Boolean(viewerUser),
+  viewerUser?.isAdmin ?? false,
   $page.url.pathname,
   $page.data,
+  workspaceNavigation,
 );
-$: mobileNavGroups = data.user
+$: mobileNavGroups = viewerUser
   ? buildMobileSecondaryNavGroups(
       data.copy,
-      data.user.isAdmin,
+      viewerUser.isAdmin,
       $page.url.pathname,
       $page.data,
+      workspaceNavigation,
     )
   : navGroups;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
+$: adminRoute =
+  $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
+$: adminMobileLinks = buildAdminShellLinks(data.copy);
 $: mobileSecondaryHasActive =
   Boolean($page.url.pathname) &&
   mobileNavGroups.some((group) =>
     group.links.some((link) => linkHasActiveDestination(link)),
   );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
-$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(data.user));
+$: focusedShell = shouldUseFocusedShell($page.url.pathname);
+$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
+
+$: globalSearchShortcutLabel = isApplePlatform()
+  ? data.copy.globalSearch.shortcutMac
+  : data.copy.globalSearch.shortcut;
+
+async function ensureGlobalSearchDialog() {
+  GlobalSearchDialog ??= (
+    await import("$lib/components/shell/GlobalSearchDialog.svelte")
+  ).default;
+}
+
+async function openGlobalSearch() {
+  await ensureGlobalSearchDialog();
+  globalSearchOpen = true;
+}
+
+async function handleGlobalSearchKeydown(event: KeyboardEvent) {
+  if (shouldUseFocusedShell($page.url.pathname)) return;
+  if (!isGlobalSearchShortcut(event)) return;
+  event.preventDefault();
+  await openGlobalSearch();
+}
 
 function resolveMainContentLabel(pageData: Record<string, unknown>) {
   const label = pageData.mainContentLabel;
@@ -101,64 +172,101 @@ function buildShellNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
-  const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
+  const detailSecondaryLinks = isDetailWorkspacePath(pathname)
+    ? undefined
+    : buildDetailSecondaryLinks(pathname, pageData);
   const catalogLinks: ShellLink[] = [
     {
-      href: "/courses",
+      href: "/catalog/courses",
       icon: BookOpenIcon,
       label: copy.nav.courses,
-      items: pathname.startsWith("/courses/")
+      items: pathname.startsWith("/catalog/courses/")
         ? detailSecondaryLinks
         : undefined,
     },
     {
-      href: "/sections",
+      href: "/catalog/sections",
       icon: RouteIcon,
       label: copy.nav.sections,
-      items: pathname.startsWith("/sections/")
+      items: pathname.startsWith("/catalog/sections/")
         ? detailSecondaryLinks
         : undefined,
     },
     {
-      href: "/teachers",
+      href: "/catalog/teachers",
       icon: UsersIcon,
       label: copy.nav.teachers,
-      items: pathname.startsWith("/teachers/")
+      items: pathname.startsWith("/catalog/teachers/")
         ? detailSecondaryLinks
         : undefined,
     },
+    {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
+    },
+    {
+      href: "/catalog/bus",
+      icon: BusFrontIcon,
+      label: copy.nav.bus,
+      items: [
+        {
+          href: "/catalog/bus/map",
+          icon: MapIcon,
+          label: copy.nav.transitMap,
+        },
+      ],
+    },
+    { href: "/catalog/links", icon: LinkIcon, label: copy.nav.links },
+    {
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
+      items: [
+        {
+          href: "/catalog/young-events/calendar",
+          icon: CalendarDaysIcon,
+          label: copy.nav.youngCalendar,
+        },
+        {
+          href: "/catalog/young-events/organizers",
+          icon: UsersIcon,
+          label: copy.nav.youngOrganizers,
+        },
+      ],
+    },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
+    },
+    {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: UsersIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
+    },
   ];
-  const campusLinks: ShellLink[] = [
-    { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
+  const usageLinks: ShellLink[] = [
+    {
+      href: "/usage/mobile",
+      icon: SmartphoneIcon,
+      label: copy.nav.mobileApp,
+    },
+    { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+    { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+    { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
   ];
-  const disambiguateDashboardBus = pathname.startsWith("/admin");
-  const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
-  const dashboardNavStats = pageData.navStats as
-    | {
-        calendarItemsCount?: number;
-        examsCount?: number;
-        pendingHomeworksCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
-
   if (!signedIn) {
     return [
-      {
-        defaultOpen: true,
-        label: copy.nav.groups.publicTools,
-        links: [
-          { href: "/bus", icon: BusFrontIcon, label: copy.nav.bus },
-          { href: "/links", icon: LinkIcon, label: copy.nav.links },
-        ],
-      },
       {
         defaultOpen: true,
         label: copy.nav.groups.catalog,
@@ -166,15 +274,11 @@ function buildShellNavGroups(
       },
       {
         defaultOpen: true,
-        label: copy.nav.groups.campus,
-        links: campusLinks,
+        label: copy.nav.groups.usage,
+        links: usageLinks,
       },
     ];
   }
-
-  const adminLinks: ShellLink[] = [
-    { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
-  ];
 
   return [
     {
@@ -183,82 +287,91 @@ function buildShellNavGroups(
       links: [
         {
           ariaLabel: copy.nav.today,
-          href: "/dashboard/overview",
+          href: "/workspace/overview",
           icon: HouseIcon,
           label: copy.nav.today,
         },
         {
           ariaLabel: copy.nav.calendar,
-          badge: dashboardNavStats?.calendarItemsCount,
-          href: "/dashboard/calendar",
+          badge: workspaceNavigation?.calendarItemsCount,
+          href: "/workspace/calendar",
           icon: CalendarDaysIcon,
           label: copy.nav.calendar,
         },
         {
           ariaLabel: copy.nav.homeworks,
-          badge: dashboardNavStats?.pendingHomeworksCount,
-          href: "/dashboard/homeworks",
+          badge: workspaceNavigation?.pendingHomeworksCount,
+          href: "/workspace/homeworks",
           icon: BookOpenIcon,
           label: copy.nav.homeworks,
         },
         {
           ariaLabel: copy.nav.todos,
-          badge: dashboardNavStats?.pendingTodosCount,
-          href: "/dashboard/todos",
+          badge: workspaceNavigation?.pendingTodosCount,
+          href: "/workspace/todos",
           icon: ListTodoIcon,
           label: copy.nav.todos,
         },
         {
           ariaLabel: copy.nav.exams,
-          badge: dashboardNavStats?.examsCount,
-          href: "/dashboard/exams",
+          badge: workspaceNavigation?.examsCount,
+          href: "/workspace/exams",
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
         {
           ariaLabel: copy.nav.subscriptions,
-          badge: dashboardSubscribedSectionCount,
-          href: "/dashboard/subscriptions",
+          badge: workspaceNavigation?.subscribedSectionCount,
+          href: "/workspace/subscriptions",
           icon: RouteIcon,
-          items:
-            pathname === "/dashboard/subscriptions" ||
-            pathname === "/dashboard/exams"
-              ? subscriptionSecondaryLinks
-              : undefined,
           label: copy.nav.subscriptions,
         },
       ],
     },
     {
-      label: copy.nav.groups.explore,
-      links: [
-        {
-          ariaLabel: disambiguateDashboardBus
-            ? copy.nav.dashboardBus
-            : copy.nav.workspaceTransit,
-          href: "/dashboard/bus",
-          icon: BusFrontIcon,
-          label: copy.nav.bus,
-        },
-        {
-          ariaLabel: copy.nav.links,
-          href: "/dashboard/links",
-          icon: LinkIcon,
-          label: copy.nav.links,
-        },
-        ...catalogLinks,
-        ...campusLinks,
-      ],
+      defaultOpen: true,
+      label: copy.nav.groups.catalog,
+      links: catalogLinks,
+    },
+    {
+      defaultOpen: true,
+      label: copy.nav.groups.usage,
+      links: usageLinks,
     },
     ...(isAdmin
       ? [
           {
             defaultOpen: pathname.startsWith("/admin"),
             label: copy.nav.groups.adminTools,
-            links: adminLinks,
+            links: buildAdminShellLinks(copy),
           },
         ]
       : []),
+  ];
+}
+
+function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
+  return [
+    {
+      href: "/admin/users",
+      icon: UsersIcon,
+      label: copy.nav.admin.users,
+    },
+    {
+      href: "/admin/moderation",
+      icon: GavelIcon,
+      label: copy.nav.admin.moderation,
+    },
+    {
+      href: "/admin/oauth",
+      icon: KeyRoundIcon,
+      label: copy.nav.admin.oauth,
+    },
+    {
+      href: "/admin/bus",
+      icon: BusFrontIcon,
+      label: copy.nav.admin.bus,
+    },
   ];
 }
 
@@ -267,92 +380,132 @@ function buildMobileSecondaryNavGroups(
   isAdmin: boolean,
   pathname: string,
   pageData: Record<string, unknown>,
+  workspaceNavigation: WorkspaceNavigationSummary | null,
 ): ShellNavGroup[] {
-  const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
-  const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
-  const dashboardNavStats = pageData.navStats as
-    | {
-        examsCount?: number;
-        pendingTodosCount?: number;
-      }
-    | null
-    | undefined;
-  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
-    | number
-    | null
-    | undefined;
+  const detailSecondaryLinks = isDetailWorkspacePath(pathname)
+    ? undefined
+    : buildDetailSecondaryLinks(pathname, pageData);
   const secondaryLinks: ShellLink[] = [
     {
       ariaLabel: copy.nav.todos,
-      badge: dashboardNavStats?.pendingTodosCount,
-      href: "/dashboard/todos",
+      badge: workspaceNavigation?.pendingTodosCount,
+      href: "/workspace/todos",
       icon: ListTodoIcon,
       label: copy.nav.todos,
     },
     {
       ariaLabel: copy.nav.exams,
-      badge: dashboardNavStats?.examsCount,
-      href: "/dashboard/exams",
+      badge: workspaceNavigation?.examsCount,
+      href: "/workspace/exams",
       icon: GraduationCapIcon,
       label: copy.nav.exams,
     },
     {
       ariaLabel: copy.nav.subscriptions,
-      badge: dashboardSubscribedSectionCount,
-      href: "/dashboard/subscriptions",
+      badge: workspaceNavigation?.subscribedSectionCount,
+      href: "/workspace/subscriptions",
       icon: RouteIcon,
-      items:
-        pathname === "/dashboard/subscriptions" ||
-        pathname === "/dashboard/exams"
-          ? subscriptionSecondaryLinks
-          : undefined,
       label: copy.nav.subscriptions,
     },
     {
-      href: "/dashboard/bus",
+      href: "/catalog/bus",
       icon: BusFrontIcon,
       label: copy.nav.bus,
+      items: [
+        {
+          href: "/catalog/bus/map",
+          icon: MapIcon,
+          label: copy.nav.transitMap,
+        },
+      ],
     },
     {
-      href: "/dashboard/links",
+      href: "/catalog/links",
       icon: LinkIcon,
       label: copy.nav.links,
     },
     {
-      href: "/sections",
+      href: "/catalog/young-events",
+      icon: SparklesIcon,
+      label: copy.nav.youngEvents,
+      items: [
+        {
+          href: "/catalog/young-events/calendar",
+          icon: CalendarDaysIcon,
+          label: copy.nav.youngCalendar,
+        },
+        {
+          href: "/catalog/young-events/organizers",
+          icon: UsersIcon,
+          label: copy.nav.youngOrganizers,
+        },
+      ],
+    },
+    {
+      href: "/catalog/weather",
+      icon: CloudSunIcon,
+      label: copy.nav.weather,
+    },
+    {
+      href: "/news",
+      icon: ScrollTextIcon,
+      label: copy.nav.news,
+      items: [
+        {
+          href: "/news/sources",
+          icon: UsersIcon,
+          label: copy.nav.newsSources,
+        },
+      ],
+    },
+    {
+      href: "/catalog/sections",
       icon: RouteIcon,
-      items: pathname.startsWith("/sections/")
+      items: pathname.startsWith("/catalog/sections/")
         ? detailSecondaryLinks
         : undefined,
       label: copy.nav.sections,
     },
     {
-      href: "/teachers",
+      href: "/catalog/teachers",
       icon: UsersIcon,
-      items: pathname.startsWith("/teachers/")
+      items: pathname.startsWith("/catalog/teachers/")
         ? detailSecondaryLinks
         : undefined,
       label: copy.nav.teachers,
     },
-    { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
-    { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
+    {
+      href: "/catalog/rooms",
+      icon: MapPinnedIcon,
+      label: copy.nav.rooms,
+    },
   ];
-  const adminLinks: ShellLink[] = [
-    { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
-  ];
-
   return [
     {
       defaultOpen: true,
       label: copy.nav.groups.secondary,
       links: secondaryLinks,
     },
+    {
+      defaultOpen: pathname.startsWith("/usage/"),
+      label: copy.nav.groups.usage,
+      links: [
+        {
+          href: "/usage/mobile",
+          icon: SmartphoneIcon,
+          label: copy.nav.mobileApp,
+        },
+        { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
+        { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
+        { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
+      ],
+    },
     ...(isAdmin
       ? [
           {
             defaultOpen: pathname.startsWith("/admin"),
             label: copy.nav.groups.adminTools,
-            links: adminLinks,
+            links: buildAdminShellLinks(copy),
           },
         ]
       : []),
@@ -362,22 +515,22 @@ function buildMobileSecondaryNavGroups(
 function buildMobilePrimaryLinks(copy: LayoutCopy): ShellLink[] {
   return [
     {
-      href: "/dashboard/overview",
+      href: "/workspace/overview",
       icon: HouseIcon,
       label: copy.nav.today,
     },
     {
-      href: "/dashboard/calendar",
+      href: "/workspace/calendar",
       icon: CalendarDaysIcon,
       label: copy.nav.calendar,
     },
     {
-      href: "/dashboard/homeworks",
+      href: "/workspace/homeworks",
       icon: ClipboardCheckIcon,
       label: copy.nav.tasks,
     },
     {
-      href: "/courses",
+      href: "/catalog/courses",
       icon: CompassIcon,
       label: copy.nav.explore,
     },
@@ -389,22 +542,37 @@ function isActiveLink(link: ShellLink) {
   const target = new URL(link.href, $page.url.origin);
   const pathname = $page.url.pathname;
 
-  if (target.pathname === "/dashboard/overview") {
-    return pathname === "/dashboard" || pathname === "/dashboard/overview";
+  if (target.pathname === "/workspace/overview") {
+    return pathname === "/workspace" || pathname === "/workspace/overview";
   }
-  if (target.pathname.startsWith("/dashboard/")) {
+  if (target.pathname === "/news") {
+    return pathname === "/news" || pathname.startsWith("/news/");
+  }
+  if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;
   }
-  if (["/courses", "/sections", "/teachers"].includes(target.pathname)) {
+  if (
+    [
+      "/catalog/courses",
+      "/catalog/sections",
+      "/catalog/teachers",
+      "/catalog/rooms",
+    ].includes(target.pathname)
+  ) {
     return (
       pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
     );
   }
-  if (target.pathname === "/settings/profile") {
-    return pathname === "/settings" || pathname.startsWith("/settings/");
+  if (target.pathname === "/account/settings/profile") {
+    return (
+      pathname === "/account/settings" ||
+      pathname.startsWith("/account/settings/")
+    );
   }
-  if (target.pathname === "/admin") {
-    return pathname === "/admin" || pathname.startsWith("/admin/");
+  if (target.pathname.startsWith("/admin/")) {
+    return (
+      pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
+    );
   }
   return pathname === target.pathname;
 }
@@ -419,23 +587,29 @@ function linkHasActiveDestination(link: ShellLink): boolean {
 function isMobilePrimaryActive(link: ShellLink): boolean {
   const pathname = $page.url.pathname;
 
-  if (link.href === "/dashboard/homeworks") {
+  if (link.href === "/workspace/homeworks") {
     return [
-      "/dashboard/homeworks",
-      "/dashboard/todos",
-      "/dashboard/exams",
-      "/dashboard/subscriptions",
+      "/workspace/homeworks",
+      "/workspace/todos",
+      "/workspace/exams",
+      "/workspace/subscriptions",
     ].includes(pathname);
   }
-  if (link.href === "/courses") {
+  if (link.href === "/catalog/courses") {
     return (
       [
-        "/dashboard/bus",
-        "/dashboard/links",
-        "/bus-map",
-        "/mobile-app",
+        "/catalog/bus",
+        "/catalog/links",
+        "/catalog/bus/map",
+        "/catalog/rooms",
       ].includes(pathname) ||
-      ["/courses", "/sections", "/teachers"].some(
+      pathname.startsWith("/usage/") ||
+      [
+        "/catalog/courses",
+        "/catalog/sections",
+        "/catalog/teachers",
+        "/catalog/rooms",
+      ].some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
       )
     );
@@ -485,6 +659,62 @@ function resetContentScroll() {
     ?.scrollTo({ left: 0, top: 0 });
 }
 
+function cancelShellBootstrap() {
+  shellBootstrapGeneration += 1;
+  shellBootstrapAbortController?.abort();
+  shellBootstrapAbortController = null;
+}
+
+async function resolveClientShell() {
+  const serverNavigation = workspaceNavigationFromPageData(
+    $page.data,
+    viewerUser?.id,
+  );
+  if (serverNavigation) workspaceNavigation = serverNavigation;
+  if (viewerUser && workspaceNavigation?.userId === viewerUser.id) return;
+  if (!data.resolveViewerOnClient && !viewerUser) return;
+
+  cancelShellBootstrap();
+  const controller = new AbortController();
+  shellBootstrapAbortController = controller;
+  const generation = shellBootstrapGeneration;
+
+  try {
+    const bootstrap = await getClientShellBootstrap(
+      globalThis.fetch,
+      controller.signal,
+    );
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    viewerUser = bootstrap.viewer;
+    workspaceNavigation = bootstrap.navigation;
+    viewerLoading = false;
+    if (
+      shouldRedirectIncompleteProfileToWelcome({
+        pathname: $page.url.pathname,
+        url: $page.url,
+        hasUser: Boolean(viewerUser?.id),
+        hasCompleteProfile: Boolean(viewerUser?.name && viewerUser.username),
+      })
+    ) {
+      const returnTo = `${$page.url.pathname}${$page.url.search}`;
+      await goto(
+        `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
+      );
+    }
+  } catch {
+    if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
+      return;
+    }
+    if (!viewerUser) workspaceNavigation = null;
+  } finally {
+    if (shellBootstrapAbortController === controller) {
+      shellBootstrapAbortController = null;
+    }
+  }
+}
+
 async function setLocale(locale: "en-us" | "zh-cn") {
   await setClientLocale({
     currentLocale: data.locale,
@@ -494,9 +724,14 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 }
 
 onMount(() => {
+  if (window.matchMedia("(max-width: 1023px)").matches) {
+    sidebarOpen = false;
+  }
+  void resolveClientShell();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
+  window.addEventListener("keydown", handleGlobalSearchKeydown);
 
   const syncThemeMode = (event: Event) => {
     const nextThemeMode = (event as CustomEvent<ThemeMode>).detail;
@@ -516,6 +751,8 @@ onMount(() => {
   systemTheme.addEventListener("change", applySystemTheme);
 
   return () => {
+    cancelShellBootstrap();
+    window.removeEventListener("keydown", handleGlobalSearchKeydown);
     window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
     systemTheme.removeEventListener("change", applySystemTheme);
   };
@@ -547,96 +784,171 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<div style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;">
-  <Sidebar.Provider
-    class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
-  >
-    <a
-      class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
-      href="#main-content"
-    >
-      {data.copy.shell.skipToMainContent}
-    </a>
+<a
+  class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
+  href="#main-content"
+>
+  {data.copy.shell.skipToMainContent}
+</a>
 
-    {#if $navigating}
-      <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
-    {/if}
+{#if $navigating}
+  <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
+{/if}
 
-    <AppSidebar
-      {avatarFallback}
+{#if focusedShell}
+  <div class="flex min-h-screen flex-col" data-shell="focused">
+    <AppTopbar
       {closeMenus}
       copy={data.copy}
-      currentPathname={$page.url.pathname}
-      {isActiveLink}
+      focused
+      globalSearchShortcutLabel={globalSearchShortcutLabel}
       locale={data.locale}
       {localeMenuOpen}
-      {mobileNavGroups}
-      {navGroups}
-      {profileHref}
+      onOpenGlobalSearch={openGlobalSearch}
       {setLocale}
       {setLocaleMenuOpen}
       {setThemeMenuOpen}
       {setThemeMode}
-      {setUserMenuOpen}
       {themeMenuOpen}
       {themeMode}
-      user={data.user}
-      {userMenuOpen}
+      signedIn={Boolean(viewerUser)}
+      user={viewerUser}
+      {viewerLoading}
     />
 
-    <Sidebar.Inset
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip-link target -->
+    <main
       aria-label={mainContentLabel}
+      bind:this={contentScrollContainer}
+      class="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+      data-shell-scroll-container
       id="main-content"
       tabindex={-1}
-      class={cn(
-        "relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
-        data.user &&
-          "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
-      )}
     >
-      <AppTopbar
+      <slot />
+    </main>
+  </div>
+{:else}
+  <Sidebar.Provider
+    bind:open={sidebarOpen}
+    class={cn(
+      "flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
+      viewerUser && "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
+    )}
+  >
+    <div class="flex min-h-0 w-full flex-1">
+      <AppSidebar
+        {avatarFallback}
         {closeMenus}
         copy={data.copy}
-        user={data.user}
+        currentPathname={$page.url.pathname}
+        dockAboveFooter={showFooter}
+        {isActiveLink}
+        {mobileNavGroups}
+        {navGroups}
+        {profileHref}
+        {setUserMenuOpen}
+        showAccountFooter={!showFooter}
+        user={viewerUser}
+        {userMenuOpen}
+        {viewerLoading}
       />
 
-      <div
-        bind:this={contentScrollContainer}
-        data-shell-scroll-container
-        class={cn(
-          "flex min-w-0 flex-1 flex-col",
-          detailWorkspace
-            ? "lg:min-h-0 lg:overflow-hidden"
-            : "lg:min-h-0 lg:overflow-y-auto",
-        )}
+      <Sidebar.Inset
+        aria-label={mainContentLabel}
+        id="main-content"
+        tabindex={-1}
+        class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
       >
+        <AppTopbar
+          {closeMenus}
+          copy={data.copy}
+          globalSearchShortcutLabel={globalSearchShortcutLabel}
+          locale={data.locale}
+          {localeMenuOpen}
+          onOpenGlobalSearch={openGlobalSearch}
+          {setLocale}
+          {setLocaleMenuOpen}
+          {setThemeMenuOpen}
+          {setThemeMode}
+          {themeMenuOpen}
+          {themeMode}
+          signedIn={Boolean(viewerUser)}
+          user={viewerUser}
+          {viewerLoading}
+        />
+
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard-scrollable viewport -->
         <div
+          bind:this={contentScrollContainer}
+          aria-label={data.copy.shell.scrollRegion}
+          data-shell-scroll-container
+          role="region"
+          tabindex="0"
           class={cn(
-            "w-full flex-1",
+            "flex min-w-0 flex-1 flex-col",
             detailWorkspace
-              ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-              : "px-4 py-4 sm:px-5 lg:px-6",
+              ? "lg:min-h-0 lg:overflow-hidden"
+              : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >
-          <slot />
+          <div
+            class={cn(
+              "w-full flex-1",
+              detailWorkspace
+                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+                : "px-4 py-4 sm:px-5 lg:px-6",
+            )}
+          >
+            <slot />
+          </div>
         </div>
+      </Sidebar.Inset>
+    </div>
 
-        {#if showFooter}
-          <AppFooter
-            copy={data.copy}
-            {footerLinks}
-          />
-        {/if}
-      </div>
-    </Sidebar.Inset>
-
-    {#if data.user}
-      <MobilePrimaryNav
+    {#if showFooter}
+      <AppFooter
+        {avatarFallback}
+        {closeMenus}
         copy={data.copy}
-        hasSecondaryCurrent={mobileSecondaryHasActive}
-        isActiveLink={isMobilePrimaryActive}
-        links={mobilePrimaryLinks}
+        currentPathname={$page.url.pathname}
+        {footerLinks}
+        {profileHref}
+        {setUserMenuOpen}
+        user={viewerUser}
+        {userMenuOpen}
+        {viewerLoading}
       />
     {/if}
+
+    {#if viewerUser}
+      {#if viewerUser.isAdmin && adminRoute}
+        <AdminMobileNav
+          copy={data.copy}
+          isActiveLink={isActiveLink}
+          links={adminMobileLinks}
+        />
+      {:else}
+        <MobilePrimaryNav
+          copy={data.copy}
+          hasSecondaryCurrent={mobileSecondaryHasActive}
+          isActiveLink={isMobilePrimaryActive}
+          links={mobilePrimaryLinks}
+        />
+      {/if}
+    {/if}
   </Sidebar.Provider>
-</div>
+{/if}
+
+{#if GlobalSearchDialog && !focusedShell}
+  <svelte:component
+    this={GlobalSearchDialog}
+    copy={data.copy.globalSearch}
+    locale={data.locale}
+    bind:open={globalSearchOpen}
+    signedIn={Boolean(viewerUser)}
+    on:openChange={(event) => {
+      globalSearchOpen = event.detail;
+    }}
+  />
+{/if}

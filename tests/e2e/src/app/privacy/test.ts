@@ -4,6 +4,7 @@
  * Static legal page rendering the privacy policy from i18n keys.
  */
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../utils/auth";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -31,6 +32,52 @@ test.describe("/privacy 隐私政策页", () => {
 
     const listItems = page.locator("li");
     expect(await listItems.count()).toBeGreaterThan(0);
+  });
+
+  test("320px 列表内容在 Card 内完整换行", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await gotoAndWaitForReady(page, "/privacy", { testInfo });
+
+    const overflow = await page
+      .locator('[data-slot="card"] .markdown-preview')
+      .evaluate((markdown) => {
+        const elements = [
+          markdown,
+          ...Array.from(markdown.querySelectorAll<HTMLElement>("ul, ol, li")),
+        ];
+        return elements
+          .map((element) => ({
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            tag: element.tagName,
+          }))
+          .filter(
+            ({ clientWidth, scrollWidth }) => scrollWidth > clientWidth + 1,
+          );
+      });
+
+    expect(overflow).toEqual([]);
+    await expect(page.locator('[data-slot="card"] li').first()).toBeVisible();
+  });
+
+  test("登录用户绕过 PublicSsr 缓存并直接 SSR viewer", async ({ page }) => {
+    await signInAsDebugUser(page, "/privacy", "/privacy");
+
+    const documentResponse = await page.request.get("/privacy");
+    expect(documentResponse.status()).toBe(200);
+    expect(documentResponse.headers()["cache-control"]).toMatch(/no-store/);
+    const html = await documentResponse.text();
+    // Authenticated requests skip anonymous PublicSsr HTML, so the viewer is
+    // already present in the document instead of a client-only skeleton.
+    expect(html).not.toContain('data-testid="viewer-loading"');
+    expect(html).toContain('id="app-user-menu"');
+
+    await gotoAndWaitForReady(page, "/privacy");
+    await expect(page.getByTestId("viewer-loading")).toHaveCount(0);
+    await expect(page.locator("#app-user-menu")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toHaveCount(0);
   });
 });
 

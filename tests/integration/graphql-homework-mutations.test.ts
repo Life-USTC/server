@@ -1,11 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-homework-${Date.now()}`;
@@ -50,7 +54,7 @@ async function execute(body: unknown, token?: string) {
 }
 
 async function signToken(userId: string, scopes: string[]) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -79,14 +83,14 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
 
 beforeAll(async () => {
   const [creator, collaborator] = await Promise.all([
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-creator@example.test`,
         name: "GraphQL Homework Creator",
       },
       select: { id: true },
     }),
-    prisma.user.create({
+    fixturePrisma.user.create({
       data: {
         email: `${marker}-collaborator@example.test`,
         name: "GraphQL Homework Collaborator",
@@ -96,17 +100,23 @@ beforeAll(async () => {
   ]);
   creatorId = creator.id;
   collaboratorId = collaborator.id;
-  await prisma.oAuthClient.create({
+  await fixturePrisma.oAuthClient.create({
     data: {
       clientId: oauthClientId,
       consents: {
         create: [
           {
-            scopes: [restReadScope("homework"), restWriteScope("homework")],
+            scopes: [
+              restReadScope("community.section-homework"),
+              restWriteScope("community.section-homework"),
+            ],
             userId: creatorId,
           },
           {
-            scopes: [restReadScope("homework"), restWriteScope("homework")],
+            scopes: [
+              restReadScope("community.section-homework"),
+              restWriteScope("community.section-homework"),
+            ],
             userId: collaboratorId,
           },
         ],
@@ -118,38 +128,38 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
-  await prisma.auditLog.deleteMany({
+  await fixturePrisma.oAuthClient.deleteMany({
+    where: { clientId: oauthClientId },
+  });
+  await fixturePrisma.auditLog.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.homeworkAuditLog.deleteMany({
-    where: {
-      OR: [
-        { actorId: { in: [creatorId, collaboratorId] } },
-        { homeworkId: { in: createdHomeworkIds } },
-      ],
-    },
-  });
-  await prisma.homework.deleteMany({
+  await fixturePrisma.homework.deleteMany({
     where: { id: { in: createdHomeworkIds } },
   });
-  await prisma.userSuspension.deleteMany({
+  await fixturePrisma.userSuspension.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.user.deleteMany({
+  await fixturePrisma.user.deleteMany({
     where: { id: { in: [creatorId, collaboratorId] } },
   });
-  await prisma.$disconnect();
+  await Promise.all([
+    fixturePrisma.$disconnect(),
+    authPrisma.$disconnect(),
+    runtimePrisma.$disconnect(),
+  ]);
 });
 
 describe("GraphQL homework CRUD mutations", () => {
   it("requires the exact homework write scope before resolving a section", async () => {
-    const readToken = await signToken(creatorId, [restReadScope("homework")]);
+    const readToken = await signToken(creatorId, [
+      restReadScope("community.section-homework"),
+    ]);
     const result = await execute(
       {
         query: /* GraphQL */ `
           mutation CreateWithoutWriteScope($sectionJwId: Int!) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "${marker} missing scope"
@@ -166,17 +176,19 @@ describe("GraphQL homework CRUD mutations", () => {
 
     expectErrorCode(result.payload, "FORBIDDEN");
     expect(result.payload.errors?.[0]?.extensions?.requiredScopes).toEqual([
-      "homework:write",
+      "community.section-homework:write",
     ]);
     await expect(
-      prisma.homework.count({
+      fixturePrisma.homework.count({
         where: { title: `${marker} missing scope` },
       }),
     ).resolves.toBe(0);
   });
 
   it("validates the shared homework submission window before writing", async () => {
-    const token = await signToken(creatorId, [restWriteScope("homework")]);
+    const token = await signToken(creatorId, [
+      restWriteScope("community.section-homework"),
+    ]);
     const result = await execute(
       {
         query: /* GraphQL */ `
@@ -185,7 +197,7 @@ describe("GraphQL homework CRUD mutations", () => {
             $start: DateTime!
             $due: DateTime!
           ) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "${marker} invalid window"
@@ -211,7 +223,7 @@ describe("GraphQL homework CRUD mutations", () => {
       "Submission start must be before due",
     );
     await expect(
-      prisma.homework.count({
+      fixturePrisma.homework.count({
         where: { title: `${marker} invalid window` },
       }),
     ).resolves.toBe(0);
@@ -219,8 +231,8 @@ describe("GraphQL homework CRUD mutations", () => {
 
   it("creates, collaboratively updates, and creator-deletes with shared audit semantics", async () => {
     const [creatorToken, collaboratorToken] = await Promise.all([
-      signToken(creatorId, [restWriteScope("homework")]),
-      signToken(collaboratorId, [restWriteScope("homework")]),
+      signToken(creatorId, [restWriteScope("community.section-homework")]),
+      signToken(collaboratorId, [restWriteScope("community.section-homework")]),
     ]);
     const created = await execute(
       {
@@ -231,7 +243,7 @@ describe("GraphQL homework CRUD mutations", () => {
             $start: DateTime!
             $due: DateTime!
           ) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "  ${marker} initial  "
@@ -272,7 +284,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(created.response.headers.get("cache-control")).toBe("no-store");
     expect(created.payload.errors).toBeUndefined();
-    const createPayload = created.payload.data?.createHomework as
+    const createPayload = created.payload.data?.homeworkCreate as
       | {
           id: string;
           homework: Record<string, unknown>;
@@ -294,7 +306,7 @@ describe("GraphQL homework CRUD mutations", () => {
       section: { jwId: DEV_SEED.section.jwId },
     });
 
-    const createdRecord = await prisma.homework.findUniqueOrThrow({
+    const createdRecord = await fixturePrisma.homework.findUniqueOrThrow({
       where: { id: homeworkId },
       select: {
         createdById: true,
@@ -312,15 +324,15 @@ describe("GraphQL homework CRUD mutations", () => {
       title: `${marker} initial`,
     });
     await expect(
-      prisma.homeworkAuditLog.findMany({
-        where: { homeworkId },
-        select: { action: true, actorId: true, titleSnapshot: true },
+      fixturePrisma.auditLog.findMany({
+        where: { action: "homework_create", targetId: homeworkId },
+        select: { action: true, userId: true, metadata: true },
       }),
     ).resolves.toEqual([
       {
-        action: "created",
-        actorId: creatorId,
-        titleSnapshot: `${marker} initial`,
+        action: "homework_create",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
     ]);
 
@@ -328,7 +340,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation UpdateHomework($id: ID!, $due: DateTime!) {
-            updateHomework(
+            homeworkUpdate(
               id: $id
               input: {
                 title: "  ${marker} updated  "
@@ -362,7 +374,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(updated.payload).toEqual({
       data: {
-        updateHomework: {
+        homeworkUpdate: {
           id: homeworkId,
           homework: {
             id: homeworkId,
@@ -376,7 +388,7 @@ describe("GraphQL homework CRUD mutations", () => {
         },
       },
     });
-    const updatedRecord = await prisma.homework.findUniqueOrThrow({
+    const updatedRecord = await fixturePrisma.homework.findUniqueOrThrow({
       where: { id: homeworkId },
       select: {
         description: { select: { content: true, id: true } },
@@ -388,7 +400,7 @@ describe("GraphQL homework CRUD mutations", () => {
       updatedById: collaboratorId,
     });
     await expect(
-      prisma.auditLog.findFirstOrThrow({
+      fixturePrisma.auditLog.findFirstOrThrow({
         where: {
           action: "description_edit",
           targetId: updatedRecord.description?.id,
@@ -403,7 +415,7 @@ describe("GraphQL homework CRUD mutations", () => {
     const forbiddenDelete = await execute(
       {
         query:
-          "mutation DeleteOtherHomework($id: ID!) { deleteHomework(id: $id) { success } }",
+          "mutation DeleteOtherHomework($id: ID!) { homeworkDelete(id: $id) { success } }",
         variables: { id: homeworkId },
       },
       collaboratorToken,
@@ -414,7 +426,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteHomework($id: ID!) {
-            deleteHomework(id: $id) {
+            homeworkDelete(id: $id) {
               id
               success
               alreadyDeleted
@@ -427,7 +439,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(deleted.payload).toEqual({
       data: {
-        deleteHomework: {
+        homeworkDelete: {
           id: homeworkId,
           success: true,
           alreadyDeleted: false,
@@ -439,7 +451,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteHomeworkAgain($id: ID!) {
-            deleteHomework(id: $id) {
+            homeworkDelete(id: $id) {
               id
               success
               alreadyDeleted
@@ -452,7 +464,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(repeatedDelete.payload).toEqual({
       data: {
-        deleteHomework: {
+        homeworkDelete: {
           id: homeworkId,
           success: true,
           alreadyDeleted: true,
@@ -460,21 +472,33 @@ describe("GraphQL homework CRUD mutations", () => {
       },
     });
     await expect(
-      prisma.homeworkAuditLog.findMany({
-        where: { homeworkId },
+      fixturePrisma.auditLog.findMany({
+        where: {
+          action: {
+            in: ["homework_create", "homework_update", "homework_delete"],
+          },
+          targetId: homeworkId,
+        },
         orderBy: [{ createdAt: "asc" }, { action: "asc" }],
-        select: { action: true, actorId: true, titleSnapshot: true },
+        select: { action: true, userId: true, metadata: true },
       }),
     ).resolves.toEqual([
       {
-        action: "created",
-        actorId: creatorId,
-        titleSnapshot: `${marker} initial`,
+        action: "homework_create",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
       {
-        action: "deleted",
-        actorId: creatorId,
-        titleSnapshot: `${marker} updated`,
+        action: "homework_update",
+        userId: collaboratorId,
+        metadata: expect.objectContaining({
+          changedFields: expect.arrayContaining(["title", "description"]),
+        }),
+      },
+      {
+        action: "homework_delete",
+        userId: creatorId,
+        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
     ]);
   });

@@ -1,3 +1,4 @@
+import type { HomeworkAuditContext } from "@/features/homeworks/server/homework-audit";
 import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
 import {
   forbidden,
@@ -6,8 +7,12 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 
-export async function deleteHomeworkAction(id: string, userId: string) {
-  const result = await deleteHomework({ homeworkId: id, userId });
+export async function deleteHomeworkAction(
+  id: string,
+  userId: string,
+  audit?: HomeworkAuditContext,
+) {
+  const result = await deleteHomework({ audit, homeworkId: id, userId });
   if (!result.ok) {
     if (result.error === "not_found") return notFound();
     if (result.error === "suspended") {

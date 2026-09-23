@@ -24,7 +24,7 @@ $: canSubmit =
 
 <div class="flex flex-wrap items-center gap-2">
   {#if !viewer.isAuthenticated}
-    <Button href={signInHref} size="sm" variant="outline">
+    <Button href={signInHref} variant="outline">
       {commentCopy.loginToComment}
     </Button>
   {/if}
@@ -40,7 +40,6 @@ $: canSubmit =
   <Button
     class="ml-auto"
     disabled={!canSubmit}
-    size="sm"
     type="button"
     onclick={submitComment}
   >

@@ -1,17 +1,57 @@
-import { type Handle, type HandleServerError, redirect } from "@sveltejs/kit";
+/**
+ * SvelteKit request hooks: locale negotiation, auth routing, CSP nonce,
+ * public-SSR headers, and API/page observability for the Cloudflare Worker.
+ */
+import {
+  type Handle,
+  type HandleServerError,
+  isHttpError,
+  isRedirect,
+  redirect,
+} from "@sveltejs/kit";
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  getCloudflareRequestContext,
+  getCloudflareRuntimeTaskScheduler,
+  runCloudflareTraceSpan,
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRequestContext,
+} from "@/lib/adapters/cloudflare-runtime";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
-  recordApiRequestStart,
+  PUBLIC_SSR_HEADER,
+  PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_HEADER,
+  PUBLIC_SSR_NONCE_PLACEHOLDER,
+} from "@/lib/cloudflare/public-ssr-gateway";
+import {
+  identifyObservedRequest,
+  identifyObservedUser,
+  runWithObservability,
+} from "@/lib/db/observability-context";
+import {
+  recordObservedApiError,
+  recordObservedApiResponse,
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
+import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
+import { logAppEvent } from "@/lib/log/app-logger";
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { getTrustedRequestId } from "@/lib/log/worker-entrypoint-observability";
+import { observeHttpFeature } from "@/lib/metrics/feature-http-operation";
 import {
-  appendPageServerTiming,
+  type PageAuthMode,
+  recordPageRequestError,
   recordPageRequestFinish,
 } from "@/lib/metrics/page-observability";
+import {
+  classifyPageAuthSignalPresence,
+  classifyPageSsrClass,
+  resolvePageCatalogDetailTab,
+} from "@/lib/metrics/page-request-attribution";
 import {
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_TOKEN_ENDPOINT_PATH,
@@ -81,7 +121,13 @@ export function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
 }
 
 function isApiRequest(pathname: string) {
-  return pathname.startsWith("/api/");
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
+function observedRoute(pathname: string, routeId: string | null) {
+  return isApiRequest(pathname)
+    ? normalizeApiRoutePath(pathname)
+    : (routeId ?? "unmatched");
 }
 
 function isHtmlResponse(response: Response) {
@@ -108,6 +154,12 @@ function responseWithSecurityHeaders(response: Response) {
   return mutableResponse;
 }
 
+function appendSessionCookies(target: Headers, source?: Headers) {
+  for (const cookie of source?.getSetCookie() ?? []) {
+    target.append("set-cookie", cookie);
+  }
+}
+
 function prepareApiObservability(
   request: Request,
   pathname: string,
@@ -117,11 +169,6 @@ function prepareApiObservability(
   if (!isApiRequest(pathname)) return null;
 
   setApiRequestObservabilityContext(request, { requestId, startMs });
-  recordApiRequestStart({
-    method: request.method,
-    pathname,
-    requestId,
-  });
   return { requestId };
 }
 
@@ -140,94 +187,189 @@ function oauthAuthorizeFormActionSources(url: URL) {
 }
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
-  loadEnv();
-
-  const csrfResponse = crossSiteFormResponse(event);
-  if (csrfResponse) return responseWithSecurityHeaders(csrfResponse);
-
-  const locale = negotiateLocale(
-    event.cookies.get(LOCALE_COOKIE),
-    event.request.headers.get("accept-language"),
-  );
+  const publicSsrLocale = event.request.headers.get(PUBLIC_SSR_LOCALE_HEADER);
+  const publicSsr =
+    event.request.headers.get(PUBLIC_SSR_HEADER) === "1" &&
+    event.request.headers.get(PUBLIC_SSR_MODE_HEADER) === "page" &&
+    (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn");
+  const locale =
+    publicSsr && (publicSsrLocale === "en-us" || publicSsrLocale === "zh-cn")
+      ? publicSsrLocale
+      : negotiateLocale(
+          event.cookies.get(LOCALE_COOKIE),
+          event.request.headers.get("accept-language"),
+        );
   event.locals.locale = locale;
   const requestId =
-    event.request.headers.get("x-request-id") ?? crypto.randomUUID();
+    getCloudflareRequestContext()?.requestId ??
+    getTrustedRequestId(event.request) ??
+    crypto.randomUUID();
+  identifyObservedRequest(requestId);
   event.locals.requestId = requestId;
-  const startMs = Date.now();
-  const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
+  setCloudflareRequestContext({
+    method: event.request.method,
+    requestId,
+    route: observedRoute(event.url.pathname, event.route.id),
+  });
+  const startMs = monotonicNowMs();
+  const isMetricsRequest = event.url.pathname === "/metrics";
+  const hasAuthSignal =
+    !isMetricsRequest && hasRequestAuthSignal(event.request.headers);
+  event.locals.publicSsr = publicSsr && !hasAuthSignal;
   const apiObservability = prepareApiObservability(
     event.request,
     event.url.pathname,
     requestId,
     startMs,
   );
-  const nonce = createScriptNonce();
+  let appStartMs: number | undefined;
+  let appIoObservedDurationMs = 0;
+  let authIoObservedDurationMs = 0;
+  let pageAuthMode: PageAuthMode = "anonymous";
+  let pageObservationRecorded = false;
 
-  const authStartMs = Date.now();
-  const session = hasAuthSignal
-    ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
-        getSessionFromHeaders(event.request.headers),
-      )
-    : null;
-  const authDurationMs = Date.now() - authStartMs;
-  event.locals.authUser = session?.user ?? null;
-  if (
-    shouldRedirectIncompleteProfileToWelcome({
-      pathname: event.url.pathname,
-      url: event.url,
-      hasUser: Boolean(session?.user.id),
-      hasCompleteProfile: Boolean(session?.user.name && session.user.username),
-    })
-  ) {
-    const returnTo = `${event.url.pathname}${event.url.search}`;
-    throw redirect(303, `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`);
-  }
-
-  const appStartMs = Date.now();
-  const response = await resolve(event, {
-    transformPageChunk: ({ html }) =>
-      addScriptNonce(
-        html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
-        nonce,
-      ),
+  const pageTimings = () => ({
+    appIoObservedDurationMs:
+      appStartMs === undefined
+        ? appIoObservedDurationMs
+        : elapsedMs(appStartMs),
+    authIoObservedDurationMs,
+    totalIoObservedDurationMs: elapsedMs(startMs),
   });
-  const appDurationMs = Date.now() - appStartMs;
-  const totalDurationMs = Date.now() - startMs;
-  const shouldSetCsp = isHtmlResponse(response);
-  if (!isApiRequest(event.url.pathname) && shouldSetCsp) {
+  const pageAttribution = () => ({
+    authSignalPresence: classifyPageAuthSignalPresence(hasAuthSignal),
+    catalogDetailTab: resolvePageCatalogDetailTab(
+      event.route.id,
+      event.url,
+      event.params,
+    ),
+    ssrClass: classifyPageSsrClass(event.locals.publicSsr),
+  });
+  const recordPageFinish = (status: number, responseBytes?: number) => {
+    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
+    pageObservationRecorded = true;
     recordPageRequestFinish({
-      authMode: session?.user.id ? "authenticated" : "anonymous",
+      attribution: pageAttribution(),
+      authMode: pageAuthMode,
       locale,
       method: event.request.method,
       requestId,
-      responseBytes: contentLength(response),
+      responseBytes,
       routeId: event.route.id,
-      status: response.status,
-      timings: {
-        appDurationMs,
-        authDurationMs,
-        totalDurationMs,
-      },
+      status,
+      timings: pageTimings(),
     });
-  }
+  };
+  const recordPageError = (error: unknown) => {
+    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
+    pageObservationRecorded = true;
+    recordPageRequestError({
+      attribution: pageAttribution(),
+      authMode: pageAuthMode,
+      errorName: getSafeErrorName(error),
+      locale,
+      method: event.request.method,
+      requestId,
+      routeId: event.route.id,
+      timings: pageTimings(),
+    });
+  };
 
-  const mutableResponse = responseWithSecurityHeaders(response);
-  if (apiObservability) {
-    mutableResponse.headers.set("x-request-id", apiObservability.requestId);
-  } else if (shouldSetCsp) {
-    mutableResponse.headers.set("x-request-id", requestId);
-  }
-  if (shouldSetCsp) {
+  try {
+    loadEnv();
+    const nonce = publicSsr
+      ? PUBLIC_SSR_NONCE_PLACEHOLDER
+      : createScriptNonce();
+    const csrfResponse = crossSiteFormResponse(event);
+    if (csrfResponse) {
+      const response = responseWithSecurityHeaders(csrfResponse);
+      if (apiObservability) {
+        recordObservedApiResponse(event.request, response.status);
+      } else {
+        recordPageFinish(response.status, contentLength(response));
+      }
+      response.headers.set("x-request-id", requestId);
+      return response;
+    }
+
+    const authStartMs = monotonicNowMs();
+    const sessionResult = hasAuthSignal
+      ? await runCloudflareTraceSpan(
+          "app.auth.session",
+          { "app.auth.signal_present": true },
+          () =>
+            import("@/lib/auth/core").then(
+              ({ getSessionFromHeadersWithResponseHeaders }) =>
+                getSessionFromHeadersWithResponseHeaders(event.request.headers),
+            ),
+        )
+      : null;
+    const session = sessionResult?.session ?? null;
+    authIoObservedDurationMs = elapsedMs(authStartMs);
+    event.locals.authUser = session?.user ?? null;
+    if (session?.user?.id) identifyObservedUser(session.user.id, "session");
+    pageAuthMode = session?.user.id ? "authenticated" : "anonymous";
+    if (
+      shouldRedirectIncompleteProfileToWelcome({
+        pathname: event.url.pathname,
+        url: event.url,
+        hasUser: Boolean(session?.user.id),
+        hasCompleteProfile: Boolean(
+          session?.user.name && session.user.username,
+        ),
+      })
+    ) {
+      const returnTo = `${event.url.pathname}${event.url.search}`;
+      throw redirect(
+        303,
+        `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
+      );
+    }
+
+    appStartMs = monotonicNowMs();
+    const response = await runCloudflareTraceSpan(
+      "app.sveltekit.resolve",
+      {
+        "http.request.method": event.request.method,
+        "http.route": observedRoute(event.url.pathname, event.route.id),
+      },
+      () =>
+        resolve(event, {
+          transformPageChunk: ({ html }) =>
+            addScriptNonce(
+              html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
+              nonce,
+            ),
+        }),
+    );
+    appIoObservedDurationMs = elapsedMs(appStartMs);
+    appStartMs = undefined;
+    const shouldSetCsp = isHtmlResponse(response);
+
+    const mutableResponse = responseWithSecurityHeaders(response);
+    appendSessionCookies(mutableResponse.headers, sessionResult?.headers);
+    if (apiObservability) {
+      recordObservedApiResponse(event.request, mutableResponse.status);
+      mutableResponse.headers.set("x-request-id", apiObservability.requestId);
+    } else {
+      mutableResponse.headers.set("x-request-id", requestId);
+    }
+    if (!shouldSetCsp) {
+      recordPageFinish(mutableResponse.status, contentLength(mutableResponse));
+      return mutableResponse;
+    }
+
     mutableResponse.headers.set("Content-Language", locale);
-    appendPageServerTiming(mutableResponse.headers, {
-      appDurationMs,
-      authDurationMs,
-      totalDurationMs,
-    });
     if (!mutableResponse.headers.has("Cache-Control")) {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
     setContentSignal(mutableResponse.headers);
+    if (event.url.pathname === "/account/sign-in") {
+      mutableResponse.headers.set(
+        "X-Robots-Tag",
+        "noindex, nofollow, noarchive",
+      );
+    }
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
@@ -235,50 +377,61 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
+    recordPageFinish(mutableResponse.status, contentLength(mutableResponse));
+    return mutableResponse;
+  } catch (error) {
+    if (apiObservability) {
+      if (isRedirect(error)) {
+        recordObservedApiResponse(event.request, error.status);
+      } else {
+        recordObservedApiError(event.request, error);
+      }
+    } else if (isRedirect(error) || isHttpError(error)) {
+      recordPageFinish(error.status);
+    } else {
+      recordPageError(error);
+    }
+    throw error;
   }
-
-  return mutableResponse;
 };
 
 export const handle: Handle = async (input) =>
   await runWithCloudflareRuntimeEnv(
     (input.event.platform as { env?: unknown } | undefined)?.env,
-    () => handleWithRuntimeEnv(input),
+    () =>
+      runWithObservability(
+        () =>
+          getCloudflareRequestContext() ||
+          getTrustedRequestId(input.event.request)
+            ? handleWithRuntimeEnv(input)
+            : observeHttpFeature(input.event.request, undefined, () =>
+                handleWithRuntimeEnv(input),
+              ),
+        getCloudflareRuntimeTaskScheduler(),
+      ),
+    (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
+      ?.ctx ??
+      (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
+        ?.context,
   );
 
-function sanitizeErrorText(value: string) {
-  return value
-    .replace(
-      /\b(postgres(?:ql)?:\/\/)([^:\s/@]+):([^@\s/]+)@/gi,
-      "$1$2:<redacted>@",
-    )
-    .replace(
-      /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|KEY)[A-Z0-9_]*=)[^\s&]+/gi,
-      "$1<redacted>",
-    );
-}
-
-function serializeServerError(error: unknown) {
-  if (!(error instanceof Error)) {
-    return { value: sanitizeErrorText(String(error)) };
+export const handleError: HandleServerError = ({ error, event, status }) => {
+  if (status === 404 && event.route.id === null) {
+    return { message: "Not Found" };
   }
 
-  return {
-    name: error.name,
-    message: sanitizeErrorText(error.message),
-    stack: error.stack ? sanitizeErrorText(error.stack) : undefined,
-  };
-}
-
-export const handleError: HandleServerError = ({ error, event, status }) => {
-  console.error(
-    JSON.stringify({
+  logAppEvent(
+    "error",
+    "sveltekit.server-error",
+    {
       event: "sveltekit.server-error",
       method: event.request.method,
-      path: event.url.pathname,
+      requestId: event.locals.requestId,
+      route: observedRoute(event.url.pathname, event.route.id),
+      source: "sveltekit",
       status,
-      error: serializeServerError(error),
-    }),
+    },
+    error,
   );
 
   return { message: "Internal Error" };

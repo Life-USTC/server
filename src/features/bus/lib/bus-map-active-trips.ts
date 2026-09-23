@@ -2,7 +2,7 @@ import { parseBusTimeMinutes } from "./bus-time";
 import type { BusMapActiveTrip } from "./bus-types";
 
 type BusMapTripRecord = {
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   id: number;
   routeId: number;
   stopTimes: unknown;
@@ -20,7 +20,7 @@ export function buildBusMapActiveTrips({
   trips,
 }: {
   nowMinutes: number;
-  todayType: "weekday" | "weekend";
+  todayType: "weekday" | "saturday" | "sunday";
   trips: BusMapTripRecord[];
 }): BusMapActiveTrip[] {
   const activeTrips: BusMapActiveTrip[] = [];

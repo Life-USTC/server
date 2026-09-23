@@ -1,6 +1,8 @@
+import { scheduleInvalidateUserCalendarExportCache } from "@/features/calendar/server/calendar-export-invalidation";
+import { TODO_LIST_DEFAULT_LIMIT } from "@/features/todos/lib/todo-list-limits";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
-import { paginatedQuery } from "@/lib/query-pagination";
+import { withUserDbContext } from "@/lib/db/prisma";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 
 export const todoSnapshotSelect = {
   id: true,
@@ -77,17 +79,35 @@ export function buildTodoMutationData(input: TodoMutationDataInput) {
   return updates;
 }
 
+function requireTodoUserId(where: Prisma.TodoWhereInput) {
+  if (typeof where.userId !== "string" || !where.userId) {
+    throw new Error("Todo queries require an explicit user ID");
+  }
+  return normalizeTodoUserId(where.userId);
+}
+
+function normalizeTodoUserId(userId: string) {
+  const normalized = userId.trim();
+  if (!normalized) throw new Error("Todo queries require an explicit user ID");
+  return normalized;
+}
+
 export async function createTodo(input: TodoCreateInput) {
-  return prisma.todo.create({
-    select: { id: true },
-    data: {
-      userId: input.userId,
-      title: input.title,
-      content: input.content?.trim() || null,
-      priority: input.priority ?? "medium",
-      ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
-    },
-  });
+  const userId = normalizeTodoUserId(input.userId);
+  const todo = await withUserDbContext(userId, (tx) =>
+    tx.todo.create({
+      select: { id: true },
+      data: {
+        userId,
+        title: input.title,
+        content: input.content?.trim() || null,
+        priority: input.priority ?? "medium",
+        ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
+      },
+    }),
+  );
+  scheduleInvalidateUserCalendarExportCache(userId);
+  return todo;
 }
 
 export async function listTodos(where: Prisma.TodoWhereInput) {
@@ -115,7 +135,24 @@ export async function listTodoSnapshots(input: {
   take?: number;
   where: Prisma.TodoWhereInput;
 }) {
-  return prisma.todo.findMany({
+  const userId = requireTodoUserId(input.where);
+  return withUserDbContext(userId, (tx) =>
+    findTodoSnapshots(tx, {
+      ...input,
+      where: { ...input.where, userId },
+    }),
+  );
+}
+
+function findTodoSnapshots(
+  tx: Prisma.TransactionClient,
+  input: {
+    orderBy?: Prisma.TodoOrderByWithRelationInput[];
+    take?: number;
+    where: Prisma.TodoWhereInput;
+  },
+) {
+  return tx.todo.findMany({
     where: input.where,
     select: todoSnapshotSelect,
     orderBy: input.orderBy ?? todoListOrderBy,
@@ -146,8 +183,26 @@ export async function listDueTodoSamples(input: {
   take?: number;
   userId: string;
 }) {
-  return prisma.todo.findMany({
-    where: buildDueTodoWhere(input),
+  const userId = normalizeTodoUserId(input.userId);
+  return withUserDbContext(userId, (tx) =>
+    listDueTodoSamplesInTransaction(tx, { ...input, userId }),
+  );
+}
+
+function listDueTodoSamplesInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    completed?: boolean;
+    dueAtFrom?: Date;
+    dueAtTo?: Date;
+    includeDueAtTo?: boolean;
+    take?: number;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  return tx.todo.findMany({
+    where: buildDueTodoWhere({ ...input, userId }),
     select: todoDueSampleSelect,
     orderBy: todoDueDateOrderBy,
     ...(input.take !== undefined && { take: input.take }),
@@ -155,7 +210,17 @@ export async function listDueTodoSamples(input: {
 }
 
 export async function countIncompleteTodos(userId: string) {
-  return prisma.todo.count({
+  userId = normalizeTodoUserId(userId);
+  return withUserDbContext(userId, (tx) =>
+    countIncompleteTodosInTransaction(tx, userId),
+  );
+}
+
+function countIncompleteTodosInTransaction(
+  tx: Prisma.TransactionClient,
+  userId: string,
+) {
+  return tx.todo.count({
     where: { userId, completed: false },
   });
 }
@@ -167,9 +232,140 @@ export async function countDueTodos(input: {
   includeDueAtTo?: boolean;
   userId: string;
 }) {
-  return prisma.todo.count({
-    where: buildDueTodoWhere(input),
+  const userId = normalizeTodoUserId(input.userId);
+  return withUserDbContext(userId, (tx) =>
+    countDueTodosInTransaction(tx, { ...input, userId }),
+  );
+}
+
+function countDueTodosInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    completed?: boolean;
+    dueAtFrom?: Date;
+    dueAtTo?: Date;
+    includeDueAtTo?: boolean;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  return tx.todo.count({
+    where: buildDueTodoWhere({ ...input, userId }),
   });
+}
+
+export type OverviewTodoBundleCounts = {
+  completed: number;
+  dueSoon: number;
+  incomplete: number;
+  overdue: number;
+};
+
+async function countTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    now: Date;
+    userId: string;
+  },
+): Promise<OverviewTodoBundleCounts> {
+  const userId = normalizeTodoUserId(input.userId);
+  const rows = await tx.$queryRaw<
+    [
+      {
+        completed: bigint;
+        due_soon: bigint;
+        incomplete: bigint;
+        overdue: bigint;
+      },
+    ]
+  >`
+    SELECT
+      count(*) FILTER (WHERE NOT completed) AS incomplete,
+      count(*) FILTER (WHERE completed) AS completed,
+      count(*) FILTER (
+        WHERE NOT completed AND "dueAt" IS NOT NULL AND "dueAt" < ${input.now}
+      ) AS overdue,
+      count(*) FILTER (
+        WHERE NOT completed
+          AND "dueAt" IS NOT NULL
+          AND "dueAt" >= ${input.now}
+          AND "dueAt" <= ${input.homeworkWindowEnd}
+      ) AS due_soon
+    FROM "Todo"
+    WHERE "userId" = ${userId}
+  `;
+  const row = rows[0];
+  return {
+    incomplete: Number(row.incomplete),
+    completed: Number(row.completed),
+    overdue: Number(row.overdue),
+    dueSoon: Number(row.due_soon),
+  };
+}
+
+export function countOverviewTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    now: Date;
+    userId: string;
+  },
+) {
+  return countTodoBundleInTransaction(tx, input);
+}
+
+async function loadOverviewTodoBundleInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    homeworkWindowEnd: Date;
+    includeSamples: boolean;
+    limit?: number;
+    now: Date;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  const fusedCountsPromise = countTodoBundleInTransaction(tx, {
+    userId,
+    now: input.now,
+    homeworkWindowEnd: input.homeworkWindowEnd,
+  });
+  const dueInput = {
+    userId,
+    completed: false as const,
+    dueAtFrom: input.now,
+    dueAtTo: input.homeworkWindowEnd,
+    includeDueAtTo: true as const,
+  };
+  const [fusedCounts, todos, dueTodos] = await Promise.all([
+    fusedCountsPromise,
+    input.includeSamples
+      ? findTodoSnapshots(tx, {
+          where: buildTodoListWhere(userId, { completed: false }),
+          take: input.limit,
+        })
+      : Promise.resolve([]),
+    input.includeSamples
+      ? listDueTodoSamplesInTransaction(tx, {
+          ...dueInput,
+          take: input.limit,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    todos: {
+      counts: {
+        incomplete: fusedCounts.incomplete,
+        completed: fusedCounts.completed,
+        overdue: fusedCounts.overdue,
+      },
+      todos,
+    },
+    dueTodosCount: fusedCounts.dueSoon,
+    dueTodos,
+  };
 }
 
 function buildDueTodoWhere(input: {
@@ -179,6 +375,7 @@ function buildDueTodoWhere(input: {
   includeDueAtTo?: boolean;
   userId: string;
 }) {
+  const userId = normalizeTodoUserId(input.userId);
   const dueAt: Prisma.DateTimeNullableFilter = { not: null };
   if (input.dueAtFrom) dueAt.gte = input.dueAtFrom;
   if (input.dueAtTo) {
@@ -190,11 +387,87 @@ function buildDueTodoWhere(input: {
   }
 
   const where: Prisma.TodoWhereInput = {
-    userId: input.userId,
+    userId,
     dueAt,
   };
   if (input.completed !== undefined) where.completed = input.completed;
   return where;
+}
+
+async function loadTodoSummaryInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    filters?: TodoListFilters;
+    now: Date;
+    take?: number;
+    userId: string;
+  },
+) {
+  const userId = normalizeTodoUserId(input.userId);
+  const where = buildTodoListWhere(userId, input.filters);
+  const [counts, todos] = await Promise.all([
+    countTodoBundleInTransaction(tx, {
+      userId,
+      now: input.now,
+      homeworkWindowEnd: input.now,
+    }),
+    input.take === 0
+      ? Promise.resolve([])
+      : findTodoSnapshots(tx, {
+          where,
+          take: input.take,
+        }),
+  ]);
+
+  return {
+    counts: {
+      incomplete: counts.incomplete,
+      completed: counts.completed,
+      overdue: counts.overdue,
+    },
+    todos,
+  };
+}
+
+export async function loadOverviewTodoBundle(input: {
+  homeworkWindowEnd: Date;
+  includeSamples?: boolean;
+  limit?: number;
+  now: Date;
+  runDueTodoCount?: <T>(work: () => Promise<T>) => Promise<T>;
+  runDueTodoSample?: <T>(work: () => Promise<T>) => Promise<T>;
+  runTodoSummary?: <T>(work: () => Promise<T>) => Promise<T>;
+  userId: string;
+}) {
+  const userId = normalizeTodoUserId(input.userId);
+  const includeSamples = input.includeSamples ?? true;
+  const identity = <T>(work: () => Promise<T>) => work();
+  const runTodoSummary = input.runTodoSummary ?? identity;
+  const runDueTodoCount = input.runDueTodoCount ?? identity;
+  const runDueTodoSample = input.runDueTodoSample ?? identity;
+
+  return withUserDbContext(userId, async (tx) => {
+    const bundlePromise = loadOverviewTodoBundleInTransaction(tx, {
+      userId,
+      now: input.now,
+      homeworkWindowEnd: input.homeworkWindowEnd,
+      includeSamples,
+      limit: input.limit,
+    });
+    const [todos, dueTodosCount, dueTodos] = await Promise.all([
+      runTodoSummary(() => bundlePromise.then((bundle) => bundle.todos)),
+      runDueTodoCount(() =>
+        bundlePromise.then((bundle) => bundle.dueTodosCount),
+      ),
+      includeSamples
+        ? runDueTodoSample(() =>
+            bundlePromise.then((bundle) => bundle.dueTodos),
+          )
+        : Promise.resolve([]),
+    ]);
+
+    return { todos, dueTodosCount, dueTodos };
+  });
 }
 
 export async function listTodoSummary(input: {
@@ -203,38 +476,18 @@ export async function listTodoSummary(input: {
   take?: number;
   userId: string;
 }) {
-  const now = input.now ?? new Date();
-  const where = buildTodoListWhere(input.userId, input.filters);
-  const [incompleteCount, completedCount, overdueCount, todos] =
-    await Promise.all([
-      countIncompleteTodos(input.userId),
-      prisma.todo.count({
-        where: { userId: input.userId, completed: true },
-      }),
-      prisma.todo.count({
-        where: {
-          userId: input.userId,
-          completed: false,
-          dueAt: { lt: now },
-        },
-      }),
-      listTodoSnapshots({
-        where,
-        take: input.take,
-      }),
-    ]);
-
-  return {
-    counts: {
-      incomplete: incompleteCount,
-      completed: completedCount,
-      overdue: overdueCount,
-    },
-    todos,
-  };
+  const userId = normalizeTodoUserId(input.userId);
+  return withUserDbContext(userId, (tx) =>
+    loadTodoSummaryInTransaction(tx, {
+      userId,
+      now: input.now ?? new Date(),
+      filters: input.filters,
+      take: input.take ?? TODO_LIST_DEFAULT_LIMIT,
+    }),
+  );
 }
 
-export function listTodoPage(input: {
+export async function listTodoPage(input: {
   filters?: TodoListFilters;
   pagination: {
     page: number;
@@ -242,24 +495,33 @@ export function listTodoPage(input: {
   };
   userId: string;
 }) {
-  const where = buildTodoListWhere(input.userId, input.filters);
-  return paginatedQuery(
-    (skip, take) =>
-      prisma.todo.findMany({
-        where,
-        select: todoSnapshotSelect,
-        orderBy: todoListOrderBy,
-        skip,
-        take,
-      }),
-    () => prisma.todo.count({ where }),
-    input.pagination.page,
-    input.pagination.pageSize,
-  );
+  const userId = normalizeTodoUserId(input.userId);
+  const where = buildTodoListWhere(userId, input.filters);
+  const pagination = normalizePagination(input.pagination);
+  return withUserDbContext(userId, async (tx) => {
+    const data = await tx.todo.findMany({
+      where,
+      select: todoSnapshotSelect,
+      orderBy: todoListOrderBy,
+      skip: pagination.skip,
+      take: pagination.pageSize,
+    });
+    const total = await tx.todo.count({ where });
+    return buildPaginatedResponse(
+      data,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  });
 }
 
-export async function requireOwnedTodo(id: string, userId: string) {
-  const todo = await prisma.todo.findUnique({
+async function findOwnedTodo(
+  tx: Prisma.TransactionClient,
+  id: string,
+  userId: string,
+) {
+  const todo = await tx.todo.findUnique({
     where: { id },
     select: { id: true, userId: true },
   });
@@ -269,6 +531,13 @@ export async function requireOwnedTodo(id: string, userId: string) {
     return { ok: false as const, error: "forbidden" as const };
   }
   return { ok: true as const, todo };
+}
+
+export async function requireOwnedTodo(id: string, userId: string) {
+  userId = normalizeTodoUserId(userId);
+  return withUserDbContext(userId, (tx) => {
+    return findOwnedTodo(tx, id, userId);
+  });
 }
 
 export async function updateOwnedTodo(input: {
@@ -276,33 +545,42 @@ export async function updateOwnedTodo(input: {
   id: string;
   userId: string;
 }) {
-  const ownership = await requireOwnedTodo(input.id, input.userId);
-  if (!ownership.ok) return ownership;
+  const userId = normalizeTodoUserId(input.userId);
+  return withUserDbContext(userId, async (tx) => {
+    const ownership = await findOwnedTodo(tx, input.id, userId);
+    if (!ownership.ok) return ownership;
 
-  const updates = buildTodoMutationData(input.data);
-  if (Object.keys(updates).length === 0) {
-    return { ok: false as const, error: "no_changes" as const };
-  }
+    const updates = buildTodoMutationData(input.data);
+    if (Object.keys(updates).length === 0) {
+      return { ok: false as const, error: "no_changes" as const };
+    }
 
-  const todo = await prisma.todo.update({
-    where: { id: input.id },
-    data: updates,
-    select: todoSnapshotSelect,
+    const todo = await tx.todo.update({
+      where: { id: input.id },
+      data: updates,
+      select: todoSnapshotSelect,
+    });
+    scheduleInvalidateUserCalendarExportCache(userId);
+    return { ok: true as const, todo };
   });
-  return { ok: true as const, todo };
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {
-  const deleted = await prisma.todo.deleteMany({ where: { id, userId } });
-  if (deleted.count > 0) return { ok: true as const };
+  userId = normalizeTodoUserId(userId);
+  const result = await withUserDbContext(userId, async (tx) => {
+    const deleted = await tx.todo.deleteMany({ where: { id, userId } });
+    if (deleted.count > 0) return { ok: true as const };
 
-  const todo = await prisma.todo.findUnique({
-    where: { id },
-    select: { id: true, userId: true },
+    const todo = await tx.todo.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!todo) return { ok: false as const, error: "not_found" as const };
+    if (todo.userId !== userId) {
+      return { ok: false as const, error: "forbidden" as const };
+    }
+    return { ok: false as const, error: "not_found" as const };
   });
-  if (!todo) return { ok: false as const, error: "not_found" as const };
-  if (todo.userId !== userId) {
-    return { ok: false as const, error: "forbidden" as const };
-  }
-  return { ok: false as const, error: "not_found" as const };
+  if (result.ok) scheduleInvalidateUserCalendarExportCache(userId);
+  return result;
 }

@@ -1,4 +1,4 @@
-import { error } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import {
   buildSectionStructuredData,
   serializeStructuredData,
@@ -7,14 +7,15 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
+import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import { getViewerContext } from "@/lib/auth/viewer-context";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
 } from "@/lib/social-metadata";
 import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
-import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
-import { getSectionHomeworkData } from "./section-detail-homework-data";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
 
@@ -23,77 +24,96 @@ export {
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
 
-export type SectionDetailRouteSection =
-  | "overview"
-  | "introduction"
-  | "calendar"
-  | "exams"
-  | "homework"
-  | "teachers"
-  | "comments";
-
-const sectionDetailRouteSections = new Set([
-  "introduction",
-  "calendar",
-  "exams",
-  "homework",
-  "teachers",
-  "comments",
-]);
-
-function resolveSectionDetailRouteSection(
-  section: string | undefined,
-): SectionDetailRouteSection | null {
-  if (!section) return "overview";
-  return sectionDetailRouteSections.has(section)
-    ? (section as SectionDetailRouteSection)
-    : null;
-}
-
-export async function loadSectionDetailPage({
-  locals,
-  params,
-  url,
-}: {
+type SectionDetailPageInput = {
   locals: App.Locals;
   params: { jwId: string; section?: string };
   request: Request;
   url: URL;
-}) {
-  const detailSection = resolveSectionDetailRouteSection(params.section);
-  if (!detailSection) error(404, "Section not found");
+};
+
+async function loadSectionDetailPageData({
+  locals,
+  params,
+  request,
+  url,
+}: SectionDetailPageInput) {
+  const tabQueryRedirect = resolveSectionDetailTabQueryRedirect(request);
+  if (tabQueryRedirect) {
+    redirect(308, tabQueryRedirect);
+  }
+
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const userId = locals.authUser?.id ?? null;
-  const section = await getSectionPage(jwId, locals.locale);
-  if (!section) error(404, "Section not found");
+  // Stream layout always renders calendar/exams/teachers in-page, so expand
+  // those payloads on first load (including PublicSsr anonymous).
+  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
+  const subscriptionStatePromise = userId
+    ? runCloudflareTraceSpan(
+        "catalog.detail.section.subscription",
+        {
+          "catalog.detail.kind": "section",
+          "user.authenticated": true,
+        },
+        async () =>
+          (
+            await import("@/features/subscriptions/server/subscriptions")
+          ).getUserSectionSubscriptionStatusForSection(userId, jwId),
+      )
+    : Promise.resolve(null);
+  const [pageData, viewer, subscriptionState] = await Promise.all([
+    runCloudflareTraceSpan(
+      "catalog.detail.core",
+      { "catalog.detail.kind": "section" },
+      () => getSectionPage(jwId, locals.locale),
+    ),
+    runCloudflareTraceSpan(
+      "catalog.detail.viewer",
+      {
+        "catalog.detail.kind": "section",
+        "user.authenticated": Boolean(userId),
+      },
+      () => getViewerContext({ includeAdmin: true, userId }),
+    ),
+    subscriptionStatePromise,
+  ]);
+  if (!pageData) error(404, "Section not found");
+  const { description, section } = pageData;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const [subscriptionState, descriptionAndComments, homeworkData] =
-    await Promise.all([
-      userId
-        ? (
-            await import("@/features/subscriptions/server/subscriptions")
-          ).getUserSectionSubscriptionState(userId)
-        : null,
-      getSectionDetailDescriptionAndComments(section, userId, {
-        includeComments: detailSection === "comments",
-      }),
-      detailSection === "homework"
-        ? getSectionHomeworkData(section.id, userId)
-        : {
-            auditLogs: [],
-            homeworks: [],
-            viewer: {
-              isAdmin: false,
-              isAuthenticated: Boolean(userId),
-              isSuspended: false,
-              userId,
-            },
-          },
-    ]);
+  const homeworkData = shouldLoadHomework
+    ? await runCloudflareTraceSpan(
+        "catalog.detail.section.homework",
+        {
+          "catalog.detail.kind": "section",
+          "user.authenticated": Boolean(userId),
+        },
+        async () =>
+          (
+            await import("./section-detail-homework-data")
+          ).getSectionHomeworkData(section.id, userId, focusedHomeworkId),
+      )
+    : {
+        auditLogs: [],
+        homeworks: [],
+        viewer: {
+          isAdmin: false,
+          isAuthenticated: Boolean(userId),
+          isSuspended: false,
+          userId,
+        },
+      };
+  const descriptionData = { description, history: [], viewer };
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/sections/${jwId}`,
+    card: {
+      footer: `Life@USTC · ${copy.common.sections}`,
+      label: locals.locale === "zh-cn" ? "SECTION · 教学班" : "SECTION",
+      subtitle: section.code,
+      title: courseName,
+      variant: "section",
+    },
+    canonicalPath: `/catalog/sections/${jwId}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.sectionDescription,
       { code: section.code, name: courseName },
@@ -115,11 +135,11 @@ export async function loadSectionDetailPage({
     locale: locals.locale,
     todayCalendarKey: requireCampusDateKeyForValue(new Date()),
     copy,
-    descriptionData: descriptionAndComments.descriptionData,
-    commentsData: descriptionAndComments.commentsData,
-    detailSection,
+    descriptionData,
+    commentsData: null,
+    detailSection: "overview" as const,
     homeworkData,
-    focusedHomeworkId: url.searchParams.get("homeworkId"),
+    focusedHomeworkId,
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:
@@ -132,7 +152,7 @@ export async function loadSectionDetailPage({
           jwId: section.course.jwId,
           name: courseName,
         },
-        description: descriptionAndComments.descriptionData.description.content,
+        description: descriptionData.description.content,
         instructors: section.teachers.map((teacher) => ({
           id: teacher.id,
           name: primaryName(teacher),
@@ -146,10 +166,15 @@ export async function loadSectionDetailPage({
     ),
     viewer: {
       signedIn: Boolean(userId),
-      isSubscribed: Boolean(
-        subscriptionState?.subscribedSections.includes(section.id),
-      ),
-      subscriptionIcsUrl: subscriptionState?.subscriptionIcsUrl ?? null,
+      isSubscribed: subscriptionState?.isSubscribed ?? false,
     },
   };
+}
+
+export function loadSectionDetailPage(input: SectionDetailPageInput) {
+  return runCloudflareTraceSpan(
+    "catalog.detail.data_load",
+    { "catalog.detail.kind": "section" },
+    () => loadSectionDetailPageData(input),
+  );
 }

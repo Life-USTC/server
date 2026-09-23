@@ -17,6 +17,7 @@ export type CatalogDetailDescriptionCopy = {
   markdownGuide: string;
   previewEmpty: string;
   previousLabel: string;
+  retry: string;
   save: string;
   saving: string;
   suspendedExpires: string;

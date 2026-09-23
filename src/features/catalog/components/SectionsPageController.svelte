@@ -2,11 +2,13 @@
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
-  catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   SectionListCommonLabels,
@@ -56,6 +58,7 @@ let isSectionFilterOpen = false;
 let sectionSearch = data.filters.search ?? "";
 
 $: totalPages = data.pagination.totalPages;
+$: locale = $page.data.locale ?? "zh-cn";
 $: sectionSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: sectionLabels = data.labels.sections;
@@ -63,10 +66,13 @@ $: selectedSemester =
   data.filterOptions.semesters.find(
     (semester) => data.filters.semesterId === String(semester.id),
   ) ?? null;
-$: semesterOptions = namedOptions(
-  data.filterOptions.semesters,
-  commonLabels.allSemesters,
-);
+$: semesterOptions = [
+  { value: "", label: commonLabels.allSemesters },
+  ...data.filterOptions.semesters.map((semester) => ({
+    value: String(semester.id),
+    label: formatSemesterName(locale, semester.nameCn),
+  })),
+];
 $: campusOptions = namedOptions(
   data.filterOptions.campuses,
   `${sectionLabels.filters.any} · ${sectionLabels.campus}`,
@@ -102,7 +108,7 @@ $: sectionActiveFilters = [
   data.filters.semesterId
     ? {
         href: sectionFilterHref({ semesterId: "" }),
-        label: `${sectionLabels.semester}: ${selectedSemester?.nameCn ?? data.filters.semesterId}`,
+        label: `${sectionLabels.semester}: ${selectedSemester ? formatSemesterName(locale, selectedSemester.nameCn) : data.filters.semesterId}`,
       }
     : null,
   textFilter("teacher", sectionLabels.teachers),
@@ -133,19 +139,20 @@ $: sectionActiveFilters = [
 );
 $: sectionHiddenFilters = Object.entries(
   sectionFilterParams({ ...data.filters, search: null }),
-).map(([name, value]) => ({ name, value: value ?? "" }));
+)
+  .filter(
+    (entry): entry is [string, string] =>
+      entry[0] !== "search" && Boolean(entry[1]),
+  )
+  .map(([name, value]) => ({ name, value }));
 
 function pageHref(targetPage: number) {
-  return catalogHref(
-    "/sections",
-    sectionFilterParams(data.filters),
-    targetPage,
-  );
+  return catalogListPageHref($page.url, targetPage);
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
   return catalogHref(
-    "/sections",
+    "/catalog/sections",
     sectionFilterParams({ ...data.filters, ...overrides }),
   );
 }
@@ -237,76 +244,77 @@ function sectionEmptyDescription() {
   if (selectedSemester) {
     return sectionLabels.inSemester.replace(
       "{semester}",
-      selectedSemester.nameCn,
+      formatSemesterName(locale, selectedSemester.nameCn),
     );
   }
   return sectionLabels.subtitle;
 }
 </script>
 
-<svelte:head><title>{commonLabels.sections} - Life@USTC</title></svelte:head>
-
-<section class="grid gap-5">
-  <CatalogPageHeader
-    description={sectionLabels.subtitle}
-    title={sectionLabels.title}
+{#snippet paginationFooter()}
+  <CatalogPagination
+    ariaLabel={commonLabels.pagination}
+    class="py-0"
+    nextLabel={commonLabels.next}
+    nextPageLabel={commonLabels.nextPage}
+    page={data.pagination.page}
+    {pageHref}
+    previousLabel={commonLabels.previous}
+    previousPageLabel={commonLabels.previousPage}
+    {totalPages}
   />
+{/snippet}
 
-  <div class="grid min-w-0 gap-4">
-    <CatalogMobileFilters
-      activeFilters={sectionActiveFilters}
-      clearHref="/sections"
-      clearLabel={commonLabels.clear}
-      filterDescription={sectionLabels.filterDescription}
-      filterTitle={sectionLabels.summary.filters}
-      hiddenFilters={sectionHiddenFilters}
-      bind:open={isSectionFilterOpen}
-      searchId="mobile-section-search"
-      searchLabel={commonLabels.search}
-      searchPlaceholder={sectionLabels.searchPlaceholder}
-      bind:searchValue={sectionSearch}
-    >
-      <SectionsFilters
-        {campusOptions}
-        {categoryOptions}
-        {classTypeOptions}
-        clearHref="/sections"
-        {commonLabels}
-        {departmentOptions}
-        {educationLevelOptions}
-        filters={data.filters}
-        idPrefix="mobile-section"
-        onSubmit={() => {
-          isSectionFilterOpen = false;
-        }}
-        {sectionLabels}
-        {semesterOptions}
-      />
-    </CatalogMobileFilters>
+<div class="page-frame">
+  <section class="grid gap-5">
+    <PageHeader
+      description={sectionLabels.subtitle}
+      title={sectionLabels.title}
+    />
 
-    <div class="grid min-w-0 gap-4">
+    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
+      {#snippet header()}
+        <CatalogMobileFilters
+          activeFilters={sectionActiveFilters}
+          clearHref="/catalog/sections"
+          clearLabel={commonLabels.clear}
+          filterDescription={sectionLabels.filterDescription}
+          filterTitle={sectionLabels.summary.filters}
+          hiddenFilters={sectionHiddenFilters}
+          bind:open={isSectionFilterOpen}
+          searchId="mobile-section-search"
+          searchLabel={commonLabels.search}
+          searchPlaceholder={sectionLabels.searchPlaceholder}
+          bind:searchValue={sectionSearch}
+        >
+          <SectionsFilters
+            {campusOptions}
+            {categoryOptions}
+            {classTypeOptions}
+            clearHref="/catalog/sections"
+            {commonLabels}
+            {departmentOptions}
+            {educationLevelOptions}
+            filters={data.filters}
+            idPrefix="mobile-section"
+            onSubmit={() => {
+              isSectionFilterOpen = false;
+            }}
+            {sectionLabels}
+            {semesterOptions}
+          />
+        </CatalogMobileFilters>
+      {/snippet}
+
       <SectionsResults
         data={sectionResultsData}
         page={data.pagination.page}
         {primaryName}
         {sectionEmptyDescription}
         {sectionLabels}
-        {secondaryName}
         {selectedSemester}
-        {teacherNames}
         {totalPages}
       />
-
-      <CatalogPagination
-        ariaLabel={commonLabels.pagination}
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={data.pagination.page}
-        {pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        {totalPages}
-      />
-    </div>
-  </div>
-</section>
+    </Panel>
+  </section>
+</div>

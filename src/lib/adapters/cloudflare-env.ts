@@ -5,25 +5,41 @@ import {
   cloudflareRuntimeRequiredEnvSchema,
   commonEnvSchema,
   type Env,
+  productionRuntimeRequiredEnvSchema,
   runtimeRequiredEnvSchema,
 } from "@/lib/env/env-schema";
 import {
+  getCloudflareAuthHyperdriveConnectionString,
   getCloudflareHyperdriveConnectionString,
+  getCloudflareRuntimeContext,
   getCloudflareRuntimeEnvInput,
   hasCloudflareRuntimeEnv,
 } from "./cloudflare-runtime";
 
 export type { Env };
 
-function getDefaultEnvInput(): NodeJS.ProcessEnv {
+type EnvInput = Partial<NodeJS.ProcessEnv>;
+const cloudflareEnvCacheKey = Symbol("life-ustc.cloudflare.env");
+
+function getDefaultEnvInput(): EnvInput {
   const processEnv =
     typeof process === "undefined" || !process.env ? {} : process.env;
   return { ...processEnv, ...getCloudflareRuntimeEnvInput() };
 }
 
 export function loadEnv(
-  options: { input?: NodeJS.ProcessEnv; appPhase?: string } = {},
+  options: { input?: EnvInput; appPhase?: string } = {},
 ): Env {
+  const runtimeContext = getCloudflareRuntimeContext();
+  const canUseRequestCache =
+    runtimeContext &&
+    options.input === undefined &&
+    options.appPhase === undefined;
+  const cached = canUseRequestCache
+    ? (runtimeContext.cache.get(cloudflareEnvCacheKey) as Env | undefined)
+    : undefined;
+  if (cached) return cached;
+
   const input = options.input ?? getDefaultEnvInput();
   const appPhase = options.appPhase ?? trimOrUndefined(input.APP_PHASE);
 
@@ -41,15 +57,21 @@ export function loadEnv(
     appPhase === APP_PRODUCTION_BUILD_PHASE ||
     env.NODE_ENV === "development"
   ) {
+    if (canUseRequestCache)
+      runtimeContext.cache.set(cloudflareEnvCacheKey, env);
     return env;
   }
 
   const runtimeResult = hasCloudflareRuntimeEnv()
     ? cloudflareRuntimeRequiredEnvSchema.safeParse({
         AUTH_SECRET: env.AUTH_SECRET,
+        AUTH_HYPERDRIVE_CONNECTION_STRING:
+          getCloudflareAuthHyperdriveConnectionString(),
         HYPERDRIVE_CONNECTION_STRING: getCloudflareHyperdriveConnectionString(),
       })
-    : runtimeRequiredEnvSchema.safeParse(env);
+    : env.NODE_ENV === "production"
+      ? productionRuntimeRequiredEnvSchema.safeParse(env)
+      : runtimeRequiredEnvSchema.safeParse(env);
   if (!runtimeResult.success) {
     console.error(
       `❌ Invalid environment variables:\n${formatIssues(runtimeResult.error.issues)}`,
@@ -57,25 +79,26 @@ export function loadEnv(
     throw new Error("Invalid environment variables");
   }
 
+  if (canUseRequestCache) runtimeContext.cache.set(cloudflareEnvCacheKey, env);
   return env;
 }
 
 export function getOptionalTrimmedEnv(
   name: string,
-  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
+  input: EnvInput = getDefaultEnvInput(),
 ) {
   return trimOrUndefined(input[name]);
 }
 
 export function isAppProductionBuildPhase(
-  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
+  input: EnvInput = getDefaultEnvInput(),
 ) {
   return (
     getOptionalTrimmedEnv("APP_PHASE", input) === APP_PRODUCTION_BUILD_PHASE
   );
 }
 
-export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
+export function getAuthEnv(input: EnvInput = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({
       AUTH_GITHUB_ID: true,
@@ -95,7 +118,7 @@ export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
   );
 }
 
-export function getUploadEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
+export function getUploadEnv(input: EnvInput = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({ UPLOAD_TOTAL_QUOTA_MB: true }),
     input,

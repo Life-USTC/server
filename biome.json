@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -14,6 +14,7 @@
       "!build",
       "!docs/graphql/schema.graphql",
       "!public/openapi.generated.json",
+      "!worker-configuration.d.ts",
       "!src/components/ui",
       "!src/lib/components/ui",
       "!src/lib/hooks/is-mobile.svelte.ts",
@@ -40,7 +41,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "nursery": {
         "useSortedClasses": "error"
       },
@@ -48,9 +49,6 @@
         "noUnknownAtRules": "off",
         "noExplicitAny": "error"
       }
-    },
-    "domains": {
-      "react": "recommended"
     }
   },
   "assist": {

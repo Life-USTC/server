@@ -19,12 +19,13 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<section class="grid gap-3">
+<section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   {#if comments.length > 0}
     <AdminModerationCommentsMobile
       {commentAuthorLabel}
       {comments}
       {formatDate}
+      manageLabel={copy.manageComment}
       {onManage}
       {statusLabel}
       {targetLabel}
@@ -40,7 +41,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel}
     />
   {:else}
-    <Empty.Root class="min-h-24">
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
         <Empty.Description>{copy.noComments}</Empty.Description>
       </Empty.Header>

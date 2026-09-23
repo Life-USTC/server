@@ -1,3 +1,4 @@
+import { getCloudflareRequestContext } from "@/lib/adapters/cloudflare-runtime";
 import { emitLog } from "@/lib/log/app-log-emitter";
 import {
   type AppLogContext,
@@ -18,10 +19,11 @@ export function logAppEvent(
   if (!shouldLog(level)) return;
 
   const payload = {
+    ...context,
     ...baseLogPayload(),
     runtime: typeof window === "undefined" ? "server" : "client",
+    ...getCloudflareRequestContext(),
     message,
-    ...context,
   };
 
   emitLog("[app]", level, payload, error);
@@ -31,21 +33,22 @@ export function logApiRequest(
   method: string,
   path: string,
   status: number,
-  durationMs: number,
+  ioObservedDurationMs: number | undefined,
   context: AppLogContext = {},
+  level: AppLogLevel = "info",
 ) {
-  if (!shouldLog("info")) return;
+  if (!shouldLog(level)) return;
 
   const payload = {
+    ...context,
     ...baseLogPayload(),
     method,
     path,
     status,
-    durationMs,
-    ...context,
+    ...(ioObservedDurationMs === undefined ? {} : { ioObservedDurationMs }),
   };
 
-  emitLog("[api]", "info", payload);
+  emitLog("[api]", level, payload);
 }
 
 export function logRouteFailure(

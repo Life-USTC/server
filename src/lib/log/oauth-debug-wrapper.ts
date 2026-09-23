@@ -1,3 +1,5 @@
+import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_TOKEN_ENDPOINT_PATH } from "@/lib/oauth/constants";
 import {
@@ -7,9 +9,9 @@ import {
   oauthDebugCorrelationId,
 } from "./oauth-debug-mode";
 import {
-  sanitizeOAuthRedirectLocation,
   summarizeOAuthAuthorizeUrl,
   summarizeOAuthForwardingHeaders,
+  summarizeOAuthRedirectLocation,
 } from "./oauth-debug-sanitize";
 import { tokenErrorBody, tokenRequestFingerprint } from "./oauth-debug-token";
 
@@ -22,18 +24,29 @@ function shouldLogBetterAuthPath(
   return pathname.includes("/oauth2");
 }
 
+function stableBetterAuthResponseEvent(path: string, status: number) {
+  if (status < 400) return "better-auth.response";
+  if (path.includes("/callback")) return "oauth.callback.error";
+  if (path === OAUTH_TOKEN_ENDPOINT_PATH || path.endsWith("/token")) {
+    return "oauth.token.error_response";
+  }
+  return "better-auth.response";
+}
+
 function recordBetterAuthResponseAnalytics(input: {
   method: string;
   path: string;
   start: number;
   status: number;
+  statusReason?: string;
 }) {
   writeOAuthEventAnalytics({
-    durationMs: Date.now() - input.start,
-    event: "better-auth.response",
+    event: stableBetterAuthResponseEvent(input.path, input.status),
+    ioObservedDurationMs: elapsedMs(input.start),
     method: input.method,
     path: input.path,
     status: input.status,
+    statusReason: input.statusReason,
   });
 }
 
@@ -44,8 +57,8 @@ function recordBetterAuthErrorAnalytics(input: {
   start: number;
 }) {
   writeOAuthEventAnalytics({
-    durationMs: Date.now() - input.start,
     event: "better-auth.error",
+    ioObservedDurationMs: elapsedMs(input.start),
     method: input.method,
     path: input.path,
     status: 500,
@@ -62,7 +75,7 @@ export async function withBetterAuthOAuthDebug(
   run: (req: Request) => Promise<Response>,
 ): Promise<Response> {
   const debugMode = getOAuthDebugMode();
-  const start = Date.now();
+  const start = monotonicNowMs();
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -118,9 +131,9 @@ export async function withBetterAuthOAuthDebug(
   try {
     const res = await run(request);
     const location = res.headers.get("location");
-    const redirectTo =
+    const redirectSummary =
       res.status >= 300 && res.status < 400
-        ? sanitizeOAuthRedirectLocation(location ?? undefined, request.url)
+        ? summarizeOAuthRedirectLocation(location ?? undefined, request.url)
         : null;
     const errorBody =
       res.status >= 400 && path === OAUTH_TOKEN_ENDPOINT_PATH
@@ -132,9 +145,9 @@ export async function withBetterAuthOAuthDebug(
       method,
       path,
       status: res.status,
-      ms: Date.now() - start,
-      ...(redirectTo ? { redirectTo } : {}),
-      ...(location && !redirectTo ? { locationPresent: true } : {}),
+      ioObservedDurationMs: elapsedMs(start),
+      ...(redirectSummary ? { redirectSummary } : {}),
+      ...(location && !redirectSummary ? { locationPresent: true } : {}),
       ...(errorBody ? { errorBody } : {}),
     });
     recordBetterAuthResponseAnalytics({
@@ -142,6 +155,8 @@ export async function withBetterAuthOAuthDebug(
       path,
       start,
       status: res.status,
+      statusReason:
+        typeof errorBody?.error === "string" ? errorBody.error : undefined,
     });
     return res;
   } catch (err) {
@@ -149,8 +164,8 @@ export async function withBetterAuthOAuthDebug(
       correlationId,
       method,
       path,
-      ms: Date.now() - start,
-      error: err instanceof Error ? err.message : String(err),
+      ioObservedDurationMs: elapsedMs(start),
+      errorName: getSafeErrorName(err),
     });
     recordBetterAuthErrorAnalytics({ error: err, method, path, start });
     throw err;

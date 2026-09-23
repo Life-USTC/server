@@ -21,9 +21,11 @@ describe("verifyAccessTokenJwt", () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: "todo:read todo:write",
+        scope: "workspace.todo:read workspace.todo:write",
         aud: "https://life.example/api/auth",
         azp: "client-1",
+        client_id: "client-1",
+        sid: "session-1",
         [OAUTH_GRANT_ID_CLAIM]: "consent-1",
       },
     });
@@ -38,11 +40,17 @@ describe("verifyAccessTokenJwt", () => {
     });
 
     expect(result.sub).toBe("user-1");
-    expect(result.scope).toEqual(new Set(["todo:read", "todo:write"]));
+    expect(result.scope).toEqual(
+      new Set(["workspace.todo:read", "workspace.todo:write"]),
+    );
     expect(result.aud).toBe("https://life.example/api/auth");
     expect(result.clientId).toBe("client-1");
     expect(result.grantId).toBe("consent-1");
-    expect(result.tokenScopes).toEqual(["todo:read", "todo:write"]);
+    expect(result.sessionId).toBe("session-1");
+    expect(result.tokenScopes).toEqual([
+      "workspace.todo:read",
+      "workspace.todo:write",
+    ]);
     expect(createRemoteJWKSetMock).toHaveBeenCalledWith(
       new URL("https://life.example/api/auth/jwks"),
     );
@@ -52,7 +60,48 @@ describe("verifyAccessTokenJwt", () => {
     });
   });
 
-  it("expands legacy rest:read scope into per-feature read scopes", async () => {
+  it("accepts client_id without azp for standards-compatible tokens", async () => {
+    jwtVerifyMock.mockResolvedValue({
+      payload: {
+        sub: "user-1",
+        client_id: "client-1",
+      },
+    });
+    const { verifyAccessTokenJwt } = await import(
+      "@/lib/auth/jwt-verification"
+    );
+
+    await expect(
+      verifyAccessTokenJwt("token", {
+        jwksUrl: "https://life.example/api/auth/jwks",
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/auth",
+      }),
+    ).resolves.toMatchObject({ clientId: "client-1" });
+  });
+
+  it("rejects conflicting azp and client_id claims", async () => {
+    jwtVerifyMock.mockResolvedValue({
+      payload: {
+        sub: "user-1",
+        azp: "client-1",
+        client_id: "client-2",
+      },
+    });
+    const { verifyAccessTokenJwt } = await import(
+      "@/lib/auth/jwt-verification"
+    );
+
+    await expect(
+      verifyAccessTokenJwt("token", {
+        jwksUrl: "https://life.example/api/auth/jwks",
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/auth",
+      }),
+    ).rejects.toThrow("Conflicting OAuth client claims");
+  });
+
+  it("does not expand a legacy coarse read scope", async () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
@@ -69,13 +118,12 @@ describe("verifyAccessTokenJwt", () => {
       audience: "https://life.example/api/auth",
     });
 
-    expect(result.scope.has("todo:read")).toBe(true);
-    expect(result.scope.has("me:read")).toBe(true);
+    expect(result.scope).toEqual(new Set(["rest:read"]));
     expect(result.scope.has("admin:read")).toBe(false);
-    expect(result.scope.has("todo:write")).toBe(false);
+    expect(result.scope.has("workspace.todo:write")).toBe(false);
   });
 
-  it("expands legacy rest:write scope into per-feature write scopes", async () => {
+  it("does not expand a legacy coarse write scope", async () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
@@ -92,15 +140,14 @@ describe("verifyAccessTokenJwt", () => {
       audience: "https://life.example/api/auth",
     });
 
-    expect(result.scope.has("todo:write")).toBe(true);
-    expect(result.scope.has("upload:write")).toBe(true);
+    expect(result.scope).toEqual(new Set(["rest:write"]));
     expect(result.scope.has("admin:write")).toBe(false);
-    expect(result.scope.has("todo:read")).toBe(false);
+    expect(result.scope.has("workspace.todo:read")).toBe(false);
   });
 
   it("throws when the sub claim is missing", async () => {
     jwtVerifyMock.mockResolvedValue({
-      payload: { scope: "todo:read" },
+      payload: { scope: "workspace.todo:read" },
     });
 
     const { verifyAccessTokenJwt } = await import(
@@ -116,11 +163,34 @@ describe("verifyAccessTokenJwt", () => {
     ).rejects.toThrow("Missing sub claim");
   });
 
+  it("rejects a DPoP-bound token on bearer-only resource paths", async () => {
+    jwtVerifyMock.mockResolvedValue({
+      payload: {
+        sub: "user-1",
+        aud: "https://life.example/api/graphql",
+        cnf: { jkt: "dpop-thumbprint" },
+      },
+    });
+    const { verifyAccessTokenJwt } = await import(
+      "@/lib/auth/jwt-verification"
+    );
+
+    await expect(
+      verifyAccessTokenJwt("token", {
+        jwksUrl: "https://life.example/api/auth/jwks",
+        issuer: "https://life.example/api/auth",
+        audience: "https://life.example/api/graphql",
+      }),
+    ).rejects.toThrow(
+      "DPoP-bound access token cannot be used as a bearer token",
+    );
+  });
+
   it("supports array scope, issuer, and audience values", async () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: ["todo:read"],
+        scope: ["workspace.todo:read"],
         aud: ["aud1", "aud2"],
       },
     });
@@ -135,7 +205,7 @@ describe("verifyAccessTokenJwt", () => {
     });
 
     expect(result.sub).toBe("user-1");
-    expect(result.scope).toEqual(new Set(["todo:read"]));
+    expect(result.scope).toEqual(new Set(["workspace.todo:read"]));
     expect(result.aud).toEqual(["aud1", "aud2"]);
     expect(jwtVerifyMock).toHaveBeenCalledWith("token", "mock-jwks", {
       issuer: ["iss1", "iss2"],
@@ -147,7 +217,7 @@ describe("verifyAccessTokenJwt", () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: "todo:read",
+        scope: "workspace.todo:read",
       },
     });
 

@@ -4,34 +4,38 @@
     "anon": "Can browse API documentation and public REST capabilities.",
     "user": "When signed in, can call their own restricted REST capabilities.",
     "admin": "Calls governance capabilities through the corresponding admin endpoints.",
-    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP capabilities only with explicit feature:action scopes such as todo:read and todo:write."
+    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP capabilities only with explicit feature:action scopes such as workspace.todo:read and workspace.todo:write."
   },
   "rules": {
     "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
     "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access requires a REST audience plus matching feature:read/feature:write scopes.",
     "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
+    "crawler-ingestion-rest-only": "Crawler publication ingestion is an explicit REST-only exception: its machine-secret-authenticated write routes are documented in the publications contract and must not be mirrored into Web, GraphQL, or MCP.",
     "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user REST operations use scoped bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
     "generated-client-required": "CLI and Bot business calls must use generated OpenAPI clients and generated request/response types whenever the server OpenAPI covers the endpoint. Allowed exceptions are explicit raw request escape hatches, presigned upload object PUTs, OAuth protocol plumbing, external school/QQ/NapCat APIs, and documented non-OpenAPI endpoints such as OAuth userinfo fallback.",
     "openapi-drift-gate": "After server OpenAPI changes, regenerate public/openapi.generated.json and sync api/openapi.json plus generated Go clients in CLI and Bot before publishing. Cross-repo CI should fail if copied OpenAPI files drift from the server-generated contract.",
     "openapi-document-cache": "GET /api/openapi serves one build-time serialized document per Worker isolate and allows public clients and edge caches to reuse it for five minutes.",
-    "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs with request ID, method, status, auth mode, duration, and normalized route template; when the Cloudflare Analytics Engine binding is present it also writes sanitized request finish/error datapoints with normalized route, method, status class, auth mode, and duration; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs.",
+    "rest-observability": "REST logging must never include bodies, credentials, query strings, exception messages, client-supplied correlation IDs, or resource IDs.",
     "authenticated-mutation-rate-limits": "Authenticated end-user and admin REST mutations use Cloudflare rate-limit bindings keyed by deployment host, user, and canonical feature action. Standard writes allow 60 checks per minute; batch writes allow 10. REST and MCP share the same feature-action keys. The gate runs after authentication and before mutation. Exceeded budgets return 429; missing or failing Cloudflare bindings fail closed with 503. Both responses include Retry-After: 60. Host-native development bypasses the gate explicitly.",
-    "dashboard-rate-limit-fallbacks": "For the dashboard pin HTML form, rate-limit rejection skips the write and redirects with an error marker; JSON/API callers receive 429 or 503 directly. Dashboard link visits are best-effort analytics writes: rejection skips click recording but preserves the target redirect.",
+    "workspace-rate-limit-fallbacks": "For the workspace pin HTML form, rate-limit rejection skips the write and redirects with an error marker; JSON/API callers receive 429 or 503 directly. Catalog link visits are best-effort analytics writes: rejection skips click recording but preserves the target redirect.",
     "rate-limit-accuracy-boundary": "Mutation throttles are abuse controls, not exact accounting: Cloudflare counters are per-location, permissive, and eventually consistent. Contracts do not promise a global exact quota, remaining count, or reset timestamp. OAuth/provider endpoints retain Better Auth's separate limiter, and anonymous/read-only POST utilities are outside the authenticated mutation budget.",
     "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page.",
-    "pagination-query-parameter": "Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit alias remains accepted during migration, and pageSize takes precedence when both are supplied.",
+    "pagination-query-parameter": "Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit alias remains accepted during migration, and pageSize takes precedence when both are supplied. Public catalog list routes accept page between 1 and 100, bounding the largest allowed offset to 9900 rows.",
+    "public-catalog-query-boundaries": "Public catalog REST search strings accept 2-200 characters. Omitted locale deterministically means zh-cn; locale=en-us selects English. Runtime cache keys are derived from canonical locale, response shape, parsed filters, and pagination, so transport field order and ignored raw query parameters cannot create distinct entries.",
     "paginated-list-envelope": "Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages. Resource-specific list metadata is nested under meta instead of introducing alternate collection keys; REST and equivalent MCP list tools share this core envelope.",
-    "created-resource-status": "POST /api/todos, /api/comments, /api/homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200.",
+    "created-resource-status": "POST /api/workspace/todos, /api/community/comments, /api/community/section-homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200.",
     "schema-query-parsing": "Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are validated and converted once by their declared Zod schemas. Route handlers consume those typed results and return validation responses without re-wrapping them; pagination and comma-separated ID lists keep their dedicated normalizers.",
-    "api-docs-responsive-navigation": "At 390x844, the selected API reference begins within the first viewport while the complete route-based navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete sticky sidebar remains visible beside the reference."
+    "api-docs-responsive-navigation": "At 390x844, the selected API reference begins within the first viewport while the complete route-based navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete sticky sidebar remains visible beside the reference.",
+    "room-maps": "GET /api/catalog/rooms/{code}/map (catalog_rooms_map) returns a public room map object; invalid code syntax returns 400.",
+    "subscription-kind": "PATCH /api/workspace/subscriptions/{jwId} updates the current user subscription kind; returns 404 for missing subscriptions. Personal subscription read objects include kind."
   },
   "capabilities": {
     "api-docs-page": {
       "title": "API Docs Page",
       "auth": "anon",
       "web": {
-        "pages": ["/api/docs/tag/sections"]
+        "pages": ["/api/docs/tag/catalog-section"]
       },
       "display": {
         "fields": [
@@ -78,8 +82,41 @@
         "fields": [
           "REST routes for business logic",
           "Each with path, method, request/response types where annotated",
-          "Calendar subscription query and mutation routes: /api/calendar-subscriptions/query and /api/calendar-subscriptions/batch",
-          "Batch mutation routes: /api/todos/batch and /api/dashboard-links/pin/batch"
+          "Calendar subscription query and mutation routes: /api/workspace/subscriptions/query and /api/workspace/subscriptions/batch",
+          "Batch mutation routes: /api/workspace/todos/batch and /api/workspace/link-pins/batch"
+        ]
+      }
+    },
+    "crawler-publication-ingestion": {
+      "title": "Crawler Publication Ingestion",
+      "auth": "internal",
+      "web": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/ingestion/publications/batches",
+            "method": "POST",
+            "notes": [
+              "REST-only crawler exception; requires the X-Publication-Ingestion-Secret header validated against the PUBLICATION_INGESTION_SECRET Worker secret.",
+              "Request and response schemas are generated from the route annotations."
+            ]
+          },
+          {
+            "path": "/api/ingestion/publications/objects/plan",
+            "method": "POST",
+            "notes": [
+              "Requires the dedicated X-Publication-Ingestion-Secret header."
+            ]
+          },
+          {
+            "path": "/api/ingestion/publications/objects/{batchId}/{kind}/{sha256}",
+            "method": "PUT",
+            "notes": [
+              "Streams the object through the authenticated Worker R2 binding and verifies the manifest SHA-256 during upload."
+            ]
+          }
         ]
       }
     },
@@ -89,7 +126,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/metadata",
+            "path": "/api/catalog/metadata",
             "returns": "{ educationLevels, courseCategories, campuses, ... }",
             "notes": [
               "Returns filter dictionaries (education level, course category, campus, etc.).",
@@ -97,7 +134,7 @@
             ]
           },
           {
-            "path": "/api/locale",
+            "path": "/api/account/preferences",
             "method": "POST",
             "returns": "{ success: Boolean }",
             "notes": ["Sets the user language preference cookie."]

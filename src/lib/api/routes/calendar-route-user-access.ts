@@ -1,6 +1,6 @@
 import { getUserCalendarAccessRecord } from "@/features/calendar/server/calendar-export-data";
-import { forbidden, notFound, unauthorized } from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { forbidden, gone, notFound, unauthorized } from "@/lib/api/helpers";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 import { parseUserCalendarIdentifier } from "./calendar-route-utils";
 
 export async function resolveUserCalendarAccess({
@@ -18,14 +18,17 @@ export async function resolveUserCalendarAccess({
   const user = await getUserCalendarAccessRecord(userId);
 
   if (token) {
-    if (!user || user.calendarFeedToken !== token) {
+    if (!user) {
+      return { ok: false as const, response: notFound("User not found") };
+    }
+    if (user.calendarFeedToken !== token) {
       return {
         ok: false as const,
-        response: forbidden("Invalid or unauthorized token"),
+        response: gone("Calendar feed token revoked"),
       };
     }
   } else {
-    const viewerUserId = await resolveApiUserId(request);
+    const viewerUserId = await resolveSessionUserId(request);
     if (!viewerUserId) {
       return { ok: false as const, response: unauthorized() };
     }

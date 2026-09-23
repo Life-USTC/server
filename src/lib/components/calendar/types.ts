@@ -7,17 +7,21 @@ export type CalendarTone =
   | "neutral";
 
 export type CalendarGridEvent = {
+  badge?: string;
   done?: boolean;
   href?: string;
   label: string;
   title?: string;
   tooltip?: string;
+  /** Untruncated third-line body for hover; falls back to detail. */
+  tooltipDetail?: string;
   meta?: string;
   detail?: string;
   tone?: CalendarTone;
 };
 
 export type CalendarGridDay = {
+  moreHref?: string;
   key: string;
   label: string;
   sublabel?: string;

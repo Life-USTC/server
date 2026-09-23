@@ -1,4 +1,5 @@
 export { remarkCalloutDirectives } from "./markdown-preview-directive-plugins";
+export { remarkShiftHeadings } from "./markdown-preview-heading-plugin";
 export {
   rehypeNormalizeMarkdownElements,
   remarkImageAttributes,

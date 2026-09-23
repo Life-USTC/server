@@ -12,11 +12,14 @@ export async function liftSelectedSuspension(config: AdminUsersActionConfig) {
       `/api/admin/suspensions/${selectedUser.activeSuspension.id}`,
     );
     if (!result.response.ok) {
+      config.setMessageVariant("destructive");
       config.setMessage(apiErrorMessage(result.error, copy.liftFailed));
       return;
     }
     config.replaceUser({ ...selectedUser, activeSuspension: null });
+    config.setMessageVariant("default");
     config.setMessage(copy.liftSuccess);
+    config.onSuccess?.("lift");
   } finally {
     config.setLiftingSuspension(false);
   }

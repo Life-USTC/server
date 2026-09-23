@@ -10,21 +10,66 @@ export let scrollLabel: string;
 export let weeks: ContributionCell[][];
 
 let selectedCellLabel = "";
+let activeCellIndex = 0;
+let cellElements: HTMLButtonElement[] = [];
 
 $: heatmapGridTemplate = `repeat(${weeks.length}, var(--heatmap-column-size))`;
+$: weekdayRows = Array.from({ length: 7 }, (_, weekday) =>
+  weeks.map((week) => week[weekday]).filter(Boolean),
+);
+$: if (activeCellIndex >= weeks.length * 7) activeCellIndex = 0;
 
 function contributionLabel(day: ContributionCell) {
   return cellLabel
     .replace("{count}", String(day.count))
     .replace("{date}", dateFormatter.format(new Date(day.date)));
 }
+
+function focusCell(index: number) {
+  if (index < 0 || index >= weeks.length * 7) return;
+  activeCellIndex = index;
+  cellElements[index]?.focus();
+}
+
+function handleCellKeydown(event: KeyboardEvent, index: number) {
+  const columnCount = weeks.length;
+  const columnIndex = index % columnCount;
+  let nextIndex: number | null = null;
+
+  switch (event.key) {
+    case "ArrowLeft":
+      if (columnIndex > 0) nextIndex = index - 1;
+      break;
+    case "ArrowRight":
+      if (columnIndex < columnCount - 1) nextIndex = index + 1;
+      break;
+    case "ArrowUp":
+      if (index >= columnCount) nextIndex = index - columnCount;
+      break;
+    case "ArrowDown":
+      if (index < columnCount * 6) nextIndex = index + columnCount;
+      break;
+    case "Home":
+      nextIndex = event.ctrlKey ? 0 : index - columnIndex;
+      break;
+    case "End":
+      nextIndex = event.ctrlKey
+        ? columnCount * 7 - 1
+        : index + columnCount - columnIndex - 1;
+      break;
+    default:
+      return;
+  }
+
+  if (nextIndex === null) return;
+  event.preventDefault();
+  focusCell(nextIndex);
+}
 </script>
 
 <div
-  aria-label={scrollLabel}
   class="profile-heatmap min-w-0 overflow-x-auto overscroll-x-contain pb-2"
   data-profile-heatmap-scroll
-  role="region"
 >
   <div class="grid w-max gap-y-1">
     <div
@@ -37,26 +82,40 @@ function contributionLabel(day: ContributionCell) {
     </div>
 
     <div
+      aria-colcount={weeks.length}
+      aria-label={scrollLabel}
+      aria-rowcount={weekdayRows.length}
       class="grid gap-px"
+      data-profile-contribution-grid
+      role="grid"
       style={`grid-template-columns: ${heatmapGridTemplate};`}
     >
-      {#each weeks as week}
-        <div class="grid grid-rows-7">
-          {#each week as day}
+      {#each weekdayRows as row, rowIndex}
+        <div class="contents" role="row">
+          {#each row as day, columnIndex}
             {@const label = contributionLabel(day)}
+            {@const cellIndex = rowIndex * weeks.length + columnIndex}
             <button
+              aria-colindex={columnIndex + 1}
               aria-label={label}
-              aria-pressed={selectedCellLabel === label}
+              aria-rowindex={rowIndex + 1}
+              aria-selected={selectedCellLabel === label}
+              bind:this={cellElements[cellIndex]}
               class="flex size-6 items-center justify-center rounded-sm p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:size-4"
               data-count={day.count}
               data-date={day.date}
               data-profile-contribution-cell
+              role="gridcell"
+              tabindex={activeCellIndex === cellIndex ? 0 : -1}
               onclick={() => {
+                activeCellIndex = cellIndex;
                 selectedCellLabel = label;
               }}
               onfocus={() => {
+                activeCellIndex = cellIndex;
                 selectedCellLabel = label;
               }}
+              onkeydown={(event) => handleCellKeydown(event, cellIndex)}
               title={label}
               type="button"
             >

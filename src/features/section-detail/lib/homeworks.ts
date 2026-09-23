@@ -12,24 +12,56 @@ export type SectionHomeworkRequest = {
 
 export type SectionHomeworkUpdateResult = "ok" | "homework-error";
 
-export async function loadSectionHomeworks<Viewer, Homework, AuditLog>(
+export async function loadSectionHomeworks<Viewer, Homework>(
+  sectionId: number | string,
+  errorMessage: string,
+) {
+  const result = await apiClient.GET<{
+    data: Homework[];
+    viewer: Viewer;
+  }>("/api/community/section-homeworks", {
+    params: { query: { pageSize: 50, sectionId } },
+  });
+  if (!result.response.ok || !result.data) throw new Error(errorMessage);
+  return {
+    homeworks: result.data.data,
+    viewer: result.data.viewer,
+  };
+}
+
+export async function loadSectionHomeworkDetail<Homework, AuditLog>(
+  homeworkId: number | string,
+  errorMessage: string,
+) {
+  const result = await apiClient.GET<{
+    auditLogs: AuditLog[];
+    homework: Homework;
+  }>(`/api/community/section-homeworks/${homeworkId}`);
+  if (!result.response.ok || !result.data) throw new Error(errorMessage);
+  return {
+    auditLogs: result.data.auditLogs,
+    homework: result.data.homework,
+  };
+}
+
+export async function loadSectionHomeworkAuditLogs<AuditLog>(
   sectionId: number | string,
   errorMessage: string,
 ) {
   const result = await apiClient.GET<{
     auditLogs: AuditLog[];
-    homeworks: Homework[];
-    viewer: Viewer;
-  }>("/api/homeworks", { params: { query: { sectionId } } });
+  }>("/api/community/section-homeworks/audit", {
+    params: { query: { sectionId } },
+  });
   if (!result.response.ok || !result.data) throw new Error(errorMessage);
-  return result.data;
+  return result.data.auditLogs;
 }
 
 export async function createSectionHomework(
   sectionId: number | string,
   input: SectionHomeworkRequest,
 ) {
-  const result = await apiClient.POST("/api/homeworks", {
+  const result = await apiClient.POST("/api/community/section-homeworks", {
     body: {
       sectionId,
       title: input.title,
@@ -48,21 +80,26 @@ export async function updateSectionHomework(
   homeworkId: number | string,
   input: SectionHomeworkRequest,
 ): Promise<SectionHomeworkUpdateResult> {
-  const result = await apiClient.PATCH(`/api/homeworks/${homeworkId}`, {
-    body: {
-      title: input.title,
-      description: input.description,
-      publishedAt: input.publishedAt || null,
-      submissionStartAt: input.submissionStartAt || null,
-      submissionDueAt: input.submissionDueAt || null,
-      isMajor: input.isMajor,
-      requiresTeam: input.requiresTeam,
+  const result = await apiClient.PATCH(
+    `/api/community/section-homeworks/${homeworkId}`,
+    {
+      body: {
+        title: input.title,
+        description: input.description,
+        publishedAt: input.publishedAt || null,
+        submissionStartAt: input.submissionStartAt || null,
+        submissionDueAt: input.submissionDueAt || null,
+        isMajor: input.isMajor,
+        requiresTeam: input.requiresTeam,
+      },
     },
-  });
+  );
   return result.response.ok ? "ok" : "homework-error";
 }
 
 export async function deleteSectionHomework(homeworkId: number | string) {
-  const result = await apiClient.DELETE(`/api/homeworks/${homeworkId}`);
+  const result = await apiClient.DELETE(
+    `/api/community/section-homeworks/${homeworkId}`,
+  );
   return result.response.ok;
 }

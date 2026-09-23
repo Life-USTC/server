@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
@@ -52,6 +52,16 @@ export function prepareOAuthClientRegistrationDelegation(
     return { delegatedBody: null, deviceRegistration: null };
   }
 
+  if (bodyObject.dpop_bound_access_tokens === true) {
+    return {
+      error: {
+        error: "invalid_client_metadata",
+        errorDescription:
+          "DPoP-bound access tokens are not supported by this Bearer-only resource server",
+      },
+    };
+  }
+
   const grantTypes = Array.isArray(bodyObject.grant_types)
     ? bodyObject.grant_types
     : null;
@@ -102,6 +112,7 @@ export function prepareOAuthClientRegistrationDelegation(
       ...(delegatedRedirectUris
         ? { redirect_uris: delegatedRedirectUris }
         : {}),
+      ...(shouldInjectRedirectUri ? { application_type: "native" } : {}),
     },
     deviceRegistration: {
       grantTypes: requestedGrantTypes,

@@ -1,0 +1,336 @@
+<script lang="ts">
+import { onMount } from "svelte";
+import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-links";
+import type {
+  YoungEventDetail,
+  YoungSourceFreshness,
+} from "@/features/young/server/young-event-service";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
+import PageLayout from "$lib/components/PageLayout.svelte";
+import Panel from "$lib/components/Panel.svelte";
+import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
+
+type Props = {
+  commentsData?: CommentsInitialData | null;
+  copy: AppPageCopy;
+  event: YoungEventDetail;
+  source: YoungSourceFreshness;
+};
+
+let { commentsData = null, copy, event, source }: Props = $props();
+
+let CommentsPanel = $state<
+  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
+  | null
+>(null);
+let commentsLoadError = $state(false);
+let detailModulesLoading = $state(true);
+
+async function loadDetailModules() {
+  detailModulesLoading = true;
+  commentsLoadError = false;
+  try {
+    const result = await import(
+      "@/features/comments/components/CommentsPanel.svelte"
+    );
+    CommentsPanel = result.default;
+  } catch {
+    commentsLoadError = true;
+  } finally {
+    detailModulesLoading = false;
+  }
+}
+
+onMount(() => {
+  void loadDetailModules();
+});
+
+const youngCopy = $derived(copy.youngEvents);
+
+function formatDateTime(value: string | null) {
+  return value ? value.slice(0, 16).replace("T", " ") : "-";
+}
+
+function formatRange(start: string | null, end: string | null) {
+  if (!start && !end) return "-";
+  return `${formatDateTime(start)} ~ ${formatDateTime(end)}`;
+}
+
+function formatSourceDate(value: string | null) {
+  return value ? value.slice(0, 16).replace("T", " ") : "-";
+}
+
+type Field = { label: string; value: string | null | undefined };
+
+function fieldList(fields: Field[]) {
+  return fields.filter(
+    (field) => field.value != null && field.value !== "",
+  ) as Array<{ label: string; value: string }>;
+}
+
+function numberValue(value: number | null) {
+  return value == null ? null : String(value);
+}
+
+/** Upstream reports plain local timestamps for venue slots, not ISO strings. */
+function formatPlainDateTime(value: string | null) {
+  return value ? value.slice(0, 16).replace("T", " ") : null;
+}
+
+function placeRange(start: string | null, end: string | null) {
+  const from = formatPlainDateTime(start);
+  const to = formatPlainDateTime(end);
+  if (!from && !to) return null;
+  return `${from ?? "-"} ~ ${to ?? "-"}`;
+}
+
+const badges = $derived(
+  [event.status, event.activityLevel, event.module, event.form].filter(
+    (value): value is string => value != null && value !== "",
+  ),
+);
+
+const timeFields = $derived(
+  fieldList([
+    {
+      label: youngCopy.eventTime,
+      value: formatRange(event.startAt, event.endAt),
+    },
+    {
+      label: youngCopy.signupWindow,
+      value: formatRange(event.applyStartAt, event.applyEndAt),
+    },
+    {
+      label: youngCopy.createdAtUpstream,
+      value: formatDateTime(event.createdAtUpstream),
+    },
+    { label: youngCopy.auditedAt, value: formatDateTime(event.auditedAt) },
+    {
+      label: youngCopy.updatedAtUpstream,
+      value: formatDateTime(event.updatedAtUpstream),
+    },
+  ]),
+);
+
+const peopleFields = $derived(
+  fieldList([
+    {
+      label: youngCopy.capacity,
+      value:
+        event.capacity != null
+          ? `${event.appliedCount ?? 0} / ${event.capacity}`
+          : null,
+    },
+    { label: youngCopy.limitNum, value: numberValue(event.limitNum) },
+    { label: youngCopy.partakeNum, value: numberValue(event.partakeNum) },
+    { label: youngCopy.sumPersons, value: numberValue(event.sumPersons) },
+    { label: youngCopy.hours, value: numberValue(event.hours) },
+    { label: youngCopy.sumHours, value: numberValue(event.sumHours) },
+    { label: youngCopy.serviceHour, value: numberValue(event.serviceHour) },
+    {
+      label: youngCopy.duration,
+      value:
+        event.duration == null
+          ? null
+          : youngCopy.durationHours.replace("{value}", String(event.duration)),
+    },
+    { label: youngCopy.grades, value: event.grades },
+    { label: youngCopy.favCount, value: numberValue(event.favCount) },
+  ]),
+);
+
+const organizationFields = $derived(
+  fieldList([
+    { label: youngCopy.category, value: event.category },
+    { label: youngCopy.sponsor, value: event.sponsor },
+    { label: youngCopy.organizer, value: event.organizer },
+    { label: youngCopy.department, value: event.department },
+    { label: youngCopy.contactName, value: event.contactName },
+    { label: youngCopy.contactTel, value: event.contactTel },
+  ]),
+);
+
+const places = $derived(
+  (event.places ?? [])
+    .map((place) => ({
+      info: place.placeInfo,
+      range: placeRange(place.placeSt, place.placeEt),
+    }))
+    .filter((place) => place.info != null || place.range != null),
+);
+</script>
+
+<PageLayout description={event.category ?? youngCopy.description} title={event.name}>
+  <div class="grid gap-5">
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 text-sm"
+      data-testid="young-source-freshness"
+    >
+      <span class="text-muted-foreground">
+        {#if source.status === "fresh"}
+          {youngCopy.sourceFresh}
+        {:else if source.status === "stale"}
+          {youngCopy.sourceStale}
+        {:else}
+          {youngCopy.sourceUnknown}
+        {/if}
+        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
+      </span>
+      {#if event.sourceMissing}
+        <span class="text-muted-foreground">{youngCopy.sourceMissing}</span>
+      {/if}
+    </div>
+
+    {#if event.imageUrl}
+      <img
+        alt={event.name}
+        class="max-h-72 w-full rounded-lg object-cover"
+        src={event.imageUrl}
+      />
+    {/if}
+
+    {#if badges.length > 0}
+      <div class="flex flex-wrap gap-2" data-testid="young-event-badges">
+        {#each badges as badge (badge)}
+          <Badge variant="secondary">{badge}</Badge>
+        {/each}
+      </div>
+    {/if}
+
+    {#if event.description}
+      <Panel>
+        {#snippet header()}
+          <h2 class="text-lg font-semibold tracking-tight">
+            {youngCopy.sectionDescription}
+          </h2>
+        {/snippet}
+        <RenderedMarkdown html={event.description} />
+      </Panel>
+    {/if}
+
+    {#snippet fieldSection(title: string, fields: { label: string; value: string }[])}
+      {#if fields.length > 0}
+        <Panel>
+          {#snippet header()}
+            <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
+          {/snippet}
+          <dl class="grid gap-4 sm:grid-cols-2">
+            {#each fields as field (field.label)}
+              <div class="grid gap-1">
+                <dt class="text-muted-foreground text-sm">{field.label}</dt>
+                <dd class="text-sm font-medium">{field.value}</dd>
+              </div>
+            {/each}
+          </dl>
+        </Panel>
+      {/if}
+    {/snippet}
+
+    {@render fieldSection(youngCopy.sectionTime, timeFields)}
+    {@render fieldSection(youngCopy.sectionPeople, peopleFields)}
+    {@render fieldSection(youngCopy.sectionOrganization, organizationFields)}
+
+    {#if places.length > 0 || event.location}
+      <Panel>
+        {#snippet header()}
+          <h2 class="text-lg font-semibold tracking-tight">
+            {youngCopy.sectionPlaces}
+          </h2>
+        {/snippet}
+        {#if places.length > 0}
+          <ul class="grid gap-3">
+            {#each places as place, index (index)}
+              <li class="grid gap-1">
+                {#if place.info}<span class="text-sm font-medium">{place.info}</span>{/if}
+                {#if place.range}
+                  <span class="text-muted-foreground text-sm">{place.range}</span>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <div class="grid gap-1">
+            <dt class="text-muted-foreground text-sm">{youngCopy.location}</dt>
+            <dd class="text-sm font-medium">{event.location}</dd>
+          </div>
+        {/if}
+      </Panel>
+    {/if}
+
+    {#if event.participationNotes}
+      <Panel>
+        {#snippet header()}
+          <h2 class="text-lg font-semibold tracking-tight">
+            {youngCopy.sectionNotes}
+          </h2>
+        {/snippet}
+        <RenderedMarkdown html={event.participationNotes} />
+      </Panel>
+    {/if}
+
+    <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+    {#if event.organizerId && event.organizer}
+      <p class="text-sm">
+        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
+        <a
+          class="underline underline-offset-4"
+          href={`/catalog/young-events/organizers/${event.organizerId}`}
+        >
+          {event.organizer}
+        </a>
+      </p>
+    {/if}
+
+    <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
+
+    <div class="flex flex-wrap gap-3">
+      <Button
+        href="https://young.ustc.edu.cn"
+        rel="noreferrer"
+        target="_blank"
+      >
+        {youngCopy.signupCta}
+      </Button>
+      <Button href="/catalog/young-events" variant="outline">
+        {youngCopy.backToList}
+      </Button>
+    </div>
+
+    <section id="comments" class="scroll-mt-4">
+      {#key `comments:young-event:${event.youngId}`}
+        {#if CommentsPanel}
+          <CommentsPanel
+            heading={copy.comments.title}
+            initialData={commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              type: "young-event",
+              youngId: event.youngId,
+            })}
+            targetType="young-event"
+            youngId={event.youngId}
+          />
+        {:else if commentsLoadError}
+          <Alert.Root variant="destructive">
+            <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
+            <Alert.Action>
+              <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
+                {copy.comments.retry}
+              </Button>
+            </Alert.Action>
+          </Alert.Root>
+        {:else if detailModulesLoading}
+          <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
+            <Skeleton class="h-5 w-24" />
+            <Skeleton class="h-16 w-full" />
+          </div>
+        {/if}
+      {/key}
+    </section>
+  </div>
+</PageLayout>

@@ -1,7 +1,7 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   SettingsAccount,
   SettingsAccountAction,
@@ -22,7 +22,7 @@ export let unlinkAccountId: string | null;
   <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
-      if (!open) unlinkAccountId = null;
+      if (!open && !hasPendingAccountAction) unlinkAccountId = null;
     }}
   >
     <AlertDialog.Content
@@ -32,32 +32,36 @@ export let unlinkAccountId: string | null;
         <AlertDialog.Title>{copy.profile.disconnectConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</AlertDialog.Description>
       </AlertDialog.Header>
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel
-          variant="secondary"
-          type="button"
-          disabled={hasPendingAccountAction}
-        >
-          {copy.profile.cancel}
-        </AlertDialog.Cancel>
-        <form
+      <form
           method="POST"
           action="?/unlinkAccount"
           use:enhance={accountAction(unlinkAccount.id, "disconnect")}
         >
           <input type="hidden" name="provider" value={unlinkAccount.id} />
-          <Button
+        <AlertDialog.Footer>
+          <AlertDialog.Cancel
+            variant="secondary"
+            type="button"
+            disabled={hasPendingAccountAction}
+          >
+            {copy.profile.cancel}
+          </AlertDialog.Cancel>
+          <AlertDialog.Action
             type="submit"
             disabled={!isMounted || hasPendingAccountAction}
             variant="destructive"
           >
+            {#if pendingAccountAction?.providerId === unlinkAccount.id &&
+            pendingAccountAction.type === "disconnect"}
+              <Spinner data-icon="inline-start" />
+            {/if}
             {pendingAccountAction?.providerId === unlinkAccount.id &&
             pendingAccountAction.type === "disconnect"
               ? copy.profile.disconnecting
-            : copy.profile.disconnect}
-          </Button>
-        </form>
-      </AlertDialog.Footer>
+              : copy.profile.disconnect}
+          </AlertDialog.Action>
+        </AlertDialog.Footer>
+      </form>
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

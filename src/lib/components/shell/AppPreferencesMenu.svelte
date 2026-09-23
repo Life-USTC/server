@@ -11,7 +11,6 @@ import type { LayoutCopy } from "$lib/shell/layout-server-data";
 export let copy: LayoutCopy;
 export let locale: "en-us" | "zh-cn";
 export let localeMenuOpen: boolean;
-export let mobile = false;
 export let setLocale: (locale: "en-us" | "zh-cn") => void;
 export let setLocaleMenuOpen: (open: boolean) => void;
 export let setThemeMenuOpen: (open: boolean) => void;
@@ -26,31 +25,23 @@ function setThemeValue(value: string) {
 }
 </script>
 
-<div
-  data-shell-preferences
-  class={mobile
-    ? "grid gap-2"
-    : "grid grid-cols-2 gap-1 group-data-[collapsible=icon]:hidden"}
->
+<div data-shell-preferences class="flex items-center gap-1">
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
     <DropdownMenu.Trigger>
       {#snippet child({ props })}
         <Button
           {...props}
           aria-label={copy.language.selector}
-          class={mobile ? "h-11 w-full justify-start px-3" : undefined}
-          size={mobile ? "default" : "icon-sm"}
+          class="size-11 md:size-8"
+          size="icon-sm"
           variant="outline"
         >
           <LanguagesIcon data-icon="inline-start" />
-          {#if mobile}
-            <span>{copy.language.switch}</span>
-          {/if}
         </Button>
       {/snippet}
     </DropdownMenu.Trigger>
     <DropdownMenu.Content
-      align={mobile ? "start" : "end"}
+      align="end"
       class="w-40"
       preventScroll={false}
     >
@@ -79,8 +70,8 @@ function setThemeValue(value: string) {
         <Button
           {...props}
           aria-label={copy.theme.selector}
-          class={mobile ? "h-11 w-full justify-start px-3" : undefined}
-          size={mobile ? "default" : "icon-sm"}
+          class="size-11 md:size-8"
+          size="icon-sm"
           variant="outline"
         >
           {#if themeMode === "light"}
@@ -90,14 +81,11 @@ function setThemeValue(value: string) {
           {:else}
             <MonitorIcon data-icon="inline-start" />
           {/if}
-          {#if mobile}
-            <span>{copy.theme.selector}</span>
-          {/if}
         </Button>
       {/snippet}
     </DropdownMenu.Trigger>
     <DropdownMenu.Content
-      align={mobile ? "start" : "end"}
+      align="end"
       class="w-44"
       preventScroll={false}
     >

@@ -1,8 +1,9 @@
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import { UploadError } from "@/features/uploads/server/upload-quota";
 import {
+  claimUploadPutLease,
+  markUploadPutCompleted,
   uploadKeyBelongsToUser,
-  validatePendingUploadObject,
 } from "@/features/uploads/server/upload-service";
 import {
   badRequest,
@@ -38,7 +39,7 @@ export async function putUploadObjectRoute(request: Request) {
   }
 
   try {
-    const object = await validatePendingUploadObject({
+    const object = await claimUploadPutLease({
       key,
       requestContentLength: requestSize,
       requestContentType: request.headers.get("content-type"),
@@ -49,6 +50,12 @@ export async function putUploadObjectRoute(request: Request) {
       body: request.body,
       contentType: object.contentType,
       key,
+    });
+
+    await markUploadPutCompleted({
+      attemptId: object.attemptId,
+      key,
+      userId,
     });
 
     return jsonResponse({ success: true });

@@ -55,5 +55,5 @@ export async function updateSettingsProfileAction({
   }
 
   applyAuthResponseCookies(result.headers, cookies);
-  throw redirect(303, "/settings/profile?message=Success");
+  throw redirect(303, "/account/settings/profile?message=Success");
 }

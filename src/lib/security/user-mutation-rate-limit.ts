@@ -2,6 +2,7 @@ import {
   getCloudflareUserMutationRateLimiter,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
+import { logAppEvent } from "@/lib/log/app-logger";
 
 export const USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS = 60;
 
@@ -20,6 +21,26 @@ function rateLimitKey(input: { action: string; host: string; userId: string }) {
   ]);
 }
 
+function logUnavailableRateLimiter(
+  action: string,
+  tier: UserMutationRateLimitTier,
+  reason: "binding-error" | "binding-missing",
+  error?: unknown,
+) {
+  logAppEvent(
+    "error",
+    "user-mutation-rate-limit.unavailable",
+    {
+      action,
+      event: "user-mutation-rate-limit.unavailable",
+      reason,
+      source: "rate-limit",
+      tier,
+    },
+    error,
+  );
+}
+
 /**
  * Enforce a per-deployment, per-user, per-action mutation budget.
  *
@@ -36,9 +57,9 @@ export async function checkUserMutationRateLimit(input: {
   const tier = input.tier ?? "write";
   const limiter = getCloudflareUserMutationRateLimiter(tier);
   if (limiter == null) {
-    return hasCloudflareRuntimeEnv()
-      ? { allowed: false, reason: "unavailable" }
-      : { allowed: true };
+    if (!hasCloudflareRuntimeEnv()) return { allowed: true };
+    logUnavailableRateLimiter(input.action, tier, "binding-missing");
+    return { allowed: false, reason: "unavailable" };
   }
 
   try {
@@ -46,7 +67,8 @@ export async function checkUserMutationRateLimit(input: {
     return outcome.success
       ? { allowed: true }
       : { allowed: false, reason: "limited" };
-  } catch {
+  } catch (error) {
+    logUnavailableRateLimiter(input.action, tier, "binding-error", error);
     return { allowed: false, reason: "unavailable" };
   }
 }

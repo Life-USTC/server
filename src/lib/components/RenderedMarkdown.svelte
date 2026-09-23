@@ -11,7 +11,7 @@ let className = "";
 export { className as class };
 </script>
 
-<div class={cn("markdown-preview grid gap-3 text-sm leading-6", className)} data-slot="markdown-preview">
+<div class={cn("markdown-preview text-sm", className)} data-slot="markdown-preview">
   {#if html}
     {@html html}
   {:else if emptyLabel}

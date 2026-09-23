@@ -1,25 +1,20 @@
-import { prisma as defaultPrisma } from "@/lib/db/prisma";
-import {
-  getOAuthMcpResourceUrl,
-  getOAuthProviderValidAudiences,
-} from "@/lib/mcp/urls";
+import { authPrisma as defaultPrisma } from "@/lib/db/auth-prisma";
+import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
-import { hasLegacyMcpScope } from "@/lib/oauth/scope-registry";
 import {
   normalizeResourceIndicator,
   resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 
 type DeviceAuthorizationClient = {
+  dpopBoundAccessTokens: boolean | null;
   grantTypes: string[];
-  public: boolean | null;
   tokenEndpointAuthMethod: string | null;
-  type: string | null;
 };
 
 type DeviceAuthorizationClientRecord = DeviceAuthorizationClient & {
@@ -36,12 +31,11 @@ type DeviceAuthorizationPrisma = {
       select: {
         clientId: true;
         disabled: true;
+        dpopBoundAccessTokens: true;
         grantTypes: true;
         name: true;
-        public: true;
         scopes: true;
         tokenEndpointAuthMethod: true;
-        type: true;
       };
     }) => Promise<DeviceAuthorizationClientRecord | null>;
   };
@@ -63,6 +57,7 @@ type DeviceAuthorizationClientResolution =
       error: OAuthDevicePolicyError;
       reason:
         | "confidential_client"
+        | "dpop_not_supported"
         | "invalid_client"
         | "invalid_resource"
         | "invalid_scope"
@@ -76,13 +71,7 @@ export function getDeviceAuthorizationClientPolicyFailure(
     return "unsupported_grant";
   }
 
-  if (
-    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD ||
-    client.public === true ||
-    client.type === "native" ||
-    client.type === "public" ||
-    client.type === "user-agent-based"
-  ) {
+  if (client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
     return null;
   }
 
@@ -125,7 +114,7 @@ export function resolveRequestedDeviceScopes(
 
 export function resolveRequestedDeviceResources(
   resourceEntries: FormDataEntryValue[],
-  requestedScopes: string[],
+  _requestedScopes: string[],
 ): { error: OAuthDevicePolicyError } | { resources: string[] } {
   const resources: string[] = [];
   const validAudiences = getOAuthProviderValidAudiences();
@@ -187,22 +176,6 @@ export function resolveRequestedDeviceResources(
     }
   }
 
-  if (
-    hasLegacyMcpScope(requestedScopes) &&
-    !resources.some((resource) =>
-      resourceIndicatorsMatch(resource, getOAuthMcpResourceUrl()),
-    )
-  ) {
-    return {
-      error: {
-        error: "invalid_target",
-        errorDescription:
-          "A legacy MCP scope requires the MCP resource indicator",
-        status: 400,
-      },
-    };
-  }
-
   return { resources };
 }
 
@@ -222,12 +195,11 @@ export async function resolveDeviceAuthorizationClient({
     select: {
       clientId: true,
       disabled: true,
+      dpopBoundAccessTokens: true,
       grantTypes: true,
       name: true,
-      public: true,
       scopes: true,
       tokenEndpointAuthMethod: true,
-      type: true,
     },
   });
 
@@ -239,6 +211,18 @@ export async function resolveDeviceAuthorizationClient({
         status: 400,
       },
       reason: "invalid_client",
+    };
+  }
+
+  if (client.dpopBoundAccessTokens === true) {
+    return {
+      error: {
+        error: "unauthorized_client",
+        errorDescription:
+          "DPoP-bound access tokens are not supported by device authorization",
+        status: 400,
+      },
+      reason: "dpop_not_supported",
     };
   }
 

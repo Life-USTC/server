@@ -16,11 +16,11 @@ type AdminUserReadPrisma = Pick<PrismaClient, "user">;
 
 type AdminUserListRow = {
   createdAt: Date;
+  email: string;
   id: string;
   isAdmin: boolean;
   name: string | null;
   username: string | null;
-  verifiedEmails: Array<{ email: string }>;
   suspensions?: Array<{
     expiresAt: Date | null;
     id: string;
@@ -46,13 +46,9 @@ const adminUserListSelect = {
   id: true,
   name: true,
   username: true,
+  email: true,
   isAdmin: true,
   createdAt: true,
-  verifiedEmails: {
-    select: { email: true },
-    orderBy: { createdAt: "desc" },
-    take: 1,
-  },
 } satisfies Prisma.UserSelect;
 
 function normalizeAdminUsersSearch(search: string | null | undefined) {
@@ -69,7 +65,7 @@ export function buildAdminUsersWhere(
           { id: ilike(normalized) },
           { name: ilike(normalized) },
           { username: ilike(normalized) },
-          { verifiedEmails: { some: { email: ilike(normalized) } } },
+          { email: ilike(normalized) },
         ],
       }
     : {};
@@ -83,7 +79,7 @@ export function toAdminUserListItem(user: AdminUserListRow): AdminUserListItem {
     name: user.name,
     username: user.username,
     isAdmin: user.isAdmin,
-    email: user.verifiedEmails[0]?.email ?? null,
+    email: user.email,
     createdAt: user.createdAt,
     ...(user.suspensions === undefined
       ? {}

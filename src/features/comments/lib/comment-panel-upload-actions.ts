@@ -28,6 +28,7 @@ export function createCommentPanelUploadActions(input: {
   getUploadCopy: () => UploadCopy;
   getUploadedFiles: () => CommentUploadOption[];
   insertMarkdown: (value: string, mode: CommentEditorMode) => void;
+  onSuccess?: (filename: string) => void;
   replaceMarkdownToken: (
     token: string,
     replacement: string,
@@ -36,6 +37,7 @@ export function createCommentPanelUploadActions(input: {
   setEditAttachmentIds: (value: string[]) => void;
   setEditUploadedFiles: (value: CommentUploadOption[]) => void;
   setMessage: (value: string) => void;
+  setMessageVariant: (value: "destructive" | "default") => void;
   setReplyAttachmentIds: (value: string[]) => void;
   setReplyUploadedFiles: (value: CommentUploadOption[]) => void;
   setSelectedAttachments: (value: string[]) => void;
@@ -55,6 +57,7 @@ export function createCommentPanelUploadActions(input: {
   async function uploadFile(file: File, mode: CommentEditorMode = "new") {
     input.updatePendingUploads(mode, 1);
     input.setMessage("");
+    input.setMessageVariant("default");
     const uploadCopy = input.getUploadCopy();
     const token = `![${uploadCopy.uploading} ${file.name}](upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
     input.insertMarkdown(token, mode);
@@ -80,12 +83,7 @@ export function createCommentPanelUploadActions(input: {
       });
       applyCommentUploadState(next, input);
       input.replaceMarkdownToken(token, attachmentMarkdown(file, upload), mode);
-      input.setMessage(
-        uploadCopy.toastUploadSuccessDescription.replace(
-          "{name}",
-          upload.filename,
-        ),
-      );
+      input.onSuccess?.(upload.filename);
     } catch (error) {
       input.replaceMarkdownToken(token, "", mode);
       input.setMessage(
@@ -93,6 +91,7 @@ export function createCommentPanelUploadActions(input: {
           ? error.message
           : uploadCopy.toastUploadErrorDescription,
       );
+      input.setMessageVariant("destructive");
     } finally {
       input.updatePendingUploads(mode, -1);
     }

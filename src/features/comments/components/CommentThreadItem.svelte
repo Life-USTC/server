@@ -5,7 +5,6 @@ import {
 } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import * as Card from "$lib/components/ui/card/index.js";
 import CommentReactionControls from "./CommentReactionControls.svelte";
 import CommentReplyEditor from "./CommentReplyEditor.svelte";
 import CommentThreadBody from "./CommentThreadBody.svelte";
@@ -77,50 +76,48 @@ export let viewer: ViewerContext;
 </script>
 
 <article
-  class="grid gap-3"
+  class={`grid min-w-0 gap-3 border-b border-border/70 py-4 last:border-b-0 ${
+    highlightedId === comment.id ? "rounded-lg ring-2 ring-primary/40" : ""
+  }`}
   id={`comment-${comment.id}`}
-  style={`margin-left: ${Math.min(depth, 3) * 1.25}rem`}
+  style={`padding-left: ${Math.min(depth, 3) * 1.25}rem`}
 >
-  <Card.Root
-    class={highlightedId === comment.id ? "ring-2 ring-primary/40" : ""}
-  >
-    <Card.Header class="px-4 md:px-5">
-      <CommentThreadHeader
-        bind:actionMenuId
-        {authorInitials}
-        {authorName}
-        {comment}
-        {commentCopy}
-        {copyCommentLink}
-        {formatTime}
-        {openDeleteDialog}
-        {startEdit}
-        {statusLabel}
-        {toggleReply}
-      />
-    </Card.Header>
+  {#if comment.isAncestryPlaceholder}
+    <p class="text-muted-foreground text-sm">{commentCopy.ancestryPlaceholder}</p>
+  {:else}
+    <CommentThreadHeader
+      bind:actionMenuId
+      {authorInitials}
+      {authorName}
+      {comment}
+      {commentCopy}
+      {copyCommentLink}
+      {formatTime}
+      {openDeleteDialog}
+      {startEdit}
+      {statusLabel}
+      {toggleReply}
+    />
 
-    <Card.Content class="px-4 md:px-5">
-      <CommentThreadBody
-        {cancelEdit}
-        {comment}
-        {commentCopy}
-        bind:editAttachmentIds
-        {editAttachmentOptions}
-        bind:editDraft
-        {editingId}
-        bind:editIsAnonymous
-        bind:editVisibility
-        {formatSize}
-        {saveEdit}
-        {uploadCopy}
-        uploading={editUploading}
-        {uploadFile}
-        {visibilityOptions}
-      />
-    </Card.Content>
+    <CommentThreadBody
+      {cancelEdit}
+      {comment}
+      {commentCopy}
+      bind:editAttachmentIds
+      {editAttachmentOptions}
+      bind:editDraft
+      {editingId}
+      bind:editIsAnonymous
+      bind:editVisibility
+      {formatSize}
+      {saveEdit}
+      {uploadCopy}
+      uploading={editUploading}
+      {uploadFile}
+      {visibilityOptions}
+    />
 
-    <Card.Footer class="flex-col items-stretch gap-4 px-4 md:px-5">
+    <div class="grid gap-4">
       <CommentReactionControls
         {comment}
         {commentCopy}
@@ -155,6 +152,6 @@ export let viewer: ViewerContext;
           {viewer}
         />
       {/if}
-    </Card.Footer>
-  </Card.Root>
+    </div>
+  {/if}
 </article>

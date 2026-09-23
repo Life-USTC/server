@@ -1,19 +1,10 @@
 /**
- * E2E tests for /admin — Admin Home Page
- *
- * ## Data Represented (admin.yml → admin-home.display.fields)
- * - Navigation to moderation queues
- * - User management
- * - OAuth client management
- * - Bus data management
+ * E2E tests for /admin — Admin entry + primary navigation
  *
  * ## Features
- * - Admin-only page: unauthenticated → /signin, non-admin → 404
- * - Navigation cards link to /admin/users, /admin/moderation, /admin/oauth, /admin/bus
- *
- * ## Edge Cases
- * - Unauthenticated → redirect to /signin (all 3 providers shown)
- * - Regular user → 404
+ * - Admin-only: unauthenticated → /signin, non-admin → 403
+ * - /admin redirects to /admin/users
+ * - Admin tools live in the primary sidebar (no secondary admin nav)
  */
 import { expect, test } from "@playwright/test";
 import {
@@ -23,6 +14,13 @@ import {
 } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { assertPageContract } from "../_shared/page-contract";
+
+function adminPrimaryNav(page: import("@playwright/test").Page) {
+  return page.getByTestId("app-sidebar").getByRole("navigation", {
+    name: /主导航|Primary navigation/i,
+  });
+}
 
 test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/admin", {
@@ -31,57 +29,74 @@ test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin/unauthorized");
 });
 
-test("/admin 普通用户访问返回 404", async ({ page }, testInfo) => {
+test("/admin 普通用户访问返回 403", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin", "/admin");
-  await expect(page.locator("h1")).toHaveText("404");
-  await captureStepScreenshot(page, testInfo, "admin/404");
+  await expect(page.locator("h1")).toHaveText("403");
+  await captureStepScreenshot(page, testInfo, "admin/403");
 });
 
-test("/admin 二级导航在所有管理页面保持唯一当前位置", async ({
+test("/admin 重定向到用户管理", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin");
+  await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
+  await expect(page.getByTestId("admin-workspace")).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin/redirect-users");
+});
+
+test("已移除的可观测性页面返回 404 且不出现在管理导航", async ({ page }) => {
+  await signInAsDevAdmin(page, "/admin/users");
+
+  for (const path of ["/admin/analytics", "/admin/audit"] as const) {
+    await expect((await page.request.get(path)).status()).toBe(404);
+  }
+
+  const navigation = adminPrimaryNav(page);
+  await expect(navigation.locator('a[href="/admin/analytics"]')).toHaveCount(0);
+  await expect(navigation.locator('a[href="/admin/audit"]')).toHaveCount(0);
+});
+
+test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
   page,
 }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin");
+  await signInAsDevAdmin(page, "/admin/users");
 
-  for (const path of [
-    "/admin",
-    "/admin/users",
-    "/admin/moderation",
-    "/admin/oauth",
-    "/admin/bus",
-  ]) {
+  const paths = [
+    { path: "/admin/users", name: /用户管理|User Management/i },
+    { path: "/admin/moderation", name: /内容审核|Moderation/i },
+    { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
+    { path: "/admin/bus", name: /校车管理|Bus Management/i },
+  ] as const;
+
+  for (const { path, name } of paths) {
     await gotoAndWaitForReady(page, path);
 
-    const navigation = page.getByTestId("admin-navigation");
-    await expect(navigation.getByRole("link")).toHaveCount(5);
-    await expect(navigation.locator('a[aria-current="page"]')).toHaveAttribute(
-      "href",
-      path,
+    const navigation = adminPrimaryNav(page);
+    const adminLinks = navigation.locator('a[href^="/admin"]');
+    await expect(adminLinks).toHaveCount(4);
+    await expect(navigation.getByRole("link", { name })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
+    await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(1);
     await expect(
       page.locator("#main-content").getByRole("heading", { level: 1 }),
     ).toHaveCount(1);
   }
 
-  await captureStepScreenshot(page, testInfo, "admin/shared-navigation");
+  await expect(page.getByTestId("admin-navigation")).toHaveCount(0);
+  await captureStepScreenshot(page, testInfo, "admin/primary-navigation");
 });
 
-test("/admin 二级导航响应式布局且支持键盘切换", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("/admin 主导航支持键盘切换", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/oauth");
 
-  const navigation = page.getByTestId("admin-navigation");
-  const activePanel = page.getByTestId("admin-active-panel");
+  const navigation = adminPrimaryNav(page);
   const moderationLink = navigation.getByRole("link", {
     name: /内容审核|Moderation/i,
   });
-  const mobileNavigationBox = await navigation.boundingBox();
-  const mobilePanelBox = await activePanel.boundingBox();
-
   await expect(navigation.locator('a[aria-current="page"]')).toHaveAttribute(
     "href",
     "/admin/oauth",
   );
-  expect(mobileNavigationBox?.y).toBeLessThan(mobilePanelBox?.y ?? 0);
   await moderationLink.focus();
   await expect(moderationLink).toBeFocused();
   await moderationLink.press("Enter");
@@ -90,100 +105,77 @@ test("/admin 二级导航响应式布局且支持键盘切换", async ({ page },
     "href",
     "/admin/moderation",
   );
-  await captureStepScreenshot(page, testInfo, "admin/navigation-mobile");
-
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await gotoAndWaitForReady(page, "/admin/users");
-  const primaryNavigation = page
-    .getByTestId("app-sidebar")
-    .getByRole("navigation", {
-      name: /主导航|Primary navigation/i,
-    });
-  const desktopNavigationBox = await navigation.boundingBox();
-  const desktopPanelBox = await activePanel.boundingBox();
-  const adminRootLink = primaryNavigation.locator('a[href^="/admin"]');
-  await expect(adminRootLink).toHaveCount(1);
-  await expect(adminRootLink).toHaveAttribute("href", "/admin");
-  await expect(adminRootLink).toHaveAttribute("aria-current", "page");
-  await expect(adminRootLink).toBeVisible();
-  expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-  await captureStepScreenshot(page, testInfo, "admin/navigation-desktop");
+  await captureStepScreenshot(page, testInfo, "admin/navigation-keyboard");
 });
 
-test("/admin 管理员访问成功并显示所有导航卡片", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin");
-  await expect(page).toHaveURL(/\/admin(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
+test("/admin 主导航可跳转到各管理工具", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/users");
 
-  // admin.yml admin-home.display.fields: all 4 navigation entries
-  await expect(page.locator('a[href="/admin/users"]').first()).toBeVisible();
-  await expect(
-    page.locator('a[href="/admin/moderation"]').first(),
-  ).toBeVisible();
-  await expect(page.locator('a[href="/admin/oauth"]').first()).toBeVisible();
-  await expect(page.locator('a[href="/admin/bus"]').first()).toBeVisible();
+  const navigation = adminPrimaryNav(page);
+  const hops = [
+    {
+      name: /内容审核|Moderation/i,
+      url: /\/admin\/moderation(?:\?.*)?$/,
+      shot: "admin/navigate-moderation",
+    },
+    {
+      name: /OAuth|OAuth 客户端/i,
+      url: /\/admin\/oauth(?:\?.*)?$/,
+      shot: "admin/navigate-oauth",
+    },
+    {
+      name: /校车管理|Bus Management/i,
+      url: /\/admin\/bus(?:\?.*)?$/,
+      shot: "admin/navigate-bus",
+    },
+    {
+      name: /用户管理|User Management/i,
+      url: /\/admin\/users(?:\?.*)?$/,
+      shot: "admin/navigate-users",
+    },
+  ] as const;
 
-  await captureStepScreenshot(page, testInfo, "admin/home");
+  for (const { name, url, shot } of hops) {
+    const link = navigation.getByRole("link", { name });
+    await expect(link).toBeVisible();
+    await Promise.all([page.waitForURL(url), link.click()]);
+    await captureStepScreenshot(page, testInfo, shot);
+  }
 });
 
-test("/admin 卡片入口可点击跳转到用户管理和内容审核", async ({
-  page,
-}, testInfo) => {
-  await signInAsDevAdmin(page, "/admin");
+test("/admin 移动端导航覆盖全部管理工具且显示当前位置", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await signInAsDevAdmin(page, "/admin/users");
 
-  const adminPanel = page.getByTestId("admin-active-panel");
-  const usersCardLink = adminPanel.getByRole("link", {
-    name: /用户管理|User Management/i,
-  });
-  await expect(usersCardLink).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/admin\/users(?:\?.*)?$/),
-    usersCardLink.click(),
-  ]);
-  await captureStepScreenshot(page, testInfo, "admin/navigate-users");
+  const paths = [
+    { path: "/admin/users", name: /用户管理|User Management/i },
+    { path: "/admin/moderation", name: /内容审核|Moderation/i },
+    { path: "/admin/oauth", name: /OAuth|OAuth 客户端/i },
+    { path: "/admin/bus", name: /校车管理|Bus Management/i },
+  ] as const;
 
-  await gotoAndWaitForReady(page, "/admin", {
-    testInfo,
-    screenshotLabel: "admin",
-  });
-  const moderationCardLink = adminPanel.getByRole("link", {
-    name: /内容审核|Moderation/i,
-  });
-  await expect(moderationCardLink).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/admin\/moderation(?:\?.*)?$/),
-    moderationCardLink.click(),
-  ]);
-  await captureStepScreenshot(page, testInfo, "admin/navigate-moderation");
+  const mobileNavigation = page.getByTestId("admin-mobile-navigation");
+  await expect(mobileNavigation).toBeVisible();
+  await expect(page.getByTestId("mobile-primary-navigation")).toHaveCount(0);
+
+  for (const { path, name } of paths) {
+    await gotoAndWaitForReady(page, path);
+    await expect(
+      mobileNavigation.getByTestId("admin-mobile-navigation-current"),
+    ).toContainText(name);
+
+    await mobileNavigation
+      .getByTestId("admin-mobile-navigation-trigger")
+      .click();
+    const panel = page.getByTestId("admin-mobile-navigation-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("link", { name })).toBeVisible();
+    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(4);
+    await panel.getByRole("link", { name }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
+  }
 });
 
-test("/admin 卡片入口可点击跳转到 OAuth 和校车管理", async ({
-  page,
-}, testInfo) => {
-  await signInAsDevAdmin(page, "/admin");
-
-  const adminPanel = page.getByTestId("admin-active-panel");
-  const oauthCard = adminPanel.getByRole("link", {
-    name: /OAuth|OAuth 客户端/i,
-  });
-  await expect(oauthCard).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/admin\/oauth(?:\?.*)?$/),
-    oauthCard.click(),
-  ]);
-  await captureStepScreenshot(page, testInfo, "admin/navigate-oauth");
-
-  await gotoAndWaitForReady(page, "/admin", {
-    testInfo,
-    screenshotLabel: "admin",
-  });
-  const busCard = adminPanel.getByRole("link", {
-    name: /校车管理|Shuttle Bus/i,
-  });
-  await expect(busCard).toBeVisible();
-  await Promise.all([
-    page.waitForURL(/\/admin\/bus(?:\?.*)?$/),
-    busCard.click(),
-  ]);
-  await captureStepScreenshot(page, testInfo, "admin/navigate-bus");
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/admin", testInfo });
 });

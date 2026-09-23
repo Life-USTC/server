@@ -1,5 +1,14 @@
+import {
+  courseDetailPagePath,
+  teacherDetailPagePath,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
+  sectionDetailHomeworkPath,
+  sectionDetailPagePath,
+} from "@/features/section-detail/lib/section-detail-tab";
+
 export function commentPanelSignInHref(pathname: string, search: string) {
-  return `/signin?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
+  return `/account/sign-in?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
 }
 
 export function commentPanelStatusLabel(
@@ -56,37 +65,26 @@ export type CommentPermalinkTarget =
       homeworkId: PermalinkPathValue;
       sectionJwId: PermalinkPathValue;
       type: "homework";
+    }
+  | {
+      type: "young-event";
+      youngId: PermalinkPathValue;
     };
-
-function pathSegment(value: PermalinkPathValue) {
-  return encodeURIComponent(String(value));
-}
-
-function pathWithSearch(
-  pathname: string,
-  search: Record<string, PermalinkPathValue>,
-) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(search)) {
-    params.set(key, String(value));
-  }
-  return `${pathname}?${params.toString()}`;
-}
 
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
   if (target.type === "course") {
-    return `/courses/${pathSegment(target.courseJwId)}/comments`;
+    return courseDetailPagePath(target.courseJwId, "comments");
   }
   if (target.type === "teacher") {
-    return `/teachers/${pathSegment(target.teacherId)}/comments`;
+    return teacherDetailPagePath(target.teacherId, "comments");
   }
   if (target.type === "homework") {
-    return pathWithSearch(
-      `/sections/${pathSegment(target.sectionJwId)}/homework`,
-      {
-        homeworkId: target.homeworkId,
-      },
-    );
+    return sectionDetailHomeworkPath(target.sectionJwId, {
+      homeworkId: target.homeworkId,
+    });
   }
-  return `/sections/${pathSegment(target.sectionJwId)}/comments`;
+  if (target.type === "young-event") {
+    return `/catalog/young-events/${encodeURIComponent(String(target.youngId))}#comments`;
+  }
+  return sectionDetailPagePath(target.sectionJwId, "comments");
 }

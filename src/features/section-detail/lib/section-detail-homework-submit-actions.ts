@@ -32,6 +32,7 @@ export function createSectionHomeworkSubmitActions(
     await loadHomeworks();
     input.closeCreateHomeworkDialog();
     formElement.reset();
+    input.onSuccess?.("create");
   }
 
   async function updateHomework(event: SubmitEvent) {
@@ -65,6 +66,7 @@ export function createSectionHomeworkSubmitActions(
 
     input.cancelEditHomework();
     await loadHomeworks();
+    input.onSuccess?.("update");
   }
 
   return { createHomework, updateHomework };

@@ -1,31 +1,41 @@
 import {
   getAcademicMetadata,
-  getCurrentSemester,
+  getCachedCurrentSemester,
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  parseRouteQuery,
-} from "@/lib/api/helpers";
+import { handleRouteError, notFound, parseRouteQuery } from "@/lib/api/helpers";
+import { schemaJsonResponse } from "@/lib/api/responses";
+import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
-import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
+import {
+  metadataResponseSchema,
+  paginatedSemesterResponseSchema,
+  semesterSchema,
+} from "@/lib/api/schemas/response-schemas";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
+import {
+  currentSemesterCacheHeaders,
+  PUBLIC_CATALOG_HEADERS,
+} from "@/lib/public-cache-control";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
-const METADATA_API_CACHE_TTL_MS = 60_000;
-const SEMESTERS_API_CACHE_TTL_MS = 60_000;
+export async function getMetadataRoute(request: Request) {
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+  const { cacheHeaders, locale } = localeResolution;
 
-export async function getMetadataRoute() {
   try {
-    const metadata = await cachedPublicRuntimeData(
+    const metadata = await cachedCatalogRuntimeData(
       "api:metadata",
-      METADATA_API_CACHE_TTL_MS,
-      getAcademicMetadata,
+      `api:metadata:${locale}`,
+      getCanonicalOrigin(),
+      () => getAcademicMetadata(locale),
     );
 
-    return jsonResponse(metadata, {
-      headers: PUBLIC_CATALOG_HEADERS,
+    return schemaJsonResponse(metadataResponseSchema, metadata, {
+      headers: cacheHeaders,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);
@@ -46,13 +56,15 @@ export async function getSemestersRoute(request: Request) {
     }
     const { page, pageSize } = parsed.pagination;
 
-    const result = await cachedPublicRuntimeData(
+    const origin = new URL(request.url).origin;
+    const result = await cachedCatalogRuntimeData(
+      "api:semesters",
       `api:semesters:${JSON.stringify({ page, pageSize })}`,
-      SEMESTERS_API_CACHE_TTL_MS,
+      origin,
       () => listSemesters({ page, pageSize }),
     );
 
-    return jsonResponse(result, {
+    return schemaJsonResponse(paginatedSemesterResponseSchema, result, {
       headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
@@ -60,15 +72,17 @@ export async function getSemestersRoute(request: Request) {
   }
 }
 
-export async function getCurrentSemesterRoute() {
+export async function getCurrentSemesterRoute(referenceDate = new Date()) {
   try {
-    const currentSemester = await getCurrentSemester(new Date());
+    const currentSemester = await getCachedCurrentSemester(referenceDate);
 
     if (!currentSemester) {
       return notFound("No current semester found");
     }
 
-    return jsonResponse(currentSemester);
+    return schemaJsonResponse(semesterSchema, currentSemester, {
+      headers: currentSemesterCacheHeaders(referenceDate),
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch current semester", error);
   }

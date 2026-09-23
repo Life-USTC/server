@@ -6,6 +6,7 @@ const optionalPositiveInt = z.number().int().positive().optional();
 
 export const commonEnvSchema = z.object({
   DATABASE_URL: optionalString,
+  AUTH_DATABASE_URL: optionalString,
   APP_PUBLIC_ORIGIN: optionalUrl,
   APP_CANONICAL_ORIGIN: optionalUrl,
   AUTH_SECRET: optionalString,
@@ -17,11 +18,16 @@ export const commonEnvSchema = z.object({
   AUTH_OIDC_CLIENT_ID: optionalString,
   AUTH_OIDC_CLIENT_SECRET: optionalString,
   OAUTH_PROXY_SECRET: optionalString,
+  PUBLICATION_INGESTION_SECRET: optionalString,
+  METRICS_SECRET: optionalString,
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
   UPLOAD_TOTAL_QUOTA_MB: optionalPositiveInt,
   E2E_DEBUG_AUTH: optionalString,
+  AMAP_API_KEY: optionalString,
+  CLOUDFLARE_ANALYTICS_ACCOUNT_ID: optionalString,
+  CLOUDFLARE_ANALYTICS_API_TOKEN: optionalString,
 });
 
 export const runtimeRequiredEnvSchema = z.object({
@@ -29,10 +35,18 @@ export const runtimeRequiredEnvSchema = z.object({
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
 });
 
+export const productionRuntimeRequiredEnvSchema =
+  runtimeRequiredEnvSchema.extend({
+    AUTH_DATABASE_URL: z.string().min(1, "AUTH_DATABASE_URL is required"),
+  });
+
 export const cloudflareRuntimeRequiredEnvSchema = z.object({
   HYPERDRIVE_CONNECTION_STRING: z
     .string()
     .min(1, "HYPERDRIVE.connectionString is required"),
+  AUTH_HYPERDRIVE_CONNECTION_STRING: z
+    .string()
+    .min(1, "HYPERDRIVE_AUTH.connectionString is required"),
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
 });
 

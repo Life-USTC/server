@@ -16,6 +16,7 @@ export async function deleteAdminHomeworkRoute(
       const id = parsed.id;
 
       const result = await deleteHomework({
+        audit: { channel: "rest" },
         homeworkId: id,
         userId: admin.userId,
       });
@@ -25,6 +26,5 @@ export async function deleteAdminHomeworkRoute(
 
       return jsonResponse({ success: true });
     },
-    { requireActive: true },
   );
 }

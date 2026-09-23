@@ -1,6 +1,4 @@
 <script lang="ts">
-import * as Accordion from "$lib/components/ui/accordion/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
@@ -13,16 +11,12 @@ export let sectionCopy: SectionBasicInfoCopy;
 </script>
 
 {#if section.adminClasses.length > 0}
-  <Accordion.Root type="single" value="admin-classes">
-    <Accordion.Item value="admin-classes">
-      <Accordion.Trigger>{sectionCopy.adminClasses}</Accordion.Trigger>
-      <Accordion.Content>
-        <div class="flex flex-wrap gap-2">
-          {#each section.adminClasses as adminClass}
-            <Badge variant="outline">{primaryName(adminClass)}</Badge>
-          {/each}
-        </div>
-      </Accordion.Content>
-    </Accordion.Item>
-  </Accordion.Root>
+  <section class="grid gap-3">
+    <h3 class="text-sm font-semibold tracking-tight">{sectionCopy.adminClasses}</h3>
+    <ul class="grid gap-1.5 text-sm leading-relaxed">
+      {#each section.adminClasses as adminClass}
+        <li class="min-w-0 font-medium">{primaryName(adminClass)}</li>
+      {/each}
+    </ul>
+  </section>
 {/if}

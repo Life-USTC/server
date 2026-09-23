@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { PluggableList } from "unified";
-import { renderMarkdown } from "$lib/components/markdown-preview-renderer";
+import { renderEmbeddedMarkdown } from "$lib/components/markdown-preview-renderer";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { cn } from "$lib/utils.js";
 import "$lib/components/markdown-preview.css";
@@ -14,11 +14,11 @@ let className = "";
 export { className as class };
 
 $: renderedHtml = content.trim()
-  ? renderMarkdown(content, { remarkPlugins })
+  ? renderEmbeddedMarkdown(content, { remarkPlugins })
   : "";
 </script>
 
-<div class={cn("markdown-preview grid gap-3 text-sm leading-6", className)} data-slot="markdown-preview">
+<div class={cn("markdown-preview text-sm", className)} data-slot="markdown-preview">
   {#if renderedHtml}
     {@html renderedHtml}
   {:else if emptyLabel}

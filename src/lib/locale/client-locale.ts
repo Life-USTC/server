@@ -11,7 +11,7 @@ export async function setClientLocale({
 }) {
   onBeforeRequest();
   if (locale === currentLocale) return;
-  const response = await fetch("/api/locale", {
+  const response = await fetch("/api/account/preferences", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ locale }),

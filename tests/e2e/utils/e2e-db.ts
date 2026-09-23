@@ -7,10 +7,12 @@ import * as auditFixtures from "./e2e-db/audit";
 import * as busFixtures from "./e2e-db/bus";
 import * as catalogFixtures from "./e2e-db/catalog";
 import * as oauthFixtures from "./e2e-db/oauth";
+import * as publicationFixtures from "./e2e-db/publications";
 import * as seedFixtures from "./e2e-db/seed";
 import * as userFixtures from "./e2e-db/users";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
+export type { PublicationFixture } from "./e2e-db/publications";
 
 const DB_FIXTURE_ATTEMPTS = 3;
 
@@ -21,14 +23,21 @@ const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
+  createAccountSecurityActivityFixture:
+    auditFixtures.createAccountSecurityActivityFixture,
+  deleteAccountSecurityActivityFixture:
+    auditFixtures.deleteAccountSecurityActivityFixture,
   isolateSingleActiveBusTripFixture:
     busFixtures.isolateSingleActiveBusTripFixture,
   restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
+  setBusPreferenceFixture: busFixtures.setBusPreferenceFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deletePasskeysForUserFixture: userFixtures.deletePasskeysForUserFixture,
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
+  createPublicationFixture: publicationFixtures.createPublicationFixture,
+  deletePublicationFixture: publicationFixtures.deletePublicationFixture,
   getOAuthClientByName: oauthFixtures.getOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
@@ -40,6 +49,7 @@ const operations = {
   deleteUsersByPrefix: userFixtures.deleteUsersByPrefix,
   getUserSubscribedSectionIds: userFixtures.getUserSubscribedSectionIds,
   replaceUserSubscribedSectionIds: userFixtures.replaceUserSubscribedSectionIds,
+  restoreDebugUserFixture: userFixtures.restoreDebugUserFixture,
   updateUserProfileById: userFixtures.updateUserProfileById,
 };
 
@@ -84,12 +94,14 @@ type UserProfileFixture = {
   name: string;
   username: string | null;
   image: string | null;
+  profilePictures: string[];
 };
 
 type UserProfileUpdateFixture = {
   name?: string | null;
   username?: string | null;
   image?: string | null;
+  profilePictures?: string[];
 };
 
 export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
@@ -125,6 +137,14 @@ export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
 
+export const createAccountSecurityActivityFixture = (userId: string) =>
+  runDbFixture<{ id: string }>("createAccountSecurityActivityFixture", [
+    userId,
+  ]);
+
+export const deleteAccountSecurityActivityFixture = (id: string) =>
+  runDbFixture<void>("deleteAccountSecurityActivityFixture", [id]);
+
 export const isolateSingleActiveBusTripFixture = () =>
   runDbFixture<busFixtures.BusTripTimesSnapshot>(
     "isolateSingleActiveBusTripFixture",
@@ -134,10 +154,14 @@ export const restoreBusTripTimesFixture = (
   snapshot: busFixtures.BusTripTimesSnapshot,
 ) => runDbFixture<void>("restoreBusTripTimesFixture", [snapshot]);
 
-export const createTempCoursesFixture = (options: {
-  count: number;
-  prefix: string;
-}) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
+export const setBusPreferenceFixture = (
+  userId: string,
+  preference: busFixtures.BusPreferenceFixture,
+) => runDbFixture<void>("setBusPreferenceFixture", [userId, preference]);
+
+export const createTempCoursesFixture = (
+  options: catalogFixtures.TempCoursesFixtureOptions,
+) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
 
 export const deleteTempCoursesByPrefix = (prefix: string) =>
   runDbFixture<void>("deleteTempCoursesByPrefix", [prefix]);
@@ -147,6 +171,16 @@ export const deleteOAuthClientsByName = (name: string) =>
 
 export const disableOAuthClientByName = (name: string) =>
   runDbFixture<null>("disableOAuthClientByName", [name]);
+
+export const createPublicationFixture = (prefix: string) =>
+  runDbFixture<publicationFixtures.PublicationFixture>(
+    "createPublicationFixture",
+    [prefix],
+  );
+
+export const deletePublicationFixture = (
+  fixture: publicationFixtures.PublicationFixture,
+) => runDbFixture<void>("deletePublicationFixture", [fixture]);
 
 export const getOAuthClientByName = (name: string) =>
   runDbFixture<{
@@ -186,10 +220,10 @@ export const getSeedCourseFilterFixture = (jwId: number) =>
     classTypeName: string | null;
   }>("getSeedCourseFilterFixture", [jwId]);
 
-export const getSeedTeacherDepartmentFixture = (code: string) =>
+export const getSeedTeacherDepartmentFixture = (jwId: number) =>
   runDbFixture<{ departmentId: number | null; departmentName: string | null }>(
     "getSeedTeacherDepartmentFixture",
-    [code],
+    [jwId],
   );
 
 export const getSeedSectionSemesterFixture = (jwId: number) =>
@@ -222,6 +256,9 @@ export const replaceUserSubscribedSectionIds = (
   sectionIds: number[],
 ) =>
   runDbFixture<null>("replaceUserSubscribedSectionIds", [userId, sectionIds]);
+
+export const restoreDebugUserFixture = () =>
+  runDbFixture<void>("restoreDebugUserFixture");
 
 export const createTempUsersFixture = (options: {
   prefix: string;

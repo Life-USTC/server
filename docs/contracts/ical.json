@@ -4,14 +4,16 @@
     "anon": "Can copy a single-section iCal link from the public section detail page and can retrieve a personal feed only when holding its token-bearing URL.",
     "user": "Can copy their own personal subscription iCal link.",
     "admin": "No additional exclusive iCal capabilities.",
-    "agent": "After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description."
+    "agent": "After authorization, can read the current user's personal calendar subscription information. REST requires workspace.subscription:read and exposes the private feed URL only with the additional workspace.calendar-feed:read capability; MCP workspace_calendar_feed_get returns subscription information without the personal feed URL, path, credential, or token."
   },
   "rules": {
     "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
     "no-second-model": "iCal is an export / subscription capability and should not carry a second business model.",
     "rfc5545-dtstamp-utc": "Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME with a Z suffix while retaining Asia/Shanghai TZID values for event start and end times.",
-    "personal-feed-cache": "Personal feed responses may be served from a private Workers KV-backed server-side cache with a five-minute fresh window and a bounded stale fallback during refresh failures, include ETag, return 304 Not Modified for matching If-None-Match, and write cache lifecycle Cloudflare Analytics Engine datapoints without user IDs or feed tokens. Feed-token authorization is checked against the current user record before any cached export is returned.",
-    "static-json-resilient": "Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned."
+    "bounded-multi-section-export": "A multi-section iCal export accepts at most 50 unique positive Section IDs. IDs are deduplicated and sorted into one canonical URL before the expanded Section graph is loaded, so one cold request can expand no more than 50 Sections and equivalent ID sets share the same CDN cache key.",
+    "personal-feed-cache": "Personal feeds may use a private Workers KV cache (30m fresh / 24h stale). Fresh hits serve immediately; stale hits serve cached ICS and enqueue CALENDAR_EXPORT_REBUILD. True misses rebuild on the request path (KV put may defer). Write-time invalidation enqueues rebuilds instead of waitUntil deletes. Include ETag/304. Check the current feed token before any cache read; revoked tokens for an existing user return 410 with short Cache-Control. Never put user IDs or feed tokens in cache telemetry.",
+    "static-json-resilient": "Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned.",
+    "room-maps": "Course and exam events attach highlighted room PNG URLs where annotations exist, otherwise available floor/building images. Include room-labeled map URLs in DESCRIPTION and deduplicate ATTACH URLs across all exam rooms. Unmapped locations do not prevent export."
   },
   "capabilities": {
     "section-calendar-dialog": {
@@ -21,12 +23,12 @@
         "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/[jwId]/calendar.ics",
+            "path": "/api/catalog/sections/[jwId]/calendar.ics",
             "returns": "text/calendar",
             "notes": [
               "Returns text/calendar synthesized from the section's schedule and exams."
@@ -51,21 +53,22 @@
         "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": ["/dashboard/calendar"]
+        "pages": ["/workspace/calendar"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/users/[userId]/calendar.ics",
+            "path": "/api/calendar-feeds/[credential].ics",
             "returns": "text/calendar",
             "notes": [
-              "Same-user session or bearer access is accepted.",
-              "Anonymous feed access is accepted with either ?token=... or the userId:token path segment form.",
-              "An existing user with a valid feed token receives a valid empty VCALENDAR when no items are currently available, so calendar clients can keep the subscription active."
+              "The opaque credential authorizes feed retrieval.",
+              "The credential is carried only in the canonical path segment.",
+              "An existing user with a valid feed token receives a valid empty VCALENDAR when no items are currently available, so calendar clients can keep the subscription active.",
+              "When the user exists but the feed token is wrong or revoked, the route returns 410 Gone with a short Cache-Control so calendar clients stop aggressive re-polling; unknown users return 404. Legacy /api/users/[id]:[token]/calendar.ics URLs permanently redirect (308) here with the credential preserved; the retired JWT-based /api/calendar-subscriptions/[id]/calendar.ics URL has no modern equivalent and returns 410 Gone."
             ]
           },
           {
-            "path": "/api/calendar-subscriptions/current",
+            "path": "/api/workspace/subscriptions/current",
             "reference_only": true
           }
         ]
@@ -73,13 +76,13 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_my_calendar_subscription",
+            "name": "workspace_calendar_feed_get",
             "returns": "{ success: Boolean, subscription?, message?: String }",
-            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "rest_equivalent": "GET /api/workspace/subscriptions/current",
             "notes": [
-              "Default mode returns feed links plus current-semester section context instead of the full subscribed section list.",
+              "Requires workspace.subscription:read. Returns the current user's subscription information and subscribed sections; it never returns the private personal iCal feed URL, calendarPath, credential, or token-bearing URL.",
               "The deprecated summary input is an alias for the same compact default response.",
-              "In default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed."
+              "Full mode adds the complete subscribed section list but does not add a personal iCal feed URL or other feed credential."
             ]
           }
         ]
@@ -95,10 +98,12 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/calendar.ics",
+            "path": "/api/catalog/sections/calendar.ics",
             "returns": "text/calendar",
             "notes": [
-              "Generates a multi-section iCal based on sectionIds query parameter."
+              "Generates a multi-section iCal based on a comma-separated sectionIds query parameter.",
+              "Accepts at most 50 unique positive Section IDs. Malformed or empty input returns 400.",
+              "IDs are deduplicated and sorted; non-canonical requests permanently redirect to the canonical cache URL before loading calendar relations."
             ]
           }
         ]

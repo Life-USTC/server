@@ -2,7 +2,7 @@ import type { ICalCalendar } from "ical-generator";
 import type { CalendarSection } from "@/features/calendar/server/ical-event-types";
 import type {
   GeoData,
-  ImgRules,
+  RoomMaps,
 } from "@/features/calendar/server/ical-event-utils";
 import { createExamEvent } from "@/features/calendar/server/ical-section-exam-event";
 import { createScheduleEvent } from "@/features/calendar/server/ical-section-schedule-event";
@@ -12,7 +12,7 @@ export function appendSectionEvents(
   calendar: ICalCalendar,
   sections: CalendarSection[],
   geoData: GeoData,
-  imgRules: ImgRules,
+  roomMaps: RoomMaps,
   locale: AppLocale,
 ) {
   for (const section of sections) {
@@ -22,12 +22,12 @@ export function appendSectionEvents(
         section,
         calendar,
         geoData,
-        imgRules,
+        roomMaps,
         locale,
       );
     }
     for (const exam of section.exams) {
-      createExamEvent(exam, section, calendar, geoData, imgRules, locale);
+      createExamEvent(exam, section, calendar, geoData, roomMaps, locale);
     }
   }
 }

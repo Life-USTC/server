@@ -1,5 +1,6 @@
+import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import type { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   buildUserCalendarFeedPath,
@@ -7,18 +8,28 @@ import {
 } from "./calendar-feed-token";
 
 export const SECTION_SUBSCRIPTION_NOTE =
-  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
+  "Life@USTC section subscriptions only affect your workspace and calendar here. They are not official USTC course enrollment.";
 
-export const userSectionSubscriptionSelect = {
+export const subscribedSectionDetailSelect = {
   id: true,
-  calendarFeedToken: true,
-  subscribedSections: { select: { id: true, jwId: true } },
-} satisfies Prisma.UserSelect;
+  jwId: true,
+  semesterId: true,
+  retiredAt: true,
+} satisfies Prisma.SectionSelect;
 
-export interface UserSectionSubscriptionState {
-  userId: string;
-  subscriptionIcsUrl: string;
-  subscribedSections: number[];
+export type SubscribedSectionDetail = Prisma.SectionGetPayload<{
+  select: typeof subscribedSectionDetailSelect;
+}>;
+
+export function subscribedSectionsFromUser(
+  user:
+    | {
+        sectionSubscriptions: Array<{ section: SubscribedSectionDetail }>;
+      }
+    | null
+    | undefined,
+): SubscribedSectionDetail[] {
+  return user?.sectionSubscriptions.map((row) => row.section) ?? [];
 }
 
 export type SectionOption = {
@@ -26,54 +37,58 @@ export type SectionOption = {
   jwId: number | null;
   code: string | null;
   courseName: string | null;
+  nextClassStarts: string[];
   semesterName: string | null;
   semesterStart: string | null;
   semesterEnd: string | null;
+  teacherName: string | null;
 };
 
 export async function getSubscribedSectionIds(
   userId: string,
 ): Promise<number[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscribedSections: { select: { id: true } } },
-  });
-  return user?.subscribedSections.map((s) => s.id) ?? [];
+  const rows = await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.findMany({
+      where: { userId },
+      select: { sectionId: true },
+    }),
+  );
+  return rows.map((row) => row.sectionId);
 }
 
 export async function getActiveSubscribedSectionIds(
   userId: string,
   sectionIds?: readonly number[],
 ): Promise<number[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        where: {
+  const rows = await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.findMany({
+      where: {
+        userId,
+        section: {
           retiredAt: null,
           ...(sectionIds ? { id: { in: Array.from(sectionIds) } } : {}),
         },
-        select: { id: true },
       },
-    },
-  });
-  return user?.subscribedSections.map((section) => section.id) ?? [];
+      select: { sectionId: true },
+    }),
+  );
+  return rows.map((row) => row.sectionId);
 }
 
 export async function getSubscribedSectionIdsForSemester(
   userId: string,
   semesterId: number,
 ): Promise<number[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        where: { semesterId },
-        select: { id: true },
+  const rows = await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.findMany({
+      where: {
+        userId,
+        section: { semesterId },
       },
-    },
-  });
-  return user?.subscribedSections.map((s) => s.id) ?? [];
+      select: { sectionId: true },
+    }),
+  );
+  return rows.map((row) => row.sectionId);
 }
 
 export async function resolveSubscribedSectionIds(
@@ -105,22 +120,31 @@ export async function buildCalendarFeedPath(
   return buildUserCalendarFeedPath(userId, token);
 }
 
-export function sectionOptionFromRow(row: {
-  id: number;
-  jwId: number | null;
-  code: string | null;
-  course: { namePrimary: string | null } | null;
-  semester: {
-    nameCn: string | null;
-    startDate: Date | null;
-    endDate: Date | null;
-  } | null;
-}) {
+export function sectionOptionFromRow(
+  row: {
+    id: number;
+    jwId: number | null;
+    code: string | null;
+    course: { namePrimary: string | null } | null;
+    semester: {
+      nameCn: string | null;
+      startDate: Date | null;
+      endDate: Date | null;
+    } | null;
+    schedules: Array<{
+      date: Date | null;
+      startTime: number;
+    }>;
+    teachers: Array<{ namePrimary: string | null }>;
+  },
+  now: Date = new Date(),
+) {
   return {
     id: row.id,
     jwId: row.jwId,
     code: row.code,
     courseName: row.course?.namePrimary ?? null,
+    nextClassStarts: nextHomeworkClassStarts(row.schedules, now),
     semesterName: row.semester?.nameCn ?? null,
     semesterStart: row.semester?.startDate
       ? toShanghaiIsoString(row.semester.startDate)
@@ -128,6 +152,11 @@ export function sectionOptionFromRow(row: {
     semesterEnd: row.semester?.endDate
       ? toShanghaiIsoString(row.semester.endDate)
       : null,
+    teacherName:
+      row.teachers
+        .map((teacher) => teacher.namePrimary)
+        .filter((name): name is string => Boolean(name))
+        .join(", ") || null,
   };
 }
 

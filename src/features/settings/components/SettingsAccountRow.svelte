@@ -3,6 +3,7 @@ import { enhance } from "$app/forms";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import SettingsUstcIdentityPanel from "./SettingsUstcIdentityPanel.svelte";
 import type {
   SettingsAccount,
   SettingsAccountAction,
@@ -21,7 +22,7 @@ export let unlinkAccountId: string | null;
 export let user: SettingsUser;
 </script>
 
-<Item.Root variant="outline">
+<Item.Root role="listitem" variant="outline">
   <Item.Content class="min-w-0">
     <Item.Title>{account.name}</Item.Title>
     <Item.Description class="truncate">
@@ -32,7 +33,7 @@ export let user: SettingsUser;
     {#if account.linked}
       <Badge variant="secondary">{copy.profile.connected}</Badge>
       <Button
-        size="sm"
+       
         variant="outline"
         type="button"
         disabled={!isMounted || user.accountCount <= 1 || hasPendingAccountAction}
@@ -50,7 +51,6 @@ export let user: SettingsUser;
       >
         <input type="hidden" name="providerId" value={account.id} />
         <Button
-          size="sm"
           type="submit"
           disabled={!isMounted || hasPendingAccountAction}
         >
@@ -68,3 +68,5 @@ export let user: SettingsUser;
     </Item.Footer>
   {/if}
 </Item.Root>
+
+<SettingsUstcIdentityPanel {account} {copy} />

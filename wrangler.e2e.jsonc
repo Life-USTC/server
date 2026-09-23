@@ -1,10 +1,27 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "life-ustc-e2e",
-  "main": ".svelte-kit/cloudflare/_worker.js",
-  "compatibility_date": "2026-06-08",
-  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "exports": {
+    "PublicSsr": {
+      "type": "worker",
+      // `cross_version_cache` stays off deliberately. Entries are partitioned
+      // per Worker version, so every deploy starts cold; sharing them across
+      // versions would serve HTML rendered by a previous version with no
+      // automatic invalidation. Invalidation is by `Cache-Tag` through
+      // `POST /_internal/edge-cache/purge`, which hops into this entrypoint —
+      // a zone purge cannot reach Workers Caching content.
+      "cache": {
+        "enabled": true
+      }
+    }
+  },
   "vars": {
+    // This disposable Worker keeps the production auth gate active: debug
+    // credentials are enabled only by the explicit E2E_DEBUG_AUTH flag, and
+    // auth-config rejects that flag when NODE_ENV is production.
     "NODE_ENV": "test",
     "APP_PUBLIC_ORIGIN": "http://localhost:3000",
     "AUTH_SECRET": "e2e-dev-secret-not-for-production",
@@ -17,16 +34,30 @@
     "DEV_ADMIN_NAME": "校园管理员",
     "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
     "DEV_ADMIN_PASSWORD": "dev-admin-password",
+    "METRICS_SECRET": "e2e-metrics-secret-not-for-production",
+    "PUBLICATION_INGESTION_SECRET": "e2e-publication-ingestion-secret",
     "UPLOAD_TOTAL_QUOTA_MB": "100"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/*",
+      "!/_app/*",
+      "!/images/*",
+      "!/static/*",
+      "!/openapi.generated.json"
+    ]
+  },
+  "images": {
+    "binding": "IMAGES"
   },
   "observability": {
     "enabled": false
   },
   "alias": {
+    "@better-auth/core/async_hooks": "./src/lib/cloudflare/better-auth-async-hooks.ts",
+    "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
     "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
     "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
     "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
@@ -35,14 +66,25 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "local",
-      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+      "id": "local"
+    },
+    {
+      "binding": "HYPERDRIVE_AUTH",
+      "id": "local-auth"
+    },
+    {
+      "binding": "HYPERDRIVE_MAINTENANCE",
+      "id": "local-maintenance"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "CALENDAR_EXPORTS",
       "id": "c7411aac14fa45a6bb6f8b8f6b8e1a1d"
+    },
+    {
+      "binding": "CATALOG_DETAIL_CORE",
+      "id": "cd40f139a6c14613adba65dc294dc168"
     }
   ],
   "ratelimits": [
@@ -67,6 +109,36 @@
     {
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
+    },
+    {
+      "binding": "R2_PUBLICATIONS",
+      "bucket_name": "life-ustc-publications"
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "CALENDAR_EXPORT_REBUILD",
+        "queue": "life-ustc-calendar-export-rebuild"
+      },
+      {
+        "binding": "AUDIT_LOG_WRITES",
+        "queue": "life-ustc-audit-log-write"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "life-ustc-calendar-export-rebuild",
+        "max_batch_size": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "life-ustc-calendar-export-rebuild-dlq"
+      },
+      {
+        "queue": "life-ustc-audit-log-write",
+        "max_batch_size": 20,
+        "max_retries": 5,
+        "dead_letter_queue": "life-ustc-audit-log-write-dlq"
+      }
+    ]
+  }
 }

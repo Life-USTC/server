@@ -5,6 +5,7 @@ import type {
   RawComment,
   ViewerInfo,
 } from "./comment-serialization-types";
+import { shouldHideCommentByVisibilityPolicy } from "./comment-visibility-policy";
 
 export function buildAuthorSummary(comment: RawComment) {
   const user = comment.user;
@@ -25,6 +26,10 @@ export function buildAuthorSummary(comment: RawComment) {
 }
 
 export function buildReactionSummary(comment: RawComment, viewer: ViewerInfo) {
+  if (Array.isArray(comment.reactionSummaries)) {
+    return comment.reactionSummaries;
+  }
+
   const reactionMap = new Map<string, CommentReactionSummary>();
   const reactions = Array.isArray(comment.reactions) ? comment.reactions : [];
 
@@ -55,7 +60,7 @@ export function buildAttachments(comment: RawComment) {
       id: attachment.id,
       uploadId: attachment.uploadId,
       filename: upload.filename ?? "",
-      url: `/api/uploads/${attachment.uploadId}/download`,
+      url: `/api/workspace/uploads/${attachment.uploadId}/download`,
       contentType: upload.contentType ?? null,
       size: upload.size ?? 0,
     } satisfies CommentAttachmentSummary;
@@ -69,12 +74,15 @@ export function shouldHideComment(
   hasVisibleDescendant: boolean,
 ) {
   if (comment.status === "deleted" && !hasVisibleDescendant) return true;
-  if (comment.status === "softbanned" && !viewer.isAdmin && !isAuthor)
-    return true;
-  if (comment.visibility === "logged_in_only" && !viewer.isAuthenticated)
-    return true;
-
-  return false;
+  return shouldHideCommentByVisibilityPolicy(
+    {
+      status: comment.status,
+      userId: comment.userId ?? null,
+      visibility: comment.visibility,
+    },
+    viewer,
+    isAuthor,
+  );
 }
 
 export function shouldHideAuthor(

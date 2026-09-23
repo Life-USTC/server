@@ -17,8 +17,13 @@ export let onCreate: () => void;
 </script>
 
 <PageHeader title={copy.adminTitle} description={copy.adminSubtitle} eyebrow={adminCopy.title}>
+  {#snippet after()}
+    <p class="rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+      {copy.publicationIngestionServiceNotice}
+    </p>
+  {/snippet}
   {#snippet actions()}
-    <Button class="w-full sm:w-auto" size="sm" type="button" {disabled} onclick={onCreate}>
+    <Button class="w-full sm:w-auto" type="button" {disabled} onclick={onCreate}>
       {copy.createClient}
     </Button>
   {/snippet}

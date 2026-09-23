@@ -1,29 +1,66 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "life-ustc",
-  "preview_urls": true,
-  "main": ".svelte-kit/cloudflare/_worker.js",
-  "compatibility_date": "2026-06-08",
-  "compatibility_flags": ["nodejs_compat"],
+  "preview_urls": false,
+  "workers_dev": false,
+  "main": "src/worker.js",
+  "upload_source_maps": true,
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "exports": {
+    "PublicSsr": {
+      "type": "worker",
+      // `cross_version_cache` stays off deliberately. Entries are partitioned
+      // per Worker version, so every deploy starts cold; sharing them across
+      // versions would serve HTML rendered by a previous version with no
+      // automatic invalidation. Invalidation is by `Cache-Tag` through
+      // `POST /_internal/edge-cache/purge`, which hops into this entrypoint —
+      // a zone purge cannot reach Workers Caching content.
+      "cache": {
+        "enabled": true
+      }
+    }
+  },
   "vars": {
     "NODE_ENV": "production",
     "APP_PUBLIC_ORIGIN": "https://life-ustc.tiankaima.dev"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/*",
+      "!/_app/*",
+      "!/images/*",
+      "!/static/*",
+      "!/openapi.generated.json"
+    ]
+  },
+  "images": {
+    "binding": "IMAGES"
+  },
+  "triggers": {
+    "crons": [
+      "7 */2 * * *",
+      "23 */6 * * *",
+      "*/20 * * * *",
+      "*/30 * * * *",
+      "*/10 * * * *"
+    ]
   },
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
-      "invocation_logs": true,
-      "persist": true
+      "persist": true,
+      "invocation_logs": true
     },
     "traces": {
       "enabled": true,
-      "head_sampling_rate": 0.1
+      "persist": true,
+      "head_sampling_rate": 1
     }
   },
   "routes": [
@@ -37,9 +74,11 @@
     "mode": "smart"
   },
   "limits": {
-    "cpu_ms": 1000
+    "cpu_ms": 30000
   },
   "alias": {
+    "@better-auth/core/async_hooks": "./src/lib/cloudflare/better-auth-async-hooks.ts",
+    "life-ustc-sveltekit-worker": "./.svelte-kit/cloudflare/_sveltekit.js",
     "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
     "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
     "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
@@ -49,6 +88,16 @@
     {
       "binding": "HYPERDRIVE",
       "id": "84d80963a096419cb1f1c9846f164bf1",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_AUTH",
+      "id": "b7f9049677d44b47881f5ceccb45d890",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    },
+    {
+      "binding": "HYPERDRIVE_MAINTENANCE",
+      "id": "ad3117a4ce234e2387cf44522b65a7d9",
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
@@ -62,6 +111,14 @@
     {
       "binding": "CALENDAR_EXPORTS",
       "id": "c7411aac14fa45a6bb6f8b8f6b8e1a1d"
+    },
+    {
+      "binding": "CATALOG_DETAIL_CORE",
+      "id": "cd40f139a6c14613adba65dc294dc168"
+    },
+    {
+      "binding": "WEATHER",
+      "id": "6966f79ed6b3409580abc67daf1f403b"
     }
   ],
   "ratelimits": [
@@ -86,6 +143,46 @@
     {
       "binding": "R2_UPLOADS",
       "bucket_name": "life-ustc"
+    },
+    {
+      "binding": "R2_PUBLICATIONS",
+      "bucket_name": "life-ustc-publications"
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "CALENDAR_EXPORT_REBUILD",
+        "queue": "life-ustc-calendar-export-rebuild"
+      },
+      {
+        "binding": "AUDIT_LOG_WRITES",
+        "queue": "life-ustc-audit-log-write"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "life-ustc-calendar-export-rebuild",
+        "max_batch_size": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "life-ustc-calendar-export-rebuild-dlq"
+      },
+      {
+        "queue": "life-ustc-audit-log-write",
+        "max_batch_size": 20,
+        "max_retries": 5,
+        "dead_letter_queue": "life-ustc-audit-log-write-dlq"
+      },
+      {
+        "queue": "life-ustc-calendar-export-rebuild-dlq",
+        "max_batch_size": 100,
+        "max_retries": 0
+      },
+      {
+        "queue": "life-ustc-audit-log-write-dlq",
+        "max_batch_size": 100,
+        "max_retries": 0
+      }
+    ]
+  }
 }

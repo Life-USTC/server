@@ -1,5 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  type AuditLogParams,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -15,10 +18,18 @@ type DescriptionUpsertError =
   | "not_found"
   | "suspended";
 
-type DescriptionEditAuditMetadata = {
-  ipAddress?: string;
+type DescriptionEditAuditMetadata = Pick<
+  AuditLogParams,
+  | "channel"
+  | "ipAddress"
+  | "oauthClientId"
+  | "oauthGrantId"
+  | "requestId"
+  | "sessionId"
+  | "subjectUserId"
+  | "userAgent"
+> & {
   source?: string;
-  userAgent?: string;
 };
 
 export async function upsertDescriptionContent({
@@ -132,7 +143,6 @@ export async function writeDescriptionContentInTransaction(
 
   await writeDescriptionEditAuditLog({
     client,
-    content,
     descriptionId: description.id,
     metadata: auditMetadata,
     targetType,
@@ -144,32 +154,31 @@ export async function writeDescriptionContentInTransaction(
 
 async function writeDescriptionEditAuditLog({
   client,
-  content,
   descriptionId,
   metadata,
   targetType,
   userId,
 }: {
   client: Prisma.TransactionClient;
-  content: string;
   descriptionId: string;
   metadata?: DescriptionEditAuditMetadata;
   targetType: DescriptionTargetType;
   userId: string;
 }) {
-  const { source, ...requestMetadata } = metadata ?? {};
+  const { source, ...audit } = metadata ?? {};
   await writeAuditLog(
     {
       action: "description_edit",
+      ...audit,
       userId,
+      subjectUserId: audit.subjectUserId ?? userId,
       targetId: descriptionId,
       targetType: "description",
       metadata: {
         targetType,
-        content: content.slice(0, 200),
+        changedFields: ["content"],
         ...(source ? { source } : {}),
       },
-      ...requestMetadata,
     },
     client,
   );

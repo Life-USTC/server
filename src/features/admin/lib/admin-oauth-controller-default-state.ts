@@ -15,11 +15,11 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
     selectedScopes: [
       "openid",
       "profile",
-      "me:read",
-      "todo:read",
-      "todo:write",
-      "homework:read",
-      "homework:write",
+      "account.profile:read",
+      "workspace.todo:read",
+      "workspace.todo:write",
+      "workspace.homework:read",
+      "workspace.homework:write",
     ],
   };
 }

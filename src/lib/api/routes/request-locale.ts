@@ -1,8 +1,13 @@
-import { isAppLocale, LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
+import {
+  DEFAULT_LOCALE,
+  isAppLocale,
+  LOCALE_COOKIE,
+  negotiateLocale,
+} from "@/i18n/config";
 import { jsonResponse } from "@/lib/api/helpers";
 import {
   PRIVATE_LOCALE_CATALOG_HEADERS,
-  PUBLIC_LOCALE_CATALOG_HEADERS,
+  PUBLIC_CATALOG_HEADERS,
 } from "@/lib/public-cache-control";
 
 function getCookieValue(request: Request, name: string) {
@@ -42,13 +47,13 @@ export function resolvePublicCatalogLocale(request: Request) {
     }
 
     return {
-      cacheHeaders: PUBLIC_LOCALE_CATALOG_HEADERS,
+      cacheHeaders: PUBLIC_CATALOG_HEADERS,
       locale: explicitLocale,
     } as const;
   }
 
   return {
-    cacheHeaders: PRIVATE_LOCALE_CATALOG_HEADERS,
-    locale: getRequestLocale(request),
+    cacheHeaders: PUBLIC_CATALOG_HEADERS,
+    locale: DEFAULT_LOCALE,
   } as const;
 }

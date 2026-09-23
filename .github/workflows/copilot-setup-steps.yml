@@ -12,6 +12,9 @@ on:
       - package.json
       - prisma.config.ts
       - prisma/migrations/**
+      - prisma/roles/**
+      - tests/ci/setup-runtime-database.sh
+      - tests/integration/fixtures/rls-runtime-bootstrap.sql
       - prisma/schema.prisma
       - svelte.config.js
       - svelte.openapi.json
@@ -26,6 +29,9 @@ on:
       - package.json
       - prisma.config.ts
       - prisma/migrations/**
+      - prisma/roles/**
+      - tests/ci/setup-runtime-database.sh
+      - tests/integration/fixtures/rls-runtime-bootstrap.sql
       - prisma/schema.prisma
       - svelte.config.js
       - svelte.openapi.json
@@ -54,22 +60,34 @@ jobs:
           --health-retries 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure job environment
         shell: bash
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
+            echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
+            echo "ALLOW_DATABASE_SEED=true"
+            echo "WEBHOOK_LOGIN_ENABLED=true"
             echo "WEBHOOK_SECRET=copilot-local-secret"
-            echo "AUTH_SECRET=copilot-local-secret"
+            echo "AUTH_SECRET=e2e-dev-secret-not-for-production"
           } >> "$GITHUB_ENV"
 
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Prepare database and generated artifacts
         shell: bash
         run: |
-          bun run db:migrate:deploy
           bun run app:prepare
+          source tests/ci/setup-runtime-database.sh
+          for variable in DATABASE_URL AUTH_DATABASE_URL MAINTENANCE_DATABASE_URL \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH \
+            CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE; do
+            printf '%s=%s\n' "$variable" "${!variable}" >> "$GITHUB_ENV"
+          done

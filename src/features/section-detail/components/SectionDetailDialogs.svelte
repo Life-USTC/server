@@ -1,7 +1,5 @@
 <script lang="ts">
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import SectionCalendarDialog from "./SectionCalendarDialog.svelte";
-import SectionHomeworkDialogs from "./SectionHomeworkDialogs.svelte";
 import SectionSubscribeDialog from "./SectionSubscribeDialog.svelte";
 import type {
   BooleanSetter,
@@ -12,6 +10,7 @@ import type { SectionDetailDialogsProps } from "./section-detail-dialog-types";
 export let auditLogsForHomework: SectionDetailDialogsProps["auditLogsForHomework"];
 export let canManageSelectedHomework: boolean;
 export let canWriteHomework: boolean;
+export let completionSaving: boolean;
 export let cancelEditHomework: SectionDetailDialogsProps["cancelEditHomework"];
 export let clipboardError: string;
 export let clipboardMessage: string;
@@ -42,10 +41,11 @@ export let homeworkAuditActorName: SectionDetailDialogsProps["homeworkAuditActor
 export let homeworkAuditLogs: SectionDetailDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailDialogsProps["homeworkCopy"];
 export let homeworkMessage: string;
-export let homeworkStatus: SectionDetailDialogsProps["homeworkStatus"];
 export let isCalendarDialogOpen: boolean;
 export let isHomeworkAuditDialogOpen: boolean;
+export let locale: string;
 export let sectionCopy: SectionDetailDialogsProps["sectionCopy"];
+export let sectionLabel: string;
 export let selectedHomework: SectionDetailDialogsProps["selectedHomework"];
 export let semesterDate: SectionDetailDialogsProps["semesterDate"];
 export let setCalendarDialogOpen: BooleanSetter;
@@ -74,9 +74,43 @@ export let applyEditDueInWeek: SectionDetailDialogsProps["applyEditDueInWeek"];
 export let applyEditPublishNow: SectionDetailDialogsProps["applyEditPublishNow"];
 export let applyEditStartAtSemesterStart: SectionDetailDialogsProps["applyEditStartAtSemesterStart"];
 export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
+
+let SectionHomeworkDialogs:
+  | typeof import("./SectionHomeworkDialogs.svelte").default
+  | null = null;
+let CalendarSubscriptionDialog:
+  | typeof import("@/features/calendar/components/CalendarSubscriptionDialog.svelte").default
+  | null = null;
+
+async function ensureSectionHomeworkDialogs() {
+  SectionHomeworkDialogs ??= (await import("./SectionHomeworkDialogs.svelte"))
+    .default;
+}
+
+async function ensureSectionCalendarDialog() {
+  CalendarSubscriptionDialog ??= (
+    await import(
+      "@/features/calendar/components/CalendarSubscriptionDialog.svelte"
+    )
+  ).default;
+}
+
+$: if (
+  showCreateHomework ||
+  selectedHomework ||
+  deleteHomeworkTarget ||
+  isHomeworkAuditDialogOpen
+) {
+  void ensureSectionHomeworkDialogs();
+}
+$: if (isCalendarDialogOpen) {
+  void ensureSectionCalendarDialog();
+}
 </script>
 
-<SectionHomeworkDialogs
+{#if SectionHomeworkDialogs}
+  <svelte:component
+    this={SectionHomeworkDialogs}
   {applyCreateDueAtSemesterEnd}
   {applyCreateDueInMonth}
   {applyCreateDueInWeek}
@@ -92,6 +126,7 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {auditLogsForHomework}
   {canManageSelectedHomework}
   {canWriteHomework}
+  {completionSaving}
   {cancelEditHomework}
   {closeCreateHomeworkDialog}
   {commentsCopy}
@@ -116,9 +151,10 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {homeworkAuditLogs}
   {homeworkCopy}
   {homeworkMessage}
-  {homeworkStatus}
   {isHomeworkAuditDialogOpen}
+  {locale}
   {sectionCopy}
+  {sectionLabel}
   sectionJwId={data.section.jwId}
   {selectedHomework}
   {semesterDate}
@@ -129,20 +165,37 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {startEditHomework}
   {toggleHomeworkCompletion}
   {updateHomework}
-/>
+  />
+{/if}
 
-<SectionCalendarDialog
+{#if CalendarSubscriptionDialog}
+  <svelte:component
+    this={CalendarSubscriptionDialog}
   {clipboardError}
   {clipboardMessage}
   close={closeCalendarDialog}
-  {copiedCalendarTarget}
-  {copyText}
+  copy={sectionCopy}
   isOpen={isCalendarDialogOpen}
-  {sectionCopy}
-  setOpen={setCalendarDialogOpen}
-  {singleCalendarUrl}
-  {subscriptionCalendarUrl}
-/>
+  onOpenChange={setCalendarDialogOpen}
+  urls={[{
+    copied: copiedCalendarTarget === "single",
+    description: sectionCopy.calendarUrlDescription,
+    id: "calendar-url",
+    label: sectionCopy.calendarUrlLabel,
+    onCopy: () => copyText(singleCalendarUrl, "single"),
+    value: singleCalendarUrl,
+  }, {
+    copied: copiedCalendarTarget === "subscription",
+    description: sectionCopy.subscriptionUrlDescription,
+    id: "subscription-url",
+    label: sectionCopy.subscriptionUrlLabel,
+    missingLabel: sectionCopy.subscriptionMissing,
+    onCopy: () => copyText(subscriptionCalendarUrl, "subscription"),
+    value: subscriptionCalendarUrl,
+    warning: sectionCopy.subscriptionPrivacyNote,
+  }]}
+  />
+{/if}
 
 {#if showSubscribeDialog && data.section.retiredAt == null}
   <SectionSubscribeDialog

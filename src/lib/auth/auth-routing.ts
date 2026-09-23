@@ -58,7 +58,11 @@ export function resolveAuthRedirectTarget(
 }
 
 export function buildSignInPageUrl(callbackUrl: string) {
-  return `/signin?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
+  return `/account/sign-in?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
+}
+
+export function buildReauthenticationPageUrl(callbackUrl: string) {
+  return `/account/sign-in?reauth=1&callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
 }
 
 export function buildCurrentPathCallbackUrl(
@@ -106,8 +110,10 @@ function isOAuthCallbackContinuation(url: URL): boolean {
 function isNonPageRequestPath(pathname: string): boolean {
   return (
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/media/") ||
     pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/_app/") ||
+    pathname.startsWith("/_internal/") ||
     pathname === "/llms.txt" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"
@@ -134,9 +140,9 @@ export function shouldRedirectIncompleteProfileToWelcome({
   }
 
   if (
-    pathname === "/welcome" ||
-    pathname === "/signin" ||
-    pathname === "/signout" ||
+    pathname === "/account/welcome" ||
+    pathname === "/account/sign-in" ||
+    pathname === "/account/sign-out" ||
     pathname.startsWith("/oauth/") ||
     isOAuthCallbackContinuation(url)
   ) {

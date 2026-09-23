@@ -2,9 +2,9 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export function resolveClientBusDayType(
   now = new Date(),
-): "weekday" | "weekend" {
+): "weekday" | "saturday" | "sunday" {
   const day = shanghaiDayjs(now).day();
-  return day === 0 || day === 6 ? "weekend" : "weekday";
+  return day === 6 ? "saturday" : day === 0 ? "sunday" : "weekday";
 }
 
 export function getShanghaiMinutesSinceMidnight(now: Date | string): number {

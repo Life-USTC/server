@@ -1,11 +1,17 @@
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { mcp } from "@better-auth/mcp";
 import { APIError } from "better-auth/api";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
-import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
+import { resolveOAuthUserEmail } from "@/lib/auth/oauth-user-email-resolve";
+import {
+  getOAuthMcpResourceUrl,
+  getOAuthProviderValidAudiences,
+} from "@/lib/mcp/urls";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import {
+  OAUTH_EMAIL_SCOPE,
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROFILE_SCOPE,
+  OAUTH_PROVIDER_CLAIMS_SUPPORTED,
   OAUTH_PROVIDER_GRANT_TYPES,
   OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/oauth/constants";
@@ -16,9 +22,15 @@ import {
 } from "@/lib/oauth/scope-registry";
 
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
-  return oauthProvider({
+  const resources = getOAuthProviderValidAudiences().map((identifier) => ({
+    identifier,
+    allowedScopes: [...OAUTH_PROVIDER_SCOPES],
+    dpopBoundAccessTokensRequired: false,
+  }));
+
+  return mcp({
     // Absolute URLs so redirects stay correct behind Docker/Caddy.
-    loginPage: `${input.authPublicOrigin}/signin`,
+    loginPage: `${input.authPublicOrigin}/account/sign-in`,
     consentPage: `${input.authPublicOrigin}/oauth/authorize`,
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
@@ -29,14 +41,14 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       : undefined,
     scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
+    resource: getOAuthMcpResourceUrl(),
+    refreshTokenReuseInterval: 30,
     refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
     clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
-    validAudiences: getOAuthProviderValidAudiences(),
-    silenceWarnings: {
-      oauthAuthServerConfig: true,
-      openidConfig: true,
-    },
+    resources,
+    cachedResources: new Set(resources.map(({ identifier }) => identifier)),
+    enforcePerClientResources: false,
     schema: {
       oauthClient: {
         modelName: "OAuthClient",
@@ -53,24 +65,31 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     },
     advertisedMetadata: {
       scopes_supported: [...PUBLIC_OAUTH_SCOPES],
-      claims_supported: [
-        "sub",
-        "name",
-        "preferred_username",
-        "picture",
-        "email",
-        "email_verified",
-      ],
+      claims_supported: [...OAUTH_PROVIDER_CLAIMS_SUPPORTED],
     },
-    customAccessTokenClaims({ referenceId }: { referenceId?: string }) {
+    customAccessTokenClaims({
+      referenceId,
+      user,
+    }: {
+      referenceId?: string;
+      user?: Record<string, unknown> | null;
+    }) {
+      if (user && !referenceId) {
+        throw new APIError("BAD_REQUEST", {
+          error: "invalid_grant",
+          error_description: "OAuth authorization is no longer active",
+        });
+      }
       return referenceId ? { [OAUTH_GRANT_ID_CLAIM]: referenceId } : {};
     },
     async customUserInfoClaims({
       jwt,
+      requestedClaims = [],
       user,
       scopes,
     }: {
       jwt: Record<string, unknown>;
+      requestedClaims?: string[];
       user: Record<string, unknown>;
       scopes: string[];
     }) {
@@ -101,12 +120,37 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       }
 
       const claims: Record<string, unknown> = {};
-      if (scopes.includes(OAUTH_PROFILE_SCOPE)) {
+      if (
+        scopes.includes(OAUTH_PROFILE_SCOPE) ||
+        requestedClaims.includes("preferred_username")
+      ) {
         const username = user.username;
         if (typeof username === "string" && username.length > 0) {
           claims.preferred_username = username;
         }
       }
+
+      const wantsEmail =
+        scopes.includes(OAUTH_EMAIL_SCOPE) ||
+        requestedClaims.includes("email") ||
+        requestedClaims.includes("email_verified");
+      if (wantsEmail) {
+        const resolved = await resolveOAuthUserEmail({
+          userId: user.id,
+          userEmail: typeof user.email === "string" ? user.email : null,
+          userEmailVerified:
+            typeof user.emailVerified === "boolean" ? user.emailVerified : null,
+        });
+        // Only override when we have a publishable mailbox (GitHub/Google
+        // VerifiedEmail or a real User.email). Leave Better Auth's base claim
+        // alone otherwise so existing OAuth clients keep current behavior for
+        // USTC-only `@users.local` accounts.
+        if (resolved) {
+          claims.email = resolved.email;
+          claims.email_verified = resolved.emailVerified;
+        }
+      }
+
       return claims;
     },
   });

@@ -30,7 +30,7 @@ export async function putHomeworkCompletionRoute(
   const id = parsedParams.id;
 
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "homework", action: "write" },
+    bearerScope: { feature: "workspace.homework", action: "write" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -57,7 +57,7 @@ export async function putHomeworkCompletionRoute(
 
 export async function putHomeworkCompletionsRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "homework", action: "write" },
+    bearerScope: { feature: "workspace.homework", action: "write" },
     rateLimit: { action: "homework:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;

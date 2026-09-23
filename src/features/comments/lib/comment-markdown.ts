@@ -7,7 +7,7 @@ export function attachmentMarkdown(
   file: File,
   upload: { filename: string; id: string },
 ) {
-  const url = `/api/uploads/${upload.id}/download`;
+  const url = `/api/workspace/uploads/${upload.id}/download`;
   return file.type.startsWith("image/")
     ? `![${upload.filename}](${url})`
     : `[${upload.filename}](${url})`;

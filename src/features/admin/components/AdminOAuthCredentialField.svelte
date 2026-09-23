@@ -5,7 +5,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 
 export let copyLabel = "";
 export let copiedMessage = "";
-export let copyText: (value: string, message: string) => void;
+export let copyText: (value: string, message: string) => unknown;
 export let label: string;
 export let showCopy = true;
 export let value: string;
@@ -18,7 +18,7 @@ export let value: string;
   </Item.Content>
   {#if showCopy}
     <Item.Actions>
-      <Button size="sm" type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
+      <Button type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
         <CopyIcon data-icon="inline-start" />
         <span>{copyLabel}</span>
       </Button>

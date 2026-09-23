@@ -32,33 +32,29 @@ const probeOnlyRoutes = new Set([
   "/api/admin/users/[id]",
   "/api/auth/oauth2/device-authorization",
   "/api/auth/oauth2/token",
-  "/api/auth/.well-known/openid-configuration",
-  "/api/bus",
-  "/api/bus/preferences",
-  "/api/calendar-subscriptions",
-  "/api/calendar-subscriptions/current",
-  "/api/calendar-subscriptions/import-codes",
-  "/api/dashboard-links/pin",
-  "/api/dashboard-links/visit",
-  "/api/health",
-  "/api/homeworks",
-  "/api/homeworks/completions",
-  "/api/homeworks/[id]",
-  "/api/homeworks/[id]/completion",
+  "/api/catalog/bus",
+  "/api/workspace/bus-preferences",
+  "/api/workspace/subscriptions",
+  "/api/workspace/subscriptions/current",
+  "/api/workspace/subscriptions/import-codes",
+  "/api/workspace/link-pins",
+  "/api/catalog/links/resolve",
+  "/api/community/section-homeworks",
+  "/api/workspace/homeworks/completions",
+  "/api/community/section-homeworks/[id]",
+  "/api/workspace/homeworks/[id]/completion",
   "/api/mcp",
-  "/api/mcp/.well-known/oauth-authorization-server",
-  "/api/mcp/.well-known/openid-configuration",
-  "/api/me",
-  "/api/me/overview",
-  "/api/me/subscriptions/homeworks",
-  "/api/me/subscriptions/schedules",
-  "/api/todos/[id]",
-  "/api/uploads",
-  "/api/uploads/complete",
-  "/api/uploads/[id]",
-  "/api/uploads/[id]/download",
-  "/api/uploads/object",
-  "/api/users/[userId]/calendar.ics",
+  "/api/account/profile",
+  "/api/workspace/overview",
+  "/api/workspace/homeworks",
+  "/api/workspace/schedules",
+  "/api/workspace/todos/[id]",
+  "/api/workspace/uploads",
+  "/api/workspace/uploads/complete",
+  "/api/workspace/uploads/[id]",
+  "/api/workspace/uploads/[id]/download",
+  "/api/workspace/uploads/object",
+  "/api/calendar-feeds/[credential].ics",
 ]);
 
 function expectSuccessfulResponse(
@@ -97,8 +93,8 @@ export async function assertApiContract(
   { routePath, baseURL }: ApiContractCase,
 ) {
   switch (routePath) {
-    case "/api/sections": {
-      const response = await request.get("/api/sections?limit=20");
+    case "/api/catalog/sections": {
+      const response = await request.get("/api/catalog/sections?limit=20");
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         data?: Array<{
@@ -123,9 +119,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/sections/[jwId]": {
+    case "/api/catalog/sections/[jwId]": {
       const response = await request.get(
-        `/api/sections/${DEV_SEED.section.jwId}`,
+        `/api/catalog/sections/${DEV_SEED.section.jwId}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as { jwId?: number; code?: string };
@@ -134,9 +130,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/sections/[jwId]/schedules": {
+    case "/api/catalog/sections/[jwId]/schedules": {
       const response = await request.get(
-        `/api/sections/${DEV_SEED.section.jwId}/schedules`,
+        `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
       );
       expect(response.status()).toBe(200);
       expect(
@@ -145,9 +141,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/sections/[jwId]/schedule-groups": {
+    case "/api/catalog/sections/[jwId]/schedule-groups": {
       const response = await request.get(
-        `/api/sections/${DEV_SEED.section.jwId}/schedule-groups`,
+        `/api/catalog/sections/${DEV_SEED.section.jwId}/schedule-groups`,
       );
       expect(response.status()).toBe(200);
       expect(
@@ -156,27 +152,27 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/sections/[jwId]/calendar.ics": {
+    case "/api/catalog/sections/[jwId]/calendar.ics": {
       await expectCalendarResponse(
         await request.get(
-          `/api/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+          `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
         ),
       );
       return;
     }
 
-    case "/api/sections/calendar.ics": {
+    case "/api/catalog/sections/calendar.ics": {
       const section = await resolveSeedSectionMatch(request);
       await expectCalendarResponse(
         await request.get(
-          `/api/sections/calendar.ics?sectionIds=${section.id}`,
+          `/api/catalog/sections/calendar.ics?sectionIds=${section.id}`,
         ),
       );
       return;
     }
 
-    case "/api/sections/match-codes": {
-      const response = await request.post("/api/sections/match-codes", {
+    case "/api/catalog/sections/match-codes": {
+      const response = await request.post("/api/catalog/sections/match-codes", {
         data: { codes: [DEV_SEED.section.code] },
       });
       expect(response.status()).toBe(200);
@@ -191,9 +187,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/users/profile": {
+    case "/api/community/users/[identifier]": {
       const response = await request.get(
-        `/api/users/profile?username=${DEV_SEED.debugUsername}`,
+        `/api/community/users/${DEV_SEED.debugUsername}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -225,9 +221,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/teachers": {
+    case "/api/catalog/teachers": {
       const response = await request.get(
-        `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -242,9 +238,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/courses": {
+    case "/api/catalog/courses": {
       const response = await request.get(
-        `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -272,9 +268,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/courses/[jwId]": {
+    case "/api/catalog/courses/[jwId]": {
       const response = await request.get(
-        `/api/courses/${DEV_SEED.course.jwId}`,
+        `/api/catalog/courses/${DEV_SEED.course.jwId}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -286,9 +282,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/teachers/[id]": {
+    case "/api/catalog/teachers/[id]": {
       const searchResponse = await request.get(
-        `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
       );
       expect(searchResponse.status()).toBe(200);
       const searchBody = (await searchResponse.json()) as {
@@ -299,17 +295,19 @@ export async function assertApiContract(
       );
       expect(teacher?.id).toBeDefined();
 
-      const response = await request.get(`/api/teachers/${teacher?.id}`);
+      const response = await request.get(
+        `/api/catalog/teachers/${teacher?.id}`,
+      );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as { nameCn?: string | null };
       expect(body.nameCn).toContain(DEV_SEED.teacher.nameCn);
       return;
     }
 
-    case "/api/schedules": {
+    case "/api/catalog/schedules": {
       const section = await resolveSeedSectionMatch(request);
       const response = await request.get(
-        `/api/schedules?sectionId=${section.id}`,
+        `/api/catalog/schedules?sectionId=${section.id}`,
       );
       expect(response.status()).toBe(200);
       expect(
@@ -319,9 +317,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/bus/routes": {
+    case "/api/catalog/bus/routes": {
       const response = await request.get(
-        `/api/bus/routes?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&versionKey=${DEV_SEED.bus.versionKey}`,
+        `/api/catalog/bus/routes?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&versionKey=${DEV_SEED.bus.versionKey}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -335,9 +333,9 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/bus/next": {
+    case "/api/catalog/bus/next": {
       const response = await request.get(
-        `/api/bus/next?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&dayType=weekday&versionKey=${DEV_SEED.bus.versionKey}`,
+        `/api/catalog/bus/next?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&dayType=weekday&versionKey=${DEV_SEED.bus.versionKey}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -348,8 +346,8 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/semesters/current": {
-      const response = await request.get("/api/semesters/current");
+    case "/api/catalog/semesters/current": {
+      const response = await request.get("/api/catalog/semesters/current");
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         jwId?: number;
@@ -364,8 +362,8 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/semesters": {
-      const response = await request.get("/api/semesters?limit=20");
+    case "/api/catalog/semesters": {
+      const response = await request.get("/api/catalog/semesters?limit=20");
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         data?: Array<{
@@ -384,8 +382,8 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/metadata": {
-      const response = await request.get("/api/metadata");
+    case "/api/catalog/metadata": {
+      const response = await request.get("/api/catalog/metadata");
       expect(response.status()).toBe(200);
       expect(
         (((await response.json()) as { campuses?: unknown[] }).campuses
@@ -394,10 +392,10 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/comments": {
+    case "/api/community/comments": {
       const section = await resolveSeedSectionMatch(request);
       const response = await request.get(
-        `/api/comments?targetType=section&targetId=${section.id}`,
+        `/api/community/comments?targetType=section&targetId=${section.id}`,
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
@@ -413,10 +411,10 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/descriptions": {
+    case "/api/community/descriptions": {
       const section = await resolveSeedSectionMatch(request);
       const response = await request.get(
-        `/api/descriptions?targetType=section&targetId=${section.id}`,
+        `/api/community/descriptions?targetType=section&targetId=${section.id}`,
       );
       expect(response.status()).toBe(200);
       expect(
@@ -426,8 +424,8 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/todos": {
-      const response = await request.get("/api/todos");
+    case "/api/workspace/todos": {
+      const response = await request.get("/api/workspace/todos");
       expect(response.status()).toBe(401);
       return;
     }
@@ -441,14 +439,17 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/locale": {
-      const response = await fetch(absoluteTestUrl("/api/locale", baseURL), {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+    case "/api/account/preferences": {
+      const response = await fetch(
+        absoluteTestUrl("/api/account/preferences", baseURL),
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ locale: "zh-cn" }),
         },
-        body: JSON.stringify({ locale: "zh-cn" }),
-      });
+      );
       expect(response.status).toBe(200);
       expect(response.headers.get("set-cookie")).toContain("NEXT_LOCALE=zh-cn");
       return;
@@ -460,8 +461,8 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/comments/[id]":
-    case "/api/comments/[id]/reactions": {
+    case "/api/community/comments/[id]":
+    case "/api/community/comments/[id]/reactions": {
       const response = await request.get(
         routePath.replace("[id]", "invalid-e2e"),
       );

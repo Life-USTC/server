@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
 
 export const actions: Actions = {
   createClient: async ({ locals, request }) =>
-    createAdminOAuthClientAction(request, locals.locale),
+    createAdminOAuthClientAction(request, locals.locale, locals.requestId),
   deleteClient: async ({ locals, request }) =>
-    deleteAdminOAuthClientAction(request, locals.locale),
+    deleteAdminOAuthClientAction(request, locals.locale, locals.requestId),
 };

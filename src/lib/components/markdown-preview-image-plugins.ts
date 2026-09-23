@@ -61,6 +61,8 @@ export function rehypeNormalizeMarkdownElements() {
         node.properties = {
           ...node.properties,
           className,
+          loading: "lazy",
+          decoding: "async",
         };
       }
     });

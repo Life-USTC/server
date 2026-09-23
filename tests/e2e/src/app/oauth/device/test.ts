@@ -43,6 +43,7 @@ import {
   capturePageScreenshot,
   captureStepScreenshot,
 } from "../../../../utils/screenshot";
+import { assertPageContract } from "../../_shared/page-contract";
 
 type DeviceAuthorizationResult = {
   clientId: string;
@@ -57,9 +58,9 @@ type DeviceAuthorizationResult = {
 const DEVICE_MCP_CLIENT_SCOPES = [
   "openid",
   "profile",
-  restReadScope("me"),
-  restReadScope("todo"),
-  restWriteScope("todo"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.todo"),
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
 
@@ -230,6 +231,15 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
     page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
   ).toHaveCount(1);
   await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+  const otpMetrics = await page
+    .locator('[data-slot="input-otp"]')
+    .evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+  expect(otpMetrics.scrollWidth).toBeLessThanOrEqual(
+    otpMetrics.clientWidth + 1,
+  );
   const verifyButton = page.getByRole("button", {
     name: /^(验证|Verify)$/i,
     exact: true,
@@ -249,13 +259,46 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", async 
   await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
 });
 
+test("/oauth/device 320px 和 375px 输入槽完整显示", async ({
+  page,
+}, testInfo) => {
+  for (const width of [320, 375]) {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoAndWaitForReady(page, "/oauth/device", { testInfo });
+
+    const otp = page.locator('[data-slot="input-otp"]');
+    await expect(otp).toBeVisible();
+    await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+
+    const metrics = await otp.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+
+    const card = page.locator('[data-slot="card"]');
+    const cardBox = await card.boundingBox();
+    if (!cardBox) throw new Error("Device code Card is not visible");
+    for (const slot of await page
+      .locator('[data-slot="input-otp-slot"]')
+      .all()) {
+      const slotBox = await slot.boundingBox();
+      if (!slotBox) throw new Error("Device code slot is not visible");
+      expect(slotBox.x).toBeGreaterThanOrEqual(cardBox.x - 1);
+      expect(slotBox.x + slotBox.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width + 1,
+      );
+    }
+  }
+});
+
 test("/oauth/device 无效用户代码显示公开错误", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/oauth/device?code=NOPE-NOPE&step=approve");
 
   await expect(
     page.getByText(/未找到|not found|No device login request/i).first(),
   ).toBeVisible();
-  await expect(page).not.toHaveURL(/\/signin(?:\?.*)?$/);
+  await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
   await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
 });
 
@@ -350,7 +393,9 @@ test("/oauth/device 未登录的待批准请求重定向到登录页", async ({
       expectMainContent: false,
     });
 
-    await expect(page).toHaveURL(/\/signin(?:\?.*)?$/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/, {
+      timeout: 10_000,
+    });
     expect(new URL(page.url()).searchParams.get("callbackUrl")).toBe(
       verificationPath,
     );
@@ -417,7 +462,7 @@ test("/oauth/device 资源绑定令牌可访问 REST 与 MCP", async ({
     expect(accessToken.split(".")).toHaveLength(3);
     expect(refreshToken).toEqual(expect.any(String));
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -472,7 +517,7 @@ test("/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝", async 
     ]);
     expect(accessToken.split(".")).toHaveLength(3);
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -492,7 +537,7 @@ test("/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo 
 }) => {
   const clientName = `device-e2e-feature-rest-token-${Date.now()}`;
   const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
-  const scopes = ["openid", "profile", restReadScope("schedule")];
+  const scopes = ["openid", "profile", restReadScope("workspace.schedule")];
   const resources = [restResource];
   try {
     const result = await requestDeviceCode(request, clientName, {
@@ -511,7 +556,7 @@ test("/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo 
     );
     expect(accessToken.split(".")).toHaveLength(3);
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -541,7 +586,7 @@ test("/oauth/device 已禁用客户端代码显示错误而非批准界面", asy
       expectMainContent: false,
     });
 
-    await expect(page).not.toHaveURL(/\/signin(?:\?.*)?$/);
+    await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
     await expect(
       page.getByText(/invalid or has expired|无效|已过期/i).first(),
     ).toBeVisible();
@@ -573,4 +618,8 @@ test("/oauth/device 发现文档包含设备授权端点", async ({ request }) =
       "urn:ietf:params:oauth:grant-type:device_code",
     ),
   ).toBe(true);
+});
+
+test("页面契约", async ({ page }, testInfo) => {
+  await assertPageContract(page, { routePath: "/oauth/device", testInfo });
 });

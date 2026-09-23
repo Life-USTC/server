@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Public User Profile Page (`/u/[username]` and `/u/id/[uid]`)
+ * E2E tests for the Public User Profile Page (`/community/users/[identifier]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
  * - user.image (avatar)
@@ -15,7 +15,7 @@
  *
  * ## Rules
  * - Raw internal user IDs are not shown on public profiles
- * - ID routes redirect to /u/[username] when a username exists
+ * - The identifier accepts either username or user ID
  * - Public page: no auth required
  *
  * ## Edge Cases
@@ -30,13 +30,19 @@ import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test.describe("/u/[username]", () => {
+test.describe("/community/users/[identifier]", () => {
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/u/[username]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/community/users/[identifier]",
+      testInfo,
+    });
   });
 
   test("显示所有必需的资料字段", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.adminUsername}`,
+    );
 
     // user.name (display name)
     await expect(page.getByText(DEV_SEED.adminName).first()).toBeVisible();
@@ -56,8 +62,35 @@ test.describe("/u/[username]", () => {
     await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
   });
 
+  test("公开资料页输出带头像的专属 Open Graph 图片", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.adminUsername}`,
+    );
+    const imageContent = await page
+      .locator('meta[property="og:image"]')
+      .getAttribute("content");
+    expect(imageContent).toBeTruthy();
+    const imageUrl = new URL(imageContent ?? "");
+
+    expect(imageUrl.pathname).toBe("/open-graph.png");
+    expect(imageUrl.searchParams.get("variant")).toBe("profile");
+    expect(imageUrl.searchParams.get("title")).toBe(DEV_SEED.adminName);
+    expect(imageUrl.searchParams.get("username")).toBe(DEV_SEED.adminUsername);
+    expect(new URL(imageUrl.searchParams.get("avatar") ?? "").hostname).toBe(
+      "api.dicebear.com",
+    );
+
+    const imageResponse = await page.request.get(imageUrl.href);
+    expect(imageResponse.status()).toBe(200);
+    expect(imageResponse.headers()["content-type"]).toContain("image/png");
+  });
+
   test("显示统计计数器网格", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.adminUsername}`,
+    );
 
     // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
     // Stats grid must contain numeric counters
@@ -76,7 +109,10 @@ test.describe("/u/[username]", () => {
   });
 
   test("显示贡献热力图及 totalContributions", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.debugUsername}`,
+    );
 
     // totalContributions label or heading
     await expect(page.getByText(/贡献|contribution/i).first()).toBeVisible();
@@ -95,7 +131,7 @@ test.describe("/u/[username]", () => {
   test("用户名页面不显示内部用户 ID", async ({ baseURL }) => {
     // user.yml: public-identity-display rule — internal ids hidden (permission.yml)
     const res = await fetch(
-      absoluteTestUrl(`/u/${DEV_SEED.adminUsername}`, baseURL),
+      absoluteTestUrl(`/community/users/${DEV_SEED.adminUsername}`, baseURL),
     );
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -105,7 +141,7 @@ test.describe("/u/[username]", () => {
   });
 
   test("不存在的用户名返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/u/non-existing-username", {
+    await gotoAndWaitForReady(page, "/community/users/non-existing-username", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();
@@ -119,12 +155,15 @@ test.describe("/u/[username]", () => {
   });
 });
 
-test.describe("/u/id/[uid]", () => {
+test.describe("/community/users/[identifier] by ID", () => {
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/community/users/[identifier]",
+      testInfo,
+    });
   });
 
-  test("内部用户 ID 地址重定向到用户名资料页", async ({ page }, testInfo) => {
+  test("内部用户 ID 地址直接解析同一资料页", async ({ page }, testInfo) => {
     await signInAsDevAdmin(page, "/");
     const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
@@ -133,8 +172,10 @@ test.describe("/u/id/[uid]", () => {
     };
     expect(session.user?.id).toBeTruthy();
 
-    await gotoAndWaitForReady(page, `/u/id/${session.user?.id}`);
-    await expect(page).toHaveURL(new RegExp(`/u/${DEV_SEED.adminUsername}$`));
+    await gotoAndWaitForReady(page, `/community/users/${session.user?.id}`);
+    await expect(page).toHaveURL(
+      new RegExp(`/community/users/${session.user?.id}$`),
+    );
     await expect(
       page.getByText(`@${DEV_SEED.adminUsername}`).first(),
     ).toBeVisible();
@@ -144,9 +185,13 @@ test.describe("/u/id/[uid]", () => {
   });
 
   test("不存在的 uid 返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/u/id/non-existent-uid-000000000", {
-      expectMainContent: false,
-    });
+    await gotoAndWaitForReady(
+      page,
+      "/community/users/non-existent-uid-000000000",
+      {
+        expectMainContent: false,
+      },
+    );
     await expect(page.getByText("404").first()).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),

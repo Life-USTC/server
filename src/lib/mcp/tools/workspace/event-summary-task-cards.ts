@@ -1,0 +1,37 @@
+import { isRecord } from "@/lib/is-record";
+import { pick } from "@/lib/mcp/compact-helpers";
+import { summarizeSectionCard } from "./event-summary-academic-cards";
+
+export function summarizeTodoCard(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, [
+    "id",
+    "title",
+    "priority",
+    "dueAt",
+    "completed",
+    "createdAt",
+    "updatedAt",
+  ]);
+}
+
+export function summarizeHomeworkCard(value: unknown) {
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = pick(value, [
+    "id",
+    "sectionId",
+    "title",
+    "isMajor",
+    "requiresTeam",
+    "completionRequired",
+    "publishedAt",
+    "submissionStartAt",
+    "submissionDueAt",
+    "completion",
+    "commentCount",
+  ]);
+  if (Object.hasOwn(value, "section")) {
+    out.section = summarizeSectionCard(value.section);
+  }
+  return out;
+}

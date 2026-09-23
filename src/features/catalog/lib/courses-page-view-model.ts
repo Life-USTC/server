@@ -44,7 +44,7 @@ export function coursePageHref(input: {
 }) {
   const { search, educationLevelId, categoryId, classTypeId } = input.filters;
   return catalogHref(
-    "/courses",
+    "/catalog/courses",
     { categoryId, classTypeId, educationLevelId, search },
     input.targetPage,
   );
@@ -66,7 +66,7 @@ export function courseFilterHref(input: {
     input.overrides.categoryId ?? input.filters.categoryId ?? "";
   const classTypeId =
     input.overrides.classTypeId ?? input.filters.classTypeId ?? "";
-  return catalogHref("/courses", {
+  return catalogHref("/catalog/courses", {
     categoryId,
     classTypeId,
     educationLevelId,

@@ -9,12 +9,13 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { attributionFromApiPrincipal } from "@/lib/audit/principal-attribution";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 
 export async function postCommentRoute(request: Request) {
-  const auth = await requireAuth(request, {
-    bearerScope: { feature: "comment", action: "write" },
+  const auth = await requireAuthPrincipal(request, {
+    bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;
@@ -38,7 +39,10 @@ export async function postCommentRoute(request: Request) {
   try {
     const result = await createComment({
       attachmentIds: parsedBody.attachmentIds,
-      auditMetadata: getAuditRequestMetadata(request),
+      auditMetadata: {
+        ...getAuditRequestMetadata(request),
+        ...attributionFromApiPrincipal(auth),
+      },
       content,
       courseJwId: parsedBody.courseJwId,
       homeworkId: parsedBody.homeworkId,
@@ -52,6 +56,7 @@ export async function postCommentRoute(request: Request) {
       teacherId: parsedBody.teacherId,
       userId,
       visibility,
+      youngId: parsedBody.youngId,
     });
     if (!result.ok) {
       if (result.error === "invalid_target") {
@@ -77,7 +82,7 @@ export async function postCommentRoute(request: Request) {
 
     return createdJsonResponse(
       { id: result.comment.id },
-      `/api/comments/${encodeURIComponent(result.comment.id)}`,
+      `/api/community/comments/${encodeURIComponent(result.comment.id)}`,
     );
   } catch (error) {
     return handleRouteError("Failed to create comment", error);

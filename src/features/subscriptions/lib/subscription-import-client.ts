@@ -32,7 +32,7 @@ export async function matchSubscriptionSectionCodes({
   fetchFailedMessage: string;
   semesterId?: number;
 }) {
-  const result = await apiClient.POST("/api/calendar-subscriptions/query", {
+  const result = await apiClient.POST("/api/workspace/subscriptions/query", {
     body: {
       codes,
       semesterId,
@@ -59,7 +59,7 @@ export async function appendSubscribedSectionIds({
     return 0;
   }
 
-  const result = await apiClient.POST("/api/calendar-subscriptions/batch", {
+  const result = await apiClient.POST("/api/workspace/subscriptions/batch", {
     body: { action: "add", sectionIds: selectedSectionIds },
   });
   if (!result.response.ok) {
@@ -85,7 +85,7 @@ export async function removeSubscribedSectionIds({
     return;
   }
 
-  const result = await apiClient.POST("/api/calendar-subscriptions/batch", {
+  const result = await apiClient.POST("/api/workspace/subscriptions/batch", {
     body: { action: "remove", sectionIds },
   });
   if (!result.response.ok) {

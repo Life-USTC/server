@@ -1,24 +1,24 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { mutateUserSectionSubscriptionsInTransaction } from "@/features/subscriptions/server/subscription-write-model";
-import { reconcileSectionSourceLifecycle } from "@/static-loader/section-lifecycle";
+import { reconcileSectionPresence } from "@/static-loader/section-lifecycle";
+import { createDeferred } from "../shared/deferred";
 import {
+  createFixturePrisma,
   createTestPrisma,
   disconnectTestPrisma,
   type TestPrismaClient,
 } from "../shared/prisma";
 
-const prisma = createTestPrisma();
+const fixturePrisma = createFixturePrisma();
+const runtimeDatabaseUrl = process.env.DATABASE_URL;
+if (!runtimeDatabaseUrl) {
+  throw new Error(
+    "DATABASE_URL is required for subscription integration tests",
+  );
+}
 let fixtureSequence = 0;
 
-afterAll(() => disconnectTestPrisma(prisma));
-
-function deferred() {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
+afterAll(() => disconnectTestPrisma(fixturePrisma));
 
 async function waitForSignal(
   signal: Promise<void>,
@@ -67,7 +67,7 @@ async function createFixture(options: { subscribedToFirst: boolean }) {
   const numericMarker =
     2_120_000_000 + (Date.now() % 10_000_000) + fixtureSequence * 10;
   const marker = `[integration-test] subscription-lock-${numericMarker}`;
-  return prisma.$transaction(async (tx) => {
+  return fixturePrisma.$transaction(async (tx) => {
     const semester = await tx.semester.create({
       data: {
         jwId: numericMarker,
@@ -98,8 +98,8 @@ async function createFixture(options: { subscribedToFirst: boolean }) {
       data: {
         email: `${numericMarker}@subscription-lock.integration`,
         name: marker,
-        subscribedSections: options.subscribedToFirst
-          ? { connect: { id: sections[0].id } }
+        sectionSubscriptions: options.subscribedToFirst
+          ? { create: { sectionId: sections[0].id } }
           : undefined,
       },
     });
@@ -110,7 +110,7 @@ async function createFixture(options: { subscribedToFirst: boolean }) {
 async function deleteFixture(
   fixture: Awaited<ReturnType<typeof createFixture>>,
 ) {
-  await prisma.$transaction(async (tx) => {
+  await fixturePrisma.$transaction(async (tx) => {
     await tx.user.delete({ where: { id: fixture.user.id } });
     await tx.section.deleteMany({
       where: { id: { in: fixture.sections.map((section) => section.id) } },
@@ -121,13 +121,13 @@ async function deleteFixture(
 }
 
 describe("Section subscription retirement linearization", () => {
-  it("rejects a newly retired candidate while preserving one explicit existing relation once", async () => {
+  it("rejects newly retired candidates while preserving existing relations", async () => {
     const fixture = await createFixture({ subscribedToFirst: true });
-    const importerPrisma = createTestPrisma();
-    const subscriberPrisma = createTestPrisma();
-    const importerLocked = deferred();
-    const releaseImporter = deferred();
-    const subscriberPidReady = deferred();
+    const importerPrisma = createFixturePrisma();
+    const subscriberPrisma = createTestPrisma(runtimeDatabaseUrl);
+    const importerLocked = createDeferred();
+    const releaseImporter = createDeferred();
+    const subscriberPidReady = createDeferred();
     const retiredAt = new Date("2026-07-18T04:00:00.000Z");
     let subscriberPid = 0;
     let importer: Promise<void> | undefined;
@@ -141,10 +141,8 @@ describe("Section subscription retirement linearization", () => {
 
     try {
       importer = importerPrisma.$transaction(async (tx) => {
-        await reconcileSectionSourceLifecycle(tx, {
+        await reconcileSectionPresence(tx, {
           observedAt: retiredAt,
-          retirementEnabled: true,
-          expectedRetirementCandidateCount: 2,
           scopedSemesterIds: [fixture.semester.id],
           seenSectionJwIds: [fixture.sections[2].jwId],
           snapshotSha256: "importer-first",
@@ -159,6 +157,7 @@ describe("Section subscription retirement linearization", () => {
       );
 
       subscriber = subscriberPrisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
         const [backend] = await tx.$queryRaw<Array<{ pid: number }>>`
           SELECT pg_backend_pid()::integer AS pid
         `;
@@ -171,12 +170,6 @@ describe("Section subscription retirement linearization", () => {
             fixture.sections[1].id,
             fixture.sections[1].id,
           ],
-          mode: "replace",
-          preserveRetiredSectionIds: [
-            fixture.sections[0].id,
-            fixture.sections[0].id,
-            fixture.sections[1].id,
-          ],
           userId: fixture.user.id,
         });
       });
@@ -186,7 +179,7 @@ describe("Section subscription retirement linearization", () => {
         "Subscription transaction completed before exposing its backend PID",
       );
       await waitForBackendLock(
-        prisma,
+        fixturePrisma,
         subscriberPid,
         "Subscription mutation did not wait for the lifecycle advisory lock",
       );
@@ -198,24 +191,23 @@ describe("Section subscription retirement linearization", () => {
       expect(result).toEqual({
         activeCandidateSectionIds: [],
         addedSectionIds: [],
-        effectiveSectionIds: [fixture.sections[0].id],
-        preservedRetiredSectionIds: [fixture.sections[0].id],
-        removedSectionIds: [],
-        unchangedSectionIds: [fixture.sections[0].id],
+        unchangedSectionIds: [],
       });
       await expect(
-        prisma.user.findUnique({
-          where: { id: fixture.user.id },
+        fixturePrisma.userSectionSubscription.findMany({
+          where: { userId: fixture.user.id },
+          orderBy: { sectionId: "asc" },
           select: {
-            subscribedSections: {
-              orderBy: { id: "asc" },
-              select: { id: true, retiredAt: true },
-            },
+            sectionId: true,
+            section: { select: { retiredAt: true } },
           },
         }),
-      ).resolves.toEqual({
-        subscribedSections: [{ id: fixture.sections[0].id, retiredAt }],
-      });
+      ).resolves.toEqual([
+        {
+          sectionId: fixture.sections[0].id,
+          section: { retiredAt },
+        },
+      ]);
     } finally {
       releaseImporter.resolve();
       await settleOperations(importer, subscriber);
@@ -229,11 +221,11 @@ describe("Section subscription retirement linearization", () => {
 
   it("lets a subscriber that owns the advisory lock commit before retirement", async () => {
     const fixture = await createFixture({ subscribedToFirst: false });
-    const importerPrisma = createTestPrisma();
-    const subscriberPrisma = createTestPrisma();
-    const subscriberMutated = deferred();
-    const releaseSubscriber = deferred();
-    const importerPidReady = deferred();
+    const importerPrisma = createFixturePrisma();
+    const subscriberPrisma = createTestPrisma(runtimeDatabaseUrl);
+    const subscriberMutated = createDeferred();
+    const releaseSubscriber = createDeferred();
+    const importerPidReady = createDeferred();
     const retiredAt = new Date("2026-07-18T05:00:00.000Z");
     let importerPid = 0;
     let subscriber: Promise<void> | undefined;
@@ -246,11 +238,11 @@ describe("Section subscription retirement linearization", () => {
           >
         | undefined;
       subscriber = subscriberPrisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.user_id', ${fixture.user.id}, true)`;
         mutationResult = await mutateUserSectionSubscriptionsInTransaction(
           tx as never,
           {
             candidateSectionIds: [fixture.sections[0].id],
-            mode: "connect",
             userId: fixture.user.id,
           },
         );
@@ -269,10 +261,8 @@ describe("Section subscription retirement linearization", () => {
         `;
         importerPid = backend.pid;
         importerPidReady.resolve();
-        await reconcileSectionSourceLifecycle(tx, {
+        await reconcileSectionPresence(tx, {
           observedAt: retiredAt,
-          retirementEnabled: true,
-          expectedRetirementCandidateCount: 1,
           scopedSemesterIds: [fixture.semester.id],
           seenSectionJwIds: [
             fixture.sections[1].jwId,
@@ -287,7 +277,7 @@ describe("Section subscription retirement linearization", () => {
         "Lifecycle transaction completed before exposing its backend PID",
       );
       await waitForBackendLock(
-        prisma,
+        fixturePrisma,
         importerPid,
         "Retirement did not wait for the subscription advisory lock",
       );
@@ -299,23 +289,23 @@ describe("Section subscription retirement linearization", () => {
       expect(mutationResult).toEqual({
         activeCandidateSectionIds: [fixture.sections[0].id],
         addedSectionIds: [fixture.sections[0].id],
-        effectiveSectionIds: [fixture.sections[0].id],
-        preservedRetiredSectionIds: [],
-        removedSectionIds: [],
         unchangedSectionIds: [],
       });
       await expect(
-        prisma.user.findUnique({
-          where: { id: fixture.user.id },
+        fixturePrisma.userSectionSubscription.findMany({
+          where: { userId: fixture.user.id },
+          orderBy: { sectionId: "asc" },
           select: {
-            subscribedSections: {
-              select: { id: true, retiredAt: true },
-            },
+            sectionId: true,
+            section: { select: { retiredAt: true } },
           },
         }),
-      ).resolves.toEqual({
-        subscribedSections: [{ id: fixture.sections[0].id, retiredAt }],
-      });
+      ).resolves.toEqual([
+        {
+          sectionId: fixture.sections[0].id,
+          section: { retiredAt },
+        },
+      ]);
     } finally {
       releaseSubscriber.resolve();
       await settleOperations(subscriber, importer);

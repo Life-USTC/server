@@ -20,6 +20,7 @@ export function createSectionHomeworkDeleteAction(
     input.setSelectedHomework(next.selectedHomework);
     input.setDeleteHomeworkTarget(null);
     await loadHomeworks();
+    input.onSuccess?.("delete");
   }
 
   return { deleteHomework };

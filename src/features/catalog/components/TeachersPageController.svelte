@@ -3,10 +3,12 @@ import {
   type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
-  catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   TeacherListCommonLabels,
@@ -52,7 +54,6 @@ $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: teacherLabels = data.labels.teachers;
-$: showSecondaryNames = data.locale === "en-us";
 $: activeFilterCount = [data.filters.search, data.filters.departmentId].filter(
   Boolean,
 ).length;
@@ -85,11 +86,10 @@ $: teacherActiveFilters = [
 );
 $: teacherHiddenFilters = [
   { name: "departmentId", value: data.filters.departmentId ?? "" },
-];
+].filter((filter) => Boolean(filter.value));
 
 function pageHref(targetPage: number) {
-  const { search, departmentId } = data.filters;
-  return catalogHref("/teachers", { search, departmentId }, targetPage);
+  return catalogListPageHref($page.url, targetPage);
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
@@ -98,71 +98,70 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
     ...overrides,
   };
   const { search, departmentId } = filters;
-  return catalogHref("/teachers", { search, departmentId });
+  return catalogHref("/catalog/teachers", { search, departmentId });
 }
 </script>
 
-<svelte:head><title>{commonLabels.teachers} - Life@USTC</title></svelte:head>
-
-<section class="grid gap-5">
-  <CatalogPageHeader
-    description={teacherLabels.subtitle}
-    title={teacherLabels.title}
+{#snippet paginationFooter()}
+  <CatalogPagination
+    ariaLabel={commonLabels.pagination}
+    class="py-0"
+    nextLabel={commonLabels.next}
+    nextPageLabel={commonLabels.nextPage}
+    page={data.pagination.page}
+    {pageHref}
+    previousLabel={commonLabels.previous}
+    previousPageLabel={commonLabels.previousPage}
+    {totalPages}
   />
+{/snippet}
 
-  <div class="grid min-w-0 gap-4">
-    <CatalogMobileFilters
-      activeFilters={teacherActiveFilters}
-      clearHref="/teachers"
-      clearLabel={commonLabels.clear}
-      filterDescription={teacherLabels.filterDescription}
-      filterTitle={teacherLabels.filterTitle}
-      hiddenFilters={teacherHiddenFilters}
-      inlineFilters
-      searchId="mobile-teacher-search"
-      searchLabel={teacherLabels.searchLabel}
-      searchPlaceholder={teacherLabels.searchNameOrCode}
-      bind:searchValue={teacherSearch}
-    >
-      <TeachersFilters
-        {activeFilterCount}
-        {commonLabels}
-        {departmentOptions}
-        filters={data.filters}
-        idPrefix="mobile-teacher"
-        inline
-        showClear={false}
-        showSearch={false}
-        {teacherLabels}
-        teacherSearch={data.filters.search ?? ""}
-      />
-    </CatalogMobileFilters>
+<div class="page-frame">
+  <section class="grid gap-5">
+    <PageHeader
+      description={teacherLabels.subtitle}
+      title={teacherLabels.title}
+    />
 
-    <div class="grid min-w-0 gap-4">
+    <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
+      {#snippet header()}
+        <CatalogMobileFilters
+          activeFilters={teacherActiveFilters}
+          clearHref="/catalog/teachers"
+          clearLabel={commonLabels.clear}
+          filterDescription={teacherLabels.filterDescription}
+          filterTitle={teacherLabels.filterTitle}
+          hiddenFilters={teacherHiddenFilters}
+          searchId="mobile-teacher-search"
+          searchLabel={teacherLabels.searchLabel}
+          searchPlaceholder={teacherLabels.searchNameOrCode}
+          bind:searchValue={teacherSearch}
+        >
+          <TeachersFilters
+            {activeFilterCount}
+            {commonLabels}
+            {departmentOptions}
+            filters={data.filters}
+            idPrefix="mobile-teacher"
+            showClear={false}
+            showSearch={false}
+            {teacherLabels}
+            teacherSearch={data.filters.search ?? ""}
+          />
+        </CatalogMobileFilters>
+      {/snippet}
+
       <TeachersResults
         {commonLabels}
         filters={data.filters}
         page={data.pagination.page}
         {primaryName}
-        {secondaryName}
         {selectedDepartment}
-        {showSecondaryNames}
         {teacherLabels}
         teachers={data.data}
         total={data.pagination.total}
         {totalPages}
       />
-
-      <CatalogPagination
-        ariaLabel={commonLabels.pagination}
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={data.pagination.page}
-        {pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        {totalPages}
-      />
-    </div>
-  </div>
-</section>
+    </Panel>
+  </section>
+</div>

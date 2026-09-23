@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import {
   PROFILE_USERNAME_MAX_LENGTH,
   PROFILE_USERNAME_PATTERN,
@@ -11,8 +12,8 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Radio from "$lib/components/ui/radio-group/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type {
   CompleteProfileAction,
   WelcomeCopy,
@@ -37,14 +38,28 @@ export let welcomeCopy: WelcomeCopy;
 $: avatarFallback = (user.name ?? user.username ?? "U")
   .slice(0, 1)
   .toUpperCase();
+
+let uploadedAvatarPreview = "";
+
+function handleAvatarUpload(event: Event) {
+  if (uploadedAvatarPreview) URL.revokeObjectURL(uploadedAvatarPreview);
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  uploadedAvatarPreview = file ? URL.createObjectURL(file) : "";
+  if (file) selectedImage = undefined;
+}
+
+onDestroy(() => {
+  if (uploadedAvatarPreview) URL.revokeObjectURL(uploadedAvatarPreview);
+});
 </script>
 
-<form method="POST" action="?/complete" use:enhance={completeProfileAction}>
+<form method="POST" action="?/complete" enctype="multipart/form-data" use:enhance={completeProfileAction}>
   <input type="hidden" name="callbackUrl" value={callbackUrl} />
   <Card.Root>
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
-      <Card.Title>{welcomeCopy.title}</Card.Title>
+      <Card.Title aria-level={1} role="heading">{welcomeCopy.title}</Card.Title>
       <Card.Description>{welcomeCopy.description}</Card.Description>
     </Card.Header>
 
@@ -60,41 +75,51 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
       {/if}
       <Field.Set>
         <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
-        <div class="flex items-center gap-4">
-          <Avatar.Root class="size-20">
-            <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
+        <div class="flex flex-wrap items-center gap-4">
+          <Avatar.Root class="size-20 shrink-0">
+            <Avatar.Image alt={profileCopy.profilePicture} src={uploadedAvatarPreview || previewImage} />
             <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
           </Avatar.Root>
           {#if avatarOptions.length > 0}
-            <Radio.Root
+            <ToggleGroup.Root
+              type="single"
               aria-label={profileCopy.profilePicture}
-              class="grid grid-cols-4 gap-2"
+              class="flex flex-wrap"
               data-testid="avatar-selector"
+              spacing={2}
+              variant="outline"
               bind:value={selectedImage}
             >
               {#each avatarOptions as avatar, index}
-                {@const avatarId = `welcome-avatar-option-${index}`}
-                <Field.Label for={avatarId}>
-                  <Field.Field orientation="horizontal">
-                    <Avatar.Root class="size-12">
-                      <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
-                      <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-                    </Avatar.Root>
-                    <Radio.Item
-                      id={avatarId}
-                      value={avatar}
-                      aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                    />
-                  </Field.Field>
-                </Field.Label>
+                <ToggleGroup.Item
+                  aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
+                  class="size-12 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-primary data-[state=on]:ring-offset-2"
+                  value={avatar}
+                >
+                  <Avatar.Root class="size-full">
+                    <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+                    <Avatar.Fallback>{index + 1}</Avatar.Fallback>
+                  </Avatar.Root>
+                </ToggleGroup.Item>
               {/each}
-            </Radio.Root>
+            </ToggleGroup.Root>
           {:else}
             <Field.Description>
               {welcomeCopy.avatarLater}
             </Field.Description>
           {/if}
         </div>
+        <Field.Field>
+          <Field.Label for="avatar">{profileCopy.avatarUpload}</Field.Label>
+          <Input
+            id="avatar"
+            name="avatar"
+            type="file"
+            accept="image/avif,image/jpeg,image/png,image/webp"
+            onchange={handleAvatarUpload}
+          />
+          <Field.Description>{profileCopy.avatarUploadHint}</Field.Description>
+        </Field.Field>
       </Field.Set>
 
       <Field.Group class="gap-4">

@@ -15,12 +15,28 @@ import { gzipSync } from "node:zlib";
 import { manifest } from "./.svelte-kit/output/server/manifest.js";
 
 // #533 names these crawlable entry/detail routes as the representative public
-// hydration graph. Limits leave about 10% above the 2026-07-22 production-build
-// baseline so normal chunking noise passes while material regressions do not.
+// hydration graph. Publication routes are public entry/detail surfaces too.
+// Limits leave about 10% above their production-build gzip/request baselines so
+// normal chunking noise passes while material regressions do not. The `/`
+// request budget also absorbs shared-chunk splits when a Lucide icon used by
+// the shell gains another importer (e.g. the weather page split the 525 B
+// `sun` icon into its own chunk). The Young client controls reuse the shell
+// bootstrap helper, splitting it into one shared chunk; retain the gzip cap.
+// /news/sources is a public entry surface of the same shape as /news, so it
+// gets a budget from day one rather than after its first regression.
 const budgets = {
-  "/": { gzipBytes: 170_000, requests: 56 },
-  "/courses/[jwId]": { gzipBytes: 330_000, requests: 93 },
-  "/sections/[jwId]": { gzipBytes: 390_000, requests: 103 },
+  // The staged onboarding guide (#769) became a fourth importer of the
+  // `user-round` Lucide icon, so Rollup promoted it from inlined in the user
+  // menu chunk to a shared 326 B chunk: `/` measures 72 requests and 194,386
+  // gzip bytes, up from 71 and 193,916. That is the shared-chunk split
+  // described above, not extra payload, so only the request count moves.
+  // Pinned to the measured 72, not above it, so the next split still trips.
+  "/": { gzipBytes: 195_000, requests: 72 },
+  "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
+  "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
+  "/news": { gzipBytes: 232_000, requests: 88 },
+  "/news/[id]": { gzipBytes: 221_000, requests: 82 },
+  "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };
 
 let failed = false;

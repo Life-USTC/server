@@ -15,8 +15,14 @@ import {
   betterAuthUserOptions,
   betterAuthVerificationOptions,
 } from "@/lib/auth/better-auth-schema-options";
+import {
+  betterAuthSecurityDatabaseHooks,
+  betterAuthSecurityHooks,
+  RECENT_AUTH_MAX_AGE_SECONDS,
+} from "@/lib/auth/better-auth-security-hooks";
 import { buildBetterAuthSocialProviders } from "@/lib/auth/better-auth-social-providers";
-import { prisma } from "@/lib/db/prisma";
+import { webhookLoginRateLimitRules } from "@/lib/auth/webhook-login-plugin";
+import { authPrisma } from "@/lib/db/auth-prisma";
 
 export function buildBetterAuthOptions() {
   const {
@@ -24,7 +30,6 @@ export function buildBetterAuthOptions() {
     authPublicOrigin,
     authPublicProtocol,
     oauthProxySecret,
-    oidcDiscoveryUrl,
     oidcIssuer,
   } = getBetterAuthOptionEnv();
   const debugAuthAllowed = allowDebugAuth();
@@ -35,15 +40,24 @@ export function buildBetterAuthOptions() {
       protocol: authPublicProtocol,
     },
     secret: getBetterAuthSecret(),
-    database: createBetterAuthPrismaAdapter(prisma),
+    database: createBetterAuthPrismaAdapter(authPrisma),
     disabledPaths: ["/token"],
     // Disable Better Auth's built-in rate limiting in debug/E2E mode so that
     // rapid sequential requests (e.g. /api/auth/get-session during tests)
     // don't get throttled with 429 responses.
     rateLimit: debugAuthAllowed
       ? { enabled: false }
-      : { enabled: true, customRules: betterAuthPasskeyRateLimitRules },
+      : {
+          enabled: true,
+          customRules: {
+            ...betterAuthPasskeyRateLimitRules,
+            ...webhookLoginRateLimitRules,
+          },
+        },
     advanced: {
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
       // Reverse proxies should still forward the original scheme/host correctly
       // for request-aware Better Auth behavior, but deployment origin comes from config.
       trustedProxyHeaders: true,
@@ -61,13 +75,17 @@ export function buildBetterAuthOptions() {
     },
     user: betterAuthUserOptions,
     account: betterAuthAccountOptions,
-    session: betterAuthSessionOptions,
+    session: {
+      ...betterAuthSessionOptions,
+      freshAge: RECENT_AUTH_MAX_AGE_SECONDS,
+    },
     verification: betterAuthVerificationOptions,
+    databaseHooks: betterAuthSecurityDatabaseHooks,
+    hooks: betterAuthSecurityHooks,
     plugins: buildBetterAuthPlugins({
       authEnv,
       authPublicOrigin,
       oauthProxySecret,
-      oidcDiscoveryUrl,
       oidcIssuer,
     }),
     onAPIError: betterAuthApiErrorHandler,

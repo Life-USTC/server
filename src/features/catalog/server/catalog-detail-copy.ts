@@ -10,6 +10,7 @@ const messages = {
 export function getCourseDetailCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
+    comments: copy.comments,
     common: copy.common,
     course: copy.course,
     courseDetail: copy.courseDetail,

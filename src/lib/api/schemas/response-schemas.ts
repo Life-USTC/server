@@ -8,6 +8,14 @@ export * from "./homeworks-response-schemas";
 export * from "./misc-response-schema-core";
 export * from "./oauth-response-schemas";
 export * from "./overview-response-schemas";
+export * from "./response-publication-ingestion-schemas";
+export * from "./response-publication-read-schemas";
 export * from "./response-schema-primitives";
+export { roomMapResponseSchema } from "./room-map-schemas";
 export * from "./schedule-response-schema-core";
+export { subscriptionKindUpdateResponseSchema } from "./subscription-kind-schemas";
 export * from "./uploads-response-schemas";
+export * from "./weather-response-schemas";
+export * from "./young-event-schemas";
+
+export * from "./young-workspace-schemas";

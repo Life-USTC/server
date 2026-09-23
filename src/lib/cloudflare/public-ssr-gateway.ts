@@ -1,0 +1,273 @@
+/**
+ * Decides which paths may use anonymous HTML SSR caching and which must stay
+ * dynamic (signed-in, account, admin, OAuth, or request-time bus map data).
+ * See docs/rendering-and-cache.md for the product rules.
+ */
+import {
+  resolveCatalogDetailTabQueryRedirect,
+  resolveCatalogDetailTabRedirect,
+} from "@/features/catalog/lib/catalog-detail-tab";
+import {
+  resolveSectionDetailTabQueryRedirect,
+  resolveSectionDetailTabRedirect,
+} from "@/features/section-detail/lib/section-detail-tab";
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
+
+export {
+  resolveSectionDetailTabQueryRedirect,
+  resolveSectionDetailTabRedirect,
+};
+
+export const PUBLIC_SSR_HEADER = "x-life-public-ssr";
+export const PUBLIC_SSR_LOCALE_HEADER = "x-life-public-ssr-locale";
+export const PUBLIC_SSR_MODE_HEADER = "x-life-public-ssr-mode";
+export const PUBLIC_SSR_NONCE_PLACEHOLDER = "life-ustc-public-ssr-nonce";
+export const PUBLIC_SSR_LOCALE_CACHE_PARAM = "__life_locale";
+export const PUBLIC_SSR_MODE_CACHE_PARAM = "__life_mode";
+/** Shared-cache lifetime of a stored public SSR representation, in seconds. */
+export const PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS = 86_400;
+
+/**
+ * Cache-Control stored with the shared public SSR representation.
+ *
+ * `max-age=0` is deliberate: `personalizeCachedResponse` re-stamps a fresh
+ * nonce and request id on every hit, so a browser must never reuse a stored
+ * copy on its own. `s-maxage` applies to shared caches only, so it gives the
+ * Workers entrypoint cache a real lifetime without relaxing the browser rule.
+ * Without it the representation is not storable at all and every request is
+ * reported as `Cf-Cache-Status: DYNAMIC`.
+ *
+ * The lifetime is only safe because a committed catalog import purges this
+ * cache through the `PublicSsr` entrypoint — see
+ * `src/lib/cloudflare/public-ssr-cache-purge.ts`.
+ */
+export const PUBLIC_SSR_BROWSER_CACHE_CONTROL = `public, max-age=0, s-maxage=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=300, stale-if-error=0`;
+export const PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL = `public, max-age=${PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=300, stale-if-error=0`;
+
+export type PublicSsrMode = "page" | "not-found";
+export type PublicSsrLocale = "en-us" | "zh-cn";
+export type PublicSsrRouteResolver = (
+  url: URL,
+) => PublicSsrMode | null | undefined;
+
+const STATIC_PUBLIC_PATHS = new Set([
+  "/account/sign-in",
+  "/guides/markdown-support",
+  "/api-docs",
+  "/usage/mobile",
+  "/usage/bot",
+  "/usage/mcp",
+  "/usage/cli",
+  "/privacy",
+  "/terms",
+]);
+const STATIC_PUBLIC_ROOTS = ["/api/docs"];
+const DIRECT_REQUEST_PATHS = new Set([
+  "/",
+  "/error",
+  "/llms.txt",
+  "/metrics",
+  "/open-graph.png",
+  "/robots.txt",
+  "/sitemap.xml",
+]);
+
+const CATALOG_DETAIL_PATH =
+  /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
+
+const DYNAMIC_OR_PRIVATE_ROOTS = [
+  "/_internal",
+  "/account",
+  "/admin",
+  "/api",
+  "/catalog",
+  "/community",
+  "/e2e",
+  "/news",
+  "/oauth",
+  "/search",
+  "/workspace",
+];
+
+const LEGACY_CATALOG_PATH = /^\/(sections|courses|teachers)\/(.+)$/;
+const LEGACY_SIGN_IN_PATH = "/signin";
+const LEGACY_USER_CALENDAR_FEED_PATH = /^\/api\/users\/([^/]+)\/calendar\.ics$/;
+const LEGACY_CALENDAR_SUBSCRIPTION_FEED_PATH =
+  /^\/api\/calendar-subscriptions\/[^/]+\/calendar\.ics$/;
+
+export function resolveLegacyCatalogRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const match = LEGACY_CATALOG_PATH.exec(url.pathname);
+  if (!match) return null;
+  return `/catalog/${match[1]}/${match[2]}${url.search}`;
+}
+
+export function resolveLegacySignInRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  if (url.pathname !== LEGACY_SIGN_IN_PATH) return null;
+  return `/account/sign-in${url.search}`;
+}
+
+export function resolveLegacyCalendarFeedRedirect(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const match = LEGACY_USER_CALENDAR_FEED_PATH.exec(url.pathname);
+  if (!match) return null;
+  return `/api/calendar-feeds/${match[1]}.ics${url.search}`;
+}
+
+export function isLegacyCalendarSubscriptionFeedRequest(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  return LEGACY_CALENDAR_SUBSCRIPTION_FEED_PATH.test(
+    new URL(request.url).pathname,
+  );
+}
+
+export function resolveCourseDetailTabRedirect(request: Request) {
+  return resolveCatalogDetailTabRedirect(request, "courses");
+}
+
+export function resolveTeacherDetailTabRedirect(request: Request) {
+  return resolveCatalogDetailTabRedirect(request, "teachers");
+}
+
+export function resolveCourseDetailTabQueryRedirect(request: Request) {
+  return resolveCatalogDetailTabQueryRedirect(request, "courses");
+}
+
+export function resolveTeacherDetailTabQueryRedirect(request: Request) {
+  return resolveCatalogDetailTabQueryRedirect(request, "teachers");
+}
+
+function matchesPathRoot(pathname: string, root: string) {
+  return pathname === root || pathname.startsWith(`${root}/`);
+}
+
+function acceptsHtml(request: Request) {
+  const accept = request.headers.get("accept");
+  return (
+    !accept ||
+    accept === "*/*" ||
+    accept.includes("text/html") ||
+    request.headers.get("sec-fetch-dest") === "document"
+  );
+}
+
+function isCanonicalCatalogDetailPath(pathname: string) {
+  const match = CATALOG_DETAIL_PATH.exec(pathname);
+  if (!match) return false;
+  const [, , identifier, section] = match;
+  const id = Number(identifier);
+  if (!Number.isSafeInteger(id)) return false;
+  return !section;
+}
+
+export function shouldRoutePublicSsrCache(
+  request: Request,
+  mode: PublicSsrMode | null,
+): mode is PublicSsrMode {
+  return mode !== null && !hasRequestAuthSignal(request.headers);
+}
+
+export function resolvePublicSsrMode(
+  request: Request,
+  resolveFeatureRoute?: PublicSsrRouteResolver,
+): PublicSsrMode | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  if (!acceptsHtml(request)) return null;
+  if (hasRequestAuthSignal(request.headers)) return null;
+
+  const url = new URL(request.url);
+  if (url.pathname.endsWith("/__data.json")) return null;
+
+  const featureMode = resolveFeatureRoute?.(url);
+  if (featureMode !== undefined) return featureMode;
+
+  if (isCanonicalCatalogDetailPath(url.pathname)) {
+    return !url.search ? "page" : null;
+  }
+
+  if (
+    STATIC_PUBLIC_PATHS.has(url.pathname) ||
+    STATIC_PUBLIC_ROOTS.some((root) => matchesPathRoot(url.pathname, root))
+  ) {
+    return url.search ? null : "page";
+  }
+
+  if (
+    DIRECT_REQUEST_PATHS.has(url.pathname) ||
+    url.pathname.startsWith("/_app/") ||
+    url.pathname.startsWith("/.well-known/") ||
+    DYNAMIC_OR_PRIVATE_ROOTS.some((root) => matchesPathRoot(url.pathname, root))
+  ) {
+    return null;
+  }
+
+  return "not-found";
+}
+
+function cookieValue(cookieHeader: string | null, name: string) {
+  for (const part of (cookieHeader ?? "").split(";")) {
+    const [key, ...valueParts] = part.trim().split("=");
+    if (key !== name) continue;
+    try {
+      return decodeURIComponent(valueParts.join("="));
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+export function resolvePublicSsrLocale(request: Request): PublicSsrLocale {
+  const cookieLocale = cookieValue(
+    request.headers.get("cookie"),
+    "NEXT_LOCALE",
+  );
+  if (cookieLocale === "en-us" || cookieLocale === "zh-cn") {
+    return cookieLocale;
+  }
+
+  const languages = (request.headers.get("accept-language") ?? "")
+    .split(",")
+    .map((part) => {
+      const [locale = "", quality] = part.trim().toLowerCase().split(";q=");
+      return {
+        locale,
+        quality: quality === undefined ? 1 : Number.parseFloat(quality),
+      };
+    })
+    .filter(({ quality }) => Number.isFinite(quality))
+    .sort((left, right) => right.quality - left.quality);
+
+  for (const { locale } of languages) {
+    if (locale === "en-us" || locale.startsWith("en-")) return "en-us";
+    if (locale === "zh-cn" || locale.startsWith("zh-")) return "zh-cn";
+  }
+  return "zh-cn";
+}
+
+export function removePublicSsrHeaders(headers: Headers) {
+  headers.delete(PUBLIC_SSR_HEADER);
+  headers.delete(PUBLIC_SSR_LOCALE_HEADER);
+  headers.delete(PUBLIC_SSR_MODE_HEADER);
+}
+
+export function buildPublicNotFoundHtml(locale: PublicSsrLocale) {
+  const copy =
+    locale === "en-us"
+      ? {
+          backHome: "Back to home",
+          description: "The page you requested does not exist.",
+          title: "Page not found",
+        }
+      : {
+          backHome: "返回首页",
+          description: "你访问的页面不存在。",
+          title: "页面不存在",
+        };
+
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${copy.title} - Life@USTC</title><style>html{color-scheme:light dark;font-family:ui-sans-serif,system-ui,sans-serif}body{display:grid;min-height:100vh;margin:0;place-items:center;background:#f8fafc;color:#0f172a}main{max-width:32rem;padding:2rem;text-align:center}p{color:#64748b}a{display:inline-block;margin-top:1rem;border-radius:.5rem;background:#0f172a;color:#fff;padding:.7rem 1rem;text-decoration:none}@media(prefers-color-scheme:dark){body{background:#020617;color:#f8fafc}p{color:#94a3b8}a{background:#f8fafc;color:#0f172a}}</style></head><body><main><h1>${copy.title}</h1><p>${copy.description}</p><a href="/">${copy.backHome}</a></main></body></html>`;
+}

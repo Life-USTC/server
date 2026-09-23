@@ -7,7 +7,7 @@ const busCampusSummarySchema = busCampusSchema.extend({
   nameSecondary: z.string().nullable(),
 });
 
-const busTripStopTimeSummarySchema = z.object({
+const busTripStopTimeSummarySchema = z.strictObject({
   stopOrder: z.number().int(),
   campusId: z.number().int(),
   campusName: z.string(),
@@ -16,14 +16,14 @@ const busTripStopTimeSummarySchema = z.object({
   isPassThrough: z.boolean(),
 });
 
-const busRouteSummarySchema = z.object({
+const busRouteSummarySchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
   descriptionPrimary: z.string(),
   descriptionSecondary: z.string().nullable(),
   stops: z.array(
-    z.object({
+    z.strictObject({
       stopOrder: z.number().int(),
       campus: busCampusSummarySchema,
     }),
@@ -38,10 +38,10 @@ const busRouteCoreSchema = busRouteSummarySchema.pick({
   descriptionSecondary: true,
 });
 
-const busTripSummarySchema = z.object({
+const busTripSummarySchema = z.strictObject({
   id: z.number().int(),
   routeId: z.number().int(),
-  dayType: z.enum(["weekday", "weekend"]),
+  dayType: z.enum(["weekday", "saturday", "sunday"]),
   position: z.number().int(),
   stopTimes: z.array(busTripStopTimeSummarySchema),
   departureTime: z.string().nullable(),
@@ -50,11 +50,11 @@ const busTripSummarySchema = z.object({
   arrivalMinutes: z.number().int().nullable(),
 });
 
-export const busQueryResponseSchema = z.object({
+export const busQueryResponseSchema = z.strictObject({
   locale: z.enum(["zh-cn", "en-us"]),
   fetchedAt: dateTimeSchema,
   version: z
-    .object({
+    .strictObject({
       id: z.number().int(),
       key: z.string(),
       title: z.string(),
@@ -62,7 +62,7 @@ export const busQueryResponseSchema = z.object({
       effectiveUntil: dateTimeSchema.nullable(),
       importedAt: dateTimeSchema,
       notice: z
-        .object({
+        .strictObject({
           message: z.string().nullable(),
           url: z.string().nullable(),
         })
@@ -70,7 +70,7 @@ export const busQueryResponseSchema = z.object({
     })
     .nullable(),
   availableVersions: z.array(
-    z.object({
+    z.strictObject({
       id: z.number().int(),
       key: z.string(),
       title: z.string(),
@@ -78,7 +78,7 @@ export const busQueryResponseSchema = z.object({
       effectiveUntil: dateTimeSchema.nullable(),
       importedAt: dateTimeSchema,
       notice: z
-        .object({
+        .strictObject({
           message: z.string().nullable(),
           url: z.string().nullable(),
         })
@@ -89,29 +89,29 @@ export const busQueryResponseSchema = z.object({
   routes: z.array(busRouteSummarySchema),
   trips: z.array(busTripSummarySchema),
   preferences: z
-    .object({
+    .strictObject({
       preferredOriginCampusId: z.number().int().nullable(),
       preferredDestinationCampusId: z.number().int().nullable(),
       showDepartedTrips: z.boolean(),
     })
     .nullable(),
   notice: z
-    .object({
+    .strictObject({
       message: z.string().nullable(),
       url: z.string().nullable(),
     })
     .nullable(),
 });
 
-export const busPreferenceResponseSchema = z.object({
-  preference: z.object({
+export const busPreferenceResponseSchema = z.strictObject({
+  preference: z.strictObject({
     preferredOriginCampusId: z.number().int().nullable(),
     preferredDestinationCampusId: z.number().int().nullable(),
     showDepartedTrips: z.boolean(),
   }),
 });
 
-export const busRouteSearchResponseSchema = z.object({
+export const busRouteSearchResponseSchema = z.strictObject({
   originCampus: busCampusSummarySchema.nullable(),
   destinationCampus: busCampusSummarySchema.nullable(),
   total: z.number().int().nonnegative(),
@@ -121,9 +121,10 @@ export const busRouteSearchResponseSchema = z.object({
       destinationCampus: busCampusSummarySchema.nullable(),
       stopCount: z.number().int().nonnegative(),
       weekdayTrips: z.number().int().nonnegative(),
-      weekendTrips: z.number().int().nonnegative(),
+      saturdayTrips: z.number().int().nonnegative(),
+      sundayTrips: z.number().int().nonnegative(),
       stops: z.array(
-        z.object({
+        z.strictObject({
           stopOrder: z.number().int(),
           campus: busCampusSummarySchema,
         }),
@@ -132,7 +133,7 @@ export const busRouteSearchResponseSchema = z.object({
   ),
 });
 
-const busNextDepartureSchema = z.object({
+const busNextDepartureSchema = z.strictObject({
   tripId: z.number().int(),
   routeId: z.number().int(),
   route: busRouteCoreSchema,
@@ -143,15 +144,15 @@ const busNextDepartureSchema = z.object({
   departureEstimated: z.boolean(),
   arrivalEstimated: z.boolean(),
   minutesUntilDeparture: z.number().int().nullable(),
-  dayType: z.enum(["weekday", "weekend"]),
+  dayType: z.enum(["weekday", "saturday", "sunday"]),
   status: z.enum(["upcoming", "departed"]),
 });
 
-export const busNextDeparturesResponseSchema = z.object({
+export const busNextDeparturesResponseSchema = z.strictObject({
   originCampus: busCampusSummarySchema.nullable(),
   destinationCampus: busCampusSummarySchema.nullable(),
   atTime: dateTimeSchema,
-  dayType: z.enum(["weekday", "weekend"]),
+  dayType: z.enum(["weekday", "saturday", "sunday"]),
   totalRoutes: z.number().int().nonnegative(),
   departures: z.array(busNextDepartureSchema),
   nextAvailableDeparture: busNextDepartureSchema.nullable(),

@@ -1,6 +1,6 @@
 <script lang="ts">
-import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -9,38 +9,38 @@ import type {
 } from "./catalog-detail-component-types";
 
 export let copy: TeacherDetailCopy;
+export let locale: string;
 export let notAvailable: string;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let secondaryName: (item: CatalogNamed | null | undefined) => string;
 export let teacher: TeacherDetailTeacher;
 </script>
 
-<Item.Group class="md:hidden">
-  {#each teacher.sections as section}
-    <Item.Root variant="outline" size="sm">
-      {#snippet child({ props })}
-        <a href={`/sections/${section.jwId}`} {...props}>
-          <Item.Content>
-            <Item.Title>{primaryName(section.course)}</Item.Title>
-            {#if secondaryName(section.course)}
-              <Item.Description>{secondaryName(section.course)}</Item.Description>
-            {/if}
-          </Item.Content>
-          <Item.Actions>
-            <Badge variant="outline">{section.code}</Badge>
-          </Item.Actions>
-          <Item.Footer class="flex-wrap justify-start">
-            <span>{section.semester?.nameCn ?? notAvailable}</span>
-            <span>{section.credits ?? notAvailable} {copy.teacherDetail.credits}</span>
-          </Item.Footer>
-        </a>
-      {/snippet}
-    </Item.Root>
-  {:else}
-    <Empty.Root>
+{#if teacher.sections.length === 0}
+  <div class="md:hidden">
+    <Empty.Root class="min-h-20 border-0 px-2 py-6">
       <Empty.Header>
-        <Empty.Title>{copy.teacherDetail.noSections}</Empty.Title>
+        <Empty.Description>{copy.teacherDetail.noSections}</Empty.Description>
       </Empty.Header>
     </Empty.Root>
-  {/each}
-</Item.Group>
+  </div>
+{:else}
+  <Item.Group class="md:hidden">
+    {#each teacher.sections as section}
+      <Item.Root variant="outline" size="sm">
+        {#snippet child({ props })}
+          <a href={`/catalog/sections/${section.jwId}`} {...props}>
+            <Item.Content>
+              <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
+            </Item.Content>
+            <Item.Actions>
+              <TruncatedCode text={section.code} />
+            </Item.Actions>
+            <Item.Footer class="flex-wrap justify-start">
+              <span>{section.semester?.nameCn ?? notAvailable}</span>
+              <span>{section.credits ?? notAvailable} {copy.teacherDetail.credits}</span>
+            </Item.Footer>
+          </a>
+        {/snippet}
+      </Item.Root>
+    {/each}
+  </Item.Group>
+{/if}

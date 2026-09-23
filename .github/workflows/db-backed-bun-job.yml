@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: ""
+      vitest-shard:
+        required: false
+        type: string
+        default: ""
       timeout-minutes:
         required: false
         type: number
@@ -90,15 +94,22 @@ jobs:
           --health-retries 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Configure job environment
         shell: bash
+        env:
+          JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
+            echo "FUNCTION_OWNER_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
+            echo "ALLOW_DATABASE_SEED=true"
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
+              echo "WEBHOOK_LOGIN_ENABLED=true"
             fi
             if [ -n "${{ inputs.extra-env }}" ]; then
               printf '%s\n' "${{ inputs.extra-env }}"
@@ -111,7 +122,7 @@ jobs:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
       - name: Install PostgreSQL client
-        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:e2e:test' }}
+        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rest' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' || inputs.job-phase == 'ci:visual-regression' }}
         shell: bash
         run: |
           sudo apt-get update
@@ -119,7 +130,7 @@ jobs:
 
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.download-artifact-name }}
           path: ${{ inputs.download-artifact-path }}
@@ -128,6 +139,7 @@ jobs:
         shell: bash
         env:
           E2E_SHARD: ${{ inputs.e2e-shard }}
+          VITEST_SHARD: ${{ inputs.vitest-shard }}
           JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           run_e2e_test_phase() {
@@ -137,37 +149,98 @@ jobs:
             fi
 
             bun run app:prepare
-            bun run db:migrate:deploy
-            bunx prisma db seed
-            bunx playwright test --shard="$E2E_SHARD"
+            source tests/ci/setup-runtime-database.sh
+            bash tests/ci/e2e-run-shard.sh "$E2E_SHARD"
           }
 
           case "$JOB_PHASE" in
-            ci:verify)
-              bash tests/ci/retry.test.sh
-              bun run app:prepare
-              bunx biome check
-              bunx svelte-check --tsconfig ./tsconfig.json
-              bunx tsc --noEmit -p tsconfig.typecheck.json
-              bunx tsc --noEmit -p tsconfig.typecheck.tests.json
-              bunx tsc --noEmit -p tsconfig.typecheck.operational.json
-              bunx vitest run
-              ;;
             ci:integration)
+              if [[ ! "$VITEST_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
+                echo "::error::ci:integration requires vitest-shard in current/total format."
+                exit 1
+              fi
+
+              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
+              # the integration suite exercises the same auth configuration.
+              export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
-              bun run db:migrate:deploy
-              bunx prisma db seed
-              # The canonical scenario must be safe to load repeatedly.
-              bunx prisma db seed
-              bunx vitest run --config vitest.integration.config.ts
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                --shard="$VITEST_SHARD"
               ;;
-            ci:e2e:build-artifacts)
+            ci:rest)
+              # Match wrangler.e2e.jsonc so JWKS rows seeded here decrypt when
+              # the Playwright API suite starts `bun run e2e:server`.
+              export AUTH_SECRET=e2e-dev-secret-not-for-production
               bun run app:prepare
-              bun run build
-              bash tests/ci/public-route-client-budget.test.sh
+              source tests/ci/setup-runtime-database.sh
+              # Verify setup remains safe to repeat, including grants.
+              source tests/ci/setup-runtime-database.sh
+              bash tests/ci/e2e-run-shard.sh "$E2E_SHARD" --config playwright.api.config.ts
+              ;;
+            ci:rls)
+              bun run app:prepare
+              source tests/ci/setup-runtime-database.sh
+              source tests/ci/setup-runtime-database.sh
+              runtime_database_url="$DATABASE_URL"
+              expected_table_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=tests/integration/fixtures/app-runtime-table-privileges.sql)"
+              expected_column_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=tests/integration/fixtures/app-runtime-column-privileges.sql)"
+              expected_sequence_privileges="$(psql "$runtime_database_url" -X -tA \
+                --file=tests/integration/fixtures/app-runtime-sequence-privileges.sql)"
+              expected_function_privileges='public.claim_upload_pending_storage_cleanup(p_now timestamp without time zone, p_batch_size integer, p_lease_seconds integer):EXECUTE'
+              expected_function_privileges+=',public.comment_attachment_summaries(p_comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.comment_hidden_root_count(p_section_id integer, p_course_id integer, p_teacher_id integer, p_homework_id text, p_section_teacher_id integer, p_young_event_id integer):EXECUTE'
+              expected_function_privileges+=',public.comment_reaction_summaries(comment_ids text[]):EXECUTE'
+              expected_function_privileges+=',public.finalize_upload_pending_storage_cleanup(p_id text, p_attempt_id text):EXECUTE'
+              expected_function_privileges+=',public.find_downloadable_upload(p_upload_id text):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_comment_contribution_days(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_section_subscription_count(p_user_id text):EXECUTE'
+              expected_function_privileges+=',public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone):EXECUTE'
+              expected_function_privileges+=',public.read_prometheus_metrics_snapshot():EXECUTE'
+              expected_function_privileges+=',public.release_upload_pending_storage_cleanup(p_id text, p_attempt_id text, p_now timestamp without time zone, p_retry_lease_seconds integer):EXECUTE'
+              psql "$runtime_database_url" -X \
+                --set=expected_role=life_ustc_runtime \
+                --set=expected_schema_privileges=public:USAGE \
+                --set=expected_table_privileges="$expected_table_privileges" \
+                --set=expected_column_privileges="$expected_column_privileges" \
+                --set=expected_sequence_privileges="$expected_sequence_privileges" \
+                --set=expected_function_privileges="$expected_function_privileges" \
+                --file=prisma/roles/verify-app-runtime.sql
+              export RLS_TEST_ENABLED=true
+              export AUTH_ROLE_TEST_ENABLED=true
+              export FUNCTION_OWNER_ROLE_TEST_ENABLED=true
+              export MAINTENANCE_ROLE_TEST_ENABLED=true
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/rls-database-contract.test.ts \
+                tests/integration/feature-event-store.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/auth-runtime-contract.test.ts
+              AUTH_SECRET=rls-test-secret-at-least-32-bytes \
+                bunx vitest run \
+                  --config vitest.integration.config.ts \
+                  tests/integration/better-auth-update-user-security.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/maintenance-runtime-contract.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/function-owner-role-contract.test.ts
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/*-rls.test.ts
               ;;
             ci:e2e:test)
               run_e2e_test_phase
+              ;;
+            ci:visual-regression)
+              bash tests/ci/visual-regression.test.sh
               ;;
             *)
               echo "::error::Unknown DB-backed Bun job phase: $JOB_PHASE"
@@ -175,27 +248,10 @@ jobs:
               ;;
           esac
 
-      - name: Verify OpenAPI parity
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        run: bun run openapi:check
-
-      - name: Verify GraphQL schema compatibility
-        if: ${{ inputs.job-phase == 'ci:verify' }}
-        shell: bash
-        run: |
-          base_sha="${{ github.event.pull_request.base.sha }}"
-          if [ -n "$base_sha" ]; then
-            git fetch --no-tags --depth=1 origin "$base_sha"
-            GRAPHQL_SCHEMA_BASE_REF="$base_sha" bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          else
-            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
-          fi
-
       - name: Upload artifact
         id: upload-artifact
         if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.upload-artifact-name }}
           path: ${{ inputs.upload-artifact-path }}

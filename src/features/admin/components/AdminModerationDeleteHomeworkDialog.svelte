@@ -2,7 +2,6 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type Homework = {
@@ -32,7 +31,7 @@ export let isDeleting: boolean;
   <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
-      if (!open) close();
+      if (!open && !isDeleting) close();
     }}
   >
     <AlertDialog.Content
@@ -56,14 +55,10 @@ export let isDeleting: boolean;
           </p>
         </div>
         <AlertDialog.Footer>
-          <AlertDialog.Cancel
-            disabled={isDeleting}
-            type="button"
-            variant="ghost"
-          >
+          <AlertDialog.Cancel disabled={isDeleting} type="button" variant="outline">
             {copy.cancelButton}
           </AlertDialog.Cancel>
-          <Button
+          <AlertDialog.Action
             disabled={isDeleting}
             type="submit"
             variant="destructive"
@@ -72,7 +67,7 @@ export let isDeleting: boolean;
               <Spinner data-icon="inline-start" />
             {/if}
             {isDeleting ? copy.saving : copy.deleteHomeworkAction}
-          </Button>
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </form>
     </AlertDialog.Content>

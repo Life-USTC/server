@@ -6,22 +6,13 @@ type DetailPageData = {
     course?: { namePrimary?: string | null; nameCn?: string | null } | null;
   } | null;
   teacher?: { namePrimary?: string | null; nameCn?: string | null } | null;
-  subscriptions?: {
-    subscriptions?: Array<{
-      sections?: Array<{
-        id: number | string;
-        jwId: number | null;
-        course?: { namePrimary?: string | null; nameCn?: string | null } | null;
-      }>;
-    }>;
-  } | null;
 };
 
 export function buildDetailSecondaryLinks(
   pathname: string,
   pageData: DetailPageData,
 ): ShellLink[] {
-  const courseMatch = pathname.match(/^\/courses\/([^/]+)/);
+  const courseMatch = pathname.match(/^\/catalog\/courses\/([^/]+)/);
   if (courseMatch && pageData.course) {
     return [
       {
@@ -32,7 +23,7 @@ export function buildDetailSecondaryLinks(
     ];
   }
 
-  const sectionMatch = pathname.match(/^\/sections\/([^/]+)/);
+  const sectionMatch = pathname.match(/^\/catalog\/sections\/([^/]+)/);
   if (sectionMatch && pageData.section?.course) {
     return [
       {
@@ -45,7 +36,7 @@ export function buildDetailSecondaryLinks(
     ];
   }
 
-  const teacherMatch = pathname.match(/^\/teachers\/([^/]+)/);
+  const teacherMatch = pathname.match(/^\/catalog\/teachers\/([^/]+)/);
   if (teacherMatch && pageData.teacher) {
     return [
       {
@@ -57,22 +48,4 @@ export function buildDetailSecondaryLinks(
   }
 
   return [];
-}
-
-export function buildSubscriptionSecondaryLinks(
-  pageData: DetailPageData,
-): ShellLink[] {
-  const groups = pageData.subscriptions?.subscriptions ?? [];
-  const links: ShellLink[] = [];
-  for (const group of groups) {
-    for (const section of group.sections ?? []) {
-      if (section.jwId == null) continue;
-      links.push({
-        href: `/sections/${section.jwId}`,
-        label:
-          section.course?.namePrimary ?? section.course?.nameCn ?? "Section",
-      });
-    }
-  }
-  return links;
 }

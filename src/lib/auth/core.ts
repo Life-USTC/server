@@ -7,9 +7,13 @@ function createAuthInstance() {
 }
 
 type BetterAuthInstance = ReturnType<typeof createAuthInstance>;
+type SessionResult = {
+  headers: Headers;
+  session: AppSession | null;
+};
 
 let authInstance: BetterAuthInstance | undefined;
-const sessionByHeaders = new WeakMap<Headers, Promise<AppSession | null>>();
+const sessionByHeaders = new WeakMap<Headers, Promise<SessionResult>>();
 
 function getAuthInstance(): BetterAuthInstance {
   if (!authInstance) {
@@ -42,15 +46,16 @@ export const betterAuthInstance = new Proxy({} as BetterAuthInstance, {
   },
 });
 
-export async function getSessionFromHeaders(
-  headers: Headers,
-): Promise<AppSession | null> {
+async function resolveSession(headers: Headers): Promise<SessionResult> {
   const cached = sessionByHeaders.get(headers);
   if (cached) return cached;
 
   const pending = getAuthInstance()
-    .api.getSession({ headers })
-    .then((session) => (session ? mapAppSession(session) : null));
+    .api.getSession({ headers, returnHeaders: true })
+    .then(({ headers: responseHeaders, response }) => ({
+      headers: responseHeaders,
+      session: response ? mapAppSession(response) : null,
+    }));
   sessionByHeaders.set(headers, pending);
   try {
     return await pending;
@@ -58,4 +63,14 @@ export async function getSessionFromHeaders(
     sessionByHeaders.delete(headers);
     throw error;
   }
+}
+
+export async function getSessionFromHeaders(
+  headers: Headers,
+): Promise<AppSession | null> {
+  return (await resolveSession(headers)).session;
+}
+
+export function getSessionFromHeadersWithResponseHeaders(headers: Headers) {
+  return resolveSession(headers);
 }

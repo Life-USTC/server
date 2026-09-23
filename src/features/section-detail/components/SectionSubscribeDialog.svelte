@@ -60,7 +60,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
           </Button>
         </form>
       {:else}
-        <Button href={`/signin?callbackUrl=${encodeURIComponent(`/sections/${sectionJwId}`)}`}>
+        <Button href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${sectionJwId}`)}`}>
           {commonCopy.signIn ?? ""}
         </Button>
       {/if}

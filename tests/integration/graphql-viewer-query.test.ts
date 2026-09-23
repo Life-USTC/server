@@ -1,7 +1,8 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { prisma } from "@/lib/db/prisma";
+import { authPrisma } from "@/lib/db/auth-prisma";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import {
   getOAuthGraphqlResourceUrl,
@@ -9,6 +10,13 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/oauth/resource-urls";
 import { restReadScope } from "@/lib/oauth/scope-registry";
+import { createFixturePrisma } from "../shared/prisma";
+import {
+  assertOverviewCountsAreNumbers,
+  normalizeGraphqlOverviewPayload,
+} from "../shared/scenarios/overview";
+
+const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
 const encoder = new TextEncoder();
@@ -47,7 +55,7 @@ async function signSessionCookieValue(value: string, secret: string) {
 
 async function createSessionCookie(userId: string) {
   const token = crypto.randomUUID();
-  await prisma.session.create({
+  await fixturePrisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
@@ -65,7 +73,7 @@ async function signToken(
   scopes: string[],
   resource = getOAuthGraphqlResourceUrl(),
 ) {
-  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+  const consent = await fixturePrisma.oAuthConsent.findFirstOrThrow({
     where: {
       clientId: oauthClientId,
       scopes: { hasEvery: scopes },
@@ -114,16 +122,16 @@ async function execute(body: unknown, headers: HeadersInit = {}) {
 }
 
 const allViewerScopes = [
-  restReadScope("me"),
-  restReadScope("dashboard"),
-  restReadScope("todo"),
-  restReadScope("subscription"),
-  restReadScope("homework"),
-  restReadScope("schedule"),
-  restReadScope("exam"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.overview"),
+  restReadScope("workspace.todo"),
+  restReadScope("workspace.subscription"),
+  restReadScope("workspace.homework"),
+  restReadScope("workspace.schedule"),
+  restReadScope("workspace.exam"),
 ];
 
-describe.sequential("GraphQL Viewer integration", () => {
+describe("GraphQL Viewer integration", { concurrent: false }, () => {
   let firstSectionId = 0;
   let firstSectionJwId = 0;
   let secondSectionId = 0;
@@ -135,7 +143,7 @@ describe.sequential("GraphQL Viewer integration", () => {
   const userEmails: string[] = [];
 
   beforeAll(async () => {
-    const sections = await prisma.section.findMany({
+    const sections = await fixturePrisma.section.findMany({
       where: {
         exams: { some: {} },
         homeworks: { some: { deletedAt: null } },
@@ -168,21 +176,21 @@ describe.sequential("GraphQL Viewer integration", () => {
       `graphql-viewer-b-${marker}@example.test`,
     );
     const [firstUser, secondUser] = await Promise.all([
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[0],
           name: "GraphQL Viewer A",
           username: `graphql-viewer-a-${marker}`,
-          subscribedSections: { connect: { id: firstSectionId } },
+          sectionSubscriptions: { create: { sectionId: firstSectionId } },
         },
         select: { id: true },
       }),
-      prisma.user.create({
+      fixturePrisma.user.create({
         data: {
           email: userEmails[1],
           name: "GraphQL Viewer B",
           username: `graphql-viewer-b-${marker}`,
-          subscribedSections: { connect: { id: secondSectionId } },
+          sectionSubscriptions: { create: { sectionId: secondSectionId } },
         },
         select: { id: true },
       }),
@@ -191,7 +199,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     secondUserId = secondUser.id;
 
     await Promise.all([
-      prisma.oAuthClient.create({
+      fixturePrisma.oAuthClient.create({
         data: {
           clientId: oauthClientId,
           consents: {
@@ -204,7 +212,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           redirectUris: ["https://graphql.example/callback"],
         },
       }),
-      prisma.todo.createMany({
+      fixturePrisma.todo.createMany({
         data: [
           {
             title: `[integration-test] graphql-viewer-a-${marker}`,
@@ -216,7 +224,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           },
         ],
       }),
-      prisma.userSuspension.create({
+      fixturePrisma.userSuspension.create({
         data: {
           reason: "[integration-test] reads remain available",
           userId: firstUserId,
@@ -229,28 +237,32 @@ describe.sequential("GraphQL Viewer integration", () => {
   });
 
   afterAll(async () => {
-    await prisma.oAuthClient.deleteMany({
+    await fixturePrisma.oAuthClient.deleteMany({
       where: { clientId: oauthClientId },
     });
     if (userEmails.length > 0) {
-      await prisma.user.deleteMany({
+      await fixturePrisma.user.deleteMany({
         where: { email: { in: userEmails } },
       });
     }
-    await prisma.$disconnect();
+    await Promise.all([
+      fixturePrisma.$disconnect(),
+      authPrisma.$disconnect(),
+      runtimePrisma.$disconnect(),
+    ]);
   });
 
-  it("returns viewer=null to anonymous callers and marks the response no-store", async () => {
+  it("returns account=null to anonymous callers and marks the response no-store", async () => {
     const { response, payload } = await execute({
-      query: "{ viewer { profile { id } } }",
+      query: "{ account { profile { id } } }",
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(payload).toEqual({ data: { viewer: null } });
+    expect(payload).toEqual({ data: { account: null } });
   });
 
-  it("serves every suspended user's relation-owned Viewer field through a trusted-Origin session", async () => {
+  it("serves account and workspace fields through a trusted-Origin session", async () => {
     const shanghaiMidnightInstant = new Date(
       firstScheduleDate.getTime() - 8 * 60 * 60 * 1000,
     ).toISOString();
@@ -309,7 +321,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           }
 
           query ViewerBySession($date: DateTime!) {
-            viewer {
+            account {
               profile {
                 id
                 email
@@ -319,6 +331,8 @@ describe.sequential("GraphQL Viewer integration", () => {
                 createdAt
                 updatedAt
               }
+            }
+            viewer: workspace {
               overview(atTime: "2026-04-29T08:00:00+08:00") {
                 atTime
                 today
@@ -341,7 +355,8 @@ describe.sequential("GraphQL Viewer integration", () => {
               }
               subscribedSections {
                 items {
-                  ...SectionFields
+                  kind
+                  section { ...SectionFields }
                 }
                 pageInfo {
                   pageSize
@@ -431,15 +446,21 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(payload.errors).toBeUndefined();
+    const account = payload.data?.account as { profile: { id: string } };
     const viewer = payload.data?.viewer as {
-      profile: { id: string };
-      overview: { today: string };
+      overview: {
+        today: string;
+        incompleteTodos?: number;
+        pendingHomeworks?: number;
+        todaySchedules?: number;
+        upcomingExams?: number;
+      };
       todos: {
         items: Array<{ title: string }>;
         pageInfo: { pageSize: number; total: number };
       };
       subscribedSections: {
-        items: Array<{ id: number; jwId: number }>;
+        items: Array<{ kind: string; section: { id: number; jwId: number } }>;
         pageInfo: { pageSize: number; total: number };
       };
       homeworks: {
@@ -455,8 +476,11 @@ describe.sequential("GraphQL Viewer integration", () => {
         pageInfo: { total: number };
       };
     };
-    expect(viewer.profile.id).toBe(firstUserId);
+    expect(account.profile.id).toBe(firstUserId);
     expect(viewer.overview.today).toBe("2026-04-29");
+    assertOverviewCountsAreNumbers(
+      normalizeGraphqlOverviewPayload(viewer.overview),
+    );
     expect(viewer.todos.pageInfo).toMatchObject({ pageSize: 20, total: 1 });
     expect(viewer.todos.items[0]?.title).toContain("graphql-viewer-a");
     expect(viewer.subscribedSections.pageInfo).toMatchObject({
@@ -464,7 +488,10 @@ describe.sequential("GraphQL Viewer integration", () => {
       total: 1,
     });
     expect(viewer.subscribedSections.items).toMatchObject([
-      { id: firstSectionId, jwId: firstSectionJwId },
+      {
+        kind: "regular",
+        section: { id: firstSectionId, jwId: firstSectionJwId },
+      },
     ]);
     for (const page of [viewer.homeworks, viewer.schedules, viewer.exams]) {
       expect(page.pageInfo.total).toBeGreaterThan(0);
@@ -488,7 +515,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(page: { pageSize: 1 }) {
                 items {
                   teachers {
@@ -572,7 +599,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(page: { pageSize: 1 }) {
                 items {
                   defaultTeachers: teachers {
@@ -693,7 +720,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       const rejected = await execute(
         {
           query: `{
-            viewer {
+            viewer: workspace {
               ${parentField}(page: { pageSize: 1 }) {
                 items {
                   ${nestedField} { pageInfo { total } }
@@ -715,10 +742,12 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            account {
               profile {
                 id
               }
+            }
+            viewer: workspace {
               todos {
                 pageInfo {
                   total
@@ -731,17 +760,21 @@ describe.sequential("GraphQL Viewer integration", () => {
       { authorization: `Bearer ${graphqlBearer}` },
     );
     expect(authorized.payload.errors).toBeUndefined();
-    expect(authorized.payload.data?.viewer).toMatchObject({
-      profile: { id: firstUserId },
-      todos: { pageInfo: { total: 1 } },
+    expect(authorized.payload.data).toMatchObject({
+      account: { profile: { id: firstUserId } },
+      viewer: {
+        todos: { pageInfo: { total: 1 } },
+      },
     });
 
-    const todoOnly = await signToken(firstUserId, [restReadScope("todo")]);
+    const todoOnly = await signToken(firstUserId, [
+      restReadScope("workspace.todo"),
+    ]);
     const missing = await execute(
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            account {
               profile {
                 id
               }
@@ -754,18 +787,18 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(missing.response.status).toBe(403);
     expect(missing.payload.errors?.[0]?.extensions).toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: [restReadScope("me")],
+      requiredScopes: [restReadScope("account.profile")],
     });
 
     const twoScopes = await signToken(firstUserId, [
-      restReadScope("todo"),
-      restReadScope("subscription"),
+      restReadScope("workspace.todo"),
+      restReadScope("workspace.subscription"),
     ]);
     const multiField = await execute(
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               todos {
                 pageInfo {
                   total
@@ -790,36 +823,39 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(multiField.response.status).toBe(403);
     expect(multiField.payload.errors?.[0]?.extensions).toMatchObject({
       code: "FORBIDDEN",
-      requiredScopes: [restReadScope("homework")],
+      requiredScopes: [restReadScope("workspace.homework")],
     });
   });
 
   it.each([
     ["REST", () => getOAuthRestAudienceUrls()[0] as string],
     ["MCP", getOAuthMcpResourceUrl],
-  ])("rejects a %s bearer without falling back to a valid session cookie", async (_surface, resource) => {
-    const wrongAudience = await signToken(
-      firstUserId,
-      [restReadScope("me")],
-      resource(),
-    );
-    const { response, payload } = await execute(
-      { query: "{ viewer { profile { id } } }" },
-      {
-        authorization: `Bearer ${wrongAudience}`,
-        cookie: sessionCookie,
-        origin: new URL(getOAuthGraphqlResourceUrl()).origin,
-      },
-    );
+  ])(
+    "rejects a %s bearer without falling back to a valid session cookie",
+    async (_surface, resource) => {
+      const wrongAudience = await signToken(
+        firstUserId,
+        [restReadScope("account.profile")],
+        resource(),
+      );
+      const { response, payload } = await execute(
+        { query: "{ account { profile { id } } }" },
+        {
+          authorization: `Bearer ${wrongAudience}`,
+          cookie: sessionCookie,
+          origin: new URL(getOAuthGraphqlResourceUrl()).origin,
+        },
+      );
 
-    expect(response.status).toBe(401);
-    expect(payload.errors?.[0]?.extensions).toMatchObject({
-      code: "UNAUTHENTICATED",
-    });
-    expect(payload.data?.viewer).not.toMatchObject({
-      profile: { id: firstUserId },
-    });
-  });
+      expect(response.status).toBe(401);
+      expect(payload.errors?.[0]?.extensions).toMatchObject({
+        code: "UNAUTHENTICATED",
+      });
+      expect(payload.data?.account).not.toMatchObject({
+        profile: { id: firstUserId },
+      });
+    },
+  );
 
   it("enforces default/max pagination, ordered ranges, and strict zoned dates", async () => {
     const headers = { authorization: `Bearer ${graphqlBearer}` };
@@ -827,7 +863,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               defaultPage: todos {
                 pageInfo {
                   page
@@ -854,7 +890,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     const oversized = await execute(
       {
         query:
-          "{ viewer { todos(page: { pageSize: 101 }) { pageInfo { total } } } }",
+          "{ viewer: workspace { todos(page: { pageSize: 101 }) { pageInfo { total } } } }",
       },
       headers,
     );
@@ -866,7 +902,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(
                 filter: {
                   dateFrom: "2026-04-30T00:00:00+08:00"
@@ -891,7 +927,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(filter: { dateFrom: "2026-04-29T00:00:00" }) {
                 pageInfo {
                   total

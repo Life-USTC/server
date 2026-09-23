@@ -9,24 +9,24 @@ import type {
 
 export let copy: CourseDetailCopy;
 export let course: CourseDetailCourse;
+export let locale: string;
 export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
-export let teacherNames: (teachers: CatalogNamed[]) => string;
 </script>
 
 <section class="grid gap-4">
   <CourseDetailSectionsMobile
     {copy}
     {course}
+    {locale}
     {notAvailable}
     {primaryName}
-    {teacherNames}
   />
   <CourseDetailSectionsTable
     {copy}
     {course}
+    {locale}
     {notAvailable}
     {primaryName}
-    {teacherNames}
   />
 </section>

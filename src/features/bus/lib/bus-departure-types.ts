@@ -29,7 +29,7 @@ export type BusNextDeparturesResult = {
   originCampus: BusCampusSummary | null;
   destinationCampus: BusCampusSummary | null;
   atTime: string;
-  dayType: "weekday" | "weekend";
+  dayType: "weekday" | "saturday" | "sunday";
   totalRoutes: number;
   departures: BusNextDeparture[];
   nextAvailableDeparture: BusNextDeparture | null;

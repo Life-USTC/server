@@ -12,17 +12,26 @@ export type GraphqlContext = {
 
 export type GraphqlServerContext = {
   locals: { locale?: AppLocale; requestId?: string };
+  operationObservation?: "caller";
+  principal?: GraphqlPrincipal;
+  principalRef?: { current?: GraphqlPrincipal };
 };
 
-export async function createGraphqlContext({
-  locals,
-  request,
-}: GraphqlServerContext & { request: Request }): Promise<GraphqlContext> {
+export async function createGraphqlContext(
+  serverContext: GraphqlServerContext & { request: Request },
+): Promise<GraphqlContext> {
+  const { locals, request } = serverContext;
   const locale = locals.locale ?? DEFAULT_LOCALE;
+  const principal =
+    serverContext.principal ?? (await resolveGraphqlPrincipal(request));
+  serverContext.principal = principal;
+  if (serverContext.principalRef) {
+    serverContext.principalRef.current = principal;
+  }
   return {
     loaders: createGraphqlLoaders(locale),
     locale,
-    principal: await resolveGraphqlPrincipal(request),
+    principal,
     request,
   };
 }
