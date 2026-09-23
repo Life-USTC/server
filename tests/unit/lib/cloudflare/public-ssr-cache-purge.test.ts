@@ -65,16 +65,16 @@ describe("public SSR cache purge endpoint", () => {
     });
   });
 
-  it("reports a rejected purge with the platform error summary", async () => {
+  it("reports a rejected purge by code without platform error text", async () => {
     await expect(
       purgeEntrypointCatalogCache({
         purge: vi.fn().mockResolvedValue({
-          errors: [{ code: 1012, message: "tag purge unavailable" }],
+          errors: [{ code: 1012, message: `token ${SECRET}` }],
           success: false,
         }),
       }),
     ).resolves.toEqual({
-      detail: "1012: tag purge unavailable",
+      detail: "1012",
       ok: false,
       reason: "purge-rejected",
     });
@@ -203,34 +203,26 @@ describe("public SSR cache purge endpoint", () => {
       "error",
       "edge.cache.purge.error",
       expect.objectContaining({
-        detail: "Error: rpc failed",
+        detail: "Error",
         reason: "purge-threw",
       }),
-      expect.any(Error),
     );
   });
 
-  it("names the thrown fault in the body instead of only that it failed", async () => {
-    // The production incident: `ctx.exports.PublicSsr()` called without its
-    // Options argument threw before the RPC was dispatched. The old body was a
-    // bare `{ error: "Cache purge failed" }`, which is indistinguishable from
-    // every other fault — locating it took several rounds of guessing.
+  it("classifies a thrown TypeError without echoing its message", async () => {
     const response = await handlePublicSsrCachePurgeRequest({
-      purge: vi
-        .fn()
-        .mockRejectedValue(
-          new TypeError("parameter 1 is not of type 'Options'"),
-        ),
+      purge: vi.fn().mockRejectedValue(new TypeError(`parameter 1: ${SECRET}`)),
       request: purgeRequest(),
       secret: SECRET,
     });
 
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toEqual({
-      detail: "TypeError: parameter 1 is not of type 'Options'",
+      detail: "TypeError",
       error: "Cache purge failed",
       reason: "purge-threw",
     });
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(SECRET);
   });
 
   it("describes a non-Error throw by type without echoing its value", async () => {
@@ -246,15 +238,16 @@ describe("public SSR cache purge endpoint", () => {
     expect(JSON.stringify(body)).not.toContain("secret-bearing-string");
   });
 
-  it("bounds the thrown detail so a huge message cannot flood the log", async () => {
+  it("does not log or return a thrown message containing sensitive data", async () => {
     const response = await handlePublicSsrCachePurgeRequest({
-      purge: vi.fn().mockRejectedValue(new Error("x".repeat(5_000))),
+      purge: vi.fn().mockRejectedValue(new Error(`private body ${SECRET}`)),
       request: purgeRequest(),
       secret: SECRET,
     });
 
-    const body = (await response.json()) as { detail: string };
-    expect(body.detail).toHaveLength(200);
-    expect(body.detail.startsWith("Error: ")).toBe(true);
+    const body = await response.text();
+    expect(body).toContain('"detail":"Error"');
+    expect(body).not.toContain(SECRET);
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(SECRET);
   });
 });

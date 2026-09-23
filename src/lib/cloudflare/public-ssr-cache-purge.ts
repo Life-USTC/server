@@ -70,14 +70,9 @@ function boundedDetail(value: string) {
   return value.slice(0, MAX_DETAIL_LENGTH);
 }
 
-/**
- * Identify a thrown value without leaking anything request-shaped: the error
- * class plus its message, both bounded by the caller.
- */
 function describeThrown(error: unknown) {
-  if (error instanceof Error) {
-    return error.message ? `${error.name}: ${error.message}` : error.name;
-  }
+  if (error instanceof TypeError) return "TypeError";
+  if (error instanceof Error) return "Error";
   return typeof error;
 }
 
@@ -87,8 +82,12 @@ function summarizePurgeErrors(
   if (!errors || errors.length === 0) return undefined;
   return boundedDetail(
     errors
-      .map((error) => `${error.code ?? "unknown"}: ${error.message ?? ""}`)
-      .join("; "),
+      .map((error) =>
+        typeof error.code === "number" && Number.isSafeInteger(error.code)
+          ? String(error.code)
+          : "unknown",
+      )
+      .join(","),
   );
 }
 
@@ -128,7 +127,7 @@ export async function purgeEntrypointCatalogCache(
     result = await cache.purge({ tags: [...PUBLIC_SSR_CACHE_PURGE_TAGS] });
   } catch (error) {
     return {
-      detail: boundedDetail(error instanceof Error ? error.name : typeof error),
+      detail: describeThrown(error),
       ok: false,
       reason: "purge-threw",
     };
@@ -200,26 +199,14 @@ export async function handlePublicSsrCachePurgeRequest(input: {
   try {
     result = await input.purge();
   } catch (error) {
-    // `detail` carries the bounded error name *and* message. Name alone is not
-    // enough to act on: a bare `ctx.exports.X()` call throws a plain
-    // `TypeError`, which is indistinguishable from a dozen other faults until
-    // you can read "parameter 1 is not of type 'Options'".
-    const detail = boundedDetail(describeThrown(error));
-    logAppEvent(
-      "error",
-      "edge.cache.purge.error",
-      {
-        detail,
-        event: "edge.cache.purge.error",
-        outcome: "error",
-        reason: "purge-threw",
-        source: "worker-entrypoint",
-      },
-      error,
-    );
-    // The caller is already authenticated with the machine secret, so echoing
-    // the bounded reason back saves a log round-trip when a scheduled import
-    // fails. It carries no request data, only the thrown fault's identity.
+    const detail = describeThrown(error);
+    logAppEvent("error", "edge.cache.purge.error", {
+      detail,
+      event: "edge.cache.purge.error",
+      outcome: "error",
+      reason: "purge-threw",
+      source: "worker-entrypoint",
+    });
     return jsonResponse(502, {
       detail,
       error: "Cache purge failed",
