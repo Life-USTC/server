@@ -378,6 +378,18 @@ export async function assertPageContract(
       return;
     }
 
+    case "/demo": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByRole("heading", { name: "Demo workspace" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Enter isolated demo" }),
+      ).toBeVisible();
+      return;
+    }
+
     case "/catalog/bus": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);

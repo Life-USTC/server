@@ -9,7 +9,7 @@ export let data: PageData;
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<main class="mx-auto max-w-2xl space-y-6 px-4 py-12">
+<div class="mx-auto max-w-2xl space-y-6 px-4 py-12">
   <div class="space-y-2">
     <p class="text-sm font-medium text-primary">Production-safe draft</p>
     <h1 class="text-3xl font-semibold">Demo workspace</h1>
@@ -37,4 +37,4 @@ export let data: PageData;
       </button>
     </form>
   {/if}
-</main>
+</div>

@@ -8,7 +8,14 @@ import { getExplicitMcpToolScopeNames } from "@/lib/mcp/tool-scopes";
 const scopes = ["account", "catalog", "community", "workspace"] as const;
 const capabilityName = new RegExp(`^(${scopes.join("|")})_[a-z0-9_]+$`);
 const graphqlInfrastructureTools = new Set(["graphql_operation_run"]);
-const restInfrastructureRoots = new Set(["auth", "health", "mcp", "openapi"]);
+// Demo uses its own short-lived principal and cannot share business scopes.
+const restInfrastructureRoots = new Set([
+  "auth",
+  "demo",
+  "health",
+  "mcp",
+  "openapi",
+]);
 
 describe("cross-surface interface naming", () => {
   it("uses the canonical scope prefix for every business MCP tool", () => {

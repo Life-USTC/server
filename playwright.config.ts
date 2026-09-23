@@ -13,7 +13,11 @@ if (inspectorPort && !/^\d+$/.test(inspectorPort)) {
 
 const baseURL = `http://localhost:${e2ePort}`;
 const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
-const workerEnvironment = getWorkerProcessEnvironment();
+const workerEnvironment = {
+  ...getWorkerProcessEnvironment(),
+  DEMO_MODE_ENABLED: "true",
+  DEMO_SIGNING_SECRET: "e2e-demo-only-signing-secret-2026-09-23",
+};
 
 export default defineConfig({
   testDir: "./tests/e2e",
