@@ -89,11 +89,7 @@ const badges = $derived(
       event.activityLevel,
       event.module,
       event.form,
-      event.isOnline === true
-        ? youngCopy.online
-        : event.isOnline === false
-          ? youngCopy.offline
-          : null,
+      event.isOnline === true ? youngCopy.online : null,
     ]),
   ].filter((value): value is string => value != null && value !== ""),
 );

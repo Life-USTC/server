@@ -89,6 +89,7 @@ for (const width of [1280, 390]) {
         requiresSignupInfo: true,
         allowedAttachmentTypes: ["pdf", "docx"],
         isOnline: true,
+        location: "东区学生活动中心",
         onlineMeetingInfo: "800-414-186",
         externalSponsor: "校外合作机构",
         signupScopeCode: "2",
@@ -105,6 +106,14 @@ for (const width of [1280, 390]) {
         page.getByText("800-414-186", { exact: true }),
       ).toBeVisible();
       await expect(page.getByText("PDF, DOCX", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(/提供线上会议|Online meeting available/, {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("东区学生活动中心", { exact: true }),
+      ).toBeVisible();
       await expect(
         page.getByText("校外合作机构", { exact: true }),
       ).toBeVisible();
@@ -131,10 +140,21 @@ for (const width of [1280, 390]) {
         page,
         `/catalog/young-events?search=${encodeURIComponent("线上学术交流 · 参与信息测试")}`,
       );
+      await expect(visibleText(page, /东区学生活动中心/)).toBeVisible();
       if (width >= 1280)
         await expect(
           page.getByRole("cell", { name: /未提供 \/ 20|Not provided \/ 20/ }),
         ).toBeVisible();
+      await db.youngEvent.update({
+        where: { youngId },
+        data: { isOnline: false },
+      });
+      await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+      await expect(
+        page.getByText(
+          /^(线下活动|In-person event|提供线上会议|Online meeting available)$/,
+        ),
+      ).toHaveCount(0);
     } finally {
       await db.youngEvent.delete({ where: { youngId } });
       await disconnectTestPrisma(db);
