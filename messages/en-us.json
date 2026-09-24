@@ -1096,7 +1096,7 @@
     "sectionOrganization": "Organization and contact",
     "sectionPlaces": "Venues",
     "sectionNotes": "Before you attend",
-    "signupCta": "Sign up on young.ustc.edu.cn",
+    "signupCta": "View and register at young.ustc.edu.cn",
     "signupHint": "Official registration happens on young.ustc.edu.cn. Life@USTC can help you follow activities and add reminders to your calendar.",
     "notFound": "Event not found",
     "notFoundDescription": "This event does not exist or has been removed.",
@@ -1157,7 +1157,24 @@
       "day": "Day",
       "week": "Week",
       "month": "Month"
-    }
+    },
+    "signupRequired": "Registration required",
+    "signupNotRequired": "No registration required",
+    "signupRequirement": "Registration requirement",
+    "signupInfoRequired": "Additional information required at registration",
+    "signupInfoNotRequired": "No additional registration information required",
+    "allowedAttachmentTypes": "Accepted attachment formats",
+    "online": "Online event",
+    "offline": "In-person event",
+    "onlineMeetingInfo": "Online meeting information",
+    "externalSponsor": "External organizer",
+    "scopeHint": "Check the Second Classroom platform for eligibility and the intended audience.",
+    "sectionRegistration": "Registration and participation",
+    "sectionRecord": "Record information",
+    "unknownValue": "Not provided",
+    "unknownTime": "Time to be announced",
+    "startsAt": "Starts: {value}",
+    "endsAt": "Ends: {value}"
   },
   "publications": {
     "title": "News & Notices",
@@ -1232,7 +1249,14 @@
       "media": "Media file",
       "asset": "Attachment",
       "raw_page": "Raw page"
-    }
+    },
+    "author": "Author / contributor",
+    "category": "Category",
+    "attachmentNumber": "Attachment {number}",
+    "reporter": "Reporter",
+    "editor": "Editor",
+    "originalPublisher": "Original publisher",
+    "imageCaptions": "Image captions"
   },
   "busMap": {
     "title": "Transit Map",

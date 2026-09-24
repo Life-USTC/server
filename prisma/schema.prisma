@@ -1133,6 +1133,9 @@ model PublicationRevision {
   isTombstone       Boolean         @default(false)
   title             String?
   author            String?
+  reporter String?
+  editor String?
+  originalPublisher String?
   publishedAt       DateTime?
   updatedAtSource   DateTime?
   category          String?
@@ -1170,6 +1173,9 @@ model PublicationImageSource {
 model PublicationRevisionImageSource {
   revisionId     String
   imageSourceId  String
+  altText String?
+  title String?
+  caption String?
   createdAt      DateTime @default(now())
 
   revision    PublicationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
@@ -1206,6 +1212,8 @@ model PublicationObjectLink {
   role       PublicationObjectKind
   sortOrder  Int?
   altText    String?
+  filename String?
+  sourceUrl String?
   createdAt  DateTime              @default(now())
 
   revision PublicationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
@@ -2030,6 +2038,23 @@ model YoungEvent {
   auditedAt          DateTime? @db.Timestamp(0)
   updatedAtUpstream  DateTime? @db.Timestamp(0)
   places             Json?
+
+  /// Upstream identifiers and scope codes remain opaque until a source dictionary is available.
+  categoryCode String?
+  moduleCode String?
+  formCode String?
+  activityLevelCode String?
+  departmentId String?
+  upstreamOrganizerIds String[] @default([])
+  upstreamSponsorIds String[] @default([])
+  tagIds String[] @default([])
+  signupScopeCode String?
+  signupDepartmentIds String[] @default([])
+  requiresSignupInfo Boolean?
+  allowedAttachmentTypes String[] @default([])
+  isOnline Boolean?
+  onlineMeetingInfo String?
+  externalSponsor String?
 
   organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
 

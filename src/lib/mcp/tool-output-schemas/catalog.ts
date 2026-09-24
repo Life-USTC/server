@@ -85,6 +85,20 @@ export const weatherFullSchema = z.union([
 // The compact shape stays list-sized: identity, timing and the three
 // classification badges. Everything else arrives with mode: "full".
 export const compactYoungEventSchema = youngEventSummarySchema.omit({
+  categoryCode: true,
+  moduleCode: true,
+  formCode: true,
+  activityLevelCode: true,
+  departmentId: true,
+  upstreamOrganizerIds: true,
+  upstreamSponsorIds: true,
+  tagIds: true,
+  signupScopeCode: true,
+  signupDepartmentIds: true,
+  requiresSignupInfo: true,
+  allowedAttachmentTypes: true,
+  onlineMeetingInfo: true,
+  externalSponsor: true,
   department: true,
   organizer: true,
   imageUrl: true,

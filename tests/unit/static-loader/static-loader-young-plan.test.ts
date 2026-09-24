@@ -337,3 +337,81 @@ describe("static young event plan", () => {
     expect(loadYoungEvents(snapshot)).toEqual([]);
   });
 });
+
+describe("structured participation metadata", () => {
+  it("preserves source identity and safely normalizes participation facts", () => {
+    const [event] =
+      loadYoungEvents(
+        fakeSnapshot({
+          tables: {
+            [ACTIVE_TABLE]: [
+              {
+                id: "metadata",
+                itemCategory: "0",
+                module: "I",
+                form: 0,
+                activityLevel: "school",
+                businessDeptId: " dept-1 ",
+                organizer: "a,b,a",
+                sponsor: "s1, s2",
+                itemLable: "tag-2,tag-1,tag-2,",
+                applyRange: 2,
+                rangeDeptIds: " d1, d2, d1 ",
+                needSignInfo: 1,
+                attaType: "PDF,.docx,pdf, bad/type,,ZIP",
+                onlineStatus: "0",
+                onlineMeetingApp: " 800-414-186 ",
+                ewSponsor: " 合作机构 ",
+              },
+            ],
+          },
+        }),
+      ) ?? [];
+    expect(event).toMatchObject({
+      categoryCode: "0",
+      moduleCode: "I",
+      formCode: "0",
+      activityLevelCode: "school",
+      departmentId: "dept-1",
+      upstreamOrganizerIds: ["a", "b"],
+      upstreamSponsorIds: ["s1", "s2"],
+      tagIds: ["tag-2", "tag-1"],
+      signupScopeCode: "2",
+      signupDepartmentIds: ["d1", "d2"],
+      requiresSignupInfo: true,
+      allowedAttachmentTypes: ["pdf", "docx", "zip"],
+      isOnline: false,
+      onlineMeetingInfo: "800-414-186",
+      externalSponsor: "合作机构",
+    });
+    expect(JSON.parse(event.rawJson).attaType).toBe(
+      "PDF,.docx,pdf, bad/type,,ZIP",
+    );
+  });
+
+  it.each([null, "", "暂无", " 无 "])(
+    "drops external sponsor placeholder %s",
+    (ewSponsor) => {
+      const [event] =
+        loadYoungEvents(
+          fakeSnapshot({
+            tables: {
+              [ACTIVE_TABLE]: [
+                {
+                  id: "missing",
+                  ewSponsor,
+                  needSignInfo: 2,
+                  onlineStatus: "true",
+                },
+              ],
+            },
+          }),
+        ) ?? [];
+      expect(event.externalSponsor).toBeUndefined();
+      expect(event.requiresSignupInfo).toBeUndefined();
+      expect(event.isOnline).toBeUndefined();
+      expect(event.tagIds).toEqual([]);
+      expect(event.allowedAttachmentTypes).toEqual([]);
+    },
+  );
+});

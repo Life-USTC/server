@@ -20,11 +20,17 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import {
+  youngCapacity,
+  youngDateRange,
+  youngDateTime,
+} from "../lib/young-event-display";
 
 type Props = {
   categories: string[];
@@ -53,7 +59,7 @@ const MODULE_OPTIONS = ["德", "智", "体", "美", "劳"];
 const ACTIVITY_LEVEL_OPTIONS = ["班级", "院级", "校级", "省级", "国家级"];
 
 function formatDateTime(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
+  return youngDateTime(value) ?? youngCopy.unknownTime;
 }
 
 function pageHref(targetPage: number) {
@@ -228,10 +234,14 @@ const searchSummary = $derived(
                           {formatDateTime(event.startAt)}
                         </Item.Actions>
                         <Item.Footer class="flex-wrap justify-start">
-                          <span>{event.category ?? "-"}</span>
-                          <span>{event.module ?? "-"}</span>
-                          <span>{event.activityLevel ?? "-"}</span>
-                          <span>{event.status ?? "-"}</span>
+                          {#each [...new Set([event.category, event.module, event.activityLevel, event.status].filter(Boolean))] as label (label)}
+                            <Badge variant="secondary">{label}</Badge>
+                          {/each}
+                          {#if event.requiresSignup === false}<Badge variant="outline">{youngCopy.signupNotRequired}</Badge>{/if}
+                          {#if event.isOnline === true}<Badge variant="outline">{youngCopy.online}</Badge>{/if}
+                          {#if event.hours != null}<span>{youngCopy.hours}: {event.hours}</span>{/if}
+                          {#if event.location}<span>{event.location}</span>{/if}
+                          {#if event.applyEndAt && event.requiresSignup !== false}<span>{youngCopy.signupWindow}: {youngCopy.endsAt.replace("{value}", formatDateTime(event.applyEndAt))}</span>{/if}
                           {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
                       </a>
@@ -263,7 +273,12 @@ const searchSummary = $derived(
                   <Table.Row class="has-[a:hover]:bg-muted/50">
                     <Table.Cell class="p-0">
                       <CatalogTableLink href={`/catalog/young-events/${event.youngId}`}>
-                        <TruncatedText text={event.name} />
+                        <div class="grid gap-1">
+                          <TruncatedText text={event.name} />
+                          {#if event.location || event.isOnline === true}
+                            <span class="text-xs text-muted-foreground">{event.isOnline === true ? youngCopy.online : event.location}</span>
+                          {/if}
+                        </div>
                       </CatalogTableLink>
                     </Table.Cell>
                     <Table.Cell>{event.category ?? "-"}</Table.Cell>
@@ -273,10 +288,10 @@ const searchSummary = $derived(
                       {formatDateTime(event.startAt)}
                     </Table.Cell>
                     <Table.Cell class="whitespace-nowrap">
-                      {formatDateTime(event.applyStartAt)} ~ {formatDateTime(event.applyEndAt)}
+                      {event.requiresSignup === false ? youngCopy.signupNotRequired : youngDateRange(event.applyStartAt, event.applyEndAt, youngCopy) ?? youngCopy.unknownTime}
                     </Table.Cell>
                     <Table.Cell class="tabular-nums">
-                      {event.appliedCount ?? 0}{event.capacity != null ? ` / ${event.capacity}` : ""}
+                      {youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue)}
                     </Table.Cell>
                     <Table.Cell>
                       {event.status ?? "-"}

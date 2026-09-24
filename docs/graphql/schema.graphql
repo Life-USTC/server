@@ -890,18 +890,22 @@ type WorkspaceOverview {
 
 type YoungEvent {
   activityLevel: String
+  activityLevelCode: String
   activityStatusCode: String
+  allowedAttachmentTypes: [String!]!
   appliedCount: Int
   applyEndAt: DateTime
   applyStartAt: DateTime
   auditedAt: DateTime
   capacity: Int
   category: String
+  categoryCode: String
   contactName: String
   contactTel: String
   createdAt: DateTime
   createdAtUpstream: DateTime
   department: String
+  departmentId: String
 
   """
   Sanitized upstream rich text. Only populated by the single-event query.
@@ -909,17 +913,22 @@ type YoungEvent {
   description: String
   duration: Float
   endAt: DateTime
+  externalSponsor: String
   favCount: Int
   form: String
+  formCode: String
   grades: String
   hours: Float
   imageUrl: String
   isActive: Boolean!
+  isOnline: Boolean
   lastSeenAt: DateTime
   limitNum: Int
   location: String
   module: String
+  moduleCode: String
   name: String!
+  onlineMeetingInfo: String
   organizer: String
   organizerId: String
   partakeNum: Int
@@ -932,7 +941,10 @@ type YoungEvent {
   """
   rawJson: String
   requiresSignup: Boolean
+  requiresSignupInfo: Boolean
   serviceHour: Float
+  signupDepartmentIds: [String!]!
+  signupScopeCode: String
   signupStatusCode: String
   sourceMissing: Boolean!
   sponsor: String
@@ -940,7 +952,10 @@ type YoungEvent {
   status: String
   sumHours: Float
   sumPersons: Int
+  tagIds: [String!]!
   updatedAtUpstream: DateTime
+  upstreamOrganizerIds: [String!]!
+  upstreamSponsorIds: [String!]!
   youngId: String!
 }
 

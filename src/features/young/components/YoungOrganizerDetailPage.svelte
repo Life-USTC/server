@@ -11,6 +11,7 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -24,17 +25,15 @@ let { copy, organizer, source, events }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
 
-function formatDateTime(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
-}
-
 function formatRange(event: YoungEventSummary) {
-  if (!event.startAt && !event.endAt) return "-";
-  return `${formatDateTime(event.startAt)} ~ ${formatDateTime(event.endAt)}`;
+  return (
+    youngDateRange(event.startAt, event.endAt, youngCopy) ??
+    youngCopy.unknownTime
+  );
 }
 
 function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
+  return youngDateTime(value) ?? youngCopy.unknownValue;
 }
 
 function pageHref(page: number) {
@@ -89,11 +88,12 @@ function pageHref(page: number) {
                       <Item.Content>
                         <Item.Title>{event.name}</Item.Title>
                         <Item.Description>
-                          {formatRange(event)} · {event.location ?? youngCopy.location}
+                          {formatRange(event)}{#if event.isOnline === true} · {youngCopy.online}{:else if event.location} · {event.location}{/if}
                         </Item.Description>
                         <Item.Footer class="flex-wrap justify-start">
-                          <span>{event.category ?? youngCopy.category}</span>
-                          <span>{event.status ?? "-"}</span>
+                          {#if event.category}<span>{event.category}</span>{/if}
+                          {#if event.status}<span>{event.status}</span>{/if}
+                          {#if event.requiresSignup === false}<span>{youngCopy.signupNotRequired}</span>{/if}
                           {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
                       </Item.Content>

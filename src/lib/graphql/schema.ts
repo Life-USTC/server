@@ -256,6 +256,21 @@ export const graphqlTypeDefs = /* GraphQL */ `
     activityStatusCode: String
     signupStatusCode: String
     requiresSignup: Boolean
+    categoryCode: String
+    moduleCode: String
+    formCode: String
+    activityLevelCode: String
+    departmentId: String
+    upstreamOrganizerIds: [String!]!
+    upstreamSponsorIds: [String!]!
+    tagIds: [String!]!
+    signupScopeCode: String
+    signupDepartmentIds: [String!]!
+    requiresSignupInfo: Boolean
+    allowedAttachmentTypes: [String!]!
+    isOnline: Boolean
+    onlineMeetingInfo: String
+    externalSponsor: String
     location: String
     imageUrl: String
     hours: Float

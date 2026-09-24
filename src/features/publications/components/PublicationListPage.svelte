@@ -2,6 +2,8 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
@@ -216,6 +218,28 @@ function resultCount() {
     </Empty.Root>
   {:else}
     <p class="text-sm text-muted-foreground">{resultCount()}</p>
+    <ResponsiveCollection>
+      {#snippet mobile()}
+        <ul class="grid gap-3">
+          {#each data.publications.data as item (item.id)}
+            <li class="grid min-w-0 gap-3 rounded-xl border bg-card p-4">
+              <div class="flex flex-wrap items-center gap-2">
+                <PublicationTypeBadge type={item.publicationType} {copy} />
+                <span class="text-xs text-muted-foreground">{formatDate(item.revision.publishedAt)}</span>
+                {#if item.foldGroup}<Badge variant="secondary">{copy.foldSiblingCount.replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
+              </div>
+              <a class="break-words font-medium hover:underline" href={`/news/${item.id}`}>{item.revision.title}</a>
+              {#if item.revision.summary}<p class="line-clamp-3 text-sm text-muted-foreground">{item.revision.summary}</p>{/if}
+              <div class="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <a class="hover:underline" href={sourceHref(item.source.id)}>{item.source.name}</a>
+                {#if item.revision.category}<span>{item.revision.category}</span>{/if}
+                {#if item.revision.author}<span>{copy.author}: {item.revision.author}</span>{/if}
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {/snippet}
+      {#snippet desktop()}
     <div class="min-w-0 rounded-xl border bg-card">
       <Table.Root containerLabel={copy.pageTitle} class="min-w-[60rem] table-fixed">
         <Table.Caption class="sr-only">{resultCount()}</Table.Caption>
@@ -242,14 +266,12 @@ function resultCount() {
                   {item.revision.title}
                 </a>
                 {#if item.foldGroup}
-                  <span
-                    class="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                  >
+                  <Badge variant="secondary">
                     {copy.foldSiblingCount.replace(
                       "{count}",
                       String(item.foldGroup.siblingCount),
                     )}
-                  </span>
+                  </Badge>
                 {/if}
                 {#if item.revision.summary}
                   <p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
@@ -277,6 +299,8 @@ function resultCount() {
         </Table.Body>
       </Table.Root>
     </div>
+      {/snippet}
+    </ResponsiveCollection>
 
     {#if data.publications.pagination.totalPages > 1}
       <PublicationPagination

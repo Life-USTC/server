@@ -50,11 +50,33 @@ export async function validatePublicationImageSources(
   }
 }
 
+function normalizeImageMetadata(
+  values: Record<
+    string,
+    { altText?: string | null; title?: string | null; caption?: string | null }
+  >,
+) {
+  return Object.fromEntries(
+    Object.entries(values).flatMap(([hash, value]) => {
+      const metadata = {
+        altText: value.altText ?? null,
+        title: value.title ?? null,
+        caption: value.caption ?? null,
+      };
+      return Object.values(metadata).some((part) => part != null)
+        ? [[hash, metadata]]
+        : [];
+    }),
+  );
+}
+
 type PublicationRevisionSemanticObject = {
   // MIME aliases do not change the content-addressed object represented by a
   // revision. The stored PublicationObject contentType remains authoritative
   // for upload and public-read metadata.
   altText: string | null;
+  filename?: string | null;
+  sourceUrl?: string | null;
   kind: string;
   sha256: string;
   size: number;
@@ -63,11 +85,18 @@ type PublicationRevisionSemanticObject = {
 
 type PublicationRevisionSemantics = {
   author: string | null;
+  reporter?: string | null;
+  editor?: string | null;
+  originalPublisher?: string | null;
   bodyText: string | null;
   category: string | null;
   classifierVersion: string | null;
   extractionMethod: string | null;
   imageSources: Record<string, string>;
+  imageMetadata: Record<
+    string,
+    { altText: string | null; title: string | null; caption: string | null }
+  >;
   isTombstone: boolean;
   objects: PublicationRevisionSemanticObject[];
   publishedAt: string | null;
@@ -102,11 +131,15 @@ function revisionSemanticsFromItem(
   if (item.tombstone) {
     return {
       author: null,
+      reporter: null,
+      editor: null,
+      originalPublisher: null,
       bodyText: null,
       category: null,
       classifierVersion: null,
       extractionMethod: null,
       imageSources: {},
+      imageMetadata: {},
       isTombstone: true,
       objects: [],
       publishedAt: null,
@@ -121,15 +154,21 @@ function revisionSemanticsFromItem(
 
   return {
     author: item.author ?? null,
+    reporter: item.reporter ?? null,
+    editor: item.editor ?? null,
+    originalPublisher: item.originalPublisher ?? null,
     bodyText: item.bodyText ?? null,
     category: item.category ?? null,
     classifierVersion: item.classifierVersion ?? null,
     extractionMethod: item.extractionMethod ?? null,
     imageSources: item.imageSources,
+    imageMetadata: normalizeImageMetadata(item.imageMetadata ?? {}),
     isTombstone: false,
     objects: sortRevisionSemanticObjects(
       item.objects.map((object) => ({
         altText: object.altText ?? null,
+        filename: object.filename ?? null,
+        sourceUrl: object.sourceUrl ?? null,
         kind: object.kind,
         sha256: object.sha256,
         size: object.size,
@@ -150,16 +189,24 @@ function revisionSemanticsFromItem(
 
 type StoredPublicationRevision = {
   author: string | null;
+  reporter?: string | null;
+  editor?: string | null;
+  originalPublisher?: string | null;
   bodyText: string | null;
   category: string | null;
   classifierVersion: string | null;
   extractionMethod: string | null;
   imageSourceRefs?: Array<{
     imageSource: { id: string; url: string } | null;
+    altText?: string | null;
+    title?: string | null;
+    caption?: string | null;
   }>;
   isTombstone: boolean;
   objectLinks?: Array<{
     altText: string | null;
+    filename?: string | null;
+    sourceUrl?: string | null;
     object: {
       kind: string;
       sha256: string;
@@ -182,6 +229,9 @@ function revisionSemanticsFromStored(
 ): PublicationRevisionSemantics {
   return {
     author: revision.author,
+    reporter: revision.reporter ?? null,
+    editor: revision.editor ?? null,
+    originalPublisher: revision.originalPublisher ?? null,
     bodyText: revision.bodyText,
     category: revision.category,
     classifierVersion: revision.classifierVersion,
@@ -196,10 +246,19 @@ function revisionSemanticsFromStored(
         },
         {},
       ) ?? {},
+    imageMetadata: normalizeImageMetadata(
+      Object.fromEntries(
+        (revision.imageSourceRefs ?? []).flatMap((ref) =>
+          ref.imageSource ? [[ref.imageSource.id, ref]] : [],
+        ),
+      ),
+    ),
     isTombstone: revision.isTombstone,
     objects: sortRevisionSemanticObjects(
       (revision.objectLinks ?? []).map((link) => ({
         altText: link.altText,
+        filename: link.filename ?? null,
+        sourceUrl: link.sourceUrl ?? null,
         kind: link.role,
         sha256: link.object?.sha256 ?? "",
         size: link.object?.size ?? -1,

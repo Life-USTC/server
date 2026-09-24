@@ -55,6 +55,36 @@ function asBinaryFlag(value: unknown): boolean | undefined {
   return undefined;
 }
 
+/** Identifiers stay in source order; duplicates and empty CSV entries are discarded. */
+function commaValues(value: unknown): string[] {
+  const text = asString(value);
+  return text == null
+    ? []
+    : [
+        ...new Set(
+          text
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean),
+        ),
+      ];
+}
+
+function attachmentTypes(value: unknown): string[] {
+  return [
+    ...new Set(
+      commaValues(value)
+        .map((part) => part.replace(/^\./, "").toLowerCase())
+        .filter((part) => /^[a-z0-9]+$/.test(part)),
+    ),
+  ];
+}
+
+function externalSponsor(value: unknown): string | undefined {
+  const text = asString(value);
+  return text == null || ["无", "暂无"].includes(text) ? undefined : text;
+}
+
 /** One scheduled venue slot from the `itemPlaceDTO.places` subtable. */
 export type YoungEventPlace = {
   placeInfo?: string;
@@ -74,6 +104,21 @@ function upstreamColumns(row: SnapshotRow): Record<string, unknown> {
 }
 
 export type YoungEventBuild = {
+  categoryCode?: string;
+  moduleCode?: string;
+  formCode?: string;
+  activityLevelCode?: string;
+  departmentId?: string;
+  upstreamOrganizerIds?: string[];
+  upstreamSponsorIds?: string[];
+  tagIds?: string[];
+  signupScopeCode?: string;
+  signupDepartmentIds?: string[];
+  requiresSignupInfo?: boolean;
+  allowedAttachmentTypes?: string[];
+  isOnline?: boolean;
+  onlineMeetingInfo?: string;
+  externalSponsor?: string;
   youngId: string;
   name: string;
   category?: string;
@@ -130,6 +175,21 @@ function mapYoungEventRow(
 
   return {
     youngId,
+    categoryCode: asString(row.itemCategory),
+    moduleCode: asString(row.module),
+    formCode: asString(row.form),
+    activityLevelCode: asString(row.activityLevel),
+    departmentId: asString(row.businessDeptId),
+    upstreamOrganizerIds: commaValues(row.organizer),
+    upstreamSponsorIds: commaValues(row.sponsor),
+    tagIds: commaValues(row.itemLable),
+    signupScopeCode: asString(row.applyRange),
+    signupDepartmentIds: commaValues(row.rangeDeptIds),
+    requiresSignupInfo: asBinaryFlag(row.needSignInfo),
+    allowedAttachmentTypes: attachmentTypes(row.attaType),
+    isOnline: asBinaryFlag(row.onlineStatus),
+    onlineMeetingInfo: asString(row.onlineMeetingApp),
+    externalSponsor: externalSponsor(row.ewSponsor),
     name: asString(row.itemName) ?? youngId,
     category: asString(row.itemCategory_dictText),
     department: asString(row.businessDeptName),

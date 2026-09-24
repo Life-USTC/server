@@ -40,6 +40,21 @@ export type YoungEventSummary = {
   activityStatusCode: string | null;
   signupStatusCode: string | null;
   requiresSignup: boolean | null;
+  categoryCode: string | null;
+  moduleCode: string | null;
+  formCode: string | null;
+  activityLevelCode: string | null;
+  departmentId: string | null;
+  upstreamOrganizerIds: string[];
+  upstreamSponsorIds: string[];
+  tagIds: string[];
+  signupScopeCode: string | null;
+  signupDepartmentIds: string[];
+  requiresSignupInfo: boolean | null;
+  allowedAttachmentTypes: string[];
+  isOnline: boolean | null;
+  onlineMeetingInfo: string | null;
+  externalSponsor: string | null;
   location: string | null;
   imageUrl: string | null;
   hours: number | null;
@@ -119,6 +134,21 @@ export const YOUNG_EVENT_SELECT = {
   activityStatusCode: true,
   signupStatusCode: true,
   requiresSignup: true,
+  categoryCode: true,
+  moduleCode: true,
+  formCode: true,
+  activityLevelCode: true,
+  departmentId: true,
+  upstreamOrganizerIds: true,
+  upstreamSponsorIds: true,
+  tagIds: true,
+  signupScopeCode: true,
+  signupDepartmentIds: true,
+  requiresSignupInfo: true,
+  allowedAttachmentTypes: true,
+  isOnline: true,
+  onlineMeetingInfo: true,
+  externalSponsor: true,
   location: true,
   imageUrl: true,
   hours: true,
@@ -204,6 +234,21 @@ export function toYoungEventSummary(
     activityStatusCode: record.activityStatusCode,
     signupStatusCode: record.signupStatusCode,
     requiresSignup: record.requiresSignup,
+    categoryCode: record.categoryCode,
+    moduleCode: record.moduleCode,
+    formCode: record.formCode,
+    activityLevelCode: record.activityLevelCode,
+    departmentId: record.departmentId,
+    upstreamOrganizerIds: record.upstreamOrganizerIds,
+    upstreamSponsorIds: record.upstreamSponsorIds,
+    tagIds: record.tagIds,
+    signupScopeCode: record.signupScopeCode,
+    signupDepartmentIds: record.signupDepartmentIds,
+    requiresSignupInfo: record.requiresSignupInfo,
+    allowedAttachmentTypes: record.allowedAttachmentTypes,
+    isOnline: record.isOnline,
+    onlineMeetingInfo: record.onlineMeetingInfo,
+    externalSponsor: record.externalSponsor,
     location: record.location,
     imageUrl: record.imageUrl ? youngEventImageUrl(record.youngId) : null,
     hours: record.hours,

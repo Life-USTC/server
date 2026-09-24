@@ -1,0 +1,33 @@
+ALTER TABLE "YoungEvent"
+  ADD COLUMN "categoryCode" TEXT,
+  ADD COLUMN "moduleCode" TEXT,
+  ADD COLUMN "formCode" TEXT,
+  ADD COLUMN "activityLevelCode" TEXT,
+  ADD COLUMN "departmentId" TEXT,
+  ADD COLUMN "upstreamOrganizerIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "upstreamSponsorIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "tagIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "signupScopeCode" TEXT,
+  ADD COLUMN "signupDepartmentIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "requiresSignupInfo" BOOLEAN,
+  ADD COLUMN "allowedAttachmentTypes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "isOnline" BOOLEAN,
+  ADD COLUMN "onlineMeetingInfo" TEXT,
+  ADD COLUMN "externalSponsor" TEXT;
+
+UPDATE "YoungEvent" SET
+  "categoryCode" = NULLIF(BTRIM("rawJson"->>'itemCategory'), ''),
+  "moduleCode" = NULLIF(BTRIM("rawJson"->>'module'), ''),
+  "formCode" = NULLIF(BTRIM("rawJson"->>'form'), ''),
+  "activityLevelCode" = NULLIF(BTRIM("rawJson"->>'activityLevel'), ''),
+  "departmentId" = NULLIF(BTRIM("rawJson"->>'businessDeptId'), ''),
+  "upstreamOrganizerIds" = ARRAY(SELECT normalized FROM (SELECT BTRIM(value) AS normalized, position FROM UNNEST(STRING_TO_ARRAY(COALESCE(NULLIF(BTRIM("rawJson"->>'organizer'), ''), ''), ',')) WITH ORDINALITY AS parts(value, position)) entries WHERE normalized <> '' GROUP BY normalized ORDER BY MIN(position)),
+  "upstreamSponsorIds" = ARRAY(SELECT normalized FROM (SELECT BTRIM(value) AS normalized, position FROM UNNEST(STRING_TO_ARRAY(COALESCE(NULLIF(BTRIM("rawJson"->>'sponsor'), ''), ''), ',')) WITH ORDINALITY AS parts(value, position)) entries WHERE normalized <> '' GROUP BY normalized ORDER BY MIN(position)),
+  "tagIds" = ARRAY(SELECT normalized FROM (SELECT BTRIM(value) AS normalized, position FROM UNNEST(STRING_TO_ARRAY(COALESCE(NULLIF(BTRIM("rawJson"->>'itemLable'), ''), ''), ',')) WITH ORDINALITY AS parts(value, position)) entries WHERE normalized <> '' GROUP BY normalized ORDER BY MIN(position)),
+  "signupScopeCode" = NULLIF(BTRIM("rawJson"->>'applyRange'), ''),
+  "signupDepartmentIds" = ARRAY(SELECT normalized FROM (SELECT BTRIM(value) AS normalized, position FROM UNNEST(STRING_TO_ARRAY(COALESCE(NULLIF(BTRIM("rawJson"->>'rangeDeptIds'), ''), ''), ',')) WITH ORDINALITY AS parts(value, position)) entries WHERE normalized <> '' GROUP BY normalized ORDER BY MIN(position)),
+  "requiresSignupInfo" = CASE NULLIF(BTRIM("rawJson"->>'needSignInfo'), '') WHEN '1' THEN TRUE WHEN '0' THEN FALSE ELSE NULL END,
+  "allowedAttachmentTypes" = ARRAY(SELECT normalized FROM (SELECT LOWER(REGEXP_REPLACE(BTRIM(value), '^\.', '')) AS normalized, position FROM UNNEST(STRING_TO_ARRAY(COALESCE(NULLIF(BTRIM("rawJson"->>'attaType'), ''), ''), ',')) WITH ORDINALITY AS parts(value, position)) entries WHERE normalized ~ '^[a-z0-9]+$' GROUP BY normalized ORDER BY MIN(position)),
+  "isOnline" = CASE NULLIF(BTRIM("rawJson"->>'onlineStatus'), '') WHEN '1' THEN TRUE WHEN '0' THEN FALSE ELSE NULL END,
+  "onlineMeetingInfo" = NULLIF(BTRIM("rawJson"->>'onlineMeetingApp'), ''),
+  "externalSponsor" = CASE WHEN NULLIF(BTRIM("rawJson"->>'ewSponsor'), '') IN ('无', '暂无') THEN NULL ELSE NULLIF(BTRIM("rawJson"->>'ewSponsor'), '') END;

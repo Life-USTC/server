@@ -62,6 +62,13 @@ export type PublicationPageCopy = {
   resultsCount: string;
   emptyTitle: string;
   emptyDescription: string;
+  author: string;
+  reporter: string;
+  editor: string;
+  originalPublisher: string;
+  imageCaptions: string;
+  category: string;
+  attachmentNumber: string;
   publishedAt: string;
   updatedAt: string;
   readMore: string;

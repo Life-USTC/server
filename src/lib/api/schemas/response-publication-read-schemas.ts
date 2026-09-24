@@ -79,6 +79,8 @@ export const publicPublicationObjectSchema = z.strictObject({
   url: z.string().startsWith("/api/publications/objects/"),
   sortOrder: z.number().int().nonnegative().nullable(),
   altText: z.string().nullable(),
+  filename: z.string().nullable(),
+  sourceUrl: z.string().url().nullable(),
 });
 
 const publicPublicationRevisionBaseSchema = {
@@ -87,6 +89,9 @@ const publicPublicationRevisionBaseSchema = {
   observedAt: dateTimeSchema,
   title: z.string(),
   author: z.string().nullable(),
+  reporter: z.string().nullable(),
+  editor: z.string().nullable(),
+  originalPublisher: z.string().nullable(),
   publishedAt: dateTimeSchema.nullable(),
   updatedAtSource: dateTimeSchema.nullable(),
   category: z.string().nullable(),
@@ -126,6 +131,15 @@ export const publicPublicationSiblingSchema = z.strictObject({
 
 export const publicPublicationRevisionDetailSchema = z.strictObject({
   ...publicPublicationRevisionBaseSchema,
+  images: z.array(
+    z.strictObject({
+      id: z.string(),
+      url: z.string().startsWith("/api/publications/images/"),
+      altText: z.string().nullable(),
+      title: z.string().nullable(),
+      caption: z.string().nullable(),
+    }),
+  ),
   bodyText: z.string().nullable(),
   bodyMarkdown: z.string().nullable(),
   extractionMethod: z.string().nullable(),
