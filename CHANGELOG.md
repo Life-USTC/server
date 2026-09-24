@@ -1,3 +1,10 @@
+## [1.121.1](https://github.com/Life-USTC/server/compare/v1.121.0...v1.121.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* **young:** distinguish meeting availability from attendance format ([#1120](https://github.com/Life-USTC/server/issues/1120)) ([a24ea81](https://github.com/Life-USTC/server/commit/a24ea8195160f3bbf162f98c508b75d2a339d426))
+
 # [1.121.0](https://github.com/Life-USTC/server/compare/v1.120.4...v1.121.0) (2026-09-24)
 
 
