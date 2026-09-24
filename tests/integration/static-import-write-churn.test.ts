@@ -586,3 +586,57 @@ describe("Young source reconciliation", () => {
     }
   });
 });
+
+it("round-trips Young participation arrays and clears removed facts without rewriting unchanged rows", async () => {
+  const rollback = new Error("ROLLBACK_YOUNG_METADATA");
+  try {
+    await prisma.$transaction(async (tx) => {
+      const youngId = `metadata-${crypto.randomUUID()}`;
+      const observedAt = new Date("2026-09-24T00:00:00Z");
+      const build = {
+        youngId,
+        name: "Metadata import",
+        isActive: true,
+        rawJson: "{}",
+        categoryCode: "0",
+        departmentId: "dept-1",
+        upstreamOrganizerIds: ["o1", "o2"],
+        upstreamSponsorIds: ["s1"],
+        tagIds: ["t1", "t2"],
+        signupScopeCode: "2",
+        signupDepartmentIds: ["d1"],
+        requiresSignupInfo: false,
+        allowedAttachmentTypes: ["pdf", "docx"],
+        isOnline: true,
+        onlineMeetingInfo: "800-414-186",
+        externalSponsor: "Partner",
+      };
+      await syncYoungEvents(tx, [build], { observedAt });
+      const first = await tx.youngEvent.findUniqueOrThrow({
+        where: { youngId },
+      });
+      expect(first).toMatchObject({ ...build, rawJson: {} });
+      const before = await tupleId(tx, "YoungEvent", `id = ${first.id}`);
+      await syncYoungEvents(tx, [build], { observedAt });
+      expect(await tupleId(tx, "YoungEvent", `id = ${first.id}`)).toBe(before);
+      await syncYoungEvents(
+        tx,
+        [{ youngId, name: build.name, isActive: true, rawJson: "{}" }],
+        { observedAt },
+      );
+      expect(
+        await tx.youngEvent.findUniqueOrThrow({ where: { youngId } }),
+      ).toMatchObject({
+        tagIds: [],
+        allowedAttachmentTypes: [],
+        upstreamOrganizerIds: [],
+        requiresSignupInfo: null,
+        isOnline: null,
+        externalSponsor: null,
+      });
+      throw rollback;
+    });
+  } catch (error) {
+    if (error !== rollback) throw error;
+  }
+});

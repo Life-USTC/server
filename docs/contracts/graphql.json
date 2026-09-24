@@ -30,7 +30,8 @@
     "schema-evolution": "CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label is present; approval skips only that base-compatibility comparison.",
     "room-maps": "Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview, or unavailable status.",
     "subscription-kind": "Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate edits existing owner-scoped membership only.",
-    "young-workspace": "Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range calendars use shared owner-scoped services. See young-workspace.json for complete signatures and scopes."
+    "young-workspace": "Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range calendars use shared owner-scoped services. See young-workspace.json for complete signatures and scopes.",
+    "young-participation": "YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST and MCP: arrays are non-null, while unknown scalar fields are null."
   },
   "capabilities": {
     "public-query-endpoint": {

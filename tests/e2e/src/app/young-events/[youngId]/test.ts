@@ -71,3 +71,73 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     expect(response?.status()).toBe(404);
   });
 });
+
+for (const width of [1280, 390]) {
+  test(`参与信息保留未知值且在 ${width}px 可阅读`, async ({ page }) => {
+    const { createFixturePrisma, disconnectTestPrisma } = await import(
+      "../../../../../shared/prisma"
+    );
+    const db = createFixturePrisma();
+    const youngId = `metadata-${crypto.randomUUID()}`;
+    await db.youngEvent.create({
+      data: {
+        youngId,
+        name: "线上学术交流 · 参与信息测试",
+        isActive: true,
+        rawJson: {},
+        requiresSignup: true,
+        requiresSignupInfo: true,
+        allowedAttachmentTypes: ["pdf", "docx"],
+        isOnline: true,
+        onlineMeetingInfo: "800-414-186",
+        externalSponsor: "校外合作机构",
+        signupScopeCode: "2",
+        signupDepartmentIds: ["opaque-department-id"],
+        capacity: 20,
+        appliedCount: null,
+        applyEndAt: new Date("2035-09-24T09:00:00+08:00"),
+      },
+    });
+    try {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+      await expect(
+        page.getByText("800-414-186", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText("PDF, DOCX", { exact: true })).toBeVisible();
+      await expect(
+        page.getByText("校外合作机构", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(
+          /报名时需填写补充信息|Additional information required at registration/,
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByText("opaque-department-id", { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.locator("dt").filter({ hasText: /^(已报名|Registered)$/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { name: /记录信息|Record information/ }),
+      ).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/young-events?search=${encodeURIComponent("线上学术交流 · 参与信息测试")}`,
+      );
+      if (width >= 1280)
+        await expect(
+          page.getByRole("cell", { name: /未提供 \/ 20|Not provided \/ 20/ }),
+        ).toBeVisible();
+    } finally {
+      await db.youngEvent.delete({ where: { youngId } });
+      await disconnectTestPrisma(db);
+    }
+  });
+}

@@ -14,6 +14,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -54,16 +55,15 @@ onMount(() => {
 const youngCopy = $derived(copy.youngEvents);
 
 function formatDateTime(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
+  return youngDateTime(value);
 }
 
 function formatRange(start: string | null, end: string | null) {
-  if (!start && !end) return "-";
-  return `${formatDateTime(start)} ~ ${formatDateTime(end)}`;
+  return youngDateRange(start, end, youngCopy);
 }
 
 function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
+  return youngDateTime(value);
 }
 
 type Field = { label: string; value: string | null | undefined };
@@ -78,22 +78,24 @@ function numberValue(value: number | null) {
   return value == null ? null : String(value);
 }
 
-/** Upstream reports plain local timestamps for venue slots, not ISO strings. */
-function formatPlainDateTime(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : null;
-}
-
 function placeRange(start: string | null, end: string | null) {
-  const from = formatPlainDateTime(start);
-  const to = formatPlainDateTime(end);
-  if (!from && !to) return null;
-  return `${from ?? "-"} ~ ${to ?? "-"}`;
+  return youngDateRange(start, end, youngCopy);
 }
 
 const badges = $derived(
-  [event.status, event.activityLevel, event.module, event.form].filter(
-    (value): value is string => value != null && value !== "",
-  ),
+  [
+    ...new Set([
+      event.status,
+      event.activityLevel,
+      event.module,
+      event.form,
+      event.isOnline === true
+        ? youngCopy.online
+        : event.isOnline === false
+          ? youngCopy.offline
+          : null,
+    ]),
+  ].filter((value): value is string => value != null && value !== ""),
 );
 
 const timeFields = $derived(
@@ -106,6 +108,11 @@ const timeFields = $derived(
       label: youngCopy.signupWindow,
       value: formatRange(event.applyStartAt, event.applyEndAt),
     },
+  ]),
+);
+
+const recordFields = $derived(
+  fieldList([
     {
       label: youngCopy.createdAtUpstream,
       value: formatDateTime(event.createdAtUpstream),
@@ -118,15 +125,33 @@ const timeFields = $derived(
   ]),
 );
 
-const peopleFields = $derived(
+const registrationFields = $derived(
   fieldList([
     {
-      label: youngCopy.capacity,
+      label: youngCopy.signupRequirement,
       value:
-        event.capacity != null
-          ? `${event.appliedCount ?? 0} / ${event.capacity}`
-          : null,
+        event.requiresSignup === true
+          ? youngCopy.signupRequired
+          : event.requiresSignup === false
+            ? youngCopy.signupNotRequired
+            : null,
     },
+    { label: youngCopy.appliedCount, value: numberValue(event.appliedCount) },
+    { label: youngCopy.capacity, value: numberValue(event.capacity) },
+    { label: youngCopy.grades, value: event.grades },
+    {
+      label: youngCopy.allowedAttachmentTypes,
+      value: event.allowedAttachmentTypes.join(", ").toUpperCase(),
+    },
+    {
+      label: youngCopy.onlineMeetingInfo,
+      value: event.isOnline === false ? null : event.onlineMeetingInfo,
+    },
+  ]),
+);
+
+const peopleFields = $derived(
+  fieldList([
     { label: youngCopy.limitNum, value: numberValue(event.limitNum) },
     { label: youngCopy.partakeNum, value: numberValue(event.partakeNum) },
     { label: youngCopy.sumPersons, value: numberValue(event.sumPersons) },
@@ -140,7 +165,6 @@ const peopleFields = $derived(
           ? null
           : youngCopy.durationHours.replace("{value}", String(event.duration)),
     },
-    { label: youngCopy.grades, value: event.grades },
     { label: youngCopy.favCount, value: numberValue(event.favCount) },
   ]),
 );
@@ -149,6 +173,7 @@ const organizationFields = $derived(
   fieldList([
     { label: youngCopy.category, value: event.category },
     { label: youngCopy.sponsor, value: event.sponsor },
+    { label: youngCopy.externalSponsor, value: event.externalSponsor },
     { label: youngCopy.organizer, value: event.organizer },
     { label: youngCopy.department, value: event.department },
     { label: youngCopy.contactName, value: event.contactName },
@@ -190,7 +215,7 @@ const places = $derived(
     {#if event.imageUrl}
       <img
         alt={event.name}
-        class="max-h-72 w-full rounded-lg object-cover"
+        class="max-h-96 w-full rounded-lg object-contain"
         src={event.imageUrl}
       />
     {/if}
@@ -203,6 +228,38 @@ const places = $derived(
       </div>
     {/if}
 
+    {#snippet fieldSection(title: string, fields: { label: string; value: string }[])}
+      {#if fields.length > 0}
+        <Panel>
+          {#snippet header()}
+            <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
+          {/snippet}
+          <dl class="grid gap-4 sm:grid-cols-2">
+            {#each fields as field (field.label)}
+              <div class="grid gap-1">
+                <dt class="text-muted-foreground text-sm">{field.label}</dt>
+                <dd class="break-words text-sm font-medium">{field.value}</dd>
+              </div>
+            {/each}
+          </dl>
+        </Panel>
+      {/if}
+    {/snippet}
+
+    <div class="flex flex-wrap items-center gap-3">
+      <Button href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{youngCopy.signupCta}</Button>
+      <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+    </div>
+    <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
+
+    {@render fieldSection(youngCopy.sectionTime, timeFields)}
+    {@render fieldSection(youngCopy.sectionRegistration, registrationFields)}
+    {#if event.requiresSignupInfo != null}
+      <p class="text-sm text-muted-foreground">{event.requiresSignupInfo ? youngCopy.signupInfoRequired : youngCopy.signupInfoNotRequired}</p>
+    {/if}
+    {#if event.signupScopeCode != null || event.signupDepartmentIds.length > 0}
+      <p class="text-sm text-muted-foreground">{youngCopy.scopeHint}</p>
+    {/if}
     {#if event.description}
       <Panel>
         {#snippet header()}
@@ -214,25 +271,7 @@ const places = $derived(
       </Panel>
     {/if}
 
-    {#snippet fieldSection(title: string, fields: { label: string; value: string }[])}
-      {#if fields.length > 0}
-        <Panel>
-          {#snippet header()}
-            <h2 class="text-lg font-semibold tracking-tight">{title}</h2>
-          {/snippet}
-          <dl class="grid gap-4 sm:grid-cols-2">
-            {#each fields as field (field.label)}
-              <div class="grid gap-1">
-                <dt class="text-muted-foreground text-sm">{field.label}</dt>
-                <dd class="text-sm font-medium">{field.value}</dd>
-              </div>
-            {/each}
-          </dl>
-        </Panel>
-      {/if}
-    {/snippet}
 
-    {@render fieldSection(youngCopy.sectionTime, timeFields)}
     {@render fieldSection(youngCopy.sectionPeople, peopleFields)}
     {@render fieldSection(youngCopy.sectionOrganization, organizationFields)}
 
@@ -255,10 +294,10 @@ const places = $derived(
             {/each}
           </ul>
         {:else}
-          <div class="grid gap-1">
+          <dl class="grid gap-1">
             <dt class="text-muted-foreground text-sm">{youngCopy.location}</dt>
-            <dd class="text-sm font-medium">{event.location}</dd>
-          </div>
+            <dd class="break-words text-sm font-medium">{event.location}</dd>
+          </dl>
         {/if}
       </Panel>
     {/if}
@@ -274,7 +313,7 @@ const places = $derived(
       </Panel>
     {/if}
 
-    <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+    {@render fieldSection(youngCopy.sectionRecord, recordFields)}
     {#if event.organizerId && event.organizer}
       <p class="text-sm">
         <span class="text-muted-foreground">{youngCopy.organizer}: </span>
@@ -287,16 +326,7 @@ const places = $derived(
       </p>
     {/if}
 
-    <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
-
     <div class="flex flex-wrap gap-3">
-      <Button
-        href="https://young.ustc.edu.cn"
-        rel="noreferrer"
-        target="_blank"
-      >
-        {youngCopy.signupCta}
-      </Button>
       <Button href="/catalog/young-events" variant="outline">
         {youngCopy.backToList}
       </Button>

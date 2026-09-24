@@ -11327,6 +11327,18 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "reporter": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "editor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "originalPublisher": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "publishedAt": {
                       "nullable": true,
                       "type": "string",
@@ -11359,6 +11371,9 @@
                     "observedAt",
                     "title",
                     "author",
+                    "reporter",
+                    "editor",
+                    "originalPublisher",
                     "publishedAt",
                     "updatedAtSource",
                     "category",
@@ -11414,6 +11429,15 @@
                       "altText": {
                         "nullable": true,
                         "type": "string"
+                      },
+                      "filename": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "sourceUrl": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "uri"
                       }
                     },
                     "required": [
@@ -11424,7 +11448,9 @@
                       "status",
                       "url",
                       "sortOrder",
-                      "altText"
+                      "altText",
+                      "filename",
+                      "sourceUrl"
                     ],
                     "additionalProperties": false
                   }
@@ -15762,6 +15788,76 @@
                   "nullable": true,
                   "type": "boolean"
                 },
+                "categoryCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "moduleCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "formCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "activityLevelCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "departmentId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "upstreamOrganizerIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "upstreamSponsorIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "signupScopeCode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "signupDepartmentIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "requiresSignupInfo": {
+                  "nullable": true,
+                  "type": "boolean"
+                },
+                "allowedAttachmentTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "isOnline": {
+                  "nullable": true,
+                  "type": "boolean"
+                },
+                "onlineMeetingInfo": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "externalSponsor": {
+                  "nullable": true,
+                  "type": "string"
+                },
                 "location": {
                   "nullable": true,
                   "type": "string"
@@ -15949,6 +16045,21 @@
                 "activityStatusCode",
                 "signupStatusCode",
                 "requiresSignup",
+                "categoryCode",
+                "moduleCode",
+                "formCode",
+                "activityLevelCode",
+                "departmentId",
+                "upstreamOrganizerIds",
+                "upstreamSponsorIds",
+                "tagIds",
+                "signupScopeCode",
+                "signupDepartmentIds",
+                "requiresSignupInfo",
+                "allowedAttachmentTypes",
+                "isOnline",
+                "onlineMeetingInfo",
+                "externalSponsor",
                 "location",
                 "imageUrl",
                 "hours",
@@ -17875,6 +17986,18 @@
                 "nullable": true,
                 "type": "string"
               },
+              "reporter": {
+                "nullable": true,
+                "type": "string"
+              },
+              "editor": {
+                "nullable": true,
+                "type": "string"
+              },
+              "originalPublisher": {
+                "nullable": true,
+                "type": "string"
+              },
               "publishedAt": {
                 "nullable": true,
                 "type": "string",
@@ -17899,6 +18022,41 @@
                 "nullable": true,
                 "type": "string",
                 "format": "uri"
+              },
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "pattern": "^\\/api\\/publications\\/images\\/.*"
+                    },
+                    "altText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "title": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "caption": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "url",
+                    "altText",
+                    "title",
+                    "caption"
+                  ],
+                  "additionalProperties": false
+                }
               },
               "bodyText": {
                 "nullable": true,
@@ -17963,6 +18121,15 @@
                     "altText": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "filename": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "sourceUrl": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "uri"
                     }
                   },
                   "required": [
@@ -17973,7 +18140,9 @@
                     "status",
                     "url",
                     "sortOrder",
-                    "altText"
+                    "altText",
+                    "filename",
+                    "sourceUrl"
                   ],
                   "additionalProperties": false
                 }
@@ -17985,11 +18154,15 @@
               "observedAt",
               "title",
               "author",
+              "reporter",
+              "editor",
+              "originalPublisher",
               "publishedAt",
               "updatedAtSource",
               "category",
               "summary",
               "sourcePageUrl",
+              "images",
               "bodyText",
               "bodyMarkdown",
               "extractionMethod",
@@ -23705,6 +23878,76 @@
                       "nullable": true,
                       "type": "boolean"
                     },
+                    "categoryCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "moduleCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "formCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "activityLevelCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "departmentId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "upstreamOrganizerIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "upstreamSponsorIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "tagIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "signupScopeCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "signupDepartmentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "requiresSignupInfo": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "allowedAttachmentTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "isOnline": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "onlineMeetingInfo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "externalSponsor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "location": {
                       "nullable": true,
                       "type": "string"
@@ -23892,6 +24135,21 @@
                     "activityStatusCode",
                     "signupStatusCode",
                     "requiresSignup",
+                    "categoryCode",
+                    "moduleCode",
+                    "formCode",
+                    "activityLevelCode",
+                    "departmentId",
+                    "upstreamOrganizerIds",
+                    "upstreamSponsorIds",
+                    "tagIds",
+                    "signupScopeCode",
+                    "signupDepartmentIds",
+                    "requiresSignupInfo",
+                    "allowedAttachmentTypes",
+                    "isOnline",
+                    "onlineMeetingInfo",
+                    "externalSponsor",
                     "location",
                     "imageUrl",
                     "hours",
@@ -29157,6 +29415,76 @@
             "nullable": true,
             "type": "boolean"
           },
+          "categoryCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "moduleCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "formCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "activityLevelCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "departmentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "upstreamOrganizerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "upstreamSponsorIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signupScopeCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "signupDepartmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requiresSignupInfo": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allowedAttachmentTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isOnline": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "onlineMeetingInfo": {
+            "nullable": true,
+            "type": "string"
+          },
+          "externalSponsor": {
+            "nullable": true,
+            "type": "string"
+          },
           "location": {
             "nullable": true,
             "type": "string"
@@ -29353,6 +29681,21 @@
           "activityStatusCode",
           "signupStatusCode",
           "requiresSignup",
+          "categoryCode",
+          "moduleCode",
+          "formCode",
+          "activityLevelCode",
+          "departmentId",
+          "upstreamOrganizerIds",
+          "upstreamSponsorIds",
+          "tagIds",
+          "signupScopeCode",
+          "signupDepartmentIds",
+          "requiresSignupInfo",
+          "allowedAttachmentTypes",
+          "isOnline",
+          "onlineMeetingInfo",
+          "externalSponsor",
           "location",
           "imageUrl",
           "hours",
@@ -31417,6 +31760,21 @@
                       "type": "string",
                       "maxLength": 500
                     },
+                    "reporter": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "editor": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 500
+                    },
+                    "originalPublisher": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 500
+                    },
                     "publishedAt": {
                       "nullable": true,
                       "type": "string",
@@ -31473,6 +31831,30 @@
                         "format": "uri"
                       }
                     },
+                    "imageMetadata": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "altText": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "title": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "caption": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 4000
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
                     "objects": {
                       "default": [],
                       "maxItems": 100,
@@ -31513,6 +31895,16 @@
                           "altText": {
                             "type": "string",
                             "maxLength": 1000
+                          },
+                          "filename": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "sourceUrl": {
+                            "type": "string",
+                            "maxLength": 2048,
+                            "format": "uri"
                           }
                         },
                         "required": [

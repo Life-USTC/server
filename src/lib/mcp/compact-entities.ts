@@ -51,6 +51,7 @@ export function compactYoungEvent(value: unknown) {
     "activityStatusCode",
     "signupStatusCode",
     "requiresSignup",
+    "isOnline",
     "location",
     "hours",
     "capacity",

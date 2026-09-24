@@ -162,6 +162,10 @@ async function linkImageSources(
   tx: TransactionClient,
   revisionId: string,
   imageSources: Record<string, string>,
+  imageMetadata: Record<
+    string,
+    { altText?: string | null; title?: string | null; caption?: string | null }
+  > = {},
 ) {
   for (const [id, url] of Object.entries(imageSources)) {
     const source = await tx.publicationImageSource.upsert({
@@ -181,7 +185,13 @@ async function linkImageSources(
           imageSourceId: id,
         },
       },
-      create: { revisionId, imageSourceId: id },
+      create: {
+        revisionId,
+        imageSourceId: id,
+        altText: imageMetadata[id]?.altText ?? null,
+        title: imageMetadata[id]?.title ?? null,
+        caption: imageMetadata[id]?.caption ?? null,
+      },
       update: {},
     });
   }
@@ -288,6 +298,9 @@ export async function ingestItem(
         observedAt,
         title: item.title,
         author: item.author ?? null,
+        reporter: item.reporter ?? null,
+        editor: item.editor ?? null,
+        originalPublisher: item.originalPublisher ?? null,
         publishedAt: parseOptionalPublicationDate(item.publishedAt),
         updatedAtSource: parseOptionalPublicationDate(item.updatedAtSource),
         category: item.category ?? null,
@@ -305,7 +318,12 @@ export async function ingestItem(
       data: { currentRevisionId: revision.id },
     });
     await linkObjects(tx, batchId, revision.id, item.objects);
-    await linkImageSources(tx, revision.id, item.imageSources);
+    await linkImageSources(
+      tx,
+      revision.id,
+      item.imageSources,
+      item.imageMetadata,
+    );
     await writePublicationEvent(
       tx,
       batchId,
@@ -369,7 +387,12 @@ export async function ingestItem(
         existingRevision.id,
         item.objects,
       );
-      await linkImageSources(tx, existingRevision.id, item.imageSources);
+      await linkImageSources(
+        tx,
+        existingRevision.id,
+        item.imageSources,
+        item.imageMetadata,
+      );
       const missing = objectsNeedingUpload(linked);
       if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
     }
@@ -395,6 +418,9 @@ export async function ingestItem(
             observedAt,
             title: item.title,
             author: item.author ?? null,
+            reporter: item.reporter ?? null,
+            editor: item.editor ?? null,
+            originalPublisher: item.originalPublisher ?? null,
             publishedAt: parseOptionalPublicationDate(item.publishedAt),
             updatedAtSource: parseOptionalPublicationDate(item.updatedAtSource),
             category: item.category ?? null,
@@ -425,7 +451,12 @@ export async function ingestItem(
         existingRevision.id,
         item.objects,
       );
-      await linkImageSources(tx, existingRevision.id, item.imageSources);
+      await linkImageSources(
+        tx,
+        existingRevision.id,
+        item.imageSources,
+        item.imageMetadata,
+      );
       const missing = objectsNeedingUpload(linked);
       if (missing.length > 0) unchanged.objectsNeedingUpload = missing;
     }
@@ -469,7 +500,12 @@ export async function ingestItem(
   if (!item.tombstone)
     await linkObjects(tx, batchId, revision.id, item.objects);
   if (!item.tombstone)
-    await linkImageSources(tx, revision.id, item.imageSources);
+    await linkImageSources(
+      tx,
+      revision.id,
+      item.imageSources,
+      item.imageMetadata,
+    );
   await writePublicationEvent(
     tx,
     batchId,
@@ -527,10 +563,14 @@ async function linkObjects(
         role: manifest.kind,
         sortOrder: manifest.sortOrder ?? null,
         altText: manifest.altText ?? null,
+        filename: manifest.filename ?? null,
+        sourceUrl: manifest.sourceUrl ?? null,
       },
       update: {
         sortOrder: manifest.sortOrder ?? null,
         altText: manifest.altText ?? null,
+        filename: manifest.filename ?? null,
+        sourceUrl: manifest.sourceUrl ?? null,
       },
     });
     linked.push({

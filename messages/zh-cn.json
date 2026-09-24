@@ -2760,7 +2760,7 @@
     "sectionOrganization": "组织与联系",
     "sectionPlaces": "场地安排",
     "sectionNotes": "参与须知",
-    "signupCta": "前往 young.ustc.edu.cn 报名",
+    "signupCta": "前往 young.ustc.edu.cn 查看与报名",
     "signupHint": "正式报名请前往 young.ustc.edu.cn。Life@USTC 可帮助你关注活动并添加日历提醒。",
     "notFound": "活动不存在",
     "notFoundDescription": "该活动不存在或已被移除。",
@@ -2821,7 +2821,24 @@
       "day": "日",
       "week": "周",
       "month": "月"
-    }
+    },
+    "signupRequired": "需要报名",
+    "signupNotRequired": "无需报名",
+    "signupRequirement": "报名要求",
+    "signupInfoRequired": "报名时需填写补充信息",
+    "signupInfoNotRequired": "无需补充报名信息",
+    "allowedAttachmentTypes": "可提交的附件格式",
+    "online": "线上活动",
+    "offline": "线下活动",
+    "onlineMeetingInfo": "线上会议信息",
+    "externalSponsor": "校外主办方",
+    "scopeHint": "报名资格与面向范围请以第二课堂平台为准。",
+    "sectionRegistration": "报名与参与",
+    "sectionRecord": "记录信息",
+    "unknownValue": "未提供",
+    "unknownTime": "时间待公布",
+    "startsAt": "开始：{value}",
+    "endsAt": "截止：{value}"
   },
   "publications": {
     "title": "新闻与通知",
@@ -2896,7 +2913,14 @@
       "media": "媒体文件",
       "asset": "附件",
       "raw_page": "原始页面"
-    }
+    },
+    "author": "作者 / 供稿",
+    "category": "栏目",
+    "attachmentNumber": "附件 {number}",
+    "reporter": "记者",
+    "editor": "编辑",
+    "originalPublisher": "原始来源",
+    "imageCaptions": "图片说明"
   },
   "busMap": {
     "title": "线路图",

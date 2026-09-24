@@ -58,6 +58,8 @@ export const publicationObjectManifestSchema = z.strictObject({
   contentType: contentTypeSchema,
   sortOrder: z.number().int().nonnegative().max(10_000).optional(),
   altText: z.string().trim().max(1_000).optional(),
+  filename: z.string().trim().min(1).max(500).optional(),
+  sourceUrl: urlSchema.optional(),
 });
 
 /**
@@ -148,6 +150,9 @@ const publicationItemSchema = z.union([
     publicationType: z.enum(["news", "notice", "other"]),
     title: z.string().trim().min(1).max(1_000),
     author: z.string().trim().max(500).nullable().optional(),
+    reporter: z.string().trim().max(500).nullable().optional(),
+    editor: z.string().trim().max(500).nullable().optional(),
+    originalPublisher: z.string().trim().max(500).nullable().optional(),
     publishedAt: publicationDateTimeSchema.nullable().optional(),
     updatedAtSource: publicationDateTimeSchema.nullable().optional(),
     category: z.string().trim().max(500).nullable().optional(),
@@ -158,6 +163,16 @@ const publicationItemSchema = z.union([
     classifierVersion: z.string().trim().max(200).nullable().optional(),
     rawMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
     imageSources: publicationImageSourcesSchema,
+    imageMetadata: z
+      .record(
+        sha256Schema,
+        z.strictObject({
+          altText: z.string().trim().max(1_000).nullable().optional(),
+          title: z.string().trim().max(1_000).nullable().optional(),
+          caption: z.string().trim().max(4_000).nullable().optional(),
+        }),
+      )
+      .optional(),
     objects: z.array(publicationObjectManifestSchema).max(100).default([]),
   }),
   z.strictObject({
@@ -181,6 +196,17 @@ export const publicationIngestionBatchRequestSchema = z
   })
   .superRefine((payload, context) => {
     addNulCharacterIssues(payload, [], context);
+    for (const [index, item] of payload.items.entries()) {
+      if (item.tombstone) continue;
+      for (const hash of Object.keys(item.imageMetadata ?? {})) {
+        if (!(hash in item.imageSources))
+          context.addIssue({
+            code: "custom",
+            path: ["items", index, "imageMetadata", hash],
+            message: "Image metadata must reference a registered image source",
+          });
+      }
+    }
   });
 
 export const publicationObjectPlanRequestSchema = z

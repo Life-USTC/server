@@ -187,6 +187,8 @@ const fake = vi.hoisted(() => {
             .filter((link) => link.revisionId === revision.id)
             .map((link) => ({
               altText: (link.altText as string | null | undefined) ?? null,
+              filename: link.filename ?? null,
+              sourceUrl: link.sourceUrl ?? null,
               object:
                 [...state.objects.values()].find(
                   (object) => object.id === link.objectId,
@@ -197,6 +199,9 @@ const fake = vi.hoisted(() => {
           imageSourceRefs: [...state.imageSourceRefs.values()]
             .filter((link) => link.revisionId === revision.id)
             .map((link) => ({
+              altText: link.altText ?? null,
+              title: link.title ?? null,
+              caption: link.caption ?? null,
               imageSource:
                 [...state.imageSources.values()].find(
                   (source) => source.id === link.imageSourceId,
@@ -564,11 +569,65 @@ describe("publication ingestion transaction", () => {
     expect([...fake.state.imageSourceRefs.values()]).toEqual([
       {
         id: `${revision?.id}:${imageHash}`,
+        altText: null,
+        title: null,
+        caption: null,
         revisionId: revision?.id,
         imageSourceId: imageHash,
       },
     ]);
     expect(revision).not.toHaveProperty("imageSources");
+  });
+
+  it("preserves revision metadata on replay and rejects changed attribution or image captions under the same hash", async () => {
+    const url = "https://news.ustc.edu.cn/images/metadata.png";
+    const hash = await sha256Text(url);
+    const item = {
+      reporter: "Reporter",
+      editor: "Editor",
+      originalPublisher: "Publisher",
+      imageSources: { [hash]: url },
+      imageMetadata: {
+        [hash]: { altText: "Alt", title: "Title", caption: "Caption" },
+      },
+      objects: [],
+    };
+    const first = await ingestPublicationBatch({
+      payload: payloadFor(item, "metadata-first"),
+      principal,
+    });
+    expect(first.results[0].status).toBe("created");
+    expect([...fake.state.revisions.values()][0]).toMatchObject({
+      reporter: "Reporter",
+      editor: "Editor",
+      originalPublisher: "Publisher",
+    });
+    expect([...fake.state.imageSourceRefs.values()][0]).toMatchObject({
+      altText: "Alt",
+      title: "Title",
+      caption: "Caption",
+    });
+    const replay = await ingestPublicationBatch({
+      payload: payloadFor(item, "metadata-replay"),
+      principal,
+    });
+    expect(replay.results[0].status).toBe("unchanged");
+    for (const [index, changed] of [
+      { ...item, reporter: "Other" },
+      {
+        ...item,
+        imageMetadata: {
+          [hash]: { altText: "Alt", title: "Title", caption: "Changed" },
+        },
+      },
+    ].entries()) {
+      await expect(
+        ingestPublicationBatch({
+          payload: payloadFor(changed, `metadata-conflict-${index}`),
+          principal,
+        }),
+      ).rejects.toBeInstanceOf(PublicationIngestionBadRequestError);
+    }
   });
 
   it("rejects an image source key whose digest does not match its URL", async () => {

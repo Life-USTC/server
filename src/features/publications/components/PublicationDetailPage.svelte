@@ -22,10 +22,6 @@ $: attachments = revision.objects.filter((object) => object.kind === "asset");
 function formatDate(value: Date | string | null) {
   return value ? formatShanghaiDate(value) : copy.missingDate;
 }
-
-function objectLabel(kind: string) {
-  return copy.objectLabels[kind] ?? kind;
-}
 </script>
 
 <svelte:head>
@@ -42,9 +38,17 @@ function objectLabel(kind: string) {
     {/snippet}
     {#snippet belowTitle()}
       <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <span>{publication.source.name}</span>
+        <a class="hover:underline" href={`/news?source=${encodeURIComponent(publication.source.id)}`}>{publication.source.name}</a>
         <Separator orientation="vertical" class="h-4" />
         <span>{copy.publishedAt}: {formatDate(revision.publishedAt)}</span>
+        {#if revision.updatedAtSource && formatDate(revision.updatedAtSource) !== formatDate(revision.publishedAt)}
+          <span>{copy.updatedAt}: {formatDate(revision.updatedAtSource)}</span>
+        {/if}
+        {#if revision.author}<span>{copy.author}: {revision.author}</span>{/if}
+        {#if revision.reporter && revision.reporter !== revision.author}<span>{copy.reporter}: {revision.reporter}</span>{/if}
+        {#if revision.editor}<span>{copy.editor}: {revision.editor}</span>{/if}
+        {#if revision.originalPublisher}<span>{copy.originalPublisher}: {revision.originalPublisher}</span>{/if}
+        {#if revision.category}<span>{copy.category}: {revision.category}</span>{/if}
       </div>
     {/snippet}
   </PageHeader>
@@ -62,14 +66,15 @@ function objectLabel(kind: string) {
         <div class="grid gap-3" aria-label={copy.attachments}>
           <h2 class="text-lg font-semibold">{copy.attachments}</h2>
           <ul class="grid gap-2">
-            {#each attachments as object (`${object.kind}:${object.sha256}`)}
+            {#each attachments as object, index (`${object.kind}:${object.sha256}`)}
               <li>
                 <a
-                  class="inline-flex max-w-full items-center gap-2 truncate text-primary hover:underline"
+                  class="inline-flex max-w-full flex-wrap items-center gap-2 text-primary hover:underline"
                   href={object.url}
-                  download
+                  download={object.filename ?? true}
                 >
-                  <span class="truncate">{objectLabel(object.kind)} · {object.sha256.slice(0, 12)}</span>
+                  <span class="break-words">{object.filename || object.altText || copy.attachmentNumber.replace("{number}", String(index + 1))}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground">{object.contentType} · {Math.ceil(object.size / 1024)} KB</span>
                   <ExternalLinkIcon data-icon="inline-end" aria-hidden="true" />
                 </a>
               </li>
@@ -86,7 +91,7 @@ function objectLabel(kind: string) {
             {#each publication.alsoPublishedIn as sibling (sibling.id)}
               <li>
                 <a
-                  class="inline-flex max-w-full items-center gap-2 truncate text-primary hover:underline"
+                  class="inline-flex max-w-full flex-wrap items-center gap-2 text-primary hover:underline"
                   href={`/news/${sibling.id}`}
                 >
                   <span class="truncate">{sibling.source.name}</span>

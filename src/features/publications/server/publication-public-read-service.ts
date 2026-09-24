@@ -38,6 +38,15 @@ const PUBLICATION_READ_INCLUDE = {
   },
   currentRevision: {
     include: {
+      imageSourceRefs: {
+        orderBy: { imageSourceId: "asc" },
+        select: {
+          imageSourceId: true,
+          altText: true,
+          title: true,
+          caption: true,
+        },
+      },
       objectLinks: {
         include: {
           object: {
@@ -73,6 +82,9 @@ const PUBLICATION_LIST_SELECT = {
       publicationType: true,
       title: true,
       author: true,
+      reporter: true,
+      editor: true,
+      originalPublisher: true,
       publishedAt: true,
       updatedAtSource: true,
       category: true,
@@ -130,6 +142,16 @@ export type PublicPublicationObject = {
   url: string;
   sortOrder: number | null;
   altText: string | null;
+  filename: string | null;
+  sourceUrl: string | null;
+};
+
+export type PublicPublicationImage = {
+  id: string;
+  url: string;
+  altText: string | null;
+  title: string | null;
+  caption: string | null;
 };
 
 export type PublicPublicationSource = {
@@ -144,6 +166,9 @@ export type PublicPublicationRevisionSummary = {
   observedAt: Date;
   title: string;
   author: string | null;
+  reporter: string | null;
+  editor: string | null;
+  originalPublisher: string | null;
   publishedAt: Date | null;
   updatedAtSource: Date | null;
   category: string | null;
@@ -185,6 +210,7 @@ export type PublicPublicationDetail = {
   publicationType: "news" | "notice";
   source: PublicPublicationSource;
   revision: PublicPublicationRevisionSummary & {
+    images: PublicPublicationImage[];
     bodyText: string | null;
     bodyMarkdown: string | null;
     extractionMethod: string | null;
@@ -422,6 +448,8 @@ function mapObjectLink(link: PublicPublicationObjectLink) {
     url: objectReadUrl(object.kind, object.sha256),
     sortOrder: link.sortOrder,
     altText: link.altText,
+    filename: link.filename ?? null,
+    sourceUrl: link.sourceUrl ?? null,
   } satisfies PublicPublicationObject;
 }
 
@@ -483,6 +511,9 @@ function mapRevisionSummary(revision: PublicPublicationRevision) {
     observedAt: revision.observedAt,
     title: revision.title ?? "",
     author: revision.author,
+    reporter: revision.reporter ?? null,
+    editor: revision.editor ?? null,
+    originalPublisher: revision.originalPublisher ?? null,
     publishedAt: revision.publishedAt,
     updatedAtSource: revision.updatedAtSource,
     category: revision.category,
@@ -638,6 +669,13 @@ export async function getPublicPublicationById(id: string) {
     source: publication.source,
     revision: {
       ...publication.revision,
+      images: revision.imageSourceRefs.map((ref) => ({
+        id: ref.imageSourceId,
+        url: `/api/publications/images/${ref.imageSourceId}`,
+        altText: ref.altText,
+        title: ref.title,
+        caption: ref.caption,
+      })),
       bodyText: revision.bodyText,
       bodyMarkdown: await readBodyMarkdown(revision),
       extractionMethod: revision.extractionMethod,
