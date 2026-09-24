@@ -1,3 +1,10 @@
+# [1.121.0](https://github.com/Life-USTC/server/compare/v1.120.4...v1.121.0) (2026-09-24)
+
+
+### Features
+
+* **content:** complete participation metadata and improve content views ([#1119](https://github.com/Life-USTC/server/issues/1119)) ([ab9b081](https://github.com/Life-USTC/server/commit/ab9b081321c23c2538686f05c11c9a7520160396))
+
 ## [1.120.4](https://github.com/Life-USTC/server/compare/v1.120.3...v1.120.4) (2026-09-23)
 
 
