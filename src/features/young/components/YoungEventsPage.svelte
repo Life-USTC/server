@@ -276,7 +276,7 @@ const searchSummary = $derived(
                         <div class="grid gap-1">
                           <TruncatedText text={event.name} />
                           {#if event.location || event.isOnline === true}
-                            <span class="text-xs text-muted-foreground">{event.isOnline === true ? youngCopy.online : event.location}</span>
+                            <span class="text-xs text-muted-foreground">{[event.location, event.isOnline === true ? youngCopy.online : null].filter(Boolean).join(" · ")}</span>
                           {/if}
                         </div>
                       </CatalogTableLink>

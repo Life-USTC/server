@@ -88,7 +88,7 @@ function pageHref(page: number) {
                       <Item.Content>
                         <Item.Title>{event.name}</Item.Title>
                         <Item.Description>
-                          {formatRange(event)}{#if event.isOnline === true} · {youngCopy.online}{:else if event.location} · {event.location}{/if}
+                          {formatRange(event)}{#if event.location} · {event.location}{/if}{#if event.isOnline === true} · {youngCopy.online}{/if}
                         </Item.Description>
                         <Item.Footer class="flex-wrap justify-start">
                           {#if event.category}<span>{event.category}</span>{/if}
