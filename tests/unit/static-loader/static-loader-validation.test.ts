@@ -268,6 +268,52 @@ describe("snapshot completeness validation", () => {
     ).toThrow("failed");
   });
 
+  it("excludes explicitly unavailable curricula from every reconciliation scope", () => {
+    const result = validateSnapshotCompleteness({
+      metadata: {
+        ...metadata,
+        catalog_lesson_min_semester_id: "201",
+        curriculum_unavailable_semester_ids: "201",
+      },
+      semesterRows: semesterRows(201, 401),
+      catalogLessonRows: lessonRows(401, 1),
+      fetchRows: [
+        fetchRow("catalog_teach_lesson_list_for_teach", 201, { ok: false }),
+        ...completeFetches(401, 1),
+      ],
+    });
+    expect(result.sectionSemesterJwIds).toEqual([401]);
+    expect(result.examSemesterJwIds).toEqual([401]);
+    expect(result.unavailableCurriculumSemesterJwIds).toEqual([201]);
+  });
+
+  it.each([
+    "catalog_teach_lesson_list_for_teach",
+    "jw_ws_schedule_table_datum",
+  ])(
+    "requires failed %s evidence for unavailable curricula and rejects partial data",
+    (source) => {
+      const input = {
+        metadata: { ...metadata, curriculum_unavailable_semester_ids: "401" },
+        semesterRows: semesterRows(401),
+        catalogLessonRows: [],
+        fetchRows: [fetchRow(source, 401, { ok: false })],
+      };
+      expect(validateSnapshotCompleteness(input).sectionSemesterJwIds).toEqual(
+        [],
+      );
+      expect(() =>
+        validateSnapshotCompleteness({ ...input, fetchRows: [] }),
+      ).toThrow("contradictory fetch records");
+      expect(() =>
+        validateSnapshotCompleteness({
+          ...input,
+          catalogLessonRows: lessonRows(401, 1),
+        }),
+      ).toThrow("partial data");
+    },
+  );
+
   it("rejects a failed JW chunk", () => {
     expect(() =>
       validateSnapshotCompleteness({

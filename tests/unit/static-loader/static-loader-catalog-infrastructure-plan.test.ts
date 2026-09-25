@@ -28,6 +28,33 @@ function fakeSnapshot(tables: Record<string, SnapshotRow[]>): Snapshot {
 }
 
 describe("static catalog plan", () => {
+  it("loads authoritative lesson-only room types and rejects incomplete metadata", () => {
+    expect(
+      loadScheduleInfrastructure(
+        fakeSnapshot({
+          jw_room_types: [
+            {
+              id: 27,
+              code: "LAB",
+              nameZh: "实验室",
+              nameEn: "Laboratory",
+              semester_id: 221,
+            },
+          ],
+        }),
+      ).roomTypes,
+    ).toEqual([
+      { jwId: 27, code: "LAB", nameCn: "实验室", nameEn: "Laboratory" },
+    ]);
+    expect(() =>
+      loadScheduleInfrastructure(
+        fakeSnapshot({
+          jw_room_types: [{ id: 27, semester_id: 221 }],
+        }),
+      ),
+    ).toThrow("Invalid supplemental RoomType jwId 27");
+  });
+
   it("loads valid semesters and departments while skipping malformed rows", () => {
     const snapshot = fakeSnapshot({
       catalog_teach_semester_list: [

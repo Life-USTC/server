@@ -89,7 +89,7 @@ export async function runImport(
   let snapshotGeneratedAt: Date;
   let completeness: ReturnType<typeof validateSnapshotCompleteness>;
   try {
-    if (schemaVersion !== "5") {
+    if (schemaVersion !== "6") {
       throw new Error(
         `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
       );
@@ -129,6 +129,12 @@ export async function runImport(
           sha256: config.snapshotSha256,
           schemaVersion,
           generatedAt: metadata.generated_at ?? null,
+        },
+        sourceAvailability: {
+          unavailableCurriculumSemesterJwIds:
+            completeness.unavailableCurriculumSemesterJwIds,
+          unavailableExamSemesterJwIds:
+            completeness.unavailableExamSemesterJwIds,
         },
         plannedRecordCounts: null,
         databaseRecordCounts: null,
@@ -481,6 +487,11 @@ export async function runImport(
       sha256: config.snapshotSha256,
       schemaVersion,
       generatedAt: metadata.generated_at ?? null,
+    },
+    sourceAvailability: {
+      unavailableCurriculumSemesterJwIds:
+        completeness.unavailableCurriculumSemesterJwIds,
+      unavailableExamSemesterJwIds: completeness.unavailableExamSemesterJwIds,
     },
     plannedRecordCounts,
     databaseRecordCounts,

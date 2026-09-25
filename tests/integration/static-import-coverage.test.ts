@@ -51,7 +51,7 @@ describe("static import source coverage", () => {
     const courseJwId = marker + 10;
     const sectionJwIds = semesterJwIds.map((semester) => semester + 20);
     Object.assign(metadata, {
-      schema_version: "5",
+      schema_version: "6",
       generated_at: observedAt.toISOString(),
       catalog_lesson_min_semester_id: String(semesterJwIds[1]),
       catalog_exam_min_semester_id: String(semesterJwIds[3]),

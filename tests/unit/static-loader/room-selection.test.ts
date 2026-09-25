@@ -40,6 +40,31 @@ const latest: RoomOccurrence = {
 };
 
 describe("latest room infrastructure", () => {
+  it("imports lesson-only types and selects the latest whole type across sources", () => {
+    const types = [
+      {
+        semesterCode: 221,
+        roomType: { jwId: 27, code: "LAB", nameCn: "实验室" },
+      },
+      {
+        semesterCode: 421,
+        roomType: { jwId: 20, code: "NEW", nameCn: "新类型" },
+      },
+    ];
+    const selected = selectLatestRoomInfrastructure([old], types);
+    expect(selected.roomTypes).toEqual([types[1].roomType, types[0].roomType]);
+    expect(selected.rooms).toEqual([old.room]);
+    expect(selectLatestRoomInfrastructure([old], types.toReversed())).toEqual(
+      selected,
+    );
+    const older = [
+      { semesterCode: 1, roomType: { ...old.roomType, nameCn: "更早类型" } },
+    ];
+    expect(selectLatestRoomInfrastructure([old], older).roomTypes).toEqual([
+      old.roomType,
+    ]);
+  });
+
   it("selects the newest whole record regardless of input order", () => {
     const forward = selectLatestRoomInfrastructure([old, latest]);
     expect(selectLatestRoomInfrastructure([latest, old])).toEqual(forward);

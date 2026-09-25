@@ -14,18 +14,21 @@ export type RoomOccurrence = {
   roomType?: RoomTypeBuild;
 };
 
+export type RoomTypeOccurrence = {
+  semesterCode: number;
+  roomType: RoomTypeBuild;
+};
+
 export function selectLatestRoomInfrastructure(
   occurrences: readonly RoomOccurrence[],
+  supplementalRoomTypes: readonly RoomTypeOccurrence[] = [],
 ) {
   const rooms = new Map<number, RoomOccurrence>();
   const buildings = new Map<
     number,
     RoomOccurrence & { building: BuildingBuild }
   >();
-  const roomTypes = new Map<
-    number,
-    RoomOccurrence & { roomType: RoomTypeBuild }
-  >();
+  const roomTypes = new Map<number, RoomTypeOccurrence>();
   for (const occurrence of occurrences) {
     const { room, building, roomType } = occurrence;
     // Keep each authoritative record whole, including intentional empty fields.
@@ -35,8 +38,23 @@ export function selectLatestRoomInfrastructure(
     if (building != null && isNewer(occurrence, buildings.get(building.jwId))) {
       buildings.set(building.jwId, { ...occurrence, building });
     }
-    if (roomType != null && isNewer(occurrence, roomTypes.get(roomType.jwId))) {
-      roomTypes.set(roomType.jwId, { ...occurrence, roomType });
+    const typeOccurrence =
+      roomType == null
+        ? undefined
+        : {
+            semesterCode: occurrence.semesterCode,
+            roomType,
+          };
+    if (
+      typeOccurrence != null &&
+      isNewer(typeOccurrence, roomTypes.get(typeOccurrence.roomType.jwId))
+    ) {
+      roomTypes.set(typeOccurrence.roomType.jwId, typeOccurrence);
+    }
+  }
+  for (const occurrence of supplementalRoomTypes) {
+    if (isNewer(occurrence, roomTypes.get(occurrence.roomType.jwId))) {
+      roomTypes.set(occurrence.roomType.jwId, occurrence);
     }
   }
   const selectedBuildings = [...buildings.values()].sort(
@@ -58,9 +76,9 @@ export function selectLatestRoomInfrastructure(
   };
 }
 
-function isNewer(
-  incoming: RoomOccurrence,
-  existing: RoomOccurrence | undefined,
+function isNewer<T extends { semesterCode: number }>(
+  incoming: T,
+  existing: T | undefined,
 ): boolean {
   return (
     existing == null ||

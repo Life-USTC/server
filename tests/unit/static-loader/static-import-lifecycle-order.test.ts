@@ -20,7 +20,7 @@ vi.mock("@/static-loader/snapshot", () => ({
     metadata() {
       return {
         generated_at: GENERATED_AT,
-        schema_version: "5",
+        schema_version: "6",
         catalog_lesson_min_semester_id: "201",
       };
     }

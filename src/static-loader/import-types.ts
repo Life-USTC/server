@@ -31,6 +31,10 @@ export type ImportReport = {
     schemaVersion: string;
     generatedAt: string | null;
   };
+  sourceAvailability: {
+    unavailableCurriculumSemesterJwIds: number[];
+    unavailableExamSemesterJwIds: number[];
+  };
   plannedRecordCounts: ImportRecordCounts | null;
   databaseRecordCounts: ImportRecordCounts | null;
   reconciliation: {

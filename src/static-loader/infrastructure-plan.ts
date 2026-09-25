@@ -53,7 +53,17 @@ export function loadScheduleInfrastructure(snapshot: Snapshot) {
     buildings: selectedBuildings,
     roomTypes: selectedRoomTypes,
     campusOccurrences,
-  } = selectLatestRoomInfrastructure(roomOccurrences);
+  } = selectLatestRoomInfrastructure(
+    roomOccurrences,
+    snapshot.queryAll("jw_room_types").map((row) => {
+      const roomType = mapRoomType(row);
+      const semesterCode = asInt(row.semester_id);
+      if (roomType == null || semesterCode == null) {
+        throw new Error(`Invalid supplemental RoomType jwId ${row.id}`);
+      }
+      return { semesterCode, roomType };
+    }),
+  );
 
   const scheduleLessonByJwId = new Map<number, SnapshotRow>();
   for (const row of snapshot.queryAll(
