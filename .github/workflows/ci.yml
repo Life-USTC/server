@@ -138,6 +138,7 @@ jobs:
           postgres="static-loader-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           report_dir="${RUNNER_TEMP}/static-loader-report"
           mkdir -p "${report_dir}"
+          bun tests/fixtures/static-loader-snapshot.ts "${report_dir}/fixture.sqlite"
 
           cleanup() {
             docker rm -f "${postgres}" >/dev/null 2>&1 || true
@@ -167,7 +168,9 @@ jobs:
           docker run --rm \
             --network "${network}" \
             -v "${report_dir}:/tmp/static-loader-report" \
+            -v "${report_dir}/fixture.sqlite:/tmp/static-loader-fixture.sqlite:ro" \
             -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
+            -e STATIC_SNAPSHOT_PATH=/tmp/static-loader-fixture.sqlite \
             -e STATIC_LOADER_DRY_RUN=true \
             -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
             life-ustc-static-loader:check
@@ -178,6 +181,7 @@ jobs:
               report.mode !== "dry-run" ||
               report.outcome !== "rolled-back" ||
               report.databaseRecordCounts !== null ||
+              report.snapshot?.schemaVersion !== "6" ||
               report.reconciliation?.sectionPresence?.status !== "applied" ||
               !Number.isInteger(
                 report.reconciliation?.sectionPresence
@@ -187,7 +191,29 @@ jobs:
             ) {
               throw new Error("Static loader report has invalid dry-run semantics");
             }
+            for (const [table, count] of Object.entries({
+              semesters: 1, courses: 1, sections: 1, teachers: 1,
+              scheduleGroups: 1, schedules: 1, exams: 1,
+              rooms: 1, buildings: 1, campuses: 1,
+            })) {
+              if (report.plannedRecordCounts?.[table] !== count) {
+                throw new Error(`Static loader fixture did not exercise ${table}`);
+              }
+            }
           '
+
+          # Check the real database as well as the reported rollback outcome.
+          remaining_rows="$(docker exec "${postgres}" psql -U postgres -d life_ustc_static_loader -X -qAt -v ON_ERROR_STOP=1 -c '
+            SELECT (SELECT COUNT(*) FROM "Course")
+                 + (SELECT COUNT(*) FROM "Section")
+                 + (SELECT COUNT(*) FROM "Teacher")
+                 + (SELECT COUNT(*) FROM "TeacherAssignment")
+                 + (SELECT COUNT(*) FROM "RoomType")
+                 + (SELECT COUNT(*) FROM "Schedule")
+                 + (SELECT COUNT(*) FROM "Exam")
+                 + (SELECT COUNT(*) FROM "StaticImportState");
+          ')"
+          test "${remaining_rows}" = "0"
 
   test-e2e:
     name: E2E Test (${{ matrix.shard }})
