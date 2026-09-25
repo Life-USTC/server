@@ -352,6 +352,10 @@ test.describe("/news 新闻与通知预览", () => {
     });
     expect(metrics.indent).toBeCloseTo(metrics.font * 2);
     expect(metrics.gap).toBeCloseTo(metrics.font);
+    const summary = page.getByRole("button", {
+      name: /文章摘要|Article summary/i,
+    });
+    await expect(summary).toHaveAttribute("aria-expanded", "false");
     for (const width of [320, 390, 768]) {
       await page.setViewportSize({ width, height: 844 });
       await page.evaluate(() => window.scrollTo(0, 0));
@@ -359,6 +363,11 @@ test.describe("/news 新闻与通知预览", () => {
       await expect(
         page.getByRole("link", { name: /查看来源原文|View source page/i }),
       ).toBeInViewport();
+      await expect(paragraphs.first()).toBeInViewport();
+      await summary.click();
+      await expect(summary).toHaveAttribute("aria-expanded", "true");
+      await expectNoPageHorizontalOverflow(page);
+      await summary.click();
     }
     await captureStepScreenshot(page, testInfo, "news-detail-mobile");
   });

@@ -2984,7 +2984,8 @@
     "removeFilter": "移除筛选：{filter}",
     "searchSources": "搜索来源名称",
     "sourceSearchEmpty": "没有匹配的来源",
-    "articleInformation": "文章信息"
+    "articleInformation": "文章信息",
+    "showSummary": "文章摘要"
   },
   "busMap": {
     "title": "线路图",

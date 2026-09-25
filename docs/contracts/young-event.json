@@ -19,7 +19,11 @@
     "date-range-overlap": "dateFrom/dateTo include every overlapping interval selected by timeBasis=activity or registration. Rows missing the selected start time are counted in unknownDateCount and can be paginated with dateUnknown=true. A missing end time is treated as a point at the known start.",
     "read-only": "Events are imported facts; no transport exposes writes.",
     "structured-participation": "Source category/module/form/level codes, organization IDs, tag IDs and signup scope IDs remain opaque, separate from labels and local organizer identity. Participation columns cover strict binary signup-info and online flags, meeting text, normalized attachment extensions and external sponsor; blank or placeholder sponsor text is null. Arrays use [] for missing values. Internal workflow fields stay in rawJson.",
-    "display-known-values": "Web shows registration requirements, meeting information, accepted attachment formats and external sponsor when supplied. isOnline reflects the upstream online-meeting option, not an exclusive activity format; false never implies in-person attendance. Unknown occupancy is not zero. Partial time ranges label their known endpoint in Asia/Shanghai; unknown scope codes are not translated into eligibility claims."
+    "display-known-values": "Web shows registration requirements, meeting information, accepted attachment formats and external sponsor when supplied. isOnline reflects the upstream online-meeting option, not an exclusive activity format; false never implies in-person attendance. Unknown occupancy is not zero. Partial time ranges label their known endpoint in Asia/Shanghai; unknown scope codes are not translated into eligibility claims.",
+    "web-browse-context": "Activity list and calendar retain shared search/category/module/level/organizer/source-list filters; detail return links preserve the originating catalog browse route. Unknown-date results show their active filter explicitly.",
+    "web-organizer-order": "Web organizer browsing orders organizers with at least one isActive event first, then others; each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and MCP organizer ordering remains alphabetical.",
+    "web-detail-priority": "Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external; poster, statistics and record metadata are expandable.",
+    "web-mobile-calendar": "Month mobile agendas exclude adjacent-month padding and initially show the selected date onward; earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify their current view and title the matching date range."
   },
   "capabilities": {
     "young-event": {
@@ -32,12 +36,6 @@
           "/catalog/young-events/calendar",
           "/catalog/young-events/organizers",
           "/catalog/young-events/organizers/[organizerId]"
-        ],
-        "notes": [
-          "Activity list and calendar retain shared search/category/module/level/organizer/source-list filters; detail return links preserve the originating catalog browse route. Unknown-date results show their active filter explicitly.",
-          "Web organizer browsing orders organizers with at least one isActive event first, then others; each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and MCP organizer ordering remains alphabetical.",
-          "Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external; poster, statistics and record metadata are expandable.",
-          "Month mobile agendas exclude adjacent-month padding and initially show the selected date onward; earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify their current view and title the matching date range."
         ]
       },
       "rest": {

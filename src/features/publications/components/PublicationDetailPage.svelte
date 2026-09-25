@@ -11,6 +11,7 @@ import PageHeader from "$lib/components/PageHeader.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
+import * as Collapsible from "$lib/components/ui/collapsible";
 import { Separator } from "$lib/components/ui/separator";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
@@ -69,7 +70,14 @@ const articleInformation = $derived(
           {copy.sourcePage}<ExternalLinkIcon data-icon="inline-end" aria-hidden="true" />
         </Button>
       {/if}
-      {#if summary}<p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
+      {#if summary.length > 160}
+        <Collapsible.Root class="mt-3 min-w-0">
+          <Collapsible.Trigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</Collapsible.Trigger>
+          <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p></Collapsible.Content>
+        </Collapsible.Root>
+      {:else if summary}
+        <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>
+      {/if}
     {/snippet}
   </PageHeader>
 

@@ -98,7 +98,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     await expect(organizer).toBeVisible();
     await expect(organizer).toHaveValue("dev-scenario-young-organizer");
     await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-    await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.has("timeBasis")),
+      page.getByRole("button", { name: /^(搜索|Search)$/ }).click(),
+    ]);
     await expect(page).toHaveURL(/organizerId=dev-scenario-young-organizer/);
     await expect(
       page.getByRole("navigation", { name: /已选条件|Applied filters/ }),
@@ -247,6 +250,7 @@ for (const width of [1280, 390]) {
         root.getByRole("link", { name: /^(日|Day)$/ }),
       ).toHaveAttribute("href", /timeBasis=registration/);
       await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+      await expect(page).toHaveURL(/view=day/);
       await expect(
         root
           .getByRole("link", { name: /Calendar activity/ })

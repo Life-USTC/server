@@ -294,11 +294,27 @@ test("reading the last unread reminder on page two returns to the remaining remi
     await expect(
       page.getByRole("link", { name: `${marker} 20`, exact: true }),
     ).toBeVisible();
+    const reminderNavigation = page
+      .locator('[data-shell-navigation="desktop"]')
+      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
+    await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
+    const reminderBadge = page
+      .locator(
+        '[data-shell-navigation="desktop"] [data-slot="sidebar-menu-item"]',
+      )
+      .filter({
+        has: page.getByRole("link", {
+          name: /^(活动提醒|Activity reminders)$/,
+        }),
+      })
+      .locator('[data-slot="sidebar-menu-badge"]');
+    await expect(reminderBadge).toHaveText("21");
     await page
       .locator("main")
       .getByRole("button", { name: /^(标记已读|Mark read)$/ })
       .click();
     await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
+    await expect(reminderBadge).toHaveText("20");
     await expect(
       page.getByRole("link", { name: `${marker} 0`, exact: true }),
     ).toBeVisible();

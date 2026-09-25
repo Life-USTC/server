@@ -1320,7 +1320,8 @@
     "removeFilter": "Remove filter: {filter}",
     "searchSources": "Search source names",
     "sourceSearchEmpty": "No matching sources",
-    "articleInformation": "Article information"
+    "articleInformation": "Article information",
+    "showSummary": "Article summary"
   },
   "busMap": {
     "title": "Transit Map",

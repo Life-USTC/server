@@ -111,6 +111,7 @@ export type PublicationPageCopy = {
   searchSources: string;
   sourceSearchEmpty: string;
   articleInformation: string;
+  showSummary: string;
   sourceFilterEmpty: string;
   organizationLevelLabels: Record<PublicationSourceOrganizationLevel, string>;
 };
