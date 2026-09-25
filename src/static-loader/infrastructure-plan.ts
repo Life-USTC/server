@@ -1,8 +1,7 @@
 import { selectLatestAdminClasses } from "./admin-class-selection";
-import { type CampusOccurrence, selectCampuses } from "./campus-selection";
+import { selectCampuses } from "./campus-selection";
 import {
   type AdminClassBuild,
-  type BuildingBuild,
   firstChild,
   mapAdminClass,
   mapBuilding,
@@ -10,17 +9,16 @@ import {
   mapCampusFromSection,
   mapRoom,
   mapRoomType,
-  type RoomBuild,
-  type RoomTypeBuild,
 } from "./mappers";
+import {
+  type RoomOccurrence,
+  selectLatestRoomInfrastructure,
+} from "./room-selection";
 import type { Snapshot } from "./snapshot";
 import { asInt, type SnapshotRow } from "./snapshot-values";
 
 export function loadScheduleInfrastructure(snapshot: Snapshot) {
-  const roomsByJwId = new Map<number, RoomBuild>();
-  const buildingsByJwId = new Map<number, BuildingBuild>();
-  const roomTypesByJwId = new Map<number, RoomTypeBuild>();
-  const campusOccurrences: CampusOccurrence[] = [];
+  const roomOccurrences: RoomOccurrence[] = [];
 
   const buildings = snapshot.queryGrouped(
     "jw_ws_schedule_table_datum_result_scheduleList_room_building",
@@ -39,27 +37,23 @@ export function loadScheduleInfrastructure(snapshot: Snapshot) {
     const buildingRow = firstChild(buildings, parentId);
     const roomTypeRow = firstChild(roomTypes, parentId);
     const room = mapRoom(row, buildingRow, roomTypeRow);
-    if (room == null || roomsByJwId.has(room.jwId)) continue;
-    roomsByJwId.set(room.jwId, room);
-
-    if (buildingRow != null) {
-      const campusRow = firstChild(campuses, asInt(buildingRow.store_id) ?? -1);
-      const campus = campusRow == null ? undefined : mapCampus(campusRow);
-      if (campus != null) {
-        campusOccurrences.push({
-          campus,
-          semesterCode: asInt(campusRow?.semester_id) ?? 0,
-          source: "building",
-        });
-      }
-      const building = mapBuilding(buildingRow, campusRow);
-      if (building != null) buildingsByJwId.set(building.jwId, building);
-    }
-    if (roomTypeRow != null) {
-      const roomType = mapRoomType(roomTypeRow);
-      if (roomType != null) roomTypesByJwId.set(roomType.jwId, roomType);
-    }
+    if (room == null) continue;
+    const campusRow = firstChild(campuses, asInt(buildingRow?.store_id) ?? -1);
+    roomOccurrences.push({
+      semesterCode: asInt(row.semester_id) ?? 0,
+      room,
+      building:
+        buildingRow == null ? undefined : mapBuilding(buildingRow, campusRow),
+      campus: campusRow == null ? undefined : mapCampus(campusRow),
+      roomType: roomTypeRow == null ? undefined : mapRoomType(roomTypeRow),
+    });
   }
+  const {
+    rooms,
+    buildings: selectedBuildings,
+    roomTypes: selectedRoomTypes,
+    campusOccurrences,
+  } = selectLatestRoomInfrastructure(roomOccurrences);
 
   const scheduleLessonByJwId = new Map<number, SnapshotRow>();
   for (const row of snapshot.queryAll(
@@ -106,9 +100,9 @@ export function loadScheduleInfrastructure(snapshot: Snapshot) {
 
   return {
     campuses: selectCampuses(campusOccurrences),
-    roomTypes: [...roomTypesByJwId.values()],
-    buildings: [...buildingsByJwId.values()],
-    rooms: [...roomsByJwId.values()],
+    roomTypes: selectedRoomTypes,
+    buildings: selectedBuildings,
+    rooms,
     adminClasses: selectLatestAdminClasses(adminClassOccurrences),
   };
 }

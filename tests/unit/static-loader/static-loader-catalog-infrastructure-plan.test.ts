@@ -256,6 +256,91 @@ describe("static catalog plan", () => {
 });
 
 describe("static schedule infrastructure plan", () => {
+  it("maps latest semester room metadata and nullable corrections with its own references", () => {
+    const prefix = "jw_ws_schedule_table_datum_result_scheduleList_room";
+    const tables: Record<string, SnapshotRow[]> = {
+      [prefix]: [
+        {
+          store_id: 1,
+          semester_id: 201,
+          id: 501,
+          nameZh: "101",
+          code: "101",
+          remark: "旧备注",
+          nameEn: "Old",
+          seats: 40,
+        },
+        {
+          store_id: 2,
+          semester_id: 421,
+          id: 501,
+          nameZh: "新101",
+          code: "101",
+          remark: null,
+          nameEn: null,
+          seats: 0,
+        },
+      ],
+      [`${prefix}_building`]: [
+        {
+          parent_store_id: 1,
+          store_id: 11,
+          id: 601,
+          nameZh: "旧楼",
+          code: "OLD",
+        },
+        {
+          parent_store_id: 2,
+          store_id: 12,
+          id: 602,
+          nameZh: "新楼",
+          code: "NEW",
+        },
+      ],
+      [`${prefix}_building_campus`]: [
+        { parent_store_id: 11, id: 701, nameZh: "旧校区" },
+        { parent_store_id: 12, id: 702, nameZh: "新校区" },
+      ],
+      [`${prefix}_roomType`]: [
+        { parent_store_id: 1, id: 801, nameZh: "旧类型", code: "OLD" },
+        { parent_store_id: 2, id: 802, nameZh: "新类型", code: "NEW" },
+      ],
+    };
+    const result = loadScheduleInfrastructure(fakeSnapshot(tables));
+    expect(result.rooms).toEqual([
+      expect.objectContaining({
+        jwId: 501,
+        nameCn: "新101",
+        remark: undefined,
+        nameEn: undefined,
+        seats: 0,
+        buildingJwId: 602,
+        roomTypeJwId: 802,
+      }),
+    ]);
+    expect(result.buildings).toContainEqual(
+      expect.objectContaining({ jwId: 602, campusJwId: 702 }),
+    );
+    expect(result.campuses).toContainEqual(
+      expect.objectContaining({ jwId: 702 }),
+    );
+    expect(result.roomTypes).toContainEqual(
+      expect.objectContaining({ jwId: 802 }),
+    );
+    expect(
+      loadScheduleInfrastructure(
+        fakeSnapshot(
+          Object.fromEntries(
+            Object.entries(tables).map(([table, rows]) => [
+              table,
+              rows.toReversed(),
+            ]),
+          ),
+        ),
+      ),
+    ).toEqual(result);
+  });
+
   it("joins rooms to buildings, campuses, and room types while retaining optional metadata", () => {
     const snapshot = fakeSnapshot({
       jw_ws_schedule_table_datum_result_scheduleList_room_building: [
@@ -292,6 +377,7 @@ describe("static schedule infrastructure plan", () => {
           store_id: 301,
           id: 501,
           nameZh: "东区 101",
+          semester_id: 421,
           nameEn: "East 101",
           code: "E101",
           floor: "1",
