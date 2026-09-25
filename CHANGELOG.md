@@ -1,3 +1,10 @@
+## [1.121.4](https://github.com/Life-USTC/server/compare/v1.121.3...v1.121.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* **catalog:** isolate cached payload schemas and refresh build clients ([#1133](https://github.com/Life-USTC/server/issues/1133)) ([d20503e](https://github.com/Life-USTC/server/commit/d20503e780c57a756f977212c9c87e34daab7061))
+
 ## [1.121.3](https://github.com/Life-USTC/server/compare/v1.121.2...v1.121.3) (2026-09-25)
 
 
