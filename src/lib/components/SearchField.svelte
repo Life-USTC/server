@@ -4,7 +4,9 @@ import { onMount } from "svelte";
 import type { HTMLInputAttributes } from "svelte/elements";
 import { mountPageSearchShortcut } from "$lib/browser/page-search-shortcut";
 import PageSearchShortcutHint from "$lib/components/shell/PageSearchShortcutHint.svelte";
-import * as InputGroup from "$lib/components/ui/input-group";
+import InputGroupRoot from "$lib/components/ui/input-group/input-group.svelte";
+import InputGroupAddon from "$lib/components/ui/input-group/input-group-addon.svelte";
+import InputGroupInput from "$lib/components/ui/input-group/input-group-input.svelte";
 
 let {
   id,
@@ -34,9 +36,9 @@ onMount(() => (shortcut ? mountPageSearchShortcut(() => ref) : undefined));
 
 <div class="min-w-0 flex-1" data-slot="search-field">
   <label class="sr-only" for={id}>{label}</label>
-  <InputGroup.Root class="h-11">
-    <InputGroup.Addon><SearchIcon aria-hidden="true" /></InputGroup.Addon>
-    <InputGroup.Input {id} {name} {placeholder} {maxlength} {disabled} {oninput} bind:ref bind:value type="search" />
-    {#if shortcut}<InputGroup.Addon align="inline-end"><PageSearchShortcutHint /></InputGroup.Addon>{/if}
-  </InputGroup.Root>
+  <InputGroupRoot class="h-11">
+    <InputGroupAddon><SearchIcon aria-hidden="true" /></InputGroupAddon>
+    <InputGroupInput {id} {name} {placeholder} {maxlength} {disabled} {oninput} bind:ref bind:value type="search" />
+    {#if shortcut}<InputGroupAddon align="inline-end"><PageSearchShortcutHint /></InputGroupAddon>{/if}
+  </InputGroupRoot>
 </div>
