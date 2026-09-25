@@ -15,7 +15,6 @@ export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
 export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
-export let linkSearchInput: HTMLInputElement | null;
 export let linkReturnTo: string;
 export let linkActionError: string;
 export let updatingCatalogLinkSlug: string | null;
@@ -25,7 +24,6 @@ export let signedLinkGroups: SignedLinkGroup[];
 <section class="grid gap-4">
   <LinksTabToolbar
     {workspaceCopy}
-    bind:linkSearchInput
     bind:linkSearchQuery
   />
 

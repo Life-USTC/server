@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 
 type Props = {
   children: Snippet;
@@ -12,15 +13,11 @@ type Props = {
 let { children, controls, feedback, header, summary }: Props = $props();
 </script>
 
-<div class="page-frame page-frame-full w-full min-w-0">
-  <section
-    class="grid min-w-0 gap-8 [&>header]:min-w-0 [&>section]:min-w-0 [&>div]:min-w-0"
-    data-testid="admin-workspace"
-  >
-    {@render header()}
+<div data-testid="admin-workspace">
+  <PageLayout width="full" {header}>
     {#if feedback}{@render feedback()}{/if}
     {#if summary}{@render summary()}{/if}
     {#if controls}{@render controls()}{/if}
     {@render children()}
-  </section>
+  </PageLayout>
 </div>

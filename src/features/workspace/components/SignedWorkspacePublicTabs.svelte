@@ -37,7 +37,6 @@ export let formatMessage: FormatMessage;
 export let linkActionError: string;
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
-export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let monthWeeks: WorkspaceCalendarTabProps["monthWeeks"];
 export let sectionCopy: WorkspaceCalendarTabProps["sectionCopy"];
@@ -59,7 +58,6 @@ export let updatingCatalogLinkSlug: string | null;
     {linkActionError}
     {linkIconLabel}
     {linkReturnTo}
-    bind:linkSearchInput
     bind:linkSearchQuery
     {signedLinkGroups}
     {submitWorkspaceLinkPin}

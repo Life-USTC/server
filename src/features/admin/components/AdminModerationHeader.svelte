@@ -1,6 +1,6 @@
 <script lang="ts">
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import PageSectionNav from "$lib/components/PageSectionNav.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
   AdminModerationAdminCopy,
@@ -32,15 +32,7 @@ export let tabs: AdminModerationHeaderTab[];
   {/snippet}
 </PageHeader>
 
-<nav aria-label={copy.tabsLabel} class="flex max-w-full flex-wrap items-center gap-1">
-  {#each tabs as [id, label, count]}
-    <Button
-      aria-current={id === currentTab ? "page" : undefined}
-      href={moderationHref(id)}
-      variant={id === currentTab ? "secondary" : "ghost"}
-    >
-      {label}
-      <Badge variant="ghost">{count}</Badge>
-    </Button>
-  {/each}
-</nav>
+<PageSectionNav
+  ariaLabel={copy.tabsLabel}
+  items={tabs.map(([id, label, count]) => ({ href: moderationHref(id), label, current: id === currentTab, meta: count }))}
+/>
