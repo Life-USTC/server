@@ -60,7 +60,6 @@
     "@better-auth/oauth-provider": "1.7.5",
     "@better-auth/passkey": "1.7.4",
     "@escape.tech/graphql-armor": "3.2.0",
-    "@ethercorps/sveltekit-og": "4.3.0",
     "@graphql-tools/executor": "2.0.1",
     "@graphql-yoga/plugin-disable-introspection": "2.25.1",
     "@internationalized/date": "^3.12.3",

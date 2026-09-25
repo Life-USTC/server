@@ -46,7 +46,8 @@
       "!/_app/*",
       "!/images/*",
       "!/static/*",
-      "!/openapi.generated.json"
+      "!/openapi.generated.json",
+      "!/open-graph.png"
     ]
   },
   "images": {

@@ -21,12 +21,6 @@ export const load: PageServerLoad = async (event) => {
   return {
     ...data,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      card: {
-        label:
-          event.locals.locale === "zh-cn"
-            ? "CATALOG · 主办方"
-            : "SECOND CLASSROOM ORGANIZER",
-      },
       description: data.copy.youngEvents.organizersDescription,
       title: `${data.organizer.name} - Life@USTC`,
     }),

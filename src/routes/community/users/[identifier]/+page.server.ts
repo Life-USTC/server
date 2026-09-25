@@ -29,22 +29,6 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
     copy,
     locale: locals.locale,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      card: {
-        avatarUrl: profile.user.image ?? undefined,
-        footer:
-          locals.locale === "zh-cn"
-            ? "Life@USTC · 校园社区"
-            : "Life@USTC · Campus community",
-        label:
-          locals.locale === "zh-cn" ? "PROFILE · 公开主页" : "PUBLIC PROFILE",
-        subtitle:
-          locals.locale === "zh-cn"
-            ? "公开主页 · 校园社区"
-            : "Public profile · Campus community",
-        title: displayName,
-        username: profile.user.username ?? undefined,
-        variant: "profile",
-      },
       description,
       title: `${displayName} - Life@USTC`,
     }),

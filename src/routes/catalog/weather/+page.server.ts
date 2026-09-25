@@ -15,9 +15,6 @@ export const load: PageServerLoad = async (event) => {
   return {
     ...data,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      card: {
-        label: event.locals.locale === "zh-cn" ? "CAMPUS · 天气" : "WEATHER",
-      },
       description: data.copy.weather.description,
       title: `${data.copy.weather.title} - Life@USTC`,
     }),

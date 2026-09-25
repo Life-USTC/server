@@ -96,13 +96,6 @@ async function loadCourseDetailPageData({
       }),
   );
   const socialMetadata = buildSocialMetadata({
-    card: {
-      footer: `Life@USTC · ${copy.common.courses}`,
-      label: locals.locale === "zh-cn" ? "COURSE · 课程" : "COURSE",
-      subtitle: `${course.code} · ${copy.common.sections}`,
-      title: displayName,
-      variant: "course",
-    },
     canonicalPath: `/catalog/courses/${course.jwId}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.courseDescription,
@@ -192,16 +185,6 @@ async function loadTeacherDetailPageData({
       }),
   );
   const socialMetadata = buildSocialMetadata({
-    card: {
-      footer: `Life@USTC · ${copy.common.teachers}`,
-      label: locals.locale === "zh-cn" ? "TEACHER · 教师" : "TEACHER",
-      subtitle: formatSocialMetadataMessage(
-        copy.metadata.social.teacherDescription,
-        { name: displayName },
-      ),
-      title: displayName,
-      variant: "teacher",
-    },
     canonicalPath: `/catalog/teachers/${teacher.id}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.teacherDescription,

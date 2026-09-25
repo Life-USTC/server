@@ -11,10 +11,6 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
   return {
     ...data,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      card: {
-        footer: `Life@USTC · ${data.labels.common.courses}`,
-        label: locals.locale === "zh-cn" ? "CATALOG · 课程" : "COURSE CATALOG",
-      },
       description: data.labels.courses.subtitle,
       title: `${data.labels.common.courses} - Life@USTC`,
     }),
