@@ -62,7 +62,9 @@ test.describe("/community/users/[identifier]", () => {
     await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
   });
 
-  test("公开资料页输出带头像的专属 Open Graph 图片", async ({ page }) => {
+  test("公开资料页使用固定 Open Graph 图片，不向图片 URL 传递资料字段", async ({
+    page,
+  }) => {
     await gotoAndWaitForReady(
       page,
       `/community/users/${DEV_SEED.adminUsername}`,
@@ -74,12 +76,7 @@ test.describe("/community/users/[identifier]", () => {
     const imageUrl = new URL(imageContent ?? "");
 
     expect(imageUrl.pathname).toBe("/open-graph.png");
-    expect(imageUrl.searchParams.get("variant")).toBe("profile");
-    expect(imageUrl.searchParams.get("title")).toBe(DEV_SEED.adminName);
-    expect(imageUrl.searchParams.get("username")).toBe(DEV_SEED.adminUsername);
-    expect(new URL(imageUrl.searchParams.get("avatar") ?? "").hostname).toBe(
-      "api.dicebear.com",
-    );
+    expect(imageUrl.search).toBe("");
 
     const imageResponse = await page.request.get(imageUrl.href);
     expect(imageResponse.status()).toBe(200);

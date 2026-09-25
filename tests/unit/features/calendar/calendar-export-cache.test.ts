@@ -4,10 +4,15 @@ import {
   invalidateUserCalendarExportCache,
   requestMatchesEtag,
   resetUserCalendarExportCacheForTest,
+  storeBuiltUserCalendarExport,
   USER_CALENDAR_EXPORT_FRESH_TTL_MS,
 } from "@/features/calendar/server/calendar-export-cache";
-import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
+import {
+  scheduleUserCalendarExportRebuild,
+  setCalendarExportRebuildSenderForTest,
+} from "@/features/calendar/server/calendar-export-queue";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { createDeferred } from "../../../shared/deferred";
 
 const calendarExport = {
   cacheControl: "private, max-age=1800",
@@ -64,7 +69,7 @@ describe("用户 iCal 导出缓存", () => {
       { expirationTtl: 86_400 },
     );
     expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v2:user-1", {
-      cacheTtl: 3_600,
+      cacheTtl: 60,
       type: "json",
     });
     expect(second.calendar?.etag).toMatch(/^"sha256-[A-Za-z0-9_-]+"$/);
@@ -113,13 +118,236 @@ describe("用户 iCal 导出缓存", () => {
     finishEnqueue?.();
     await expect(tasks[0]).resolves.toBeUndefined();
 
-    // Without defer, stale still serves immediately and enqueues rebuild —
-    // never rebuilds ICS on the request path.
+    // Repeated polling retains the stale response without another rebuild.
     const stillStale = await getCachedUserCalendarExport("user-1", buildExport);
     expect(stillStale.status).toBe("stale");
     expect(stillStale.calendar?.text).toBe(calendarExport.text);
     expect(buildExport).toHaveBeenCalledTimes(1);
-    await vi.waitFor(() => expect(enqueued).toHaveLength(2));
+    expect(enqueued).toHaveLength(1);
+  });
+
+  it("serving isolate observes a consumer's KV refresh after revalidation", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const sender = vi.fn().mockResolvedValue(undefined);
+    setCalendarExportRebuildSenderForTest(sender);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+
+    await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    expect(
+      (await getCachedUserCalendarExport("user-1", buildExport)).status,
+    ).toBe("stale");
+
+    // Load a separate module graph: the queue consumer has its own memory map,
+    // but both isolates share the same persistent KV namespace.
+    vi.resetModules();
+    const consumerCache = await import(
+      "@/features/calendar/server/calendar-export-cache"
+    );
+    const consumerRuntime = await import("@/lib/adapters/cloudflare-runtime");
+    consumerRuntime.setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    try {
+      vi.advanceTimersByTime(10_000);
+      const updated = {
+        ...calendarExport,
+        text: `${calendarExport.text}\nnew`,
+      };
+      await consumerCache.storeBuiltUserCalendarExport("user-1", updated);
+
+      const beforeRevalidation = await getCachedUserCalendarExport(
+        "user-1",
+        buildExport,
+      );
+      expect(beforeRevalidation.calendar?.text).toBe(calendarExport.text);
+      expect(sender).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(50_000);
+      const refreshed = await getCachedUserCalendarExport(
+        "user-1",
+        buildExport,
+      );
+      expect(refreshed.status).toBe("fresh");
+      expect(refreshed.calendar?.text).toBe(updated.text);
+      expect(sender).toHaveBeenCalledTimes(1);
+      expect(buildExport).toHaveBeenCalledTimes(1);
+    } finally {
+      consumerCache.resetUserCalendarExportCacheForTest();
+      consumerRuntime.setCloudflareRuntimeEnv(undefined);
+    }
+  });
+
+  it("bounds repeated stale enqueues while KV still contains the old export", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const sender = vi.fn().mockResolvedValue(undefined);
+    setCalendarExportRebuildSenderForTest(sender);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+
+    for (let minute = 0; minute < 3; minute += 1) {
+      const polls = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          getCachedUserCalendarExport("user-1", buildExport),
+        ),
+      );
+      expect(polls.every((poll) => poll.status === "stale")).toBe(true);
+      expect(sender).toHaveBeenCalledTimes(minute + 1);
+      vi.advanceTimersByTime(60_000);
+    }
+    expect(buildExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("write-triggered rebuilds bypass the stale-read cooldown", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const sender = vi.fn().mockResolvedValue(undefined);
+    setCalendarExportRebuildSenderForTest(sender);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    await getCachedUserCalendarExport("user-1", buildExport);
+
+    const tasks: Promise<unknown>[] = [];
+    scheduleUserCalendarExportRebuild("user-1", (task) => tasks.push(task));
+    await Promise.all(tasks);
+    expect(sender).toHaveBeenCalledTimes(2);
+  });
+
+  it("failed KV revalidation keeps the export without postponing the next read", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    const first = await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(60_000);
+    namespace.get.mockRejectedValueOnce(new Error("KV unavailable"));
+    const cached = await getCachedUserCalendarExport("user-1", buildExport);
+    expect(cached.calendar?.text).toBe(calendarExport.text);
+    expect(buildExport).toHaveBeenCalledTimes(1);
+
+    const updated = {
+      ...first.calendar,
+      text: "updated by another isolate",
+      generatedAtMs: Date.now(),
+      version: 2,
+    };
+    namespace.get.mockResolvedValueOnce(updated);
+    const refreshed = await getCachedUserCalendarExport("user-1", buildExport);
+    expect(refreshed.calendar?.text).toBe(updated.text);
+    expect(namespace.get).toHaveBeenCalledTimes(3);
+  });
+
+  it("invalidation removes the local stale enqueue cooldown", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const sender = vi.fn().mockResolvedValue(undefined);
+    setCalendarExportRebuildSenderForTest(sender);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    const oldKvValue = await namespace.get("user-calendar:v2:user-1");
+
+    await invalidateUserCalendarExportCache("user-1");
+    // An edge may still see the old value during KV delete propagation.
+    namespace.get.mockResolvedValueOnce(oldKvValue);
+    await getCachedUserCalendarExport("user-1", buildExport);
+    expect(sender).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["old", "error"])(
+    "does not restore invalidated memory when a pending KV read returns %s",
+    async (result) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+      const namespace = kvNamespace();
+      setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+      const previous = await storeBuiltUserCalendarExport(
+        "user-1",
+        calendarExport,
+      );
+      vi.advanceTimersByTime(60_000);
+      const pendingRead = createDeferred<typeof previous | null>();
+      namespace.get.mockReturnValueOnce(pendingRead.promise);
+      const updated = { ...calendarExport, text: "after invalidation" };
+      const buildExport = vi.fn().mockResolvedValue(updated);
+      const request = getCachedUserCalendarExport("user-1", buildExport);
+
+      await invalidateUserCalendarExportCache("user-1");
+      if (result === "error") pendingRead.reject(new Error("KV unavailable"));
+      else pendingRead.resolve(previous);
+
+      const refreshed = await request;
+      expect(refreshed.status).toBe("miss");
+      expect(refreshed.calendar?.text).toBe(updated.text);
+      expect(buildExport).toHaveBeenCalledOnce();
+      expect(
+        (await getCachedUserCalendarExport("user-1", buildExport)).calendar
+          ?.text,
+      ).toBe(updated.text);
+      expect(buildExport).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["old", "null", "error"])(
+    "retains a completed local rebuild when a pending KV read returns %s",
+    async (result) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+      const namespace = kvNamespace();
+      setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+      const previous = await storeBuiltUserCalendarExport(
+        "user-1",
+        calendarExport,
+      );
+      vi.advanceTimersByTime(60_000);
+      const pendingRead = createDeferred<typeof previous | null>();
+      namespace.get.mockReturnValueOnce(pendingRead.promise);
+      const buildExport = vi.fn().mockResolvedValue(calendarExport);
+      const request = getCachedUserCalendarExport("user-1", buildExport);
+      const updated = { ...calendarExport, text: "completed queue rebuild" };
+
+      await storeBuiltUserCalendarExport("user-1", updated);
+      if (result === "error") pendingRead.reject(new Error("KV unavailable"));
+      else pendingRead.resolve(result === "null" ? null : previous);
+
+      const refreshed = await request;
+      expect(refreshed.status).toBe("fresh");
+      expect(refreshed.calendar?.text).toBe(updated.text);
+      expect(
+        (await getCachedUserCalendarExport("user-1", buildExport)).calendar
+          ?.text,
+      ).toBe(updated.text);
+      expect(buildExport).not.toHaveBeenCalled();
+    },
+  );
+
+  it("uses a concurrent KV read's populated cache instead of rebuilding", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const stored = await storeBuiltUserCalendarExport("user-1", calendarExport);
+    resetUserCalendarExportCacheForTest();
+    const pendingRead = createDeferred<typeof stored | null>();
+    namespace.get.mockReturnValueOnce(pendingRead.promise);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    const first = getCachedUserCalendarExport("user-1", buildExport);
+
+    const second = await getCachedUserCalendarExport("user-1", buildExport);
+    pendingRead.resolve(null);
+    expect((await first).calendar?.text).toBe(calendarExport.text);
+    expect(second.calendar?.text).toBe(calendarExport.text);
+    expect(buildExport).not.toHaveBeenCalled();
   });
 
   it("cold miss 将 KV 写入移出响应关键路径", async () => {
@@ -247,6 +475,14 @@ describe("用户 iCal 导出缓存", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "private user id",
     );
+
+    const retrySender = vi.fn().mockResolvedValue(undefined);
+    setCalendarExportRebuildSenderForTest(retrySender);
+    await getCachedUserCalendarExport("user-1", buildExport, {
+      defer: (promise) => tasks.push(promise),
+    });
+    await expect(tasks[1]).resolves.toBeUndefined();
+    expect(retrySender).toHaveBeenCalledOnce();
   });
 
   it("KV store 失败时不记录 refresh_success", async () => {

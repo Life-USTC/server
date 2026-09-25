@@ -32,7 +32,7 @@ describe("Vite Prisma WASM module handling", () => {
         "/workspace/src/generated/prisma/internal/class.ts",
       ),
     ).toEqual({
-      id: "/workspace/src/generated/prisma/internal/query_compiler_fast_bg.wasm?module",
+      id: "./query_compiler_fast_bg.wasm?module",
       external: true,
     });
   });

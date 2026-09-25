@@ -13,6 +13,7 @@
     "week-starts-sunday": "Existing academic grids start on Sunday; activity calendars use Monday-start weeks.",
     "subscription-badges": "Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as a localized top-right badge in desktop grids and mobile agendas. Regular subscriptions show no badge; course titles and public calendars are unchanged.",
     "event-card-types": "Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity events.",
+    "feed-cache-refresh": "Personal iCal feeds serve a cached export while refreshing stale content asynchronously. Serving instances periodically revalidate shared cached exports so completed background refreshes become visible. Repeated stale reads briefly coalesce refresh requests; failed enqueue attempts remain retryable, and user writes still request a rebuild independently.",
     "teaching-assistant-homework": "Personal calendar views, event sources, and iCal feeds preserve actual completion records but exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed promptly."
   },
   "capabilities": {
