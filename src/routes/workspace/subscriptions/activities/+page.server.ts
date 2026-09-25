@@ -28,18 +28,27 @@ export const load: PageServerLoad = async ({ locals, url, setHeaders }) => {
           unread: url.searchParams.get("unread") === "true",
         })
       : null;
+  const events =
+    view !== "organizers" && view !== "notifications"
+      ? await listYoungEventSubscriptions(userId, input)
+      : null;
+  const organizers =
+    view === "organizers"
+      ? await listYoungOrganizerSubscriptions(userId, input)
+      : null;
+  const result = notifications ?? events ?? organizers;
+  const lastPage = Math.max(1, result?.pagination.totalPages ?? 1);
+  if (input.page > lastPage) {
+    const query = new URLSearchParams(url.searchParams);
+    query.set("page", String(lastPage));
+    redirect(303, `${url.pathname}?${query}`);
+  }
   return toLoadData({
     userId,
     copy: getWorkspacePageCopy(locals.locale),
     unread: url.searchParams.get("unread") === "true",
-    events:
-      view !== "organizers" && view !== "notifications"
-        ? await listYoungEventSubscriptions(userId, input)
-        : null,
-    organizers:
-      view === "organizers"
-        ? await listYoungOrganizerSubscriptions(userId, input)
-        : null,
+    events,
+    organizers,
     notifications: notifications
       ? {
           ...notifications,

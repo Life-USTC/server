@@ -3,6 +3,7 @@ import { toast } from "svelte-sonner";
 import CatalogPagination from "@/features/catalog/components/CatalogPagination.svelte";
 import YoungSubscriptionControl from "@/features/young/components/YoungSubscriptionControl.svelte";
 import { youngDateTime } from "@/features/young/lib/young-event-display";
+import { youngNotificationDescription } from "@/features/young/lib/young-notification-display";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import PageLayout from "$lib/components/PageLayout.svelte";
@@ -27,13 +28,6 @@ function notificationKind(kind: string) {
   return (
     copy.notificationKinds[kind as keyof typeof copy.notificationKinds] ??
     copy.notifications
-  );
-}
-function notificationDescription(kind: string) {
-  return (
-    copy.notificationDescriptions[
-      kind as keyof typeof copy.notificationDescriptions
-    ] ?? copy.notificationsHint
   );
 }
 function filterNotifications(value: string) {
@@ -121,7 +115,7 @@ function pageHref(number: number) {
               <Badge variant="outline">{notificationKind(row.kind)}</Badge>
               <time class="text-muted-foreground text-sm" datetime={row.createdAt}>{youngDateTime(row.createdAt)}</time>
             </div>
-            <p class="text-sm">{notificationDescription(row.kind)}</p>
+            <p class="text-sm [overflow-wrap:anywhere]">{youngNotificationDescription(row, copy)}</p>
             <div class="flex flex-wrap gap-2">
               {#if !row.readAt}<Button variant="outline" size="sm" disabled={reading !== null} onclick={() => markRead(row.id)}>{copy.read}</Button>{/if}
               {#if row.youngId}

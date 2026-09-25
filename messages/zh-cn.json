@@ -2858,7 +2858,9 @@
         "event_start": "活动将在 1 小时内开始，请确认活动时间和地点。",
         "event_changed": "活动信息或来源状态有变化，请核实最新时间、地点和报名状态。",
         "organizer_digest": "你关注的主办方发布了新活动，查看其活动列表了解详情。"
-      }
+      },
+      "digestPrefix": "{count} 个新活动：",
+      "sourceUnavailableDescription": "活动来源暂缺，请前往校方活动页面核实信息后再报名或参加。"
     },
     "signupRequired": "需要报名",
     "signupNotRequired": "无需报名",

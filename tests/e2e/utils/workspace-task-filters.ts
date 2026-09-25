@@ -33,7 +33,10 @@ function shanghaiDateFromOffset(offsetDays: number) {
   return formatShanghaiDate(new Date(Date.now() + offsetDays * DAY_MS));
 }
 
-async function createSignedSessionCookie(userId: string, secret: string) {
+export async function createSignedSessionCookie(
+  userId: string,
+  secret = E2E_AUTH_SECRET,
+) {
   const sessionToken = crypto.randomUUID();
   await withE2ePrisma((prisma) =>
     prisma.session.create({

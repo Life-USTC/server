@@ -7,6 +7,7 @@ import {
 } from "../../../../../utils/comments";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
+import { createSignedSessionCookie } from "../../../../../utils/workspace-task-filters";
 import { assertPageContract } from "../../../_shared/page-contract";
 
 test("活动、主办方订阅和提醒入口可用", async ({ page }, testInfo) => {
@@ -194,6 +195,13 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         .locator('[data-slot="card"]')
         .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
       await expect(card).toBeVisible();
+      const unreadFilter = page.getByRole("radio", {
+        name: /^(仅未读|Unread only)$/,
+      });
+      await expect(unreadFilter).toBeChecked();
+      await unreadFilter.click();
+      await expect(unreadFilter).toBeChecked();
+      await expect(page).toHaveURL(/unread=true/);
       await expect(
         card.getByText(
           locale === "zh-cn" ? "报名即将截止" : "Registration deadline",
@@ -247,3 +255,68 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     }
   });
 }
+
+test("reading the last unread reminder on page two returns to the remaining reminders", async ({
+  page,
+}) => {
+  const fixture = createFixturePrisma();
+  const marker = `reminder-pagination-${crypto.randomUUID()}`;
+  const user = await fixture.user.create({
+    data: {
+      username: marker,
+      name: marker,
+      email: `${marker}@example.test`,
+      emailVerified: true,
+    },
+  });
+  try {
+    await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+    await fixture.youngEvent.create({
+      data: { youngId: marker, name: marker, isActive: true, rawJson: {} },
+    });
+    const createdAt = Date.now();
+    await fixture.youngNotification.createMany({
+      data: Array.from({ length: 21 }, (_, index) => ({
+        id: `${marker}-${index}`,
+        userId: user.id,
+        youngId: marker,
+        kind: "event_changed",
+        title: `${marker} ${index}`,
+        body: "Activity details changed",
+        createdAt: new Date(createdAt - index * 1000),
+        dedupeKey: `${marker}-${index}`,
+      })),
+    });
+    await gotoAndWaitForReady(
+      page,
+      "/workspace/subscriptions/activities?view=notifications&unread=true&page=2",
+    );
+    await expect(
+      page.getByRole("link", { name: `${marker} 20`, exact: true }),
+    ).toBeVisible();
+    await page
+      .locator("main")
+      .getByRole("button", { name: /^(标记已读|Mark read)$/ })
+      .click();
+    await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
+    await expect(
+      page.getByRole("link", { name: `${marker} 0`, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("main")
+        .getByRole("button", { name: /^(标记已读|Mark read)$/ }),
+    ).toHaveCount(20);
+    await expect(
+      page.getByText(/已读完所有提醒|You’re all caught up/),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("radio", { name: /^(仅未读|Unread only)$/ }),
+    ).toBeChecked();
+  } finally {
+    await fixture.youngNotification.deleteMany({ where: { userId: user.id } });
+    await fixture.youngEvent.deleteMany({ where: { youngId: marker } });
+    await fixture.user.delete({ where: { id: user.id } });
+    await fixture.$disconnect();
+  }
+});

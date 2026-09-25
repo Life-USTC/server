@@ -1194,7 +1194,9 @@
         "event_start": "This activity starts within an hour. Check the time and venue.",
         "event_changed": "Activity details or source availability changed. Check the latest time, venue and registration status.",
         "organizer_digest": "This organizer has published new activities. Browse their activity list to find out more."
-      }
+      },
+      "digestPrefix": "{count} new activities: ",
+      "sourceUnavailableDescription": "The source is currently unavailable. Check the official event page before attending or registering."
     },
     "signupRequired": "Registration required",
     "signupNotRequired": "No registration required",
