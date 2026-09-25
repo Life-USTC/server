@@ -119,7 +119,7 @@ test.describe("仪表盘网站链接", () => {
 
   test("登录后可以导航到链接标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
-    await expandSidebarGroup(page, /^(课程目录|Catalog)$/i);
+    await expandSidebarGroup(page, /^(校园服务|Campus Services)$/i);
 
     const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
     await expect(linksTab).toBeVisible();

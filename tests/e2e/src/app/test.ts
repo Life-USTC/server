@@ -362,7 +362,7 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
   ).toHaveAttribute("aria-current", "page");
 
   const catalog = navigation.getByRole("button", {
-    name: /^(课程目录|Catalog)$/i,
+    name: /^(校园服务|Campus Services)$/i,
   });
   await expect(catalog).toHaveAttribute("aria-expanded", "true");
   await expect(
@@ -482,7 +482,7 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
     name: /主导航|Primary navigation/i,
   });
   const catalog = navigation.getByRole("button", {
-    name: /^(课程目录|Catalog)$/i,
+    name: /^(校园服务|Campus Services)$/i,
   });
 
   await expect(catalog).toHaveAttribute("aria-expanded", "true");
@@ -720,7 +720,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }
   });
 
   const catalogGroup = sidebar.getByRole("button", {
-    name: /^(课程目录|Catalog)$/i,
+    name: /^(校园服务|Campus Services)$/i,
   });
   await expect(async () => {
     await catalogGroup.click();
