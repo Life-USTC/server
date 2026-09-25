@@ -7,6 +7,7 @@ import {
 } from "../../../../../utils/comments";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
+import { createSignedSessionCookie } from "../../../../../utils/workspace-task-filters";
 import { assertPageContract } from "../../../_shared/page-contract";
 
 test("活动、主办方订阅和提醒入口可用", async ({ page }, testInfo) => {
@@ -56,11 +57,19 @@ for (const viewport of [
       const reminder = page.getByRole("checkbox", {
         name: /报名截止前|registration closes/i,
       });
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
       await reminder.uncheck();
       await page
         .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
         .click();
       await page.reload();
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
       await expect(reminder).not.toBeChecked();
       await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
       await expect(
@@ -69,6 +78,7 @@ for (const viewport of [
           exact: true,
         }),
       ).toBeVisible();
+      await expect(page.getByRole("checkbox")).toHaveCount(0);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       expect(
         await page.evaluate(
@@ -141,5 +151,188 @@ test("activity detail posts comments to the public youngId and preserves them on
     await page.screenshot({ path: "/tmp/young-comments.png", fullPage: true });
   } finally {
     await cleanupCommentsForE2e([id]);
+  }
+});
+
+for (const locale of ["zh-cn", "en-us"] as const) {
+  test(`activity reminders filter, localize and persist read state in ${locale}`, async ({
+    page,
+  }) => {
+    const fixture = createFixturePrisma();
+    const marker = `reminder-browser-${crypto.randomUUID()}`;
+    await signInAsDebugUser(page, "/workspace/subscriptions/activities");
+    const session = await (
+      await page.request.get("/api/auth/get-session")
+    ).json();
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: locale, url: new URL(page.url()).origin },
+      ]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await fixture.youngEvent.create({
+      data: { youngId: marker, name: marker, isActive: true, rawJson: {} },
+    });
+    const createdAt = new Date();
+    await fixture.youngNotification.create({
+      data: {
+        id: marker,
+        userId: session.user.id,
+        youngId: marker,
+        kind: "signup_deadline",
+        title: marker,
+        body: "报名即将截止 / Registration closes soon",
+        createdAt,
+        dedupeKey: marker,
+      },
+    });
+    try {
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/subscriptions/activities?view=notifications&unread=true",
+      );
+      const card = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
+      await expect(card).toBeVisible();
+      const unreadFilter = page.getByRole("radio", {
+        name: /^(仅未读|Unread only)$/,
+      });
+      await expect(unreadFilter).toBeChecked();
+      await unreadFilter.click();
+      await expect(unreadFilter).toBeChecked();
+      await expect(page).toHaveURL(/unread=true/);
+      await expect(
+        card.getByText(
+          locale === "zh-cn" ? "报名即将截止" : "Registration deadline",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        card.getByText("报名即将截止 / Registration closes soon", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(card.locator("time")).toHaveAttribute("datetime", /T/);
+      await expect(
+        card.getByRole("link", { name: /^(查看活动|View activity)$/ }),
+      ).toHaveAttribute("href", `/catalog/young-events/${marker}`);
+      const read = card.getByRole("button", { name: /^(标记已读|Mark read)$/ });
+      await page.route(
+        `**/api/workspace/young-notifications/${marker}/read`,
+        (route) => route.fulfill({ status: 503, body: "unavailable" }),
+        { times: 1 },
+      );
+      await read.click();
+      await expect(
+        page.getByText(/操作失败，请重试|Could not complete the request/),
+      ).toBeVisible();
+      await expect(card).toBeVisible();
+      await read.click();
+      await expect(card).toHaveCount(0);
+      await page
+        .getByRole("radio", { name: /^(全部提醒|All reminders)$/ })
+        .click();
+      await expect(page).not.toHaveURL(/unread=true/);
+      await expect(card).toBeVisible();
+      await expect(read).toHaveCount(0);
+      expect(
+        (
+          await fixture.youngNotification.findUniqueOrThrow({
+            where: { id: marker },
+          })
+        ).readAt,
+      ).not.toBeNull();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+    } finally {
+      await fixture.youngNotification.deleteMany({ where: { id: marker } });
+      await fixture.youngEvent.delete({ where: { youngId: marker } });
+      await fixture.$disconnect();
+    }
+  });
+}
+
+test("reading the last unread reminder on page two returns to the remaining reminders", async ({
+  page,
+}) => {
+  const fixture = createFixturePrisma();
+  const marker = `reminder-pagination-${crypto.randomUUID()}`;
+  const user = await fixture.user.create({
+    data: {
+      username: marker,
+      name: marker,
+      email: `${marker}@example.test`,
+      emailVerified: true,
+    },
+  });
+  try {
+    await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+    await fixture.youngEvent.create({
+      data: { youngId: marker, name: marker, isActive: true, rawJson: {} },
+    });
+    const createdAt = Date.now();
+    await fixture.youngNotification.createMany({
+      data: Array.from({ length: 21 }, (_, index) => ({
+        id: `${marker}-${index}`,
+        userId: user.id,
+        youngId: marker,
+        kind: "event_changed",
+        title: `${marker} ${index}`,
+        body: "Activity details changed",
+        createdAt: new Date(createdAt - index * 1000),
+        dedupeKey: `${marker}-${index}`,
+      })),
+    });
+    await gotoAndWaitForReady(
+      page,
+      "/workspace/subscriptions/activities?view=notifications&unread=true&page=2",
+    );
+    await expect(
+      page.getByRole("link", { name: `${marker} 20`, exact: true }),
+    ).toBeVisible();
+    const reminderNavigation = page
+      .locator('[data-shell-navigation="desktop"]')
+      .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
+    await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
+    const reminderBadge = page
+      .locator(
+        '[data-shell-navigation="desktop"] [data-slot="sidebar-menu-item"]',
+      )
+      .filter({
+        has: page.getByRole("link", {
+          name: /^(活动提醒|Activity reminders)$/,
+        }),
+      })
+      .locator('[data-slot="sidebar-menu-badge"]');
+    await expect(reminderBadge).toHaveText("21");
+    await page
+      .locator("main")
+      .getByRole("button", { name: /^(标记已读|Mark read)$/ })
+      .click();
+    await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
+    await expect(reminderBadge).toHaveText("20");
+    await expect(
+      page.getByRole("link", { name: `${marker} 0`, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("main")
+        .getByRole("button", { name: /^(标记已读|Mark read)$/ }),
+    ).toHaveCount(20);
+    await expect(
+      page.getByText(/已读完所有提醒|You’re all caught up/),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("radio", { name: /^(仅未读|Unread only)$/ }),
+    ).toBeChecked();
+  } finally {
+    await fixture.youngNotification.deleteMany({ where: { userId: user.id } });
+    await fixture.youngEvent.deleteMany({ where: { youngId: marker } });
+    await fixture.user.delete({ where: { id: user.id } });
+    await fixture.$disconnect();
   }
 });

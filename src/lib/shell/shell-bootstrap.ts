@@ -2,6 +2,7 @@ import type { LayoutUserSummary } from "@/lib/shell/layout-server-data";
 
 export type WorkspaceNavigationSummary = {
   userId: string;
+  unreadActivityNotificationsCount: number;
   calendarItemsCount: number;
   examsCount: number;
   pendingHomeworksCount: number;
@@ -43,12 +44,16 @@ function parseWorkspaceNavigationSummary(
   const summary = value as Record<string, unknown>;
   if (summary.userId !== expectedUserId) return null;
 
+  const unreadActivityNotificationsCount = parseCount(
+    summary.unreadActivityNotificationsCount,
+  );
   const calendarItemsCount = parseCount(summary.calendarItemsCount);
   const examsCount = parseCount(summary.examsCount);
   const pendingHomeworksCount = parseCount(summary.pendingHomeworksCount);
   const pendingTodosCount = parseCount(summary.pendingTodosCount);
   const subscribedSectionCount = parseCount(summary.subscribedSectionCount);
   if (
+    unreadActivityNotificationsCount === null ||
     calendarItemsCount === null ||
     examsCount === null ||
     pendingHomeworksCount === null ||
@@ -60,6 +65,7 @@ function parseWorkspaceNavigationSummary(
 
   return {
     userId: expectedUserId,
+    unreadActivityNotificationsCount,
     calendarItemsCount,
     examsCount,
     pendingHomeworksCount,

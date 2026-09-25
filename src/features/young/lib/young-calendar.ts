@@ -178,3 +178,39 @@ export function youngCalendarNextDate(
       .toDate(),
   );
 }
+
+/** Match the visible date range, rather than always naming a single day. */
+export function youngCalendarHeading(
+  view: YoungCalendarView,
+  anchorDate: string,
+  locale: string,
+) {
+  const date = (key: string) => new Date(`${key}T00:00:00+08:00`);
+  if (view === "week") {
+    const range = youngCalendarRange(view, anchorDate);
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).formatRange(date(range.start), date(range.end));
+  }
+  return new Intl.DateTimeFormat(
+    locale,
+    view === "month"
+      ? { timeZone: "Asia/Shanghai", year: "numeric", month: "long" }
+      : { timeZone: "Asia/Shanghai", dateStyle: "full" },
+  ).format(date(anchorDate));
+}
+
+/** Mobile agendas omit month-grid padding and start at the selected day. */
+export function youngCalendarAgenda(
+  days: YoungCalendarDay[],
+  anchorDate: string,
+) {
+  const visible = days.filter((day) => !day.isMuted);
+  return {
+    earlier: visible.filter((day) => day.key < anchorDate),
+    current: visible.filter((day) => day.key >= anchorDate),
+  };
+}

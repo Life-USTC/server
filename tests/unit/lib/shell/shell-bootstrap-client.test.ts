@@ -15,6 +15,7 @@ const viewer = {
 
 const navigation = {
   userId: "user-1",
+  unreadActivityNotificationsCount: 2,
   calendarItemsCount: 8,
   examsCount: 2,
   pendingHomeworksCount: 3,
@@ -54,6 +55,7 @@ describe("shell bootstrap client", () => {
         {
           navStats: {
             user: { id: "user-1" },
+            unreadActivityNotificationsCount: 2,
             calendarItemsCount: 8,
             examsCount: 2,
             pendingHomeworksCount: 3,

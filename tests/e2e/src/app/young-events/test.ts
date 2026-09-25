@@ -64,7 +64,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 
     await searchbox.fill("");
     await page
-      .getByRole("combobox", { name: /报名状态|Signup status/i })
+      .getByRole("combobox", { name: /活动范围|Activity scope/i })
       .selectOption("false");
     await page.getByRole("button", { name: /^(?:搜索|Search)$/i }).click();
     await page.waitForURL(/active=false/);
@@ -84,6 +84,77 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         .getByRole("link", { name: new RegExp(DEV_SEED.youngEvent.name) })
         .first(),
     ).toBeVisible();
+  });
+
+  test("折叠筛选保值并在日历与详情之间保留上下文", async ({ page }) => {
+    const search = encodeURIComponent(DEV_SEED.youngEvent.name);
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/young-events?search=${search}&organizerId=dev-scenario-young-organizer`,
+    );
+    const organizer = page.locator("#young-event-organizer");
+    await expect(organizer).toBeHidden();
+    await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+    await expect(organizer).toBeVisible();
+    await expect(organizer).toHaveValue("dev-scenario-young-organizer");
+    await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+    await Promise.all([
+      page.waitForURL((url) => url.searchParams.has("timeBasis")),
+      page.getByRole("button", { name: /^(搜索|Search)$/ }).click(),
+    ]);
+    await expect(page).toHaveURL(/organizerId=dev-scenario-young-organizer/);
+    await expect(
+      page.getByRole("navigation", { name: /已选条件|Applied filters/ }),
+    ).toBeVisible();
+    const browseUrl = page.url();
+    await page
+      .locator(
+        `a[href^="/catalog/young-events/${DEV_SEED.youngEvent.youngId}?"]`,
+      )
+      .filter({ visible: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/returnTo=/);
+    await expect(page.getByTestId("young-event-overview")).toBeVisible();
+    await page
+      .getByRole("link", { name: /返回活动列表|Back to all events/ })
+      .click();
+    await expect(page).toHaveURL(browseUrl);
+    await page
+      .getByTestId("young-browse-nav")
+      .getByRole("link", { name: /^(日历|Calendar)$/ })
+      .click();
+    await expect(page).toHaveURL(/calendar\?/);
+    expect(new URL(page.url()).searchParams.get("search")).toBe(
+      DEV_SEED.youngEvent.name,
+    );
+    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
+      "dev-scenario-young-organizer",
+    );
+  });
+
+  test("手机日历从所选日期开始并可展开此前日期", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/young-events/calendar?view=month&date=2026-09-25",
+    );
+    const calendar = page.getByTestId("young-calendar");
+    await expect(
+      calendar.getByRole("link", { name: /^(月|Month)$/ }),
+    ).toHaveAttribute("aria-current", "page");
+    const headings = page
+      .getByTestId("young-calendar-agenda")
+      .getByRole("heading", { level: 3 });
+    await expect(headings.first()).toHaveAttribute(
+      "id",
+      "young-agenda-2026-09-25",
+    );
+    await calendar
+      .getByRole("button", { name: /查看此前日期|Show earlier dates/ })
+      .click();
+    await expect(page.locator("#young-agenda-2026-09-01")).toBeVisible();
+    await expect(page.locator("#young-agenda-2026-08-31")).toHaveCount(0);
   });
 
   test("无匹配活动时显示明确空状态", async ({ page }) => {
@@ -179,6 +250,7 @@ for (const width of [1280, 390]) {
         root.getByRole("link", { name: /^(日|Day)$/ }),
       ).toHaveAttribute("href", /timeBasis=registration/);
       await root.getByRole("link", { name: /^(日|Day)$/ }).click();
+      await expect(page).toHaveURL(/view=day/);
       await expect(
         root
           .getByRole("link", { name: /Calendar activity/ })

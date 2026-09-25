@@ -17,9 +17,11 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import YoungBrowseNav from "./YoungBrowseNav.svelte";
 
 type Props = {
   copy: AppPageCopy;
@@ -48,7 +50,7 @@ function organizerHref(id: string) {
 }
 
 function eventsHref(id: string) {
-  return `/catalog/young-events?organizerId=${encodeURIComponent(id)}`;
+  return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
 
 function formatSourceDate(value: string | null) {
@@ -56,7 +58,11 @@ function formatSourceDate(value: string | null) {
 }
 
 const summaryBase = $derived(
-  catalogShowingSummary(youngCopy.showing, data.length, pagination.total),
+  catalogShowingSummary(
+    youngCopy.organizersShowing,
+    data.length,
+    pagination.total,
+  ),
 );
 const searchSummary = $derived(
   optionalCatalogFilterSummary(search, youngCopy.searchFor, "{query}"),
@@ -78,6 +84,7 @@ const searchSummary = $derived(
 {/snippet}
 
 <PageLayout description={youngCopy.organizersDescription} title={youngCopy.organizersTitle}>
+  <YoungBrowseNav current="organizers" copy={youngCopy} />
   <div class="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
@@ -89,33 +96,34 @@ const searchSummary = $derived(
       {/if}
       {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
     </span>
-    <div class="flex flex-wrap gap-2">
-      <Button href="/catalog/young-events" variant="outline">{youngCopy.title}</Button>
-      <Button href="/catalog/young-events/calendar" variant="outline">{youngCopy.viewCalendar}</Button>
-    </div>
+
   </div>
 
   <Panel footer={pagination.totalPages > 1 ? paginationFooter : undefined}>
     {#snippet header()}
       <form action="/catalog/young-events/organizers" class="flex flex-wrap items-end gap-3" method="get">
-        <div class="grid min-w-48 flex-1 gap-1.5">
-          <label class="text-sm font-medium" for="young-organizer-search">
+        <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+        <Field.Field class="min-w-48 flex-1">
+          <Field.FieldLabel for="young-organizer-search">
             {commonLabels.search}
-          </label>
+          </Field.FieldLabel>
           <Input
             id="young-organizer-search"
             name="search"
-            placeholder={youngCopy.searchPlaceholder}
+            placeholder={youngCopy.organizerSearchPlaceholder}
             type="search"
             value={search ?? ""}
           />
-        </div>
+        </Field.Field>
         <Button type="submit">{commonLabels.search}</Button>
         <Button href="/catalog/young-events/organizers" variant="outline">{commonLabels.clear}</Button>
+
+        </Field.FieldGroup>
       </form>
     {/snippet}
 
     <section class="grid min-w-0 gap-3">
+      <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
       <CatalogResultsSummary
         base={summaryBase}
         page={pagination.page}

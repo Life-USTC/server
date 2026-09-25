@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeYoungCalendarDate,
+  youngCalendarAgenda,
   youngCalendarDays,
+  youngCalendarHeading,
   youngCalendarNextDate,
   youngCalendarPreviousDate,
   youngCalendarRange,
@@ -167,5 +169,37 @@ describe("Young calendar", () => {
     expect(days[0]?.events.map(({ youngId }) => youngId)).toEqual([
       "registration",
     ]);
+  });
+});
+
+describe("calendar browsing hierarchy", () => {
+  it("titles month, week and day views with their matching range", () => {
+    expect(youngCalendarHeading("month", "2026-09-25", "en-us")).toBe(
+      "September 2026",
+    );
+    expect(youngCalendarHeading("day", "2026-09-25", "en-us")).toContain(
+      "Friday, September 25, 2026",
+    );
+    const week = youngCalendarHeading("week", "2026-09-25", "en-us");
+    expect(week).toContain("21");
+    expect(week).toContain("27");
+    expect(week).toContain("2026");
+  });
+  it("starts the mobile month agenda at the selected day and retains all earlier month dates", () => {
+    const range = youngCalendarRange("month", "2026-09-25");
+    const days = youngCalendarDays(
+      "month",
+      range,
+      [],
+      new Date("2026-09-25T12:00:00+08:00"),
+      "activity",
+      "2026-09-25",
+    );
+    const agenda = youngCalendarAgenda(days, "2026-09-25");
+    expect(agenda.current[0].key).toBe("2026-09-25");
+    expect(agenda.earlier[0].key).toBe("2026-09-01");
+    expect(agenda.earlier.at(-1)?.key).toBe("2026-09-24");
+    expect([...agenda.earlier, ...agenda.current]).toHaveLength(30);
+    expect(agenda.current.at(-1)?.key).toBe("2026-09-30");
   });
 });

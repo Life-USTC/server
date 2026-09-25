@@ -25,6 +25,7 @@ const authUser = {
 
 const navigation = {
   userId: "user-1",
+  unreadActivityNotificationsCount: 2,
   calendarItemsCount: 8,
   examsCount: 2,
   pendingHomeworksCount: 3,

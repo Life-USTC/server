@@ -42,7 +42,7 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     ).toBeVisible();
 
     const signupLink = page.getByRole("link", {
-      name: /young\.ustc\.edu\.cn/i,
+      name: /前往官方平台|official site/i,
     });
     await expect(signupLink).toBeVisible();
     await expect(signupLink).toHaveAttribute(
@@ -112,7 +112,9 @@ for (const width of [1280, 390]) {
         }),
       ).toBeVisible();
       await expect(
-        page.getByText("东区学生活动中心", { exact: true }),
+        page
+          .getByTestId("young-event-overview")
+          .getByText("东区学生活动中心", { exact: true }),
       ).toBeVisible();
       await expect(
         page.getByText("校外合作机构", { exact: true }),

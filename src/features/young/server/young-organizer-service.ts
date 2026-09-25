@@ -17,6 +17,8 @@ export type YoungOrganizerSummary = {
 };
 export type YoungOrganizerListInput = PaginationInput & {
   search?: string | null;
+  /** Web browse ordering; API clients retain alphabetical order. */
+  activeFirst?: boolean;
 };
 type OrganizerIdentity = Pick<
   YoungOrganizerSummary,
@@ -61,16 +63,53 @@ export async function listYoungOrganizers(input: YoungOrganizerListInput = {}) {
   const where: Prisma.YoungOrganizerWhereInput = search
     ? { name: { contains: search, mode: "insensitive" } }
     : {};
-  const [total, organizers] = await Promise.all([
-    prisma.youngOrganizer.count({ where }),
-    prisma.youngOrganizer.findMany({
-      where,
-      select: selectOrganizer,
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      skip,
-      take: pageSize,
-    }),
-  ]);
+  const orderBy = [{ name: "asc" as const }, { id: "asc" as const }];
+  let total: number;
+  let organizers: OrganizerIdentity[];
+  if (input.activeFirst) {
+    const activeWhere = {
+      AND: [where, { events: { some: { isActive: true } } }],
+    };
+    const counts = await Promise.all([
+      prisma.youngOrganizer.count({ where }),
+      prisma.youngOrganizer.count({ where: activeWhere }),
+    ]);
+    total = counts[0];
+    const activeCount = counts[1];
+    const activeTake = Math.max(0, Math.min(pageSize, activeCount - skip));
+    const [active, remaining] = await Promise.all([
+      activeTake
+        ? prisma.youngOrganizer.findMany({
+            where: activeWhere,
+            select: selectOrganizer,
+            orderBy,
+            skip,
+            take: activeTake,
+          })
+        : [],
+      activeTake < pageSize
+        ? prisma.youngOrganizer.findMany({
+            where: { AND: [where, { events: { none: { isActive: true } } }] },
+            select: selectOrganizer,
+            orderBy,
+            skip: Math.max(0, skip - activeCount),
+            take: pageSize - activeTake,
+          })
+        : [],
+    ]);
+    organizers = [...active, ...remaining];
+  } else {
+    [total, organizers] = await Promise.all([
+      prisma.youngOrganizer.count({ where }),
+      prisma.youngOrganizer.findMany({
+        where,
+        select: selectOrganizer,
+        orderBy,
+        skip,
+        take: pageSize,
+      }),
+    ]);
+  }
   return buildPaginatedResponse(
     await withEventCounts(organizers),
     page,

@@ -105,6 +105,13 @@ export type PublicationPageCopy = {
   organizationLevelFilter: string;
   sourceFilter: string;
   sourceFilterHint: string;
+  advancedFilters: string;
+  activeFilters: string;
+  removeFilter: string;
+  searchSources: string;
+  sourceSearchEmpty: string;
+  articleInformation: string;
+  showSummary: string;
   sourceFilterEmpty: string;
   organizationLevelLabels: Record<PublicationSourceOrganizationLevel, string>;
 };

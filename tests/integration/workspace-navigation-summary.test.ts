@@ -50,11 +50,77 @@ describe("workspace navigation summary", () => {
 
     expect(summary).toEqual({
       userId: subscription.userId,
+      unreadActivityNotificationsCount:
+        existing.unreadActivityNotificationsCount,
       calendarItemsCount: existing.calendarItemsCount,
       examsCount: existing.examsCount,
       pendingHomeworksCount: existing.pendingHomeworksCount,
       pendingTodosCount: existing.pendingTodosCount,
       subscribedSectionCount: context.sectionIds.length,
     });
+  });
+  test("counts only the viewer's unread, unexpired reminders even without course subscriptions", async () => {
+    const marker = `nav-reminders-${crypto.randomUUID()}`;
+    const referenceDate = new Date("2026-09-25T00:00:00Z");
+    const users = await Promise.all(
+      [0, 1].map((index) =>
+        testPrisma.user.create({
+          data: {
+            name: marker,
+            username: `${marker}-${index}`,
+            email: `${marker}-${index}@example.test`,
+            emailVerified: true,
+          },
+        }),
+      ),
+    );
+    try {
+      await testPrisma.youngNotification.createMany({
+        data: [
+          {
+            userId: users[0].id,
+            dedupeKey: "unread",
+            kind: "event_changed",
+            title: "Visible",
+            body: "Visible",
+          },
+          {
+            userId: users[0].id,
+            dedupeKey: "read",
+            kind: "event_changed",
+            title: "Read",
+            body: "Read",
+            readAt: referenceDate,
+          },
+          {
+            userId: users[0].id,
+            dedupeKey: "expired",
+            kind: "event_changed",
+            title: "Expired",
+            body: "Expired",
+            expiresAt: referenceDate,
+          },
+          {
+            userId: users[1].id,
+            dedupeKey: "other",
+            kind: "event_changed",
+            title: "Other",
+            body: "Other",
+          },
+        ],
+      });
+      const summary = await getWorkspaceNavigationSummary(
+        users[0].id,
+        referenceDate,
+      );
+      expect(summary.unreadActivityNotificationsCount).toBe(1);
+      expect(summary.subscribedSectionCount).toBe(0);
+      const stats = await getWorkspaceNavStats(users[0], [], referenceDate);
+      expect(stats.unreadActivityNotificationsCount).toBe(1);
+    } finally {
+      await testPrisma.user.deleteMany({
+        where: { id: { in: users.map((user) => user.id) } },
+      });
+    }
   });
 });

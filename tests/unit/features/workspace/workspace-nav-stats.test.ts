@@ -45,6 +45,7 @@ describe("仪表盘导航统计", () => {
   it("uses the shared aggregate read model for all navigation counts", async () => {
     const referenceNow = new Date("2026-05-22T10:30:00.000Z");
     getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 9,
       examsCount: 3,
       highlightPendingHomeworks: true,
@@ -84,6 +85,7 @@ describe("仪表盘导航统计", () => {
     );
     expect(countIncompleteTodosMock).not.toHaveBeenCalled();
     expect(result).toMatchObject({
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 9,
       examsCount: 3,
       highlightPendingHomeworks: true,
@@ -95,6 +97,7 @@ describe("仪表盘导航统计", () => {
   it("reuses the already loaded todo count while aggregate work runs", async () => {
     const pendingTodos = createDeferred<number>();
     getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 9,
       examsCount: 3,
       highlightPendingHomeworks: false,
@@ -135,6 +138,7 @@ describe("仪表盘导航统计", () => {
   it("records nav telemetry when the aggregate finishes without waiting for todos", async () => {
     const pendingTodos = createDeferred<number>();
     const aggregate = {
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 9,
       examsCount: 3,
       highlightPendingHomeworks: false,
@@ -199,6 +203,7 @@ describe("仪表盘导航统计", () => {
 
   it("emits one nav datapoint when the page stage wraps the aggregate", async () => {
     getWorkspaceNavigationAggregateMock.mockResolvedValue({
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 9,
       examsCount: 3,
       highlightPendingHomeworks: false,

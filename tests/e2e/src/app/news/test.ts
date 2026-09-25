@@ -37,40 +37,44 @@ test.describe("/news 新闻与通知预览", () => {
       { testInfo, screenshotLabel: "news-source-filter" },
     );
 
-    const sourceFilter = page.getByRole("listbox", {
-      name: /^(来源|Sources)$/,
-    });
-    await expect(sourceFilter).toHaveValues([fixture.sourceId]);
     await expect(
-      page.getByRole("searchbox", { name: /搜索|Search/i }),
+      page.getByRole("searchbox", { name: /^(搜索|Search)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: fixture.title, exact: true }),
     ).toBeVisible();
-    await expect(page.getByText(/新闻|News/i).first()).toBeVisible();
+    const moreFilters = page.getByRole("button", {
+      name: /更多筛选|More filters/i,
+    });
+    await expect(moreFilters).toHaveAttribute("aria-expanded", "false");
+    await moreFilters.click();
+    const sourceFilter = page.getByRole("group", { name: /^(来源|Sources)$/ });
     await expect(
-      page.getByRole("columnheader", { name: /类型|Type/i }),
-    ).toBeVisible();
+      sourceFilter.getByRole("checkbox", {
+        name: fixture.sourceName,
+        exact: true,
+      }),
+    ).toBeChecked();
+    const sourceSearch = page.getByRole("searchbox", {
+      name: /搜索来源名称|Search source names/i,
+    });
+    await sourceSearch.fill(fixture.officeSourceName);
     await expect(
-      page.getByRole("columnheader", { name: /标题与摘要|Title and summary/i }),
-    ).toBeVisible();
-
-    // Both fixture sources at once: the two selections must union rather than
-    // replace each other, so the total covers both sources' rows.
-    await sourceFilter.selectOption([fixture.sourceId, fixture.officeSourceId]);
-    await page.getByRole("button", { name: /筛选|Filter/i }).click();
-    await expect(page).toHaveURL(
-      new RegExp(
-        `source=${encodeURIComponent(fixture.sourceId)}&source=${encodeURIComponent(fixture.officeSourceId)}`,
-      ),
-    );
-    await expect(sourceFilter).toHaveValues([
-      fixture.sourceId,
-      fixture.officeSourceId,
-    ]);
+      sourceFilter.getByRole("checkbox", {
+        name: fixture.sourceName,
+        exact: true,
+      }),
+    ).toBeHidden();
+    await sourceFilter
+      .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
+      .check();
+    // Closing advanced filters must not remove either selected source from GET submission.
+    await moreFilters.click();
+    await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.getAll("source"))
+      .toEqual([fixture.sourceId, fixture.officeSourceId]);
     const unionTotal = fixture.total + fixture.officeTotal;
-    // The visible summary and the table's sr-only caption both carry the
-    // count; asserting the first is enough to pin the union total.
     await expect(
       page
         .getByText(new RegExp(`共 ${unionTotal} 条|${unionTotal} results`))
@@ -79,10 +83,10 @@ test.describe("/news 新闻与通知预览", () => {
 
     // Narrowing the same union to notices leaves only the office source's
     // rows, which is the AND of the type and source facets.
-    await page
-      .getByRole("combobox", { name: /类型|Type/i })
-      .selectOption("notice");
-    await page.getByRole("button", { name: /筛选|Filter/i }).click();
+    await page.getByRole("radio", { name: /^(通知|Notice)$/i }).click();
+    await expect(
+      page.getByRole("radio", { name: /^(通知|Notice)$/i }),
+    ).toBeChecked();
     await expect(
       page.getByRole("link", { name: fixture.title, exact: true }),
     ).toHaveCount(0);
@@ -99,6 +103,7 @@ test.describe("/news 新闻与通知预览", () => {
       screenshotLabel: "news-organization-level-filter",
     });
 
+    await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
     const levelFilter = page.getByRole("group", {
       name: /按组织层级筛选|Filter by organization level/i,
     });
@@ -123,7 +128,7 @@ test.describe("/news 新闻与通知预览", () => {
     await levelFilter
       .getByRole("checkbox", { name: /学校机关|^University$/i })
       .check();
-    await page.getByRole("button", { name: /筛选|Filter/i }).click();
+    await page.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
     await expect(
       page.getByRole("link", { name: fixture.title, exact: true }),
     ).toBeVisible();
@@ -137,7 +142,9 @@ test.describe("/news 新闻与通知预览", () => {
     });
 
     await expect(
-      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+      page
+        .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+        .getByRole("listitem"),
     ).toHaveCount(20);
     const nextPage = page.getByRole("link", { name: /下一页|Next page/i });
     await expect(nextPage).toHaveAttribute(
@@ -148,7 +155,9 @@ test.describe("/news 新闻与通知预览", () => {
 
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
     await expect(
-      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+      page
+        .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+        .getByRole("listitem"),
     ).toHaveCount(fixture.total - 20);
     const previousPage = page.getByRole("link", {
       name: /上一页|Previous page/i,
@@ -162,6 +171,66 @@ test.describe("/news 新闻与通知预览", () => {
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}$`));
   });
 
+  test("从详情返回保留筛选和分页，可逐项移除筛选", async ({
+    page,
+  }, testInfo) => {
+    const listHref = `/news?type=news&source=${encodeURIComponent(fixture.sourceId)}&page=2`;
+    await gotoAndWaitForReady(page, listHref, { testInfo });
+    const article = page
+      .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+      .getByRole("heading")
+      .first()
+      .getByRole("link");
+    await article.click();
+    const back = page.getByRole("link", {
+      name: /返回新闻与通知|Back to news and notices/i,
+    });
+    await expect(back).toHaveAttribute("href", listHref);
+    await back.click();
+    await expect(page).toHaveURL(new URL(listHref, page.url()).href);
+    await page
+      .getByRole("link", {
+        name: new RegExp(
+          `移除筛选：${fixture.sourceName}|Remove filter: ${fixture.sourceName}`,
+        ),
+      })
+      .click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("source"))
+      .toBeNull();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("page"))
+      .toBeNull();
+    await expect(
+      page.getByRole("radio", { name: /^(新闻|News)$/i }),
+    ).toBeChecked();
+    // Clicking the active type must not leave the group with no current selection.
+    await page.getByRole("radio", { name: /^(新闻|News)$/i }).click();
+    await expect(
+      page.getByRole("radio", { name: /^(新闻|News)$/i }),
+    ).toBeChecked();
+  });
+
+  test("移动端默认首屏能看到文章且长摘要不撑宽页面", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(
+      page,
+      `/news?source=${encodeURIComponent(fixture.sourceId)}`,
+      { testInfo },
+    );
+    const firstArticle = page.getByRole("link", {
+      name: fixture.title,
+      exact: true,
+    });
+    await expect(firstArticle).toBeInViewport();
+    await expect(
+      page.getByRole("button", { name: /更多筛选|More filters/i }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expectNoPageHorizontalOverflow(page);
+  });
+
   test("越界页重定向到保留筛选条件的最后一页", async ({ page }, testInfo) => {
     const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
     await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`, {
@@ -171,7 +240,9 @@ test.describe("/news 新闻与通知预览", () => {
 
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
     await expect(
-      page.locator("[data-slot='table-body'] [data-slot='table-row']"),
+      page
+        .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+        .getByRole("listitem"),
     ).toHaveCount(fixture.total - 20);
     await expect(
       page.getByRole("link", { name: /上一页|Previous page/i }),
@@ -281,7 +352,23 @@ test.describe("/news 新闻与通知预览", () => {
     });
     expect(metrics.indent).toBeCloseTo(metrics.font * 2);
     expect(metrics.gap).toBeCloseTo(metrics.font);
-    await expectNoPageHorizontalOverflow(page);
+    const summary = page.getByRole("button", {
+      name: /文章摘要|Article summary/i,
+    });
+    await expect(summary).toHaveAttribute("aria-expanded", "false");
+    for (const width of [320, 390, 768]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await expectNoPageHorizontalOverflow(page);
+      await expect(
+        page.getByRole("link", { name: /查看来源原文|View source page/i }),
+      ).toBeInViewport();
+      await expect(paragraphs.first()).toBeInViewport();
+      await summary.click();
+      await expect(summary).toHaveAttribute("aria-expanded", "true");
+      await expectNoPageHorizontalOverflow(page);
+      await summary.click();
+    }
     await captureStepScreenshot(page, testInfo, "news-detail-mobile");
   });
 

@@ -1,10 +1,14 @@
 <script lang="ts">
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button, buttonVariants } from "$lib/components/ui/button";
+import * as Collapsible from "$lib/components/ui/collapsible";
 import * as Item from "$lib/components/ui/item/index.js";
 import {
   type YoungCalendarView,
+  youngCalendarAgenda,
   youngCalendarDays,
+  youngCalendarHeading,
   youngCalendarNextDate,
   youngCalendarPreviousDate,
   youngCalendarRange,
@@ -26,6 +30,7 @@ export let conflictLabel = "";
 export let unknownDatesHref = "/catalog/young-events?dateUnknown=true";
 export let labels: {
   agenda: string;
+  earlierDates: string;
   empty: string;
   month: string;
   next: string;
@@ -85,11 +90,8 @@ $: weeks = youngCalendarWeeks(
     })),
   })),
 }));
-$: dayLabel = new Intl.DateTimeFormat(locale, {
-  timeZone: "Asia/Shanghai",
-  dateStyle: "full",
-});
-$: heading = `${dayLabel.format(new Date(`${anchorDate}T00:00:00+08:00`))}`;
+$: heading = youngCalendarHeading(view, anchorDate, locale);
+$: agenda = youngCalendarAgenda(days, anchorDate);
 
 function formatTime(event: YoungEventSummary) {
   const start =
@@ -115,41 +117,8 @@ function eventMeta(event: YoungEventSummary) {
 }
 </script>
 
-<section class="grid gap-4" data-testid="young-calendar">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <a
-        aria-label={labels.previous}
-        class="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
-        href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}
-      >
-        ‹
-      </a>
-      <a
-        class="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
-        href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}
-      >
-        {labels.today}
-      </a>
-      <a
-        aria-label={labels.next}
-        class="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
-        href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}
-      >
-        ›
-      </a>
-    </div>
-    <h2 class="font-medium text-sm sm:text-base">{heading}</h2>
-    <nav aria-label={labels.agenda} class="flex items-center gap-1 rounded-md border p-1">
-      <a class="rounded px-2 py-1 text-xs hover:bg-muted" href={hrefFor("day", anchorDate)}>{labels.day}</a>
-      <a class="rounded px-2 py-1 text-xs hover:bg-muted" href={hrefFor("week", anchorDate)}>{labels.week}</a>
-      <a class="rounded px-2 py-1 text-xs hover:bg-muted" href={hrefFor("month", anchorDate)}>{labels.month}</a>
-    </nav>
-  </div>
-
-  <div class="md:hidden" data-testid="young-calendar-agenda">
-    <div aria-label={labels.agenda} class="grid gap-5" role="region">
-      {#each days as day}
+{#snippet agendaRows(agendaDays: typeof days)}
+      {#each agendaDays as day}
         <section aria-labelledby={`young-agenda-${day.key}`} class="grid gap-2">
           <h3 id={`young-agenda-${day.key}`} class="text-sm font-medium">
             {new Intl.DateTimeFormat(locale, {
@@ -183,6 +152,32 @@ function eventMeta(event: YoungEventSummary) {
           {/if}
         </section>
       {/each}
+{/snippet}
+
+<section class="grid gap-4" data-testid="young-calendar">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <Button aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
+      <Button variant="outline" href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}>{labels.today}</Button>
+      <Button aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
+    </div>
+    <h2 class="font-medium text-sm sm:text-base">{heading}</h2>
+    <nav aria-label={labels.agenda} class="flex items-center gap-1">
+      {#each ["day", "week", "month"] as targetView}
+        <Button variant={view === targetView ? "secondary" : "ghost"} aria-current={view === targetView ? "page" : undefined} href={hrefFor(targetView as YoungCalendarView, anchorDate)}>{labels[targetView as YoungCalendarView]}</Button>
+      {/each}
+    </nav>
+  </div>
+
+  <div class="md:hidden" data-testid="young-calendar-agenda">
+    <div aria-label={labels.agenda} class="grid gap-5" role="region">
+      {@render agendaRows(agenda.current)}
+      {#if agenda.earlier.length}
+        <Collapsible.Root class="grid gap-3">
+          <Collapsible.Trigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{labels.earlierDates}</Collapsible.Trigger>
+          <Collapsible.Content class="grid gap-5">{@render agendaRows(agenda.earlier)}</Collapsible.Content>
+        </Collapsible.Root>
+      {/if}
     </div>
   </div>
 

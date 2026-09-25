@@ -1,4 +1,5 @@
 import { countIncompleteTodos } from "@/features/todos/server/todo-service";
+import { countUnreadYoungNotifications } from "@/features/young/server/young-notification-service";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -26,6 +27,7 @@ export {
 } from "./workspace-user-context";
 
 export type WorkspaceNavStats = {
+  unreadActivityNotificationsCount: number;
   user: WorkspaceUserSummary;
   calendarItemsCount: number;
   pendingHomeworksCount: number;
@@ -54,7 +56,13 @@ export async function getWorkspaceNavStats(
     }
     const pendingTodosCount = await (providedPendingTodosCount ??
       countIncompleteTodos(user.id));
-    return emptyWorkspaceNavStats({ pendingTodosCount, user });
+    const unreadActivityNotificationsCount =
+      await countUnreadYoungNotifications(user.id, referenceNow.toDate());
+    return emptyWorkspaceNavStats({
+      pendingTodosCount,
+      unreadActivityNotificationsCount,
+      user,
+    });
   }
 
   const navigationAggregatePromise = observeWorkspaceStage({
@@ -87,6 +95,8 @@ export async function getWorkspaceNavStats(
 
   return {
     user: workspaceNavUserSummary(user),
+    unreadActivityNotificationsCount:
+      navigationAggregate.unreadActivityNotificationsCount,
     calendarItemsCount: navigationAggregate.calendarItemsCount,
     pendingHomeworksCount: navigationAggregate.pendingHomeworksCount,
     highlightPendingHomeworks: navigationAggregate.highlightPendingHomeworks,

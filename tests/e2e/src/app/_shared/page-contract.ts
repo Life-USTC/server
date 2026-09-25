@@ -562,17 +562,22 @@ export async function assertPageContract(
         page.getByRole("searchbox", { name: /搜索|Search/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("listbox", { name: /^(来源|Sources)$/i }),
+        page.getByRole("radio", { name: /^(全部|All)$/i }),
+      ).toBeVisible();
+      const advancedFilters = page.getByRole("button", {
+        name: /更多筛选|More filters/i,
+      });
+      await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
+      await maybeCapture(page, testInfo, "news");
+      await advancedFilters.click();
+      await expect(
+        page.getByRole("group", { name: /^(来源|Sources)$/i }),
       ).toBeVisible();
       await expect(
         page.getByRole("group", {
           name: /按组织层级筛选|Filter by organization level/i,
         }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("combobox", { name: /类型|Type/i }),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "news");
       return;
     }
 
@@ -596,14 +601,14 @@ export async function assertPageContract(
 
     case "/news/[id]": {
       await gotoContractPage(page, "/news", testInfo);
-      // Scoped to the results table: the page header also links to
-      // /news/sources, which would otherwise match first.
       const detailLink = page
-        .locator("[data-slot='table-body'] a[href^='/news/']")
-        .first();
+        .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+        .getByRole("heading")
+        .first()
+        .getByRole("link");
       await expect(detailLink).toBeVisible();
       await detailLink.click();
-      await expect(page).toHaveURL(/\/news\/[^/?]+$/);
+      await expect(page).toHaveURL(/\/news\/[^/?]+(?:\?.*)?$/);
       await expectMainContent(page);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await maybeCapture(page, testInfo, "news-detail");

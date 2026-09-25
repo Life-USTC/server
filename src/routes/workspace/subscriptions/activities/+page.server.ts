@@ -1,5 +1,8 @@
 import { redirect } from "@sveltejs/kit";
-import { listYoungNotifications } from "@/features/young/server/young-notification-service";
+import {
+  countUnreadYoungNotifications,
+  listYoungNotifications,
+} from "@/features/young/server/young-notification-service";
 import {
   listYoungEventSubscriptions,
   listYoungOrganizerSubscriptions,
@@ -18,19 +21,46 @@ export const load: PageServerLoad = async ({ locals, url, setHeaders }) => {
     page: parsePositivePage(url.searchParams.get("page")),
     pageSize: 20,
   };
+  const notifications =
+    view === "notifications"
+      ? await listYoungNotifications(userId, {
+          ...input,
+          unread: url.searchParams.get("unread") === "true",
+        })
+      : null;
+  const events =
+    view !== "organizers" && view !== "notifications"
+      ? await listYoungEventSubscriptions(userId, input)
+      : null;
+  const organizers =
+    view === "organizers"
+      ? await listYoungOrganizerSubscriptions(userId, input)
+      : null;
+  const result = notifications ?? events ?? organizers;
+  const lastPage = Math.max(1, result?.pagination.totalPages ?? 1);
+  if (input.page > lastPage) {
+    const query = new URLSearchParams(url.searchParams);
+    query.set("page", String(lastPage));
+    redirect(303, `${url.pathname}?${query}`);
+  }
   return toLoadData({
+    userId,
     copy: getWorkspacePageCopy(locals.locale),
-    events:
-      view !== "organizers" && view !== "notifications"
-        ? await listYoungEventSubscriptions(userId, input)
-        : null,
-    organizers:
-      view === "organizers"
-        ? await listYoungOrganizerSubscriptions(userId, input)
-        : null,
-    notifications:
-      view === "notifications"
-        ? await listYoungNotifications(userId, input)
-        : null,
+    unread: url.searchParams.get("unread") === "true",
+    events,
+    organizers,
+    notifications: notifications
+      ? {
+          ...notifications,
+          data: notifications.data.map((row) => ({
+            ...row,
+            createdAt: row.createdAt.toISOString(),
+            readAt: row.readAt?.toISOString() ?? null,
+            expiresAt: row.expiresAt?.toISOString() ?? null,
+          })),
+        }
+      : null,
+    unreadActivityNotificationsCount:
+      await countUnreadYoungNotifications(userId),
   });
 };

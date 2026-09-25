@@ -352,6 +352,64 @@ describe("young event service", () => {
     expect(youngEventMock.groupBy).toHaveBeenCalledTimes(4);
   });
 
+  it("orders Web organizers across the active/inactive page boundary without skipping entries", async () => {
+    youngOrganizerMock.count.mockResolvedValueOnce(8).mockResolvedValueOnce(3);
+    youngOrganizerMock.findMany
+      .mockResolvedValueOnce([
+        { id: "active-last", name: "Z", normalizedName: "z" },
+      ])
+      .mockResolvedValueOnce([
+        { id: "inactive-first", name: "A", normalizedName: "a" },
+      ]);
+    const result = await listYoungOrganizers({
+      activeFirst: true,
+      page: 2,
+      pageSize: 2,
+      search: "club",
+    });
+    expect(result.data.map((item) => item.id)).toEqual([
+      "active-last",
+      "inactive-first",
+    ]);
+    expect(youngOrganizerMock.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: {
+          AND: [
+            { name: { contains: "club", mode: "insensitive" } },
+            { events: { some: { isActive: true } } },
+          ],
+        },
+        skip: 2,
+        take: 1,
+      }),
+    );
+    expect(youngOrganizerMock.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: {
+          AND: [
+            { name: { contains: "club", mode: "insensitive" } },
+            { events: { none: { isActive: true } } },
+          ],
+        },
+        skip: 0,
+        take: 1,
+      }),
+    );
+    expect(result.pagination.total).toBe(8);
+  });
+
+  it("offsets later Web organizer pages inside the inactive group", async () => {
+    youngOrganizerMock.count.mockResolvedValueOnce(8).mockResolvedValueOnce(3);
+    youngOrganizerMock.findMany.mockResolvedValue([]);
+    await listYoungOrganizers({ activeFirst: true, page: 3, pageSize: 2 });
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledTimes(1);
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 1, take: 2 }),
+    );
+  });
+
   it("gets one organizer by its stable local ID", async () => {
     youngOrganizerMock.findUnique.mockResolvedValue({
       id: "organizer-1",

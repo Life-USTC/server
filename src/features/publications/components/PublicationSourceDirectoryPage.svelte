@@ -3,7 +3,6 @@ import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -59,7 +58,7 @@ const levelIndex = $derived(data.directory.groups);
   <title>{copy.sourcesPageTitle} - Life@USTC</title>
 </svelte:head>
 
-<section class="grid gap-5">
+<section class="grid min-w-0 gap-5">
   <PageHeader
     title={copy.sourcesPageTitle}
     description={copy.sourcesPageDescription}
@@ -153,7 +152,6 @@ const levelIndex = $derived(data.directory.groups);
                 <Table.Header class="bg-muted/30">
                   <Table.Row>
                     <Table.Head>{copy.source}</Table.Head>
-                    <Table.Head class="w-64">{copy.sourceHosts}</Table.Head>
                     <Table.Head class="w-28 text-right">
                       {copy.sourceArticleCount}
                     </Table.Head>
@@ -165,23 +163,14 @@ const levelIndex = $derived(data.directory.groups);
                     <Table.Row class="has-[a:hover]:bg-muted/50">
                       <Table.Cell class="align-top">
                         <a
-                          class="font-medium text-foreground hover:underline"
+                          class="font-medium text-foreground hover:underline [overflow-wrap:anywhere]"
                           href={sourceHref(source.id)}
                         >
                           {source.name}
                         </a>
-                        <p class="mt-0.5 font-mono text-xs text-muted-foreground">
-                          {source.id}
+                        <p class="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                          {source.hosts.join(" · ")}
                         </p>
-                      </Table.Cell>
-                      <Table.Cell class="align-top">
-                        <div class="flex flex-wrap gap-1">
-                          {#each source.hosts as host (host)}
-                            <Badge variant="outline" class="font-mono text-xs">
-                              {host}
-                            </Badge>
-                          {/each}
-                        </div>
                       </Table.Cell>
                       <Table.Cell
                         class="align-top text-right tabular-nums text-muted-foreground"

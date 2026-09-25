@@ -132,6 +132,21 @@ export async function refreshYoungNotifications(
   if (changed) scheduleInvalidateUserCalendarExportCache(userId);
 }
 
+export async function countUnreadYoungNotifications(
+  userId: string,
+  now = new Date(),
+) {
+  return withUserDbContext(userId, (tx) =>
+    tx.youngNotification.count({
+      where: {
+        userId,
+        readAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    }),
+  );
+}
+
 export async function listYoungNotifications(
   userId: string,
   input: PaginationInput & { unread?: boolean } = {},
