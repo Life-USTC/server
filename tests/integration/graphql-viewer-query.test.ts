@@ -606,6 +606,10 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
                     items { id }
                     pageInfo { page pageSize total totalPages }
                   }
+                  participations: teacherParticipations {
+                    items { teacher { id } periods exerciseClass }
+                    pageInfo { page pageSize total totalPages }
+                  }
                   maxTeachers: teachers(page: { pageSize: 100 }) {
                     items { id }
                     pageInfo { page pageSize total totalPages }
@@ -637,6 +641,19 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
         items: Array<{
           defaultTeachers: {
             items: Array<{ id: number }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
+          participations: {
+            items: Array<{
+              teacher: { id: number };
+              periods: number | null;
+              exerciseClass: boolean | null;
+            }>;
             pageInfo: {
               page: number;
               pageSize: number;
@@ -707,16 +724,27 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     };
     expectFirstPage(schedule?.defaultTeachers, 20);
     expectFirstPage(schedule?.maxTeachers, 100);
+    expectFirstPage(schedule?.participations, 20);
+    expect(
+      schedule?.participations.items.map(({ teacher }) => teacher.id),
+    ).toEqual(schedule?.defaultTeachers.items.map(({ id }) => id));
+    expect(
+      schedule?.participations.items.every(
+        ({ periods, exerciseClass }) =>
+          periods === null && exerciseClass === null,
+      ),
+    ).toBe(true);
     expectFirstPage(exam?.defaultRooms, 20);
     expectFirstPage(exam?.maxRooms, 100);
 
     for (const nestedField of [
       "teachers(page: { pageSize: 101 })",
+      "teacherParticipations(page: { pageSize: 101 })",
       "examRooms(page: { pageSize: 101 })",
     ]) {
-      const parentField = nestedField.startsWith("teachers")
-        ? "schedules"
-        : "exams";
+      const parentField = nestedField.startsWith("examRooms")
+        ? "exams"
+        : "schedules";
       const rejected = await execute(
         {
           query: `{

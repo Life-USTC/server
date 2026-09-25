@@ -75,8 +75,7 @@ type HomeworkParent = {
 };
 
 type ScheduleParent = {
-  teachers: readonly unknown[];
-  teacherParticipations: readonly unknown[];
+  teacherParticipations: readonly { teacher: unknown }[];
 };
 
 type ExamParent = {
@@ -388,6 +387,7 @@ export const graphqlScopeResolvers = {
   TodoPage: graphqlPageResolvers,
   HomeworkPage: graphqlPageResolvers,
   SchedulePage: graphqlPageResolvers,
+  ScheduleTeacherParticipationPage: graphqlPageResolvers,
   ExamPage: graphqlPageResolvers,
   ExamRoomPage: graphqlPageResolvers,
   Homework: {
@@ -408,7 +408,10 @@ export const graphqlScopeResolvers = {
       schedule: ScheduleParent,
       args: { page?: GraphqlPageInput | null },
     ) {
-      return paginateGraphqlArray(schedule.teachers, args.page);
+      return paginateGraphqlArray(
+        schedule.teacherParticipations.map(({ teacher }) => teacher),
+        args.page,
+      );
     },
   },
   Exam: {
