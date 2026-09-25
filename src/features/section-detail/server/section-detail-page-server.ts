@@ -44,25 +44,9 @@ async function loadSectionDetailPageData({
 
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const userId = locals.authUser?.id ?? null;
-  // Stream layout always renders calendar/exams/teachers in-page, so expand
-  // those payloads on first load (including PublicSsr anonymous).
   const focusedHomeworkId = url.searchParams.get("homeworkId");
-  const shouldLoadHomework = Boolean(userId) || focusedHomeworkId != null;
-  const subscriptionStatePromise = userId
-    ? runCloudflareTraceSpan(
-        "catalog.detail.section.subscription",
-        {
-          "catalog.detail.kind": "section",
-          "user.authenticated": true,
-        },
-        async () =>
-          (
-            await import("@/features/subscriptions/server/subscriptions")
-          ).getUserSectionSubscriptionStatusForSection(userId, jwId),
-      )
-    : Promise.resolve(null);
-  const [pageData, viewer, subscriptionState] = await Promise.all([
+  const userId = null;
+  const [pageData, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "section" },
@@ -76,34 +60,21 @@ async function loadSectionDetailPageData({
       },
       () => getViewerContext({ includeAdmin: true, userId }),
     ),
-    subscriptionStatePromise,
   ]);
   if (!pageData) error(404, "Section not found");
   const { description, section } = pageData;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const homeworkData = shouldLoadHomework
-    ? await runCloudflareTraceSpan(
-        "catalog.detail.section.homework",
-        {
-          "catalog.detail.kind": "section",
-          "user.authenticated": Boolean(userId),
-        },
-        async () =>
-          (
-            await import("./section-detail-homework-data")
-          ).getSectionHomeworkData(section.id, userId, focusedHomeworkId),
-      )
-    : {
-        auditLogs: [],
-        homeworks: [],
-        viewer: {
-          isAdmin: false,
-          isAuthenticated: Boolean(userId),
-          isSuspended: false,
-          userId,
-        },
-      };
+  const homeworkData = {
+    auditLogs: [],
+    homeworks: [],
+    viewer: {
+      isAdmin: false,
+      isAuthenticated: false,
+      isSuspended: false,
+      userId: null,
+    },
+  };
   const descriptionData = { description, history: [], viewer };
   const socialMetadata = buildSocialMetadata({
     card: {
@@ -166,7 +137,7 @@ async function loadSectionDetailPageData({
     ),
     viewer: {
       signedIn: Boolean(userId),
-      isSubscribed: subscriptionState?.isSubscribed ?? false,
+      isSubscribed: false,
     },
   };
 }

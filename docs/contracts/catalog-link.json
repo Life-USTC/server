@@ -7,6 +7,7 @@
     "agent": "Can list/search catalog links and manage the authenticated user's link-pin state through MCP; visit redirects remain browser/REST navigation."
   },
   "rules": {
+    "public-web-personal-overlay": "Public links HTML is identical for anonymous and signed-in viewers. A session-only private no-store Web projection loads click counts and pins after hydration; pin controls are enabled only after the viewer projection succeeds. Existing public REST, GraphQL and MCP capabilities are unchanged.",
     "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
     "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",

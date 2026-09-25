@@ -5,6 +5,7 @@ import LinkIcon from "@lucide/svelte/icons/link-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
@@ -24,7 +25,11 @@ export let subscriptionAction: (
   action: SubscriptionActionKey,
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
-export let viewer: { isSubscribed?: boolean };
+export let viewer: {
+  isSubscribed?: boolean;
+  loading?: boolean;
+  failed?: boolean;
+};
 </script>
 
 <div
@@ -43,7 +48,9 @@ export let viewer: { isSubscribed?: boolean };
     <CalendarIcon data-icon="inline-start" />
     {sectionCopy.addToCalendar}
   </Button>
-  {#if viewer.isSubscribed}
+  {#if viewer.loading}
+    <Skeleton class="h-9 w-28" />
+  {:else if !viewer.failed && viewer.isSubscribed}
     <form
       class={stretched ? "w-full" : undefined}
       method="POST"
@@ -62,7 +69,7 @@ export let viewer: { isSubscribed?: boolean };
           : sectionCopy.unsubscribeLabel}
       </Button>
     </form>
-  {:else if !retired}
+  {:else if !viewer.failed && !retired}
     <form class={stretched ? "w-full" : undefined} method="GET">
       <input name="subscribe" type="hidden" value="1" />
       <Button

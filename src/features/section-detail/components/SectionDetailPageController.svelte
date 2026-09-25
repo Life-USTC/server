@@ -1,6 +1,7 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { onMount } from "svelte";
+import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
 import { createSectionDetailCalendarDisplayActions } from "@/features/section-detail/lib/section-detail-calendar-display-actions";
@@ -44,7 +45,6 @@ const STREAM_PANEL_TABS = [
   "introduction",
   "calendar",
   "exams",
-  "homework",
   "teachers",
 ] as const satisfies readonly SectionDetailTab[];
 
@@ -79,7 +79,47 @@ let {
   _subscriptionPendingAction,
 } = createSectionDetailControllerDefaultState(data);
 
-let streamLoading = false;
+let streamLoading = true;
+let personalLoading = true;
+let personalFailed = false;
+let personalAbortController: AbortController | null = null;
+let personalViewer: PageData["viewer"] = {
+  signedIn: false,
+  isSubscribed: false,
+};
+$: overlayData = {
+  ...data,
+  viewer: {
+    ...personalViewer,
+    loading: personalLoading,
+    failed: personalFailed,
+  },
+};
+async function loadPersonalData() {
+  personalAbortController?.abort();
+  const controller = new AbortController();
+  personalAbortController = controller;
+  personalLoading = true;
+  personalFailed = false;
+  try {
+    const result = await fetchSectionPersonalData({
+      jwId: data.section.jwId,
+      focusedHomeworkId: data.focusedHomeworkId ?? null,
+      signal: controller.signal,
+    });
+    if (controller.signal.aborted) return;
+    personalViewer = result.viewer;
+    _homeworkViewer = result.homeworkData.viewer;
+    _homeworks = result.homeworkData.homeworks;
+    _homeworkAuditLogs = result.homeworkData.auditLogs;
+    syncFocusedHomework(_homeworks);
+    scrollToFocusedHomework();
+  } catch {
+    if (!controller.signal.aborted) personalFailed = true;
+  } finally {
+    if (!controller.signal.aborted) personalLoading = false;
+  }
+}
 let streamError: string | null = null;
 const tabPanelStore = createSectionDetailTabPanelStore(
   data.homeworkData.viewer.userId ?? null,
@@ -163,13 +203,6 @@ async function loadHomeworkAuditLogs() {
   }
 }
 
-function applyHomeworkPanelState() {
-  _homeworkViewer = tabPanelState.homeworkViewer;
-  _homeworks = tabPanelState.homeworks;
-  _homeworkAuditLogs = tabPanelState.homeworkAuditLogs;
-  syncFocusedHomework(tabPanelState.homeworks);
-}
-
 async function ensureStreamPanelsLoaded() {
   const panelInput = {
     errorMessage: _sectionCopy.operationFailed,
@@ -183,9 +216,6 @@ async function ensureStreamPanelsLoaded() {
     for (const tab of STREAM_PANEL_TABS) {
       if (tabPanelStore.isLoaded(tab)) continue;
       tabPanelState = await tabPanelStore.ensureLoaded(tab, panelInput);
-      if (tab === "homework") {
-        applyHomeworkPanelState();
-      }
     }
     syncFocusedHomework(_homeworks);
   } catch {
@@ -196,6 +226,7 @@ async function ensureStreamPanelsLoaded() {
 }
 
 function retryStreamPanels() {
+  void loadPersonalData();
   void ensureStreamPanelsLoaded();
 }
 
@@ -316,6 +347,8 @@ const {
     _showSubscribeDialog = value;
   },
   onSuccess: (action) => {
+    void loadPersonalData();
+    _showSubscribeDialog = false;
     toast.success(
       action === "subscribe"
         ? _sectionCopy.subscribeSuccess
@@ -464,11 +497,15 @@ onMount(() => {
     },
     shouldLoadHomeworks: false,
   });
+  void loadPersonalData();
   void (async () => {
     await ensureStreamPanelsLoaded();
     scrollToFocusedHomework();
   })();
-  return cleanup;
+  return () => {
+    personalAbortController?.abort();
+    cleanup();
+  };
 });
 </script>
 
@@ -482,12 +519,12 @@ onMount(() => {
 
 <section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
-    canWriteHomework={_canWriteHomework}
+    canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
     commentTargets={_commentTargets}
     commonCopy={_commonCopy}
     courseName={_courseName}
     courseSecondaryName={_courseSecondaryName}
-    {data}
+    data={overlayData}
     descriptionData={panelDescriptionData}
     displaySection={displaySection}
     formError={form?.error}
@@ -507,13 +544,13 @@ onMount(() => {
     sectionTeachersLabel={_sectionTeachersLabel}
     setSelectedHomework={selectHomework}
     {retryStreamPanels}
-    {streamError}
-    {streamLoading}
+    streamError={personalFailed ? _sectionCopy.operationFailed : streamError}
+    streamLoading={streamLoading || personalLoading}
     subscriptionAction={_subscriptionAction}
     subscriptionPendingAction={_subscriptionPendingAction}
     teacherName={_teacherName}
     {unscheduledCalendarEvents}
-    viewer={data.viewer}
+    viewer={overlayData.viewer}
     yesNo={_yesNo}
   />
 </section>
@@ -533,7 +570,7 @@ onMount(() => {
   applyEditStartNow={_applyEditStartNow}
   auditLogsForHomework={_auditLogsForHomework}
   canManageSelectedHomework={_canManageSelectedHomework}
-  canWriteHomework={_canWriteHomework}
+  canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
   completionSaving={_completionSaving}
   cancelEditHomework={_cancelEditHomework}
   clipboardError={_clipboardError}
@@ -549,7 +586,7 @@ onMount(() => {
   bind:createHomeworkPublishedAt={_createHomeworkPublishedAt}
   bind:createHomeworkSubmissionDueAt={_createHomeworkSubmissionDueAt}
   bind:createHomeworkSubmissionStartAt={_createHomeworkSubmissionStartAt}
-  {data}
+  data={overlayData}
   deleteHomework={_deleteHomework}
   deleteHomeworkTarget={_deleteHomeworkTarget}
   editHomeworkMessage={_editHomeworkMessage}
@@ -587,7 +624,7 @@ onMount(() => {
     _selectedHomework = homework;
   }}
   showCreateHomework={_showCreateHomework}
-  showSubscribeDialog={_showSubscribeDialog}
+  showSubscribeDialog={_showSubscribeDialog && !personalLoading && !personalFailed}
   {singleCalendarUrl}
   startEditHomework={_startEditHomework}
   subscriptionAction={_subscriptionAction}

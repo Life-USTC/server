@@ -120,6 +120,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
             {#if DescriptionCard}
               <svelte:component
                 this={DescriptionCard}
+                resolveViewer
                 targetType="teacher"
                 targetId={data.teacher.id}
                 initialData={data.descriptionData}

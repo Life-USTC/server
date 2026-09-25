@@ -890,6 +890,8 @@
       "colActions": "操作",
       "pin": "置顶",
       "unpin": "取消置顶",
+      "loadFailed": "个人链接状态加载失败，请重试。",
+      "retry": "重试",
       "pinFailedTitle": "置顶更新失败",
       "pinFailedDescription": "未能保存你的常用链接置顶状态，请重试。",
       "groups": {
@@ -1000,6 +1002,7 @@
     "hidePreferences": "收起偏好",
     "editPreferences": "编辑偏好",
     "empty": "当前暂无可用的校车数据。",
+    "preferencesLoadFailed": "偏好设置加载失败，请重试。",
     "loadFailed": "校车数据加载失败，请稍后重试。",
     "retry": "重新加载",
     "weekday": "工作日",

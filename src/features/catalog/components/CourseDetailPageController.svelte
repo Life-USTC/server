@@ -132,6 +132,7 @@ $: displayName =
             {#if DescriptionCard}
               <svelte:component
                 this={DescriptionCard}
+                resolveViewer
                 targetType="course"
                 targetId={data.course.id}
                 initialData={data.descriptionData}

@@ -6,4 +6,6 @@ export let data: PageData;
 export let form: ActionData;
 </script>
 
-<SectionDetailPageController {data} {form} />
+{#key `${data.section.id}:${data.focusedHomeworkId ?? ""}:${data.showSubscribeDialog}`}
+  <SectionDetailPageController {data} {form} />
+{/key}

@@ -102,7 +102,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       sectionCopy={sectionCopy}
       subscriptionAction={subscriptionAction}
       subscriptionPendingAction={subscriptionPendingAction}
-      viewer={data.viewer}
+      viewer={viewer}
     />
   </div>
 
@@ -150,6 +150,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             {#if DescriptionCard}
               <svelte:component
                 this={DescriptionCard}
+                resolveViewer
                 targetType="section"
                 targetId={data.section.id}
                 initialData={descriptionData}
@@ -215,7 +216,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               <Button type="button" onclick={openCreateHomeworkDialog}>
                 {homeworkCopy.showCreate}
               </Button>
-            {:else if !(viewer.isAuthenticated ?? viewer.signedIn === true)}
+            {:else if !viewer.loading && !viewer.failed && !(viewer.isAuthenticated ?? viewer.signedIn === true)}
               <Button
                 href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${data.section.jwId}`)}`}
                 variant="outline"
@@ -288,7 +289,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         stretched
         {subscriptionAction}
         {subscriptionPendingAction}
-        viewer={data.viewer}
+        viewer={viewer}
       />
     </div>
   </div>

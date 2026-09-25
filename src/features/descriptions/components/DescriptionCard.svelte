@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
 import {
   createDescriptionCardActions,
@@ -8,11 +9,15 @@ import {
   type DescriptionTargetType,
   type DescriptionViewer,
 } from "@/features/descriptions/lib/description-card-actions";
+import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
 import type { AppLocale } from "@/i18n/config";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { invalidateAll } from "$app/navigation";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { Skeleton } from "$lib/components/ui/skeleton";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -23,6 +28,7 @@ type PanelTab = "description" | "history";
 export let targetType: DescriptionTargetType;
 export let targetId: number | string;
 export let initialData: DescriptionPayload;
+export let resolveViewer = false;
 /** When set, renders a page-style h2 + primary action row above the body. */
 export let heading: string | null = null;
 export let showTitle = true;
@@ -39,6 +45,7 @@ export let copy: {
   historyTitle: string;
   lastEdited: string;
   loadFailed: string;
+  retry: string;
   loginToEdit: string;
   markdownGuide: string;
   previewEmpty: string;
@@ -61,6 +68,63 @@ export let copy: {
 let description = initialData.description;
 let history = initialData.history;
 let viewer = initialData.viewer;
+let viewerLoading = resolveViewer;
+let viewerFailed = false;
+let destroyed = false;
+const shellViewer = getShellViewer();
+$: shellViewerId = $shellViewer.viewer?.id ?? null;
+$: shellViewerStatus = $shellViewer.status;
+let mounted = false;
+let loadedViewerId: string | null | undefined;
+let viewerGeneration = 0;
+$: if (
+  resolveViewer &&
+  mounted &&
+  shellViewerStatus === "ready" &&
+  loadedViewerId !== shellViewerId
+) {
+  loadedViewerId = shellViewerId;
+  if (shellViewerId) {
+    void loadViewer();
+  } else {
+    viewerGeneration += 1;
+    viewer = initialData.viewer;
+    viewerLoading = false;
+    viewerFailed = false;
+  }
+}
+$: if (resolveViewer && mounted && shellViewerStatus === "error") {
+  viewerGeneration += 1;
+  viewerLoading = false;
+  viewerFailed = true;
+}
+async function loadViewer() {
+  const generation = ++viewerGeneration;
+  viewerLoading = true;
+  viewerFailed = false;
+  try {
+    const result = await fetchDescriptionPayload({ targetId, targetType });
+    if (!result.ok || !result.payload) throw new Error(copy.loadFailed);
+    if (destroyed || generation !== viewerGeneration) return;
+    viewer = result.payload.viewer;
+    history = result.payload.history;
+    description = result.payload.description;
+  } catch {
+    if (!destroyed && generation === viewerGeneration) viewerFailed = true;
+  } finally {
+    if (!destroyed && generation === viewerGeneration) viewerLoading = false;
+  }
+}
+async function retryViewer() {
+  if (shellViewerStatus === "error") await invalidateAll();
+  if (shellViewerStatus === "ready" && shellViewerId) void loadViewer();
+}
+onMount(() => {
+  mounted = true;
+  return () => {
+    destroyed = true;
+  };
+});
 let isEditing = false;
 let draft = "";
 let isSaving = false;
@@ -119,7 +183,9 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 {#if usePageHeading}
   <div class="mb-3 flex flex-wrap items-center gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
-    {#if viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
+    {#if viewerLoading}
+      <Skeleton class="h-9 w-24" />
+    {:else if !viewerFailed && viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
       <Button
         data-testid="description-edit"
         type="button"
@@ -128,7 +194,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
       >
         {copy.edit}
       </Button>
-    {:else if !viewer.isAuthenticated}
+    {:else if !viewerFailed && !viewer.isAuthenticated}
       <Button
         data-testid="description-edit-login"
         href="/account/sign-in"
@@ -141,11 +207,17 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 {/if}
 
 <div class="grid w-full gap-4">
+  {#if viewerFailed}
+    <Alert.Root variant="destructive">
+      <Alert.Description>{copy.loadFailed}</Alert.Description>
+      <Button variant="outline" onclick={() => void retryViewer()}>{copy.retry}</Button>
+    </Alert.Root>
+  {/if}
   <DescriptionCardHeader
     {copy}
     {description}
     showTitle={showInlineTitle}
-    showAction={showInlineAction}
+    showAction={showInlineAction && !viewerLoading && !viewerFailed}
     editing={isEditing}
     editorName={editorName}
     formatDate={formatDate}

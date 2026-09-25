@@ -7,6 +7,7 @@
     "agent": "Can read section information and manage personal section-related state through OAuth-authorized REST / MCP endpoints."
   },
   "rules": {
+    "public-web-personal-overlay": "Section detail HTML and page-data payloads contain public facts and description content only. After hydration a session-only private no-store Web projection resolves subscription status, homework completion and viewer permissions. The homeworkId and subscribe=1 deep links wait for that projection; unresolved or failed personal state cannot expose writable subscription controls. This Web assembly route adds no REST, GraphQL or MCP capability.",
     "source-planning-metadata": "Required teaching weeks and catalog admin-class localized names are preserved. Catalog names without IDs remain catalogAdminClasses metadata, separate from authoritative AdminClass relations; no identities are invented or matched by name.",
     "semester-offering": "A section is a specific teaching class for a course in a given semester.",
     "source-lifecycle": "Before any database write, static sync rejects incomplete snapshots and generated_at values more than 15 minutes in the future. It also rejects snapshots older than the last completed import and two different files claiming the same generated_at. Once validation passes, Sections absent from the current snapshot are marked inactive automatically and Sections that reappear are made active again. The import and its generated_at/SHA-256 are committed together.",

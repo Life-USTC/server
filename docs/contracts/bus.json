@@ -7,6 +7,7 @@
     "agent": "Can read bus timetable capabilities and manage own bus preferences."
   },
   "rules": {
+    "public-web-personal-overlay": "The Web timetable renders public timetable data without user preferences, then fetches the private bus-preferences endpoint after hydration. Preference writes are disabled until this request resolves; authentication and read failures do not silently overwrite stored preferences. Request-time timetable and map SSR remain dynamic.",
     "public-no-signin": "Bus is public campus life information; sign-in should not be a prerequisite.",
     "weekday-by-shanghai-time": "The workspace bus page determines weekday, Saturday, or Sunday by Shanghai time by default and allows manual switching.",
     "shanghai-time-interpretation": "When calculating 'how long until departure', whether a trip has departed, and route ordering, the workspace client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.",

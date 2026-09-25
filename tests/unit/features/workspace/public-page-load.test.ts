@@ -64,7 +64,7 @@ describe("public page loaders", () => {
   });
 
   it("loads only public links for the public links page", async () => {
-    getPublicCatalogLinksDataMock.mockResolvedValue({
+    getPublicCatalogLinksDataMock.mockReturnValue({
       catalogLinks: [{ slug: "jw" }],
     });
 
@@ -73,5 +73,28 @@ describe("public page loaders", () => {
     expect(result.links).toEqual([{ slug: "jw" }]);
     expect(getPublicCatalogLinksDataMock).toHaveBeenCalledWith("en-us");
     expect(getBusTabDataMock).not.toHaveBeenCalled();
+  });
+  it("does not personalize public bus or links SSR when a session is present", async () => {
+    getBusTabDataMock.mockResolvedValue({
+      data: { routes: [], preferences: null },
+    });
+    getPublicCatalogLinksDataMock.mockReturnValue({
+      catalogLinks: [{ slug: "jw", isPinned: false, clickCount: 0 }],
+    });
+    const signedEvent = {
+      ...event,
+      locals: { ...event.locals, authUser: { id: "private-user" } },
+    };
+    const [anonymousBus, signedBus, anonymousLinks, signedLinks] =
+      await Promise.all([
+        loadPublicBusPage(event),
+        loadPublicBusPage(signedEvent),
+        loadPublicLinksPage(event),
+        loadPublicLinksPage(signedEvent),
+      ]);
+    expect(signedBus).toEqual(anonymousBus);
+    expect(signedLinks).toEqual(anonymousLinks);
+    for (const [userId] of getBusTabDataMock.mock.calls)
+      expect(userId).toBeNull();
   });
 });
