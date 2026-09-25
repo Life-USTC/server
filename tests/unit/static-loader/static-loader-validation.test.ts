@@ -75,7 +75,7 @@ describe("static loader configuration", () => {
     ["461", 461],
   ])("parses positive integer setting %s", (value, expected) => {
     expect(
-      parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
+      parsePositiveIntegerSetting("catalog_lesson_min_semester_id", value, 401),
     ).toBe(expected);
   });
 
@@ -83,8 +83,12 @@ describe("static loader configuration", () => {
     "rejects invalid positive integer %s",
     (value) => {
       expect(() =>
-        parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
-      ).toThrow("STATIC_LOADER_MIN_SEMESTER");
+        parsePositiveIntegerSetting(
+          "catalog_lesson_min_semester_id",
+          value,
+          401,
+        ),
+      ).toThrow("catalog_lesson_min_semester_id");
     },
   );
 
@@ -141,90 +145,182 @@ describe("static loader configuration", () => {
 
 describe("snapshot completeness validation", () => {
   const metadata = {
+    catalog_lesson_min_semester_id: "401",
     catalog_exam_min_semester_id: "381",
     jw_schedule_chunk_size: "100",
   };
 
   it("accepts all expected JW chunks and a zero-lesson semester", () => {
-    const result = validateSnapshotCompleteness(
-      {
-        metadata,
-        semesterRows: semesterRows(381, 401, 421),
-        catalogLessonRows: [...lessonRows(401, 101), ...lessonRows(421, 0)],
-        fetchRows: [...completeFetches(401, 2), ...completeFetches(421, 0)],
-      },
-      401,
-    );
+    const result = validateSnapshotCompleteness({
+      metadata,
+      semesterRows: semesterRows(381, 401, 421),
+      catalogLessonRows: [...lessonRows(401, 101), ...lessonRows(421, 0)],
+      fetchRows: [...completeFetches(401, 2), ...completeFetches(421, 0)],
+    });
 
     expect(result.sectionJwIds).toHaveLength(101);
-    expect(result.sectionSemesterJwIds).toEqual([401]);
+    expect(result.sectionSemesterJwIds).toEqual([401, 421]);
+    expect(result.examSemesterJwIds).toEqual([401, 421]);
+  });
+
+  it("imports historical catalog coverage and keeps exam reconciliation within fetched semesters", () => {
+    const result = validateSnapshotCompleteness({
+      metadata: { ...metadata, catalog_lesson_min_semester_id: "201" },
+      semesterRows: semesterRows(181, 201, 202, 221, 401),
+      catalogLessonRows: [
+        ...lessonRows(201, 1),
+        ...lessonRows(221, 1),
+        ...lessonRows(401, 1),
+      ],
+      fetchRows: [
+        fetchRow("catalog_teach_lesson_list_for_teach", 201),
+        fetchRow("jw_ws_schedule_table_datum", 201, { chunkIndex: 0 }),
+        fetchRow("catalog_teach_lesson_list_for_teach", 202),
+        fetchRow("catalog_teach_lesson_list_for_teach", 221),
+        fetchRow("jw_ws_schedule_table_datum", 221, { chunkIndex: 0 }),
+        ...completeFetches(401, 1),
+      ],
+    });
+    expect(result.catalogMinSemester).toBe(201);
+    expect(result.sectionSemesterJwIds).toEqual([201, 202, 221, 401]);
+    expect(result.sectionJwIds).toHaveLength(3);
+    expect(result.examSemesterJwIds).toEqual([401]);
+  });
+
+  it("recognizes an explicitly fetched empty historical exam list", () => {
+    const result = validateSnapshotCompleteness({
+      metadata: { ...metadata, catalog_lesson_min_semester_id: "201" },
+      semesterRows: semesterRows(201),
+      catalogLessonRows: lessonRows(201, 1),
+      fetchRows: completeFetches(201, 1),
+    });
+    expect(result.examSemesterJwIds).toEqual([201]);
+  });
+
+  it("requires explicit catalog coverage instead of silently applying a default", () => {
+    expect(() =>
+      validateSnapshotCompleteness({
+        metadata: {},
+        semesterRows: [],
+        catalogLessonRows: [],
+        fetchRows: [],
+      }),
+    ).toThrow("catalog_lesson_min_semester_id is required");
+  });
+
+  it("keeps explicitly unavailable exams out of reconciliation while importing their courses", () => {
+    const result = validateSnapshotCompleteness({
+      metadata: {
+        ...metadata,
+        catalog_lesson_min_semester_id: "201",
+        catalog_exam_min_semester_id: "1",
+        catalog_exam_unavailable_semester_ids: "201",
+      },
+      semesterRows: semesterRows(201, 202),
+      catalogLessonRows: [...lessonRows(201, 1), ...lessonRows(202, 1)],
+      fetchRows: [
+        fetchRow("catalog_teach_lesson_list_for_teach", 201),
+        fetchRow("jw_ws_schedule_table_datum", 201, { chunkIndex: 0 }),
+        fetchRow("catalog_teach_exam_list", 201, { ok: false }),
+        ...completeFetches(202, 1),
+      ],
+    });
+    expect(result.sectionJwIds).toHaveLength(2);
+    expect(result.examSemesterJwIds).toEqual([202]);
+    expect(result.unavailableExamSemesterJwIds).toEqual([201]);
+  });
+
+  it.each(["missing", "success"])(
+    "rejects an unavailable declaration with %s failure evidence",
+    (kind) => {
+      const fetches = completeFetches(401, 1).filter(
+        (row) => row.source !== "catalog_teach_exam_list",
+      );
+      if (kind === "success")
+        fetches.push(fetchRow("catalog_teach_exam_list", 401));
+      expect(() =>
+        validateSnapshotCompleteness({
+          metadata: {
+            ...metadata,
+            catalog_exam_unavailable_semester_ids: "401",
+          },
+          semesterRows: semesterRows(401),
+          catalogLessonRows: lessonRows(401, 1),
+          fetchRows: fetches,
+        }),
+      ).toThrow("contradictory fetch records");
+    },
+  );
+
+  it("never treats an unannounced failed exam request as an empty list", () => {
+    expect(() =>
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: lessonRows(401, 1),
+        fetchRows: [
+          ...completeFetches(401, 1).filter(
+            (row) => row.source !== "catalog_teach_exam_list",
+          ),
+          fetchRow("catalog_teach_exam_list", 401, { ok: false }),
+        ],
+      }),
+    ).toThrow("failed");
   });
 
   it("rejects a failed JW chunk", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(401),
-          catalogLessonRows: lessonRows(401, 101),
-          fetchRows: [
-            ...completeFetches(401, 1),
-            fetchRow("jw_ws_schedule_table_datum", 401, {
-              chunkIndex: 1,
-              ok: false,
-            }),
-          ],
-        },
-        401,
-      ),
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: lessonRows(401, 101),
+        fetchRows: [
+          ...completeFetches(401, 1),
+          fetchRow("jw_ws_schedule_table_datum", 401, {
+            chunkIndex: 1,
+            ok: false,
+          }),
+        ],
+      }),
     ).toThrow("failed");
   });
 
   it("rejects a missing JW chunk", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(401),
-          catalogLessonRows: lessonRows(401, 201),
-          fetchRows: completeFetches(401, 2),
-        },
-        401,
-      ),
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: lessonRows(401, 201),
+        fetchRows: completeFetches(401, 2),
+      }),
     ).toThrow("expected JW chunks 0,1,2");
   });
 
   it("rejects duplicate or extra JW chunks", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(401),
-          catalogLessonRows: lessonRows(401, 1),
-          fetchRows: [
-            ...completeFetches(401, 1),
-            fetchRow("jw_ws_schedule_table_datum", 401, { chunkIndex: 1 }),
-          ],
-        },
-        401,
-      ),
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: lessonRows(401, 1),
+        fetchRows: [
+          ...completeFetches(401, 1),
+          fetchRow("jw_ws_schedule_table_datum", 401, { chunkIndex: 1 }),
+        ],
+      }),
     ).toThrow("expected JW chunks 0");
   });
 
   it("rejects expected-chunk metadata that contradicts catalog lessons", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata: {
-            ...metadata,
-            jw_schedule_expected_chunk_count_401: "2",
-          },
-          semesterRows: semesterRows(401),
-          catalogLessonRows: lessonRows(401, 1),
-          fetchRows: completeFetches(401, 1),
+      validateSnapshotCompleteness({
+        metadata: {
+          ...metadata,
+          jw_schedule_expected_chunk_count_401: "2",
         },
-        401,
-      ),
+        semesterRows: semesterRows(401),
+        catalogLessonRows: lessonRows(401, 1),
+        fetchRows: completeFetches(401, 1),
+      }),
     ).toThrow("expected chunk metadata");
   });
 
@@ -232,46 +328,37 @@ describe("snapshot completeness validation", () => {
     "rejects a missing successful %s fetch",
     (missingSource) => {
       expect(() =>
-        validateSnapshotCompleteness(
-          {
-            metadata,
-            semesterRows: semesterRows(401),
-            catalogLessonRows: lessonRows(401, 1),
-            fetchRows: completeFetches(401, 1).filter(
-              (row) => row.source !== missingSource,
-            ),
-          },
-          401,
-        ),
+        validateSnapshotCompleteness({
+          metadata,
+          semesterRows: semesterRows(401),
+          catalogLessonRows: lessonRows(401, 1),
+          fetchRows: completeFetches(401, 1).filter(
+            (row) => row.source !== missingSource,
+          ),
+        }),
       ).toThrow(missingSource);
     },
   );
 
-  it("ignores semesters below the configured import boundary", () => {
+  it("ignores semesters outside the snapshot catalog coverage", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(381, 401),
-          catalogLessonRows: lessonRows(401, 1),
-          fetchRows: completeFetches(401, 1),
-        },
-        401,
-      ),
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(381, 401),
+        catalogLessonRows: lessonRows(401, 1),
+        fetchRows: completeFetches(401, 1),
+      }),
     ).not.toThrow();
   });
 
   it("rejects an in-scope lesson without a usable Section jwId", () => {
     expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(401),
-          catalogLessonRows: [{ semester_id: 401 }],
-          fetchRows: completeFetches(401, 1),
-        },
-        401,
-      ),
+      validateSnapshotCompleteness({
+        metadata,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: [{ semester_id: 401 }],
+        fetchRows: completeFetches(401, 1),
+      }),
     ).toThrow("invalid Section jwId");
   });
 

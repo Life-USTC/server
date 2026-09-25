@@ -113,13 +113,17 @@ type SnapshotCompletenessInput = {
 };
 
 export type SnapshotCompleteness = {
+  catalogMinSemester: number;
   sectionJwIds: number[];
   sectionSemesterJwIds: number[];
+  examSemesterJwIds: number[];
+  unavailableExamSemesterJwIds: number[];
 };
 
 type SemesterFetchState = {
   catalogLessonFetches: number;
   catalogExamFetches: number;
+  catalogExamFailures: number;
   jwChunks: number[];
 };
 
@@ -147,8 +151,17 @@ function contextInteger(
 
 export function validateSnapshotCompleteness(
   input: SnapshotCompletenessInput,
-  minSemester: number,
 ): SnapshotCompleteness {
+  if (input.metadata.catalog_lesson_min_semester_id == null) {
+    throw new Error(
+      "snapshot metadata catalog_lesson_min_semester_id is required",
+    );
+  }
+  const minSemester = parsePositiveIntegerSetting(
+    "snapshot metadata catalog_lesson_min_semester_id",
+    input.metadata.catalog_lesson_min_semester_id,
+    1,
+  );
   const chunkSize = parsePositiveIntegerSetting(
     "snapshot metadata jw_schedule_chunk_size",
     input.metadata.jw_schedule_chunk_size,
@@ -168,6 +181,20 @@ export function validateSnapshotCompleteness(
           semesterId != null && semesterId >= minSemester,
       ),
   );
+  const unavailableExamSemesters = new Set<number>();
+  const unavailableExamIds =
+    input.metadata.catalog_exam_unavailable_semester_ids;
+  for (const value of unavailableExamIds ? unavailableExamIds.split(",") : []) {
+    const id = parsePositiveIntegerSetting(
+      "unavailable exam semester id",
+      value,
+      1,
+    );
+    if (!targetSemesters.has(id) || unavailableExamSemesters.has(id)) {
+      throw new Error(`Snapshot has invalid unavailable exam semester ${id}`);
+    }
+    unavailableExamSemesters.add(id);
+  }
   const lessonCounts = new Map<number, number>();
   const sectionJwIds = new Set<number>();
   const fetchState = new Map<number, SemesterFetchState>();
@@ -176,6 +203,7 @@ export function validateSnapshotCompleteness(
     fetchState.set(semesterId, {
       catalogLessonFetches: 0,
       catalogExamFetches: 0,
+      catalogExamFailures: 0,
       jwChunks: [],
     });
   }
@@ -204,14 +232,22 @@ export function validateSnapshotCompleteness(
     const context = fetchContext(row);
     const semesterId = contextInteger(source, context, "semester_id");
     if (!targetSemesters.has(semesterId)) continue;
+    const state = fetchState.get(semesterId);
+    if (state == null) continue;
+    if (
+      source === CATALOG_EXAM_SOURCE &&
+      rowBoolean(row.ok) === false &&
+      unavailableExamSemesters.has(semesterId)
+    ) {
+      state.catalogExamFailures += 1;
+      continue;
+    }
     if (rowBoolean(row.ok) !== true) {
       throw new Error(
         `Snapshot fetch ${source} for semester ${semesterId} failed`,
       );
     }
 
-    const state = fetchState.get(semesterId);
-    if (state == null) continue;
     if (source === CATALOG_LESSON_SOURCE) {
       state.catalogLessonFetches += 1;
     } else if (source === CATALOG_EXAM_SOURCE) {
@@ -229,7 +265,16 @@ export function validateSnapshotCompleteness(
         `Snapshot semester ${semesterId} has no successful ${CATALOG_LESSON_SOURCE} fetch`,
       );
     }
-    if (semesterId >= examMinSemester && state.catalogExamFetches === 0) {
+    if (unavailableExamSemesters.has(semesterId)) {
+      if (state.catalogExamFailures === 0 || state.catalogExamFetches !== 0) {
+        throw new Error(
+          `Snapshot unavailable exam semester ${semesterId} has contradictory fetch records`,
+        );
+      }
+    } else if (
+      semesterId >= examMinSemester &&
+      state.catalogExamFetches === 0
+    ) {
       throw new Error(
         `Snapshot semester ${semesterId} has no successful ${CATALOG_EXAM_SOURCE} fetch`,
       );
@@ -267,10 +312,20 @@ export function validateSnapshotCompleteness(
   }
 
   return {
+    catalogMinSemester: minSemester,
     sectionJwIds: [...sectionJwIds].sort((left, right) => left - right),
-    sectionSemesterJwIds: [...targetSemesters]
-      .filter((semesterId) => (lessonCounts.get(semesterId) ?? 0) > 0)
+    sectionSemesterJwIds: [...targetSemesters].sort(
+      (left, right) => left - right,
+    ),
+    examSemesterJwIds: [...targetSemesters]
+      .filter(
+        (semesterId) =>
+          (fetchState.get(semesterId)?.catalogExamFetches ?? 0) > 0,
+      )
       .sort((left, right) => left - right),
+    unavailableExamSemesterJwIds: [...unavailableExamSemesters].sort(
+      (left, right) => left - right,
+    ),
   };
 }
 

@@ -4,7 +4,6 @@ import type { SectionPresenceStats } from "./section-lifecycle";
 export type ImportConfig = {
   snapshotPath: string;
   snapshotSha256: string;
-  minSemester: number;
   dryRun: boolean;
 };
 

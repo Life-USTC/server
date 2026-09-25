@@ -21,6 +21,7 @@ vi.mock("@/static-loader/snapshot", () => ({
       return {
         generated_at: GENERATED_AT,
         schema_version: "5",
+        catalog_lesson_min_semester_id: "201",
       };
     }
 
@@ -76,7 +77,6 @@ describe("repeated static import", () => {
 
     const report = await runImport(prisma as never, {
       dryRun: false,
-      minSemester: 401,
       snapshotPath: "/not-read.sqlite",
       snapshotSha256: SNAPSHOT_SHA,
     });

@@ -95,17 +95,14 @@ export async function runImport(
       );
     }
     snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
-    completeness = validateSnapshotCompleteness(
-      {
-        metadata,
-        semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
-        catalogLessonRows: snapshot.queryAll(
-          "catalog_teach_lesson_list_for_teach",
-        ),
-        fetchRows: snapshot.queryAll("upstream_fetches"),
-      },
-      config.minSemester,
-    );
+    completeness = validateSnapshotCompleteness({
+      metadata,
+      semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
+      catalogLessonRows: snapshot.queryAll(
+        "catalog_teach_lesson_list_for_teach",
+      ),
+      fetchRows: snapshot.queryAll("upstream_fetches"),
+    });
   } catch (error) {
     snapshot.close();
     throw error;
@@ -173,7 +170,7 @@ export async function runImport(
 
   const sections = loadSections(
     snapshot,
-    config.minSemester,
+    completeness.catalogMinSemester,
     courseJwIdByParentId,
     catalogTeacherJwIdBySectionName,
     sectionTeacherPairs,
@@ -201,7 +198,15 @@ export async function runImport(
     sectionTeacherPairs.push(pair);
   }
 
-  const exams = loadExams(snapshot, allSectionJwIds);
+  const examSemesterJwIds = new Set(completeness.examSemesterJwIds);
+  const exams = loadExams(
+    snapshot,
+    new Set(
+      sections
+        .filter((section) => examSemesterJwIds.has(section.semesterCode))
+        .map((section) => section.jwId),
+    ),
+  );
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
   const plannedRecordCounts: ImportRecordCounts = {
@@ -342,6 +347,9 @@ export async function runImport(
     );
 
     const sectionDbIds = Array.from(sectionMap.values());
+    const examSectionDbIds = sections
+      .filter((section) => examSemesterJwIds.has(section.semesterCode))
+      .map((section) => sectionMap.get(section.jwId) as number);
     await logStep("writeSectionTeachers", sectionTeacherPairs.length, () =>
       writeSectionTeachers(
         tx,
@@ -403,7 +411,7 @@ export async function runImport(
         await deleteMissingSnapshotRows(
           tx,
           "exam",
-          sectionDbIds,
+          examSectionDbIds,
           exams.map((exam) => exam.jwId),
         );
       },

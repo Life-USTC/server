@@ -18,6 +18,7 @@ vi.mock("@/static-loader/snapshot", () => ({
       return {
         generated_at: "2099-01-01T00:00:00.000Z",
         schema_version: "5",
+        catalog_lesson_min_semester_id: "201",
       };
     }
 
@@ -45,7 +46,6 @@ describe("static loader snapshot time gate", () => {
         } as never,
         {
           dryRun: false,
-          minSemester: 401,
           snapshotPath: "/not-read.sqlite",
           snapshotSha256: "a".repeat(64),
         },
