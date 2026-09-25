@@ -21,7 +21,6 @@ import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
 import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import {
   runWithCloudflareRuntimeEnv,
-  setCloudflareCatalogInvalidator,
   setCloudflareRequestContext,
 } from "./lib/adapters/cloudflare-runtime";
 import { handleAuditLogWriteBatch } from "./lib/audit/audit-log-queue";
@@ -573,15 +572,6 @@ export default {
       const response = await runWithCloudflareRuntimeEnv(
         env,
         () => {
-          setCloudflareCatalogInvalidator(async () => {
-            const result = await context.exports
-              .PublicSsr({})
-              .purgeCatalogRepresentations();
-            if (!result.ok)
-              throw new Error(
-                `Public SSR cache purge failed: ${result.reason}`,
-              );
-          });
           setCloudflareRequestContext({
             method: request.method,
             requestId,

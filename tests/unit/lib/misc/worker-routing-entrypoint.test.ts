@@ -7,7 +7,6 @@ const {
   logAppEventMock,
   runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContextMock,
-  setCloudflareCatalogInvalidatorMock,
 } = vi.hoisted(() => ({
   appFetchMock: vi.fn(),
   handleAuditLogWriteBatchMock: vi.fn(),
@@ -17,8 +16,6 @@ const {
     (_env: unknown, callback: () => unknown) => callback(),
   ),
   setCloudflareRequestContextMock: vi.fn(),
-  setCloudflareCatalogInvalidatorMock:
-    vi.fn<(invalidate: () => Promise<void>) => void>(),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -38,7 +35,6 @@ vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareRuntimeEnvInput: () => ({}),
   runWithCloudflareRuntimeEnv: runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContext: setCloudflareRequestContextMock,
-  setCloudflareCatalogInvalidator: setCloudflareCatalogInvalidatorMock,
 }));
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
@@ -109,7 +105,6 @@ describe("Worker routing entrypoint", () => {
     logAppEventMock.mockReset();
     runWithCloudflareRuntimeEnvMock.mockClear();
     setCloudflareRequestContextMock.mockClear();
-    setCloudflareCatalogInvalidatorMock.mockClear();
     appFetchMock.mockResolvedValue(new Response("dynamic", { status: 200 }));
   });
 
@@ -608,41 +603,6 @@ describe("Worker routing entrypoint", () => {
       }),
     );
   });
-
-  it.each([true, false])(
-    "wires mutation invalidation to the owning entrypoint (success=%s)",
-    async (ok) => {
-      const purgeCatalogRepresentations = vi
-        .fn()
-        .mockResolvedValue(
-          ok ? { ok: true } : { ok: false, reason: "purge-rejected" },
-        );
-      const publicSsrStub = publicSsrExportStub(() => ({
-        purgeCatalogRepresentations,
-      }));
-      appFetchMock.mockImplementationOnce(async () => {
-        const invalidate =
-          setCloudflareCatalogInvalidatorMock.mock.calls.at(-1)?.[0];
-        expect(invalidate).toBeTypeOf("function");
-        await invalidate?.();
-        return new Response("saved");
-      });
-      const response = worker.fetch(
-        new Request("https://life-ustc.test/api/community/descriptions", {
-          method: "POST",
-        }),
-        {},
-        {
-          exports: { PublicSsr: publicSsrStub },
-          waitUntil: vi.fn(),
-        },
-      );
-      if (ok) await expect(response).resolves.toHaveProperty("status", 200);
-      else await expect(response).rejects.toThrow("purge-rejected");
-      expect(publicSsrStub).toHaveBeenCalledWith({});
-      expect(purgeCatalogRepresentations).toHaveBeenCalledOnce();
-    },
-  );
 
   it("hops the internal cache purge into the PublicSsr entrypoint", async () => {
     const purgeCatalogRepresentations = vi

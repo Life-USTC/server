@@ -268,6 +268,30 @@ function responseWithRuntimeCleanup(
   return new Response(body, response);
 }
 
+function normalizeCatalogInvalidator(executionContext: unknown) {
+  const context = executionContext as
+    | {
+        exports?: {
+          PublicSsr?: (options: Record<string, never>) => {
+            purgeCatalogRepresentations(): Promise<{
+              ok: boolean;
+              reason?: string;
+            }>;
+          };
+        };
+      }
+    | undefined;
+  const exports = context?.exports;
+  const publicSsr = exports?.PublicSsr;
+  if (typeof publicSsr !== "function") return undefined;
+  return async () => {
+    const result = await publicSsr({}).purgeCatalogRepresentations();
+    if (!result.ok) {
+      throw new Error(`Public SSR cache purge failed: ${result.reason}`);
+    }
+  };
+}
+
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
@@ -290,7 +314,10 @@ export function runWithCloudflareRuntimeEnv<T>(
     cleanups: new Set(),
     env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
     request: parentContext?.request,
+    // SvelteKit and the outer Worker are separate bundles. Reconstruct this
+    // capability from platform.ctx rather than relying on shared module state.
     invalidateCatalogRepresentations:
+      normalizeCatalogInvalidator(executionContext) ??
       parentContext?.invalidateCatalogRepresentations,
     scheduleTask:
       normalizeCloudflareTaskScheduler(executionContext) ??
@@ -462,7 +489,7 @@ export function getCloudflareWeatherNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.WEATHER;
 }
 
-/** Registered by the Worker owning the PublicSsr RPC binding. */
+/** Explicit injection for domain tests without a Workers execution context. */
 export function setCloudflareCatalogInvalidator(
   invalidate: () => Promise<void>,
 ) {
