@@ -1,9 +1,7 @@
 <script lang="ts">
-import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import AdminSuspensionFields from "./AdminSuspensionFields.svelte";
 import type { AdminModerationComment } from "./admin-moderation-comment-types";
 import type {
   AdminModerationCopy,
@@ -13,7 +11,6 @@ import type {
 export let comment: AdminModerationComment;
 export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
-export let inputValue: (event: Event) => string;
 export let isSuspendingUser: boolean;
 export let suspendCommentAuthor: () => void;
 export let suspensionDuration: string;
@@ -24,44 +21,21 @@ export let suspensionReason: string;
 <Field.Set>
   <Field.Legend>{copy.suspensionDetails}</Field.Legend>
   <Field.Description>{copy.suspendAuthorDescription}</Field.Description>
-  <Field.Group class="grid gap-2 md:grid-cols-[160px_1fr]">
-    <Field.Field>
-      <Field.Label class="sr-only" for="moderation-suspension-duration">{copy.suspendExpires}</Field.Label>
-      <NativeSelect.Root
-        bind:value={suspensionDuration}
-        class="w-full"
-        id="moderation-suspension-duration"
-      >
-        {#each suspensionDurationOptions as option}
-          <NativeSelect.Option value={option.value}>
-            {option.label}
-          </NativeSelect.Option>
-        {/each}
-      </NativeSelect.Root>
-    </Field.Field>
-    {#if suspensionDuration === "custom"}
-      <Field.Field>
-        <Field.Label id="moderation-suspension-custom-expires-label">
-          {copy.suspendExpires}
-        </Field.Label>
-        <DateTimePicker
-          bind:value={customExpiresAt}
-          aria-labelledby="moderation-suspension-custom-expires-label"
-          calendarButtonLabel={copy.calendarButtonLabel}
-        />
-      </Field.Field>
-    {/if}
-    <Field.Field class="md:col-span-2">
-      <Field.Label for="moderation-suspension-reason">{copy.suspendReason}</Field.Label>
-      <Input
-        id="moderation-suspension-reason"
-        value={suspensionReason}
-        oninput={(event: Event) => {
-          suspensionReason = inputValue(event);
-        }}
-      />
-    </Field.Field>
-  </Field.Group>
+  <AdminSuspensionFields
+    compact
+    copy={{
+      durationLabel: copy.suspendExpires,
+      expiresLabel: copy.suspendExpires,
+      reasonLabel: copy.suspendReason,
+      calendarButtonLabel: copy.calendarButtonLabel,
+    }}
+    idPrefix="moderation-suspension"
+    expiresLabelId="moderation-suspension-custom-expires-label"
+    bind:duration={suspensionDuration}
+    bind:expiresAt={customExpiresAt}
+    bind:reason={suspensionReason}
+    options={suspensionDurationOptions}
+  />
   <Button
     disabled={isSuspendingUser || !comment.user?.id}
     type="button"

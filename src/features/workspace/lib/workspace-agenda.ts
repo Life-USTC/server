@@ -1,6 +1,9 @@
 import { formatCampusDate } from "@/lib/time/campus-date";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import type { CalendarGridEvent } from "$lib/components/calendar/types";
+import type {
+  CalendarAgendaDay,
+  CalendarGridEvent,
+} from "$lib/components/calendar/types";
 import { addDays } from "./calendar-date-keys";
 
 export type WorkspaceTimelineItem = CalendarGridEvent & {
@@ -10,12 +13,8 @@ export type WorkspaceTimelineItem = CalendarGridEvent & {
   title: string;
 };
 
-export type WorkspaceAgendaDay = {
-  dateLabel: string;
+export type WorkspaceAgendaDay = Omit<CalendarAgendaDay, "events"> & {
   events: WorkspaceTimelineItem[];
-  isToday: boolean;
-  key: string;
-  weekdayLabel: string;
 };
 
 export type WorkspaceFocusItem = WorkspaceTimelineItem & {

@@ -1,9 +1,3 @@
-import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-import {
-  addShanghaiTime,
-  parseShanghaiDateTimeLocalInput,
-} from "@/lib/time/shanghai-format";
-
 export function formatAdminUserMessage(
   template: string,
   values: Record<string, string>,
@@ -46,19 +40,4 @@ export function adminUserSuspensionLabel(
         date: formatDate(user.activeSuspension.expiresAt),
       })
     : moderationCopy.permanent;
-}
-
-export function adminUserSuspensionExpiresAt(
-  duration: string,
-  customExpiresAt: string,
-) {
-  if (duration === "permanent") return undefined;
-  if (duration === "custom") {
-    const parsed = parseShanghaiDateTimeLocalInput(customExpiresAt);
-    if (parsed) return toShanghaiIsoString(parsed);
-    return parsed === null ? undefined : customExpiresAt.trim();
-  }
-  const days =
-    duration === "1d" ? 1 : duration === "7d" ? 7 : duration === "30d" ? 30 : 3;
-  return toShanghaiIsoString(addShanghaiTime(new Date(), days, "day"));
 }

@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { adminUserSuspensionExpiresAt } from "@/features/admin/lib/admin-users-display";
-import { expiresAtFromModerationDuration } from "@/features/admin/lib/moderation-action-display";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { suspensionExpiresAt } from "@/features/admin/lib/suspension-expiration";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 
 describe("admin 封禁过期时间输入", () => {
@@ -55,13 +54,35 @@ describe("admin 封禁过期时间输入", () => {
   });
 
   it("保留无效的自定义 UI 过期值以供 API 拒绝", () => {
-    expect(adminUserSuspensionExpiresAt("custom", "not-a-date")).toBe(
-      "not-a-date",
-    );
-    expect(expiresAtFromModerationDuration("custom", "not-a-date")).toBe(
-      "not-a-date",
-    );
-    expect(adminUserSuspensionExpiresAt("custom", "   ")).toBeUndefined();
-    expect(expiresAtFromModerationDuration("custom", "   ")).toBeUndefined();
+    expect(suspensionExpiresAt("custom", " not-a-date ")).toBe("not-a-date");
+    expect(suspensionExpiresAt("custom", "   ")).toBeUndefined();
+    expect(suspensionExpiresAt("custom", "")).toBeUndefined();
   });
+
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ["1d", "2026-09-26T12:00:00+08:00"],
+    ["3d", "2026-09-28T12:00:00+08:00"],
+    ["7d", "2026-10-02T12:00:00+08:00"],
+    ["30d", "2026-10-25T12:00:00+08:00"],
+  ])("将 %s 转换为上海时区的到期时间", (duration, expected) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-25T04:00:00Z"));
+    expect(suspensionExpiresAt(duration, "ignored")).toBe(expected);
+  });
+
+  it("保留永久和自定义时间选项的含义", () => {
+    expect(suspensionExpiresAt("permanent", "not-a-date")).toBeUndefined();
+    expect(suspensionExpiresAt("custom", "2026-10-01T15:30")).toBe(
+      "2026-10-01T15:30:00+08:00",
+    );
+  });
+
+  it.each(["14d", "0d", "-1d", "1.5d", "", "invalid", "2026-10-01"])(
+    "拒绝未提供的时长 %s，不能回退为三天或永久",
+    (duration) => {
+      expect(() => suspensionExpiresAt(duration, "")).toThrow(RangeError);
+    },
+  );
 });
