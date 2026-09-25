@@ -2928,7 +2928,7 @@
     "organizationLevel": "组织层级",
     "organizationLevelFilter": "按组织层级筛选",
     "sourceFilter": "来源",
-    "sourceFilterHint": "可多选；按住 Ctrl（macOS 为 Command）选择多个来源。",
+    "sourceFilterHint": "勾选一个或多个来源；搜索不会清除已选项。",
     "sourceFilterEmpty": "暂无可筛选的来源。",
     "organizationLevelLabels": {
       "university": "学校机关",
@@ -2957,7 +2957,13 @@
     "reporter": "记者",
     "editor": "编辑",
     "originalPublisher": "原始来源",
-    "imageCaptions": "图片说明"
+    "imageCaptions": "图片说明",
+    "advancedFilters": "更多筛选",
+    "activeFilters": "已选筛选条件",
+    "removeFilter": "移除筛选：{filter}",
+    "searchSources": "搜索来源名称",
+    "sourceSearchEmpty": "没有匹配的来源",
+    "articleInformation": "文章信息"
   },
   "busMap": {
     "title": "线路图",

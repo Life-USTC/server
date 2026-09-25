@@ -57,6 +57,8 @@ export async function createPublicationFixture(prefix: string) {
   const officeTotal = 2;
   const canonicalUrl = `https://news.example.test/${prefix}`;
   const title = `E2E publication ${prefix}`;
+  const longUrl = `https://news.example.test/${"long-address-".repeat(35)}`;
+  const summary = `办事说明与联系方式：${longUrl}`;
   const revisionHash = "e".repeat(64);
   const total = 21;
   const publishedAt = new Date("2026-09-01T00:00:00+08:00");
@@ -70,6 +72,7 @@ export async function createPublicationFixture(prefix: string) {
       `![Inline publication image](${imageUrl})`,
       "This paragraph follows the inline image.",
       `Fixture: ${prefix}`,
+      `详情链接：${longUrl}`,
       '<script>throw new Error("untrusted article script")</script>',
     ].join("\n\n"),
   );
@@ -153,8 +156,7 @@ export async function createPublicationFixture(prefix: string) {
           sourceId,
           canonicalUrl: itemUrl,
           title: itemTitle,
-          summary:
-            "A deterministic publication used by the news page E2E test.",
+          summary,
           publicationType: "news",
           publishedAt: itemPublishedAt,
         },
@@ -165,8 +167,7 @@ export async function createPublicationFixture(prefix: string) {
           revisionHash,
           observedAt: itemPublishedAt,
           title: itemTitle,
-          summary:
-            "A deterministic publication used by the news page E2E test.",
+          summary,
           bodyText: "Legacy plain text must not be used as the rendered body.",
           sourcePageUrl: itemUrl,
           publishedAt: itemPublishedAt,

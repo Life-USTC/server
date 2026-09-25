@@ -1264,7 +1264,7 @@
     "organizationLevel": "Organization level",
     "organizationLevelFilter": "Filter by organization level",
     "sourceFilter": "Sources",
-    "sourceFilterHint": "Select more than one with Ctrl (Command on macOS).",
+    "sourceFilterHint": "Select one or more sources. Searching keeps your selections.",
     "sourceFilterEmpty": "No sources are available to filter by.",
     "organizationLevelLabels": {
       "university": "University",
@@ -1293,7 +1293,13 @@
     "reporter": "Reporter",
     "editor": "Editor",
     "originalPublisher": "Original publisher",
-    "imageCaptions": "Image captions"
+    "imageCaptions": "Image captions",
+    "advancedFilters": "More filters",
+    "activeFilters": "Active filters",
+    "removeFilter": "Remove filter: {filter}",
+    "searchSources": "Search source names",
+    "sourceSearchEmpty": "No matching sources",
+    "articleInformation": "Article information"
   },
   "busMap": {
     "title": "Transit Map",

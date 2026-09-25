@@ -90,9 +90,13 @@ test.describe("/news/sources 来源目录", () => {
         `/news\\?source=${encodeURIComponent(fixture.officeSourceId)}$`,
       ),
     );
+    await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
     await expect(
-      page.getByRole("listbox", { name: /^(来源|Sources)$/ }),
-    ).toHaveValues([fixture.officeSourceId]);
+      page.getByRole("checkbox", {
+        name: fixture.officeSourceName,
+        exact: true,
+      }),
+    ).toBeChecked();
     await expect(
       page.getByRole("link", { name: fixture.title, exact: true }),
     ).toHaveCount(0);
