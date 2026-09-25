@@ -1,19 +1,15 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
-import {
-  PROFILE_USERNAME_MAX_LENGTH,
-  PROFILE_USERNAME_PATTERN,
-} from "@/features/profile/lib/profile-username";
+import ProfileAvatarPicker from "@/features/profile/components/ProfileAvatarPicker.svelte";
+import ProfileIdentityFields from "@/features/profile/components/ProfileIdentityFields.svelte";
 import { enhance } from "$app/forms";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
-import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type {
   CompleteProfileAction,
   WelcomeCopy,
@@ -34,10 +30,6 @@ export let profileCopy: WelcomeProfileCopy;
 export let selectedImage: string | undefined;
 export let user: WelcomeProfileUser;
 export let welcomeCopy: WelcomeCopy;
-
-$: avatarFallback = (user.name ?? user.username ?? "U")
-  .slice(0, 1)
-  .toUpperCase();
 
 let uploadedAvatarPreview = "";
 
@@ -70,45 +62,17 @@ onDestroy(() => {
         </Alert.Root>
       {/if}
 
-      {#if selectedImage && selectedImage !== currentImage}
-        <input type="hidden" name="image" value={selectedImage} />
-      {/if}
-      <Field.Set>
-        <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
-        <div class="flex flex-wrap items-center gap-4">
-          <Avatar.Root class="size-20 shrink-0">
-            <Avatar.Image alt={profileCopy.profilePicture} src={uploadedAvatarPreview || previewImage} />
-            <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
-          </Avatar.Root>
-          {#if avatarOptions.length > 0}
-            <ToggleGroup.Root
-              type="single"
-              aria-label={profileCopy.profilePicture}
-              class="flex flex-wrap"
-              data-testid="avatar-selector"
-              spacing={2}
-              variant="outline"
-              bind:value={selectedImage}
-            >
-              {#each avatarOptions as avatar, index}
-                <ToggleGroup.Item
-                  aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                  class="size-12 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-primary data-[state=on]:ring-offset-2"
-                  value={avatar}
-                >
-                  <Avatar.Root class="size-full">
-                    <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
-                    <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-                  </Avatar.Root>
-                </ToggleGroup.Item>
-              {/each}
-            </ToggleGroup.Root>
-          {:else}
-            <Field.Description>
-              {welcomeCopy.avatarLater}
-            </Field.Description>
-          {/if}
-        </div>
+      <ProfileAvatarPicker
+        {avatarOptions}
+        label={profileCopy.profilePicture}
+        avatarOptionLabel={copy.accessibility.avatarOption}
+        {currentImage}
+        previewImage={uploadedAvatarPreview || previewImage}
+        bind:selectedImage
+        {user}
+        emptyDescription={welcomeCopy.avatarLater}
+        selectorTestId="avatar-selector"
+      >
         <Field.Field>
           <Field.Label for="avatar">{profileCopy.avatarUpload}</Field.Label>
           <Input
@@ -120,19 +84,10 @@ onDestroy(() => {
           />
           <Field.Description>{profileCopy.avatarUploadHint}</Field.Description>
         </Field.Field>
-      </Field.Set>
+      </ProfileAvatarPicker>
 
       <Field.Group class="gap-4">
-        <Field.Field>
-          <Field.Label for="name">{profileCopy.name} <span class="text-destructive">*</span></Field.Label>
-          <Input id="name" name="name" value={user.name ?? ""} placeholder={profileCopy.namePlaceholder} required autocomplete="name" />
-        </Field.Field>
-
-        <Field.Field>
-          <Field.Label for="username">{profileCopy.username} <span class="text-destructive">*</span></Field.Label>
-          <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern={PROFILE_USERNAME_PATTERN} maxlength={PROFILE_USERNAME_MAX_LENGTH} required autocomplete="username" title={profileCopy.usernameValidation} />
-          <Field.Description>{profileCopy.usernameValidation}</Field.Description>
-        </Field.Field>
+        <ProfileIdentityFields copy={profileCopy} {user} />
       </Field.Group>
 
       <Button class="w-full" type="submit" disabled={isCompletingProfile}>

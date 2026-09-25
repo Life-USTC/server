@@ -15,10 +15,10 @@ import {
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { browser } from "$app/environment";
+import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import CalendarAgenda from "./CalendarAgenda.svelte";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";

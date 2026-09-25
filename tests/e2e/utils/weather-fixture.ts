@@ -70,7 +70,6 @@ export async function showWeatherFixture(page: Page) {
     title: `${weatherCopy.title} - Life@USTC`,
     description: weatherCopy.description,
     imageAlt: messages.metadata.social.imageAlt,
-    card: { label: locale === "zh-cn" ? "CAMPUS · 天气" : "WEATHER" },
   });
   // The root layout is already loaded. Supply only the weather page's data
   // node; chart interaction tests must not wait for real weather providers.

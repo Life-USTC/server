@@ -3,10 +3,9 @@ import type { CommentNode } from "@/features/comments/server/comment-types";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
+import CommentAudienceFields from "./CommentAudienceFields.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
   CommentSelectOption,
@@ -39,29 +38,14 @@ $: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
 <Field.Group class="gap-2">
   <span class="sr-only">{comment.body}</span>
   <Field.Group class="flex-row flex-wrap items-center justify-between gap-3">
-    <Field.Field orientation="horizontal" class="w-fit">
-      <Checkbox id={editAnonymousId} bind:checked={editIsAnonymous} />
-      <Field.Label for={editAnonymousId}>
-        {commentCopy.visibilityAnonymous}
-      </Field.Label>
-    </Field.Field>
-    <Field.Field class="w-auto">
-      <Field.Label for={editVisibilityId} class="sr-only">
-        {commentCopy.visibilityLabel}
-      </Field.Label>
-      <NativeSelect.Root
-        aria-label={commentCopy.visibilityLabel}
-        bind:value={editVisibility}
-        class="min-w-32"
-        id={editVisibilityId}
-      >
-        {#each visibilityOptions as option}
-          <NativeSelect.Option value={option.value}>
-            {option.label}
-          </NativeSelect.Option>
-        {/each}
-      </NativeSelect.Root>
-    </Field.Field>
+    <CommentAudienceFields
+      anonymousId={editAnonymousId}
+      visibilityId={editVisibilityId}
+      {commentCopy}
+      bind:isAnonymous={editIsAnonymous}
+      bind:visibility={editVisibility}
+      {visibilityOptions}
+    />
   </Field.Group>
   <Field.Field>
     <Field.Title id={editEditorLabelId} class="sr-only">

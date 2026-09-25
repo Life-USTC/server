@@ -1,11 +1,9 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -57,45 +55,6 @@ type PageData = {
 
 export let data: PageData;
 
-let DescriptionCard:
-  | typeof import("@/features/descriptions/components/DescriptionCard.svelte").default
-  | null = null;
-let CommentsPanel:
-  | typeof import("@/features/comments/components/CommentsPanel.svelte").default
-  | null = null;
-let descriptionLoadError = false;
-let commentsLoadError = false;
-let detailModulesLoading = true;
-
-async function loadDetailModules() {
-  detailModulesLoading = true;
-  descriptionLoadError = false;
-  commentsLoadError = false;
-
-  const [descriptionModule, commentsModule] = await Promise.allSettled([
-    import("@/features/descriptions/components/DescriptionCard.svelte"),
-    import("@/features/comments/components/CommentsPanel.svelte"),
-  ]);
-
-  if (descriptionModule.status === "fulfilled") {
-    DescriptionCard = descriptionModule.value.default;
-  } else {
-    descriptionLoadError = true;
-  }
-
-  if (commentsModule.status === "fulfilled") {
-    CommentsPanel = commentsModule.value.default;
-  } else {
-    commentsLoadError = true;
-  }
-
-  detailModulesLoading = false;
-}
-
-onMount(() => {
-  void loadDetailModules();
-});
-
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
@@ -117,42 +76,15 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 
         <section id="introduction" class="scroll-mt-4">
           {#key `description:teacher:${data.teacher.id}`}
-            {#if DescriptionCard}
-              <svelte:component
-                this={DescriptionCard}
-                resolveViewer
-                targetType="teacher"
-                targetId={data.teacher.id}
-                initialData={data.descriptionData}
-                locale={data.locale as "en-us" | "zh-cn"}
-                copy={copy.descriptions}
-                heading={copy.descriptions.title}
-                showTitle={false}
-              />
-            {:else if data.descriptionData.description.renderedHtml}
-              <h2 class="mb-3 text-lg font-semibold tracking-tight">
-                {copy.descriptions.title}
-              </h2>
-              <div class="markdown-preview" data-slot="markdown-preview">
-                {@html data.descriptionData.description.renderedHtml}
-              </div>
-            {:else if descriptionLoadError}
-              <Alert.Root variant="destructive">
-                <Alert.Description>{copy.descriptions.loadFailed}</Alert.Description>
-                <Alert.Action>
-                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
-                    {copy.descriptions.retry}
-                  </Button>
-                </Alert.Action>
-              </Alert.Root>
-            {:else if detailModulesLoading}
-              <div class="grid gap-3" aria-busy="true" aria-label={copy.descriptions.title}>
-                <Skeleton class="h-5 w-28" />
-                <Skeleton class="h-4 w-full" />
-                <Skeleton class="h-4 w-11/12" />
-                <Skeleton class="h-4 w-4/5" />
-              </div>
-            {/if}
+            <LazyDescriptionCard
+              resolveViewer
+              targetType="teacher"
+              targetId={data.teacher.id}
+              initialData={data.descriptionData}
+              locale={data.locale as "en-us" | "zh-cn"}
+              copy={copy.descriptions}
+              heading={copy.descriptions.title}
+            />
           {/key}
         </section>
 
@@ -173,33 +105,17 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 
         <section id="comments" class="scroll-mt-4">
           {#key `comments:teacher:${data.teacher.id}`}
-            {#if CommentsPanel}
-              <svelte:component
-                this={CommentsPanel}
-                initialData={data.commentsData}
-                permalinkBaseHref={commentTargetPermalinkBaseHref({
-                  teacherId: data.teacher.id,
-                  type: "teacher",
-                })}
-                targetType="teacher"
-                targetId={data.teacher.id}
-                heading={copy.comments.title}
-              />
-            {:else if commentsLoadError}
-              <Alert.Root variant="destructive">
-                <Alert.Description>{copy.comments.loadFailed}</Alert.Description>
-                <Alert.Action>
-                  <Button size="sm" variant="ghost" onclick={() => void loadDetailModules()}>
-                    {copy.comments.retry}
-                  </Button>
-                </Alert.Action>
-              </Alert.Root>
-            {:else if detailModulesLoading}
-              <div class="grid gap-3" aria-busy="true" aria-label={copy.comments.title}>
-                <Skeleton class="h-5 w-24" />
-                <Skeleton class="h-16 w-full" />
-              </div>
-            {/if}
+            <LazyCommentsPanel
+              initialData={data.commentsData}
+              permalinkBaseHref={commentTargetPermalinkBaseHref({
+                teacherId: data.teacher.id,
+                type: "teacher",
+              })}
+              targetType="teacher"
+              targetId={data.teacher.id}
+              heading={copy.comments.title}
+              copy={copy.comments}
+            />
           {/key}
         </section>
   {#snippet aside()}

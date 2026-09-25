@@ -2,7 +2,6 @@ import "dotenv/config";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { rollupWasm } from "@ethercorps/sveltekit-og/plugin";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
@@ -36,7 +35,8 @@ export function prismaWasmModulePlugin(command: "build" | "serve") {
       if (command === "serve") {
         return PRISMA_WASM_VIRTUAL_ID;
       }
-      return { id: `${resolvedWasmPath}?module`, external: true };
+      // Keep the import beside the compiler chunk, where generateBundle copies it.
+      return { id: `./${wasmModuleSuffix}`, external: true };
     },
     load(id: string) {
       return id === PRISMA_WASM_VIRTUAL_ID && resolvedWasmPath
@@ -86,7 +86,6 @@ export default defineConfig(({ command }) => ({
   plugins: [
     prismaWasmModulePlugin(command),
     katexModernFontsPlugin(),
-    rollupWasm(),
     tailwindcss(),
     sveltekit(),
   ],

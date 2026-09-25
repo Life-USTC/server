@@ -7,10 +7,9 @@ import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-r
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
+import CommentAudienceFields from "./CommentAudienceFields.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
   CommentSelectOption,
@@ -75,38 +74,15 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
     onRemove={removeReplyAttachment}
   />
   <Field.Group class="flex-row flex-wrap items-center gap-3">
-    <Field.Field
-      data-disabled={replyDisabledAttr}
-      orientation="horizontal"
-      class="w-fit"
-    >
-      <Checkbox
-        id={replyAnonymousId}
-        bind:checked={replyIsAnonymous}
-        disabled={replyDisabled}
-      />
-      <Field.Label for={replyAnonymousId}>
-        {commentCopy.visibilityAnonymous}
-      </Field.Label>
-    </Field.Field>
-    <Field.Field data-disabled={replyDisabledAttr} class="w-auto">
-      <Field.Label for={replyVisibilityId} class="sr-only">
-        {commentCopy.visibilityLabel}
-      </Field.Label>
-      <NativeSelect.Root
-        aria-label={commentCopy.visibilityLabel}
-        bind:value={replyVisibility}
-        class="min-w-32"
-        disabled={replyDisabled}
-        id={replyVisibilityId}
-      >
-        {#each visibilityOptions as option}
-          <NativeSelect.Option value={option.value}>
-            {option.label}
-          </NativeSelect.Option>
-        {/each}
-      </NativeSelect.Root>
-    </Field.Field>
+    <CommentAudienceFields
+      anonymousId={replyAnonymousId}
+      visibilityId={replyVisibilityId}
+      {commentCopy}
+      bind:isAnonymous={replyIsAnonymous}
+      bind:visibility={replyVisibility}
+      {visibilityOptions}
+      disabled={replyDisabled}
+    />
   </Field.Group>
   <div class="flex justify-end gap-2">
     <CommentUploadButton

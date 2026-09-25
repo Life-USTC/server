@@ -1,10 +1,10 @@
 import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import {
-  expiresAtFromModerationDuration,
   moderationFormatMessage,
   moderationTargetHref,
 } from "./moderation-display";
 import type { ModerationCommentLike } from "./moderation-display-types";
+import { suspensionExpiresAt } from "./suspension-expiration";
 
 export function moderationCommentDialogState(input: {
   comment: ModerationCommentLike;
@@ -60,14 +60,17 @@ export async function suspendModerationCommentAuthorRequest(input: {
   reason: string;
   userId: string;
 }) {
+  let expiresAt: string | undefined;
+  try {
+    expiresAt = suspensionExpiresAt(input.duration, input.customExpiresAt);
+  } catch {
+    throw new Error(input.fallbackMessage);
+  }
   const result = await apiClient.POST("/api/admin/suspensions", {
     body: {
       userId: input.userId,
       reason: input.reason.trim() || undefined,
-      expiresAt: expiresAtFromModerationDuration(
-        input.duration,
-        input.customExpiresAt,
-      ),
+      expiresAt,
     },
   });
   if (!result.response.ok) {

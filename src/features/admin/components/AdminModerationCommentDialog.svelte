@@ -79,7 +79,6 @@ export let targetLabel: (comment: AdminModerationComment) => string;
             {comment}
             {copy}
             bind:customExpiresAt
-            {inputValue}
             {isSuspendingUser}
             {suspendCommentAuthor}
             bind:suspensionDuration

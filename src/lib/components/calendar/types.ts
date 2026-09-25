@@ -34,3 +34,19 @@ export type CalendarGridWeek = {
   label?: string;
   days: CalendarGridDay[];
 };
+
+export type CalendarAgendaEvent = Pick<
+  CalendarGridEvent,
+  "badge" | "done" | "label" | "meta"
+> & {
+  href: string;
+  title: string;
+};
+
+export type CalendarAgendaDay = {
+  dateLabel: string;
+  events: CalendarAgendaEvent[];
+  isToday: boolean;
+  key: string;
+  weekdayLabel: string;
+};

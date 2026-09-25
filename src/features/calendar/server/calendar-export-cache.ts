@@ -8,7 +8,9 @@ const USER_CALENDAR_EXPORT_CACHE_VERSION = 2;
 // rebuild on every hit after 5 minutes. Writes still invalidate the cache.
 export const USER_CALENDAR_EXPORT_FRESH_TTL_MS = 30 * 60_000;
 export const USER_CALENDAR_EXPORT_STALE_TTL_MS = 24 * 60 * 60_000;
-const USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS = 3_600;
+const USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS = 60;
+const USER_CALENDAR_EXPORT_REVALIDATE_TTL_MS =
+  USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS * 1_000;
 const USER_CALENDAR_EXPORT_KV_EXPIRATION_TTL_SECONDS =
   USER_CALENDAR_EXPORT_STALE_TTL_MS / 1_000;
 const MAX_USER_CALENDAR_EXPORT_CACHE_ENTRIES = 100;
@@ -34,7 +36,13 @@ type UserCalendarExportCacheOptions = {
   defer?: (promise: Promise<unknown>) => void;
 };
 
-const userCalendarExportCache = new Map<string, StoredUserCalendarExport>();
+type MemoryUserCalendarExport = {
+  calendar: StoredUserCalendarExport;
+  revalidateAtMs: number;
+  rebuildAfterMs: number;
+};
+
+const userCalendarExportCache = new Map<string, MemoryUserCalendarExport>();
 const userCalendarExportRefreshes = new Map<
   string,
   Promise<UserCalendarExportWithEtag | null>
@@ -62,7 +70,10 @@ function isStoredUserCalendarExport(
 
 function pruneExpiredEntries(nowMs: number) {
   for (const [key, entry] of userCalendarExportCache) {
-    if (nowMs - entry.generatedAtMs > USER_CALENDAR_EXPORT_STALE_TTL_MS) {
+    if (
+      nowMs - entry.calendar.generatedAtMs >
+      USER_CALENDAR_EXPORT_STALE_TTL_MS
+    ) {
       userCalendarExportCache.delete(key);
     }
   }
@@ -109,10 +120,12 @@ export function requestMatchesEtag(request: Request, etag: string) {
 
 async function readStoredCalendar(userId: string) {
   const memoryEntry = userCalendarExportCache.get(userId);
-  if (memoryEntry) return memoryEntry;
+  if (memoryEntry && Date.now() < memoryEntry.revalidateAtMs) {
+    return memoryEntry.calendar;
+  }
 
   const namespace = getCloudflareCalendarExportsNamespace();
-  if (!namespace) return null;
+  if (!namespace) return memoryEntry?.calendar ?? null;
 
   try {
     const entry = await namespace.get<StoredUserCalendarExport>(
@@ -122,13 +135,37 @@ async function readStoredCalendar(userId: string) {
         type: "json",
       },
     );
-    if (!isStoredUserCalendarExport(entry)) return null;
-    userCalendarExportCache.set(userId, entry);
+    // Invalidation or a completed rebuild may replace this entry while KV is
+    // pending. Its result must not restore deleted data or overwrite that write.
+    const current = userCalendarExportCache.get(userId);
+    if (current !== memoryEntry) return current?.calendar ?? null;
+    if (!isStoredUserCalendarExport(entry)) {
+      userCalendarExportCache.delete(userId);
+      return null;
+    }
+    // A queue consumer updates its own isolate and KV, not the serving isolate.
+    // Revalidate even fresh exports, and retain the local enqueue cooldown when
+    // concurrent readers see the same (possibly not yet propagated) KV value.
+    const calendar =
+      current && current.calendar.generatedAtMs > entry.generatedAtMs
+        ? current.calendar
+        : entry;
+    if (current) {
+      current.calendar = calendar;
+      current.revalidateAtMs =
+        Date.now() + USER_CALENDAR_EXPORT_REVALIDATE_TTL_MS;
+    } else {
+      userCalendarExportCache.set(userId, {
+        calendar,
+        revalidateAtMs: Date.now() + USER_CALENDAR_EXPORT_REVALIDATE_TTL_MS,
+        rebuildAfterMs: 0,
+      });
+    }
     pruneOldestEntries();
-    return entry;
+    return calendar;
   } catch {
     recordCalendarFeedCacheStatus("store_error");
-    return null;
+    return userCalendarExportCache.get(userId)?.calendar ?? null;
   }
 }
 
@@ -164,7 +201,11 @@ export async function storeBuiltUserCalendarExport(
     generatedAtMs: Date.now(),
     version: USER_CALENDAR_EXPORT_CACHE_VERSION,
   };
-  userCalendarExportCache.set(userId, stored);
+  userCalendarExportCache.set(userId, {
+    calendar: stored,
+    revalidateAtMs: Date.now() + USER_CALENDAR_EXPORT_REVALIDATE_TTL_MS,
+    rebuildAfterMs: 0,
+  });
   pruneOldestEntries();
   const persistence = persistStoredCalendar(userId, stored);
   if (options.defer) {
@@ -216,7 +257,19 @@ function scheduleStaleCalendarExportRebuild(
   userId: string,
   defer?: (promise: Promise<unknown>) => void,
 ) {
-  const enqueue = enqueueUserCalendarExportRebuild(userId);
+  const memoryEntry = userCalendarExportCache.get(userId);
+  const nowMs = Date.now();
+  if (memoryEntry && nowMs < memoryEntry.rebuildAfterMs) return;
+  const rebuildAfterMs = nowMs + USER_CALENDAR_EXPORT_REVALIDATE_TTL_MS;
+  if (memoryEntry) memoryEntry.rebuildAfterMs = rebuildAfterMs;
+  const enqueue = enqueueUserCalendarExportRebuild(userId).catch((error) => {
+    // A failed send must not suppress the next poll's retry. Do not clear a
+    // newer request's cooldown if an earlier slow enqueue fails later.
+    if (memoryEntry?.rebuildAfterMs === rebuildAfterMs) {
+      memoryEntry.rebuildAfterMs = 0;
+    }
+    throw error;
+  });
   if (defer) {
     try {
       defer(enqueue);

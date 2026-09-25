@@ -14,9 +14,6 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
     copy,
     initialRoom,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      card: {
-        label: locals.locale === "zh-cn" ? "CATALOG · 教室" : "CLASSROOM MAP",
-      },
       description: copy.subtitle,
       title: `${copy.title} - Life@USTC`,
     }),

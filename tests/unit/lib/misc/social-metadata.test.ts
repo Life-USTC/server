@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { buildSocialCardUrl, SOCIAL_CARD_ENDPOINT } from "@/lib/social-card";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
   SOCIAL_CARD_HEIGHT,
+  SOCIAL_CARD_PATH,
   SOCIAL_CARD_WIDTH,
   updateSocialMetadata,
 } from "@/lib/social-metadata";
@@ -29,10 +29,7 @@ describe("buildSocialMetadata", () => {
         alt: "分享卡片",
         height: SOCIAL_CARD_HEIGHT,
         type: "image/png",
-        url: buildSocialCardUrl("https://life.example.edu", {
-          subtitle: "课程简介",
-          title: "数值分析 (001046)",
-        }),
+        url: "https://life.example.edu/open-graph.png",
         width: SOCIAL_CARD_WIDTH,
       },
       locale: "zh_CN",
@@ -60,7 +57,7 @@ describe("buildSocialMetadata", () => {
     expect(metadata.alternateLocale).toBe("zh_CN");
   });
 
-  test("rebuilds the card URL when a page overrides social copy", () => {
+  test("keeps the fixed image when a page overrides social copy", () => {
     const metadata = buildSocialMetadata({
       canonicalPath: "/catalog/courses",
       description: "Default description",
@@ -70,20 +67,16 @@ describe("buildSocialMetadata", () => {
       title: "Life@USTC",
     });
     const updated = updateSocialMetadata(metadata, {
-      card: {
-        label: "COURSE CATALOG",
-        variant: "course",
-      },
       description: "Browse all courses",
       title: "Courses - Life@USTC",
     });
     const imageUrl = new URL(updated.image.url);
 
-    expect(imageUrl.pathname).toBe(SOCIAL_CARD_ENDPOINT);
-    expect(imageUrl.searchParams.get("title")).toBe("Courses");
-    expect(imageUrl.searchParams.get("subtitle")).toBe("Browse all courses");
-    expect(imageUrl.searchParams.get("label")).toBe("COURSE CATALOG");
-    expect(imageUrl.searchParams.get("variant")).toBe("course");
+    expect(imageUrl.pathname).toBe(SOCIAL_CARD_PATH);
+    expect(imageUrl.search).toBe("");
+    expect(updated.image).toBe(metadata.image);
+    expect(updated.description).toBe("Browse all courses");
+    expect(updated.title).toBe("Courses - Life@USTC");
   });
 
   test("catalog list pages override the layout document title", () => {

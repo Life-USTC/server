@@ -218,7 +218,7 @@ test.describe("仪表盘日历", () => {
       screenshotLabel: "calendar-mobile-agenda",
     });
 
-    const agenda = page.getByTestId("workspace-calendar-agenda");
+    const agenda = page.getByTestId("calendar-agenda");
     await expect(agenda).toBeVisible();
     await expect(agenda.locator("section")).toHaveCount(7);
     await expect(agenda.locator("a").first()).toBeVisible();

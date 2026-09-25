@@ -82,7 +82,6 @@ async function confirmRoleChange() {
 
           <AdminUserSuspensionSection
             {copy}
-            {inputValue}
             {isLiftingSuspension}
             {isSuspending}
             {liftSelectedSuspension}
