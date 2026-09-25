@@ -9,13 +9,13 @@ async function readRepositoryFile(path: string) {
 }
 
 describe("OpenAPI build and workflow contracts", () => {
-  it("generates OpenAPI before every production build", async () => {
+  it("generates current clients and OpenAPI before every production build", async () => {
     const packageJson = JSON.parse(
       await readRepositoryFile("package.json"),
     ) as { scripts: Record<string, string> };
 
     expect(packageJson.scripts.build).toBe(
-      "bun run openapi:generate && vite build",
+      "bun run app:prepare && bun run openapi:generate && vite build",
     );
     expect(packageJson.scripts["openapi:check"]).toBe(
       "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
