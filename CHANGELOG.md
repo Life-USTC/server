@@ -1,3 +1,10 @@
+## [1.121.3](https://github.com/Life-USTC/server/compare/v1.121.2...v1.121.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* **catalog:** reconcile verified history and preserve school metadata ([#1129](https://github.com/Life-USTC/server/issues/1129)) ([2f0d0dd](https://github.com/Life-USTC/server/commit/2f0d0ddbfdab3aa8179319d6acd46b3f6cd79315)), closes [#1123](https://github.com/Life-USTC/server/issues/1123) [#1127](https://github.com/Life-USTC/server/issues/1127)
+
 ## [1.121.2](https://github.com/Life-USTC/server/compare/v1.121.1...v1.121.2) (2026-09-25)
 
 
