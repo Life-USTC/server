@@ -8,9 +8,10 @@ import {
 import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import { Button } from "$lib/components/ui/button";
-import * as Card from "$lib/components/ui/card";
 import * as Collapsible from "$lib/components/ui/collapsible";
 import { Separator } from "$lib/components/ui/separator";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
@@ -51,38 +52,42 @@ const articleInformation = $derived(
 
 <svelte:head><title>{revision.title} - {copy.title}</title></svelte:head>
 
-<section class="mx-auto grid w-full min-w-0 max-w-4xl grid-cols-[minmax(0,1fr)] gap-5">
-  <nav aria-label={copy.backToList}>
-    <Button href={returnHref} variant="ghost" size="sm"><ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />{copy.backToList}</Button>
-  </nav>
-  <PageHeader title={revision.title} class="min-w-0" titleClass="[overflow-wrap:anywhere]">
-    {#snippet eyebrowContent()}<PublicationTypeBadge type={publication.publicationType} {copy} />{/snippet}
-    {#snippet belowTitle()}
-      <div class="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground [overflow-wrap:anywhere]">
-        <a class="min-w-0 hover:underline" href={`/news?source=${encodeURIComponent(publication.source.id)}`}>{publication.source.name}</a>
-        {#if revision.publishedAt}<span>{copy.publishedAt}: {formatShanghaiDate(revision.publishedAt)}</span>{/if}
-        {#if revision.updatedAtSource && (!revision.publishedAt || formatShanghaiDate(revision.updatedAtSource) !== formatShanghaiDate(revision.publishedAt))}
-          <span>{copy.updatedAt}: {formatShanghaiDate(revision.updatedAtSource)}</span>
-        {/if}
-      </div>
-      {#if revision.sourcePageUrl}
-        <Button class="mt-3" href={revision.sourcePageUrl} variant="outline" size="sm" target="_blank" rel="noreferrer noopener">
-          {copy.sourcePage}<ExternalLinkIcon data-icon="inline-end" aria-hidden="true" />
-        </Button>
-      {/if}
-      {#if summary.length > 160}
-        <Collapsible.Root class="mt-3 min-w-0">
-          <Collapsible.Trigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</Collapsible.Trigger>
-          <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p></Collapsible.Content>
-        </Collapsible.Root>
-      {:else if summary}
-        <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>
-      {/if}
-    {/snippet}
-  </PageHeader>
+<PageLayout width="reading">
+  {#snippet header()}
+    <div class="grid min-w-0 gap-3">
+      <nav aria-label={copy.backToList}>
+        <Button href={returnHref} variant="ghost" size="sm"><ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />{copy.backToList}</Button>
+      </nav>
+      <PageHeader title={revision.title} class="min-w-0" titleClass="[overflow-wrap:anywhere]">
+        {#snippet eyebrowContent()}<PublicationTypeBadge type={publication.publicationType} {copy} />{/snippet}
+        {#snippet belowTitle()}
+          <div class="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+            <a class="min-w-0 hover:underline" href={`/news?source=${encodeURIComponent(publication.source.id)}`}>{publication.source.name}</a>
+            {#if revision.publishedAt}<span>{copy.publishedAt}: {formatShanghaiDate(revision.publishedAt)}</span>{/if}
+            {#if revision.updatedAtSource && (!revision.publishedAt || formatShanghaiDate(revision.updatedAtSource) !== formatShanghaiDate(revision.publishedAt))}
+              <span>{copy.updatedAt}: {formatShanghaiDate(revision.updatedAtSource)}</span>
+            {/if}
+          </div>
+          {#if revision.sourcePageUrl}
+            <Button class="mt-3" href={revision.sourcePageUrl} variant="outline" size="sm" target="_blank" rel="noreferrer noopener">
+              {copy.sourcePage}<ExternalLinkIcon data-icon="inline-end" aria-hidden="true" />
+            </Button>
+          {/if}
+          {#if summary.length > 160}
+            <Collapsible.Root class="mt-3 min-w-0">
+              <Collapsible.Trigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</Collapsible.Trigger>
+              <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p></Collapsible.Content>
+            </Collapsible.Root>
+          {:else if summary}
+            <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>
+          {/if}
+        {/snippet}
+      </PageHeader>
+    </div>
+  {/snippet}
 
-  <Card.Root class="min-w-0">
-    <Card.Content class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 pt-6">
+  <Panel>
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <RenderedMarkdown class="publication-body min-w-0 text-base" html={data.renderedBodyHtml} emptyLabel={copy.noBody} />
       {#if attachments.length > 0}
         <Separator />
@@ -123,6 +128,6 @@ const articleInformation = $derived(
           </ul>
         </section>
       {/if}
-    </Card.Content>
-  </Card.Root>
-</section>
+    </div>
+  </Panel>
+</PageLayout>

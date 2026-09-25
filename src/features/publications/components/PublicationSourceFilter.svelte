@@ -1,7 +1,7 @@
 <script lang="ts">
+import SearchField from "$lib/components/SearchField.svelte";
 import { Checkbox } from "$lib/components/ui/checkbox";
 import * as Field from "$lib/components/ui/field";
-import { Input } from "$lib/components/ui/input";
 import type {
   PublicationPageCopy,
   PublicationSourceOption,
@@ -9,7 +9,7 @@ import type {
 
 let {
   options,
-  selected,
+  selected = $bindable(),
   copy,
 }: {
   options: PublicationSourceOption[];
@@ -29,15 +29,12 @@ const visibleOptions = $derived(
   {#if options.length === 0}
     <Field.Description>{copy.sourceFilterEmpty}</Field.Description>
   {:else}
-    <Field.Field class="gap-1">
-      <Field.Label for="publication-source-search" class="sr-only">{copy.searchSources}</Field.Label>
-      <Input id="publication-source-search" type="search" bind:value={query} placeholder={copy.searchSources} />
-    </Field.Field>
+    <SearchField id="publication-source-search" label={copy.searchSources} bind:value={query} placeholder={copy.searchSources} shortcut={false} />
     <Field.Group class="max-h-48 gap-2 overflow-y-auto overscroll-contain p-1">
       {#each options as option (option.id)}
         <div hidden={!visibleOptions.includes(option)}>
           <Field.Field orientation="horizontal" class="min-w-0 gap-2">
-            <Checkbox id={`publication-source-${option.id}`} name="source" value={option.id} checked={selected.includes(option.id)} />
+            <Checkbox id={`publication-source-${option.id}`} name="source" value={option.id} checked={selected.includes(option.id)} onCheckedChange={(checked) => { selected = checked ? [...selected, option.id] : selected.filter((id) => id !== option.id); }} />
             <Field.Label for={`publication-source-${option.id}`} class="min-w-0 [overflow-wrap:anywhere]">{option.name}</Field.Label>
           </Field.Field>
         </div>

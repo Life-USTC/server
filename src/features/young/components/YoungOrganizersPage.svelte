@@ -1,26 +1,25 @@
 <script lang="ts">
-import CatalogPagination from "@/features/catalog/components/CatalogPagination.svelte";
-import CatalogResultsEmpty from "@/features/catalog/components/CatalogResultsEmpty.svelte";
-import CatalogResultsSummary from "@/features/catalog/components/CatalogResultsSummary.svelte";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import {
-  catalogShowingSummary,
-  optionalCatalogFilterSummary,
-} from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/stores";
+import ActiveFilters from "$lib/components/ActiveFilters.svelte";
+import FilterToolbar from "$lib/components/FilterToolbar.svelte";
+import ListPagination from "$lib/components/ListPagination.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
+import SearchField from "$lib/components/SearchField.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field";
-import { Input } from "$lib/components/ui/input/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import { removeYoungFilter } from "../lib/young-navigation";
 import YoungBrowseNav from "./YoungBrowseNav.svelte";
 
 type Props = {
@@ -42,7 +41,9 @@ const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
 function pageHref(targetPage: number) {
-  return catalogListPageHref($appPage.url, targetPage);
+  const params = new URLSearchParams($appPage.url.searchParams);
+  params.set("page", String(targetPage));
+  return `${$appPage.url.pathname}?${params}`;
 }
 
 function organizerHref(id: string) {
@@ -57,20 +58,15 @@ function formatSourceDate(value: string | null) {
   return value ? value.slice(0, 16).replace("T", " ") : "-";
 }
 
-const summaryBase = $derived(
-  catalogShowingSummary(
-    youngCopy.organizersShowing,
-    data.length,
-    pagination.total,
-  ),
-);
-const searchSummary = $derived(
-  optionalCatalogFilterSummary(search, youngCopy.searchFor, "{query}"),
+const summary = $derived(
+  youngCopy.organizersShowing
+    .replace("{count}", String(data.length))
+    .replace("{total}", String(pagination.total)),
 );
 </script>
 
 {#snippet paginationFooter()}
-  <CatalogPagination
+  <ListPagination
     ariaLabel={commonLabels.pagination}
     class="py-0"
     nextLabel={commonLabels.next}
@@ -83,9 +79,10 @@ const searchSummary = $derived(
   />
 {/snippet}
 
-<PageLayout description={youngCopy.organizersDescription} title={youngCopy.organizersTitle}>
+<PageLayout>
+  {#snippet header()}<PageHeader title={youngCopy.organizersTitle} description={youngCopy.organizersDescription} />{/snippet}
   <YoungBrowseNav current="organizers" copy={youngCopy} />
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
+  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
         {youngCopy.sourceFresh}
@@ -101,33 +98,24 @@ const searchSummary = $derived(
 
   <Panel footer={pagination.totalPages > 1 ? paginationFooter : undefined}>
     {#snippet header()}
-      <form action="/catalog/young-events/organizers" class="flex flex-wrap items-end gap-3" method="get">
-        <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
-        <Field.Field class="min-w-48 flex-1">
-          <Field.FieldLabel for="young-organizer-search">
-            {commonLabels.search}
-          </Field.FieldLabel>
-          <Input
-            id="young-organizer-search"
-            name="search"
-            placeholder={youngCopy.organizerSearchPlaceholder}
-            type="search"
-            value={search ?? ""}
-          />
-        </Field.Field>
-        <Button type="submit">{commonLabels.search}</Button>
-        <Button href="/catalog/young-events/organizers" variant="outline">{commonLabels.clear}</Button>
-
-        </Field.FieldGroup>
-      </form>
+      <FilterToolbar>
+        {#snippet primary()}
+          <form action="/catalog/young-events/organizers" method="get">
+            <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+            <div class="min-w-48 flex-1"><SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} /></div>
+            <Button type="submit" class="h-11">{commonLabels.search}</Button>
+            </Field.FieldGroup>
+          </form>
+        {/snippet}
+      </FilterToolbar>
+      <ActiveFilters items={search ? [{ href: removeYoungFilter($appPage.url, "search"), label: search, removeLabel: youngCopy.removeFilter.replace("{value}", search) }] : []} ariaLabel={youngCopy.activeFilters} clearHref="/catalog/young-events/organizers" clearLabel={commonLabels.clear} />
     {/snippet}
 
     <section class="grid min-w-0 gap-3">
       <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
-      <CatalogResultsSummary
-        base={summaryBase}
+      <ResultsSummary
+        {summary}
         page={pagination.page}
-        searchText={searchSummary}
         totalPages={pagination.totalPages}
       />
       {#if data.length > 0}
@@ -191,8 +179,7 @@ const searchSummary = $derived(
         </ResponsiveCollection>
       {:else}
         <div class="py-10">
-          <CatalogResultsEmpty
-            centered
+          <ResultsEmpty
             description={youngCopy.organizersDescription}
             title={youngCopy.noOrganizersFound}
           />

@@ -16,7 +16,7 @@ export async function openCatalogFilterSheet(page: Page) {
 export async function expectCatalogFilterSheet(page: Page, labels: RegExp[]) {
   await expectNoPageHorizontalOverflow(page);
   await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-  const toolbar = page.getByTestId("catalog-mobile-filters");
+  const toolbar = page.locator('[data-slot="filter-toolbar"]');
   await expect(toolbar).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator("#main-content form form")).toHaveCount(0);
@@ -34,7 +34,7 @@ export async function expectCatalogFilterSheet(page: Page, labels: RegExp[]) {
   await expect(dialog).toBeHidden();
 
   const activeFilterControls = page
-    .getByTestId("catalog-active-filters")
+    .locator('[data-slot="active-filters"]')
     .locator("a, button");
   for (
     let index = 0;

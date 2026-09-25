@@ -5,21 +5,19 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import { Button } from "$lib/components/ui/button/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
-import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
+import LinksTabToolbar from "./LinksTabToolbar.svelte";
 import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
-export let linkSearchInput: HTMLInputElement | null;
 export let anonymousLinkGroups: AnonymousLinkGroup[];
 </script>
 
 <section class="grid gap-4">
-  <AnonymousLinksToolbar
+  <LinksTabToolbar
     {workspaceCopy}
-    bind:linkSearchInput
     bind:linkSearchQuery
   />
 

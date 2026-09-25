@@ -1,26 +1,19 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
 import { cn } from "$lib/utils.js";
 
 type PageFrameWidth = "reading" | "content" | "wide" | "full";
-
-type Props = {
-  children: Snippet;
-  class?: string;
-  description?: string;
-  title: string;
-  width?: PageFrameWidth;
-};
-
 let {
   children,
-  class: className = "",
-  description = "",
-  title,
+  header,
+  class: className,
   width = "wide",
-}: Props = $props();
-
+}: {
+  children: Snippet;
+  header?: Snippet;
+  class?: string;
+  width?: PageFrameWidth;
+} = $props();
 const widthClasses: Record<PageFrameWidth, string> = {
   reading: "page-frame-reading",
   content: "page-frame-content",
@@ -29,16 +22,7 @@ const widthClasses: Record<PageFrameWidth, string> = {
 };
 </script>
 
-<section
-  class={cn(
-    "page-frame grid gap-5",
-    widthClasses[width],
-    className,
-  )}
-  data-slot="page-layout"
->
-  <PageHeader {description} {title} />
-  <div class="min-w-0" data-slot="page-layout-content">
-    {@render children()}
-  </div>
+<section class={cn("page-frame grid gap-5", widthClasses[width], className)} data-slot="page-layout">
+  {#if header}{@render header()}{/if}
+  <div class="grid min-w-0 gap-5" data-slot="page-layout-content">{@render children()}</div>
 </section>

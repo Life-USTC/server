@@ -92,6 +92,8 @@ test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/moderation");
   await expect(page).toHaveURL(/\/admin\/moderation(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+Shift+K");
+  await expect(page.getByRole("searchbox")).toBeFocused();
   await captureStepScreenshot(page, testInfo, "admin-moderation-home");
 });
 

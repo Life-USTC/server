@@ -58,6 +58,8 @@ test.describe("仪表盘网站链接", () => {
       name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
     });
     await expect(searchInput).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+Shift+K");
+    await expect(searchInput).toBeFocused();
     await expect(
       page.getByRole("link", { name: /教务系统/i }).first(),
     ).toBeVisible();
@@ -149,7 +151,7 @@ test.describe("仪表盘网站链接", () => {
       name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
     });
     await expect(searchInput).toBeVisible();
-    await searchInput.click();
+    await page.keyboard.press("ControlOrMeta+Shift+K");
     await expect(searchInput).toBeFocused();
 
     // Search for a specific link

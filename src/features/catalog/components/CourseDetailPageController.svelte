@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -118,19 +119,14 @@ $: displayName =
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="bg-card">
-    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
+<DetailPageLayout>
+  {#snippet header()}
     <PageHeader
       title={displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
     />
-    </div>
-  </div>
+  {/snippet}
 
-  <div class="min-w-0 min-h-0 overflow-y-auto" data-detail-scroll-container>
-    <div class="page-frame page-frame-content grid min-h-full gap-8 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10 sm:px-5 lg:px-6">
-      <div class="grid min-w-0 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:course:${data.course.id}`}
             {#if DescriptionCard}
@@ -218,9 +214,8 @@ $: displayName =
             {/if}
           {/key}
         </section>
-      </div>
+  {#snippet aside()}
 
-      <aside class="grid min-w-0 gap-6 lg:sticky lg:top-4">
         <section id="overview">
           <CourseDetailBasicInfo
             copy={detailCopy}
@@ -228,7 +223,5 @@ $: displayName =
             {primaryName}
           />
         </section>
-      </aside>
-    </div>
-  </div>
-</section>
+  {/snippet}
+</DetailPageLayout>

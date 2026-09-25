@@ -10,7 +10,6 @@ export let workspaceCopy: WorkspaceCopy;
 export let linkActionError: string;
 export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
-export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let signedLinkGroups: SignedLinkGroup[];
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
@@ -26,5 +25,4 @@ export let updatingCatalogLinkSlug: string | null;
   {updatingCatalogLinkSlug}
   {signedLinkGroups}
   bind:linkSearchQuery
-  bind:linkSearchInput
 />

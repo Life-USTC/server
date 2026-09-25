@@ -3,6 +3,7 @@ import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -28,9 +29,10 @@ function submit(event: SubmitEvent) {
   <title>{copy.title} - Life@USTC</title>
 </svelte:head>
 
-<div class="page-frame">
-  <section class="grid gap-5">
+<PageLayout>
+{#snippet header()}
     <PageHeader description={copy.subtitle} title={copy.title} />
+{/snippet}
 
     <Panel>
       <form
@@ -75,5 +77,4 @@ function submit(event: SubmitEvent) {
         </Empty.Header>
       </Empty.Root>
     {/if}
-  </section>
-</div>
+</PageLayout>

@@ -1,24 +1,27 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
-import XIcon from "@lucide/svelte/icons/x";
 import {
   publicationDetailHref,
   publicationListHref,
 } from "@/features/publications/lib/publication-page-navigation";
+import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { goto } from "$app/navigation";
+import ActiveFilters from "$lib/components/ActiveFilters.svelte";
+import FilterToolbar from "$lib/components/FilterToolbar.svelte";
+import ListPagination from "$lib/components/ListPagination.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
+import Panel from "$lib/components/Panel.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
+import SearchField from "$lib/components/SearchField.svelte";
 import { Badge } from "$lib/components/ui/badge";
-import { Button, buttonVariants } from "$lib/components/ui/button";
+import { Button } from "$lib/components/ui/button";
 import { Checkbox } from "$lib/components/ui/checkbox";
-import * as Collapsible from "$lib/components/ui/collapsible";
-import * as Empty from "$lib/components/ui/empty";
 import * as Field from "$lib/components/ui/field";
-import { Input } from "$lib/components/ui/input";
 import * as ToggleGroup from "$lib/components/ui/toggle-group";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
-import PublicationPagination from "./PublicationPagination.svelte";
 import PublicationSourceFilter from "./PublicationSourceFilter.svelte";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type {
@@ -31,6 +34,24 @@ let {
   data,
 }: { copy: PublicationPageCopy; data: PublicationListPageData } = $props();
 let filtersOpen = $state(false);
+let query = $derived(data.filters.query ?? "");
+let sourceDraft = $state<string[]>([]);
+let levelsDraft = $state<PublicationSourceOrganizationLevel[]>([]);
+let foldDraft = $state(false);
+const advancedCount = $derived(
+  (data.filters.source?.length ?? 0) +
+    (data.filters.organizationLevel?.length ?? 0) +
+    Number(data.filters.fold ?? false),
+);
+
+function setFiltersOpen(open: boolean) {
+  if (open) {
+    sourceDraft = [...(data.filters.source ?? [])];
+    levelsDraft = [...(data.filters.organizationLevel ?? [])];
+    foldDraft = data.filters.fold ?? false;
+  }
+  filtersOpen = open;
+}
 const availableLevels = $derived([
   ...new Set(data.sourceOptions.map((option) => option.organizationLevel)),
 ]);
@@ -38,6 +59,14 @@ const returnHref = $derived(
   publicationListHref(data.filters, data.publications.pagination.page),
 );
 const activeFilters = $derived([
+  ...(data.filters.type
+    ? [
+        {
+          label: data.filters.type === "news" ? copy.news : copy.notice,
+          href: publicationListHref({ ...data.filters, type: undefined }),
+        },
+      ]
+    : []),
   ...(data.filters.query
     ? [
         {
@@ -92,103 +121,94 @@ function changeType(value: string) {
 
 <svelte:head><title>{copy.pageTitle} - Life@USTC</title></svelte:head>
 
-<section class="grid min-w-0 gap-5">
-  <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
-    {#snippet actions()}<Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>{/snippet}
-  </PageHeader>
+{#snippet pagination()}
+  <ListPagination page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} pageHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} previousPageLabel={copy.previousPage} nextLabel={copy.nextPage} nextPageLabel={copy.nextPage} ariaLabel={copy.pagination} />
+{/snippet}
 
-  <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.filters.type ?? "all", changeType} aria-label={copy.publicationType}>
-    <ToggleGroup.Item value="all">{copy.all}</ToggleGroup.Item>
-    <ToggleGroup.Item value="news">{copy.news}</ToggleGroup.Item>
-    <ToggleGroup.Item value="notice">{copy.notice}</ToggleGroup.Item>
-  </ToggleGroup.Root>
+<PageLayout>
+  {#snippet header()}
+    <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
+      {#snippet actions()}<Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>{/snippet}
+    </PageHeader>
+  {/snippet}
 
-  <form method="get" action="/news" class="min-w-0">
-    {#if data.filters.type}<input type="hidden" name="type" value={data.filters.type} />{/if}
-    <Field.Group class="min-w-0 gap-3">
-      <Field.Field orientation="horizontal" class="min-w-0 items-end gap-2">
-        <Field.Content class="min-w-0 gap-1">
-          <Field.Label for="publication-query" class="sr-only">{copy.search}</Field.Label>
-          <Input id="publication-query" name="query" type="search" value={data.filters.query ?? ""} placeholder={copy.searchPlaceholder} maxlength={200} />
-        </Field.Content>
-        <Button type="submit"><SearchIcon data-icon="inline-start" aria-hidden="true" />{copy.search}</Button>
-      </Field.Field>
-      <Collapsible.Root bind:open={filtersOpen} class="min-w-0">
-        <Collapsible.Trigger class={buttonVariants({ variant: "ghost", size: "sm" })}>
-          <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />{copy.advancedFilters}
-        </Collapsible.Trigger>
-        <div hidden={!filtersOpen}>
-          <Collapsible.Content forceMount>
-            {#key publicationListHref(data.filters)}
-              <Field.Group class="mt-3 min-w-0 gap-4 rounded-xl border bg-card p-4">
-                <Field.Group class="grid min-w-0 gap-5 md:grid-cols-2">
-                  <PublicationSourceFilter options={data.sourceOptions} selected={data.filters.source ?? []} {copy} />
-                  {#if availableLevels.length > 0}
-                    <Field.Set class="min-w-0 gap-3">
-                      <Field.Legend>{copy.organizationLevelFilter}</Field.Legend>
-                      <Field.Group class="gap-3">
-                        {#each availableLevels as level (level)}
-                          <Field.Field orientation="horizontal" class="gap-2">
-                            <Checkbox id={`publication-level-${level}`} name="organizationLevel" value={level} checked={data.filters.organizationLevel?.includes(level) ?? false} />
-                            <Field.Label for={`publication-level-${level}`}>{copy.organizationLevelLabels[level]}</Field.Label>
-                          </Field.Field>
-                        {/each}
-                      </Field.Group>
-                    </Field.Set>
-                  {/if}
-                </Field.Group>
+  <Panel footer={data.publications.pagination.totalPages > 1 ? pagination : undefined}>
+    {#snippet header()}
+      <div class="grid min-w-0 gap-3">
+        <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.filters.type ?? "all", changeType} aria-label={copy.publicationType}>
+          <ToggleGroup.Item value="all">{copy.all}</ToggleGroup.Item>
+          <ToggleGroup.Item value="news">{copy.news}</ToggleGroup.Item>
+          <ToggleGroup.Item value="notice">{copy.notice}</ToggleGroup.Item>
+        </ToggleGroup.Root>
+        <FilterToolbar filterTitle={copy.advancedFilters} activeCount={advancedCount} bind:open={() => filtersOpen, setFiltersOpen}>
+          {#snippet primary()}
+            <form method="get" action="/news" class="min-w-0">
+              {#if data.filters.type}<input type="hidden" name="type" value={data.filters.type} />{/if}
+              {#each data.filters.source ?? [] as source (source)}<input type="hidden" name="source" value={source} />{/each}
+              {#each data.filters.organizationLevel ?? [] as level (level)}<input type="hidden" name="organizationLevel" value={level} />{/each}
+              {#if data.filters.fold}<input type="hidden" name="fold" value="1" />{/if}
+              <Field.Field orientation="horizontal" class="min-w-0 items-end gap-2">
+                <SearchField id="publication-query" name="query" label={copy.search} bind:value={query} placeholder={copy.searchPlaceholder} maxlength={200} />
+                <Button type="submit" class="h-11"><SearchIcon data-icon="inline-start" aria-hidden="true" />{copy.search}</Button>
+              </Field.Field>
+            </form>
+          {/snippet}
+          {#snippet advanced()}
+            <form method="get" action="/news" class="min-w-0" onsubmit={() => { filtersOpen = false; }}>
+              {#if data.filters.type}<input type="hidden" name="type" value={data.filters.type} />{/if}
+              <input type="hidden" name="query" value={query} />
+              <Field.Group class="min-w-0 gap-5">
+                <PublicationSourceFilter options={data.sourceOptions} bind:selected={sourceDraft} {copy} />
+                {#if availableLevels.length > 0}
+                  <Field.Set class="min-w-0 gap-3">
+                    <Field.Legend>{copy.organizationLevelFilter}</Field.Legend>
+                    <Field.Group class="gap-3">
+                      {#each availableLevels as level (level)}
+                        <Field.Field orientation="horizontal" class="gap-2">
+                          <Checkbox id={`publication-level-${level}`} name="organizationLevel" value={level} checked={levelsDraft.includes(level)} onCheckedChange={(checked) => { levelsDraft = checked ? [...levelsDraft, level] : levelsDraft.filter((item) => item !== level); }} />
+                          <Field.Label for={`publication-level-${level}`}>{copy.organizationLevelLabels[level]}</Field.Label>
+                        </Field.Field>
+                      {/each}
+                    </Field.Group>
+                  </Field.Set>
+                {/if}
                 <Field.Field orientation="horizontal" class="gap-2">
-                  <Checkbox id="publication-fold" name="fold" value="1" checked={data.filters.fold ?? false} />
+                  <Checkbox id="publication-fold" name="fold" value="1" bind:checked={foldDraft} />
                   <Field.Label for="publication-fold">{copy.foldToggle}</Field.Label>
                 </Field.Field>
                 <Button type="submit" class="self-start">{copy.applyFilters}</Button>
               </Field.Group>
-            {/key}
-          </Collapsible.Content>
-        </div>
-      </Collapsible.Root>
-    </Field.Group>
-  </form>
+            </form>
+          {/snippet}
+        </FilterToolbar>
+        <ActiveFilters items={activeFilters.map((filter) => ({ ...filter, removeLabel: copy.removeFilter.replace("{filter}", filter.label) }))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} />
+      </div>
+    {/snippet}
 
-  {#if activeFilters.length > 0 || data.filters.type}
-    <nav aria-label={copy.activeFilters} class="flex min-w-0 flex-wrap items-center gap-2">
-      {#each activeFilters as filter (filter.href)}
-        <Button href={filter.href} variant="outline" size="sm" class="h-auto max-w-full py-1.5" aria-label={copy.removeFilter.replace("{filter}", filter.label)}>
-          <span class="min-w-0 whitespace-normal text-left [overflow-wrap:anywhere]">{filter.label}</span><XIcon data-icon="inline-end" aria-hidden="true" />
-        </Button>
-      {/each}
-      <Button href="/news" variant="ghost" size="sm">{copy.clearFilters}</Button>
-    </nav>
-  {/if}
-
-  <p class="text-sm text-muted-foreground" aria-live="polite">{resultsCount}</p>
-  {#if data.publications.data.length === 0}
-    <Empty.Root class="rounded-xl border bg-card py-12">
-      <Empty.Header><Empty.Title>{copy.emptyTitle}</Empty.Title><Empty.Description>{copy.emptyDescription}</Empty.Description></Empty.Header>
-    </Empty.Root>
-  {:else}
-    <ul class="grid min-w-0 divide-y rounded-xl border bg-card" aria-label={copy.pageTitle}>
-      {#each data.publications.data as item (item.id)}
-        {@const summary = publicationSummary(item.revision.title, item.revision.summary)}
-        <li class="grid min-w-0 gap-2 p-4 md:px-5 md:py-4">
-          <h2 class="min-w-0 text-base font-semibold leading-relaxed [overflow-wrap:anywhere]">
-            <a class="hover:underline" href={publicationDetailHref(item.id, returnHref)}>{item.revision.title}</a>
-          </h2>
-          <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <PublicationTypeBadge type={item.publicationType} {copy} />
-            <a class="min-w-0 hover:underline [overflow-wrap:anywhere]" href={publicationListHref({ source: [item.source.id] })}>{item.source.name}</a>
-            {#if item.revision.publishedAt}<span>{formatShanghaiDate(item.revision.publishedAt)}</span>{/if}
-            {#if item.revision.updatedAtSource && (!item.revision.publishedAt || formatShanghaiDate(item.revision.updatedAtSource) !== formatShanghaiDate(item.revision.publishedAt))}
-              <span>{copy.updatedAt}: {formatShanghaiDate(item.revision.updatedAtSource)}</span>
-            {/if}
-            {#if item.foldGroup}<Badge variant="secondary">{copy.foldSiblingCount.replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
-          </div>
-          {#if summary}<p class="line-clamp-2 min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
-        </li>
-      {/each}
-    </ul>
-    {#if data.publications.pagination.totalPages > 1}
-      <PublicationPagination page={data.publications.pagination.page} pageSize={data.publications.pagination.pageSize} total={data.publications.pagination.total} buildHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} nextLabel={copy.nextPage} ariaLabel={copy.pagination} />
+    <ResultsSummary summary={resultsCount} page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} />
+    {#if data.publications.data.length === 0}
+      <ResultsEmpty title={copy.emptyTitle} description={copy.emptyDescription} />
+    {:else}
+      <ul class="grid min-w-0 divide-y" aria-label={copy.pageTitle}>
+        {#each data.publications.data as item (item.id)}
+          {@const summary = publicationSummary(item.revision.title, item.revision.summary)}
+          <li class="grid min-w-0 gap-2 py-4">
+            <h2 class="min-w-0 text-base font-semibold leading-relaxed [overflow-wrap:anywhere]">
+              <a class="hover:underline" href={publicationDetailHref(item.id, returnHref)}>{item.revision.title}</a>
+            </h2>
+            <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <PublicationTypeBadge type={item.publicationType} {copy} />
+              <a class="min-w-0 hover:underline [overflow-wrap:anywhere]" href={publicationListHref({ source: [item.source.id] })}>{item.source.name}</a>
+              {#if item.revision.publishedAt}<span>{formatShanghaiDate(item.revision.publishedAt)}</span>{/if}
+              {#if item.revision.updatedAtSource && (!item.revision.publishedAt || formatShanghaiDate(item.revision.updatedAtSource) !== formatShanghaiDate(item.revision.publishedAt))}
+                <span>{copy.updatedAt}: {formatShanghaiDate(item.revision.updatedAtSource)}</span>
+              {/if}
+              {#if item.foldGroup}<Badge variant="secondary">{copy.foldSiblingCount.replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
+            </div>
+            {#if summary}<p class="line-clamp-2 min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
+          </li>
+        {/each}
+      </ul>
     {/if}
-  {/if}
-</section>
+  </Panel>
+</PageLayout>

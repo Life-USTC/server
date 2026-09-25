@@ -80,7 +80,8 @@
     "back": "Back",
     "userNotFound": "User not found",
     "unknown": "Unknown",
-    "campusServices": "Campus services"
+    "campusServices": "Campus services",
+    "applyFilters": "Apply filters"
   },
   "globalSearch": {
     "title": "Search",

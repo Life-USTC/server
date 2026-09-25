@@ -8,6 +8,7 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
@@ -228,9 +229,10 @@ const places = $derived(
 );
 </script>
 
-<PageLayout description={event.category ?? youngCopy.description} title={event.name}>
+<PageLayout>
+  {#snippet header()}<PageHeader title={event.name} description={event.category ?? youngCopy.description} />{/snippet}
   <YoungBrowseNav current="events" copy={youngCopy} />
-  <Button href={returnHref} variant="link" class="mb-4">{returnLabel}</Button>
+  <Button href={returnHref} variant="link">{returnLabel}</Button>
   <div class="grid gap-5">
 
       <div class="flex flex-wrap gap-2" data-testid="young-event-badges">

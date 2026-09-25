@@ -68,9 +68,33 @@ test.describe("/news 新闻与通知预览", () => {
     await sourceFilter
       .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
       .check();
-    // Closing advanced filters must not remove either selected source from GET submission.
-    await moreFilters.click();
+    // Canceling the Sheet discards its draft. Main search only submits the
+    // advanced conditions already applied in the URL.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await expect(moreFilters).toBeFocused();
+    await page
+      .getByRole("searchbox", { name: /^(搜索|Search)$/i })
+      .fill("publication");
     await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("query"))
+      .toBe("publication");
+    await expect
+      .poll(() => new URL(page.url()).searchParams.getAll("source"))
+      .toEqual([fixture.sourceId]);
+    await moreFilters.click();
+    await expect(sourceSearch).toHaveValue("");
+    await expect(
+      sourceFilter.getByRole("checkbox", {
+        name: fixture.officeSourceName,
+        exact: true,
+      }),
+    ).not.toBeChecked();
+    await sourceFilter
+      .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
+      .check();
+    await page.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
     await expect
       .poll(() => new URL(page.url()).searchParams.getAll("source"))
       .toEqual([fixture.sourceId, fixture.officeSourceId]);
@@ -97,22 +121,81 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeVisible();
   });
 
+  test("高级筛选应用当前搜索草稿并重置页码", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(
+      page,
+      `/news?source=${encodeURIComponent(fixture.sourceId)}&page=2`,
+      { testInfo },
+    );
+    await page
+      .getByRole("searchbox", { name: /^(搜索|Search)$/i })
+      .fill("publication");
+    await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
+    const dialog = page.getByRole("dialog", { name: /更多筛选|More filters/i });
+    await expect(dialog).toBeVisible();
+    await dialog
+      .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
+      .check();
+    await dialog.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("query"))
+      .toBe("publication");
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("page"))
+      .toBeNull();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.getAll("source"))
+      .toEqual([fixture.sourceId, fixture.officeSourceId]);
+    await expect(
+      page.getByRole("searchbox", { name: /^(搜索|Search)$/i }),
+    ).toHaveValue("publication");
+  });
+
+  test("浏览器返回关闭筛选并恢复网址中的已应用条件", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      `/news?source=${encodeURIComponent(fixture.sourceId)}`,
+    );
+    const toggle = page.getByRole("button", { name: /更多筛选|More filters/i });
+    await toggle.click();
+    const dialog = page.getByRole("dialog");
+    await dialog
+      .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
+      .check();
+    await dialog.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+    await expect(dialog).toBeHidden();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.getAll("source"))
+      .toEqual([fixture.sourceId, fixture.officeSourceId]);
+    await toggle.click();
+    await expect(
+      dialog.getByRole("checkbox", {
+        name: fixture.officeSourceName,
+        exact: true,
+      }),
+    ).toBeChecked();
+    await page.goBack();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.getAll("source"))
+      .toEqual([fixture.sourceId]);
+    await expect(dialog).toBeHidden();
+    await toggle.click();
+    await expect(
+      dialog.getByRole("checkbox", { name: fixture.sourceName, exact: true }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("checkbox", {
+        name: fixture.officeSourceName,
+        exact: true,
+      }),
+    ).not.toBeChecked();
+  });
+
   test("支持按组织层级聚合筛选", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/news?organizationLevel=office", {
       testInfo,
       screenshotLabel: "news-organization-level-filter",
     });
-
-    await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
-    const levelFilter = page.getByRole("group", {
-      name: /按组织层级筛选|Filter by organization level/i,
-    });
-    await expect(
-      levelFilter.getByRole("checkbox", { name: /机关部处|Administrative/i }),
-    ).toBeChecked();
-    await expect(
-      levelFilter.getByRole("checkbox", { name: /学校机关|^University$/i }),
-    ).not.toBeChecked();
 
     // An office-level filter keeps the office source's notices and drops the
     // university-level fixture entirely.
@@ -125,6 +208,17 @@ test.describe("/news 新闻与通知预览", () => {
       page.getByRole("link", { name: fixture.title, exact: true }),
     ).toHaveCount(0);
 
+    await page.getByRole("button", { name: /更多筛选|More filters/i }).click();
+    const levelFilter = page.getByRole("group", {
+      name: /按组织层级筛选|Filter by organization level/i,
+    });
+    await expect(
+      levelFilter.getByRole("checkbox", { name: /机关部处|Administrative/i }),
+    ).toBeChecked();
+    await expect(
+      levelFilter.getByRole("checkbox", { name: /学校机关|^University$/i }),
+    ).not.toBeChecked();
+
     await levelFilter
       .getByRole("checkbox", { name: /学校机关|^University$/i })
       .check();
@@ -134,7 +228,7 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeVisible();
   });
 
-  test("分页使用链接导航并保留筛选条件", async ({ page }, testInfo) => {
+  test("分页使用键盘链接导航并保留筛选条件", async ({ page }, testInfo) => {
     const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
     await gotoAndWaitForReady(page, `/news?${sourceQuery}`, {
       testInfo,
@@ -151,7 +245,8 @@ test.describe("/news 新闻与通知预览", () => {
       "href",
       `/news?${sourceQuery}&page=2`,
     );
-    await nextPage.click();
+    await nextPage.focus();
+    await page.keyboard.press("Enter");
 
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
     await expect(
@@ -163,12 +258,25 @@ test.describe("/news 新闻与通知预览", () => {
       name: /上一页|Previous page/i,
     });
     await expect(previousPage).toHaveAttribute("href", `/news?${sourceQuery}`);
-    await expect(
-      page.getByRole("button", { name: /下一页|Next page/i }),
-    ).toBeDisabled();
+    const disabledNext = page.getByRole("button", {
+      name: /下一页|Next page/i,
+    });
+    await expect(disabledNext).toHaveAttribute(
+      "aria-label",
+      /下一页|Next page/i,
+    );
+    await expect(disabledNext).toBeDisabled();
 
-    await previousPage.click();
+    await previousPage.focus();
+    await page.keyboard.press("Enter");
     await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}$`));
+
+    const secondPage = page.locator(
+      '[data-slot="list-pagination"] a[data-value="2"]',
+    );
+    await secondPage.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}&page=2$`));
   });
 
   test("从详情返回保留筛选和分页，可逐项移除筛选", async ({

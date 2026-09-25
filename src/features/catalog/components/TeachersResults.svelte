@@ -9,11 +9,11 @@ import {
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as appPage } from "$app/stores";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
-import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherListCommonLabels,
@@ -55,12 +55,11 @@ $: pageLabel = teacherLabels.pageOf
 </script>
 
 <section class="grid min-w-0 gap-3">
-  <CatalogResultsSummary
-    base={teacherSummaryBase}
+  <ResultsSummary summary={[teacherSummaryBase, teacherSearchSummary, teacherDepartmentSummary].filter(Boolean).join(" ")}
+
     {page}
-    {pageLabel}
-    searchText={teacherSearchSummary}
-    semesterText={teacherDepartmentSummary}
+
+
     {totalPages}
   />
   {#if teachers.length > 0}
@@ -149,8 +148,7 @@ $: pageLabel = teacherLabels.pageOf
     </ResponsiveCollection>
   {:else}
     <div class="py-10">
-      <CatalogResultsEmpty
-        centered
+      <ResultsEmpty
         description={teacherLabels.emptyDescription}
         title={teacherLabels.noTeachersFound}
       />
