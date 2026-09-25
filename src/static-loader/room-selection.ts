@@ -20,7 +20,7 @@ export type RoomTypeOccurrence = {
 };
 
 export function selectLatestRoomInfrastructure(
-  occurrences: readonly RoomOccurrence[],
+  occurrences: Iterable<RoomOccurrence>,
   supplementalRoomTypes: readonly RoomTypeOccurrence[] = [],
 ) {
   const rooms = new Map<number, RoomOccurrence>();

@@ -12,6 +12,7 @@ import { asInt, type SnapshotRow } from "@/static-loader/snapshot-values";
 
 function fakeSnapshot(tables: Record<string, SnapshotRow[]>): Snapshot {
   return {
+    clearCachedRows() {},
     queryAll: (table: string) => tables[table] ?? [],
     queryGrouped: (table: string, parentColumn = "parent_store_id") => {
       const grouped = new Map<number, SnapshotRow[]>();

@@ -24,9 +24,19 @@ export class Snapshot {
     this.db.close();
   }
 
-  clearCachedRows(): void {
-    this.rowsByTable.clear();
-    this.rowsByParent.clear();
+  clearCachedRows(tableNames?: readonly string[]): void {
+    if (tableNames == null) {
+      this.rowsByTable.clear();
+      this.rowsByParent.clear();
+      return;
+    }
+    const tables = new Set(tableNames);
+    for (const tableName of tables) this.rowsByTable.delete(tableName);
+    for (const key of this.rowsByParent.keys()) {
+      if (tables.has(key.slice(0, key.indexOf(":")))) {
+        this.rowsByParent.delete(key);
+      }
+    }
   }
 
   metadata(): Record<string, string> {

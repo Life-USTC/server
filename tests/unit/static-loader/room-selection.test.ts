@@ -40,6 +40,18 @@ const latest: RoomOccurrence = {
 };
 
 describe("latest room infrastructure", () => {
+  it("selects the same metadata from a single-pass stream", () => {
+    function* occurrences() {
+      yield old;
+      yield latest;
+    }
+    const stream = occurrences();
+    expect(selectLatestRoomInfrastructure(stream)).toEqual(
+      selectLatestRoomInfrastructure([old, latest]),
+    );
+    expect(stream.next().done).toBe(true);
+  });
+
   it("imports lesson-only types and selects the latest whole type across sources", () => {
     const types = [
       {

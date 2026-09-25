@@ -39,6 +39,49 @@ describe("static snapshot table cache", () => {
     expect(closeMock).toHaveBeenCalledOnce();
   });
 
+  it("releases selected tables and all their groupings while retaining other tables", async () => {
+    const { Snapshot } = await import("@/static-loader/snapshot");
+    const snapshot = new Snapshot("snapshot.sqlite");
+    const roomRows = snapshot.queryAll("room");
+    const roomGroups = snapshot.queryGrouped("room");
+    const buildingRows = snapshot.queryAll("room_building");
+    const buildingGroups = snapshot.queryGrouped("room_building");
+    const buildingIds = snapshot.queryGrouped("room_building", "id");
+    const campusGroups = snapshot.queryGrouped("room_building_campus");
+    const originalReadCount = allMock.mock.calls.length;
+
+    snapshot.clearCachedRows(["room_building"]);
+
+    expect(snapshot.queryAll("room")).toBe(roomRows);
+    expect(snapshot.queryGrouped("room")).toBe(roomGroups);
+    expect(snapshot.queryGrouped("room_building_campus")).toBe(campusGroups);
+    expect(allMock).toHaveBeenCalledTimes(originalReadCount);
+    allMock.mockReturnValueOnce(buildingRows.map((row) => ({ ...row })));
+    expect(snapshot.queryAll("room_building")).not.toBe(buildingRows);
+    const rebuilt = snapshot.queryGrouped("room_building");
+    const rebuiltIds = snapshot.queryGrouped("room_building", "id");
+    expect(rebuilt).not.toBe(buildingGroups);
+    expect(rebuilt).toEqual(buildingGroups);
+    expect(rebuiltIds).not.toBe(buildingIds);
+    expect(rebuiltIds).toEqual(buildingIds);
+    expect(allMock).toHaveBeenCalledTimes(originalReadCount + 1);
+    snapshot.close();
+  });
+
+  it("keeps all caches for an empty selection and clears all when omitted", async () => {
+    const { Snapshot } = await import("@/static-loader/snapshot");
+    const snapshot = new Snapshot("snapshot.sqlite");
+    const groups = snapshot.queryGrouped("items");
+    snapshot.clearCachedRows([]);
+    expect(snapshot.queryGrouped("items")).toBe(groups);
+    expect(allMock).toHaveBeenCalledOnce();
+
+    snapshot.clearCachedRows();
+    expect(snapshot.queryGrouped("items")).not.toBe(groups);
+    expect(allMock).toHaveBeenCalledTimes(2);
+    snapshot.close();
+  });
+
   it("rejects unsafe table names", async () => {
     const { Snapshot } = await import("@/static-loader/snapshot");
     const snapshot = new Snapshot("snapshot.sqlite");
