@@ -2,14 +2,11 @@ import {
   scheduleTeacherContextSelect,
   sectionCatalogInclude,
 } from "@/features/catalog/server/academic-query-includes";
-import { toScheduleEntryDto } from "@/features/catalog/server/schedule-read-model";
+import { buildScheduleEntryDto } from "@/features/catalog/server/schedule-read-model";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import {
-  type ScheduleEntryDto,
-  subscribedScheduleEntrySchema,
-} from "@/lib/api/schemas/schedule-response-schema-core";
+import { subscribedScheduleEntrySchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
 import { paginatedQuery } from "@/lib/query-pagination";
@@ -53,7 +50,7 @@ export function toSubscribedScheduleEntryDto(
   input: SubscribedScheduleRecord,
   locale: AppLocale,
 ) {
-  const schedule = toScheduleEntryDto(input, locale) satisfies ScheduleEntryDto;
+  const schedule = buildScheduleEntryDto(input, locale);
   const teachers = schedule.teachers.map((teacher, index) => {
     const source = input.teacherParticipations[index].teacher;
     return {

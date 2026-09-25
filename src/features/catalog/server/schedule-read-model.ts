@@ -190,19 +190,21 @@ function toScheduleGroupDto(input: PublicScheduleRecord["scheduleGroup"]) {
   };
 }
 
-export function toScheduleEntryDto(
+/** Shared construction for schedule DTOs; callers validate their final schema. */
+export function buildScheduleEntryDto(
   input: PublicScheduleRecord,
   locale: AppLocale,
-): ScheduleEntryDto {
-  return scheduleEntrySchema.parse({
+) {
+  const teachers = input.teacherParticipations.map(({ teacher }) =>
+    toScheduleTeacherDto(teacher, locale),
+  );
+  return {
     ...toScheduleBaseDto(input),
     room: input.room ? toScheduleRoomDto(input.room, locale) : null,
-    teachers: input.teacherParticipations.map(({ teacher }) =>
-      toScheduleTeacherDto(teacher, locale),
-    ),
+    teachers,
     teacherParticipations: input.teacherParticipations.map(
-      ({ teacher, periods, exerciseClass }) => ({
-        teacher: toScheduleTeacherDto(teacher, locale),
+      ({ periods, exerciseClass }, index) => ({
+        teacher: teachers[index],
         periods,
         exerciseClass,
       }),
@@ -275,7 +277,14 @@ export function toScheduleEntryDto(
         : null,
     },
     scheduleGroup: toScheduleGroupDto(input.scheduleGroup),
-  });
+  };
+}
+
+export function toScheduleEntryDto(
+  input: PublicScheduleRecord,
+  locale: AppLocale,
+): ScheduleEntryDto {
+  return scheduleEntrySchema.parse(buildScheduleEntryDto(input, locale));
 }
 
 export function toSectionScheduleEntryDto(
