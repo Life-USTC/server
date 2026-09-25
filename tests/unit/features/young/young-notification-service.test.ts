@@ -27,6 +27,7 @@ vi.mock("@/features/calendar/server/calendar-export-invalidation", () => ({
 }));
 
 import {
+  countUnreadYoungNotifications,
   listYoungNotifications,
   readYoungNotification,
   refreshYoungNotifications,
@@ -53,6 +54,19 @@ beforeEach(() => {
   mocks.tx.userYoungOrganizerSubscription.findMany.mockResolvedValue([]);
 });
 describe("Young notification refresh and inbox", () => {
+  it("counts only the owner's unread, unexpired reminders without refreshing", async () => {
+    mocks.tx.youngNotification.count.mockResolvedValue(7);
+    expect(await countUnreadYoungNotifications("owner", now)).toBe(7);
+    expect(mocks.tx.youngNotification.count).toHaveBeenCalledWith({
+      where: {
+        userId: "owner",
+        readAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
+    expect(mocks.tx.userYoungEventSubscription.findMany).not.toHaveBeenCalled();
+    expect(mocks.tx.youngNotification.create).not.toHaveBeenCalled();
+  });
   it("deduplicates reminders by subscription lifecycle and timestamp without invalidating unchanged calendars", async () => {
     mocks.tx.userYoungEventSubscription.findMany.mockResolvedValue([
       {

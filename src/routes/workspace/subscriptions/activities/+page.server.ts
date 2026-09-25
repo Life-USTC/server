@@ -1,5 +1,8 @@
 import { redirect } from "@sveltejs/kit";
-import { listYoungNotifications } from "@/features/young/server/young-notification-service";
+import {
+  countUnreadYoungNotifications,
+  listYoungNotifications,
+} from "@/features/young/server/young-notification-service";
 import {
   listYoungEventSubscriptions,
   listYoungOrganizerSubscriptions,
@@ -18,8 +21,17 @@ export const load: PageServerLoad = async ({ locals, url, setHeaders }) => {
     page: parsePositivePage(url.searchParams.get("page")),
     pageSize: 20,
   };
+  const notifications =
+    view === "notifications"
+      ? await listYoungNotifications(userId, {
+          ...input,
+          unread: url.searchParams.get("unread") === "true",
+        })
+      : null;
   return toLoadData({
+    userId,
     copy: getWorkspacePageCopy(locals.locale),
+    unread: url.searchParams.get("unread") === "true",
     events:
       view !== "organizers" && view !== "notifications"
         ? await listYoungEventSubscriptions(userId, input)
@@ -28,9 +40,18 @@ export const load: PageServerLoad = async ({ locals, url, setHeaders }) => {
       view === "organizers"
         ? await listYoungOrganizerSubscriptions(userId, input)
         : null,
-    notifications:
-      view === "notifications"
-        ? await listYoungNotifications(userId, input)
-        : null,
+    notifications: notifications
+      ? {
+          ...notifications,
+          data: notifications.data.map((row) => ({
+            ...row,
+            createdAt: row.createdAt.toISOString(),
+            readAt: row.readAt?.toISOString() ?? null,
+            expiresAt: row.expiresAt?.toISOString() ?? null,
+          })),
+        }
+      : null,
+    unreadActivityNotificationsCount:
+      await countUnreadYoungNotifications(userId),
   });
 };

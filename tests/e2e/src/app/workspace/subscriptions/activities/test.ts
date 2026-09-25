@@ -56,11 +56,19 @@ for (const viewport of [
       const reminder = page.getByRole("checkbox", {
         name: /报名截止前|registration closes/i,
       });
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
       await reminder.uncheck();
       await page
         .getByRole("button", { name: /^(保存提醒设置|Save reminders)$/ })
         .click();
       await page.reload();
+      await expect(reminder).toBeHidden();
+      await page
+        .getByRole("button", { name: /^(提醒设置|Reminder settings)$/ })
+        .click();
       await expect(reminder).not.toBeChecked();
       await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
       await expect(
@@ -69,6 +77,7 @@ for (const viewport of [
           exact: true,
         }),
       ).toBeVisible();
+      await expect(page.getByRole("checkbox")).toHaveCount(0);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       expect(
         await page.evaluate(
@@ -143,3 +152,98 @@ test("activity detail posts comments to the public youngId and preserves them on
     await cleanupCommentsForE2e([id]);
   }
 });
+
+for (const locale of ["zh-cn", "en-us"] as const) {
+  test(`activity reminders filter, localize and persist read state in ${locale}`, async ({
+    page,
+  }) => {
+    const fixture = createFixturePrisma();
+    const marker = `reminder-browser-${crypto.randomUUID()}`;
+    await signInAsDebugUser(page, "/workspace/subscriptions/activities");
+    const session = await (
+      await page.request.get("/api/auth/get-session")
+    ).json();
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: locale, url: new URL(page.url()).origin },
+      ]);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await fixture.youngEvent.create({
+      data: { youngId: marker, name: marker, isActive: true, rawJson: {} },
+    });
+    const createdAt = new Date();
+    await fixture.youngNotification.create({
+      data: {
+        id: marker,
+        userId: session.user.id,
+        youngId: marker,
+        kind: "signup_deadline",
+        title: marker,
+        body: "报名即将截止 / Registration closes soon",
+        createdAt,
+        dedupeKey: marker,
+      },
+    });
+    try {
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/subscriptions/activities?view=notifications&unread=true",
+      );
+      const card = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
+      await expect(card).toBeVisible();
+      await expect(
+        card.getByText(
+          locale === "zh-cn" ? "报名即将截止" : "Registration deadline",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        card.getByText("报名即将截止 / Registration closes soon", {
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(card.locator("time")).toHaveAttribute("datetime", /T/);
+      await expect(
+        card.getByRole("link", { name: /^(查看活动|View activity)$/ }),
+      ).toHaveAttribute("href", `/catalog/young-events/${marker}`);
+      const read = card.getByRole("button", { name: /^(标记已读|Mark read)$/ });
+      await page.route(
+        `**/api/workspace/young-notifications/${marker}/read`,
+        (route) => route.fulfill({ status: 503, body: "unavailable" }),
+        { times: 1 },
+      );
+      await read.click();
+      await expect(
+        page.getByText(/操作失败，请重试|Could not complete the request/),
+      ).toBeVisible();
+      await expect(card).toBeVisible();
+      await read.click();
+      await expect(card).toHaveCount(0);
+      await page
+        .getByRole("radio", { name: /^(全部提醒|All reminders)$/ })
+        .click();
+      await expect(page).not.toHaveURL(/unread=true/);
+      await expect(card).toBeVisible();
+      await expect(read).toHaveCount(0);
+      expect(
+        (
+          await fixture.youngNotification.findUniqueOrThrow({
+            where: { id: marker },
+          })
+        ).readAt,
+      ).not.toBeNull();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+    } finally {
+      await fixture.youngNotification.deleteMany({ where: { id: marker } });
+      await fixture.youngEvent.delete({ where: { youngId: marker } });
+      await fixture.$disconnect();
+    }
+  });
+}
