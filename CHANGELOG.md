@@ -1,3 +1,10 @@
+## [1.121.2](https://github.com/Life-USTC/server/compare/v1.121.1...v1.121.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* **web:** improve campus news and second-classroom hierarchy ([#1121](https://github.com/Life-USTC/server/issues/1121)) ([1e87f9a](https://github.com/Life-USTC/server/commit/1e87f9afcf957ad05bdfc305d8dd5a43ee14750c))
+
 ## [1.121.1](https://github.com/Life-USTC/server/compare/v1.121.0...v1.121.1) (2026-09-24)
 
 
