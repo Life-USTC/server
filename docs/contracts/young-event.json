@@ -32,6 +32,12 @@
           "/catalog/young-events/calendar",
           "/catalog/young-events/organizers",
           "/catalog/young-events/organizers/[organizerId]"
+        ],
+        "notes": [
+          "Activity list and calendar retain shared search/category/module/level/organizer/source-list filters; detail return links preserve the originating catalog browse route. Unknown-date results show their active filter explicitly.",
+          "Web organizer browsing orders organizers with at least one isActive event first, then others; each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and MCP organizer ordering remains alphabetical.",
+          "Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external; poster, statistics and record metadata are expandable.",
+          "Month mobile agendas exclude adjacent-month padding and initially show the selected date onward; earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify their current view and title the matching date range."
         ]
       },
       "rest": {

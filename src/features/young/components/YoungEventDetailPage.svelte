@@ -7,14 +7,19 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { page } from "$app/stores";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { buttonVariants } from "$lib/components/ui/button";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Collapsible from "$lib/components/ui/collapsible";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
+import { youngReturnHref } from "../lib/young-navigation";
+import YoungBrowseNav from "./YoungBrowseNav.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -53,6 +58,43 @@ onMount(() => {
 });
 
 const youngCopy = $derived(copy.youngEvents);
+const returnHref = $derived(
+  youngReturnHref($page.url.searchParams.get("returnTo")),
+);
+const returnLabel = $derived(
+  returnHref.includes("/calendar")
+    ? youngCopy.backToCalendar
+    : returnHref.includes("/organizers")
+      ? youngCopy.backToOrganizers
+      : youngCopy.backToList,
+);
+const overviewFields = $derived([
+  {
+    label: youngCopy.eventTime,
+    value: formatRange(event.startAt, event.endAt) ?? youngCopy.unknownTime,
+  },
+  {
+    label: youngCopy.location,
+    value:
+      event.location ??
+      (event.places
+        ?.map((place) => place.placeInfo)
+        .filter(Boolean)
+        .join(" · ") ||
+        youngCopy.unknownValue),
+  },
+  {
+    label: youngCopy.hours,
+    value: event.hours == null ? youngCopy.unknownValue : String(event.hours),
+  },
+  {
+    label: youngCopy.signupDeadline,
+    value:
+      event.requiresSignup === false
+        ? youngCopy.signupNotRequired
+        : (formatDateTime(event.applyEndAt) ?? youngCopy.unknownTime),
+  },
+]);
 
 function formatDateTime(value: string | null) {
   return youngDateTime(value);
@@ -85,7 +127,6 @@ function placeRange(start: string | null, end: string | null) {
 const badges = $derived(
   [
     ...new Set([
-      event.status,
       event.activityLevel,
       event.module,
       event.form,
@@ -188,41 +229,16 @@ const places = $derived(
 </script>
 
 <PageLayout description={event.category ?? youngCopy.description} title={event.name}>
+  <YoungBrowseNav current="events" copy={youngCopy} />
+  <Button href={returnHref} variant="link" class="mb-4">{returnLabel}</Button>
   <div class="grid gap-5">
-    <div
-      class="flex flex-wrap items-center justify-between gap-3 text-sm"
-      data-testid="young-source-freshness"
-    >
-      <span class="text-muted-foreground">
-        {#if source.status === "fresh"}
-          {youngCopy.sourceFresh}
-        {:else if source.status === "stale"}
-          {youngCopy.sourceStale}
-        {:else}
-          {youngCopy.sourceUnknown}
-        {/if}
-        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-      </span>
-      {#if event.sourceMissing}
-        <span class="text-muted-foreground">{youngCopy.sourceMissing}</span>
-      {/if}
-    </div>
 
-    {#if event.imageUrl}
-      <img
-        alt={event.name}
-        class="max-h-96 w-full rounded-lg object-contain"
-        src={event.imageUrl}
-      />
-    {/if}
-
-    {#if badges.length > 0}
       <div class="flex flex-wrap gap-2" data-testid="young-event-badges">
+        <Badge variant={event.isActive ? "default" : "outline"}>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Badge>
         {#each badges as badge (badge)}
           <Badge variant="secondary">{badge}</Badge>
         {/each}
       </div>
-    {/if}
 
     {#snippet fieldSection(title: string, fields: { label: string; value: string }[])}
       {#if fields.length > 0}
@@ -242,19 +258,40 @@ const places = $derived(
       {/if}
     {/snippet}
 
-    <div class="flex flex-wrap items-center gap-3">
-      <Button href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{youngCopy.signupCta}</Button>
-      <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
-    </div>
-    <p class="text-muted-foreground text-sm">{youngCopy.signupHint}</p>
-
-    {@render fieldSection(youngCopy.sectionTime, timeFields)}
-    {@render fieldSection(youngCopy.sectionRegistration, registrationFields)}
-    {#if event.requiresSignupInfo != null}
-      <p class="text-sm text-muted-foreground">{event.requiresSignupInfo ? youngCopy.signupInfoRequired : youngCopy.signupInfoNotRequired}</p>
+    {#if event.organizerId && event.organizer}
+      <p class="text-sm">
+        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
+        <a
+          class="underline underline-offset-4"
+          href={`/catalog/young-events/organizers/${event.organizerId}`}
+        >
+          {event.organizer}
+        </a>
+      </p>
     {/if}
-    {#if event.signupScopeCode != null || event.signupDepartmentIds.length > 0}
-      <p class="text-sm text-muted-foreground">{youngCopy.scopeHint}</p>
+
+    <Panel>
+      {#snippet header()}<h2 class="text-lg font-semibold tracking-tight">{youngCopy.activitySummary}</h2>{/snippet}
+      <dl class="grid gap-4 sm:grid-cols-2" data-testid="young-event-overview">
+        {#each overviewFields as field (field.label)}
+          <div class="grid gap-1"><dt class="text-sm text-muted-foreground">{field.label}</dt><dd class="text-sm font-medium">{field.value}</dd></div>
+        {/each}
+      </dl>
+      {#if event.sourceMissing}
+        <Alert.Root class="mt-4"><Alert.Description>{youngCopy.sourceMissing}</Alert.Description></Alert.Root>
+      {/if}
+      <div class="mt-5 grid gap-3">
+        <Button class="justify-self-start" href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{event.requiresSignup === false || !event.isActive ? youngCopy.viewOfficial : youngCopy.signupCta}</Button>
+        <p class="text-sm text-muted-foreground">{youngCopy.signupHint}</p>
+        <YoungSubscriptionControl id={event.youngId} copy={youngCopy.workspace} />
+      </div>
+    </Panel>
+
+    {#if event.imageUrl}
+      <Collapsible.Root class="grid gap-3">
+        <Collapsible.Trigger class={buttonVariants({ variant: "ghost", class: "justify-self-start" })}>{youngCopy.poster}</Collapsible.Trigger>
+        <Collapsible.Content><img alt={event.name} class="max-h-96 w-full rounded-lg object-contain" src={event.imageUrl} /></Collapsible.Content>
+      </Collapsible.Root>
     {/if}
     {#if event.description}
       <Panel>
@@ -267,8 +304,15 @@ const places = $derived(
       </Panel>
     {/if}
 
+    {@render fieldSection(youngCopy.sectionTime, timeFields)}
+    {@render fieldSection(youngCopy.sectionRegistration, registrationFields)}
+    {#if event.requiresSignupInfo != null}
+      <p class="text-sm text-muted-foreground">{event.requiresSignupInfo ? youngCopy.signupInfoRequired : youngCopy.signupInfoNotRequired}</p>
+    {/if}
+    {#if event.signupScopeCode != null || event.signupDepartmentIds.length > 0}
+      <p class="text-sm text-muted-foreground">{youngCopy.scopeHint}</p>
+    {/if}
 
-    {@render fieldSection(youngCopy.sectionPeople, peopleFields)}
     {@render fieldSection(youngCopy.sectionOrganization, organizationFields)}
 
     {#if places.length > 0 || event.location}
@@ -309,23 +353,32 @@ const places = $derived(
       </Panel>
     {/if}
 
-    {@render fieldSection(youngCopy.sectionRecord, recordFields)}
-    {#if event.organizerId && event.organizer}
-      <p class="text-sm">
-        <span class="text-muted-foreground">{youngCopy.organizer}: </span>
-        <a
-          class="underline underline-offset-4"
-          href={`/catalog/young-events/organizers/${event.organizerId}`}
-        >
-          {event.organizer}
-        </a>
-      </p>
+    {#if peopleFields.length || recordFields.length}
+    <Collapsible.Root class="grid gap-3">
+      <Collapsible.Trigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{youngCopy.moreDetails}</Collapsible.Trigger>
+      <Collapsible.Content class="grid gap-5">
+        {@render fieldSection(youngCopy.sectionPeople, peopleFields)}
+        {@render fieldSection(youngCopy.sectionRecord, recordFields)}
+      </Collapsible.Content>
+    </Collapsible.Root>
     {/if}
-
-    <div class="flex flex-wrap gap-3">
-      <Button href="/catalog/young-events" variant="outline">
-        {youngCopy.backToList}
-      </Button>
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 text-sm"
+      data-testid="young-source-freshness"
+    >
+      <span class="text-muted-foreground">
+        {#if source.status === "fresh"}
+          {youngCopy.sourceFresh}
+        {:else if source.status === "stale"}
+          {youngCopy.sourceStale}
+        {:else}
+          {youngCopy.sourceUnknown}
+        {/if}
+        {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
+      </span>
+      {#if event.sourceMissing}
+        <span class="text-muted-foreground">{youngCopy.sourceMissing}</span>
+      {/if}
     </div>
 
     <section id="comments" class="scroll-mt-4">

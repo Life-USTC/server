@@ -13,10 +13,14 @@ import type {
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getClientShellBootstrap } from "@/lib/shell/shell-bootstrap";
+import { page } from "$app/stores";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import { youngBrowseHref, youngDetailHref } from "../lib/young-navigation";
+import YoungBrowseNav from "./YoungBrowseNav.svelte";
 
 type Props = {
   anchorDate: string;
@@ -95,6 +99,9 @@ const calendarHref = $derived.by(() => {
     date: string,
   ) {
     const params = new URLSearchParams({ view: targetView, date });
+    for (const key of ["search", "module", "activityLevel"] as const) {
+      if (currentFilters[key]) params.set(key, currentFilters[key]);
+    }
     if (currentFilters.active != null)
       params.set("active", String(currentFilters.active));
     if (currentFilters.category)
@@ -107,21 +114,14 @@ const calendarHref = $derived.by(() => {
   };
 });
 
-function listHref() {
-  const params = new URLSearchParams();
-  if (filters.active != null) params.set("active", String(filters.active));
-  if (filters.category) params.set("category", filters.category);
-  if (filters.organizerId) params.set("organizerId", filters.organizerId);
-  return params.size > 0
-    ? `/catalog/young-events?${params.toString()}`
-    : "/catalog/young-events";
-}
-
 function unknownDatesHref() {
   const params = new URLSearchParams({
     dateUnknown: "true",
     timeBasis: filters.timeBasis,
   });
+  for (const key of ["search", "module", "activityLevel"] as const) {
+    if (filters[key]) params.set(key, filters[key]);
+  }
   if (filters.organizerId) params.set("organizerId", filters.organizerId);
   if (filters.category) params.set("category", filters.category);
   if (filters.active != null) params.set("active", String(filters.active));
@@ -134,6 +134,7 @@ function clearHref() {
 
 const calendarLabels = $derived({
   agenda: youngCopy.agenda,
+  earlierDates: youngCopy.earlierDates,
   day: youngCopy.day,
   empty: youngCopy.calendarEmpty,
   month: youngCopy.month,
@@ -147,6 +148,7 @@ const calendarLabels = $derived({
 </script>
 
 <PageLayout description={youngCopy.calendarDescription} title={youngCopy.calendarTitle} width="full">
+  <YoungBrowseNav current="calendar" copy={youngCopy} />
   <div class="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
@@ -158,10 +160,7 @@ const calendarLabels = $derived({
       {/if}
       {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
     </span>
-    <div class="flex flex-wrap gap-2">
-      <Button href={listHref()} variant="outline">{youngCopy.title}</Button>
-      <Button href="/catalog/young-events/organizers" variant="outline">{youngCopy.viewOrganizers}</Button>
-    </div>
+
   </div>
 
   <Panel>
@@ -171,12 +170,16 @@ const calendarLabels = $derived({
         class="flex flex-wrap items-end gap-3"
         method="get"
       >
+        <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+        {#each ["search", "module", "activityLevel"] as key}
+          {#if filters[key as "search" | "module" | "activityLevel"]}<input type="hidden" name={key} value={filters[key as "search" | "module" | "activityLevel"]} />{/if}
+        {/each}
         <input name="view" type="hidden" value={view} />
         <input name="date" type="hidden" value={anchorDate} />
-        <div class="grid gap-1.5">
-          <label class="text-sm font-medium" for="young-calendar-active">
+        <Field.Field class="w-auto min-w-0">
+          <Field.FieldLabel for="young-calendar-active">
             {youngCopy.signupStatus}
-          </label>
+          </Field.FieldLabel>
           <NativeSelect.Root
             id="young-calendar-active"
             name="active"
@@ -186,11 +189,11 @@ const calendarLabels = $derived({
             <NativeSelect.Option value="true">{youngCopy.statusActive}</NativeSelect.Option>
             <NativeSelect.Option value="false">{youngCopy.statusEnded}</NativeSelect.Option>
           </NativeSelect.Root>
-        </div>
-        <div class="grid gap-1.5">
-          <label class="text-sm font-medium" for="young-calendar-category">
+        </Field.Field>
+        <Field.Field class="w-auto min-w-0">
+          <Field.FieldLabel for="young-calendar-category">
             {youngCopy.category}
-          </label>
+          </Field.FieldLabel>
           <NativeSelect.Root
             id="young-calendar-category"
             name="category"
@@ -201,11 +204,11 @@ const calendarLabels = $derived({
               <NativeSelect.Option value={category}>{category}</NativeSelect.Option>
             {/each}
           </NativeSelect.Root>
-        </div>
-        <div class="grid gap-1.5">
-          <label class="text-sm font-medium" for="young-calendar-organizer">
+        </Field.Field>
+        <Field.Field class="w-auto min-w-0">
+          <Field.FieldLabel for="young-calendar-organizer">
             {youngCopy.organizerFilter}
-          </label>
+          </Field.FieldLabel>
           <NativeSelect.Root
             id="young-calendar-organizer"
             name="organizerId"
@@ -216,11 +219,11 @@ const calendarLabels = $derived({
               <NativeSelect.Option value={organizer.id}>{organizer.name}</NativeSelect.Option>
             {/each}
           </NativeSelect.Root>
-        </div>
-        <div class="grid gap-1.5">
-          <label class="text-sm font-medium" for="young-calendar-time-basis">
-            {youngCopy.eventTime}
-          </label>
+        </Field.Field>
+        <Field.Field class="w-auto min-w-0">
+          <Field.FieldLabel for="young-calendar-time-basis">
+            {youngCopy.timeBasis}
+          </Field.FieldLabel>
           <NativeSelect.Root
             id="young-calendar-time-basis"
             name="timeBasis"
@@ -229,12 +232,17 @@ const calendarLabels = $derived({
             <NativeSelect.Option value="activity">{youngCopy.eventTime}</NativeSelect.Option>
             <NativeSelect.Option value="registration">{youngCopy.signupWindow}</NativeSelect.Option>
           </NativeSelect.Root>
-        </div>
+        </Field.Field>
         <Button type="submit">{commonLabels.search}</Button>
         <Button href={clearHref()} variant="outline">{commonLabels.clear}</Button>
+
+        </Field.FieldGroup>
       </form>
     {/snippet}
 
+    {#if filters.search || filters.module || filters.activityLevel}
+      <p class="mb-3 text-sm">{youngCopy.activeFilters}: {[filters.search, filters.module, filters.activityLevel].filter(Boolean).join(" · ")} <Button href={youngBrowseHref($page.url, "events")} variant="link">{youngCopy.moreFilters}</Button></p>
+    {/if}
     {#if filters.timeBasis === "activity"}
       <p class="mb-3 text-sm text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
         {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
@@ -247,7 +255,7 @@ const calendarLabels = $derived({
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
       {anchorDate}
-      eventHref={(event) => `/catalog/young-events/${event.youngId}`}
+      eventHref={(event) => youngDetailHref(event.youngId, $page.url)}
       events={data}
       hrefFor={calendarHref}
       labels={calendarLabels}

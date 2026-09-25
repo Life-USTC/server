@@ -82,7 +82,7 @@ describe("public Young page loaders", () => {
       .mockResolvedValueOnce(page([{ youngId: "last" }], 201, 3));
     const result = await loadYoungCalendarPage(
       event(
-        "/catalog/young-events/calendar?view=week&date=2035-09-15&timeBasis=registration&organizerId=club",
+        "/catalog/young-events/calendar?view=week&date=2035-09-15&timeBasis=registration&organizerId=club&search=reading&module=智&activityLevel=校级",
       ),
     );
     expect(result.data).toEqual([
@@ -100,6 +100,9 @@ describe("public Young page loaders", () => {
         dateTo: "2035-09-16",
         timeBasis: "registration",
         organizerId: "club",
+        search: "reading",
+        module: "智",
+        activityLevel: "校级",
       }),
     );
   });
@@ -131,7 +134,7 @@ describe("public Young page loaders", () => {
       event("/catalog/young-events/organizers?search=Club&page=3"),
     );
     expect(service.listYoungOrganizers).toHaveBeenCalledWith(
-      expect.objectContaining({ search: "Club", page: 3 }),
+      expect.objectContaining({ search: "Club", page: 3, activeFirst: true }),
     );
     await loadYoungOrganizerDetailPage({
       ...event("/catalog/young-events/organizers/club?page=4"),

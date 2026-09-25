@@ -7,11 +7,14 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { page } from "$app/stores";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
+import { youngDetailHref } from "../lib/young-navigation";
+import YoungBrowseNav from "./YoungBrowseNav.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
@@ -45,6 +48,7 @@ function pageHref(page: number) {
   description={youngCopy.organizersDescription}
   title={organizer.name}
 >
+  <YoungBrowseNav current="organizers" copy={youngCopy} />
   <div class="grid gap-5">
     <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
       <span class="text-muted-foreground">
@@ -74,6 +78,7 @@ function pageHref(page: number) {
       <div><dt class="text-muted-foreground">{youngCopy.upcomingEvents}</dt><dd>{organizer.upcomingCount}</dd></div>
       <div><dt class="text-muted-foreground">{youngCopy.historyEvents}</dt><dd>{organizer.historyCount}</dd></div>
     </dl>
+    <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
       <Panel>
         {#snippet header()}
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
@@ -84,7 +89,7 @@ function pageHref(page: number) {
               <div role="listitem">
                 <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
                   {#snippet child({ props })}
-                    <a href={`/catalog/young-events/${event.youngId}`} {...props}>
+                    <a href={youngDetailHref(event.youngId, $page.url)} {...props}>
                       <Item.Content>
                         <Item.Title>{event.name}</Item.Title>
                         <Item.Description>
