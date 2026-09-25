@@ -79,7 +79,8 @@
     "error": "发生错误",
     "back": "返回",
     "userNotFound": "未找到用户",
-    "unknown": "未知"
+    "unknown": "未知",
+    "campusServices": "校园服务"
   },
   "globalSearch": {
     "title": "搜索",
@@ -773,6 +774,9 @@
       "todos": {
         "title": "待办",
         "description": "管理个人待办任务"
+      },
+      "activityNotifications": {
+        "title": "活动提醒"
       }
     },
     "viewAll": "查看全部",

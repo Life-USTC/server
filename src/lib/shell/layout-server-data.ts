@@ -68,6 +68,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       calendar: messages.workspace.nav.calendar.title,
       bus: messages.workspace.nav.bus.title,
       subscriptions: messages.workspace.nav.subscriptions.title,
+      activityNotifications: messages.workspace.nav.activityNotifications.title,
       homeworks: messages.workspace.nav.homeworks.title,
       exams: messages.workspace.nav.exams.title,
       links: messages.workspace.nav.links.title,
@@ -86,7 +87,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       groups: {
         workspace: locale === "zh-cn" ? "工作台" : "Workspace",
         publicTools: locale === "zh-cn" ? "公开工具" : "Public tools",
-        catalog: locale === "zh-cn" ? "课程目录" : "Catalog",
+        catalog: messages.common.campusServices,
         usage: locale === "zh-cn" ? "使用方式" : "Usage",
         adminTools: locale === "zh-cn" ? "管理工具" : "Admin tools",
         explore: locale === "zh-cn" ? "发现" : "Explore",

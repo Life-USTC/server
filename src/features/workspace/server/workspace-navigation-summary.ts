@@ -21,6 +21,7 @@ export type WorkspaceNavigationSection = {
 };
 
 export type WorkspaceNavigationAggregate = {
+  unreadActivityNotificationsCount: number;
   calendarItemsCount: number;
   examsCount: number;
   highlightPendingHomeworks: boolean;
@@ -30,6 +31,7 @@ export type WorkspaceNavigationAggregate = {
 };
 
 type WorkspaceNavigationCountRow = {
+  unread_activity_notifications_count: bigint;
   calendar_items_count: bigint;
   exams_count: bigint;
   highlight_pending_homeworks: boolean;
@@ -173,6 +175,10 @@ async function loadNavigationAggregate(
         )
     )
     SELECT
+      (SELECT count(*) FROM "YoungNotification"
+       WHERE "userId" = ${userId} AND "readAt" IS NULL
+         AND ("expiresAt" IS NULL OR "expiresAt" > ${referenceDate}))
+        AS unread_activity_notifications_count,
       ${subscribedSectionCount} AS subscribed_section_count,
       ${pendingTodosCount} AS pending_todos_count,
       (SELECT count(*) FROM pending_homeworks)
@@ -283,6 +289,9 @@ async function loadNavigationAggregate(
   }
 
   return {
+    unreadActivityNotificationsCount: Number(
+      row.unread_activity_notifications_count,
+    ),
     calendarItemsCount: Number(row.calendar_items_count),
     examsCount: Number(row.exams_count),
     highlightPendingHomeworks: Boolean(row.highlight_pending_homeworks),
@@ -316,6 +325,8 @@ export async function getWorkspaceNavigationSummary(
 
   return {
     userId,
+    unreadActivityNotificationsCount:
+      aggregate.unreadActivityNotificationsCount,
     calendarItemsCount: aggregate.calendarItemsCount,
     examsCount: aggregate.examsCount,
     pendingHomeworksCount: aggregate.pendingHomeworksCount,

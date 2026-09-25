@@ -1,4 +1,5 @@
 <script lang="ts">
+import BellIcon from "@lucide/svelte/icons/bell";
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
@@ -320,6 +321,13 @@ function buildShellNavGroups(
           label: copy.nav.exams,
         },
         {
+          ariaLabel: copy.nav.activityNotifications,
+          badge: workspaceNavigation?.unreadActivityNotificationsCount,
+          href: "/workspace/subscriptions/activities?view=notifications",
+          icon: BellIcon,
+          label: copy.nav.activityNotifications,
+        },
+        {
           ariaLabel: copy.nav.subscriptions,
           badge: workspaceNavigation?.subscribedSectionCount,
           href: "/workspace/subscriptions",
@@ -399,6 +407,13 @@ function buildMobileSecondaryNavGroups(
       href: "/workspace/exams",
       icon: GraduationCapIcon,
       label: copy.nav.exams,
+    },
+    {
+      ariaLabel: copy.nav.activityNotifications,
+      badge: workspaceNavigation?.unreadActivityNotificationsCount,
+      href: "/workspace/subscriptions/activities?view=notifications",
+      icon: BellIcon,
+      label: copy.nav.activityNotifications,
     },
     {
       ariaLabel: copy.nav.subscriptions,
@@ -548,6 +563,9 @@ function isActiveLink(link: ShellLink) {
   if (target.pathname === "/news") {
     return pathname === "/news" || pathname.startsWith("/news/");
   }
+  if (target.pathname === "/workspace/subscriptions/activities") {
+    return pathname === target.pathname;
+  }
   if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;
   }
@@ -588,12 +606,15 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
   const pathname = $page.url.pathname;
 
   if (link.href === "/workspace/homeworks") {
-    return [
-      "/workspace/homeworks",
-      "/workspace/todos",
-      "/workspace/exams",
-      "/workspace/subscriptions",
-    ].includes(pathname);
+    return (
+      pathname.startsWith("/workspace/subscriptions/") ||
+      [
+        "/workspace/homeworks",
+        "/workspace/todos",
+        "/workspace/exams",
+        "/workspace/subscriptions",
+      ].includes(pathname)
+    );
   }
   if (link.href === "/catalog/courses") {
     return (
@@ -604,6 +625,11 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
         "/catalog/rooms",
       ].includes(pathname) ||
       pathname.startsWith("/usage/") ||
+      pathname === "/news" ||
+      pathname.startsWith("/news/") ||
+      pathname === "/catalog/weather" ||
+      pathname === "/catalog/young-events" ||
+      pathname.startsWith("/catalog/young-events/") ||
       [
         "/catalog/courses",
         "/catalog/sections",

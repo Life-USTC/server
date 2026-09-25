@@ -50,6 +50,8 @@ describe("workspace navigation summary", () => {
 
     expect(summary).toEqual({
       userId: subscription.userId,
+      unreadActivityNotificationsCount:
+        existing.unreadActivityNotificationsCount,
       calendarItemsCount: existing.calendarItemsCount,
       examsCount: existing.examsCount,
       pendingHomeworksCount: existing.pendingHomeworksCount,

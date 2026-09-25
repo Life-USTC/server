@@ -7,10 +7,12 @@ export function workspaceNavUserSummary(user: WorkspaceUserSummary) {
 
 export function emptyWorkspaceNavStats(input: {
   pendingTodosCount: number;
+  unreadActivityNotificationsCount: number;
   user: WorkspaceUserSummary;
 }): WorkspaceNavStats {
   return {
     user: workspaceNavUserSummary(input.user),
+    unreadActivityNotificationsCount: input.unreadActivityNotificationsCount,
     calendarItemsCount: 0,
     pendingHomeworksCount: 0,
     highlightPendingHomeworks: false,

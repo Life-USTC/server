@@ -79,7 +79,8 @@
     "error": "An error occurred",
     "back": "Back",
     "userNotFound": "User not found",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "campusServices": "Campus services"
   },
   "globalSearch": {
     "title": "Search",
@@ -773,6 +774,9 @@
       "todos": {
         "title": "Todos",
         "description": "Manage your personal to-do tasks"
+      },
+      "activityNotifications": {
+        "title": "Activity reminders"
       }
     },
     "viewAll": "View all",

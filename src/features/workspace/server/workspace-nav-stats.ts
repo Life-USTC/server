@@ -26,6 +26,7 @@ export {
 } from "./workspace-user-context";
 
 export type WorkspaceNavStats = {
+  unreadActivityNotificationsCount: number;
   user: WorkspaceUserSummary;
   calendarItemsCount: number;
   pendingHomeworksCount: number;
@@ -54,7 +55,25 @@ export async function getWorkspaceNavStats(
     }
     const pendingTodosCount = await (providedPendingTodosCount ??
       countIncompleteTodos(user.id));
-    return emptyWorkspaceNavStats({ pendingTodosCount, user });
+    const unreadActivityNotificationsCount = await withUserDbContext(
+      user.id,
+      (tx) =>
+        tx.youngNotification.count({
+          where: {
+            userId: user.id,
+            readAt: null,
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: referenceNow.toDate() } },
+            ],
+          },
+        }),
+    );
+    return emptyWorkspaceNavStats({
+      pendingTodosCount,
+      unreadActivityNotificationsCount,
+      user,
+    });
   }
 
   const navigationAggregatePromise = observeWorkspaceStage({
@@ -87,6 +106,8 @@ export async function getWorkspaceNavStats(
 
   return {
     user: workspaceNavUserSummary(user),
+    unreadActivityNotificationsCount:
+      navigationAggregate.unreadActivityNotificationsCount,
     calendarItemsCount: navigationAggregate.calendarItemsCount,
     pendingHomeworksCount: navigationAggregate.pendingHomeworksCount,
     highlightPendingHomeworks: navigationAggregate.highlightPendingHomeworks,

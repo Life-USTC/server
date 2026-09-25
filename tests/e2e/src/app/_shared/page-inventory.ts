@@ -956,7 +956,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       },
       {
         id: "publication-source-filter",
-        role: "listbox",
+        role: "checkbox",
         e2eSpec: E2E.news,
         evidence: "支持来源多选筛选",
       },

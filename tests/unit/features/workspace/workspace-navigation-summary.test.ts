@@ -33,6 +33,7 @@ describe("workspace navigation summary", () => {
     ]);
     queryRawMock.mockResolvedValue([
       {
+        unread_activity_notifications_count: 2n,
         calendar_items_count: 12n,
         exams_count: 2n,
         pending_homeworks_count: 3n,
@@ -54,6 +55,7 @@ describe("workspace navigation summary", () => {
       ),
     ).resolves.toEqual({
       userId: "user-1",
+      unreadActivityNotificationsCount: 2,
       calendarItemsCount: 12,
       examsCount: 2,
       pendingHomeworksCount: 3,
@@ -80,6 +82,9 @@ describe("workspace navigation summary", () => {
     expect(sql).toContain('FROM "HomeworkCompletion"');
     expect(sql).toContain('FROM "Todo"');
     expect(sql).toContain('FROM "Exam"');
+    expect(sql).toContain('FROM "YoungNotification"');
+    expect(sql).toContain('"readAt" IS NULL');
+    expect(sql).toContain('"expiresAt" >');
     expect(sql).not.toContain("calendarFeedToken");
   });
 
