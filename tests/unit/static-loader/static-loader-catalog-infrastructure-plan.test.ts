@@ -13,6 +13,20 @@ import { asInt, type SnapshotRow } from "@/static-loader/snapshot-values";
 function fakeSnapshot(tables: Record<string, SnapshotRow[]>): Snapshot {
   return {
     clearCachedRows() {},
+    *iterateSemesterTables(names: string[]) {
+      yield new Map(names.map((name) => [name, tables[name] ?? []]));
+    },
+    groupByParent: (rows: SnapshotRow[]) => {
+      const groups = new Map<number, SnapshotRow[]>();
+      for (const row of rows) {
+        const parent = asInt(row.parent_store_id);
+        if (parent == null) continue;
+        const children = groups.get(parent) ?? [];
+        children.push(row);
+        groups.set(parent, children);
+      }
+      return groups;
+    },
     queryAll: (table: string) => tables[table] ?? [],
     queryGrouped: (table: string, parentColumn = "parent_store_id") => {
       const grouped = new Map<number, SnapshotRow[]>();

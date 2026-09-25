@@ -18,37 +18,45 @@ import type { Snapshot } from "./snapshot";
 import { asInt, type SnapshotRow } from "./snapshot-values";
 
 export function loadScheduleInfrastructure(snapshot: Snapshot) {
-  const buildings = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building",
-  );
-  const campuses = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building_campus",
-  );
-  const roomTypes = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room_roomType",
-  );
   function* roomOccurrences(): Generator<RoomOccurrence> {
-    for (const row of snapshot.queryAll(
-      "jw_ws_schedule_table_datum_result_scheduleList_room",
-    )) {
-      const parentId = asInt(row.store_id);
-      if (parentId == null) continue;
-      const buildingRow = firstChild(buildings, parentId);
-      const roomTypeRow = firstChild(roomTypes, parentId);
-      const room = mapRoom(row, buildingRow, roomTypeRow);
-      if (room == null) continue;
-      const campusRow = firstChild(
-        campuses,
-        asInt(buildingRow?.store_id) ?? -1,
+    const roomTable = "jw_ws_schedule_table_datum_result_scheduleList_room";
+    for (const tables of snapshot.iterateSemesterTables([
+      roomTable,
+      `${roomTable}_building`,
+      `${roomTable}_building_campus`,
+      `${roomTable}_roomType`,
+    ])) {
+      const buildings = snapshot.groupByParent(
+        tables.get(`${roomTable}_building`) ?? [],
       );
-      yield {
-        semesterCode: asInt(row.semester_id) ?? 0,
-        room,
-        building:
-          buildingRow == null ? undefined : mapBuilding(buildingRow, campusRow),
-        campus: campusRow == null ? undefined : mapCampus(campusRow),
-        roomType: roomTypeRow == null ? undefined : mapRoomType(roomTypeRow),
-      };
+      const campuses = snapshot.groupByParent(
+        tables.get(`${roomTable}_building_campus`) ?? [],
+      );
+      const roomTypes = snapshot.groupByParent(
+        tables.get(`${roomTable}_roomType`) ?? [],
+      );
+      for (const row of tables.get(roomTable) ?? []) {
+        const parentId = asInt(row.store_id);
+        if (parentId == null) continue;
+        const buildingRow = firstChild(buildings, parentId);
+        const roomTypeRow = firstChild(roomTypes, parentId);
+        const room = mapRoom(row, buildingRow, roomTypeRow);
+        if (room == null) continue;
+        const campusRow = firstChild(
+          campuses,
+          asInt(buildingRow?.store_id) ?? -1,
+        );
+        yield {
+          semesterCode: asInt(row.semester_id) ?? 0,
+          room,
+          building:
+            buildingRow == null
+              ? undefined
+              : mapBuilding(buildingRow, campusRow),
+          campus: campusRow == null ? undefined : mapCampus(campusRow),
+          roomType: roomTypeRow == null ? undefined : mapRoomType(roomTypeRow),
+        };
+      }
     }
   }
   const {
@@ -110,14 +118,6 @@ export function loadScheduleInfrastructure(snapshot: Snapshot) {
       adminClassOccurrences.push({ semesterCode, adminClass });
     }
   }
-
-  // These repeated child records are no longer needed by later mapping stages.
-  // Keep the room rows: schedule mapping still resolves rooms from them.
-  snapshot.clearCachedRows([
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building",
-    "jw_ws_schedule_table_datum_result_scheduleList_room_building_campus",
-    "jw_ws_schedule_table_datum_result_scheduleList_room_roomType",
-  ]);
 
   return {
     campuses: selectCampuses(campusOccurrences),

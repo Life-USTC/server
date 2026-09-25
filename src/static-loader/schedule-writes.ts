@@ -68,6 +68,42 @@ export async function writeSchedules(
   teacherMap: Map<number, number>,
   sectionDbIds: number[],
 ): Promise<void> {
+  const buildsBySection = new Map<number, ScheduleBuild[]>();
+  for (const build of builds) {
+    const sectionId = requiredId(
+      sectionMap,
+      build.lessonJwId,
+      `Section jwId ${build.lessonJwId} for Schedule`,
+    );
+    const sectionBuilds = buildsBySection.get(sectionId) ?? [];
+    sectionBuilds.push(build);
+    buildsBySection.set(sectionId, sectionBuilds);
+  }
+  // Reconcile complete sections, including those whose new timetable is empty.
+  // Keep all writes in the caller's single transaction, but never load the
+  // production's entire schedule history or a second resolved copy at once.
+  for (const scopeIds of chunks(sectionDbIds, 500)) {
+    await writeScheduleBatch(
+      tx,
+      scopeIds.flatMap((id) => buildsBySection.get(id) ?? []),
+      sectionMap,
+      scheduleGroupMap,
+      roomMap,
+      teacherMap,
+      scopeIds,
+    );
+  }
+}
+
+async function writeScheduleBatch(
+  tx: Prisma.TransactionClient,
+  builds: ScheduleBuild[],
+  sectionMap: Map<number, number>,
+  scheduleGroupMap: Map<number, number>,
+  roomMap: Map<number, number>,
+  teacherMap: Map<number, number>,
+  sectionDbIds: number[],
+): Promise<void> {
   const resolved: ResolvedSchedule[] = builds.map((build) => {
     const sectionId = requiredId(
       sectionMap,
@@ -166,8 +202,8 @@ export async function writeSchedules(
     if (!desiredKeys.has(key)) staleIds.push(row.id);
   }
 
-  if (staleIds.length > 0) {
-    await tx.schedule.deleteMany({ where: { id: { in: staleIds } } });
+  for (const ids of chunks(staleIds, 1000)) {
+    await tx.schedule.deleteMany({ where: { id: { in: ids } } });
   }
   await bulkUpdate(
     tx,

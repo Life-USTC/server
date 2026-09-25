@@ -505,6 +505,106 @@ describe("static import write churn", () => {
     }
   });
 
+  it("reconciles complete sections across the batch boundary without touching uncovered schedules", async () => {
+    const rollback = new Error("ROLLBACK_SCHEDULE_BATCH_SCOPE_TEST");
+    const marker = 1_600_000_000 + (Date.now() % 100_000_000);
+    try {
+      await prisma.$transaction(async (tx) => {
+        const course = await tx.course.create({
+          data: { jwId: marker, code: `${marker}`, nameCn: `${marker}` },
+        });
+        const sections = (
+          await tx.section.createManyAndReturn({
+            data: Array.from({ length: 502 }, (_, index) => ({
+              jwId: marker + index,
+              code: `${marker}-${index}`,
+              courseId: course.id,
+            })),
+          })
+        ).sort((a, b) => a.jwId - b.jwId);
+        const [staleSection, keptSection, uncoveredSection] = [
+          sections[0],
+          sections[500],
+          sections[501],
+        ];
+        const groups = await tx.scheduleGroup.createManyAndReturn({
+          data: [staleSection, keptSection, uncoveredSection].map(
+            (section) => ({
+              jwId: section.jwId,
+              sectionId: section.id,
+              no: 1,
+              limitCount: 1,
+              stdCount: 1,
+              actualPeriods: 1,
+              isDefault: true,
+            }),
+          ),
+        });
+        const sectionMap = new Map(
+          sections.map((section) => [section.jwId, section.id]),
+        );
+        const groupMap = new Map(groups.map((group) => [group.jwId, group.id]));
+        const build = (section: (typeof sections)[number]): ScheduleBuild => ({
+          periods: 2,
+          weekday: 1,
+          startTime: 750,
+          endTime: 925,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 2,
+          lessonJwId: section.jwId,
+          scheduleGroupJwId: section.jwId,
+          teacherParticipations: [],
+        });
+        await writeSchedules(
+          tx,
+          [build(staleSection), build(keptSection), build(uncoveredSection)],
+          sectionMap,
+          groupMap,
+          new Map(),
+          new Map(),
+          sections.map((section) => section.id),
+        );
+        const before = await tx.schedule.findMany({
+          where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
+          orderBy: { id: "asc" },
+        });
+        const tuples = await Promise.all(
+          before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
+        );
+        // The first 500 sections now have no schedules. The retained meeting is
+        // in the second batch; the last section is outside this source's scope.
+        await writeSchedules(
+          tx,
+          [build(keptSection)],
+          sectionMap,
+          groupMap,
+          new Map(),
+          new Map(),
+          sections.slice(0, 501).map((section) => section.id),
+        );
+        expect(
+          await tx.schedule.count({ where: { sectionId: staleSection.id } }),
+        ).toBe(0);
+        expect(
+          await tx.schedule.findMany({
+            where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
+            orderBy: { id: "asc" },
+          }),
+        ).toEqual(before);
+        expect(
+          await Promise.all(
+            before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
+          ),
+        ).toEqual(tuples);
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+    expect(await prisma.course.count({ where: { jwId: marker } })).toBe(0);
+  });
+
   it("does not rebuild unchanged section relation rows", async () => {
     const rollback = new Error("ROLLBACK_SECTION_JOIN_CHURN_TEST");
     const marker = 1_900_000_000 + (Date.now() % 100_000_000);

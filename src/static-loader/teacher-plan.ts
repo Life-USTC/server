@@ -28,7 +28,7 @@ export function loadTeachers(snapshot: Snapshot): TeacherImportPlan {
 
   const scheduleOccurrences: TeacherOccurrence[] = [];
   const scheduleRowOccurrences = new Set<string>();
-  for (const row of snapshot.queryAll(
+  for (const row of snapshot.iterateAll(
     "jw_ws_schedule_table_datum_result_scheduleList",
   )) {
     const sectionJwId = asInt(row.lessonId);

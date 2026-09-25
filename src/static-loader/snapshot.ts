@@ -61,6 +61,52 @@ export class Snapshot {
     return rows;
   }
 
+  *iterateAll(tableName: string): Generator<SnapshotRow> {
+    assertIdentifier(tableName, "table");
+    yield* this.db
+      .query(`SELECT * FROM "${tableName}"`)
+      .iterate() as Iterable<SnapshotRow>;
+  }
+
+  /** Keep large normalized tables bounded to one semester while joining children. */
+  *iterateSemesterTables(
+    tableNames: readonly string[],
+  ): Generator<Map<string, SnapshotRow[]>> {
+    const cursors = tableNames.map((tableName) => {
+      assertIdentifier(tableName, "table");
+      const iterator = this.db
+        .query(
+          `SELECT * FROM "${tableName}" ORDER BY CAST(semester_id AS INTEGER), store_id`,
+        )
+        .iterate() as IterableIterator<SnapshotRow>;
+      return { tableName, iterator, next: iterator.next() };
+    });
+    try {
+      while (cursors.some((cursor) => !cursor.next.done)) {
+        const semester = Math.min(
+          ...cursors
+            .filter((cursor) => !cursor.next.done)
+            .map((cursor) => asInt(cursor.next.value?.semester_id) ?? 0),
+        );
+        const tables = new Map<string, SnapshotRow[]>();
+        for (const cursor of cursors) {
+          const rows: SnapshotRow[] = [];
+          while (
+            !cursor.next.done &&
+            (asInt(cursor.next.value.semester_id) ?? 0) === semester
+          ) {
+            rows.push(cursor.next.value);
+            cursor.next = cursor.iterator.next();
+          }
+          tables.set(cursor.tableName, rows);
+        }
+        yield tables;
+      }
+    } finally {
+      for (const cursor of cursors) cursor.iterator.return?.();
+    }
+  }
+
   hasTable(tableName: string): boolean {
     assertIdentifier(tableName, "table");
     const row = this.db

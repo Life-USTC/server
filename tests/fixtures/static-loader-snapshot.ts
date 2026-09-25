@@ -128,17 +128,27 @@ const tables: Record<string, Row[]> = {
     {
       parent_store_id: 51,
       store_id: 61,
+      semester_id: 401,
       id: 501,
       nameZh: "Fixture building",
       code: "B1",
     },
   ],
   [`${schedule}_room_building_campus`]: [
-    { parent_store_id: 61, id: 601, nameZh: "Fixture campus", code: "C1" },
+    {
+      store_id: 62,
+      parent_store_id: 61,
+      semester_id: 401,
+      id: 601,
+      nameZh: "Fixture campus",
+      code: "C1",
+    },
   ],
   [`${schedule}_room_roomType`]: [
     {
+      store_id: 63,
       parent_store_id: 51,
+      semester_id: 401,
       id: 24,
       code: "2",
       nameZh: "Fixture scheduled room type",
@@ -207,7 +217,7 @@ try {
   db.run("BEGIN");
   for (const table of emptyTables) {
     db.run(
-      `CREATE TABLE "${table}" (store_id INTEGER, parent_store_id INTEGER)`,
+      `CREATE TABLE "${table}" (store_id INTEGER, parent_store_id INTEGER, semester_id INTEGER)`,
     );
   }
   for (const [table, rows] of Object.entries(tables)) {

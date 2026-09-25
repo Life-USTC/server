@@ -202,42 +202,47 @@ export function loadScheduleData(
     scheduleTeacherPairKeys.add(key);
     scheduleTeacherPairs.push({ sectionJwId, teacherJwId });
   };
-  const rooms = snapshot.queryGrouped(
-    "jw_ws_schedule_table_datum_result_scheduleList_room",
-  );
-  for (const row of snapshot.queryAll(
-    "jw_ws_schedule_table_datum_result_scheduleList",
-  )) {
-    const sectionJwId = asInt(row.lessonId);
-    if (sectionJwId == null || !importedSectionJwIds.has(sectionJwId)) continue;
-    if (asInt(row.scheduleGroupId) == null) {
-      throw new Error(
-        `Schedule for Section jwId ${sectionJwId} is missing scheduleGroupId`,
-      );
-    }
-    const roomJwId =
-      asInt(firstChild(rooms, asInt(row.store_id) ?? -1)?.id) ??
-      asInt(row.roomId);
-    const key = scheduleKey(row, roomJwId);
-    const personId = asInt(row.personId);
-    const teacherJwId =
-      asInt(row.teacherId) ??
-      (personId == null
-        ? undefined
-        : teacherJwIdBySectionPerson.get(`${sectionJwId}:${personId}`));
-    if (personId != null && teacherJwId == null) {
-      throw new Error(
-        `Schedule for section jwId ${sectionJwId} personId ${personId} did not resolve to a teacherId`,
-      );
-    }
-    if (teacherJwId != null) {
-      addScheduleTeacherPair(sectionJwId, teacherJwId);
-    }
-    const existing = schedulesByKey.get(key);
-    if (existing == null) {
-      schedulesByKey.set(key, mapSchedule(row, teacherJwId, roomJwId));
-    } else {
-      mergeSchedule(existing, row, teacherJwId, roomJwId);
+  const scheduleTable = "jw_ws_schedule_table_datum_result_scheduleList";
+  for (const tables of snapshot.iterateSemesterTables([
+    scheduleTable,
+    `${scheduleTable}_room`,
+  ])) {
+    const rooms = snapshot.groupByParent(
+      tables.get(`${scheduleTable}_room`) ?? [],
+    );
+    for (const row of tables.get(scheduleTable) ?? []) {
+      const sectionJwId = asInt(row.lessonId);
+      if (sectionJwId == null || !importedSectionJwIds.has(sectionJwId))
+        continue;
+      if (asInt(row.scheduleGroupId) == null) {
+        throw new Error(
+          `Schedule for Section jwId ${sectionJwId} is missing scheduleGroupId`,
+        );
+      }
+      const roomJwId =
+        asInt(firstChild(rooms, asInt(row.store_id) ?? -1)?.id) ??
+        asInt(row.roomId);
+      const key = scheduleKey(row, roomJwId);
+      const personId = asInt(row.personId);
+      const teacherJwId =
+        asInt(row.teacherId) ??
+        (personId == null
+          ? undefined
+          : teacherJwIdBySectionPerson.get(`${sectionJwId}:${personId}`));
+      if (personId != null && teacherJwId == null) {
+        throw new Error(
+          `Schedule for section jwId ${sectionJwId} personId ${personId} did not resolve to a teacherId`,
+        );
+      }
+      if (teacherJwId != null) {
+        addScheduleTeacherPair(sectionJwId, teacherJwId);
+      }
+      const existing = schedulesByKey.get(key);
+      if (existing == null) {
+        schedulesByKey.set(key, mapSchedule(row, teacherJwId, roomJwId));
+      } else {
+        mergeSchedule(existing, row, teacherJwId, roomJwId);
+      }
     }
   }
 
