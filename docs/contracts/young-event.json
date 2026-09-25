@@ -7,6 +7,8 @@
     "agent": "Can read second-classroom (第二课堂) signup events from young.ustc.edu.cn."
   },
   "rules": {
+    "shared-public-cache": "Public event lists, sanitized detail, categories, organizer identities and static counts share the revision-scoped runtime cache across Web, REST, GraphQL and MCP. Query keys include normalized filters, Shanghai date boundaries, ordering and pagination. Source freshness and organizer upcoming/history counts are evaluated against the current clock outside the snapshot cache.",
+    "private-client-overlays": "Subscription controls and calendar conflicts share the root-layout viewer state and request their private APIs with no-store only for signed-in viewers; an expired session returns the sign-in state. They never issue a separate shell bootstrap request.",
     "public-no-signin": "Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn, so sign-in is not a prerequisite for browsing.",
     "static-snapshot-sourced": "Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs) into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once and caches it in R2.",
     "snapshot-authoritative": "A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It never infers cancellation. Incomplete snapshots leave existing rows unchanged.",

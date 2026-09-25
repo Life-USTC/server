@@ -7,7 +7,7 @@ import {
   youngOrganizerSubscriptionStateSchema,
 } from "@/lib/api/schemas/young-workspace-schemas";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { getClientShellBootstrap } from "@/lib/shell/shell-bootstrap";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/stores";
 import { Badge } from "$lib/components/ui/badge";
@@ -47,6 +47,9 @@ const endpoint = $derived(
   `/api/workspace/young-${kind === "events" ? "event" : "organizer"}-subscriptions/${encodeURIComponent(id)}`,
 );
 const prefix = $props.id();
+const shellViewer = getShellViewer();
+const viewerId = $derived($shellViewer.viewer?.id ?? null);
+const viewerStatus = $derived($shellViewer.status);
 const reminderSummary = $derived(
   [
     remindSignup && copy.signupShort,
@@ -72,18 +75,26 @@ $effect(() => {
   void refresh;
   loaded = false;
   failed = false;
+  subscribed = false;
+  signedIn = false;
+  if (viewerStatus === "loading") return;
+  if (viewerStatus === "error") {
+    loaded = true;
+    failed = true;
+    return;
+  }
+  if (!viewerId) {
+    loaded = true;
+    return;
+  }
   const controller = new AbortController();
   void (async () => {
     try {
-      const { viewer } = await getClientShellBootstrap(
-        fetch,
-        controller.signal,
-      );
-      if (!viewer) {
-        signedIn = false;
-        return;
-      }
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        signal: controller.signal,
+        cache: "no-store",
+        credentials: "same-origin",
+      });
       if (response.status === 401) {
         signedIn = false;
         return;
@@ -111,6 +122,11 @@ $effect(() => {
   })();
   return () => controller.abort();
 });
+
+async function retry() {
+  if (viewerStatus === "error") await invalidateAll();
+  refresh++;
+}
 
 async function save(next: boolean) {
   if (!signedIn) {
@@ -147,7 +163,7 @@ async function save(next: boolean) {
   <div class="flex flex-wrap items-center gap-3">
     {#if failed}
       <span role="alert">{copy.failed}</span>
-      <Button variant="outline" onclick={() => refresh++}>{copy.retry}</Button>
+      <Button variant="outline" onclick={retry}>{copy.retry}</Button>
     {:else}
       <Button disabled={!loaded || busy} variant="outline" onclick={() => save(!subscribed)}>
         {!loaded ? copy.loading : !signedIn ? copy.signin : kind === "events" ? (subscribed ? copy.unsubscribe : copy.subscribe) : (subscribed ? copy.unfollow : copy.follow)}

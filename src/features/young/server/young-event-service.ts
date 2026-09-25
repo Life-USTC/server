@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import { isRecord } from "@/lib/is-record";
 import {
@@ -7,6 +8,7 @@ import {
   type PaginatedResponse,
   type PaginationInput,
 } from "@/lib/pagination";
+import { getCanonicalOrigin } from "@/lib/site-url";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import {
   endOfShanghaiDay,
@@ -369,17 +371,23 @@ function buildEventWhere(input: YoungEventListInput) {
 }
 
 export async function getYoungSourceFreshness(): Promise<YoungSourceFreshness> {
-  const row = await prisma.staticImportState.findUnique({
-    where: { id: "global" },
-    select: { youngSyncedAt: true },
-  });
-  if (!row?.youngSyncedAt) return { status: "unknown", lastSyncedAt: null };
-  const lastSyncedAt = toShanghaiIso(row.youngSyncedAt);
+  const syncedAt = await cachedCatalogRuntimeData(
+    "catalog:young-source",
+    "global",
+    getCanonicalOrigin(),
+    async () => {
+      const row = await prisma.staticImportState.findUnique({
+        where: { id: "global" },
+        select: { youngSyncedAt: true },
+      });
+      return row?.youngSyncedAt?.getTime() ?? null;
+    },
+  );
+  if (syncedAt == null) return { status: "unknown", lastSyncedAt: null };
+  const lastSyncedAt = toShanghaiIso(new Date(syncedAt));
   return {
     status:
-      Date.now() - row.youngSyncedAt.getTime() <= YOUNG_SOURCE_STALE_AFTER_MS
-        ? "fresh"
-        : "stale",
+      Date.now() - syncedAt <= YOUNG_SOURCE_STALE_AFTER_MS ? "fresh" : "stale",
     lastSyncedAt,
   };
 }
@@ -416,68 +424,93 @@ export async function listYoungEvents(
           { youngId: "asc" as const },
         ];
 
-  const [total, records, unknownDateCount, source] = await Promise.all([
-    prisma.youngEvent.count({ where }),
-    prisma.youngEvent.findMany({
-      where,
-      select: YOUNG_EVENT_SELECT,
-      orderBy: dateOrderBy,
-      skip,
-      take: pageSize,
-    }),
-    dateRange.hasRange
-      ? prisma.youngEvent.count({ where: unknownWhere })
-      : Promise.resolve(0),
+  const [result, source] = await Promise.all([
+    cachedCatalogRuntimeData(
+      "catalog:young-events-list",
+      JSON.stringify({ where, unknownWhere, dateOrderBy, page, pageSize }),
+      getCanonicalOrigin(),
+      async () => {
+        const [total, records, unknownDateCount] = await Promise.all([
+          prisma.youngEvent.count({ where }),
+          prisma.youngEvent.findMany({
+            where,
+            select: YOUNG_EVENT_SELECT,
+            orderBy: dateOrderBy,
+            skip,
+            take: pageSize,
+          }),
+          dateRange.hasRange
+            ? prisma.youngEvent.count({ where: unknownWhere })
+            : Promise.resolve(0),
+        ]);
+        return {
+          ...buildPaginatedResponse(
+            records.map(toYoungEventSummary),
+            page,
+            pageSize,
+            total,
+          ),
+          unknownDateCount,
+        };
+      },
+    ),
     getYoungSourceFreshness(),
   ]);
-
-  return {
-    ...buildPaginatedResponse(
-      records.map(toYoungEventSummary),
-      page,
-      pageSize,
-      total,
-    ),
-    unknownDateCount,
-    source,
-  };
+  return { ...result, source };
 }
 
 export async function getYoungEvent(
   youngId: string,
 ): Promise<YoungEventDetail | null> {
-  const record = await prisma.youngEvent.findUnique({
-    where: { youngId },
-    select: {
-      ...YOUNG_EVENT_SELECT,
-      rawJson: true,
-      description: true,
-      participationNotes: true,
+  return cachedCatalogRuntimeData(
+    "catalog:young-event-detail",
+    youngId,
+    getCanonicalOrigin(),
+    async () => {
+      const record = await prisma.youngEvent.findUnique({
+        where: { youngId },
+        select: {
+          ...YOUNG_EVENT_SELECT,
+          rawJson: true,
+          description: true,
+          participationNotes: true,
+        },
+      });
+      if (record == null) return null;
+      const { rawJson, description, participationNotes, ...summaryRecord } =
+        record;
+      return {
+        ...toYoungEventSummary(summaryRecord),
+        // The column holds the upstream HTML verbatim; sanitizing and image
+        // rewriting belong here, at the edge every interface shares.
+        description:
+          description == null ? null : renderYoungEventHtml(description),
+        participationNotes:
+          participationNotes == null
+            ? null
+            : renderYoungEventHtml(participationNotes),
+        rawJson,
+      };
     },
-  });
-  if (record == null) return null;
-  const { rawJson, description, participationNotes, ...summaryRecord } = record;
-  return {
-    ...toYoungEventSummary(summaryRecord),
-    // The column holds the upstream HTML verbatim; sanitizing and image
-    // rewriting belong here, at the edge every interface shares.
-    description: description == null ? null : renderYoungEventHtml(description),
-    participationNotes:
-      participationNotes == null
-        ? null
-        : renderYoungEventHtml(participationNotes),
-    rawJson,
-  };
+    { shouldCacheResult: (result) => result != null },
+  );
 }
 
 export async function listYoungEventCategories(): Promise<string[]> {
-  const rows = await prisma.youngEvent.findMany({
-    where: { category: { not: null } },
-    select: { category: true },
-    distinct: ["category"],
-    orderBy: { category: "asc" },
-  });
-  return rows
-    .map((row) => row.category)
-    .filter((category): category is string => category != null);
+  return cachedCatalogRuntimeData(
+    "catalog:young-event-categories",
+    "all",
+    getCanonicalOrigin(),
+    async () => {
+      const rows = await prisma.youngEvent.findMany({
+        where: { category: { not: null } },
+        select: { category: true },
+        distinct: ["category"],
+        orderBy: { category: "asc" },
+      });
+      return rows
+        .map((row) => row.category)
+        .filter((category): category is string => category != null);
+    },
+  );
 }

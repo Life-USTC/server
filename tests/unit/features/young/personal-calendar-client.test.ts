@@ -54,6 +54,10 @@ describe("personal calendar client", () => {
     );
     expect(result.map((value) => value.id)).toEqual(["young-1", "young-2"]);
     expect(fetchMock.mock.calls[1][0]).toContain("page=2");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      cache: "no-store",
+      credentials: "same-origin",
+    });
   });
   it("fails visibly instead of treating a failed page as an empty calendar", async () => {
     vi.stubGlobal(

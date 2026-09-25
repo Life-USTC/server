@@ -15,6 +15,7 @@
  * - Unknown youngId renders the 404 error page
  */
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -147,19 +148,100 @@ for (const width of [1280, 390]) {
         await expect(
           page.getByRole("cell", { name: /未提供 \/ 20|Not provided \/ 20/ }),
         ).toBeVisible();
-      await db.youngEvent.update({
-        where: { youngId },
-        data: { isOnline: false },
+      // Imported public facts are cached by snapshot revision. Use a second
+      // fixture for the false state rather than mutating an already-read row.
+      await db.youngEvent.create({
+        data: {
+          youngId: `${youngId}-offline`,
+          name: "Offline fixture",
+          isActive: true,
+          rawJson: {},
+          isOnline: false,
+        },
       });
-      await gotoAndWaitForReady(page, `/catalog/young-events/${youngId}`);
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/young-events/${youngId}-offline`,
+      );
       await expect(
         page.getByText(
           /^(线下活动|In-person event|提供线上会议|Online meeting available)$/,
         ),
       ).toHaveCount(0);
     } finally {
-      await db.youngEvent.delete({ where: { youngId } });
+      await db.youngEvent.deleteMany({
+        where: { youngId: { in: [youngId, `${youngId}-offline`] } },
+      });
       await disconnectTestPrisma(db);
     }
   });
 }
+
+for (const status of [200, 401]) {
+  test(`subscription resolves independently of unavailable shell navigation (${status})`, async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/workspace/overview");
+    const session = await (
+      await page.request.get("/api/auth/get-session")
+    ).json();
+    let bootstrapRequests = 0;
+    await page.route("**/_internal/shell-bootstrap", async (route) => {
+      bootstrapRequests++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ viewer: session.user, navigation: null }),
+      });
+    });
+    await page.route(
+      `**/api/workspace/young-event-subscriptions/${DEV_SEED.youngEvent.youngId}`,
+      async (route) => {
+        await route.fulfill({
+          status,
+          contentType: "application/json",
+          body: JSON.stringify(
+            status === 200
+              ? {
+                  youngId: DEV_SEED.youngEvent.youngId,
+                  subscribed: false,
+                  remindSignup: true,
+                  remindDeadline: true,
+                  remindStart: true,
+                }
+              : { error: "Unauthorized" },
+          ),
+        });
+      },
+    );
+    await gotoAndWaitForReady(page, DETAIL_PATH);
+    await expect(
+      page.getByRole("button", {
+        name:
+          status === 200
+            ? /^(订阅活动|Subscribe to event)$/
+            : /^(登录后订阅|Sign in to subscribe)$/,
+      }),
+    ).toBeEnabled();
+    await expect.poll(() => bootstrapRequests).toBe(1);
+  });
+}
+
+test("anonymous subscription state does not request private data", async ({
+  page,
+}) => {
+  let privateRequests = 0;
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname.startsWith(
+        "/api/workspace/young-event-subscriptions/",
+      )
+    )
+      privateRequests++;
+  });
+  await gotoAndWaitForReady(page, DETAIL_PATH, { browserHealth: {} });
+  await expect(
+    page.getByRole("button", { name: /^(登录后订阅|Sign in to subscribe)$/ }),
+  ).toBeEnabled();
+  expect(privateRequests).toBe(0);
+});

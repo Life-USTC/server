@@ -22,7 +22,8 @@ import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import UsersIcon from "@lucide/svelte/icons/users";
-import { onMount } from "svelte";
+import { onMount, setContext } from "svelte";
+import { writable } from "svelte/store";
 import AdminMobileNav from "@/features/admin/components/AdminMobileNav.svelte";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page } from "$app/stores";
@@ -62,6 +63,10 @@ import {
   type WorkspaceNavigationSummary,
   workspaceNavigationFromPageData,
 } from "$lib/shell/shell-bootstrap";
+import {
+  SHELL_VIEWER_CONTEXT,
+  type ShellViewerState,
+} from "$lib/shell/shell-viewer";
 import { cn } from "$lib/utils.js";
 import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
@@ -87,6 +92,16 @@ let themeMenuOpen = false;
 let contentScrollContainer: HTMLElement | undefined;
 let viewerLoading = data.resolveViewerOnClient && !data.user;
 let viewerUser = data.user;
+let viewerFailed = false;
+const shellViewer = writable<ShellViewerState>({
+  viewer: viewerUser,
+  status: viewerLoading ? "loading" : "ready",
+});
+setContext(SHELL_VIEWER_CONTEXT, shellViewer);
+$: shellViewer.set({
+  viewer: viewerUser,
+  status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
+});
 let workspaceNavigation: WorkspaceNavigationSummary | null = null;
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
@@ -98,6 +113,7 @@ $: if (!data.resolveViewerOnClient || data.user) {
   }
   viewerUser = data.user;
   viewerLoading = false;
+  viewerFailed = false;
 }
 $: pageWorkspaceNavigation = workspaceNavigationFromPageData(
   $page.data,
@@ -731,6 +747,7 @@ async function resolveClientShell() {
     viewerUser = bootstrap.viewer;
     workspaceNavigation = bootstrap.navigation;
     viewerLoading = false;
+    viewerFailed = false;
     if (
       shouldRedirectIncompleteProfileToWelcome({
         pathname: $page.url.pathname,
@@ -748,6 +765,8 @@ async function resolveClientShell() {
     if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
       return;
     }
+    viewerFailed = !viewerUser;
+    viewerLoading = false;
     if (!viewerUser) workspaceNavigation = null;
   } finally {
     if (shellBootstrapAbortController === controller) {

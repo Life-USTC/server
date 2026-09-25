@@ -1,10 +1,12 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildPaginatedResponse,
   normalizePagination,
   type PaginationInput,
 } from "@/lib/pagination";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 export type YoungOrganizerSummary = {
   id: string;
@@ -42,16 +44,29 @@ async function withEventCounts(
   };
   // These are independent facts, not partitions: an upcoming activity can also
   // be in the signup list. Missing times never imply historical activity.
-  const [total, active, upcoming, history] = await Promise.all([
-    count({}),
-    count({ isActive: true }),
+  const [staticCounts, upcoming, history] = await Promise.all([
+    cachedCatalogRuntimeData(
+      "catalog:young-organizer-counts",
+      JSON.stringify(ids),
+      getCanonicalOrigin(),
+      async () => {
+        const [total, active] = await Promise.all([
+          count({}),
+          count({ isActive: true }),
+        ]);
+        return {
+          total: Object.fromEntries(total),
+          active: Object.fromEntries(active),
+        };
+      },
+    ),
     count({ startAt: { gte: now } }),
     count({ endAt: { lte: now } }),
   ]);
   return organizers.map((organizer) => ({
     ...organizer,
-    totalCount: total.get(organizer.id) ?? 0,
-    activeCount: active.get(organizer.id) ?? 0,
+    totalCount: staticCounts.total[organizer.id] ?? 0,
+    activeCount: staticCounts.active[organizer.id] ?? 0,
     upcomingCount: upcoming.get(organizer.id) ?? 0,
     historyCount: history.get(organizer.id) ?? 0,
   }));
@@ -64,52 +79,67 @@ export async function listYoungOrganizers(input: YoungOrganizerListInput = {}) {
     ? { name: { contains: search, mode: "insensitive" } }
     : {};
   const orderBy = [{ name: "asc" as const }, { id: "asc" as const }];
-  let total: number;
-  let organizers: OrganizerIdentity[];
-  if (input.activeFirst) {
-    const activeWhere = {
-      AND: [where, { events: { some: { isActive: true } } }],
-    };
-    const counts = await Promise.all([
-      prisma.youngOrganizer.count({ where }),
-      prisma.youngOrganizer.count({ where: activeWhere }),
-    ]);
-    total = counts[0];
-    const activeCount = counts[1];
-    const activeTake = Math.max(0, Math.min(pageSize, activeCount - skip));
-    const [active, remaining] = await Promise.all([
-      activeTake
-        ? prisma.youngOrganizer.findMany({
-            where: activeWhere,
+  const { total, organizers } = await cachedCatalogRuntimeData(
+    "catalog:young-organizers-list",
+    JSON.stringify({
+      where,
+      page,
+      pageSize,
+      activeFirst: Boolean(input.activeFirst),
+    }),
+    getCanonicalOrigin(),
+    async () => {
+      let total: number;
+      let organizers: OrganizerIdentity[];
+      if (input.activeFirst) {
+        const activeWhere = {
+          AND: [where, { events: { some: { isActive: true } } }],
+        };
+        const counts = await Promise.all([
+          prisma.youngOrganizer.count({ where }),
+          prisma.youngOrganizer.count({ where: activeWhere }),
+        ]);
+        total = counts[0];
+        const activeCount = counts[1];
+        const activeTake = Math.max(0, Math.min(pageSize, activeCount - skip));
+        const [active, remaining] = await Promise.all([
+          activeTake
+            ? prisma.youngOrganizer.findMany({
+                where: activeWhere,
+                select: selectOrganizer,
+                orderBy,
+                skip,
+                take: activeTake,
+              })
+            : [],
+          activeTake < pageSize
+            ? prisma.youngOrganizer.findMany({
+                where: {
+                  AND: [where, { events: { none: { isActive: true } } }],
+                },
+                select: selectOrganizer,
+                orderBy,
+                skip: Math.max(0, skip - activeCount),
+                take: pageSize - activeTake,
+              })
+            : [],
+        ]);
+        organizers = [...active, ...remaining];
+      } else {
+        [total, organizers] = await Promise.all([
+          prisma.youngOrganizer.count({ where }),
+          prisma.youngOrganizer.findMany({
+            where,
             select: selectOrganizer,
             orderBy,
             skip,
-            take: activeTake,
-          })
-        : [],
-      activeTake < pageSize
-        ? prisma.youngOrganizer.findMany({
-            where: { AND: [where, { events: { none: { isActive: true } } }] },
-            select: selectOrganizer,
-            orderBy,
-            skip: Math.max(0, skip - activeCount),
-            take: pageSize - activeTake,
-          })
-        : [],
-    ]);
-    organizers = [...active, ...remaining];
-  } else {
-    [total, organizers] = await Promise.all([
-      prisma.youngOrganizer.count({ where }),
-      prisma.youngOrganizer.findMany({
-        where,
-        select: selectOrganizer,
-        orderBy,
-        skip,
-        take: pageSize,
-      }),
-    ]);
-  }
+            take: pageSize,
+          }),
+        ]);
+      }
+      return { total, organizers };
+    },
+  );
   return buildPaginatedResponse(
     await withEventCounts(organizers),
     page,
@@ -119,18 +149,31 @@ export async function listYoungOrganizers(input: YoungOrganizerListInput = {}) {
 }
 
 export async function getYoungOrganizer(id: string) {
-  const organizer = await prisma.youngOrganizer.findUnique({
-    where: { id },
-    select: selectOrganizer,
-  });
+  const organizer = await cachedCatalogRuntimeData(
+    "catalog:young-organizer-detail",
+    id,
+    getCanonicalOrigin(),
+    () =>
+      prisma.youngOrganizer.findUnique({
+        where: { id },
+        select: selectOrganizer,
+      }),
+    { shouldCacheResult: (result) => result != null },
+  );
   if (!organizer) return null;
   return (await withEventCounts([organizer]))[0];
 }
 
 /** Filter controls need identities only, without loading activity histories. */
 export function listYoungOrganizerOptions() {
-  return prisma.youngOrganizer.findMany({
-    select: { id: true, name: true },
-    orderBy: [{ name: "asc" }, { id: "asc" }],
-  });
+  return cachedCatalogRuntimeData(
+    "catalog:young-organizer-options",
+    "all",
+    getCanonicalOrigin(),
+    () =>
+      prisma.youngOrganizer.findMany({
+        select: { id: true, name: true },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+      }),
+  );
 }
