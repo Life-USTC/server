@@ -43,7 +43,7 @@ export let saveDescription: () => void;
       {copy.cancel}
     </Button>
     <Button
-      disabled={isSaving}
+      disabled={isSaving || isDisabled}
       type="button"
       onclick={saveDescription}
     >

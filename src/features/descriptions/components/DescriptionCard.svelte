@@ -75,28 +75,19 @@ const shellViewer = getShellViewer();
 $: shellViewerId = $shellViewer.viewer?.id ?? null;
 $: shellViewerStatus = $shellViewer.status;
 let mounted = false;
-let loadedViewerId: string | null | undefined;
 let viewerGeneration = 0;
-$: if (
-  resolveViewer &&
-  mounted &&
-  shellViewerStatus === "ready" &&
-  loadedViewerId !== shellViewerId
-) {
-  loadedViewerId = shellViewerId;
-  if (shellViewerId) {
-    void loadViewer();
-  } else {
-    viewerGeneration += 1;
-    viewer = initialData.viewer;
-    viewerLoading = false;
-    viewerFailed = false;
-  }
-}
-$: if (resolveViewer && mounted && shellViewerStatus === "error") {
+$: viewerIdentity = `${shellViewerStatus}:${shellViewerId ?? ""}`;
+$: if (resolveViewer && mounted) resetViewer(viewerIdentity);
+function resetViewer(_identity: string) {
   viewerGeneration += 1;
-  viewerLoading = false;
-  viewerFailed = true;
+  viewer = initialData.viewer;
+  isEditing = false;
+  draft = "";
+  message = "";
+  isSaving = false;
+  viewerLoading = shellViewerStatus === "loading";
+  viewerFailed = shellViewerStatus === "error";
+  if (shellViewerStatus === "ready" && shellViewerId) void loadViewer();
 }
 async function loadViewer() {
   const generation = ++viewerGeneration;
@@ -116,13 +107,17 @@ async function loadViewer() {
   }
 }
 async function retryViewer() {
-  if (shellViewerStatus === "error") await invalidateAll();
+  if (shellViewerStatus === "error") {
+    await invalidateAll();
+    return;
+  }
   if (shellViewerStatus === "ready" && shellViewerId) void loadViewer();
 }
 onMount(() => {
   mounted = true;
   return () => {
     destroyed = true;
+    viewerGeneration += 1;
   };
 });
 let isEditing = false;
@@ -150,6 +145,13 @@ function formatDate(value: string | null | undefined) {
 
 const { cancelEdit, editorName, saveDescription, startEdit } =
   createDescriptionCardActions({
+    getGeneration: () => viewerGeneration,
+    canEdit: () =>
+      !destroyed &&
+      !viewerLoading &&
+      !viewerFailed &&
+      viewer.isAuthenticated &&
+      !viewer.isSuspended,
     getCopy: () => copy,
     getDescription: () => description,
     getDraft: () => draft,
@@ -241,7 +243,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {cancelEdit}
         {copy}
         bind:draft
-        isDisabled={!viewer.isAuthenticated || viewer.isSuspended}
+        isDisabled={viewerLoading || viewerFailed || !viewer.isAuthenticated || viewer.isSuspended}
         {isSaving}
         {saveDescription}
       />

@@ -18,18 +18,25 @@ const shellViewer = getShellViewer();
 $: viewerId = $shellViewer.viewer?.id ?? null;
 $: viewerStatus = $shellViewer.status;
 let mounted = false;
-let preferencesViewerId: string | null | undefined;
-$: if (
-  mounted &&
-  viewerStatus === "ready" &&
-  preferencesViewerId !== viewerId
-) {
-  preferencesViewerId = viewerId;
-  void loadPreferences();
-}
-$: if (mounted && viewerStatus === "error") {
+let resolvedViewerId: string | null | undefined;
+$: viewerIdentity = `${viewerStatus}:${viewerId ?? ""}`;
+$: if (mounted) resetPreferences(viewerIdentity);
+function resetPreferences(_identity: string) {
+  preferencesController?.abort();
   preferencesReady = false;
-  preferencesFailed = true;
+  preferencesFailed = viewerStatus === "error";
+  signedIn = false;
+  // Preserve choices made before the first shell response. Once an identity
+  // is known, discard its planner whenever that identity becomes unavailable.
+  if (resolvedViewerId !== undefined) {
+    busData = data.bus;
+    plannerInteracted = false;
+    plannerVersion += 1;
+  }
+  if (viewerStatus === "ready") {
+    resolvedViewerId = viewerId;
+    void loadPreferences();
+  }
 }
 let busData = data.bus;
 let plannerInteracted = false;
@@ -54,6 +61,7 @@ async function loadPreferences() {
       credentials: "same-origin",
       signal: controller.signal,
     });
+    if (controller.signal.aborted) return;
     if (response.status === 401) {
       signedIn = false;
       preferencesReady = true;
@@ -73,7 +81,10 @@ async function loadPreferences() {
   }
 }
 async function retryPreferences() {
-  if (viewerStatus === "error") await invalidateAll();
+  if (viewerStatus === "error") {
+    await invalidateAll();
+    return;
+  }
   if (viewerStatus === "ready") void loadPreferences();
 }
 onMount(() => {

@@ -1,6 +1,8 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { onMount } from "svelte";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
+import { invalidateAll } from "$app/navigation";
 import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
@@ -79,6 +81,7 @@ let {
   _subscriptionPendingAction,
 } = createSectionDetailControllerDefaultState(data);
 
+const shellViewer = getShellViewer();
 let streamLoading = true;
 let personalLoading = true;
 let personalFailed = false;
@@ -96,6 +99,12 @@ $: overlayData = {
   },
 };
 async function loadPersonalData() {
+  if ($shellViewer.status !== "ready") {
+    personalFailed = $shellViewer.status === "error";
+    personalLoading = !personalFailed;
+    if (personalFailed) await invalidateAll();
+    return;
+  }
   personalAbortController?.abort();
   const controller = new AbortController();
   personalAbortController = controller;
@@ -497,13 +506,19 @@ onMount(() => {
     },
     shouldLoadHomeworks: false,
   });
-  void loadPersonalData();
+  if ($shellViewer.status === "ready") void loadPersonalData();
+  else {
+    personalFailed = $shellViewer.status === "error";
+    personalLoading = !personalFailed;
+  }
   void (async () => {
     await ensureStreamPanelsLoaded();
     scrollToFocusedHomework();
   })();
   return () => {
     personalAbortController?.abort();
+    homeworkDetailRequest += 1;
+    homeworkAuditRequest += 1;
     cleanup();
   };
 });

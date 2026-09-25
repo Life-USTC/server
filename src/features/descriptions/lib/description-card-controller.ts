@@ -12,6 +12,8 @@ import type {
 } from "./description-card-types";
 
 export function createDescriptionCardActions(input: {
+  getGeneration: () => number;
+  canEdit: () => boolean;
   getCopy: () => DescriptionCopy;
   getDescription: () => DescriptionData;
   getDraft: () => string;
@@ -27,6 +29,7 @@ export function createDescriptionCardActions(input: {
   onSuccess?: () => void;
 }) {
   function startEdit() {
+    if (!input.canEdit()) return;
     input.setDraft(input.getDescription().content ?? "");
     input.setEditing(true);
     input.setMessage("");
@@ -43,10 +46,12 @@ export function createDescriptionCardActions(input: {
   }
 
   async function reloadDescription() {
+    const generation = input.getGeneration();
     const result = await fetchDescriptionPayload({
       targetId: input.getTargetId(),
       targetType: input.getTargetType(),
     });
+    if (generation !== input.getGeneration()) return;
     if (!result.ok || !result.payload) {
       input.setMessage(input.getCopy().loadFailed);
       return;
@@ -57,6 +62,8 @@ export function createDescriptionCardActions(input: {
   }
 
   async function saveDescription() {
+    if (!input.canEdit()) return;
+    const generation = input.getGeneration();
     input.setSaving(true);
     input.setMessage("");
     try {
@@ -65,6 +72,7 @@ export function createDescriptionCardActions(input: {
         targetId: input.getTargetId(),
         content: input.getDraft().trim(),
       });
+      if (generation !== input.getGeneration()) return;
       if (!response.ok) {
         input.setMessage(input.getCopy().updateError);
         return;
@@ -72,9 +80,9 @@ export function createDescriptionCardActions(input: {
       input.setEditing(false);
       input.setDraft("");
       await reloadDescription();
-      input.onSuccess?.();
+      if (generation === input.getGeneration()) input.onSuccess?.();
     } finally {
-      input.setSaving(false);
+      if (generation === input.getGeneration()) input.setSaving(false);
     }
   }
 
