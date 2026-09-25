@@ -7,6 +7,7 @@
     "agent": "Can read course search and detail capabilities."
   },
   "rules": {
+    "public-web-personal-overlay": "Course detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in requests. Public description content and structured data remain in SSR; description permissions and comments are resolved through private client requests.",
     "stable-entity": "A course is a stable course entity and does not represent a specific semester offering.",
     "static-course-identity": "Static ingestion stores the upstream Course id unchanged as Course.jwId and upserts only by jwId. Code, names, and classification metadata are mutable attributes and never participate in identity inference. Conflicting codes for one jwId abort; other metadata is selected deterministically from the latest semester occurrence.",
     "static-section-course-link": "Each imported Section resolves the upstream Course jwId attached to its lesson parent. Static sync updates courseId on both insert and conflict update; missing Course jwId mappings abort the transaction.",

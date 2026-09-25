@@ -9,12 +9,68 @@ import {
   currentCatalogLinkReturnTo,
   submitWorkspaceLinkPinRequest,
 } from "@/features/workspace/lib/workspace-link-pin-client";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
+import { invalidateAll } from "$app/navigation";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
+import * as Alert from "$lib/components/ui/alert";
+import { Button } from "$lib/components/ui/button";
+import { Skeleton } from "$lib/components/ui/skeleton";
 import type { PageData } from "./$types";
 
 export let data: PageData;
 
+const shellViewer = getShellViewer();
+let mounted = false;
+let viewerGeneration = 0;
+$: viewerIdentity = `${$shellViewer.status}:${$shellViewer.viewer?.id ?? ""}`;
+$: if (mounted) resetViewer(viewerIdentity);
+function resetViewer(_identity: string) {
+  viewerGeneration += 1;
+  viewerController?.abort();
+  signedIn = false;
+  linkItems = data.links;
+  linkActionError = "";
+  updatingCatalogLinkSlug = null;
+  viewerLoading = $shellViewer.status === "loading";
+  viewerFailed = $shellViewer.status === "error";
+  if ($shellViewer.status === "ready" && $shellViewer.viewer)
+    void loadLinkPreferences();
+}
+async function retryViewer() {
+  if ($shellViewer.status === "error") await invalidateAll();
+  else void loadLinkPreferences();
+}
+let signedIn = false;
+let viewerLoading = true;
+let viewerFailed = false;
+let viewerController: AbortController | null = null;
+async function loadLinkPreferences() {
+  viewerController?.abort();
+  const controller = new AbortController();
+  viewerController = controller;
+  viewerLoading = true;
+  viewerFailed = false;
+  try {
+    const response = await fetch("/_internal/catalog/links/viewer", {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error("Failed to load link preferences");
+    const result = (await response.json()) as {
+      signedIn: boolean;
+      links: typeof data.links | null;
+    };
+    if (controller.signal.aborted) return;
+    signedIn = result.signedIn;
+    linkItems = result.links ?? data.links;
+  } catch {
+    if (!controller.signal.aborted) viewerFailed = true;
+  } finally {
+    if (!controller.signal.aborted) viewerLoading = false;
+  }
+}
 let linkSearchQuery = "";
 let linkActionError = "";
 let linkItems = data.links;
@@ -29,7 +85,9 @@ $: linkGroups = groupCatalogLinks(
 );
 
 async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
-  if (updatingCatalogLinkSlug) return;
+  if (updatingCatalogLinkSlug || !signedIn || viewerLoading || viewerFailed)
+    return;
+  const generation = viewerGeneration;
   updatingCatalogLinkSlug = slug;
   linkActionError = "";
   try {
@@ -39,16 +97,23 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
       returnTo: linkReturnTo,
       slug,
     });
+    if (generation !== viewerGeneration) return;
     linkItems = applyCatalogLinkPinnedSlugs(linkItems, pinnedSlugs);
   } catch (error) {
+    if (generation !== viewerGeneration) return;
     linkActionError = error instanceof Error ? error.message : "";
   } finally {
-    updatingCatalogLinkSlug = null;
+    if (generation === viewerGeneration) updatingCatalogLinkSlug = null;
   }
 }
 
 onMount(() => {
   linkReturnTo = currentCatalogLinkReturnTo();
+  mounted = true;
+  return () => {
+    viewerGeneration += 1;
+    viewerController?.abort();
+  };
 });
 </script>
 
@@ -64,7 +129,15 @@ onMount(() => {
     />
   {/snippet}
 
-  {#if data.signedIn}
+  {#if viewerLoading}
+    <Skeleton class="h-9 w-32" />
+  {:else if viewerFailed}
+    <Alert.Root variant="destructive">
+      <Alert.Description>{workspaceCopy.linkHub.loadFailed}</Alert.Description>
+      <Button variant="outline" onclick={() => void retryViewer()}>{workspaceCopy.linkHub.retry}</Button>
+    </Alert.Root>
+  {/if}
+  {#if signedIn && !viewerLoading && !viewerFailed}
     <LinksTab
       {workspaceCopy}
       {linkActionError}

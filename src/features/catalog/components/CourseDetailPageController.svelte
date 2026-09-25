@@ -89,6 +89,7 @@ $: displayName =
         <section id="introduction" class="scroll-mt-4">
           {#key `description:course:${data.course.id}`}
             <LazyDescriptionCard
+              resolveViewer
               targetType="course"
               targetId={data.course.id}
               initialData={data.descriptionData}

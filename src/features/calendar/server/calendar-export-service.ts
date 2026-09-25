@@ -82,7 +82,7 @@ export async function buildUserCalendarExport(
   });
 
   return {
-    cacheControl: "private, max-age=1800",
+    cacheControl: "private, no-store",
     filename: "life-ustc-subscriptions.ics",
     text: calendar.toString(),
   };

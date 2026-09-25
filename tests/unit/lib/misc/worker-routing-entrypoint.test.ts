@@ -304,6 +304,72 @@ describe("Worker routing entrypoint", () => {
     expect(JSON.stringify(completion)).not.toContain("private-value");
   });
 
+  it("uses the same credential-free cache request for anonymous and signed-in catalog visitors", async () => {
+    const publicSsrFetchMock = vi.fn().mockImplementation(
+      () =>
+        new Response(null, {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+    );
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
+      },
+      waitUntil: vi.fn(),
+    };
+    for (const cookie of [
+      "NEXT_LOCALE=zh-cn",
+      "NEXT_LOCALE=zh-cn; __Secure-better-auth.session_token=private-session",
+    ]) {
+      const response = await withHtmlRewriter(() =>
+        worker.fetch(
+          new Request("https://life-ustc.test/catalog/courses", {
+            headers: { accept: "text/html", cookie },
+          }),
+          {},
+          context,
+        ),
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    }
+    const requests = publicSsrFetchMock.mock.calls.map(
+      ([request]) => request as Request,
+    );
+    expect(requests).toHaveLength(2);
+    expect(requests[0].url).toBe(requests[1].url);
+    for (const request of requests) {
+      expect(request.headers.get("cookie")).toBeNull();
+      expect(request.headers.get("authorization")).toBeNull();
+      expect(request.headers.get("x-life-public-ssr")).toBe("1");
+    }
+    expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not cache a calendar page whose render crossed Shanghai midnight", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-26T15:59:59Z"));
+      appFetchMock.mockImplementation(async () => {
+        vi.setSystemTime(new Date("2026-09-26T16:00:01Z"));
+        return new Response("yesterday's calendar seed", {
+          headers: { "content-type": "text/html" },
+        });
+      });
+      const response = await new PublicSsr().fetch(
+        new Request("https://life-ustc.test/catalog/sections/159446"),
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not store per-request ids in the shared cache representation", async () => {
     appFetchMock.mockResolvedValue(
       new Response(null, {
@@ -611,6 +677,43 @@ describe("Worker routing entrypoint", () => {
     expect(response.status).toBe(401);
     expect(purgeCatalogRepresentations).not.toHaveBeenCalled();
     expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["development", "test"])(
+    "has nothing to purge when local %s workerd has no Workers Cache",
+    async (NODE_ENV) => {
+      const entrypoint = new PublicSsr();
+      Object.defineProperty(entrypoint, "env", { value: { NODE_ENV } });
+      Object.defineProperty(entrypoint, "ctx", { value: {} });
+      await expect(entrypoint.purgeCatalogRepresentations()).resolves.toEqual({
+        ok: true,
+        tags: [],
+      });
+    },
+  );
+
+  it.each(["production", undefined])(
+    "rejects an unavailable Workers Cache outside local profiles (NODE_ENV=%s)",
+    async (NODE_ENV) => {
+      const entrypoint = new PublicSsr();
+      Object.defineProperty(entrypoint, "env", { value: { NODE_ENV } });
+      Object.defineProperty(entrypoint, "ctx", { value: {} });
+      await expect(entrypoint.purgeCatalogRepresentations()).resolves.toEqual({
+        ok: false,
+        reason: "cache-unavailable",
+      });
+    },
+  );
+
+  it("still purges a cache available in the local test profile", async () => {
+    const entrypoint = new PublicSsr();
+    const purge = vi.fn().mockResolvedValue({ success: true });
+    Object.defineProperty(entrypoint, "env", { value: { NODE_ENV: "test" } });
+    Object.defineProperty(entrypoint, "ctx", { value: { cache: { purge } } });
+    await expect(
+      entrypoint.purgeCatalogRepresentations(),
+    ).resolves.toMatchObject({ ok: true, tags: ["catalog"] });
+    expect(purge).toHaveBeenCalledOnce();
   });
 
   it("purges only the catalog tag from the PublicSsr entrypoint cache", async () => {

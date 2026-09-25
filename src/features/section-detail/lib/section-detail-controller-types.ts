@@ -138,6 +138,7 @@ export type SectionDetailCopy = {
     historyTitle: string;
     lastEdited: string;
     loadFailed: string;
+    retry: string;
     loginToEdit: string;
     markdownGuide: string;
     previewEmpty: string;
@@ -386,6 +387,8 @@ export type SectionDetailPageData = {
   structuredDataJson: string;
   todayCalendarKey: string;
   viewer: {
+    loading?: boolean;
+    failed?: boolean;
     isSubscribed?: boolean;
     signedIn?: boolean;
   };

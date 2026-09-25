@@ -229,6 +229,12 @@ export type SectionDetailMainContentProps = {
   streamLoading: boolean;
   teacherName: SectionTeacherName;
   unscheduledCalendarEvents: SectionCalendarEvent[];
-  viewer: { isAuthenticated?: boolean; signedIn?: boolean };
+  viewer: {
+    isAuthenticated?: boolean;
+    signedIn?: boolean;
+    isSubscribed?: boolean;
+    loading?: boolean;
+    failed?: boolean;
+  };
   yesNo: (value: boolean | null | undefined) => string;
 };

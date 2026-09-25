@@ -66,8 +66,8 @@ async function main() {
       await writeFile(statsFile, JSON.stringify(report, null, 2));
     }
 
-    // Gated on `report.outcome === "committed"` inside the helper, which owns
-    // both cache layers and the loud-failure policy.
+    // Applied and unchanged snapshots both invalidate, so failed purges can
+    // be retried without rematerializing the snapshot.
     const purge = await runPostImportCachePurge(report);
     if (purge.failed) {
       // The import itself succeeded, so keep its report; but a stale edge

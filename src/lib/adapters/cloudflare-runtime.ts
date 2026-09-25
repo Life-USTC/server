@@ -154,6 +154,7 @@ type CloudflareRuntimeContext = {
   cleanups: Set<() => Promise<void> | void>;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
+  invalidateCatalogRepresentations?: () => Promise<void>;
   scheduleTask?: CloudflareTaskScheduler;
   tracing?: CloudflareTracing;
 };
@@ -267,6 +268,30 @@ function responseWithRuntimeCleanup(
   return new Response(body, response);
 }
 
+function normalizeCatalogInvalidator(executionContext: unknown) {
+  const context = executionContext as
+    | {
+        exports?: {
+          PublicSsr?: (options: Record<string, never>) => {
+            purgeCatalogRepresentations(): Promise<{
+              ok: boolean;
+              reason?: string;
+            }>;
+          };
+        };
+      }
+    | undefined;
+  const exports = context?.exports;
+  const publicSsr = exports?.PublicSsr;
+  if (typeof publicSsr !== "function") return undefined;
+  return async () => {
+    const result = await publicSsr({}).purgeCatalogRepresentations();
+    if (!result.ok) {
+      throw new Error(`Public SSR cache purge failed: ${result.reason}`);
+    }
+  };
+}
+
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
@@ -289,6 +314,11 @@ export function runWithCloudflareRuntimeEnv<T>(
     cleanups: new Set(),
     env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
     request: parentContext?.request,
+    // SvelteKit and the outer Worker are separate bundles. Reconstruct this
+    // capability from platform.ctx rather than relying on shared module state.
+    invalidateCatalogRepresentations:
+      normalizeCatalogInvalidator(executionContext) ??
+      parentContext?.invalidateCatalogRepresentations,
     scheduleTask:
       normalizeCloudflareTaskScheduler(executionContext) ??
       parentContext?.scheduleTask,
@@ -457,4 +487,24 @@ export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {
 
 export function getCloudflareWeatherNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.WEATHER;
+}
+
+/** Explicit injection for domain tests without a Workers execution context. */
+export function setCloudflareCatalogInvalidator(
+  invalidate: () => Promise<void>,
+) {
+  const context = cloudflareRuntimeStorage.getStore();
+  if (context) context.invalidateCatalogRepresentations = invalidate;
+}
+
+export async function invalidateCloudflareCatalogRepresentations() {
+  const context = getCloudflareRuntimeContext();
+  // Node tools and direct domain tests have no shared HTML cache.
+  if (!context) return;
+  if (!context.invalidateCatalogRepresentations) {
+    // Vite's platform proxy provides bindings but has no Worker HTML cache.
+    if (context.env?.NODE_ENV === "development") return;
+    throw new Error("Public SSR cache invalidator is unavailable");
+  }
+  await context.invalidateCatalogRepresentations();
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { youngEventMock, youngOrganizerMock, staticImportStateMock } =
   vi.hoisted(() => ({
@@ -26,13 +26,24 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+const revision = vi.hoisted(() => ({ value: "snapshot-1" }));
+vi.mock("@/lib/catalog-detail-cache-revision", () => ({
+  getCatalogDetailCacheRevision: async () => revision.value,
+}));
+vi.mock("@/lib/site-url", () => ({
+  getCanonicalOrigin: () => "https://test.example",
+}));
+
 import {
   getYoungEvent,
   getYoungOrganizer,
+  getYoungSourceFreshness,
   listYoungEventCategories,
   listYoungEvents,
   listYoungOrganizers,
 } from "@/features/young/server/young-event-service";
+import { listYoungOrganizerOptions } from "@/features/young/server/young-organizer-service";
+import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
 const RECORD = {
   youngId: "42",
@@ -86,9 +97,13 @@ const RECORD = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  resetPublicRuntimeCacheForTest();
+  revision.value = "snapshot-1";
   youngEventMock.groupBy.mockResolvedValue([]);
   staticImportStateMock.findUnique.mockResolvedValue(null);
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe("young event service", () => {
   it("lists events with filters, ordering, and pagination metadata", async () => {
@@ -334,10 +349,17 @@ describe("young event service", () => {
     youngOrganizerMock.findMany.mockResolvedValue([
       { id: "organizer-1", name: "学生会", normalizedName: "学生会" },
     ]);
-    for (const count of [3000, 10, 20, 2900])
-      youngEventMock.groupBy.mockResolvedValueOnce([
-        { organizerId: "organizer-1", _count: { _all: count } },
-      ]);
+    youngEventMock.groupBy.mockImplementation(async ({ where }) => {
+      const filter = where.AND[1];
+      const count = filter.isActive
+        ? 10
+        : filter.startAt
+          ? 20
+          : filter.endAt
+            ? 2900
+            : 3000;
+      return [{ organizerId: "organizer-1", _count: { _all: count } }];
+    });
     const listed = await listYoungOrganizers({ page: 1, pageSize: 20 });
     expect(listed.data[0]).toEqual({
       id: "organizer-1",
@@ -423,5 +445,110 @@ describe("young event service", () => {
       upcomingCount: 0,
       historyCount: 0,
     });
+  });
+});
+
+describe("young public runtime cache", () => {
+  it("coalesces equivalent event filters and separates date, pagination and revision keys", async () => {
+    youngEventMock.count.mockResolvedValue(1);
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
+    const input = {
+      search: " 读书 ",
+      dateFrom: "2026-09-10",
+      dateTo: "2026-09-11",
+    };
+    await Promise.all([
+      listYoungEvents(input),
+      listYoungEvents({ ...input, search: "读书" }),
+    ]);
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+    await listYoungEvents({
+      ...input,
+      dateFrom: new Date("2026-09-09T16:00:00Z"),
+    });
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+    await listYoungEvents({ ...input, page: 2 });
+    await listYoungEvents({ ...input, timeBasis: "registration" });
+    await listYoungEvents({ ...input, dateTo: "2026-09-12" });
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(4);
+    revision.value = "snapshot-2";
+    await listYoungEvents(input);
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(5);
+  });
+
+  it("caches sanitized detail and categories but not missing detail", async () => {
+    youngEventMock.findUnique.mockResolvedValue({
+      ...RECORD,
+      rawJson: {},
+      description: "<script>x</script><p>safe</p>",
+    });
+    const first = await getYoungEvent("42");
+    expect(first?.description).toBe("<p>safe</p>");
+    expect(await getYoungEvent("42")).toEqual(first);
+    expect(youngEventMock.findUnique).toHaveBeenCalledTimes(1);
+    youngEventMock.findUnique.mockResolvedValue(null);
+    await getYoungEvent("missing");
+    await getYoungEvent("missing");
+    expect(youngEventMock.findUnique).toHaveBeenCalledTimes(3);
+    youngEventMock.findMany.mockResolvedValue([{ category: "single" }]);
+    await listYoungEventCategories();
+    await listYoungEventCategories();
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("recalculates source freshness at the time boundary without reloading snapshot facts", async () => {
+    vi.useFakeTimers();
+    const syncedAt = new Date("2026-09-10T00:00:00Z");
+    vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
+    staticImportStateMock.findUnique.mockResolvedValue({
+      youngSyncedAt: syncedAt,
+    });
+    expect((await getYoungSourceFreshness()).status).toBe("fresh");
+    vi.advanceTimersByTime(1);
+    expect((await getYoungSourceFreshness()).status).toBe("stale");
+    expect(staticImportStateMock.findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches organizer facts and options while recalculating moving activity counts", async () => {
+    vi.useFakeTimers();
+    const boundary = new Date("2026-09-10T06:00:00Z");
+    vi.setSystemTime(new Date(boundary.getTime() - 1));
+    const identity = {
+      id: "organizer-1",
+      name: "Club",
+      normalizedName: "club",
+    };
+    youngOrganizerMock.count.mockResolvedValue(1);
+    youngOrganizerMock.findMany.mockResolvedValue([identity]);
+    youngOrganizerMock.findUnique.mockResolvedValue(identity);
+    youngEventMock.groupBy.mockImplementation(async ({ where }) => {
+      const filter = where.AND[1];
+      const count = filter.startAt
+        ? Number(filter.startAt.gte <= boundary)
+        : filter.endAt
+          ? Number(filter.endAt.lte >= boundary)
+          : 1;
+      return [{ organizerId: identity.id, _count: { _all: count } }];
+    });
+    expect((await listYoungOrganizers()).data[0]).toMatchObject({
+      upcomingCount: 1,
+      historyCount: 0,
+    });
+    vi.advanceTimersByTime(2);
+    expect((await listYoungOrganizers()).data[0]).toMatchObject({
+      upcomingCount: 0,
+      historyCount: 1,
+    });
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledTimes(1);
+    expect(youngEventMock.groupBy).toHaveBeenCalledTimes(6);
+    await getYoungOrganizer(identity.id);
+    await getYoungOrganizer(identity.id);
+    expect(youngOrganizerMock.findUnique).toHaveBeenCalledTimes(1);
+    await listYoungOrganizerOptions();
+    await listYoungOrganizerOptions();
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledTimes(2);
+    await listYoungOrganizers({ activeFirst: true });
+    await listYoungOrganizers({ search: "different" });
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledTimes(5);
   });
 });

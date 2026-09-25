@@ -58,7 +58,7 @@ describe("personal calendar access", () => {
     if (!access.ok) {
       expect(access.response.status).toBe(410);
       expect(access.response.headers.get("Cache-Control")).toBe(
-        "private, max-age=60",
+        "private, no-store",
       );
     }
     expect(resolveSessionUserIdMock).not.toHaveBeenCalled();

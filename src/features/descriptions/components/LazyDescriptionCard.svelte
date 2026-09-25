@@ -13,6 +13,7 @@ export let initialData: CardProps["initialData"];
 export let locale: CardProps["locale"];
 export let copy: CardProps["copy"] & { retry: string };
 export let heading: string;
+export let resolveViewer = false;
 
 let DescriptionCard: typeof DescriptionCardComponent | null = null;
 let loadError = false;
@@ -34,6 +35,7 @@ onMount(() => {
 {#if DescriptionCard}
   <svelte:component
     this={DescriptionCard}
+    {resolveViewer}
     {targetType}
     {targetId}
     {initialData}

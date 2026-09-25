@@ -96,17 +96,18 @@ describe("shell bootstrap Web endpoint", () => {
     expect(getWorkspaceNavigationSummaryMock).not.toHaveBeenCalled();
   });
 
-  test("keeps failures private and does not serialize internal errors", async () => {
+  test("preserves the viewer when navigation counts fail without serializing errors", async () => {
     getWorkspaceNavigationSummaryMock.mockRejectedValue(
       new Error("database details"),
     );
     const { GET } = await import("@/routes/_internal/shell-bootstrap/+server");
     const response = await GET(event({ user: authUser }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(200);
     expectPrivateSessionHeaders(response);
     await expect(response.json()).resolves.toEqual({
-      error: "Failed to load shell bootstrap",
+      viewer: authUser,
+      navigation: null,
     });
     expect(logRouteFailureMock).toHaveBeenCalledOnce();
   });

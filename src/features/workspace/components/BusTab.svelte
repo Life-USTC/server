@@ -31,6 +31,7 @@ export let bus: WorkspaceBusData | null;
 export let compact = false;
 export let savePreferences = false;
 export let showPageHeader = false;
+export let onPlannerChange: (() => void) | undefined = undefined;
 
 let loadedBus: WorkspaceBusData | null = bus;
 let busStateVersion = 0;
@@ -127,16 +128,19 @@ function saveRecentRoute() {
 }
 
 function reverseBusStops() {
+  onPlannerChange?.();
   state.actions.reverseBusStops();
   saveRecentRoute();
 }
 
 function selectBusEnd(campusId: number) {
+  onPlannerChange?.();
   state.actions.selectBusEnd(campusId);
   saveRecentRoute();
 }
 
 function selectBusStart(campusId: number) {
+  onPlannerChange?.();
   state.actions.selectBusStart(campusId);
   saveRecentRoute();
 }
@@ -225,8 +229,8 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
                 {reverseBusStops}
                 {selectBusEnd}
                 {selectBusStart}
-                setBusDayType={state.actions.setBusDayType}
-                toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
+                setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
+                toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
               />
             </div>
           </Collapsible.Content>
@@ -280,8 +284,8 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           {reverseBusStops}
           {selectBusEnd}
           {selectBusStart}
-          setBusDayType={state.actions.setBusDayType}
-          toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
+          setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
+          toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
         />
 
         <BusTabTimetable

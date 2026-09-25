@@ -35,14 +35,13 @@ import {
 import {
   buildPublicNotFoundHtml,
   isLegacyCalendarSubscriptionFeedRequest,
-  PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
   PUBLIC_SSR_LOCALE_HEADER,
   PUBLIC_SSR_MODE_CACHE_PARAM,
   PUBLIC_SSR_MODE_HEADER,
   PUBLIC_SSR_NONCE_PLACEHOLDER,
-  PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
+  publicSsrCacheHeaders,
   removePublicSsrHeaders,
   resolveCourseDetailTabQueryRedirect,
   resolveCourseDetailTabRedirect,
@@ -96,15 +95,15 @@ function cacheablePublicResponse(response) {
   );
 }
 
-function prepareCachedRepresentation(response) {
+function prepareCachedRepresentation(response, pathname, renderStartedAt) {
   if (!cacheablePublicResponse(response)) return response;
 
   const headers = new Headers(response.headers);
-  headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
-  headers.set(
-    "Cloudflare-CDN-Cache-Control",
-    PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
-  );
+  for (const [name, value] of Object.entries(
+    publicSsrCacheHeaders(pathname, new Date(), renderStartedAt),
+  )) {
+    headers.set(name, value);
+  }
   headers.set("Cache-Tag", CATALOG_EDGE_CACHE_TAG);
   headers.delete("Vary");
   headers.delete("Content-Length");
@@ -298,12 +297,17 @@ function svelteKitPublicSsrRequest(request) {
 
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
+    const renderStartedAt = new Date();
     const response = await app.fetch(
       svelteKitPublicSsrRequest(request),
       this.env,
       this.ctx,
     );
-    return prepareCachedRepresentation(response);
+    return prepareCachedRepresentation(
+      response,
+      new URL(request.url).pathname,
+      renderStartedAt,
+    );
   }
 
   /**
@@ -315,6 +319,15 @@ export class PublicSsr extends WorkerEntrypoint {
    * it over RPC from the authenticated internal purge route.
    */
   async purgeCatalogRepresentations() {
+    // Local workerd does not implement Workers Caching, even when enabled in
+    // Wrangler. There is no stored representation to invalidate in that case.
+    // A missing cache in production remains a configuration error.
+    if (
+      !this.ctx?.cache &&
+      (this.env?.NODE_ENV === "development" || this.env?.NODE_ENV === "test")
+    ) {
+      return { ok: true, tags: [] };
+    }
     return purgeEntrypointCatalogCache(this.ctx?.cache);
   }
 }

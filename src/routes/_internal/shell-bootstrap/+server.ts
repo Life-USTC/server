@@ -45,10 +45,10 @@ export const GET: RequestHandler = async ({ locals, request }) => {
     logRouteFailure("Failed to load shell bootstrap", 500, error, {
       source: "web-shell-bootstrap",
     });
-    return privateJson(
-      { error: "Failed to load shell bootstrap" },
-      { status: 500 },
-    );
+    return privateJson({
+      viewer,
+      navigation: null,
+    } satisfies ShellBootstrapPayload);
   }
 };
 

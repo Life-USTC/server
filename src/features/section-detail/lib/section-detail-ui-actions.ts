@@ -86,7 +86,8 @@ export function createSectionDetailUiActions(input: {
           if (result.type === "success" && action === "subscribe") {
             input.setShowSubscribeDialog(false);
           }
-          if (result.type === "success") input.onSuccess?.(action);
+          if (result.type === "success" || result.type === "redirect")
+            input.onSuccess?.(action);
         } finally {
           input.setSubscriptionPendingAction(null);
         }

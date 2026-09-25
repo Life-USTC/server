@@ -68,9 +68,9 @@ async function loadCourseDetailPageData({
       "catalog.detail.viewer",
       {
         "catalog.detail.kind": "course",
-        "user.authenticated": Boolean(locals.authUser?.id),
+        "user.authenticated": false,
       },
-      () => getViewerContext({ userId: locals.authUser?.id ?? null }),
+      () => getViewerContext({ userId: null }),
     ),
   ]);
   if (!course) error(404, copy.notFound.description);
@@ -165,9 +165,9 @@ async function loadTeacherDetailPageData({
       "catalog.detail.viewer",
       {
         "catalog.detail.kind": "teacher",
-        "user.authenticated": Boolean(locals.authUser?.id),
+        "user.authenticated": false,
       },
-      () => getViewerContext({ userId: locals.authUser?.id ?? null }),
+      () => getViewerContext({ userId: null }),
     ),
   ]);
   if (!teacher) error(404, copy.notFound.description);

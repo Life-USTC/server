@@ -151,6 +151,24 @@ function setSecurityHeaders(headers: Headers) {
 function responseWithSecurityHeaders(response: Response) {
   const mutableResponse = responseWithMutableHeaders(response);
   setSecurityHeaders(mutableResponse.headers);
+  // Cover JSON, redirects and early errors as well as HTML. Public routes
+  // must opt in explicitly; an authenticated response must not be stored by
+  // a CDN even if a route supplied a separate CDN caching directive.
+  if (!mutableResponse.headers.has("Cache-Control")) {
+    mutableResponse.headers.set("Cache-Control", "private, no-store");
+  }
+  if (
+    /(?:^|,)\s*(?:private|no-store)(?:\s*(?:,|$)|=)/i.test(
+      mutableResponse.headers.get("Cache-Control") ?? "",
+    )
+  ) {
+    mutableResponse.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+    if (
+      /\bprivate\b/i.test(mutableResponse.headers.get("Cache-Control") ?? "")
+    ) {
+      mutableResponse.headers.set("Cache-Control", "private, no-store");
+    }
+  }
   return mutableResponse;
 }
 
@@ -360,9 +378,6 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     }
 
     mutableResponse.headers.set("Content-Language", locale);
-    if (!mutableResponse.headers.has("Cache-Control")) {
-      mutableResponse.headers.set("Cache-Control", "no-store");
-    }
     setContentSignal(mutableResponse.headers);
     if (event.url.pathname === "/account/sign-in") {
       mutableResponse.headers.set(

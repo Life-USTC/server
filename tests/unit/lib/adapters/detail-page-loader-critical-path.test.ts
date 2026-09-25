@@ -76,7 +76,6 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
-  resetCatalogDetailCacheRevisionForTest: vi.fn(),
 }));
 
 const anonymousViewer = {
@@ -553,7 +552,7 @@ describe("detail request session resolution", () => {
     ["cookie", { cookie: "better-auth.session_token=session-token" }],
     ["bearer", { authorization: "Bearer access-token" }],
   ])(
-    "parses a signed-in %s session once in the hook and reuses locals in the detail loader",
+    "parses a signed-in %s session once while public detail data remains anonymous",
     async (_authKind, headers) => {
       vi.spyOn(console, "info").mockImplementation(() => {});
       getSessionFromHeadersMock.mockResolvedValue({
@@ -572,9 +571,7 @@ describe("detail request session resolution", () => {
       expect(response.status).toBe(200);
       expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
       expect(response.headers.get("set-cookie")).toContain("refreshed-token");
-      expect(getViewerContextMock).toHaveBeenCalledWith({
-        userId: signedInUser.id,
-      });
+      expect(getViewerContextMock).toHaveBeenCalledWith({ userId: null });
     },
   );
 
@@ -606,7 +603,7 @@ describe("detail request session resolution", () => {
 });
 
 describe("section detail loader critical path", () => {
-  it("traces bounded section subscription and homework phases", async () => {
+  it("keeps private section queries out of SSR even for signed-in viewers", async () => {
     const spans: Array<{
       attributes: Record<string, boolean | number | string | undefined>;
       name: string;
@@ -644,24 +641,19 @@ describe("section detail loader critical path", () => {
       { tracing: { enterSpan } },
     );
 
-    expect(spans).toEqual(
-      expect.arrayContaining([
-        {
-          attributes: {
-            "catalog.detail.kind": "section",
-            "user.authenticated": true,
-          },
-          name: "catalog.detail.section.subscription",
-        },
-        {
-          attributes: {
-            "catalog.detail.kind": "section",
-            "user.authenticated": true,
-          },
-          name: "catalog.detail.section.homework",
-        },
-      ]),
-    );
+    expect(spans.map((span) => span.name)).toEqual([
+      "catalog.detail.data_load",
+      "catalog.detail.core",
+      "catalog.detail.viewer",
+    ]);
+    expect(
+      getUserSectionSubscriptionStatusForSectionMock,
+    ).not.toHaveBeenCalled();
+    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
+    expect(getViewerContextMock).toHaveBeenCalledWith({
+      includeAdmin: true,
+      userId: null,
+    });
     expect(JSON.stringify(spans)).not.toContain(String(section.jwId));
     expect(JSON.stringify(spans)).not.toContain(String(section.id));
   });
@@ -763,7 +755,7 @@ describe("section detail loader critical path", () => {
     });
   });
 
-  it("loads homework when homeworkId is present and still defers comments to client", async () => {
+  it("preserves homeworkId for the private overlay without loading homework during SSR", async () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
@@ -781,16 +773,11 @@ describe("section detail loader critical path", () => {
     expect(result.focusedHomeworkId).toBe("hw-1");
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledOnce();
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
-      section.id,
-      null,
-      "hw-1",
-    );
+    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 
-  it("loads subscription status without exposing the calendar feed credential", async () => {
+  it("keeps subscription state and credentials out of signed-in SSR", async () => {
     getUserSectionSubscriptionStatusForSectionMock.mockResolvedValue({
       isSubscribed: true,
       userId: "user-1",
@@ -806,24 +793,16 @@ describe("section detail loader critical path", () => {
       url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
     });
 
-    expect(getUserSectionSubscriptionStatusForSectionMock).toHaveBeenCalledWith(
-      "user-1",
-      section.jwId,
-    );
-    expect(result.viewer).toEqual({
-      isSubscribed: true,
-      signedIn: true,
-    });
+    expect(
+      getUserSectionSubscriptionStatusForSectionMock,
+    ).not.toHaveBeenCalled();
+    expect(result.viewer).toEqual({ isSubscribed: false, signedIn: false });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
-    expect(getSectionHomeworkDataMock).toHaveBeenCalledWith(
-      section.id,
-      signedInUser.id,
-      null,
-    );
+    expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
     expect(getViewerContextMock).toHaveBeenCalledWith({
       includeAdmin: true,
-      userId: signedInUser.id,
+      userId: null,
     });
   });
 
@@ -877,4 +856,47 @@ describe("section detail loader critical path", () => {
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
     expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
   });
+});
+
+describe("public detail personalization boundary", () => {
+  it.each(["course", "teacher", "section"] as const)(
+    "returns identical %s SSR data with and without a logged-in viewer",
+    async (kind) => {
+      const { loadCourseDetailPage, loadTeacherDetailPage } = await import(
+        "@/features/catalog/server/catalog-detail-page-server"
+      );
+      const { loadSectionDetailPage } = await import(
+        "@/features/section-detail/server/section-detail-page-server"
+      );
+      getViewerContextMock.mockImplementation(
+        async ({ userId }: { userId: string | null }) => {
+          if (userId) throw new Error("Public SSR queried a private viewer");
+          return anonymousViewer;
+        },
+      );
+      const path =
+        kind === "course"
+          ? "/catalog/courses/101"
+          : kind === "teacher"
+            ? "/catalog/teachers/21"
+            : "/catalog/sections/301";
+      const input = {
+        request: request(path),
+        url: new URL(`https://example.test${path}`),
+      };
+      const load = (user: App.Locals["authUser"]) => {
+        const common = { ...input, locals: locals(user) };
+        if (kind === "course")
+          return loadCourseDetailPage({ ...common, params: { jwId: "101" } });
+        if (kind === "teacher")
+          return loadTeacherDetailPage({ ...common, params: { id: "21" } });
+        return loadSectionDetailPage({ ...common, params: { jwId: "301" } });
+      };
+      expect(await load(signedInUser)).toEqual(await load(null));
+      expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();
+      expect(
+        getUserSectionSubscriptionStatusForSectionMock,
+      ).not.toHaveBeenCalled();
+    },
+  );
 });

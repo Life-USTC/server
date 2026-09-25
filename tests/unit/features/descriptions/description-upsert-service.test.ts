@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  runWithCloudflareRuntimeEnv,
+  setCloudflareCatalogInvalidator,
+} from "@/lib/adapters/cloudflare-runtime";
 
 const {
   auditLogCreateMock,
@@ -163,5 +167,72 @@ describe("upsertDescriptionContent", () => {
     });
     expect(descriptionEditCreateMock).not.toHaveBeenCalled();
     expect(auditLogCreateMock).not.toHaveBeenCalled();
+  });
+  it("purges only after commit and retries a failed purge on an unchanged write", async () => {
+    descriptionFindFirstMock.mockResolvedValue({
+      id: "description-1",
+      content: "before",
+    });
+    descriptionUpdateMock.mockResolvedValue({
+      id: "description-1",
+      content: "after",
+    });
+    const { upsertDescriptionContent } = await import(
+      "@/features/descriptions/server/description-upsert"
+    );
+    let committed = false;
+    let cachedHtml: string | null = "before";
+    const transaction = prismaMock.$transaction.getMockImplementation();
+    prismaMock.$transaction.mockImplementation(async (...args) => {
+      const result = await transaction?.(...args);
+      committed = true;
+      return result;
+    });
+    const purge = vi
+      .fn(async () => {
+        expect(committed).toBe(true);
+        cachedHtml = null;
+      })
+      .mockRejectedValueOnce(new Error("purge unavailable"));
+    const write = () =>
+      runWithCloudflareRuntimeEnv({}, async () => {
+        setCloudflareCatalogInvalidator(purge);
+        return upsertDescriptionContent({
+          content: "after",
+          targetId: 1,
+          targetType: "section",
+          userId: "user-1",
+        });
+      });
+    await expect(write()).rejects.toThrow("purge unavailable");
+    expect(cachedHtml).toBe("before");
+    descriptionFindFirstMock.mockResolvedValue({
+      id: "description-1",
+      content: "after",
+    });
+    await expect(write()).resolves.toMatchObject({ ok: true, updated: false });
+    expect(cachedHtml).toBeNull();
+    expect(purge).toHaveBeenCalledTimes(2);
+    expect(descriptionEditCreateMock).toHaveBeenCalledOnce();
+  });
+
+  it("does not purge when the description transaction rolls back", async () => {
+    prismaMock.$transaction.mockRejectedValue(new Error("rollback"));
+    const purge = vi.fn();
+    const { upsertDescriptionContent } = await import(
+      "@/features/descriptions/server/description-upsert"
+    );
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      setCloudflareCatalogInvalidator(purge);
+      await expect(
+        upsertDescriptionContent({
+          content: "after",
+          targetId: 1,
+          targetType: "section",
+          userId: "user-1",
+        }),
+      ).rejects.toThrow("rollback");
+    });
+    expect(purge).not.toHaveBeenCalled();
   });
 });

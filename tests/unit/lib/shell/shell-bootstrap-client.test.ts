@@ -28,6 +28,10 @@ describe("shell bootstrap client", () => {
     expect(
       parseShellBootstrapPayload({ viewer: null, navigation: null }),
     ).toEqual({ viewer: null, navigation: null });
+    expect(parseShellBootstrapPayload({ viewer, navigation: null })).toEqual({
+      viewer,
+      navigation: null,
+    });
     expect(parseShellBootstrapPayload({ viewer, navigation })).toEqual({
       viewer,
       navigation,

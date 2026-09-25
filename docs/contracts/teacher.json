@@ -7,6 +7,7 @@
     "agent": "Can directly read teacher lists and details; also indirectly consumes teacher information in course and section results."
   },
   "rules": {
+    "public-web-personal-overlay": "Teacher detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in requests. Public description content remains in SSR; description permissions and comments are resolved through private client requests.",
     "identified-by-name": "Teacher objects are naturally identified by name.",
     "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.",
     "public-list-cache": "Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",

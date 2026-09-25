@@ -62,14 +62,14 @@ async function runLayer(
  * entrypoint cache and the entrypoint purge cannot reach the zone. Both run,
  * and a failure in either one is reported rather than swallowed.
  *
- * Only a committed import changes what the caches should serve, so an
- * `unchanged` or `rolled-back` run purges nothing.
+ * A repeated apply must retry invalidation after an earlier purge failure.
+ * Only rolled-back (dry-run) imports skip purging.
  */
 export async function runPostImportCachePurge(
   report: { outcome: "committed" | "rolled-back" | "unchanged" },
   logger: Logger = consoleLogger,
 ): Promise<PostImportCachePurgeReport> {
-  if (report.outcome !== "committed") {
+  if (report.outcome === "rolled-back") {
     return { failed: false, workerEntrypoint: "not-run", zone: "not-run" };
   }
 

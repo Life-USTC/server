@@ -19,6 +19,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { createFixturePrisma } from "../../../../shared/prisma";
+import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
@@ -356,5 +357,44 @@ for (const width of [1280, 390]) {
       await db.youngOrganizer.delete({ where: { id: marker } });
       await db.$disconnect();
     }
+  });
+}
+
+for (const status of [200, 401]) {
+  test(`calendar conflicts resolve independently of unavailable shell navigation (${status})`, async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/workspace/overview");
+    const session = await (
+      await page.request.get("/api/auth/get-session")
+    ).json();
+    let bootstrapRequests = 0;
+    await page.route("**/_internal/shell-bootstrap", async (route) => {
+      bootstrapRequests++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ viewer: session.user, navigation: null }),
+      });
+    });
+    await page.route("**/api/workspace/calendar/events?*", async (route) => {
+      await route.fulfill({
+        status,
+        contentType: "application/json",
+        body: JSON.stringify(
+          status === 200
+            ? {
+                data: [],
+                pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 },
+              }
+            : { error: "Unauthorized" },
+        ),
+      });
+    });
+    await gotoAndWaitForReady(page, "/catalog/young-events/calendar");
+    await expect(
+      page.getByTestId("young-calendar-conflict-status"),
+    ).toContainText(status === 200 ? /仅基于|Conflicts use/ : /登录后|Sign in/);
+    await expect.poll(() => bootstrapRequests).toBe(1);
   });
 }

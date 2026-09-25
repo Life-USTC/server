@@ -79,7 +79,7 @@ describe("post-import cache purge", () => {
     );
   });
 
-  it.each(["rolled-back", "unchanged"] as const)(
+  it.each(["rolled-back"] as const)(
     "purges nothing for a %s import",
     async (outcome) => {
       configureBothLayers();
@@ -97,6 +97,26 @@ describe("post-import cache purge", () => {
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
+
+  it("retries both layers when the committed snapshot is reapplied unchanged", async () => {
+    configureBothLayers();
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("unavailable", { status: 503 }));
+    expect(
+      (await runPostImportCachePurge({ outcome: "committed" }, logger()))
+        .failed,
+    ).toBe(true);
+    fetchMock.mockResolvedValue(okResponse());
+    expect(
+      await runPostImportCachePurge({ outcome: "unchanged" }, logger()),
+    ).toEqual({
+      failed: false,
+      workerEntrypoint: "purged",
+      zone: "purged",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
 
   it("reports a failure loudly when the entrypoint purge is rejected", async () => {
     configureBothLayers();

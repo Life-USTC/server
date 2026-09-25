@@ -890,6 +890,8 @@
       "colActions": "Actions",
       "pin": "Pin",
       "unpin": "Unpin",
+      "loadFailed": "Could not load your link preferences. Please try again.",
+      "retry": "Retry",
       "pinFailedTitle": "Pin update failed",
       "pinFailedDescription": "We couldn't save your link pins. Please try again.",
       "groups": {
@@ -1000,6 +1002,7 @@
     "hidePreferences": "Hide preferences",
     "editPreferences": "Edit preferences",
     "empty": "No shuttle data is available right now.",
+    "preferencesLoadFailed": "Could not load your preferences. Please try again.",
     "loadFailed": "Shuttle data could not be loaded. Please try again.",
     "retry": "Reload",
     "weekday": "Weekday",

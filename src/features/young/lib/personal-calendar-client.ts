@@ -30,6 +30,8 @@ export async function fetchPersonalCalendar(
     });
     const response = await fetch(`/api/workspace/calendar/events?${query}`, {
       signal,
+      cache: "no-store",
+      credentials: "same-origin",
     });
     if (!response.ok) throw new PersonalCalendarRequestError(response.status);
     const result = personalCalendarPageSchema.parse(await response.json());

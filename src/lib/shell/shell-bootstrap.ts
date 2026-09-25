@@ -116,7 +116,7 @@ export function parseShellBootstrapPayload(
     payload.navigation,
     viewer.id,
   );
-  if (!navigation) {
+  if (payload.navigation !== null && !navigation) {
     throw new TypeError("Invalid shell bootstrap navigation summary");
   }
   return { viewer, navigation };

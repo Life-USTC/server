@@ -7,6 +7,8 @@
     "agent": "Can read object descriptions through MCP and maintain them through GraphQL or MCP after authorization."
   },
   "rules": {
+    "public-cache-invalidation": "Successful description writes and administrator moderation invalidate cached public HTML and its structured data after the transaction commits. Repeating an unchanged write also retries invalidation after a previous purge failure.",
+    "public-web-personal-overlay": "Public course, teacher and section SSR retains description text and structured data with an anonymous viewer. Hydration resolves current viewer permissions through the existing private descriptions API before enabling edit or sign-in actions; a failed read remains retryable and cannot grant write access.",
     "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and similar.",
     "platform-maintained": "When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default.",

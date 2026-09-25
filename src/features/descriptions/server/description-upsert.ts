@@ -6,6 +6,7 @@ import {
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
+import { invalidateCloudflareCatalogRepresentations } from "@/lib/ports/runtime";
 import {
   type DescriptionTargetType,
   type DescriptionTargetWhere,
@@ -88,6 +89,9 @@ export async function upsertDescriptionContent({
     result = await writeDescription();
   }
 
+  if (targetType !== "homework") {
+    await invalidateCloudflareCatalogRepresentations();
+  }
   return { ok: true as const, ...result };
 }
 

@@ -98,6 +98,14 @@ export type PublicRuntimeCacheAnalyticsNamespace =
   | "api:metadata"
   | "api:semesters"
   | "catalog:current-semester"
+  | "catalog:young-source"
+  | "catalog:young-events-list"
+  | "catalog:young-event-detail"
+  | "catalog:young-event-categories"
+  | "catalog:young-organizer-counts"
+  | "catalog:young-organizers-list"
+  | "catalog:young-organizer-detail"
+  | "catalog:young-organizer-options"
   | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
   | `search:catalog:v4:${AppLocale}`
@@ -515,6 +523,14 @@ const CACHE_FIXED_NAMESPACES = new Set([
   "api:metadata",
   "api:semesters",
   "catalog:current-semester",
+  "catalog:young-source",
+  "catalog:young-events-list",
+  "catalog:young-event-detail",
+  "catalog:young-event-categories",
+  "catalog:young-organizer-counts",
+  "catalog:young-organizers-list",
+  "catalog:young-organizer-detail",
+  "catalog:young-organizer-options",
   "sitemap",
 ]);
 const CACHE_LOCALE_NAMESPACE_PREFIXES = [

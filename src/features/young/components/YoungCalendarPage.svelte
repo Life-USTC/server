@@ -12,7 +12,7 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { getClientShellBootstrap } from "@/lib/shell/shell-bootstrap";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
@@ -51,6 +51,9 @@ let {
 }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
+const shellViewer = getShellViewer();
+const viewerId = $derived($shellViewer.viewer?.id ?? null);
+const viewerStatus = $derived($shellViewer.status);
 let conflictIds = $state<Set<string>>(new Set());
 let conflictStatus = $state<"loading" | "ready" | "signin" | "failed">(
   "loading",
@@ -63,15 +66,20 @@ $effect(() => {
   conflictIds = new Set();
   if (basis !== "activity") return;
   conflictStatus = "loading";
-  void getClientShellBootstrap(fetch, controller.signal)
-    .then(({ viewer }) => {
-      if (!viewer) throw new PersonalCalendarRequestError(401);
-      return fetchPersonalCalendar(
-        currentRange.start,
-        currentRange.end,
-        controller.signal,
-      );
-    })
+  if (viewerStatus === "loading") return;
+  if (viewerStatus === "error") {
+    conflictStatus = "failed";
+    return;
+  }
+  if (!viewerId) {
+    conflictStatus = "signin";
+    return;
+  }
+  void fetchPersonalCalendar(
+    currentRange.start,
+    currentRange.end,
+    controller.signal,
+  )
     .then((items) => {
       if (controller.signal.aborted) return;
       conflictIds = youngCalendarConflicts(currentEvents, items);
