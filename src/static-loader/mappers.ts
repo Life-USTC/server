@@ -101,6 +101,12 @@ export type ScheduleGroupBuild = {
   isDefault: boolean;
 };
 
+export type ScheduleTeacherBuild = {
+  teacherJwId: number;
+  periods?: number;
+  exerciseClass?: boolean;
+};
+
 export type ScheduleBuild = {
   periods?: number;
   date?: Date;
@@ -112,13 +118,14 @@ export type ScheduleBuild = {
   customPlace?: string;
   lessonType?: string;
   weekIndex: number;
-  exerciseClass?: boolean;
+  // Undefined means unprovided; null means conflicting participant flags.
+  exerciseClass?: boolean | null;
   startUnit: number;
   endUnit: number;
   roomJwId?: number;
   lessonJwId: number;
   scheduleGroupJwId: number;
-  teacherJwIds: number[];
+  teacherParticipations: ScheduleTeacherBuild[];
 };
 
 export type ExamBuild = {
@@ -542,15 +549,36 @@ export function mergeSchedule(
     incoming.lessonType,
     key,
   );
-  existing.exerciseClass = mergeScheduleValue(
-    "exerciseClass",
-    existing.exerciseClass,
-    incoming.exerciseClass,
-    key,
-  );
-  existing.teacherJwIds = Array.from(
-    new Set([...existing.teacherJwIds, ...incoming.teacherJwIds]),
-  ).sort((a, b) => a - b);
+  existing.exerciseClass =
+    existing.exerciseClass === null ||
+    (existing.exerciseClass != null &&
+      incoming.exerciseClass != null &&
+      existing.exerciseClass !== incoming.exerciseClass)
+      ? null
+      : (existing.exerciseClass ?? incoming.exerciseClass);
+  for (const participation of incoming.teacherParticipations) {
+    const current = existing.teacherParticipations.find(
+      (value) => value.teacherJwId === participation.teacherJwId,
+    );
+    if (current == null) {
+      existing.teacherParticipations.push(participation);
+      continue;
+    }
+    const participantKey = `${key}|teacher:${participation.teacherJwId}`;
+    current.periods = mergeScheduleValue(
+      "teacher periods",
+      current.periods,
+      participation.periods,
+      participantKey,
+    );
+    current.exerciseClass = mergeScheduleValue(
+      "teacher exerciseClass",
+      current.exerciseClass,
+      participation.exerciseClass,
+      participantKey,
+    );
+  }
+  existing.teacherParticipations.sort((a, b) => a.teacherJwId - b.teacherJwId);
   return existing;
 }
 
@@ -580,7 +608,16 @@ export function mapSchedule(
     roomJwId,
     lessonJwId: asInt(row.lessonId) ?? 0,
     scheduleGroupJwId: asInt(row.scheduleGroupId) ?? 0,
-    teacherJwIds: teacherJwId == null ? [] : [teacherJwId],
+    teacherParticipations:
+      teacherJwId == null
+        ? []
+        : [
+            {
+              teacherJwId,
+              periods,
+              exerciseClass: asBoolean(row.exerciseClass),
+            },
+          ],
   };
 }
 

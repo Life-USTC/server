@@ -259,7 +259,9 @@ describe("static import write churn", () => {
           endUnit: 0,
           lessonJwId: section.jwId,
           scheduleGroupJwId: group.jwId,
-          teacherJwIds: [marker],
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 2, exerciseClass: false },
+          ],
         };
 
         await writeSchedules(
@@ -273,7 +275,7 @@ describe("static import write churn", () => {
         );
         const firstRow = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
         const firstTuple = await tupleId(
           tx,
@@ -297,7 +299,7 @@ describe("static import write churn", () => {
         );
         const unchanged = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(unchanged.id).toBe(firstRow.id);
@@ -307,6 +309,101 @@ describe("static import write churn", () => {
         expect(
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
         ).toBe(firstJoinTuple);
+
+        const participationOnlyChange: ScheduleBuild = {
+          ...schedule,
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 1.5, exerciseClass: false },
+            { teacherJwId: marker + 1, periods: 2, exerciseClass: false },
+          ],
+        };
+        await writeSchedules(
+          tx,
+          [participationOnlyChange],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).toBe(
+          firstTuple,
+        );
+        expect(
+          await tx.scheduleTeacher.findMany({
+            where: { scheduleId: firstRow.id },
+            orderBy: { teacherId: "asc" },
+            select: { teacherId: true, periods: true, exerciseClass: true },
+          }),
+        ).toEqual([
+          { teacherId: firstTeacher.id, periods: 1.5, exerciseClass: false },
+          { teacherId: secondTeacher.id, periods: 2, exerciseClass: false },
+        ]);
+        const mixed: ScheduleBuild = {
+          ...participationOnlyChange,
+          exerciseClass: null,
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 1.5, exerciseClass: true },
+            { teacherJwId: marker + 1, periods: 2, exerciseClass: false },
+          ],
+        };
+        await writeSchedules(
+          tx,
+          [mixed],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        const mixedTuple = await tupleId(
+          tx,
+          "Schedule",
+          `"id" = ${firstRow.id}`,
+        );
+        const mixedJoinTuple = await tupleId(
+          tx,
+          "_ScheduleTeachers",
+          `"A" = ${firstRow.id} AND "B" = ${firstTeacher.id}`,
+        );
+        await writeSchedules(
+          tx,
+          [mixed],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).toBe(
+          mixedTuple,
+        );
+        expect(
+          await tupleId(
+            tx,
+            "_ScheduleTeachers",
+            `"A" = ${firstRow.id} AND "B" = ${firstTeacher.id}`,
+          ),
+        ).toBe(mixedJoinTuple);
+        expect(
+          await tx.schedule.findUniqueOrThrow({ where: { id: firstRow.id } }),
+        ).toMatchObject({ exerciseClass: null });
+
+        // Restore the original source: stale participants are removed and metadata resets.
+        await writeSchedules(
+          tx,
+          [schedule],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        const restoredJoinTuple = await tupleId(
+          tx,
+          "_ScheduleTeachers",
+          `"A" = ${firstRow.id}`,
+        );
 
         const scheduleWithDerivedUnits = {
           ...schedule,
@@ -324,21 +421,23 @@ describe("static import write churn", () => {
         );
         const unitsChanged = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(unitsChanged).toMatchObject({
           id: firstRow.id,
           startUnit: 1,
           endUnit: 2,
-          teachers: [{ id: firstTeacher.id }],
+          teacherParticipations: [
+            { teacherId: firstTeacher.id, periods: 2, exerciseClass: false },
+          ],
         });
         expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).not.toBe(
           firstTuple,
         );
         expect(
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
-        ).toBe(firstJoinTuple);
+        ).toBe(restoredJoinTuple);
 
         await writeSchedules(
           tx,
@@ -347,7 +446,10 @@ describe("static import write churn", () => {
               ...scheduleWithDerivedUnits,
               periods: 3,
               lessonType: "seminar",
-              teacherJwIds: [marker + 1],
+              exerciseClass: true,
+              teacherParticipations: [
+                { teacherJwId: marker + 1, periods: 3, exerciseClass: true },
+              ],
             },
           ],
           sectionMap,
@@ -358,14 +460,16 @@ describe("static import write churn", () => {
         );
         const changed = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(changed).toMatchObject({
           id: firstRow.id,
           periods: 3,
           lessonType: "seminar",
-          teachers: [{ id: secondTeacher.id }],
+          teacherParticipations: [
+            { teacherId: secondTeacher.id, periods: 3, exerciseClass: true },
+          ],
         });
         expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).not.toBe(
           firstTuple,

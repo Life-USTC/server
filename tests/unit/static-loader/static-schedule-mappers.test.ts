@@ -96,7 +96,9 @@ describe("static schedule meeting mapping", () => {
 
     mergeSchedule(existing, row, 12, 5301);
 
-    expect(existing.teacherJwIds).toEqual([11, 12]);
+    expect(existing.teacherParticipations.map((p) => p.teacherJwId)).toEqual([
+      11, 12,
+    ]);
     expect(existing.roomJwId).toBe(5301);
   });
 
@@ -119,6 +121,81 @@ describe("static schedule meeting mapping", () => {
 
     expect(forward).toEqual(reverse);
     expect(forward.periods).toBe(4);
+  });
+
+  it("preserves each teacher's facts while keeping a single mixed meeting", () => {
+    const rows = [
+      { teacherId: 11, periods: 3, exerciseClass: false },
+      { teacherId: 12, periods: 4, exerciseClass: true },
+      { teacherId: 13, periods: 2, exerciseClass: false },
+    ];
+    for (const order of [
+      rows,
+      [...rows].reverse(),
+      [rows[1], rows[0], rows[2]],
+    ]) {
+      const meeting = mapSchedule(
+        scheduleRow(order[0]),
+        order[0].teacherId,
+        5301,
+      );
+      for (const row of order.slice(1)) {
+        mergeSchedule(meeting, scheduleRow(row), row.teacherId, 5301);
+      }
+      expect(meeting.periods).toBe(4);
+      expect(meeting.exerciseClass).toBeNull();
+      expect(meeting.teacherParticipations).toEqual(
+        rows.map(({ teacherId, ...facts }) => ({
+          teacherJwId: teacherId,
+          ...facts,
+        })),
+      );
+    }
+  });
+
+  it.each([
+    ["periods", { periods: 3 }],
+    ["exerciseClass", { exerciseClass: true }],
+  ])("rejects contradictory %s for the same teacher", (_field, conflicting) => {
+    const first = scheduleRow();
+    const second = scheduleRow(conflicting);
+    for (const [a, b] of [
+      [first, second],
+      [second, first],
+    ]) {
+      expect(() =>
+        mergeSchedule(mapSchedule(a, 11, 5301), b, 11, 5301),
+      ).toThrow(/Conflicting schedule teacher .*teacher:11/);
+    }
+  });
+
+  it("keeps mixed flags stable when observations have no teacher", () => {
+    for (const flags of [
+      [null, false, true, false],
+      [true, false, null, false],
+    ]) {
+      const meeting = mapSchedule(scheduleRow({ exerciseClass: flags[0] }));
+      for (const flag of flags.slice(1)) {
+        mergeSchedule(meeting, scheduleRow({ exerciseClass: flag }));
+      }
+      expect(meeting.exerciseClass).toBeNull();
+      expect(meeting.teacherParticipations).toEqual([]);
+    }
+  });
+
+  it("fills missing participant metadata without duplicating the teacher", () => {
+    const unknown = scheduleRow({ periods: null, exerciseClass: null });
+    const known = scheduleRow({ periods: 2.5, exerciseClass: false });
+    for (const [a, b] of [
+      [unknown, known],
+      [known, unknown],
+    ]) {
+      const meeting = mapSchedule(a, 11, 5301);
+      mergeSchedule(meeting, b, 11, 5301);
+      expect(meeting.teacherParticipations).toEqual([
+        { teacherJwId: 11, periods: 2.5, exerciseClass: false },
+      ]);
+    }
   });
 
   it("preserves fractional periods and nullable exerciseClass", () => {
@@ -147,7 +224,6 @@ describe("static schedule meeting mapping", () => {
   it.each([
     ["experiment", { experiment: true }],
     ["lessonType", { lessonType: "实验" }],
-    ["exerciseClass", { exerciseClass: true }],
   ])("rejects conflicting %s regardless of input order", (_field, conflict) => {
     const first = scheduleRow();
     const second = scheduleRow(conflict);

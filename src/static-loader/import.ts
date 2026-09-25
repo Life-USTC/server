@@ -215,6 +215,8 @@ export async function runImport(
   );
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
+  // The write phase needs only mapped records, not the full raw history.
+  snapshot.clearCachedRows();
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,

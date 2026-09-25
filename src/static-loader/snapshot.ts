@@ -20,7 +20,13 @@ export class Snapshot {
   }
 
   close(): void {
+    this.clearCachedRows();
     this.db.close();
+  }
+
+  clearCachedRows(): void {
+    this.rowsByTable.clear();
+    this.rowsByParent.clear();
   }
 
   metadata(): Record<string, string> {
