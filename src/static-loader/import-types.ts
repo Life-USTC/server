@@ -4,7 +4,6 @@ import type { SectionPresenceStats } from "./section-lifecycle";
 export type ImportConfig = {
   snapshotPath: string;
   snapshotSha256: string;
-  minSemester: number;
   dryRun: boolean;
 };
 
@@ -31,6 +30,10 @@ export type ImportReport = {
     sha256: string;
     schemaVersion: string;
     generatedAt: string | null;
+  };
+  sourceAvailability: {
+    unavailableCurriculumSemesterJwIds: number[];
+    unavailableExamSemesterJwIds: number[];
   };
   plannedRecordCounts: ImportRecordCounts | null;
   databaseRecordCounts: ImportRecordCounts | null;

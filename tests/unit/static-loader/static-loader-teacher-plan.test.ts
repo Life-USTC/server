@@ -21,7 +21,8 @@ describe("static teacher plan", () => {
       },
     ];
     const snapshot = {
-      queryAll: (table: string) =>
+      queryAll: () => [],
+      iterateAll: (table: string) =>
         table === "jw_ws_schedule_table_datum_result_scheduleList"
           ? scheduleRows
           : [],

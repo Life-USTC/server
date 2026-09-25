@@ -121,6 +121,11 @@ type Catalog {
   youngOrganizers(page: PageInput, search: String): YoungOrganizerPage!
 }
 
+type CatalogClassName {
+  nameCn: String!
+  nameEn: String
+}
+
 type CatalogLink {
   description: String!
   group: String!
@@ -290,6 +295,7 @@ enum DescriptionTargetType {
 }
 
 type Exam {
+  adminClassNames: String
   endTime: Int
   examBatch: ExamBatch
   examDate: Date
@@ -297,8 +303,10 @@ type Exam {
   examRooms(page: PageInput): ExamRoomPage!
   examTakeCount: Int
   examType: Int
+  grades: String
   id: Int!
   jwId: Int!
+  monitors: [ExamMonitor!]
   section: Section!
   startTime: Int
 }
@@ -314,6 +322,12 @@ input ExamFilter {
   dateTo: DateTime
   includeDateUnknown: Boolean = true
   semesterId: Int
+}
+
+type ExamMonitor {
+  jwId: Int!
+  nameCn: String
+  nameEn: String
 }
 
 type ExamPage {
@@ -493,6 +507,7 @@ type Schedule {
   section: Section!
   startTime: Int!
   startUnit: Int!
+  teacherParticipations(page: PageInput): ScheduleTeacherParticipationPage!
   teachers(page: PageInput): TeacherPage!
   weekIndex: Int!
   weekday: Int!
@@ -525,8 +540,20 @@ type ScheduleRoom {
   nameEn: String
 }
 
+type ScheduleTeacherParticipation {
+  exerciseClass: Boolean
+  periods: Float
+  teacher: Teacher!
+}
+
+type ScheduleTeacherParticipationPage {
+  items: [ScheduleTeacherParticipation!]!
+  pageInfo: PageInfo!
+}
+
 type Section {
   campus: Campus
+  catalogAdminClasses: [CatalogClassName!]
   code: String!
   course: Course!
   credits: Float
@@ -538,6 +565,7 @@ type Section {
   period: Int
   periodsPerWeek: Float
   remark: String
+  requiredWeeks: Int
   semester: Semester
   stdCount: Int
   teachLanguage: NamedCatalogValue

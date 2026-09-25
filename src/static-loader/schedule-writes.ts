@@ -1,10 +1,5 @@
 import type { Prisma } from "../generated/prisma-node/client";
-import {
-  bulkUpdate,
-  type ColumnValue,
-  chunks,
-  syncJoinPairs,
-} from "./database-writes";
+import { bulkUpdate, type ColumnValue, chunks } from "./database-writes";
 import { type ScheduleBuild, scheduleKey } from "./mappers";
 import { requiredId } from "./required-id";
 
@@ -18,14 +13,14 @@ type ResolvedSchedule = {
   customPlace: string | undefined;
   lessonType: string | undefined;
   weekIndex: number;
-  exerciseClass: boolean | undefined;
+  exerciseClass: boolean | null | undefined;
   startUnit: number;
   endUnit: number;
   roomId: number | undefined;
   sectionId: number;
   scheduleGroupId: number;
   key: string;
-  teacherJwIds: number[];
+  teacherParticipations: ScheduleBuild["teacherParticipations"];
 };
 
 const SCHEDULE_COLUMNS = [
@@ -65,6 +60,42 @@ const SCHEDULE_COLUMN_TYPES = [
 ];
 
 export async function writeSchedules(
+  tx: Prisma.TransactionClient,
+  builds: ScheduleBuild[],
+  sectionMap: Map<number, number>,
+  scheduleGroupMap: Map<number, number>,
+  roomMap: Map<number, number>,
+  teacherMap: Map<number, number>,
+  sectionDbIds: number[],
+): Promise<void> {
+  const buildsBySection = new Map<number, ScheduleBuild[]>();
+  for (const build of builds) {
+    const sectionId = requiredId(
+      sectionMap,
+      build.lessonJwId,
+      `Section jwId ${build.lessonJwId} for Schedule`,
+    );
+    const sectionBuilds = buildsBySection.get(sectionId) ?? [];
+    sectionBuilds.push(build);
+    buildsBySection.set(sectionId, sectionBuilds);
+  }
+  // Reconcile complete sections, including those whose new timetable is empty.
+  // Keep all writes in the caller's single transaction, but never load the
+  // production's entire schedule history or a second resolved copy at once.
+  for (const scopeIds of chunks(sectionDbIds, 500)) {
+    await writeScheduleBatch(
+      tx,
+      scopeIds.flatMap((id) => buildsBySection.get(id) ?? []),
+      sectionMap,
+      scheduleGroupMap,
+      roomMap,
+      teacherMap,
+      scopeIds,
+    );
+  }
+}
+
+async function writeScheduleBatch(
   tx: Prisma.TransactionClient,
   builds: ScheduleBuild[],
   sectionMap: Map<number, number>,
@@ -123,7 +154,7 @@ export async function writeSchedules(
         },
         roomId,
       ),
-      teacherJwIds: build.teacherJwIds,
+      teacherParticipations: build.teacherParticipations,
     };
   });
 
@@ -171,8 +202,8 @@ export async function writeSchedules(
     if (!desiredKeys.has(key)) staleIds.push(row.id);
   }
 
-  if (staleIds.length > 0) {
-    await tx.schedule.deleteMany({ where: { id: { in: staleIds } } });
+  for (const ids of chunks(staleIds, 1000)) {
+    await tx.schedule.deleteMany({ where: { id: { in: ids } } });
   }
   await bulkUpdate(
     tx,
@@ -207,33 +238,57 @@ export async function writeSchedules(
     scheduleKeyToId.set(scheduleRowKey(row), row.id);
   }
 
-  const joinPairs: Array<{ a: number; b: number }> = [];
-  const seen = new Set<string>();
-  for (const schedule of resolved) {
-    const scheduleId = requiredId(
-      scheduleKeyToId,
-      schedule.key,
-      `Schedule ${schedule.key}`,
-    );
-    for (const teacherJwId of schedule.teacherJwIds) {
-      const teacherId = requiredId(
-        teacherMap,
-        teacherJwId,
-        `Teacher jwId ${teacherJwId} for Schedule ${schedule.key}`,
+  for (const batch of chunks(resolved, 1000)) {
+    const scopeIds: number[] = [];
+    const participations: Array<{
+      A: number;
+      B: number;
+      periods: number | null;
+      exerciseClass: boolean | null;
+    }> = [];
+    for (const schedule of batch) {
+      const scheduleId = requiredId(
+        scheduleKeyToId,
+        schedule.key,
+        `Schedule ${schedule.key}`,
       );
-      const key = `${scheduleId}:${teacherId}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      joinPairs.push({ a: scheduleId, b: teacherId });
+      scopeIds.push(scheduleId);
+      for (const participation of schedule.teacherParticipations) {
+        const teacherId = requiredId(
+          teacherMap,
+          participation.teacherJwId,
+          `Teacher jwId ${participation.teacherJwId} for Schedule ${schedule.key}`,
+        );
+        participations.push({
+          A: scheduleId,
+          B: teacherId,
+          periods: participation.periods ?? null,
+          exerciseClass: participation.exerciseClass ?? null,
+        });
+      }
     }
+    const payload = JSON.stringify(participations);
+    await tx.$executeRawUnsafe(
+      `DELETE FROM "_ScheduleTeachers" AS target
+       WHERE target."A" = ANY($1::int[]) AND NOT EXISTS (
+         SELECT 1 FROM jsonb_to_recordset($2::jsonb) AS desired("A" int, "B" int)
+         WHERE desired."A" = target."A" AND desired."B" = target."B"
+       )`,
+      scopeIds,
+      payload,
+    );
+    await tx.$executeRawUnsafe(
+      `INSERT INTO "_ScheduleTeachers" ("A", "B", "periods", "exerciseClass")
+       SELECT "A", "B", "periods", "exerciseClass"
+       FROM jsonb_to_recordset($1::jsonb)
+         AS desired("A" int, "B" int, "periods" float8, "exerciseClass" boolean)
+       ON CONFLICT ("A", "B") DO UPDATE SET
+         "periods" = EXCLUDED."periods", "exerciseClass" = EXCLUDED."exerciseClass"
+       WHERE ROW("_ScheduleTeachers"."periods", "_ScheduleTeachers"."exerciseClass")
+         IS DISTINCT FROM ROW(EXCLUDED."periods", EXCLUDED."exerciseClass")`,
+      payload,
+    );
   }
-  await syncJoinPairs(
-    tx,
-    "_ScheduleTeachers",
-    "A",
-    scheduleRows.map((row) => row.id),
-    joinPairs,
-  );
 }
 
 function scheduleColumnValues(schedule: ResolvedSchedule): ColumnValue[] {
@@ -247,7 +302,7 @@ function scheduleColumnValues(schedule: ResolvedSchedule): ColumnValue[] {
     schedule.customPlace,
     schedule.lessonType,
     schedule.weekIndex,
-    schedule.exerciseClass,
+    schedule.exerciseClass ?? undefined,
     schedule.startUnit,
     schedule.endUnit,
     schedule.roomId,

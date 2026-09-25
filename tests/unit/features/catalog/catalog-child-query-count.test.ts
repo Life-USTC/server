@@ -50,7 +50,7 @@ describe("catalog child-record query count", () => {
           sectionId: 1,
           scheduleGroupId: 7,
           room: null,
-          teachers: [],
+          teacherParticipations: [],
           scheduleGroup: {
             id: 7,
             jwId: 70,

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { catalogClassNameSchema } from "@/features/catalog/lib/academic-source-metadata-schemas";
 import { dateTimeSchema } from "./response-schema-primitives";
 
 export const semesterSchema = z
@@ -34,6 +35,8 @@ export const sectionBaseSchema = z.strictObject({
   bizTypeId: z.number().int().nullable(),
   credits: z.number().nullable(),
   period: z.number().int().nullable(),
+  requiredWeeks: z.number().int().nullable(),
+  catalogAdminClasses: z.array(catalogClassNameSchema).nullable(),
   periodsPerWeek: z.number().nullable(),
   timesPerWeek: z.number().int().nullable(),
   stdCount: z.number().int().nullable(),

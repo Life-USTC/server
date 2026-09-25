@@ -6,7 +6,7 @@ import { runImport } from "./import";
 import { runPostImportCachePurge } from "./post-import-cache-purge";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
-import { parseBooleanSetting, parsePositiveIntegerSetting } from "./validation";
+import { parseBooleanSetting } from "./validation";
 
 function getEnv(name: string, defaultValue?: string): string {
   const value = process.env[name] ?? defaultValue;
@@ -31,11 +31,6 @@ async function sha256File(path: string): Promise<string> {
 async function main() {
   const databaseUrl = getEnv("DATABASE_URL");
   const snapshotPath = getEnv("STATIC_SNAPSHOT_PATH");
-  const minSemester = parsePositiveIntegerSetting(
-    "STATIC_LOADER_MIN_SEMESTER",
-    process.env.STATIC_LOADER_MIN_SEMESTER,
-    401,
-  );
   const dryRun = parseBooleanSetting(
     "STATIC_LOADER_DRY_RUN",
     process.env.STATIC_LOADER_DRY_RUN,
@@ -47,7 +42,6 @@ async function main() {
 
   console.log(`DATABASE_URL: ${maskDatabaseUrl(databaseUrl)}`);
   console.log(`snapshotPath: ${snapshotPath}`);
-  console.log(`minSemester: ${minSemester}`);
   console.log(`dryRun: ${dryRun}`);
 
   const snapshot = new Snapshot(snapshotPath);
@@ -63,7 +57,6 @@ async function main() {
     const report = await runImport(prisma, {
       snapshotPath,
       snapshotSha256,
-      minSemester,
       dryRun,
     });
     console.log("Import report:", report);

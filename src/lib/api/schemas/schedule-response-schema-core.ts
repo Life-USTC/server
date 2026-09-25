@@ -51,6 +51,12 @@ export const scheduleTeacherSchema = z.strictObject({
   department: localizedDepartmentSchema.nullable(),
 });
 
+export const scheduleTeacherParticipationSchema = z.strictObject({
+  teacher: scheduleTeacherSchema,
+  periods: z.number().nullable(),
+  exerciseClass: z.boolean().nullable(),
+});
+
 export const workspaceScheduleTeacherSchema = scheduleTeacherSchema.extend({
   teacherTitle: teacherTitleSchema.nullable(),
   _count: z.strictObject({ sections: z.number().int() }),
@@ -59,6 +65,7 @@ export const workspaceScheduleTeacherSchema = scheduleTeacherSchema.extend({
 export const scheduleEntrySchema = scheduleBaseSchema.extend({
   room: scheduleRoomSchema.nullable(),
   teachers: z.array(scheduleTeacherSchema),
+  teacherParticipations: z.array(scheduleTeacherParticipationSchema),
   section: sectionBaseSchema.extend({
     course: localizedCourseBaseSchema,
     semester: semesterSchema.nullable(),
@@ -69,6 +76,7 @@ export const scheduleEntrySchema = scheduleBaseSchema.extend({
 export const sectionScheduleEntrySchema = scheduleBaseSchema.extend({
   room: scheduleRoomSchema.nullable(),
   teachers: z.array(scheduleTeacherSchema),
+  teacherParticipations: z.array(scheduleTeacherParticipationSchema),
   scheduleGroup: scheduleGroupSchema,
 });
 
@@ -94,6 +102,11 @@ export const paginatedScheduleResponseSchema =
 
 export const subscribedScheduleEntrySchema = scheduleEntrySchema.extend({
   teachers: z.array(workspaceScheduleTeacherSchema),
+  teacherParticipations: z.array(
+    scheduleTeacherParticipationSchema.extend({
+      teacher: workspaceScheduleTeacherSchema,
+    }),
+  ),
 });
 
 export const subscribedSchedulesResponseSchema = z.strictObject({

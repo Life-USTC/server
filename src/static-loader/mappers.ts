@@ -50,12 +50,21 @@ export type CourseBuild = {
   typeName?: string;
 };
 
+export type CatalogClassName = { nameCn: string; nameEn: string | null };
+export type ExamMonitor = {
+  jwId: number;
+  nameCn: string | null;
+  nameEn: string | null;
+};
+
 export type SectionBuild = {
   jwId: number;
   code: string;
   bizTypeId?: number;
   credits?: number;
   period?: number;
+  requiredWeeks?: number;
+  catalogAdminClasses?: CatalogClassName[];
   periodsPerWeek?: number;
   timesPerWeek?: number;
   stdCount?: number;
@@ -96,6 +105,12 @@ export type ScheduleGroupBuild = {
   isDefault: boolean;
 };
 
+export type ScheduleTeacherBuild = {
+  teacherJwId: number;
+  periods?: number;
+  exerciseClass?: boolean;
+};
+
 export type ScheduleBuild = {
   periods?: number;
   date?: Date;
@@ -107,13 +122,14 @@ export type ScheduleBuild = {
   customPlace?: string;
   lessonType?: string;
   weekIndex: number;
-  exerciseClass?: boolean;
+  // Undefined means unprovided; null means conflicting participant flags.
+  exerciseClass?: boolean | null;
   startUnit: number;
   endUnit: number;
   roomJwId?: number;
   lessonJwId: number;
   scheduleGroupJwId: number;
-  teacherJwIds: number[];
+  teacherParticipations: ScheduleTeacherBuild[];
 };
 
 export type ExamBuild = {
@@ -124,6 +140,9 @@ export type ExamBuild = {
   examDate?: Date;
   examTakeCount?: number;
   examMode?: string;
+  grades?: string;
+  adminClassNames?: string;
+  monitors?: ExamMonitor[];
   examBatchJwId?: number;
   sectionJwId: number;
   rooms: { room: string; count: number }[];
@@ -377,6 +396,7 @@ export function mapSection(
     examMode?: SnapshotRow;
     openDepartment?: SnapshotRow;
     teachLanguage?: SnapshotRow;
+    adminClasses?: SnapshotRow[];
   },
 ): SectionBuild | undefined {
   const jwId = asInt(lessonRow.id);
@@ -398,6 +418,15 @@ export function mapSection(
     bizTypeId: asInt(scheduleLesson?.bizTypeId),
     credits: asFloat(lessonRow.credits),
     period: asInt(lessonRow.period),
+    requiredWeeks: asInt(requiredInfo?.weeks),
+    catalogAdminClasses: (catalogLookups.adminClasses ?? []).map((row) => {
+      const nameCn = asString(row.cn);
+      if (!nameCn)
+        throw new Error(
+          `Catalog admin class for Section jwId ${jwId} has no name`,
+        );
+      return { nameCn, nameEn: asString(row.en) ?? null };
+    }),
     periodsPerWeek:
       asFloat(lessonRow.periodsPerWeek) ??
       asFloat(requiredInfo?.periodsPerWeek),
@@ -524,15 +553,36 @@ export function mergeSchedule(
     incoming.lessonType,
     key,
   );
-  existing.exerciseClass = mergeScheduleValue(
-    "exerciseClass",
-    existing.exerciseClass,
-    incoming.exerciseClass,
-    key,
-  );
-  existing.teacherJwIds = Array.from(
-    new Set([...existing.teacherJwIds, ...incoming.teacherJwIds]),
-  ).sort((a, b) => a - b);
+  existing.exerciseClass =
+    existing.exerciseClass === null ||
+    (existing.exerciseClass != null &&
+      incoming.exerciseClass != null &&
+      existing.exerciseClass !== incoming.exerciseClass)
+      ? null
+      : (existing.exerciseClass ?? incoming.exerciseClass);
+  for (const participation of incoming.teacherParticipations) {
+    const current = existing.teacherParticipations.find(
+      (value) => value.teacherJwId === participation.teacherJwId,
+    );
+    if (current == null) {
+      existing.teacherParticipations.push(participation);
+      continue;
+    }
+    const participantKey = `${key}|teacher:${participation.teacherJwId}`;
+    current.periods = mergeScheduleValue(
+      "teacher periods",
+      current.periods,
+      participation.periods,
+      participantKey,
+    );
+    current.exerciseClass = mergeScheduleValue(
+      "teacher exerciseClass",
+      current.exerciseClass,
+      participation.exerciseClass,
+      participantKey,
+    );
+  }
+  existing.teacherParticipations.sort((a, b) => a.teacherJwId - b.teacherJwId);
   return existing;
 }
 
@@ -562,7 +612,16 @@ export function mapSchedule(
     roomJwId,
     lessonJwId: asInt(row.lessonId) ?? 0,
     scheduleGroupJwId: asInt(row.scheduleGroupId) ?? 0,
-    teacherJwIds: teacherJwId == null ? [] : [teacherJwId],
+    teacherParticipations:
+      teacherJwId == null
+        ? []
+        : [
+            {
+              teacherJwId,
+              periods,
+              exerciseClass: asBoolean(row.exerciseClass),
+            },
+          ],
   };
 }
 
@@ -704,6 +763,7 @@ export function mapExam(
   lessonRow: SnapshotRow | undefined,
   examBatchRow: SnapshotRow | undefined,
   roomRows: SnapshotRow[],
+  monitorRows: SnapshotRow[] = [],
 ): ExamBuild | undefined {
   const jwId = asInt(row.id);
   const sectionJwId = asInt(lessonRow?.id);
@@ -716,6 +776,21 @@ export function mapExam(
     examDate: asDate(row.examDate),
     examTakeCount: asInt(row.examTakeCount),
     examMode: asString(row.examMode),
+    grades: asString(row.grades),
+    adminClassNames: asString(row.adminclasseNames),
+    monitors: monitorRows.map((monitor) => {
+      const jwId = asInt(monitor.id);
+      const nameCn = asString(monitor.cn);
+      if (jwId == null)
+        throw new Error(
+          `Exam monitor for Exam jwId ${row.id} has no upstream identity`,
+        );
+      return {
+        jwId,
+        nameCn: nameCn ?? null,
+        nameEn: asString(monitor.en) ?? null,
+      };
+    }),
     examBatchJwId: asInt(examBatchRow?.id),
     sectionJwId,
     rooms: roomRows

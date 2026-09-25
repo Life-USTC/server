@@ -87,7 +87,7 @@ describe("iCalendar room maps", () => {
         nameCn: "3A204",
         building: { nameCn: "三教", campus: { nameCn: "西区" } },
       },
-      teachers: [],
+      teacherParticipations: [],
     } as unknown as Parameters<typeof createScheduleEvent>[0];
     createScheduleEvent(schedule, section, calendar, geo, assets, "zh-cn");
     const output = unfolded(calendar);

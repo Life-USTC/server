@@ -28,8 +28,12 @@ export const sectionPageScheduleSelect = {
         },
       },
     },
-    teachers: {
-      select: localizedNameSelect,
+    teacherParticipations: {
+      select: {
+        periods: true,
+        exerciseClass: true,
+        teacher: { select: localizedNameSelect },
+      },
     },
   },
 } satisfies Prisma.Section$schedulesArgs;

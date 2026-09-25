@@ -14534,6 +14534,121 @@
                     "additionalProperties": false
                   }
                 },
+                "teacherParticipations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "teacher": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "personId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "department": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "isCollege": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "isCollege",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "personId",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "namePrimary",
+                          "nameSecondary",
+                          "department"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "periods": {
+                        "nullable": true,
+                        "type": "number"
+                      },
+                      "exerciseClass": {
+                        "nullable": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "teacher",
+                      "periods",
+                      "exerciseClass"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "section": {
                   "type": "object",
                   "properties": {
@@ -14571,6 +14686,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "periodsPerWeek": {
                       "nullable": true,
@@ -14803,6 +14945,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -14908,6 +15052,7 @@
                 "scheduleGroupId",
                 "room",
                 "teachers",
+                "teacherParticipations",
                 "section",
                 "scheduleGroup"
               ],
@@ -17457,6 +17602,33 @@
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
+                  "requiredWeeks": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "catalogAdminClasses": {
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "nameCn",
+                        "nameEn"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "periodsPerWeek": {
                     "nullable": true,
                     "type": "number"
@@ -17688,6 +17860,8 @@
                   "bizTypeId",
                   "credits",
                   "period",
+                  "requiredWeeks",
+                  "catalogAdminClasses",
                   "periodsPerWeek",
                   "timesPerWeek",
                   "stdCount",
@@ -18535,6 +18709,33 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "periodsPerWeek": {
                       "nullable": true,
                       "type": "number"
@@ -18766,6 +18967,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -19625,6 +19828,121 @@
                         "additionalProperties": false
                       }
                     },
+                    "teacherParticipations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "teacher": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jwId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "personId": {
+                                "nullable": true,
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "department": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "nameCn": {
+                                    "type": "string"
+                                  },
+                                  "nameEn": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  },
+                                  "isCollege": {
+                                    "nullable": true,
+                                    "type": "boolean"
+                                  },
+                                  "namePrimary": {
+                                    "type": "string"
+                                  },
+                                  "nameSecondary": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "code",
+                                  "nameCn",
+                                  "nameEn",
+                                  "isCollege",
+                                  "namePrimary",
+                                  "nameSecondary"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "jwId",
+                              "personId",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "namePrimary",
+                              "nameSecondary",
+                              "department"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "periods": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "exerciseClass": {
+                            "nullable": true,
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "teacher",
+                          "periods",
+                          "exerciseClass"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "section": {
                       "type": "object",
                       "properties": {
@@ -19662,6 +19980,33 @@
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
+                        },
+                        "requiredWeeks": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "catalogAdminClasses": {
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "nameCn",
+                              "nameEn"
+                            ],
+                            "additionalProperties": false
+                          }
                         },
                         "periodsPerWeek": {
                           "nullable": true,
@@ -19894,6 +20239,8 @@
                         "bizTypeId",
                         "credits",
                         "period",
+                        "requiredWeeks",
+                        "catalogAdminClasses",
                         "periodsPerWeek",
                         "timesPerWeek",
                         "stdCount",
@@ -19999,6 +20346,7 @@
                     "scheduleGroupId",
                     "room",
                     "teachers",
+                    "teacherParticipations",
                     "section",
                     "scheduleGroup"
                   ],
@@ -20276,6 +20624,33 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "requiredWeeks": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "catalogAdminClasses": {
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "nameCn",
+                              "nameEn"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "periodsPerWeek": {
                           "nullable": true,
                           "type": "number"
@@ -20507,6 +20882,8 @@
                         "bizTypeId",
                         "credits",
                         "period",
+                        "requiredWeeks",
+                        "catalogAdminClasses",
                         "periodsPerWeek",
                         "timesPerWeek",
                         "stdCount",
@@ -20803,6 +21180,42 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "grades": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "adminClassNames": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "monitors": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "nameCn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "jwId",
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "examBatchId": {
                       "nullable": true,
                       "type": "integer",
@@ -20923,6 +21336,33 @@
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
+                        },
+                        "requiredWeeks": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "catalogAdminClasses": {
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "nameCn",
+                              "nameEn"
+                            ],
+                            "additionalProperties": false
+                          }
                         },
                         "periodsPerWeek": {
                           "nullable": true,
@@ -21155,6 +21595,8 @@
                         "bizTypeId",
                         "credits",
                         "period",
+                        "requiredWeeks",
+                        "catalogAdminClasses",
                         "periodsPerWeek",
                         "timesPerWeek",
                         "stdCount",
@@ -21198,6 +21640,9 @@
                     "examDate",
                     "examTakeCount",
                     "examMode",
+                    "grades",
+                    "adminClassNames",
+                    "monitors",
                     "examBatchId",
                     "sectionId",
                     "examBatch",
@@ -21692,6 +22137,185 @@
                     "additionalProperties": false
                   }
                 },
+                "teacherParticipations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "teacher": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "personId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "department": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "isCollege": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "isCollege",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "teacherTitle": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jwId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "enabled": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "jwId",
+                              "nameCn",
+                              "nameEn",
+                              "code",
+                              "enabled",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "_count": {
+                            "type": "object",
+                            "properties": {
+                              "sections": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "sections"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "personId",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "namePrimary",
+                          "nameSecondary",
+                          "department",
+                          "teacherTitle",
+                          "_count"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "periods": {
+                        "nullable": true,
+                        "type": "number"
+                      },
+                      "exerciseClass": {
+                        "nullable": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "teacher",
+                      "periods",
+                      "exerciseClass"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "section": {
                   "type": "object",
                   "properties": {
@@ -21729,6 +22353,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "periodsPerWeek": {
                       "nullable": true,
@@ -21961,6 +22612,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -22066,6 +22719,7 @@
                 "scheduleGroupId",
                 "room",
                 "teachers",
+                "teacherParticipations",
                 "section",
                 "scheduleGroup"
               ],
@@ -22145,6 +22799,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "periodsPerWeek": {
                       "nullable": true,
@@ -22735,6 +23416,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -22870,6 +23553,33 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "periodsPerWeek": {
                       "nullable": true,
                       "type": "number"
@@ -23459,6 +24169,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -26201,6 +26913,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -26445,6 +27184,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -26557,6 +27298,33 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "requiredWeeks": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "catalogAdminClasses": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nameCn": {
+                  "type": "string"
+                },
+                "nameEn": {
+                  "nullable": true,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "nameCn",
+                "nameEn"
+              ],
+              "additionalProperties": false
+            }
           },
           "periodsPerWeek": {
             "nullable": true,
@@ -27696,6 +28464,42 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "grades": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "adminClassNames": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "monitors": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "nameCn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "jwId",
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "examBatchId": {
                   "nullable": true,
                   "type": "integer",
@@ -27789,6 +28593,9 @@
                 "examDate",
                 "examTakeCount",
                 "examMode",
+                "grades",
+                "adminClassNames",
+                "monitors",
                 "examBatchId",
                 "sectionId",
                 "examBatch",
@@ -27877,6 +28684,8 @@
           "bizTypeId",
           "credits",
           "period",
+          "requiredWeeks",
+          "catalogAdminClasses",
           "periodsPerWeek",
           "timesPerWeek",
           "stdCount",
@@ -28038,6 +28847,33 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
                 },
                 "periodsPerWeek": {
                   "nullable": true,
@@ -28620,6 +29456,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -28867,6 +29705,33 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
                 },
                 "periodsPerWeek": {
                   "nullable": true,
@@ -29303,6 +30168,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -30206,6 +31073,33 @@
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
+                  "requiredWeeks": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "catalogAdminClasses": {
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "nameCn",
+                        "nameEn"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "periodsPerWeek": {
                     "nullable": true,
                     "type": "number"
@@ -30437,6 +31331,8 @@
                   "bizTypeId",
                   "credits",
                   "period",
+                  "requiredWeeks",
+                  "catalogAdminClasses",
                   "periodsPerWeek",
                   "timesPerWeek",
                   "stdCount",
@@ -30932,6 +31828,33 @@
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
                   },
+                  "requiredWeeks": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "catalogAdminClasses": {
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "nameCn",
+                        "nameEn"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "periodsPerWeek": {
                     "nullable": true,
                     "type": "number"
@@ -31163,6 +32086,8 @@
                   "bizTypeId",
                   "credits",
                   "period",
+                  "requiredWeeks",
+                  "catalogAdminClasses",
                   "periodsPerWeek",
                   "timesPerWeek",
                   "stdCount",
@@ -32529,6 +33454,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -33110,6 +34062,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -33220,6 +34174,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "periodsPerWeek": {
                       "nullable": true,
@@ -33810,6 +34791,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -33927,6 +34910,33 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "periodsPerWeek": {
                       "nullable": true,
                       "type": "number"
@@ -34516,6 +35526,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -34672,6 +35684,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -35253,6 +36292,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -35335,6 +36376,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -35916,6 +36984,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -35998,6 +37068,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -36579,6 +37676,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",
@@ -36662,6 +37761,33 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "periodsPerWeek": {
                       "nullable": true,
@@ -37252,6 +38378,8 @@
                     "bizTypeId",
                     "credits",
                     "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
                     "periodsPerWeek",
                     "timesPerWeek",
                     "stdCount",
@@ -37456,6 +38584,33 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 },
+                "requiredWeeks": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "catalogAdminClasses": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "periodsPerWeek": {
                   "nullable": true,
                   "type": "number"
@@ -38037,6 +39192,8 @@
                 "bizTypeId",
                 "credits",
                 "period",
+                "requiredWeeks",
+                "catalogAdminClasses",
                 "periodsPerWeek",
                 "timesPerWeek",
                 "stdCount",

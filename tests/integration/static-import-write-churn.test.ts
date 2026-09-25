@@ -259,7 +259,9 @@ describe("static import write churn", () => {
           endUnit: 0,
           lessonJwId: section.jwId,
           scheduleGroupJwId: group.jwId,
-          teacherJwIds: [marker],
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 2, exerciseClass: false },
+          ],
         };
 
         await writeSchedules(
@@ -273,7 +275,7 @@ describe("static import write churn", () => {
         );
         const firstRow = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
         const firstTuple = await tupleId(
           tx,
@@ -297,7 +299,7 @@ describe("static import write churn", () => {
         );
         const unchanged = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(unchanged.id).toBe(firstRow.id);
@@ -307,6 +309,101 @@ describe("static import write churn", () => {
         expect(
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
         ).toBe(firstJoinTuple);
+
+        const participationOnlyChange: ScheduleBuild = {
+          ...schedule,
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 1.5, exerciseClass: false },
+            { teacherJwId: marker + 1, periods: 2, exerciseClass: false },
+          ],
+        };
+        await writeSchedules(
+          tx,
+          [participationOnlyChange],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).toBe(
+          firstTuple,
+        );
+        expect(
+          await tx.scheduleTeacher.findMany({
+            where: { scheduleId: firstRow.id },
+            orderBy: { teacherId: "asc" },
+            select: { teacherId: true, periods: true, exerciseClass: true },
+          }),
+        ).toEqual([
+          { teacherId: firstTeacher.id, periods: 1.5, exerciseClass: false },
+          { teacherId: secondTeacher.id, periods: 2, exerciseClass: false },
+        ]);
+        const mixed: ScheduleBuild = {
+          ...participationOnlyChange,
+          exerciseClass: null,
+          teacherParticipations: [
+            { teacherJwId: marker, periods: 1.5, exerciseClass: true },
+            { teacherJwId: marker + 1, periods: 2, exerciseClass: false },
+          ],
+        };
+        await writeSchedules(
+          tx,
+          [mixed],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        const mixedTuple = await tupleId(
+          tx,
+          "Schedule",
+          `"id" = ${firstRow.id}`,
+        );
+        const mixedJoinTuple = await tupleId(
+          tx,
+          "_ScheduleTeachers",
+          `"A" = ${firstRow.id} AND "B" = ${firstTeacher.id}`,
+        );
+        await writeSchedules(
+          tx,
+          [mixed],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).toBe(
+          mixedTuple,
+        );
+        expect(
+          await tupleId(
+            tx,
+            "_ScheduleTeachers",
+            `"A" = ${firstRow.id} AND "B" = ${firstTeacher.id}`,
+          ),
+        ).toBe(mixedJoinTuple);
+        expect(
+          await tx.schedule.findUniqueOrThrow({ where: { id: firstRow.id } }),
+        ).toMatchObject({ exerciseClass: null });
+
+        // Restore the original source: stale participants are removed and metadata resets.
+        await writeSchedules(
+          tx,
+          [schedule],
+          sectionMap,
+          groupMap,
+          new Map(),
+          teacherMap,
+          [section.id],
+        );
+        const restoredJoinTuple = await tupleId(
+          tx,
+          "_ScheduleTeachers",
+          `"A" = ${firstRow.id}`,
+        );
 
         const scheduleWithDerivedUnits = {
           ...schedule,
@@ -324,21 +421,23 @@ describe("static import write churn", () => {
         );
         const unitsChanged = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(unitsChanged).toMatchObject({
           id: firstRow.id,
           startUnit: 1,
           endUnit: 2,
-          teachers: [{ id: firstTeacher.id }],
+          teacherParticipations: [
+            { teacherId: firstTeacher.id, periods: 2, exerciseClass: false },
+          ],
         });
         expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).not.toBe(
           firstTuple,
         );
         expect(
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
-        ).toBe(firstJoinTuple);
+        ).toBe(restoredJoinTuple);
 
         await writeSchedules(
           tx,
@@ -347,7 +446,10 @@ describe("static import write churn", () => {
               ...scheduleWithDerivedUnits,
               periods: 3,
               lessonType: "seminar",
-              teacherJwIds: [marker + 1],
+              exerciseClass: true,
+              teacherParticipations: [
+                { teacherJwId: marker + 1, periods: 3, exerciseClass: true },
+              ],
             },
           ],
           sectionMap,
@@ -358,14 +460,16 @@ describe("static import write churn", () => {
         );
         const changed = await tx.schedule.findFirstOrThrow({
           where: { sectionId: section.id },
-          include: { teachers: true },
+          include: { teacherParticipations: true },
         });
 
         expect(changed).toMatchObject({
           id: firstRow.id,
           periods: 3,
           lessonType: "seminar",
-          teachers: [{ id: secondTeacher.id }],
+          teacherParticipations: [
+            { teacherId: secondTeacher.id, periods: 3, exerciseClass: true },
+          ],
         });
         expect(await tupleId(tx, "Schedule", `"id" = ${firstRow.id}`)).not.toBe(
           firstTuple,
@@ -399,6 +503,106 @@ describe("static import write churn", () => {
     } catch (error) {
       if (error !== rollback) throw error;
     }
+  });
+
+  it("reconciles complete sections across the batch boundary without touching uncovered schedules", async () => {
+    const rollback = new Error("ROLLBACK_SCHEDULE_BATCH_SCOPE_TEST");
+    const marker = 1_600_000_000 + (Date.now() % 100_000_000);
+    try {
+      await prisma.$transaction(async (tx) => {
+        const course = await tx.course.create({
+          data: { jwId: marker, code: `${marker}`, nameCn: `${marker}` },
+        });
+        const sections = (
+          await tx.section.createManyAndReturn({
+            data: Array.from({ length: 502 }, (_, index) => ({
+              jwId: marker + index,
+              code: `${marker}-${index}`,
+              courseId: course.id,
+            })),
+          })
+        ).sort((a, b) => a.jwId - b.jwId);
+        const [staleSection, keptSection, uncoveredSection] = [
+          sections[0],
+          sections[500],
+          sections[501],
+        ];
+        const groups = await tx.scheduleGroup.createManyAndReturn({
+          data: [staleSection, keptSection, uncoveredSection].map(
+            (section) => ({
+              jwId: section.jwId,
+              sectionId: section.id,
+              no: 1,
+              limitCount: 1,
+              stdCount: 1,
+              actualPeriods: 1,
+              isDefault: true,
+            }),
+          ),
+        });
+        const sectionMap = new Map(
+          sections.map((section) => [section.jwId, section.id]),
+        );
+        const groupMap = new Map(groups.map((group) => [group.jwId, group.id]));
+        const build = (section: (typeof sections)[number]): ScheduleBuild => ({
+          periods: 2,
+          weekday: 1,
+          startTime: 750,
+          endTime: 925,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 2,
+          lessonJwId: section.jwId,
+          scheduleGroupJwId: section.jwId,
+          teacherParticipations: [],
+        });
+        await writeSchedules(
+          tx,
+          [build(staleSection), build(keptSection), build(uncoveredSection)],
+          sectionMap,
+          groupMap,
+          new Map(),
+          new Map(),
+          sections.map((section) => section.id),
+        );
+        const before = await tx.schedule.findMany({
+          where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
+          orderBy: { id: "asc" },
+        });
+        const tuples = await Promise.all(
+          before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
+        );
+        // The first 500 sections now have no schedules. The retained meeting is
+        // in the second batch; the last section is outside this source's scope.
+        await writeSchedules(
+          tx,
+          [build(keptSection)],
+          sectionMap,
+          groupMap,
+          new Map(),
+          new Map(),
+          sections.slice(0, 501).map((section) => section.id),
+        );
+        expect(
+          await tx.schedule.count({ where: { sectionId: staleSection.id } }),
+        ).toBe(0);
+        expect(
+          await tx.schedule.findMany({
+            where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
+            orderBy: { id: "asc" },
+          }),
+        ).toEqual(before);
+        expect(
+          await Promise.all(
+            before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
+          ),
+        ).toEqual(tuples);
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+    expect(await prisma.course.count({ where: { jwId: marker } })).toBe(0);
   });
 
   it("does not rebuild unchanged section relation rows", async () => {

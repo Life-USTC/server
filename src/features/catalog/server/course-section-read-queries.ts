@@ -55,6 +55,8 @@ function sectionBaseDto(input: SectionDetailRecord) {
     bizTypeId: input.bizTypeId,
     credits: input.credits,
     period: input.period,
+    requiredWeeks: input.requiredWeeks,
+    catalogAdminClasses: input.catalogAdminClasses,
     periodsPerWeek: input.periodsPerWeek,
     timesPerWeek: input.timesPerWeek,
     stdCount: input.stdCount,
@@ -233,6 +235,9 @@ export function toSectionDetailDto(
       examDate: exam.examDate ? toShanghaiIsoString(exam.examDate) : null,
       examTakeCount: exam.examTakeCount,
       examMode: exam.examMode,
+      grades: exam.grades,
+      adminClassNames: exam.adminClassNames,
+      monitors: exam.monitors,
       examBatchId: exam.examBatchId,
       sectionId: exam.sectionId,
       examBatch: exam.examBatch

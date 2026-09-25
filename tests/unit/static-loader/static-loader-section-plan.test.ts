@@ -21,12 +21,21 @@ describe("static schedule plan", () => {
     const snapshot = {
       queryAll: (table: string) => rowsByTable[table] ?? [],
       queryGrouped: () => new Map(),
+      groupByParent: () => new Map(),
+      *iterateSemesterTables(
+        this: { queryAll: (table: string) => Record<string, unknown>[] },
+        tables: string[],
+      ) {
+        yield new Map(tables.map((table) => [table, this.queryAll(table)]));
+      },
     } as unknown as Snapshot;
 
     const plan = loadScheduleData(snapshot, new Set([1]), [], []);
 
     expect(plan.schedules).toHaveLength(1);
-    expect(plan.schedules[0].teacherJwIds).toEqual([10915]);
+    expect(
+      plan.schedules[0].teacherParticipations.map((p) => p.teacherJwId),
+    ).toEqual([10915]);
     expect(plan.scheduleInfrastructureTeacherPairs).toEqual([
       { sectionJwId: 1, teacherJwId: 10915 },
     ]);
@@ -39,6 +48,13 @@ describe("static schedule plan", () => {
           ? [{ lessonId: 1 }]
           : [],
       queryGrouped: () => new Map(),
+      groupByParent: () => new Map(),
+      *iterateSemesterTables(
+        this: { queryAll: (table: string) => Record<string, unknown>[] },
+        tables: string[],
+      ) {
+        yield new Map(tables.map((table) => [table, this.queryAll(table)]));
+      },
     } as unknown as Snapshot;
 
     expect(() => loadScheduleData(snapshot, new Set([1]), [], [])).toThrow(
@@ -53,6 +69,13 @@ describe("static schedule plan", () => {
           ? [{ lessonId: 1 }]
           : [],
       queryGrouped: () => new Map(),
+      groupByParent: () => new Map(),
+      *iterateSemesterTables(
+        this: { queryAll: (table: string) => Record<string, unknown>[] },
+        tables: string[],
+      ) {
+        yield new Map(tables.map((table) => [table, this.queryAll(table)]));
+      },
     } as unknown as Snapshot;
 
     expect(() => loadScheduleData(snapshot, new Set([1]), [], [])).toThrow(

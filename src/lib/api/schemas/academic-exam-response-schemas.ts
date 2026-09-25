@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { examMonitorSchema } from "@/features/catalog/lib/academic-source-metadata-schemas";
 import {
   localizedCourseBaseSchema,
   localizedNameFields,
@@ -33,6 +34,9 @@ export const examSchema = z.strictObject({
   examDate: dateTimeSchema.nullable(),
   examTakeCount: z.number().int().nullable(),
   examMode: z.string().nullable(),
+  grades: z.string().nullable(),
+  adminClassNames: z.string().nullable(),
+  monitors: z.array(examMonitorSchema).nullable(),
   examBatchId: z.number().int().nullable(),
   sectionId: z.number().int(),
   examBatch: examBatchSchema.nullable(),

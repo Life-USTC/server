@@ -6,6 +6,7 @@ declare module "bun:sqlite" {
   }
 
   export interface Statement {
+    iterate(...params: unknown[]): IterableIterator<unknown>;
     all(...params: unknown[]): unknown[];
     get(...params: unknown[]): unknown;
     run(...params: unknown[]): { changes: number; lastInsertRowid: number };

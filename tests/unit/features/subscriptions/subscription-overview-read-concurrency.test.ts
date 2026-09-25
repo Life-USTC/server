@@ -45,7 +45,9 @@ describe("subscription overview count and sample reads", () => {
     const { promise: countPromise, resolve: resolveCount } =
       createDeferred<number>();
     scheduleCountMock.mockReturnValue(countPromise);
-    scheduleFindManyMock.mockResolvedValue([{ id: 101 }]);
+    scheduleFindManyMock.mockResolvedValue([
+      { id: 101, teacherParticipations: [] },
+    ]);
     const { listTodaySubscribedSchedulesWithCount } = await import(
       "@/features/subscriptions/server/subscription-schedule-exam-read-model"
     );
@@ -61,7 +63,7 @@ describe("subscription overview count and sample reads", () => {
     resolveCount(4);
     await expect(resultPromise).resolves.toEqual({
       total: 4,
-      items: [{ id: 101 }],
+      items: [{ id: 101, teacherParticipations: [], teachers: [] }],
     });
   });
 

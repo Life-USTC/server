@@ -75,7 +75,7 @@ type HomeworkParent = {
 };
 
 type ScheduleParent = {
-  teachers: readonly unknown[];
+  teacherParticipations: readonly { teacher: unknown }[];
 };
 
 type ExamParent = {
@@ -248,6 +248,17 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     isDefault: Boolean!
   }
 
+  type ScheduleTeacherParticipation {
+    teacher: Teacher!
+    periods: Float
+    exerciseClass: Boolean
+  }
+
+  type ScheduleTeacherParticipationPage {
+    items: [ScheduleTeacherParticipation!]!
+    pageInfo: PageInfo!
+  }
+
   type Schedule {
     id: Int!
     periods: Float!
@@ -263,6 +274,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     endUnit: Int!
     room: ScheduleRoom
     teachers(page: PageInput): TeacherPage!
+    teacherParticipations(page: PageInput): ScheduleTeacherParticipationPage!
     scheduleGroup: ScheduleGroup!
     section: Section!
   }
@@ -289,6 +301,12 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     pageInfo: PageInfo!
   }
 
+  type ExamMonitor {
+    jwId: Int!
+    nameCn: String
+    nameEn: String
+  }
+
   type Exam {
     id: Int!
     jwId: Int!
@@ -298,6 +316,9 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     examDate: Date
     examTakeCount: Int
     examMode: String
+    grades: String
+    adminClassNames: String
+    monitors: [ExamMonitor!]
     examBatch: ExamBatch
     examRooms(page: PageInput): ExamRoomPage!
     section: Section!
@@ -366,6 +387,7 @@ export const graphqlScopeResolvers = {
   TodoPage: graphqlPageResolvers,
   HomeworkPage: graphqlPageResolvers,
   SchedulePage: graphqlPageResolvers,
+  ScheduleTeacherParticipationPage: graphqlPageResolvers,
   ExamPage: graphqlPageResolvers,
   ExamRoomPage: graphqlPageResolvers,
   Homework: {
@@ -376,11 +398,20 @@ export const graphqlScopeResolvers = {
       homework.completion?.completedAt ?? null,
   },
   Schedule: {
+    teacherParticipations(
+      schedule: ScheduleParent,
+      args: { page?: GraphqlPageInput | null },
+    ) {
+      return paginateGraphqlArray(schedule.teacherParticipations, args.page);
+    },
     teachers(
       schedule: ScheduleParent,
       args: { page?: GraphqlPageInput | null },
     ) {
-      return paginateGraphqlArray(schedule.teachers, args.page);
+      return paginateGraphqlArray(
+        schedule.teacherParticipations.map(({ teacher }) => teacher),
+        args.page,
+      );
     },
   },
   Exam: {

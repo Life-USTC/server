@@ -1,7 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
+import { compactSchedule } from "@/lib/mcp/compact-entities";
 
 describe("compactMcpPayload MCP 载荷压缩", () => {
+  it("preserves individual teacher facts while compacting teacher identity", () => {
+    const participation = {
+      teacher: { id: 1, jwId: 1001, nameCn: "教师", mobile: "private-contact" },
+      periods: 2.5,
+      exerciseClass: false,
+    };
+    const result = compactSchedule({
+      id: 9,
+      teachers: [participation.teacher],
+      teacherParticipations: [participation],
+    });
+    expect(result).toMatchObject({
+      teacherParticipations: [
+        {
+          teacher: { id: 1, jwId: 1001, nameCn: "教师" },
+          periods: 2.5,
+          exerciseClass: false,
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain("private-contact");
+  });
   it("隐藏社区日历订阅路径中的访问令牌", () => {
     expect(
       compactMcpPayload({

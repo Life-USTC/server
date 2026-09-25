@@ -6,7 +6,7 @@ export type CalendarSection = Prisma.SectionGetPayload<{
     schedules: {
       include: {
         room: { include: { building: { include: { campus: true } } } };
-        teachers: true;
+        teacherParticipations: { include: { teacher: true } };
       };
     };
     exams: { include: { examRooms: true } };

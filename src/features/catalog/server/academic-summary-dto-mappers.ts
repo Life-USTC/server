@@ -105,6 +105,8 @@ function sectionBaseDto(input: Section) {
     bizTypeId: input.bizTypeId,
     credits: input.credits,
     period: input.period,
+    requiredWeeks: input.requiredWeeks,
+    catalogAdminClasses: input.catalogAdminClasses,
     periodsPerWeek: input.periodsPerWeek,
     timesPerWeek: input.timesPerWeek,
     stdCount: input.stdCount,

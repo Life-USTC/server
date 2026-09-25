@@ -38,8 +38,13 @@ export const publicScheduleInclude = {
       roomType: true,
     },
   },
-  teachers: {
-    select: scheduleTeacherSelect,
+  teacherParticipations: {
+    select: {
+      periods: true,
+      exerciseClass: true,
+      teacher: { select: scheduleTeacherSelect },
+    },
+    orderBy: { teacherId: "asc" },
   },
   section: {
     include: {
@@ -65,8 +70,13 @@ export const sectionScheduleInclude = {
       roomType: true,
     },
   },
-  teachers: {
-    select: scheduleTeacherSelect,
+  teacherParticipations: {
+    select: {
+      periods: true,
+      exerciseClass: true,
+      teacher: { select: scheduleTeacherSelect },
+    },
+    orderBy: { teacherId: "asc" },
   },
   scheduleGroup: true,
 } as const satisfies Prisma.ScheduleInclude;
@@ -147,7 +157,7 @@ function toScheduleRoomDto(
 }
 
 function toScheduleTeacherDto(
-  input: PublicScheduleRecord["teachers"][number],
+  input: PublicScheduleRecord["teacherParticipations"][number]["teacher"],
   locale: AppLocale,
 ) {
   return {
@@ -187,8 +197,15 @@ export function toScheduleEntryDto(
   return scheduleEntrySchema.parse({
     ...toScheduleBaseDto(input),
     room: input.room ? toScheduleRoomDto(input.room, locale) : null,
-    teachers: input.teachers.map((teacher) =>
+    teachers: input.teacherParticipations.map(({ teacher }) =>
       toScheduleTeacherDto(teacher, locale),
+    ),
+    teacherParticipations: input.teacherParticipations.map(
+      ({ teacher, periods, exerciseClass }) => ({
+        teacher: toScheduleTeacherDto(teacher, locale),
+        periods,
+        exerciseClass,
+      }),
     ),
     section: {
       id: input.section.id,
@@ -200,6 +217,8 @@ export function toScheduleEntryDto(
       bizTypeId: input.section.bizTypeId,
       credits: input.section.credits,
       period: input.section.period,
+      requiredWeeks: input.section.requiredWeeks,
+      catalogAdminClasses: input.section.catalogAdminClasses,
       periodsPerWeek: input.section.periodsPerWeek,
       timesPerWeek: input.section.timesPerWeek,
       stdCount: input.section.stdCount,
@@ -266,8 +285,15 @@ export function toSectionScheduleEntryDto(
   return sectionScheduleEntrySchema.parse({
     ...toScheduleBaseDto(input),
     room: input.room ? toScheduleRoomDto(input.room, locale) : null,
-    teachers: input.teachers.map((teacher) =>
+    teachers: input.teacherParticipations.map(({ teacher }) =>
       toScheduleTeacherDto(teacher, locale),
+    ),
+    teacherParticipations: input.teacherParticipations.map(
+      ({ teacher, periods, exerciseClass }) => ({
+        teacher: toScheduleTeacherDto(teacher, locale),
+        periods,
+        exerciseClass,
+      }),
     ),
     scheduleGroup: toScheduleGroupDto(input.scheduleGroup),
   });

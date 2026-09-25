@@ -7,15 +7,10 @@ import {
   sectionPageSelect,
   sectionPageTeachersWithDepartmentSelect,
 } from "@/features/section-detail/server/section-page-shape";
-import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { cachedPublicDetailRuntimeData } from "@/lib/catalog-detail-runtime-cache";
 import { getPrisma } from "@/lib/db/prisma";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
-
-type SectionPageRecord = Prisma.SectionGetPayload<{
-  select: typeof sectionPageSelect;
-}>;
 
 async function getSectionPageCore(jwId: number, locale: AppLocale) {
   const prisma = getPrisma(locale);
@@ -79,10 +74,12 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
         examCount: exams.length,
         exams,
         scheduleCount: schedules.length,
-        schedules,
-      } as unknown as SectionPageRecord & {
-        examCount: number;
-        scheduleCount: number;
+        schedules: schedules.map((schedule) => ({
+          ...schedule,
+          teachers: schedule.teacherParticipations.map(
+            ({ teacher }) => teacher,
+          ),
+        })),
       };
 
       return {
