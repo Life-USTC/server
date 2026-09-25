@@ -21194,23 +21194,24 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
                           "nameCn": {
+                            "nullable": true,
                             "type": "string"
                           },
                           "nameEn": {
                             "nullable": true,
                             "type": "string"
-                          },
-                          "jwId": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
                           }
                         },
                         "required": [
+                          "jwId",
                           "nameCn",
-                          "nameEn",
-                          "jwId"
+                          "nameEn"
                         ],
                         "additionalProperties": false
                       }
@@ -28477,23 +28478,24 @@
                   "items": {
                     "type": "object",
                     "properties": {
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
                       "nameCn": {
+                        "nullable": true,
                         "type": "string"
                       },
                       "nameEn": {
                         "nullable": true,
                         "type": "string"
-                      },
-                      "jwId": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
+                      "jwId",
                       "nameCn",
-                      "nameEn",
-                      "jwId"
+                      "nameEn"
                     ],
                     "additionalProperties": false
                   }

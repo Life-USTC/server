@@ -303,7 +303,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
 
   type ExamMonitor {
     jwId: Int!
-    nameCn: String!
+    nameCn: String
     nameEn: String
   }
 

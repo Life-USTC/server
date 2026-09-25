@@ -95,6 +95,18 @@ describe("school source metadata", () => {
     ]);
   });
 
+  it("preserves monitor identity when the source has no name", () => {
+    expect(
+      mapExam(
+        { id: 2652 },
+        { id: 101 },
+        undefined,
+        [],
+        [{ id: 8535, cn: null, en: null }],
+      )?.monitors,
+    ).toEqual([{ jwId: 8535, nameCn: null, nameEn: null }]);
+  });
+
   it("rejects monitor records without school identity instead of matching a name", () => {
     expect(() =>
       mapExam({ id: 401 }, { id: 101 }, undefined, [], [{ cn: "同名教师" }]),

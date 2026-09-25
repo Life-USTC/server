@@ -51,7 +51,11 @@ export type CourseBuild = {
 };
 
 export type CatalogClassName = { nameCn: string; nameEn: string | null };
-export type ExamMonitor = CatalogClassName & { jwId: number };
+export type ExamMonitor = {
+  jwId: number;
+  nameCn: string | null;
+  nameEn: string | null;
+};
 
 export type SectionBuild = {
   jwId: number;
@@ -777,11 +781,15 @@ export function mapExam(
     monitors: monitorRows.map((monitor) => {
       const jwId = asInt(monitor.id);
       const nameCn = asString(monitor.cn);
-      if (jwId == null || !nameCn)
+      if (jwId == null)
         throw new Error(
           `Exam monitor for Exam jwId ${row.id} has no upstream identity`,
         );
-      return { jwId, nameCn, nameEn: asString(monitor.en) ?? null };
+      return {
+        jwId,
+        nameCn: nameCn ?? null,
+        nameEn: asString(monitor.en) ?? null,
+      };
     }),
     examBatchJwId: asInt(examBatchRow?.id),
     sectionJwId,

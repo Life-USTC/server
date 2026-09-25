@@ -67,6 +67,7 @@ describe("academic source metadata persistence", () => {
           adminClassNames: "源行政班",
           monitors: [
             { jwId: 12345, nameCn: "监考教师", nameEn: "Test Monitor" },
+            { jwId: 8535, nameCn: null, nameEn: null },
           ],
         };
         await upsertExams(tx, [exam], sectionMap, new Map());

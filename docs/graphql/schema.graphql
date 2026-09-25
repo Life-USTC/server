@@ -326,7 +326,7 @@ input ExamFilter {
 
 type ExamMonitor {
   jwId: Int!
-  nameCn: String!
+  nameCn: String
   nameEn: String
 }
 
