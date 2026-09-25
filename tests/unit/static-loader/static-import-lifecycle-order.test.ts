@@ -22,6 +22,8 @@ vi.mock("@/static-loader/snapshot", () => ({
         generated_at: GENERATED_AT,
         schema_version: "6",
         catalog_lesson_min_semester_id: "201",
+        catalog_exam_min_semester_id: "381",
+        jw_schedule_chunk_size: "100",
       };
     }
 

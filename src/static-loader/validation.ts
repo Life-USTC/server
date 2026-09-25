@@ -154,10 +154,14 @@ function contextInteger(
 export function validateSnapshotCompleteness(
   input: SnapshotCompletenessInput,
 ): SnapshotCompleteness {
-  if (input.metadata.catalog_lesson_min_semester_id == null) {
-    throw new Error(
-      "snapshot metadata catalog_lesson_min_semester_id is required",
-    );
+  for (const key of [
+    "catalog_lesson_min_semester_id",
+    "catalog_exam_min_semester_id",
+    "jw_schedule_chunk_size",
+  ]) {
+    if (input.metadata[key] == null) {
+      throw new Error(`snapshot metadata ${key} is required`);
+    }
   }
   const minSemester = parsePositiveIntegerSetting(
     "snapshot metadata catalog_lesson_min_semester_id",
@@ -167,12 +171,12 @@ export function validateSnapshotCompleteness(
   const chunkSize = parsePositiveIntegerSetting(
     "snapshot metadata jw_schedule_chunk_size",
     input.metadata.jw_schedule_chunk_size,
-    100,
+    1,
   );
   const examMinSemester = parsePositiveIntegerSetting(
     "snapshot metadata catalog_exam_min_semester_id",
     input.metadata.catalog_exam_min_semester_id,
-    381,
+    1,
   );
 
   const targetSemesters = new Set(

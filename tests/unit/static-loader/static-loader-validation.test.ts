@@ -150,6 +150,23 @@ describe("snapshot completeness validation", () => {
     jw_schedule_chunk_size: "100",
   };
 
+  it.each([
+    "catalog_lesson_min_semester_id",
+    "catalog_exam_min_semester_id",
+    "jw_schedule_chunk_size",
+  ])("requires explicit %s rather than assuming historical coverage", (key) => {
+    const incomplete: Record<string, string> = { ...metadata };
+    delete incomplete[key];
+    expect(() =>
+      validateSnapshotCompleteness({
+        metadata: incomplete,
+        semesterRows: semesterRows(401),
+        catalogLessonRows: [],
+        fetchRows: completeFetches(401, 0),
+      }),
+    ).toThrow(`snapshot metadata ${key} is required`);
+  });
+
   it("accepts all expected JW chunks and a zero-lesson semester", () => {
     const result = validateSnapshotCompleteness({
       metadata,
