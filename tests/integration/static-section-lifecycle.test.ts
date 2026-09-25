@@ -7,7 +7,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("static Section source lifecycle persistence", () => {
-  it("retires and reactivates without deleting user data or history", async () => {
+  it("reconciles over 65,535 source IDs without deleting user data or history", async () => {
     const rollback = new Error("ROLLBACK_STATIC_SECTION_LIFECYCLE_TEST");
     const marker = `[integration-test] section-lifecycle-${Date.now()}`;
     const numericMarker = 2_140_000_000 + (Date.now() % 1_000_000);
@@ -88,13 +88,19 @@ describe("static Section source lifecycle persistence", () => {
           reconcileSectionPresence(tx, {
             observedAt: firstObservedAt,
             scopedSemesterIds: [semester.id],
-            seenSectionJwIds: [reappearingSection.jwId],
+            seenSectionJwIds: [
+              ...Array.from(
+                { length: 70_000 },
+                (_, index) => 1_000_000 + index,
+              ),
+              reappearingSection.jwId,
+            ],
             snapshotSha256: "first-snapshot",
           }),
         ).resolves.toEqual({
           status: "applied",
           scopeSemesterCount: 1,
-          seenSectionCount: 1,
+          seenSectionCount: 70_001,
           missingSectionCount: 1,
           deactivatedCount: 1,
           reactivatedCount: 1,

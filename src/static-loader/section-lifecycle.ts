@@ -1,5 +1,6 @@
 import type { Prisma } from "../generated/prisma-node/client";
 import { acquireSectionLifecycleAdvisoryLocks } from "../lib/db/section-lifecycle-lock";
+import { chunks } from "./database-writes";
 
 type SectionPresenceTransaction = Pick<
   Prisma.TransactionClient,
@@ -78,33 +79,48 @@ export async function reconcileSectionPresence(
     where: { ...scopedWhere, retiredAt: { not: null } },
   });
 
-  let reactivatedSections = await tx.section.findMany({
-    where: {
-      ...scopedWhere,
-      jwId: { in: seenSectionJwIds },
-      retiredAt: { not: null },
-    },
-    select: { id: true, jwId: true, retiredAt: true },
-  });
-  let missingSections = await tx.section.findMany({
-    where: {
-      ...scopedWhere,
-      jwId: { notIn: seenSectionJwIds },
-      retiredAt: null,
-    },
-    select: { id: true, jwId: true },
-  });
+  // Keep the complete source identity set out of SQL bind parameters.
+  const seen = new Set(seenSectionJwIds);
+  let reactivatedSections = (
+    await tx.section.findMany({
+      where: {
+        ...scopedWhere,
+        retiredAt: { not: null },
+      },
+      select: { id: true, jwId: true, retiredAt: true },
+    })
+  ).filter((section) => seen.has(section.jwId));
+  let missingSections = (
+    await tx.section.findMany({
+      where: {
+        ...scopedWhere,
+        retiredAt: null,
+      },
+      select: { id: true, jwId: true },
+    })
+  ).filter((section) => !seen.has(section.jwId));
 
   const stateChangeIds = uniqueSorted([
     ...reactivatedSections.map((section) => section.id),
     ...missingSections.map((section) => section.id),
   ]);
   if (stateChangeIds.length > 0) {
-    await acquireSectionLifecycleAdvisoryLocks(tx, stateChangeIds, "exclusive");
-    const lockedSections = await tx.section.findMany({
-      where: { id: { in: stateChangeIds } },
-      select: { id: true, jwId: true, retiredAt: true },
-    });
+    for (const ids of chunks(stateChangeIds, 1000)) {
+      await acquireSectionLifecycleAdvisoryLocks(tx, ids, "exclusive");
+    }
+    const lockedSections: Array<{
+      id: number;
+      jwId: number;
+      retiredAt: Date | null;
+    }> = [];
+    for (const ids of chunks(stateChangeIds, 1000)) {
+      lockedSections.push(
+        ...(await tx.section.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, jwId: true, retiredAt: true },
+        })),
+      );
+    }
     const lockedById = new Map(
       lockedSections.map((section) => [section.id, section] as const),
     );
@@ -118,16 +134,16 @@ export async function reconcileSectionPresence(
     });
   }
 
-  if (reactivatedSections.length > 0) {
+  for (const batch of chunks(reactivatedSections, 1000)) {
     await tx.section.updateMany({
-      where: { id: { in: reactivatedSections.map((section) => section.id) } },
+      where: { id: { in: batch.map((section) => section.id) } },
       data: { retiredAt: null },
     });
   }
-  if (missingSections.length > 0) {
+  for (const batch of chunks(missingSections, 1000)) {
     await tx.section.updateMany({
       where: {
-        id: { in: missingSections.map((section) => section.id) },
+        id: { in: batch.map((section) => section.id) },
         retiredAt: null,
       },
       data: { retiredAt: input.observedAt },
@@ -160,8 +176,8 @@ export async function reconcileSectionPresence(
       },
     })),
   ];
-  if (auditRows.length > 0) {
-    await tx.auditLog.createMany({ data: auditRows });
+  for (const batch of chunks(auditRows, 1000)) {
+    await tx.auditLog.createMany({ data: batch });
   }
 
   const reactivatedCount = reactivatedSections.length;
