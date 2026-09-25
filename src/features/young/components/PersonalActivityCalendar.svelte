@@ -1,7 +1,7 @@
 <script lang="ts">
-import CalendarAgenda from "@/features/workspace/components/CalendarAgenda.svelte";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Field from "$lib/components/ui/field";

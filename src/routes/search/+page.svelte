@@ -1,6 +1,7 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
 import { onMount } from "svelte";
+import GlobalSearchResults from "@/features/search/components/GlobalSearchResults.svelte";
 import {
   GLOBAL_SEARCH_MAX_QUERY_LENGTH,
   GLOBAL_SEARCH_PAGE_LIMIT,
@@ -17,7 +18,6 @@ import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
-import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import type { PageData } from "./$types";

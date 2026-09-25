@@ -79,7 +79,7 @@ let themeMode: ThemeMode = "system";
 let sidebarOpen = true;
 let globalSearchOpen = false;
 let GlobalSearchDialog:
-  | typeof import("$lib/components/shell/GlobalSearchDialog.svelte").default
+  | typeof import("@/features/search/components/GlobalSearchDialog.svelte").default
   | null = null;
 let userMenuOpen = false;
 let localeMenuOpen = false;
@@ -161,7 +161,7 @@ $: globalSearchShortcutLabel = isApplePlatform()
 
 async function ensureGlobalSearchDialog() {
   GlobalSearchDialog ??= (
-    await import("$lib/components/shell/GlobalSearchDialog.svelte")
+    await import("@/features/search/components/GlobalSearchDialog.svelte")
   ).default;
 }
 

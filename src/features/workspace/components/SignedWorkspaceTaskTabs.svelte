@@ -1,8 +1,9 @@
 <script lang="ts">
+import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import type { SignedWorkspaceData } from "@/features/workspace/lib/workspace-controller-types";
-import SignedWorkspaceExamsTaskBranch from "./SignedWorkspaceExamsTaskBranch.svelte";
-import SignedWorkspaceHomeworksTaskBranch from "./SignedWorkspaceHomeworksTaskBranch.svelte";
-import SignedWorkspaceTodosTaskBranch from "./SignedWorkspaceTodosTaskBranch.svelte";
+import ExamsTab from "./ExamsTab.svelte";
+import HomeworksTab from "./HomeworksTab.svelte";
+import TodosTab from "./TodosTab.svelte";
 import type { WorkspaceTaskTabsProps } from "./workspace-task-component-types";
 
 type SignedWorkspaceExamData = SignedWorkspaceData & {
@@ -66,15 +67,15 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
 </script>
 
 {#if activeTab === "todos"}
-  <SignedWorkspaceTodosTaskBranch
+  <TodosTab
     hasTodoItems={(signedData.todos?.length ?? 0) > 0}
     {todosCopy}
     {workspaceCopy}
     {sectionCopy}
     {commentsCopy}
-    {data}
+    locale={data.locale}
     {todoPriorityOptions}
-    homeworkReferenceDate={homeworkReferenceDate}
+    referenceDate={homeworkReferenceDate}
     {openTodoEditor}
     {toggleTodoCompletion}
     {deleteTodo}
@@ -93,7 +94,8 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     bind:editTodoError
   />
 {:else if activeTab === "homeworks" && signedData.homeworks}
-  <SignedWorkspaceHomeworksTaskBranch
+  <HomeworksTab
+    {CommentsPanel}
     {commonCopy}
     {workspaceCopy}
     {sectionCopy}
@@ -101,9 +103,9 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {homeworkCopy}
     {homeworkActionError}
     {commentsCopy}
-    {data}
+    locale={data.locale}
     {signedData}
-    homeworkReferenceDate={homeworkReferenceDate}
+    referenceDate={homeworkReferenceDate}
     {openCreateHomeworkDialog}
     {applyHomeworkStartNow}
     {applyHomeworkDueAtSemesterEnd}
@@ -124,7 +126,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
   />
 {:else if activeTab === "exams" && signedData.subscriptions}
   {@const examSignedData = signedData as SignedWorkspaceExamData}
-  <SignedWorkspaceExamsTaskBranch
+  <ExamsTab
     {workspaceCopy}
     {subscriptionsCopy}
     {sectionCopy}

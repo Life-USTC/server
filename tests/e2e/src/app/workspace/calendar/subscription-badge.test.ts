@@ -48,7 +48,7 @@ for (const locale of ["zh-CN", "en-US"]) {
             );
             await gotoAndWaitForReady(page, url);
             const calendar = page.getByTestId(
-              mobile ? "workspace-calendar-agenda" : "workspace-calendar-grid",
+              mobile ? "calendar-agenda" : "workspace-calendar-grid",
             );
             const course = calendar
               .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`)
