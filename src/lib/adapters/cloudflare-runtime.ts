@@ -154,6 +154,7 @@ type CloudflareRuntimeContext = {
   cleanups: Set<() => Promise<void> | void>;
   env?: CloudflareRuntimeEnv;
   request?: CloudflareRequestContext;
+  invalidateCatalogRepresentations?: () => Promise<void>;
   scheduleTask?: CloudflareTaskScheduler;
   tracing?: CloudflareTracing;
 };
@@ -289,6 +290,8 @@ export function runWithCloudflareRuntimeEnv<T>(
     cleanups: new Set(),
     env: normalizeCloudflareRuntimeEnv(env) ?? parentContext?.env,
     request: parentContext?.request,
+    invalidateCatalogRepresentations:
+      parentContext?.invalidateCatalogRepresentations,
     scheduleTask:
       normalizeCloudflareTaskScheduler(executionContext) ??
       parentContext?.scheduleTask,
@@ -457,4 +460,24 @@ export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {
 
 export function getCloudflareWeatherNamespace() {
   return getCurrentCloudflareRuntimeEnv()?.WEATHER;
+}
+
+/** Registered by the Worker owning the PublicSsr RPC binding. */
+export function setCloudflareCatalogInvalidator(
+  invalidate: () => Promise<void>,
+) {
+  const context = cloudflareRuntimeStorage.getStore();
+  if (context) context.invalidateCatalogRepresentations = invalidate;
+}
+
+export async function invalidateCloudflareCatalogRepresentations() {
+  const context = getCloudflareRuntimeContext();
+  // Node tools and direct domain tests have no shared HTML cache.
+  if (!context) return;
+  if (!context.invalidateCatalogRepresentations) {
+    // Vite's platform proxy provides bindings but has no Worker HTML cache.
+    if (context.env?.NODE_ENV === "development") return;
+    throw new Error("Public SSR cache invalidator is unavailable");
+  }
+  await context.invalidateCatalogRepresentations();
 }

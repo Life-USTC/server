@@ -488,4 +488,31 @@ describe("admin API 服务", () => {
       }),
     });
   });
+  it("invalidates public representations after administrator description moderation", async () => {
+    descriptionFindUniqueMock.mockResolvedValue({
+      id: "description-1",
+      content: "removed content",
+    });
+    descriptionUpdateMock.mockResolvedValue({
+      id: "description-1",
+      content: "",
+    });
+    descriptionEditCreateMock.mockResolvedValue({});
+    const { moderateDescription } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+    const { runWithCloudflareRuntimeEnv, setCloudflareCatalogInvalidator } =
+      await import("@/lib/adapters/cloudflare-runtime");
+    const purge = vi.fn(async () => {
+      expect(descriptionEditCreateMock).toHaveBeenCalledOnce();
+      expect(auditLogCreateMock).toHaveBeenCalledOnce();
+    });
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      setCloudflareCatalogInvalidator(purge);
+      await expect(
+        moderateDescription("admin-1", "description-1", { content: "" }),
+      ).resolves.toMatchObject({ ok: true });
+    });
+    expect(purge).toHaveBeenCalledOnce();
+  });
 });

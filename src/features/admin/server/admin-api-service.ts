@@ -6,6 +6,7 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
+import { invalidateCloudflareCatalogRepresentations } from "@/lib/ports/runtime";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { adminDescriptionInclude } from "./admin-description-filters";
 
@@ -436,5 +437,6 @@ export async function moderateDescription(
     return { description: updated, ok: true as const };
   });
 
+  if (result.ok) await invalidateCloudflareCatalogRepresentations();
   return result;
 }

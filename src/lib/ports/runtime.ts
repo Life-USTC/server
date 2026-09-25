@@ -17,5 +17,6 @@ export {
   getCloudflareR2PublicationsBucket,
   getCloudflareRuntimeTaskScheduler,
   getCloudflareWeatherNamespace,
+  invalidateCloudflareCatalogRepresentations,
   runCloudflareTraceSpan,
 } from "../adapters/cloudflare-runtime";

@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import {
-  getCatalogDetailCacheRevision,
-  resetCatalogDetailCacheRevisionForTest,
-} from "@/lib/catalog-detail-cache-revision";
+import { getCatalogDetailCacheRevision } from "@/lib/catalog-detail-cache-revision";
 import {
   buildPublicDetailRuntimeCacheOptions,
   cachedPublicDetailRuntimeData,
@@ -31,7 +28,6 @@ vi.mock("@/lib/db/prisma", () => ({
 
 describe("catalog detail cache revision", () => {
   afterEach(() => {
-    resetCatalogDetailCacheRevisionForTest();
     resetPublicRuntimeCacheForTest();
     findUniqueMock.mockReset();
   });
@@ -43,12 +39,17 @@ describe("catalog detail cache revision", () => {
       updatedAt: new Date("2026-08-16T03:00:00.000Z"),
     });
 
-    await expect(getCatalogDetailCacheRevision()).resolves.toBe(
-      "schema1:abcdef0123456789-msv7vmo0",
-    );
-    await expect(getCatalogDetailCacheRevision()).resolves.toBe(
-      "schema1:abcdef0123456789-msv7vmo0",
-    );
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      const revisions = await Promise.all([
+        getCatalogDetailCacheRevision(),
+        getCatalogDetailCacheRevision(),
+      ]);
+      expect(revisions).toEqual([
+        "schema1:abcdef0123456789-msv7vmo0",
+        "schema1:abcdef0123456789-msv7vmo0",
+      ]);
+      await expect(getCatalogDetailCacheRevision()).resolves.toBe(revisions[0]);
+    });
     expect(findUniqueMock).toHaveBeenCalledOnce();
   });
 
@@ -59,13 +60,52 @@ describe("catalog detail cache revision", () => {
     });
     const first = await getCatalogDetailCacheRevision();
 
-    resetCatalogDetailCacheRevisionForTest();
     findUniqueMock.mockResolvedValue({
       snapshotSha256: "abcdef0123456789",
       updatedAt: new Date("2026-08-16T03:01:00.000Z"),
     });
 
     await expect(getCatalogDetailCacheRevision()).resolves.not.toBe(first);
+  });
+
+  it("reads the committed revision immediately after HTML purge in a new request", async () => {
+    const state = {
+      snapshotSha256: "snapshot-before",
+      updatedAt: new Date("2026-08-16T03:00:00.000Z"),
+    };
+    findUniqueMock.mockImplementation(async () => ({ ...state }));
+    const load = vi.fn(async () => ({ title: "before import" }));
+    const render = () =>
+      runWithCloudflareRuntimeEnv({}, () =>
+        cachedCatalogRuntimeData(
+          "page:courses-list:zh-cn",
+          "page=1",
+          "https://life-ustc.test",
+          load,
+        ),
+      );
+    expect(await render()).toEqual({ title: "before import" });
+    // Both external HTML caches were purged; the old data cache remains.
+    state.snapshotSha256 = "snapshot-after";
+    load.mockResolvedValue({ title: "after import" });
+    expect(await render()).toEqual({ title: "after import" });
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(findUniqueMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a failed revision read within a request", async () => {
+    findUniqueMock
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockResolvedValue(null);
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      await expect(getCatalogDetailCacheRevision()).rejects.toThrow(
+        "database unavailable",
+      );
+      await expect(getCatalogDetailCacheRevision()).resolves.toBe(
+        "schema1:bootstrap",
+      );
+    });
+    expect(findUniqueMock).toHaveBeenCalledTimes(2);
   });
 
   it("falls back to bootstrap when static import state is missing", async () => {

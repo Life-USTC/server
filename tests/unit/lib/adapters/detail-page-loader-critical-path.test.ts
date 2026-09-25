@@ -76,7 +76,6 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: vi.fn(async () => "test-revision"),
-  resetCatalogDetailCacheRevisionForTest: vi.fn(),
 }));
 
 const anonymousViewer = {
