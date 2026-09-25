@@ -86,7 +86,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     ).toBeVisible();
   });
 
-  test("折叠筛选保值并在日历与详情之间保留上下文", async ({ page }) => {
+  test("筛选面板保值并在日历与详情之间保留上下文", async ({ page }) => {
     const search = encodeURIComponent(DEV_SEED.youngEvent.name);
     await gotoAndWaitForReady(
       page,
@@ -97,14 +97,15 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
     await expect(organizer).toBeVisible();
     await expect(organizer).toHaveValue("dev-scenario-young-organizer");
-    await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
     await Promise.all([
       page.waitForURL((url) => url.searchParams.has("timeBasis")),
       page.getByRole("button", { name: /^(搜索|Search)$/ }).click(),
     ]);
     await expect(page).toHaveURL(/organizerId=dev-scenario-young-organizer/);
     await expect(
-      page.getByRole("navigation", { name: /已选条件|Applied filters/ }),
+      page.getByRole("group", { name: /已选条件|Applied filters/ }),
     ).toBeVisible();
     const browseUrl = page.url();
     await page
@@ -196,6 +197,81 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         )
         .filter({ visible: true }),
     ).toBeVisible();
+  });
+});
+
+for (const width of [1280, 390]) {
+  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await gotoAndWaitForReady(
+      page,
+      "/catalog/young-events?search=applied&organizerId=dev-scenario-young-organizer&module=智",
+    );
+    const search = `unsubmitted-search-${width}`;
+    await page.getByRole("searchbox").fill(search);
+    const trigger = page.getByRole("button", { name: /更多筛选|More filters/ });
+    const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
+    await trigger.click();
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator('input[name="search"]')).toHaveValue(search);
+    await sheet.locator("#young-event-module").selectOption("体");
+    await sheet.locator("#young-event-organizer").selectOption("");
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(page.getByRole("searchbox")).toHaveValue(search);
+    await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+    await expect(page).toHaveURL(
+      (url) => url.searchParams.get("search") === search,
+    );
+    expect(new URL(page.url()).searchParams.get("module")).toBe("智");
+    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
+      "dev-scenario-young-organizer",
+    );
+    await trigger.click();
+    await expect(sheet.locator("#young-event-module")).toHaveValue("智");
+    await expect(sheet.locator("#young-event-organizer")).toHaveValue(
+      "dev-scenario-young-organizer",
+    );
+    await sheet.locator("#young-event-module").selectOption("劳");
+    await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+    await expect(page).toHaveURL(
+      (url) => url.searchParams.get("module") === "劳",
+    );
+    await expect(sheet).toBeHidden();
+    expect(new URL(page.url()).searchParams.get("search")).toBe(search);
+    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
+      "dev-scenario-young-organizer",
+    );
+  });
+}
+
+test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
+  page,
+}) => {
+  await gotoAndWaitForReady(
+    page,
+    "/catalog/young-events/calendar?view=week&date=2035-09-15&category=sport",
+  );
+  await page.getByRole("searchbox").fill("calendar draft");
+  await page.locator("#young-calendar-active").selectOption("false");
+  await page.locator("#young-calendar-time-basis").selectOption("registration");
+  await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+  const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
+  await sheet.locator("#young-calendar-module").selectOption("智");
+  await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("module") === "智",
+  );
+  const params = new URL(page.url()).searchParams;
+  expect(Object.fromEntries(params)).toMatchObject({
+    view: "week",
+    date: "2035-09-15",
+    search: "calendar draft",
+    active: "false",
+    timeBasis: "registration",
+    category: "sport",
   });
 });
 
