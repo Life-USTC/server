@@ -13,6 +13,25 @@ import {
 } from "@/lib/api/helpers";
 
 describe("API 辅助函数", () => {
+  it("defaults JSON success and validation errors to private no-store", () => {
+    for (const status of [200, 400, 401, 403, 404, 410, 500]) {
+      const response = jsonResponse({ userId: "viewer" }, { status });
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    }
+  });
+
+  it("preserves an explicit public cache policy", () => {
+    const response = jsonResponse(
+      { courses: [] },
+      {
+        headers: { "Cache-Control": "public, max-age=0, s-maxage=120" },
+      },
+    );
+    expect(response.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, s-maxage=120",
+    );
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });

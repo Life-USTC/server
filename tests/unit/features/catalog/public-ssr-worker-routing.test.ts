@@ -32,6 +32,20 @@ describe("public SSR worker routing", () => {
     expect(workerSsrRoute(request(path))).toBe("public-ssr");
   });
 
+  test.each([
+    "/catalog/courses",
+    "/catalog/sections/159446",
+    "/privacy",
+    "/catalog/links",
+    "/catalog/young-events",
+  ])("shares public SSR for signed-in %s", (path) => {
+    expect(
+      workerSsrRoute(
+        request(path, { cookie: "better-auth.session_token=session-token" }),
+      ),
+    ).toBe("public-ssr");
+  });
+
   test("serves the request-time bus map through dynamic SSR", () => {
     expect(workerSsrRoute(request("/catalog/bus/map"))).toBe("dynamic-ssr");
   });
@@ -45,10 +59,8 @@ describe("public SSR worker routing", () => {
   });
 
   test.each([
-    ["/catalog/courses", { cookie: "better-auth.session_token=session-token" }],
     ["/catalog/sections/159446", { authorization: "Bearer access-token" }],
     ["/account/sign-in", { cookie: "better-auth.session_token=session-token" }],
-    ["/privacy", { cookie: "session=private" }],
     ["/wp-login.php", { cookie: "session=private" }],
   ])(
     "bypasses PublicSsr for authenticated document request %s",

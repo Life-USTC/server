@@ -7,6 +7,7 @@
     "agent": "Can read the complete personal date-range calendar through REST, GraphQL and MCP with workspace.calendar:read. REST/GraphQL use pagination."
   },
   "rules": {
+    "personal-feed-http-cache": "Personal calendar feed responses and revoked-credential errors use private, no-store. Authorization runs before the user-scoped server-side rendering cache and conditional ETag handling.",
     "views": "Course-subscribed workspaces provide semester, month, and week views with subscribed activities overlaid. Activity-only workspaces provide day, week, and month views without requiring course subscriptions.",
     "retired-sections": "Current/public collection calendars, personal calendar views, feeds, and calendar event tools exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription relationships.",
     "mobile-agenda-first": "At mobile widths, the personal calendar presents the selected week as a vertically readable agenda with time, title, type, and available location context. Previous week, today, next week, and iCal actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable grid views.",

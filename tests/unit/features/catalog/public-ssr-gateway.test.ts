@@ -6,6 +6,7 @@ import {
   PUBLIC_SSR_BROWSER_CACHE_CONTROL,
   PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
   PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,
+  publicSsrCacheHeaders,
   resolvePublicSsrMode as resolveBasePublicSsrMode,
   resolveCourseDetailTabRedirect,
   resolveLegacyCalendarFeedRedirect,
@@ -322,14 +323,14 @@ describe("public SSR gateway", () => {
   test.each<Record<string, string>>([
     { authorization: "Bearer access-token" },
     { authorization: "bEaReR access-token" },
-    { cookie: "better-auth.session_token=session-token" },
-    { cookie: "__Secure-better-auth.session_token=session-token" },
-    { cookie: "session=private" },
-  ])("bypasses catalog detail requests with auth signal %j", (headers) => {
-    expect(
-      resolvePublicSsrMode(request("/catalog/courses/11145", headers)),
-    ).toBeNull();
-  });
+  ])(
+    "bypasses catalog detail requests with authorization header %j",
+    (headers) => {
+      expect(
+        resolvePublicSsrMode(request("/catalog/courses/11145", headers)),
+      ).toBeNull();
+    },
+  );
 
   test.each<Record<string, string>>([
     { authorization: "Bearer access-token" },
@@ -340,19 +341,71 @@ describe("public SSR gateway", () => {
     expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(false);
   });
 
+  test.each(["/account/sign-in", "/workspace/overview", "/wp-login.php"])(
+    "bypasses public SSR cache routing for authenticated page %s",
+    (path) => {
+      const authenticated = request(path, {
+        cookie: "better-auth.session_token=session-token",
+      });
+      expect(resolvePublicSsrMode(authenticated)).toBeNull();
+      expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(false);
+      expect(shouldRoutePublicSsrCache(authenticated, "not-found")).toBe(false);
+    },
+  );
+
   test.each([
     "/catalog/courses",
+    "/catalog/courses?search=math",
     "/catalog/sections",
-    "/account/sign-in",
+    "/catalog/teachers",
+    "/catalog/sections/159446",
+    "/catalog/courses/11145",
+    "/catalog/teachers/42",
+    "/catalog/links",
+    "/catalog/young-events",
+    "/catalog/young-events/calendar",
+    "/catalog/young-events/organizers",
+    "/catalog/young-events/organizers/1",
+    "/catalog/young-events/123",
     "/privacy",
-    "/wp-login.php",
-  ])("bypasses public SSR cache routing for authenticated page %s", (path) => {
-    const authenticated = request(path, {
-      cookie: "better-auth.session_token=session-token",
-    });
-    expect(resolvePublicSsrMode(authenticated)).toBeNull();
-    expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(false);
-    expect(shouldRoutePublicSsrCache(authenticated, "not-found")).toBe(false);
+  ])("shares viewer-independent public HTML for signed-in %s", (path) => {
+    for (const cookie of [
+      "better-auth.session_token=session-token",
+      "__Secure-better-auth.session_token=session-token",
+      "session=private",
+    ]) {
+      const authenticated = request(path, { cookie });
+      expect(resolvePublicSsrMode(authenticated)).toBe("page");
+      expect(shouldRoutePublicSsrCache(authenticated, "page")).toBe(true);
+    }
+  });
+
+  test.each([
+    "/catalog/links?unknown=1",
+    "/catalog/young-events?search=art",
+    "/catalog/young-events/123?unknown=1",
+    "/catalog/bus",
+  ])("keeps unadmitted query and request-time paths dynamic: %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBeNull();
+  });
+
+  test("limits Young HTML to one minute and expires date-sensitive pages at midnight", () => {
+    const noon = new Date("2026-09-26T04:00:00Z");
+    expect(
+      publicSsrCacheHeaders("/catalog/young-events", noon)["Cache-Control"],
+    ).toContain("s-maxage=60,");
+    const beforeMidnight = new Date("2026-09-26T15:59:50Z");
+    for (const path of [
+      "/catalog/young-events/calendar",
+      "/catalog/sections/159446",
+    ]) {
+      const headers = publicSsrCacheHeaders(path, beforeMidnight);
+      expect(headers["Cache-Control"]).toContain("s-maxage=10,");
+      expect(headers["Cache-Control"]).toContain("stale-while-revalidate=0");
+    }
+    expect(publicSsrCacheHeaders("/privacy", noon)["Cache-Control"]).toBe(
+      PUBLIC_SSR_BROWSER_CACHE_CONTROL,
+    );
   });
 
   test("routes anonymous catalog list pages through public SSR cache", () => {

@@ -89,12 +89,12 @@ describe("calendar export rebuild fan-out", () => {
       todos: [],
     }));
     buildUserCalendarExportMock.mockResolvedValue({
-      cacheControl: "private, max-age=1800",
+      cacheControl: "private, no-store",
       filename: "life-ustc-subscriptions.ics",
       text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
     });
     storeBuiltUserCalendarExportMock.mockResolvedValue({
-      cacheControl: "private, max-age=1800",
+      cacheControl: "private, no-store",
       etag: '"etag"',
       filename: "life-ustc-subscriptions.ics",
       generatedAtMs: Date.now(),
@@ -124,7 +124,7 @@ describe("calendar export rebuild fan-out", () => {
       todos: [],
     });
     buildUserCalendarExportMock.mockResolvedValue({
-      cacheControl: "private, max-age=1800",
+      cacheControl: "private, no-store",
       filename: "life-ustc-subscriptions.ics",
       text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
     });

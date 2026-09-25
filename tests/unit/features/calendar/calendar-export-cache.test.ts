@@ -10,7 +10,7 @@ import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/serve
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const calendarExport = {
-  cacheControl: "private, max-age=1800",
+  cacheControl: "private, no-store",
   filename: "life-ustc-subscriptions.ics",
   text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
 };

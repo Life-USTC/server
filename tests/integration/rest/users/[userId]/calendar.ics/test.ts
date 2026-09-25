@@ -176,7 +176,7 @@ test.describe("GET /api/calendar-feeds/[credential].ics", () => {
       `/api/calendar-feeds/${userId}.ics?token=bogus-token-e2e`,
     );
     expect(response.status()).toBe(410);
-    expect(response.headers()["cache-control"]).toBe("private, max-age=60");
+    expect(response.headers()["cache-control"]).toBe("private, no-store");
   });
 
   test("有效 token 在没有日历项目时返回空 iCalendar", async ({ request }) => {

@@ -1,77 +1,81 @@
 # Web rendering and cache
 
-Public, viewer-independent pages can be served from an anonymous HTML cache.
-Signed-in, account, admin, and OAuth pages always use dynamic SSR with the
-current viewer.
+Public content is independent of the viewer. Canonical public pages serve the
+same anonymous HTML representation to visitors with or without a session;
+personal data is fetched after hydration through private endpoints.
 
-## Cacheable (anonymous only)
+## Cacheable public pages
 
-- Course / section / teacher list pages
-- Catalog detail **root** paths (`/catalog/{courses|sections|teachers}/:id`)
-- Mobile app, privacy, terms, Markdown guide, API docs
+- Course / section / teacher lists with canonical filters
+- Catalog detail root paths (`/catalog/{courses|sections|teachers}/:id`)
+- Campus links
+- Second-classroom lists, details, calendars, and organizers without query parameters
+- Usage guides, privacy, terms, Markdown guide, and API docs
+- Sign-in without query parameters, for anonymous visitors only
 
-The bus map stays on dynamic SSR because its active-trip positions and current
-time are request-sensitive. Its schedule and topology still use the shared
-revision-scoped runtime cache.
+Account, workspace, admin, OAuth, and Bearer requests use dynamic SSR. Sign-in
+with session cookies also remains dynamic so its redirect behavior is preserved.
+SvelteKit `__data.json` navigations stay private; their public reads still reuse
+the shared data caches. Filtered second-classroom pages reuse the public data
+cache even when their HTML is dynamic.
 
-Any recognized session or Bearer signal forces dynamic SSR. Pages that still
-embed viewer-specific data (home, links planner, community) stay dynamic.
+Bus pages remain dynamic because departures and map positions are sensitive to
+the request time. Shared schedule/topology reads remain cached, and personal
+preferences are fetched separately. News and global-search pages remain dynamic.
+The homepage preserves its signed-in redirect to the workspace.
 
-In-page catalog sections use hash anchors on the detail root; legacy path tabs
-are not cache admission paths.
+## Personal overlays
 
-## Personalized shell overlay
+Public SSR never includes subscription state, homework completion, edit
+permissions, link pins/visits, or bus preferences. Feature components load that
+state from private APIs and wait for the result before enabling personal writes.
+The publicly readable description remains in the HTML and structured data;
+its editing permissions are resolved separately.
 
-Cached public HTML remains viewer-independent. After hydration, the app shell
-uses the session-only `/_internal/shell-bootstrap` Web endpoint to resolve the
-viewer and the workspace navigation counts that are not present in public SSR.
-The response is always `private, no-store`, varies on `Cookie`, rejects Bearer
-authentication, and is not part of the public REST/OpenAPI surface.
+The app shell uses the session-only `/_internal/shell-bootstrap` endpoint for
+the viewer and workspace navigation counts. Workspace SSR seeds the same
+projection directly. Feature components use their own APIs rather than fetching
+the complete shell just to discover identity. Shell state lives only in the root
+layout's memory; it is not persisted in localStorage or a shared cache.
 
-Workspace SSR already contains the same navigation projection. It seeds the
-app shell's in-memory state directly, so the browser does not issue a duplicate
-bootstrap request. The state survives client navigation for the lifetime of the
-root layout only; it is not persisted in localStorage, KV, or another shared
-cache.
+JSON responses default to `private, no-store`, including validation and auth
+errors. Public APIs opt into caching explicitly and must remain independent of
+session/Bearer identity. The HTTP boundary also sets CDN `no-store` for private
+responses. `/_internal` endpoints stay outside public cache admission.
 
 ## Cache layers and invalidation
 
-Public SSR HTML passes through two independent caches:
-
-| Layer | Driven by | Purged by |
+| Layer | Content | Invalidation |
 | --- | --- | --- |
-| Cloudflare zone/CDN | `Cloudflare-CDN-Cache-Control` | `POST /zones/{id}/purge_cache` by `Cache-Tag` |
-| Workers entrypoint cache (`exports.PublicSsr.cache`) | `Cache-Control` | `cache.purge()` **inside `PublicSsr`** |
+| Workers entrypoint (`PublicSsr`) | Anonymous HTML before nonce rewriting | RPC into `PublicSsr` calls `cache.purge()` |
+| Zone/CDN and Cache API | Eligible public API responses / public data | Zone purge by catalog tag; revision-scoped data keys |
+| Isolate L1 / KV | Public catalog data | Revision-scoped keys |
 
-No zone-level purge — dashboard, API, or Terraform — affects Workers Caching
-content, so the two purges are not interchangeable. A committed static import
-runs both: the zone purge directly, and the entrypoint purge through the
-authenticated `POST /_internal/edge-cache/purge` route, which hops into
-`PublicSsr` over RPC. A failed purge fails the static-sync run rather than
-leaving stale HTML cached for the rest of the TTL.
+Final HTML responses sent to the browser and zone CDN are `private, no-store`:
+a new nonce and request ID are applied on every request. The stored entrypoint
+representation uses `max-age=0` plus a shared `s-maxage`. Most public HTML has a
+24-hour shared lifetime. Second-classroom HTML has at most 60 seconds; calendar
+seeds expire at the next Shanghai midnight without stale-while-revalidate.
 
-The stored representation keeps `max-age=0` so browsers always revalidate —
-`personalizeCachedResponse` re-stamps a per-request nonce and request id on
-every hit — and uses `s-maxage` for the shared-cache lifetime. A response with
-only `max-age=0` is not storable by a shared cache at all.
+A committed static import purges both the zone and Workers entrypoint layers.
+A failed purge fails the sync; rerunning the same already-committed snapshot
+retries the purge. The current revision is memoized only within a request, so an
+old isolate revision cannot refill freshly purged HTML for another 24 hours.
+Description edits and moderation invalidate the HTML after the database commit,
+including retries that submit the same description content.
 
-`cache.cross_version_cache` stays off: entries are partitioned per Worker
-version, so a deploy starts cold, and sharing entries across versions would
-serve HTML rendered by an older version with no automatic invalidation.
+`cache.cross_version_cache` stays off, so deployments start with fresh HTML.
+Catalog public data keys include revision, locale where applicable, entity kind,
+ID or canonical filters, and payload shape. Invalid/null detail results are not
+retained; data-cache failures fall through to the origin.
 
 ## Contributor notes
 
-- Don't put user-specific data into a payload you intend to cache anonymously.
-- Catalog detail core reads use isolate L1 → per-colo Cache API → revision-scoped
-  KV → origin. Cache API keys include the static-import revision, locale, entity
-  kind, ID, and payload shape; the revision changes the key space when static
-  data is rematerialized. Cache failures remain fail-open, and only validated
-  non-null public objects are retained.
-- Keep `/_internal` in the dynamic/private gateway roots even though the shell
-  fetches JSON rather than HTML.
-- Client navigation may warm route code on hover; data preload waits for
-  tap/click (`docs` / `src/app.html` preload attributes — see
-  `src/lib/components/AGENTS.md`).
-
-Worker and Cache API implementation details live in code
-(`src/worker.js`, `src/lib/cloudflare/`), not in this doc.
+- Keep public data and viewer projections separate in feature services.
+- Never add a new page to cache admission before its personal overlay works.
+- Public mutable content needs a write-triggered invalidation path; time-derived
+  content needs an explicit time boundary rather than only a static revision.
+- Client navigation warms route code on hover; data preload waits for tap/click
+  (`src/app.html`, `src/lib/components/AGENTS.md`).
+- Regression tests must cover auth/no-auth responses, mutation and subsequent
+  reads, failed purge retries, and a fresh request after revision changes.

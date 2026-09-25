@@ -57,10 +57,9 @@ export async function getGlobalSearchRoute(request: Request) {
       userId,
     });
     return jsonResponse(result, {
-      headers:
-        includeWorkspace || !new URL(request.url).searchParams.has("locale")
-          ? PRIVATE_LOCALE_CATALOG_HEADERS
-          : PUBLIC_SEARCH_CACHE_HEADERS,
+      headers: includeWorkspace
+        ? PRIVATE_LOCALE_CATALOG_HEADERS
+        : PUBLIC_SEARCH_CACHE_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to search", error);

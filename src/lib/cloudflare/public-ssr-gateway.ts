@@ -1,6 +1,7 @@
 /**
  * Decides which paths may use anonymous HTML SSR caching and which must stay
- * dynamic (signed-in, account, admin, OAuth, or request-time bus map data).
+ * dynamic (account, admin, OAuth, or request-time bus data). Public content
+ * uses the same anonymous representation for signed-in visitors.
  * See docs/rendering-and-cache.md for the product rules.
  */
 import {
@@ -12,6 +13,7 @@ import {
   resolveSectionDetailTabRedirect,
 } from "@/features/section-detail/lib/section-detail-tab";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export {
   resolveSectionDetailTabQueryRedirect,
@@ -74,6 +76,49 @@ const DIRECT_REQUEST_PATHS = new Set([
 
 const CATALOG_DETAIL_PATH =
   /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
+
+const PUBLIC_CATALOG_PATHS = new Set([
+  "/catalog/courses",
+  "/catalog/sections",
+  "/catalog/teachers",
+  "/catalog/links",
+]);
+const YOUNG_PUBLIC_PATH =
+  /^\/catalog\/young-events(?:\/(?:organizers(?:\/[^/]+)?|[^/]+))?$/;
+
+function isViewerIndependentPublicPath(pathname: string) {
+  return (
+    PUBLIC_CATALOG_PATHS.has(pathname) ||
+    isCanonicalCatalogDetailPath(pathname) ||
+    YOUNG_PUBLIC_PATH.test(pathname) ||
+    (pathname !== "/account/sign-in" && STATIC_PUBLIC_PATHS.has(pathname)) ||
+    STATIC_PUBLIC_ROOTS.some((root) => matchesPathRoot(pathname, root))
+  );
+}
+
+/** Date-sensitive pages cannot reuse yesterday's calendar seed or SWR body. */
+export function publicSsrCacheHeaders(pathname: string, now = new Date()) {
+  const youngPage = YOUNG_PUBLIC_PATH.test(pathname);
+  if (!youngPage && !pathname.startsWith("/catalog/sections/")) {
+    return {
+      "Cache-Control": PUBLIC_SSR_BROWSER_CACHE_CONTROL,
+      "Cloudflare-CDN-Cache-Control": PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
+    };
+  }
+  const campusNow = shanghaiDayjs(now);
+  const untilMidnight = Math.max(
+    1,
+    campusNow.add(1, "day").startOf("day").diff(campusNow, "second"),
+  );
+  const ttl = Math.min(
+    youngPage ? 60 : PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,
+    untilMidnight,
+  );
+  return {
+    "Cache-Control": `public, max-age=0, s-maxage=${ttl}, stale-while-revalidate=0, stale-if-error=0`,
+    "Cloudflare-CDN-Cache-Control": `public, max-age=${ttl}, stale-while-revalidate=0, stale-if-error=0`,
+  };
+}
 
 const DYNAMIC_OR_PRIVATE_ROOTS = [
   "/_internal",
@@ -168,7 +213,12 @@ export function shouldRoutePublicSsrCache(
   request: Request,
   mode: PublicSsrMode | null,
 ): mode is PublicSsrMode {
-  return mode !== null && !hasRequestAuthSignal(request.headers);
+  if (mode === null || request.headers.has("authorization")) return false;
+  return (
+    !hasRequestAuthSignal(request.headers) ||
+    (mode === "page" &&
+      isViewerIndependentPublicPath(new URL(request.url).pathname))
+  );
 }
 
 export function resolvePublicSsrMode(
@@ -177,15 +227,27 @@ export function resolvePublicSsrMode(
 ): PublicSsrMode | null {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   if (!acceptsHtml(request)) return null;
-  if (hasRequestAuthSignal(request.headers)) return null;
+  if (request.headers.has("authorization")) return null;
 
   const url = new URL(request.url);
   if (url.pathname.endsWith("/__data.json")) return null;
+  if (
+    hasRequestAuthSignal(request.headers) &&
+    !isViewerIndependentPublicPath(url.pathname)
+  )
+    return null;
 
   const featureMode = resolveFeatureRoute?.(url);
   if (featureMode !== undefined) return featureMode;
 
   if (isCanonicalCatalogDetailPath(url.pathname)) {
+    return !url.search ? "page" : null;
+  }
+
+  if (
+    url.pathname === "/catalog/links" ||
+    YOUNG_PUBLIC_PATH.test(url.pathname)
+  ) {
     return !url.search ? "page" : null;
   }
 

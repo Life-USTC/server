@@ -18,6 +18,9 @@ export function errorResponse(message: string, status: number) {
 
 export function jsonResponse(body: unknown, init?: ResponseInit) {
   const headers = new Headers(init?.headers);
+  if (!headers.has("Cache-Control")) {
+    headers.set("Cache-Control", "private, no-store");
+  }
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json; charset=utf-8");
   }
@@ -101,13 +104,7 @@ export function notFound(message = "Not found") {
 }
 
 export function gone(message = "Gone") {
-  return jsonResponse(
-    { error: message },
-    {
-      status: 410,
-      headers: { "Cache-Control": "private, max-age=60" },
-    },
-  );
+  return jsonResponse({ error: message }, { status: 410 });
 }
 
 export function notFoundText() {

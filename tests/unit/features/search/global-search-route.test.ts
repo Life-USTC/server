@@ -145,7 +145,7 @@ describe("global search route", () => {
     );
   });
 
-  it("keeps omitted-locale responses private with the canonical locale", async () => {
+  it("caches omitted-locale public responses using the canonical locale", async () => {
     const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     searchGloballyMock.mockResolvedValue({ query: "math", groups: [] });
 
@@ -158,7 +158,7 @@ describe("global search route", () => {
       }),
     );
 
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Cache-Control")).toContain("public");
     expect(resolveSessionUserId).not.toHaveBeenCalled();
     expect(searchGloballyMock).toHaveBeenCalledWith(
       expect.objectContaining({ locale: "zh-cn", userId: null }),
