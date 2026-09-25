@@ -65,7 +65,9 @@ test.describe("/catalog/teachers", () => {
     await expect(
       page.locator("#main-content a[href^='/catalog/teachers/']"),
     ).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(清除|Clear)$/i }),
+    ).toBeVisible();
   });
 
   test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
@@ -133,7 +135,9 @@ test.describe("/catalog/teachers", () => {
 
     await expect(page).toHaveURL(/search=/);
 
-    const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
+    const clearLink = page
+      .getByRole("link", { name: /^(清除|Clear)$/i })
+      .first();
     await expect(clearLink).toBeVisible();
     await clearLink.click();
     await expect
@@ -164,6 +168,7 @@ test.describe("/catalog/teachers", () => {
     await filterDialog
       .getByRole("button", { name: /应用筛选|Apply filters/i })
       .click();
+    await expect(filterDialog).toBeHidden();
     await expect(page).toHaveURL(
       new RegExp(`departmentId=${filter.departmentId}`),
     );

@@ -69,7 +69,9 @@ test.describe("/catalog/courses 课程目录", () => {
     await expect(
       page.locator("#main-content a[href^='/catalog/courses/']"),
     ).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(清除|Clear)$/i }),
+    ).toBeVisible();
   });
 
   test("目录链接悬停时不预取 __data.json", async ({ page }) => {
@@ -386,7 +388,9 @@ test.describe("/catalog/courses 课程目录", () => {
     await expect(page).toHaveURL(/search=/);
     await captureStepScreenshot(page, testInfo, "courses-search-filled");
 
-    const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
+    const clearLink = page
+      .getByRole("link", { name: /^(清除|Clear)$/i })
+      .first();
     await expect(clearLink).toBeVisible();
     await clearLink.click();
     await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
@@ -409,9 +413,19 @@ test.describe("/catalog/courses 课程目录", () => {
       .getByLabel(/培养层次|Education Level/i)
       .selectOption(String(filters.educationLevelId));
     await expect(page).not.toHaveURL(/educationLevelId=/);
+    await page.keyboard.press("Escape");
+    await expect(filterDialog).toBeHidden();
+    filterDialog = await openCatalogFilterSheet(page);
+    await expect(
+      filterDialog.getByLabel(/培养层次|Education Level/i),
+    ).toHaveValue("");
+    await filterDialog
+      .getByLabel(/培养层次|Education Level/i)
+      .selectOption(String(filters.educationLevelId));
     await filterDialog
       .getByRole("button", { name: /应用筛选|Apply filters/i })
       .click();
+    await expect(filterDialog).toBeHidden();
     await expect(page).toHaveURL(
       new RegExp(`educationLevelId=${filters.educationLevelId}`),
     );
@@ -424,6 +438,7 @@ test.describe("/catalog/courses 课程目录", () => {
     await filterDialog
       .getByRole("button", { name: /应用筛选|Apply filters/i })
       .click();
+    await expect(filterDialog).toBeHidden();
     await expect(page).toHaveURL(
       new RegExp(
         `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,

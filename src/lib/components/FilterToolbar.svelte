@@ -1,6 +1,7 @@
 <script lang="ts">
 import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import type { Snippet } from "svelte";
+import { afterNavigate } from "$app/navigation";
 import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
 import * as Sheet from "$lib/components/ui/sheet";
@@ -22,6 +23,10 @@ let {
   activeCount?: number;
   open?: boolean;
 } = $props();
+
+afterNavigate(() => {
+  open = false;
+});
 </script>
 
 <div class="grid min-w-0 gap-3" data-slot="filter-toolbar">

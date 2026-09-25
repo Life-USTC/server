@@ -58,7 +58,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
     await expect(
       page.locator("#main-content a[href^='/catalog/sections/']"),
     ).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(清除|Clear)$/i }),
+    ).toBeVisible();
   });
 
   test("SSR 输出包含搜索查询", async ({ baseURL }) => {
