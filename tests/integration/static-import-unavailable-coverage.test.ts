@@ -16,9 +16,18 @@ vi.mock("@/static-loader/snapshot", () => ({
     queryAll(table: string) {
       return tables[table] ?? [];
     }
+    *iterateAll(table: string) {
+      yield* this.queryAll(table);
+    }
+    *iterateSemesterTables(names: readonly string[]) {
+      yield new Map(names.map((name) => [name, this.queryAll(name)]));
+    }
     queryGrouped(table: string, parentColumn = "parent_store_id") {
+      return this.groupByParent(this.queryAll(table), parentColumn);
+    }
+    groupByParent(rows: SnapshotRow[], parentColumn = "parent_store_id") {
       const grouped = new Map<number, SnapshotRow[]>();
-      for (const row of tables[table] ?? []) {
+      for (const row of rows) {
         const parent = Number(row[parentColumn]);
         if (!Number.isInteger(parent)) continue;
         const children = grouped.get(parent) ?? [];
