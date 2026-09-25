@@ -200,6 +200,8 @@ export function toScheduleEntryDto(
       bizTypeId: input.section.bizTypeId,
       credits: input.section.credits,
       period: input.section.period,
+      requiredWeeks: input.section.requiredWeeks,
+      catalogAdminClasses: input.section.catalogAdminClasses,
       periodsPerWeek: input.section.periodsPerWeek,
       timesPerWeek: input.section.timesPerWeek,
       stdCount: input.section.stdCount,

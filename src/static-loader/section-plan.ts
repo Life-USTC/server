@@ -57,6 +57,9 @@ export function loadSections(
   const peopleText = snapshot.queryGrouped(
     "catalog_teach_lesson_list_for_teach_dateTimePlacePersonText",
   );
+  const catalogAdminClasses = snapshot.queryGrouped(
+    "catalog_teach_lesson_list_for_teach_adminClasses",
+  );
   const catalogAssignments = snapshot.queryGrouped(
     "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
   );
@@ -90,6 +93,7 @@ export function loadSections(
       scheduleStoreId == null ? undefined : jsonParams.get(scheduleStoreId),
       peopleText.get(parentId),
       {
+        adminClasses: catalogAdminClasses.get(parentId),
         course: firstChild(courses, parentId),
         examMode: firstChild(examModes, parentId),
         openDepartment: firstChild(openDepartments, parentId),
@@ -284,6 +288,7 @@ export function loadExams(
   const lessons = snapshot.queryGrouped("catalog_teach_exam_list_lesson");
   const batches = snapshot.queryGrouped("catalog_teach_exam_list_examBatch");
   const rooms = snapshot.queryGrouped("catalog_teach_exam_list_examRooms");
+  const monitors = snapshot.queryGrouped("catalog_teach_exam_list_monitors");
   const result: ExamBuild[] = [];
   for (const row of snapshot.queryAll("catalog_teach_exam_list")) {
     const parentId = asInt(row.store_id);
@@ -296,6 +301,7 @@ export function loadExams(
       lesson,
       firstChild(batches, parentId),
       rooms.get(parentId) ?? [],
+      monitors.get(parentId) ?? [],
     );
     if (exam == null) {
       throw new Error(

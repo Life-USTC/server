@@ -160,12 +160,19 @@ export const graphqlTypeDefs = /* GraphQL */ `
     type: NamedCatalogValue
   }
 
+  type CatalogClassName {
+    nameCn: String!
+    nameEn: String
+  }
+
   type Section {
     id: Int!
     jwId: Int!
     code: String!
     credits: Float
     period: Int
+    requiredWeeks: Int
+    catalogAdminClasses: [CatalogClassName!]
     periodsPerWeek: Float
     timesPerWeek: Int
     stdCount: Int

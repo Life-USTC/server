@@ -42,6 +42,8 @@ const sectionDetailRecord = {
   bizTypeId: null,
   credits: null,
   period: null,
+  requiredWeeks: null,
+  catalogAdminClasses: null,
   periodsPerWeek: null,
   timesPerWeek: null,
   stdCount: null,

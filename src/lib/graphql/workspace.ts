@@ -289,6 +289,12 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     pageInfo: PageInfo!
   }
 
+  type ExamMonitor {
+    jwId: Int!
+    nameCn: String!
+    nameEn: String
+  }
+
   type Exam {
     id: Int!
     jwId: Int!
@@ -298,6 +304,9 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     examDate: Date
     examTakeCount: Int
     examMode: String
+    grades: String
+    adminClassNames: String
+    monitors: [ExamMonitor!]
     examBatch: ExamBatch
     examRooms(page: PageInput): ExamRoomPage!
     section: Section!

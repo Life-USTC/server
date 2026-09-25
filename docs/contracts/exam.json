@@ -7,6 +7,7 @@
     "agent": "After authorization, can read exams relevant to the current user; this capability is primarily exposed via MCP."
   },
   "rules": {
+    "source-audience-and-monitors": "Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved by import and exposed with exam records. Monitor identities are not inferred from teacher names; no contact information is included.",
     "attached-to-section": "Exams are attached to sections and are high-priority time events.",
     "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
     "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters.",

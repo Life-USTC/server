@@ -803,6 +803,8 @@ describe("MCP tool descriptors", () => {
       bizTypeId: null,
       credits: 3,
       period: 48,
+      requiredWeeks: null,
+      catalogAdminClasses: null,
       periodsPerWeek: 3,
       timesPerWeek: 2,
       stdCount: 30,

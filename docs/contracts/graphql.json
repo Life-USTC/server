@@ -31,7 +31,7 @@
     "room-maps": "Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview, or unavailable status.",
     "subscription-kind": "Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate edits existing owner-scoped membership only.",
     "young-workspace": "Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range calendars use shared owner-scoped services. See young-workspace.json for complete signatures and scopes.",
-    "young-participation": "YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST and MCP: arrays are non-null, while unknown scalar fields are null."
+    "source-metadata": "YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST and MCP: arrays are non-null, while unknown scalar fields are null. Section exposes requiredWeeks and catalogAdminClasses localized names independently of ID-backed administrative classes. Exam exposes grades, adminClassNames and monitors containing only school IDs and localized names, matching REST/MCP catalog records."
   },
   "capabilities": {
     "public-query-endpoint": {

@@ -50,12 +50,17 @@ export type CourseBuild = {
   typeName?: string;
 };
 
+export type CatalogClassName = { nameCn: string; nameEn: string | null };
+export type ExamMonitor = CatalogClassName & { jwId: number };
+
 export type SectionBuild = {
   jwId: number;
   code: string;
   bizTypeId?: number;
   credits?: number;
   period?: number;
+  requiredWeeks?: number;
+  catalogAdminClasses?: CatalogClassName[];
   periodsPerWeek?: number;
   timesPerWeek?: number;
   stdCount?: number;
@@ -124,6 +129,9 @@ export type ExamBuild = {
   examDate?: Date;
   examTakeCount?: number;
   examMode?: string;
+  grades?: string;
+  adminClassNames?: string;
+  monitors?: ExamMonitor[];
   examBatchJwId?: number;
   sectionJwId: number;
   rooms: { room: string; count: number }[];
@@ -377,6 +385,7 @@ export function mapSection(
     examMode?: SnapshotRow;
     openDepartment?: SnapshotRow;
     teachLanguage?: SnapshotRow;
+    adminClasses?: SnapshotRow[];
   },
 ): SectionBuild | undefined {
   const jwId = asInt(lessonRow.id);
@@ -398,6 +407,15 @@ export function mapSection(
     bizTypeId: asInt(scheduleLesson?.bizTypeId),
     credits: asFloat(lessonRow.credits),
     period: asInt(lessonRow.period),
+    requiredWeeks: asInt(requiredInfo?.weeks),
+    catalogAdminClasses: (catalogLookups.adminClasses ?? []).map((row) => {
+      const nameCn = asString(row.cn);
+      if (!nameCn)
+        throw new Error(
+          `Catalog admin class for Section jwId ${jwId} has no name`,
+        );
+      return { nameCn, nameEn: asString(row.en) ?? null };
+    }),
     periodsPerWeek:
       asFloat(lessonRow.periodsPerWeek) ??
       asFloat(requiredInfo?.periodsPerWeek),
@@ -704,6 +722,7 @@ export function mapExam(
   lessonRow: SnapshotRow | undefined,
   examBatchRow: SnapshotRow | undefined,
   roomRows: SnapshotRow[],
+  monitorRows: SnapshotRow[] = [],
 ): ExamBuild | undefined {
   const jwId = asInt(row.id);
   const sectionJwId = asInt(lessonRow?.id);
@@ -716,6 +735,17 @@ export function mapExam(
     examDate: asDate(row.examDate),
     examTakeCount: asInt(row.examTakeCount),
     examMode: asString(row.examMode),
+    grades: asString(row.grades),
+    adminClassNames: asString(row.adminclasseNames),
+    monitors: monitorRows.map((monitor) => {
+      const jwId = asInt(monitor.id);
+      const nameCn = asString(monitor.cn);
+      if (jwId == null || !nameCn)
+        throw new Error(
+          `Exam monitor for Exam jwId ${row.id} has no upstream identity`,
+        );
+      return { jwId, nameCn, nameEn: asString(monitor.en) ?? null };
+    }),
     examBatchJwId: asInt(examBatchRow?.id),
     sectionJwId,
     rooms: roomRows

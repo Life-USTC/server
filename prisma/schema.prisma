@@ -459,6 +459,8 @@ model Section {
   bizTypeId               Int?
   credits                 Float?
   period                  Int?
+  requiredWeeks           Int?
+  catalogAdminClasses     Json?
   periodsPerWeek          Float?
   timesPerWeek            Int?
   stdCount                Int?
@@ -543,12 +545,15 @@ model Exam {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  examType      Int?
-  startTime     Int?
-  endTime       Int?
-  examDate      DateTime? @db.Date
-  examTakeCount Int?
-  examMode      String?
+  examType        Int?
+  startTime       Int?
+  endTime         Int?
+  examDate        DateTime? @db.Date
+  examTakeCount   Int?
+  examMode        String?
+  grades          String?
+  adminClassNames String?
+  monitors        Json?
 
   examBatchId Int?
   sectionId   Int
