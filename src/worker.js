@@ -313,6 +313,15 @@ export class PublicSsr extends WorkerEntrypoint {
    * it over RPC from the authenticated internal purge route.
    */
   async purgeCatalogRepresentations() {
+    // Local workerd does not implement Workers Caching, even when enabled in
+    // Wrangler. There is no stored representation to invalidate in that case.
+    // A missing cache in production remains a configuration error.
+    if (
+      !this.ctx?.cache &&
+      (this.env?.NODE_ENV === "development" || this.env?.NODE_ENV === "test")
+    ) {
+      return { ok: true, tags: [] };
+    }
     return purgeEntrypointCatalogCache(this.ctx?.cache);
   }
 }

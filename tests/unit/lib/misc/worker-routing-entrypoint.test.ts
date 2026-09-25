@@ -653,6 +653,43 @@ describe("Worker routing entrypoint", () => {
     expect(appFetchMock).not.toHaveBeenCalled();
   });
 
+  it.each(["development", "test"])(
+    "has nothing to purge when local %s workerd has no Workers Cache",
+    async (NODE_ENV) => {
+      const entrypoint = new PublicSsr();
+      Object.defineProperty(entrypoint, "env", { value: { NODE_ENV } });
+      Object.defineProperty(entrypoint, "ctx", { value: {} });
+      await expect(entrypoint.purgeCatalogRepresentations()).resolves.toEqual({
+        ok: true,
+        tags: [],
+      });
+    },
+  );
+
+  it.each(["production", undefined])(
+    "rejects an unavailable Workers Cache outside local profiles (NODE_ENV=%s)",
+    async (NODE_ENV) => {
+      const entrypoint = new PublicSsr();
+      Object.defineProperty(entrypoint, "env", { value: { NODE_ENV } });
+      Object.defineProperty(entrypoint, "ctx", { value: {} });
+      await expect(entrypoint.purgeCatalogRepresentations()).resolves.toEqual({
+        ok: false,
+        reason: "cache-unavailable",
+      });
+    },
+  );
+
+  it("still purges a cache available in the local test profile", async () => {
+    const entrypoint = new PublicSsr();
+    const purge = vi.fn().mockResolvedValue({ success: true });
+    Object.defineProperty(entrypoint, "env", { value: { NODE_ENV: "test" } });
+    Object.defineProperty(entrypoint, "ctx", { value: { cache: { purge } } });
+    await expect(
+      entrypoint.purgeCatalogRepresentations(),
+    ).resolves.toMatchObject({ ok: true, tags: ["catalog"] });
+    expect(purge).toHaveBeenCalledOnce();
+  });
+
   it("purges only the catalog tag from the PublicSsr entrypoint cache", async () => {
     const purge = vi.fn().mockResolvedValue({ success: true });
     const entrypoint = new PublicSsr();
