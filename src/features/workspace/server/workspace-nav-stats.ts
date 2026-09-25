@@ -1,4 +1,5 @@
 import { countIncompleteTodos } from "@/features/todos/server/todo-service";
+import { countUnreadYoungNotifications } from "@/features/young/server/young-notification-service";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -55,20 +56,8 @@ export async function getWorkspaceNavStats(
     }
     const pendingTodosCount = await (providedPendingTodosCount ??
       countIncompleteTodos(user.id));
-    const unreadActivityNotificationsCount = await withUserDbContext(
-      user.id,
-      (tx) =>
-        tx.youngNotification.count({
-          where: {
-            userId: user.id,
-            readAt: null,
-            OR: [
-              { expiresAt: null },
-              { expiresAt: { gt: referenceNow.toDate() } },
-            ],
-          },
-        }),
-    );
+    const unreadActivityNotificationsCount =
+      await countUnreadYoungNotifications(user.id, referenceNow.toDate());
     return emptyWorkspaceNavStats({
       pendingTodosCount,
       unreadActivityNotificationsCount,

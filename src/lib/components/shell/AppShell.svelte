@@ -106,6 +106,21 @@ $: pageWorkspaceNavigation = workspaceNavigationFromPageData(
 $: if (pageWorkspaceNavigation) {
   workspaceNavigation = pageWorkspaceNavigation;
 }
+$: if (
+  workspaceNavigation &&
+  viewerUser?.id &&
+  $page.data.userId === viewerUser.id &&
+  Number.isSafeInteger($page.data.unreadActivityNotificationsCount) &&
+  $page.data.unreadActivityNotificationsCount >= 0 &&
+  workspaceNavigation.unreadActivityNotificationsCount !==
+    $page.data.unreadActivityNotificationsCount
+) {
+  workspaceNavigation = {
+    ...workspaceNavigation,
+    unreadActivityNotificationsCount:
+      $page.data.unreadActivityNotificationsCount,
+  };
+}
 $: profileHref = resolveProfileHref(viewerUser);
 $: avatarFallback = resolveAvatarFallback(viewerUser);
 $: navGroups = buildShellNavGroups(

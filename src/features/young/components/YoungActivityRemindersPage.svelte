@@ -83,7 +83,7 @@ function pageHref(number: number) {
       <Button href="?view=notifications" variant={data.notifications ? "secondary" : "ghost"} aria-current={data.notifications ? "page" : undefined}>{copy.notifications}</Button>
     </nav>
     {#if data.notifications}
-      <ToggleGroup.Root type="single" variant="outline" value={data.unread ? "unread" : "all"} onValueChange={filterNotifications} aria-label={copy.notificationFilter}>
+      <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.unread ? "unread" : "all", filterNotifications} aria-label={copy.notificationFilter}>
         <ToggleGroup.Item value="all">{copy.allNotifications}</ToggleGroup.Item>
         <ToggleGroup.Item value="unread">{copy.unreadNotifications}</ToggleGroup.Item>
       </ToggleGroup.Root>
