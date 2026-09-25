@@ -16,6 +16,7 @@ import {
 import { afterNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import GlobalSearchResults from "$lib/components/shell/GlobalSearchResults.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
@@ -70,11 +71,13 @@ afterNavigate(({ to }) => {
   <title>{data.copy.pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<section class="grid gap-5">
+<PageLayout>
+{#snippet header()}
   <PageHeader
     title={data.copy.pageTitle}
     description={data.copy.pageDescription}
   />
+{/snippet}
 
   <Field.Field class="gap-1">
     <Field.Label class="sr-only" for="global-search-page-input">
@@ -119,4 +122,4 @@ afterNavigate(({ to }) => {
       onSelect={navigateTo}
     />
   </div>
-</section>
+</PageLayout>

@@ -2,15 +2,15 @@
 import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import {
-  activeCourseFilterCount,
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
 import { page } from "$app/stores";
+import ListPagination from "$lib/components/ListPagination.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
-import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPagination from "./CatalogPagination.svelte";
+import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
 import type {
@@ -50,7 +50,6 @@ $: totalPages = data.pagination.totalPages;
 $: courseSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: courseLabels = data.labels.courses;
-$: activeFilterCount = activeCourseFilterCount(data.filters);
 $: ({ categoryOptions, classTypeOptions, educationLevelOptions } =
   buildCourseFilterOptions({
     commonLabels,
@@ -124,7 +123,7 @@ function courseEmptyDescription() {
 </script>
 
 {#snippet paginationFooter()}
-  <CatalogPagination
+  <ListPagination
     ariaLabel={commonLabels.pagination}
     class="py-0"
     nextLabel={commonLabels.next}
@@ -137,10 +136,11 @@ function courseEmptyDescription() {
   />
 {/snippet}
 
-<PageLayout description={courseLabels.subtitle} title={courseLabels.title}>
+<PageLayout>
+  {#snippet header()}<PageHeader description={courseLabels.subtitle} title={courseLabels.title} />{/snippet}
   <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
     {#snippet header()}
-      <CatalogMobileFilters
+      <CatalogFilters
         activeFilters={courseActiveFilters}
         clearHref="/catalog/courses"
         clearLabel={commonLabels.clear}
@@ -153,19 +153,16 @@ function courseEmptyDescription() {
         bind:searchValue={courseSearch}
       >
         <CoursesFilters
-          {activeFilterCount}
           {categoryOptions}
           {classTypeOptions}
           {commonLabels}
           {courseLabels}
-          courseSearch={data.filters.search ?? ""}
+          {courseSearch}
           {educationLevelOptions}
           filters={data.filters}
           idPrefix="mobile-course"
-          showClear={false}
-          showSearch={false}
         />
-      </CatalogMobileFilters>
+      </CatalogFilters>
     {/snippet}
     <CoursesResults
       {courseEmptyDescription}

@@ -161,10 +161,10 @@ test.describe("/catalog/courses 课程目录", () => {
       { testInfo, screenshotLabel: "courses-list" },
     );
     await expectNoPageHorizontalOverflow(page);
-    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
-    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+    await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
     const courseCode = page
       .locator('[data-slot="catalog-code"]')
       .filter({ hasText: DEV_SEED.course.code })
@@ -316,7 +316,7 @@ test.describe("/catalog/courses 课程目录", () => {
         screenshotLabel: "courses-page-1",
       });
 
-      let pagination = page.getByTestId("catalog-pagination");
+      let pagination = page.locator('[data-slot="list-pagination"]');
       await expect(pagination).toBeVisible();
       await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
       const page2Link = pagination.getByRole("link", {
@@ -345,7 +345,7 @@ test.describe("/catalog/courses 课程目录", () => {
         );
       });
 
-      pagination = page.getByTestId("catalog-pagination");
+      pagination = page.locator('[data-slot="list-pagination"]');
       await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
       await expect(
         pagination.getByRole("link", { name: /上一页|Previous page/i }),
@@ -389,7 +389,7 @@ test.describe("/catalog/courses 课程目录", () => {
     const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
     await expect(clearLink).toBeVisible();
     await clearLink.click();
-    await expect(page).not.toHaveURL(/search=/);
+    await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
 
     await captureStepScreenshot(page, testInfo, "courses-search-clear");
   });
@@ -403,20 +403,27 @@ test.describe("/catalog/courses 课程目录", () => {
       screenshotLabel: "courses-filter",
     });
 
-    await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
+    await page.getByRole("searchbox").fill(DEV_SEED.course.code);
     let filterDialog = await openCatalogFilterSheet(page);
     await filterDialog
       .getByLabel(/培养层次|Education Level/i)
       .selectOption(String(filters.educationLevelId));
+    await expect(page).not.toHaveURL(/educationLevelId=/);
+    await filterDialog
+      .getByRole("button", { name: /应用筛选|Apply filters/i })
+      .click();
     await expect(page).toHaveURL(
       new RegExp(`educationLevelId=${filters.educationLevelId}`),
     );
-    await expect(page).not.toHaveURL(/search=/);
+    await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.course.code}`));
 
     filterDialog = await openCatalogFilterSheet(page);
     await filterDialog
       .getByLabel(/类别|Category/i)
       .selectOption(String(filters.categoryId));
+    await filterDialog
+      .getByRole("button", { name: /应用筛选|Apply filters/i })
+      .click();
     await expect(page).toHaveURL(
       new RegExp(
         `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,
@@ -424,7 +431,7 @@ test.describe("/catalog/courses 课程目录", () => {
     );
 
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
     await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "courses-filter-seed");
   });

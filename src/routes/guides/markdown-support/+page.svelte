@@ -1,5 +1,6 @@
 <script lang="ts">
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import type { PageData } from "./$types";
 import MarkdownGuideSection from "./MarkdownGuideSection.svelte";
 import { buildMarkdownGuideSections } from "./markdown-guide-sections";
@@ -12,8 +13,10 @@ $: sections = buildMarkdownGuideSections(guide);
 
 <svelte:head><title>{guide.title} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5 pb-12">
+<PageLayout class="pb-12">
+{#snippet header()}
   <PageHeader title={guide.title} description={guide.subtitle} />
+{/snippet}
 
   <div class="grid gap-6">
     {#each sections as section, index}
@@ -24,4 +27,4 @@ $: sections = buildMarkdownGuideSections(guide);
       />
     {/each}
   </div>
-</section>
+</PageLayout>

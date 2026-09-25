@@ -9,12 +9,12 @@ import {
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as appPage } from "$app/stores";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
-import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
-import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseListLabels,
@@ -42,10 +42,10 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
 </script>
 
 <section class="grid min-w-0 gap-3">
-  <CatalogResultsSummary
-    base={courseSummaryBase}
+  <ResultsSummary summary={[courseSummaryBase, courseSearchSummary].filter(Boolean).join(" ")}
+
     {page}
-    searchText={courseSearchSummary}
+
     {totalPages}
   />
   {#if data.data.length > 0}
@@ -125,8 +125,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     </ResponsiveCollection>
   {:else}
     <div class="py-10">
-      <CatalogResultsEmpty
-        centered
+      <ResultsEmpty
         description={courseEmptyDescription()}
         title={courseLabels.noCoursesFound}
       />

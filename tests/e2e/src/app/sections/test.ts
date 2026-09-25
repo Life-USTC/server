@@ -89,23 +89,23 @@ test.describe("/catalog/sections 班级搜索页", () => {
       { testInfo, screenshotLabel: "sections-list" },
     );
     await expectNoPageHorizontalOverflow(page);
-    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
-    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+    await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
     await expect(page.getByRole("heading", { name: "所有班级" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
     await expect(page).toHaveTitle(/班级/);
 
-    const mobileFilters = page.getByTestId("catalog-mobile-filters");
+    const mobileFilters = page.locator('[data-slot="filter-toolbar"]');
     const mobileFilterLayout = await mobileFilters.evaluate((node) => {
-      const container = node as HTMLElement;
+      const container = node.parentElement as HTMLElement;
       const searchbox = container.querySelector('[type="search"]');
       const actionButtons = Array.from(
-        container.querySelectorAll<HTMLButtonElement>("button"),
+        node.querySelectorAll<HTMLButtonElement>("button"),
       );
       const activeFilters = container.querySelector(
-        '[data-testid="catalog-active-filters"]',
+        '[data-slot="active-filters"]',
       );
       const inputGroup = searchbox?.closest<HTMLElement>(
         '[data-slot="input-group"]',
@@ -202,7 +202,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
       );
       await expectNoPageHorizontalOverflow(page);
 
-      const mobileFilters = page.getByTestId("catalog-mobile-filters");
+      const mobileFilters = page.locator('[data-slot="filter-toolbar"]');
       const searchbox = page.getByRole("searchbox");
       const searchButton = page.getByRole("button", { name: /^搜索$/ });
       const filterButton = page.getByRole("button", { name: /筛选/ });
@@ -243,9 +243,9 @@ test.describe("/catalog/sections 班级搜索页", () => {
       expect(searchButtonBox).not.toBeNull();
       expect(filterButtonBox).not.toBeNull();
 
-      expect(searchButtonBox?.y ?? 0).toBeGreaterThanOrEqual(
-        toolbarGeometry.inputBottom,
-      );
+      expect(
+        (searchButtonBox?.y ?? 0) + (searchButtonBox?.height ?? 0),
+      ).toBeCloseTo(toolbarGeometry.inputBottom, 0);
       expect(searchButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
       expect(filterButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
@@ -337,7 +337,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
       await expect(page).toHaveTitle(/班级/);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-      await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
 
       const documentGeometry = await page.evaluate(() => ({
@@ -391,7 +391,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await expect(page.getByTestId("catalog-results-cards")).toBeHidden();
 
       const geometry = await tableContainer.evaluate((node) => {
-        const container = node as HTMLElement;
+        const container = node.parentElement as HTMLElement;
         const results = container.closest<HTMLElement>("section");
         const table = container.querySelector("table");
         const headerCells = Array.from(
@@ -481,9 +481,8 @@ test.describe("/catalog/sections 班级搜索页", () => {
           resultsOverflowX: resultsStyle.overflowX,
           resultsOverflowY: resultsStyle.overflowY,
           summaryIsDirectChild:
-            results.querySelector(
-              ":scope > [data-testid='catalog-results-summary']",
-            ) !== null,
+            results.querySelector(":scope > [data-slot='results-summary']") !==
+            null,
           scrollWidth: container.scrollWidth,
           tableWidth: table.getBoundingClientRect().width,
         };
@@ -559,7 +558,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
     await expect(page).toHaveURL(/order=desc/);
     await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
-    await expect(page.getByTestId("catalog-active-filters")).toContainText(
+    await expect(page.locator('[data-slot="active-filters"]')).toContainText(
       DEV_SEED.teacher.nameCn,
     );
     await captureStepScreenshot(page, testInfo, "sections-structured-results");

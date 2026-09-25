@@ -9,6 +9,7 @@ describe("course page filter options", () => {
         allClassTypes: "All Class Types",
         allEducationLevels: "All Education Levels",
         clear: "Clear",
+        applyFilters: "Apply filters",
         loading: "Loading",
         next: "Next",
         nextPage: "Next page",
