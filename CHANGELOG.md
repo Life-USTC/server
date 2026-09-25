@@ -1,3 +1,10 @@
+## [1.121.6](https://github.com/Life-USTC/server/compare/v1.121.5...v1.121.6) (2026-09-25)
+
+
+### Bug Fixes
+
+* **cache:** separate shared public SSR from private viewer state ([#1136](https://github.com/Life-USTC/server/issues/1136)) ([fda18e0](https://github.com/Life-USTC/server/commit/fda18e0c4fbbc40b94993d14ff5d903d17176a05))
+
 ## [1.121.5](https://github.com/Life-USTC/server/compare/v1.121.4...v1.121.5) (2026-09-25)
 
 
