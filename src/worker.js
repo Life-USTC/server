@@ -96,11 +96,13 @@ function cacheablePublicResponse(response) {
   );
 }
 
-function prepareCachedRepresentation(response, pathname) {
+function prepareCachedRepresentation(response, pathname, renderStartedAt) {
   if (!cacheablePublicResponse(response)) return response;
 
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(publicSsrCacheHeaders(pathname))) {
+  for (const [name, value] of Object.entries(
+    publicSsrCacheHeaders(pathname, new Date(), renderStartedAt),
+  )) {
     headers.set(name, value);
   }
   headers.set("Cache-Tag", CATALOG_EDGE_CACHE_TAG);
@@ -296,12 +298,17 @@ function svelteKitPublicSsrRequest(request) {
 
 export class PublicSsr extends WorkerEntrypoint {
   async fetch(request) {
+    const renderStartedAt = new Date();
     const response = await app.fetch(
       svelteKitPublicSsrRequest(request),
       this.env,
       this.ctx,
     );
-    return prepareCachedRepresentation(response, new URL(request.url).pathname);
+    return prepareCachedRepresentation(
+      response,
+      new URL(request.url).pathname,
+      renderStartedAt,
+    );
   }
 
   /**

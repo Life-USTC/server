@@ -353,6 +353,28 @@ describe("Worker routing entrypoint", () => {
     expect(appFetchMock).not.toHaveBeenCalled();
   });
 
+  it("does not cache a calendar page whose render crossed Shanghai midnight", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-26T15:59:59Z"));
+      appFetchMock.mockImplementation(async () => {
+        vi.setSystemTime(new Date("2026-09-26T16:00:01Z"));
+        return new Response("yesterday's calendar seed", {
+          headers: { "content-type": "text/html" },
+        });
+      });
+      const response = await new PublicSsr().fetch(
+        new Request("https://life-ustc.test/catalog/sections/159446"),
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not store per-request ids in the shared cache representation", async () => {
     appFetchMock.mockResolvedValue(
       new Response(null, {

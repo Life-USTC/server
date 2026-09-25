@@ -97,7 +97,11 @@ function isViewerIndependentPublicPath(pathname: string) {
 }
 
 /** Date-sensitive pages cannot reuse yesterday's calendar seed or SWR body. */
-export function publicSsrCacheHeaders(pathname: string, now = new Date()) {
+export function publicSsrCacheHeaders(
+  pathname: string,
+  now = new Date(),
+  renderStartedAt = now,
+) {
   const youngPage = YOUNG_PUBLIC_PATH.test(pathname);
   if (!youngPage && !pathname.startsWith("/catalog/sections/")) {
     return {
@@ -106,6 +110,15 @@ export function publicSsrCacheHeaders(pathname: string, now = new Date()) {
     };
   }
   const campusNow = shanghaiDayjs(now);
+  if (
+    campusNow.format("YYYY-MM-DD") !==
+    shanghaiDayjs(renderStartedAt).format("YYYY-MM-DD")
+  ) {
+    return {
+      "Cache-Control": "private, no-store",
+      "Cloudflare-CDN-Cache-Control": "no-store",
+    };
+  }
   const untilMidnight = Math.max(
     1,
     campusNow.add(1, "day").startOf("day").diff(campusNow, "second"),
