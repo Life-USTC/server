@@ -135,6 +135,10 @@ async function readStoredCalendar(userId: string) {
         type: "json",
       },
     );
+    // Invalidation or a completed rebuild may replace this entry while KV is
+    // pending. Its result must not restore deleted data or overwrite that write.
+    const current = userCalendarExportCache.get(userId);
+    if (current !== memoryEntry) return current?.calendar ?? null;
     if (!isStoredUserCalendarExport(entry)) {
       userCalendarExportCache.delete(userId);
       return null;
@@ -142,7 +146,6 @@ async function readStoredCalendar(userId: string) {
     // A queue consumer updates its own isolate and KV, not the serving isolate.
     // Revalidate even fresh exports, and retain the local enqueue cooldown when
     // concurrent readers see the same (possibly not yet propagated) KV value.
-    const current = userCalendarExportCache.get(userId);
     const calendar =
       current && current.calendar.generatedAtMs > entry.generatedAtMs
         ? current.calendar
@@ -162,7 +165,7 @@ async function readStoredCalendar(userId: string) {
     return calendar;
   } catch {
     recordCalendarFeedCacheStatus("store_error");
-    return memoryEntry?.calendar ?? null;
+    return userCalendarExportCache.get(userId)?.calendar ?? null;
   }
 }
 

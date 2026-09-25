@@ -4,6 +4,7 @@ import {
   invalidateUserCalendarExportCache,
   requestMatchesEtag,
   resetUserCalendarExportCacheForTest,
+  storeBuiltUserCalendarExport,
   USER_CALENDAR_EXPORT_FRESH_TTL_MS,
 } from "@/features/calendar/server/calendar-export-cache";
 import {
@@ -11,6 +12,7 @@ import {
   setCalendarExportRebuildSenderForTest,
 } from "@/features/calendar/server/calendar-export-queue";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { createDeferred } from "../../../shared/deferred";
 
 const calendarExport = {
   cacheControl: "private, max-age=1800",
@@ -260,6 +262,92 @@ describe("用户 iCal 导出缓存", () => {
     namespace.get.mockResolvedValueOnce(oldKvValue);
     await getCachedUserCalendarExport("user-1", buildExport);
     expect(sender).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["old", "error"])(
+    "does not restore invalidated memory when a pending KV read returns %s",
+    async (result) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+      const namespace = kvNamespace();
+      setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+      const previous = await storeBuiltUserCalendarExport(
+        "user-1",
+        calendarExport,
+      );
+      vi.advanceTimersByTime(60_000);
+      const pendingRead = createDeferred<typeof previous | null>();
+      namespace.get.mockReturnValueOnce(pendingRead.promise);
+      const updated = { ...calendarExport, text: "after invalidation" };
+      const buildExport = vi.fn().mockResolvedValue(updated);
+      const request = getCachedUserCalendarExport("user-1", buildExport);
+
+      await invalidateUserCalendarExportCache("user-1");
+      if (result === "error") pendingRead.reject(new Error("KV unavailable"));
+      else pendingRead.resolve(previous);
+
+      const refreshed = await request;
+      expect(refreshed.status).toBe("miss");
+      expect(refreshed.calendar?.text).toBe(updated.text);
+      expect(buildExport).toHaveBeenCalledOnce();
+      expect(
+        (await getCachedUserCalendarExport("user-1", buildExport)).calendar
+          ?.text,
+      ).toBe(updated.text);
+      expect(buildExport).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["old", "null", "error"])(
+    "retains a completed local rebuild when a pending KV read returns %s",
+    async (result) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+      const namespace = kvNamespace();
+      setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+      const previous = await storeBuiltUserCalendarExport(
+        "user-1",
+        calendarExport,
+      );
+      vi.advanceTimersByTime(60_000);
+      const pendingRead = createDeferred<typeof previous | null>();
+      namespace.get.mockReturnValueOnce(pendingRead.promise);
+      const buildExport = vi.fn().mockResolvedValue(calendarExport);
+      const request = getCachedUserCalendarExport("user-1", buildExport);
+      const updated = { ...calendarExport, text: "completed queue rebuild" };
+
+      await storeBuiltUserCalendarExport("user-1", updated);
+      if (result === "error") pendingRead.reject(new Error("KV unavailable"));
+      else pendingRead.resolve(result === "null" ? null : previous);
+
+      const refreshed = await request;
+      expect(refreshed.status).toBe("fresh");
+      expect(refreshed.calendar?.text).toBe(updated.text);
+      expect(
+        (await getCachedUserCalendarExport("user-1", buildExport)).calendar
+          ?.text,
+      ).toBe(updated.text);
+      expect(buildExport).not.toHaveBeenCalled();
+    },
+  );
+
+  it("uses a concurrent KV read's populated cache instead of rebuilding", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const namespace = kvNamespace();
+    setCloudflareRuntimeEnv({ CALENDAR_EXPORTS: namespace });
+    const stored = await storeBuiltUserCalendarExport("user-1", calendarExport);
+    resetUserCalendarExportCacheForTest();
+    const pendingRead = createDeferred<typeof stored | null>();
+    namespace.get.mockReturnValueOnce(pendingRead.promise);
+    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    const first = getCachedUserCalendarExport("user-1", buildExport);
+
+    const second = await getCachedUserCalendarExport("user-1", buildExport);
+    pendingRead.resolve(null);
+    expect((await first).calendar?.text).toBe(calendarExport.text);
+    expect(second.calendar?.text).toBe(calendarExport.text);
+    expect(buildExport).not.toHaveBeenCalled();
   });
 
   it("cold miss 将 KV 写入移出响应关键路径", async () => {
