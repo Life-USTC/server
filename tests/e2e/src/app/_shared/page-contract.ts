@@ -571,6 +571,9 @@ export async function assertPageContract(
       await maybeCapture(page, testInfo, "news");
       await advancedFilters.click();
       await expect(
+        page.getByRole("dialog", { name: /更多筛选|More filters/i }),
+      ).toBeVisible();
+      await expect(
         page.getByRole("group", { name: /^(来源|Sources)$/i }),
       ).toBeVisible();
       await expect(
@@ -578,6 +581,9 @@ export async function assertPageContract(
           name: /按组织层级筛选|Filter by organization level/i,
         }),
       ).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toBeHidden();
+      await expect(advancedFilters).toBeFocused();
       return;
     }
 
