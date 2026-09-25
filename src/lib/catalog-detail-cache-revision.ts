@@ -2,6 +2,9 @@ import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 
 const REVISION_CACHE_TTL_MS = 60_000;
+// Bump whenever a cached catalog payload changes shape, even if source data is unchanged.
+// Shared by list/detail L1, colo, and KV keys; never reuse an older payload revision.
+const CATALOG_PAYLOAD_SCHEMA_REVISION = "schema1";
 const BOOTSTRAP_REVISION = "bootstrap";
 
 let cachedRevision: { expiresAt: number; value: string } | null = null;
@@ -36,9 +39,10 @@ export async function getCatalogDetailCacheRevision() {
       }
     },
   );
-  const value = state
+  const dataRevision = state
     ? `${state.snapshotSha256.slice(0, 16)}-${state.updatedAt.getTime().toString(36)}`
     : BOOTSTRAP_REVISION;
+  const value = `${CATALOG_PAYLOAD_SCHEMA_REVISION}:${dataRevision}`;
   cachedRevision = { expiresAt: now + REVISION_CACHE_TTL_MS, value };
   return value;
 }

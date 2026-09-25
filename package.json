@@ -26,7 +26,7 @@
   },
   "scripts": {
     "dev": "vite dev --host 127.0.0.1 --port 3000 --strictPort",
-    "build": "bun run openapi:generate && vite build",
+    "build": "bun run app:prepare && bun run openapi:generate && vite build",
     "app:prepare": "svelte-kit sync && prisma generate",
     "svelte:sync": "svelte-kit sync",
     "db:generate": "prisma generate",
