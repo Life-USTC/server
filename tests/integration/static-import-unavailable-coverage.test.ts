@@ -30,6 +30,7 @@ vi.mock("@/static-loader/snapshot", () => ({
     hasTable(table: string) {
       return table in tables;
     }
+    clearCachedRows() {}
     close() {}
   },
 }));
