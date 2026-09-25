@@ -23,7 +23,7 @@ function detailRequest(headers: HeadersInit = {}) {
 }
 
 describe("public SSR detail safety invariants", () => {
-  test("admits only the anonymous document request", () => {
+  test("shares public document rendering with session visitors but rejects Bearer", () => {
     expect(resolvePublicSsrMode(detailRequest())).toBe("page");
     expect(
       resolvePublicSsrMode(
@@ -34,10 +34,10 @@ describe("public SSR detail safety invariants", () => {
       resolvePublicSsrMode(
         detailRequest({ cookie: "better-auth.session_token=session-token" }),
       ),
-    ).toBeNull();
+    ).toBe("page");
   });
 
-  test("recognizes Better Auth's configured default production cookie", () => {
+  test("also shares public rendering with Better Auth's production cookie", () => {
     const { sessionToken } = getCookies({ baseURL: "https://life-ustc.test" });
 
     expect(sessionToken.name).toBe("__Secure-better-auth.session_token");
@@ -45,7 +45,7 @@ describe("public SSR detail safety invariants", () => {
       resolvePublicSsrMode(
         detailRequest({ cookie: `${sessionToken.name}=session-token` }),
       ),
-    ).toBeNull();
+    ).toBe("page");
   });
 
   test("uses a deterministic anonymous viewer baseline", async () => {

@@ -27,7 +27,7 @@ test("signed-in catalog documents remain public while the private shell resolves
   const shell = await shellResponse;
   expect(shell.headers()["cache-control"]).toBe("private, no-store");
   expect((await shell.json()).viewer.id).toBe(viewer.id);
-  await expect(
-    page.getByRole("button", { name: new RegExp(DEV_SEED.debugName) }).first(),
-  ).toBeVisible();
+  await expect(page.locator("#app-user-menu")).toContainText(
+    DEV_SEED.debugName,
+  );
 });

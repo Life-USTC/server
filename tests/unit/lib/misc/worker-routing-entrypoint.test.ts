@@ -309,6 +309,50 @@ describe("Worker routing entrypoint", () => {
     expect(JSON.stringify(completion)).not.toContain("private-value");
   });
 
+  it("uses the same credential-free cache request for anonymous and signed-in catalog visitors", async () => {
+    const publicSsrFetchMock = vi.fn().mockImplementation(
+      () =>
+        new Response(null, {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+    );
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
+      },
+      waitUntil: vi.fn(),
+    };
+    for (const cookie of [
+      "NEXT_LOCALE=zh-cn",
+      "NEXT_LOCALE=zh-cn; __Secure-better-auth.session_token=private-session",
+    ]) {
+      const response = await withHtmlRewriter(() =>
+        worker.fetch(
+          new Request("https://life-ustc.test/catalog/courses", {
+            headers: { accept: "text/html", cookie },
+          }),
+          {},
+          context,
+        ),
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    }
+    const requests = publicSsrFetchMock.mock.calls.map(
+      ([request]) => request as Request,
+    );
+    expect(requests).toHaveLength(2);
+    expect(requests[0].url).toBe(requests[1].url);
+    for (const request of requests) {
+      expect(request.headers.get("cookie")).toBeNull();
+      expect(request.headers.get("authorization")).toBeNull();
+      expect(request.headers.get("x-life-public-ssr")).toBe("1");
+    }
+    expect(appFetchMock).not.toHaveBeenCalled();
+  });
+
   it("does not store per-request ids in the shared cache representation", async () => {
     appFetchMock.mockResolvedValue(
       new Response(null, {

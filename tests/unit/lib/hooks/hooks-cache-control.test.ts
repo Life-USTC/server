@@ -96,18 +96,24 @@ it("preserves public catalog headers on signed-in requests", async () => {
   );
 });
 
-it("does not let a CDN header override a private response", async () => {
-  const response = await respond(
-    "/api/account/profile",
-    Response.json(
-      {},
-      {
-        headers: {
-          "Cache-Control": "private, no-store",
-          "Cloudflare-CDN-Cache-Control": "public, max-age=86400",
+it.each(["private, no-store", "private, max-age=1800"])(
+  "enforces private no-store even over stored response metadata: %s",
+  async (policy) => {
+    const response = await respond(
+      "/api/account/profile",
+      Response.json(
+        {},
+        {
+          headers: {
+            "Cache-Control": policy,
+            "Cloudflare-CDN-Cache-Control": "public, max-age=86400",
+          },
         },
-      },
-    ),
-  );
-  expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe("no-store");
-});
+      ),
+    );
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "no-store",
+    );
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  },
+);

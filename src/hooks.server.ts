@@ -163,6 +163,11 @@ function responseWithSecurityHeaders(response: Response) {
     )
   ) {
     mutableResponse.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+    if (
+      /\bprivate\b/i.test(mutableResponse.headers.get("Cache-Control") ?? "")
+    ) {
+      mutableResponse.headers.set("Cache-Control", "private, no-store");
+    }
   }
   return mutableResponse;
 }
