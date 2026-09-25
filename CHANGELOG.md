@@ -1,3 +1,10 @@
+## [1.121.5](https://github.com/Life-USTC/server/compare/v1.121.4...v1.121.5) (2026-09-25)
+
+
+### Performance Improvements
+
+* serve fixed Open Graph image and reduce repeated CPU work ([#1135](https://github.com/Life-USTC/server/issues/1135)) ([5052553](https://github.com/Life-USTC/server/commit/50525539e8bf3d8e079b8b70c6e0ea45c3419c2f))
+
 ## [1.121.4](https://github.com/Life-USTC/server/compare/v1.121.3...v1.121.4) (2026-09-25)
 
 
