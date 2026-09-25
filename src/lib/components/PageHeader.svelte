@@ -10,6 +10,7 @@ type Props = {
   belowTitle?: Snippet;
   class?: string;
   description?: string;
+  density?: "comfortable" | "compact";
   eyebrow?: string;
   eyebrowContent?: Snippet;
   meta?: Snippet;
@@ -25,6 +26,7 @@ let {
   belowTitle,
   class: className = "",
   description = "",
+  density = "comfortable",
   eyebrow = "",
   eyebrowContent,
   meta,
@@ -34,7 +36,7 @@ let {
 }: Props = $props();
 </script>
 
-<header class={cn("grid min-w-0 gap-4 py-2 md:py-3", className)}>
+<header class={cn("grid min-w-0 gap-4", density === "compact" ? "py-0 md:py-1" : "py-2 md:py-3", className)}>
   <div class="flex min-w-0 flex-wrap items-start justify-between gap-4">
     <div class="min-w-0 flex-1">
       {#if eyebrowContent}
@@ -44,7 +46,7 @@ let {
       {:else if eyebrow}
         <Badge class="mb-2" variant="secondary">{eyebrow}</Badge>
       {/if}
-      <h1 class={cn("break-words font-semibold text-3xl tracking-normal", titleClass)}>
+      <h1 class={cn("break-words font-semibold tracking-normal", density === "compact" ? "text-xl sm:text-2xl" : "text-3xl", titleClass)}>
         {title}{#if titleExtra}{@render titleExtra()}{/if}
       </h1>
       {#if description}

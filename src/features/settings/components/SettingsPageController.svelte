@@ -24,6 +24,7 @@ import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -165,67 +166,65 @@ onMount(() => {
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
 
-<div class="page-frame page-frame-content">
-  <section class="grid gap-6">
-    <SettingsHeader {copy} />
+<PageLayout width="content">
+  {#snippet header()}<SettingsHeader {copy} />{/snippet}
 
-    <div class="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-6">
-      <DetailSectionNav
-        activeHref={activeNavHref}
-        ariaLabel={data.settingsNav.title}
-        items={sectionNavItems}
-      />
+  <div class="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <DetailSectionNav
+      activeHref={activeNavHref}
+      ariaLabel={data.settingsNav.title}
+      items={sectionNavItems}
+    />
 
-      <div class="grid min-w-0 gap-4" data-settings-active-panel>
-        <SettingsStatusAlert {copy} {statusMessage} />
+    <div class="grid min-w-0 gap-4" data-settings-active-panel>
+      <SettingsStatusAlert {copy} {statusMessage} />
 
-        {#if data.tab === "profile"}
-          <SettingsProfileTab
-            {avatarOptions}
-            {copy}
-            currentImage={currentImage}
-            isMounted={_isMounted}
-            previewImage={previewImage}
-            bind:selectedImage
-            user={data.user}
-          />
-        {:else if data.tab === "preferences"}
-          <SettingsPreferencesTab {copy} locale={data.locale} />
-        {:else if data.tab === "accounts"}
-          <SettingsAccountsTab
-            accountAction={accountAction}
-            accounts={data.accounts}
-            {copy}
-            hasPendingAccountAction={_hasPendingAccountAction}
-            isMounted={_isMounted}
-            pendingAccountAction={_pendingAccountAction}
-            unlinkAccount={_unlinkAccount}
-            bind:unlinkAccountId={_unlinkAccountId}
-            user={data.user}
-          />
-        {:else if data.tab === "authorizations"}
-          <SettingsAuthorizationsTab
-            authorizations={data.authorizations}
-            {copy}
-            locale={data.locale}
-          />
-        {:else if data.tab === "security"}
-          <SettingsSecurityTab
-            activity={data.securityActivity}
-            {copy}
-            locale={data.locale}
-          />
-        {:else}
-          <SettingsDangerTab
-            {copy}
-            {deleteAccountAction}
-            bind:deleteConfirmValue={_deleteConfirmValue}
-            bind:isDeleteAccountOpen={_isDeleteAccountOpen}
-            isDeletingAccount={_isDeletingAccount}
-            isMounted={_isMounted}
-          />
-        {/if}
-      </div>
+      {#if data.tab === "profile"}
+        <SettingsProfileTab
+          {avatarOptions}
+          {copy}
+          currentImage={currentImage}
+          isMounted={_isMounted}
+          previewImage={previewImage}
+          bind:selectedImage
+          user={data.user}
+        />
+      {:else if data.tab === "preferences"}
+        <SettingsPreferencesTab {copy} locale={data.locale} />
+      {:else if data.tab === "accounts"}
+        <SettingsAccountsTab
+          accountAction={accountAction}
+          accounts={data.accounts}
+          {copy}
+          hasPendingAccountAction={_hasPendingAccountAction}
+          isMounted={_isMounted}
+          pendingAccountAction={_pendingAccountAction}
+          unlinkAccount={_unlinkAccount}
+          bind:unlinkAccountId={_unlinkAccountId}
+          user={data.user}
+        />
+      {:else if data.tab === "authorizations"}
+        <SettingsAuthorizationsTab
+          authorizations={data.authorizations}
+          {copy}
+          locale={data.locale}
+        />
+      {:else if data.tab === "security"}
+        <SettingsSecurityTab
+          activity={data.securityActivity}
+          {copy}
+          locale={data.locale}
+        />
+      {:else}
+        <SettingsDangerTab
+          {copy}
+          {deleteAccountAction}
+          bind:deleteConfirmValue={_deleteConfirmValue}
+          bind:isDeleteAccountOpen={_isDeleteAccountOpen}
+          isDeletingAccount={_isDeletingAccount}
+          isMounted={_isMounted}
+        />
+      {/if}
     </div>
-  </section>
-</div>
+  </div>
+</PageLayout>

@@ -45,7 +45,6 @@ export function createWorkspacePageControllerActions(input: {
   getHomeworkItems: () => HomeworkItem[];
   getHomeworkSavingById: () => Record<string, boolean>;
   getLinkReturnTo: () => string;
-  getLinkSearchInput: () => HTMLInputElement | null;
   getOverviewLinkSourceItems: () => CatalogLinkItem[];
   getSelectedHomework: () => HomeworkItem | null;
   getSelectedImportSectionIds: () => number[];
@@ -301,7 +300,6 @@ export function createWorkspacePageControllerActions(input: {
       copy: {
         workspace: getWorkspaceCopy(),
       },
-      getLinkSearchInput: input.getLinkSearchInput,
       replaceState: (href) => {
         replaceState(href, {});
       },

@@ -6,10 +6,11 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/stores";
+import ListPagination from "$lib/components/ListPagination.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
-import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPagination from "./CatalogPagination.svelte";
+import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   SectionListCommonLabels,
   SectionListFilters,
@@ -252,7 +253,7 @@ function sectionEmptyDescription() {
 </script>
 
 {#snippet paginationFooter()}
-  <CatalogPagination
+  <ListPagination
     ariaLabel={commonLabels.pagination}
     class="py-0"
     nextLabel={commonLabels.next}
@@ -265,16 +266,17 @@ function sectionEmptyDescription() {
   />
 {/snippet}
 
-<div class="page-frame">
-  <section class="grid gap-5">
+<PageLayout>
+  {#snippet header()}
     <PageHeader
       description={sectionLabels.subtitle}
       title={sectionLabels.title}
     />
+  {/snippet}
 
     <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
       {#snippet header()}
-        <CatalogMobileFilters
+        <CatalogFilters
           activeFilters={sectionActiveFilters}
           clearHref="/catalog/sections"
           clearLabel={commonLabels.clear}
@@ -295,7 +297,7 @@ function sectionEmptyDescription() {
             {commonLabels}
             {departmentOptions}
             {educationLevelOptions}
-            filters={data.filters}
+            filters={{ ...data.filters, search: sectionSearch }}
             idPrefix="mobile-section"
             onSubmit={() => {
               isSectionFilterOpen = false;
@@ -303,7 +305,7 @@ function sectionEmptyDescription() {
             {sectionLabels}
             {semesterOptions}
           />
-        </CatalogMobileFilters>
+        </CatalogFilters>
       {/snippet}
 
       <SectionsResults
@@ -316,5 +318,4 @@ function sectionEmptyDescription() {
         {totalPages}
       />
     </Panel>
-  </section>
-</div>
+</PageLayout>

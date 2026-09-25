@@ -1,5 +1,4 @@
 import { getLocalStorageItem } from "@/lib/browser/local-storage";
-import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import {
   WORKSPACE_VIEW_STORAGE_KEY,
   workspaceViewsFromPreference,
@@ -19,7 +18,6 @@ export function mountWorkspaceController(input: {
   applyViewState: (state: WorkspaceViewState) => void;
   clearPendingRemoveSection: () => void;
   copy: WorkspaceMountCopy;
-  getLinkSearchInput: () => HTMLInputElement | null;
   replaceState: (href: string) => void;
   setLinkActionError: (value: string) => void;
   setLinkReturnTo: (value: string) => void;
@@ -42,11 +40,7 @@ export function mountWorkspaceController(input: {
     ),
   );
 
-  const unmountPageSearchShortcut = mountPageSearchShortcut(() =>
-    input.getLinkSearchInput(),
-  );
   return () => {
-    unmountPageSearchShortcut();
     input.clearPendingRemoveSection();
   };
 }

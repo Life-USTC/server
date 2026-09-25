@@ -110,12 +110,12 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-search");
 
-  const clearButton = page.getByRole("button", { name: /清除|Clear/i }).first();
-  if ((await clearButton.count()) > 0) {
-    await clearButton.click();
-    await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "admin-users-clear");
-  }
+  const clearLink = page.getByRole("link", { name: /^(清除|Clear)$/i });
+  await expect(clearLink).toHaveAttribute("href", "/admin/users");
+  await clearLink.click();
+  await expect(page).toHaveURL(/\/admin\/users$/);
+  await expect(page.getByRole("searchbox")).toHaveValue("");
+  await captureStepScreenshot(page, testInfo, "admin-users-clear");
 });
 
 test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
@@ -240,20 +240,28 @@ test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) =
 
   try {
     await createTempUsersFixture({ prefix, count: 21 });
-    await signInAsDevAdmin(page, "/admin/users");
+    await signInAsDevAdmin(page, `/admin/users?search=${prefix}`);
 
-    const listResponse = await page.request.get("/api/admin/users");
-    expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      data?: Array<{ username?: string | null }>;
-      pagination?: { totalPages?: number };
-    };
-    expect((listBody.pagination?.totalPages ?? 0) > 1).toBe(true);
-
-    await gotoAndWaitForReady(page, "/admin/users?page=2");
-
-    await expect(page).toHaveURL(/\/admin\/users\?page=2$/);
+    const pagination = page.locator('[data-slot="list-pagination"]');
+    const nextPage = pagination.getByRole("link", {
+      name: /下一页|Next page/i,
+    });
+    await expect(nextPage).toHaveAttribute(
+      "href",
+      new RegExp(`search=${prefix}`),
+    );
+    await expect(nextPage).toHaveAttribute("href", /page=2/);
+    await nextPage.click();
+    await expect(page).toHaveURL(/page=2/);
+    expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
+    await expect(page.getByRole("searchbox")).toHaveValue(prefix);
     await expect(page.locator("tbody tr").first()).toBeVisible();
+    await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+    await pagination
+      .getByRole("link", { name: /上一页|Previous page/i })
+      .click();
+    await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
+    expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
     await captureStepScreenshot(page, testInfo, "admin-users-pagination");
   } finally {
     await deleteUsersByPrefix(prefix);

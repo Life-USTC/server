@@ -9,13 +9,12 @@ import {
   currentCatalogLinkReturnTo,
   submitWorkspaceLinkPinRequest,
 } from "@/features/workspace/lib/workspace-link-pin-client";
-import { mountPageSearchShortcut } from "@/lib/browser/page-search-shortcut";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import type { PageData } from "./$types";
 
 export let data: PageData;
 
-let linkSearchInput: HTMLInputElement | null = null;
 let linkSearchQuery = "";
 let linkActionError = "";
 let linkItems = data.links;
@@ -50,7 +49,6 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
 
 onMount(() => {
   linkReturnTo = currentCatalogLinkReturnTo();
-  return mountPageSearchShortcut(() => linkSearchInput);
 });
 </script>
 
@@ -58,11 +56,13 @@ onMount(() => {
   <title>{data.copy.workspace.nav.links.title} - Life@USTC</title>
 </svelte:head>
 
-<section class="grid gap-5">
-  <PageHeader
-    description={data.copy.workspace.nav.links.description}
-    title={data.copy.workspace.nav.links.title}
-  />
+<PageLayout>
+  {#snippet header()}
+    <PageHeader
+      description={data.copy.workspace.nav.links.description}
+      title={data.copy.workspace.nav.links.title}
+    />
+  {/snippet}
 
   {#if data.signedIn}
     <LinksTab
@@ -74,7 +74,6 @@ onMount(() => {
       submitWorkspaceLinkPin={submitWorkspaceLinkPin}
       {updatingCatalogLinkSlug}
       bind:linkSearchQuery
-      bind:linkSearchInput
     />
   {:else}
     <AnonymousLinksTab
@@ -82,7 +81,6 @@ onMount(() => {
       {linkIconLabel}
       anonymousLinkGroups={linkGroups}
       bind:linkSearchQuery
-      bind:linkSearchInput
     />
   {/if}
-</section>
+</PageLayout>

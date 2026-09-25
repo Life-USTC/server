@@ -65,7 +65,9 @@ test.describe("/catalog/teachers", () => {
     await expect(
       page.locator("#main-content a[href^='/catalog/teachers/']"),
     ).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /清除|Clear/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(清除|Clear)$/i }),
+    ).toBeVisible();
   });
 
   test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
@@ -76,10 +78,10 @@ test.describe("/catalog/teachers", () => {
       { testInfo, screenshotLabel: "teachers-list" },
     );
     await expectNoPageHorizontalOverflow(page);
-    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
-    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+    await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
     await expectCatalogFilterSheet(page, [/院系|Department/i]);
 
     const detailLink = page
@@ -133,10 +135,14 @@ test.describe("/catalog/teachers", () => {
 
     await expect(page).toHaveURL(/search=/);
 
-    const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
+    const clearLink = page
+      .getByRole("link", { name: /^(清除|Clear)$/i })
+      .first();
     await expect(clearLink).toBeVisible();
     await clearLink.click();
-    await expect(page).not.toHaveURL(/search=/);
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(DEV_SEED.teacher.nameCn);
 
     await captureStepScreenshot(page, testInfo, "teachers-search-clear");
   });
@@ -153,15 +159,22 @@ test.describe("/catalog/teachers", () => {
       testInfo,
       screenshotLabel: "teachers-department",
     });
-    await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
+    await page.getByRole("searchbox").fill(DEV_SEED.teacher.nameCn);
     const filterDialog = await openCatalogFilterSheet(page);
     await filterDialog
       .getByLabel(/院系|Department/i)
       .selectOption(String(filter.departmentId));
+    await expect(page).not.toHaveURL(/departmentId=/);
+    await filterDialog
+      .getByRole("button", { name: /应用筛选|Apply filters/i })
+      .click();
+    await expect(filterDialog).toBeHidden();
     await expect(page).toHaveURL(
       new RegExp(`departmentId=${filter.departmentId}`),
     );
-    await expect(page).not.toHaveURL(/search=/);
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("search"))
+      .toBe(DEV_SEED.teacher.nameCn);
     await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teachers-filter-department");
   });

@@ -53,7 +53,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
     assertReady: async (page, locale) => {
       await expect(page.locator("html")).toHaveAttribute("lang", locale);
       await expect(page.getByRole("searchbox")).toBeVisible();
-      await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
+      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
       const desktopRow = page
         .locator("table:visible tbody tr")
         .filter({ hasText: DEV_SEED.course.code });

@@ -80,7 +80,8 @@
     "back": "返回",
     "userNotFound": "未找到用户",
     "unknown": "未知",
-    "campusServices": "校园服务"
+    "campusServices": "校园服务",
+    "applyFilters": "应用筛选"
   },
   "globalSearch": {
     "title": "搜索",

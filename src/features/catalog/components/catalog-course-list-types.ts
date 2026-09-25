@@ -5,6 +5,7 @@ export type CourseListCommonLabels = {
   allClassTypes: string;
   allEducationLevels: string;
   clear: string;
+  applyFilters: string;
   loading: string;
   next: string;
   nextPage: string;

@@ -1,5 +1,4 @@
 <script lang="ts">
-import CatalogPagination from "@/features/catalog/components/CatalogPagination.svelte";
 import type {
   YoungEventPage,
   YoungEventSummary,
@@ -8,8 +7,12 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
+import ListPagination from "$lib/components/ListPagination.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
@@ -44,10 +47,12 @@ function pageHref(page: number) {
 }
 </script>
 
-<PageLayout
-  description={youngCopy.organizersDescription}
-  title={organizer.name}
->
+{#snippet paginationFooter()}
+      <ListPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
+{/snippet}
+
+<PageLayout>
+  {#snippet header()}<PageHeader title={organizer.name} description={youngCopy.organizersDescription} />{/snippet}
   <YoungBrowseNav current="organizers" copy={youngCopy} />
   <div class="grid gap-5">
     <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
@@ -79,10 +84,12 @@ function pageHref(page: number) {
       <div><dt class="text-muted-foreground">{youngCopy.historyEvents}</dt><dd>{organizer.historyCount}</dd></div>
     </dl>
     <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
-      <Panel>
+      <Panel footer={events.pagination.totalPages > 1 ? paginationFooter : undefined}>
         {#snippet header()}
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
+        <div class="grid gap-3">
+        <ResultsSummary summary={youngCopy.showing.replace("{count}", String(events.data.length)).replace("{total}", String(events.pagination.total))} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}
@@ -112,12 +119,11 @@ function pageHref(page: number) {
             {/each}
           </Item.Group>
         {:else}
-          <p class="text-muted-foreground text-sm">{youngCopy.calendarEmpty}</p>
+          <ResultsEmpty title={youngCopy.noEventsFound} description={youngCopy.organizersDescription} />
         {/if}
+        </div>
       </Panel>
-    {#if events.pagination.totalPages > 1}
-      <CatalogPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
-    {/if}
+
 
     <div>
       <Button href="/catalog/young-events/organizers" variant="outline">

@@ -58,7 +58,6 @@ export function createWorkspaceControllerDefaultState() {
     isUpdatingTodo: false,
     linkActionError: "",
     linkReturnTo: "/catalog/links",
-    linkSearchInput: null as HTMLInputElement | null,
     linkSearchQuery: "",
     linkView: "grid" as LinkView,
     matchedSections: [] as MatchedSection[],

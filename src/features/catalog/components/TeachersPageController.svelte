@@ -6,10 +6,11 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page } from "$app/stores";
+import ListPagination from "$lib/components/ListPagination.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
-import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
-import CatalogPagination from "./CatalogPagination.svelte";
+import CatalogFilters from "./CatalogFilters.svelte";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -54,9 +55,6 @@ $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: teacherLabels = data.labels.teachers;
-$: activeFilterCount = [data.filters.search, data.filters.departmentId].filter(
-  Boolean,
-).length;
 $: selectedDepartment =
   data.filterOptions.departments.find(
     (department) => data.filters.departmentId === String(department.id),
@@ -103,7 +101,7 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 </script>
 
 {#snippet paginationFooter()}
-  <CatalogPagination
+  <ListPagination
     ariaLabel={commonLabels.pagination}
     class="py-0"
     nextLabel={commonLabels.next}
@@ -116,16 +114,17 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   />
 {/snippet}
 
-<div class="page-frame">
-  <section class="grid gap-5">
+<PageLayout>
+  {#snippet header()}
     <PageHeader
       description={teacherLabels.subtitle}
       title={teacherLabels.title}
     />
+  {/snippet}
 
     <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
       {#snippet header()}
-        <CatalogMobileFilters
+        <CatalogFilters
           activeFilters={teacherActiveFilters}
           clearHref="/catalog/teachers"
           clearLabel={commonLabels.clear}
@@ -138,17 +137,14 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
           bind:searchValue={teacherSearch}
         >
           <TeachersFilters
-            {activeFilterCount}
             {commonLabels}
             {departmentOptions}
             filters={data.filters}
             idPrefix="mobile-teacher"
-            showClear={false}
-            showSearch={false}
             {teacherLabels}
-            teacherSearch={data.filters.search ?? ""}
+            {teacherSearch}
           />
-        </CatalogMobileFilters>
+        </CatalogFilters>
       {/snippet}
 
       <TeachersResults
@@ -163,5 +159,4 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
         {totalPages}
       />
     </Panel>
-  </section>
-</div>
+</PageLayout>

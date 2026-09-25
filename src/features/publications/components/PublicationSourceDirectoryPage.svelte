@@ -2,9 +2,13 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import PageLayout from "$lib/components/PageLayout.svelte";
+import PageSectionNav from "$lib/components/PageSectionNav.svelte";
+import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
+import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
@@ -58,89 +62,77 @@ const levelIndex = $derived(data.directory.groups);
   <title>{copy.sourcesPageTitle} - Life@USTC</title>
 </svelte:head>
 
-<section class="grid min-w-0 gap-5">
-  <PageHeader
-    title={copy.sourcesPageTitle}
-    description={copy.sourcesPageDescription}
-  >
-    {#snippet actions()}
-      <Button href="/news" variant="outline">
-        <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
-        {copy.backToList}
-      </Button>
-    {/snippet}
-  </PageHeader>
+<PageLayout>
+  {#snippet header()}
+    <PageHeader
+      title={copy.sourcesPageTitle}
+      description={copy.sourcesPageDescription}
+    >
+      {#snippet actions()}
+        <Button href="/news" variant="outline">
+          <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
+          {copy.backToList}
+        </Button>
+      {/snippet}
+    </PageHeader>
+  {/snippet}
 
   {#if data.directory.groups.length === 0}
-    <Empty.Root class="rounded-xl border bg-card py-12">
-      <Empty.Header>
-        <Empty.Title>{copy.sourcesEmptyTitle}</Empty.Title>
-        <Empty.Description>{copy.sourcesEmptyDescription}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <ResultsEmpty title={copy.sourcesEmptyTitle} description={copy.sourcesEmptyDescription} />
   {:else}
-    <p class="text-sm text-muted-foreground">{totalsSummary()}</p>
-
-    <nav aria-label={copy.organizationLevel} class="flex flex-wrap gap-2">
-      {#each levelIndex as group (group.organizationLevel)}
-        <a
-          class="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-sm hover:bg-muted/50"
-          href={`#level-${group.organizationLevel}`}
-        >
-          {levelLabel(group.organizationLevel)}
-          <span class="tabular-nums text-muted-foreground">{group.sourceCount}</span>
-        </a>
-      {/each}
-    </nav>
+    <ResultsSummary summary={totalsSummary()} />
+    <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: `#level-${group.organizationLevel}`, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
 
     {#each levelIndex as group (group.organizationLevel)}
       <section
         class="grid min-w-0 gap-3 scroll-mt-20"
         id={`level-${group.organizationLevel}`}
       >
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 class="font-semibold text-xl">
-            {levelLabel(group.organizationLevel)}
-          </h2>
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="text-sm text-muted-foreground">
-              {groupSummary(group.sourceCount, group.publicationCount)}
-            </span>
-            <a
-              class="text-sm text-primary hover:underline"
-              href={levelHref(group.organizationLevel)}
-            >
-              {copy.viewSourceArticles}
-            </a>
-          </div>
-        </div>
-
-        <ResponsiveCollection>
-          {#snippet mobile()}
-            <Item.Group class="gap-0" role="list">
-              {#each group.sources as source (source.id)}
-                <div role="listitem">
-                  <Item.Root size="sm">
-                    {#snippet child({ props })}
-                      <a href={sourceHref(source.id)} {...props}>
-                        <Item.Content>
-                          <Item.Title>{source.name}</Item.Title>
-                          <Item.Description>
-                            {copy.sourceArticleCount}: {source.publicationCount}
-                            · {copy.lastPublishedAt}:
-                            {formatLastPublished(source.lastPublishedAt)}
-                          </Item.Description>
-                        </Item.Content>
-                      </a>
-                    {/snippet}
-                  </Item.Root>
-                </div>
-              {/each}
-            </Item.Group>
+        <Panel>
+          {#snippet header()}
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="font-semibold text-xl">
+                {levelLabel(group.organizationLevel)}
+              </h2>
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="text-sm text-muted-foreground">
+                  {groupSummary(group.sourceCount, group.publicationCount)}
+                </span>
+                <a
+                  class="text-sm text-primary hover:underline"
+                  href={levelHref(group.organizationLevel)}
+                >
+                  {copy.viewSourceArticles}
+                </a>
+              </div>
+            </div>
           {/snippet}
 
-          {#snippet desktop()}
-            <div class="min-w-0 rounded-xl border bg-card">
+          <ResponsiveCollection>
+            {#snippet mobile()}
+              <Item.Group class="gap-0" role="list">
+                {#each group.sources as source (source.id)}
+                  <div role="listitem">
+                    <Item.Root size="sm">
+                      {#snippet child({ props })}
+                        <a href={sourceHref(source.id)} {...props}>
+                          <Item.Content>
+                            <Item.Title>{source.name}</Item.Title>
+                            <Item.Description>
+                              {copy.sourceArticleCount}: {source.publicationCount}
+                              · {copy.lastPublishedAt}:
+                              {formatLastPublished(source.lastPublishedAt)}
+                            </Item.Description>
+                          </Item.Content>
+                        </a>
+                      {/snippet}
+                    </Item.Root>
+                  </div>
+                {/each}
+              </Item.Group>
+            {/snippet}
+
+            {#snippet desktop()}
               <Table.Root
                 containerLabel={levelLabel(group.organizationLevel)}
                 class="table-fixed"
@@ -186,10 +178,10 @@ const levelIndex = $derived(data.directory.groups);
                   {/each}
                 </Table.Body>
               </Table.Root>
-            </div>
-          {/snippet}
-        </ResponsiveCollection>
+            {/snippet}
+          </ResponsiveCollection>
+        </Panel>
       </section>
     {/each}
   {/if}
-</section>
+</PageLayout>

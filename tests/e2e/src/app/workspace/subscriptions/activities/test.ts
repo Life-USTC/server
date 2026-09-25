@@ -192,7 +192,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         "/workspace/subscriptions/activities?view=notifications&unread=true",
       );
       const card = page
-        .locator('[data-slot="card"]')
+        .locator('[data-slot="item"]')
         .filter({ has: page.getByRole("link", { name: marker, exact: true }) });
       await expect(card).toBeVisible();
       const unreadFilter = page.getByRole("radio", {
