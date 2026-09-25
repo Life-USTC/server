@@ -73,11 +73,18 @@ test.describe("/news 新闻与通知预览", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
     await expect(moreFilters).toBeFocused();
+    await page
+      .getByRole("searchbox", { name: /^(搜索|Search)$/i })
+      .fill("publication");
     await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("query"))
+      .toBe("publication");
     await expect
       .poll(() => new URL(page.url()).searchParams.getAll("source"))
       .toEqual([fixture.sourceId]);
     await moreFilters.click();
+    await expect(sourceSearch).toHaveValue("");
     await expect(
       sourceFilter.getByRole("checkbox", {
         name: fixture.officeSourceName,

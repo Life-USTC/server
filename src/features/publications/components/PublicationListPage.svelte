@@ -121,6 +121,10 @@ function changeType(value: string) {
 
 <svelte:head><title>{copy.pageTitle} - Life@USTC</title></svelte:head>
 
+{#snippet pagination()}
+  <ListPagination page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} pageHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} previousPageLabel={copy.previousPage} nextLabel={copy.nextPage} nextPageLabel={copy.nextPage} ariaLabel={copy.pagination} />
+{/snippet}
+
 <PageLayout>
   {#snippet header()}
     <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
@@ -128,9 +132,6 @@ function changeType(value: string) {
     </PageHeader>
   {/snippet}
 
-  {#snippet pagination()}
-    <ListPagination page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} pageHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} previousPageLabel={copy.previousPage} nextLabel={copy.nextPage} nextPageLabel={copy.nextPage} ariaLabel={copy.pagination} />
-  {/snippet}
   <Panel footer={data.publications.pagination.totalPages > 1 ? pagination : undefined}>
     {#snippet header()}
       <div class="grid min-w-0 gap-3">
