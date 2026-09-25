@@ -1,6 +1,6 @@
-import { adminUserSuspensionExpiresAt } from "@/features/admin/lib/admin-users-display";
 import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import type { AdminUsersActionConfig } from "./admin-users-page-action-types";
+import { suspensionExpiresAt } from "./suspension-expiration";
 
 type AdminSuspensionResponse = {
   suspension: {
@@ -23,7 +23,7 @@ export async function suspendSelectedUser(config: AdminUsersActionConfig) {
         body: {
           userId: selectedUser.id,
           reason: suspendState.reason.trim() || undefined,
-          expiresAt: adminUserSuspensionExpiresAt(
+          expiresAt: suspensionExpiresAt(
             suspendState.duration,
             suspendState.expiresAt,
           ),
@@ -43,6 +43,10 @@ export async function suspendSelectedUser(config: AdminUsersActionConfig) {
     config.setMessage(copy.suspendSuccess);
     config.onSuccess?.("suspend");
     return true;
+  } catch {
+    config.setMessageVariant("destructive");
+    config.setMessage(copy.suspendFailed);
+    return false;
   } finally {
     config.setSuspending(false);
   }

@@ -1,7 +1,4 @@
-export {
-  expiresAtFromModerationDuration,
-  formAlertVariant,
-} from "@/features/admin/lib/moderation-action-display";
+export { formAlertVariant } from "@/features/admin/lib/moderation-action-display";
 export type {
   ModerationCommentLike,
   ModerationCopy,
