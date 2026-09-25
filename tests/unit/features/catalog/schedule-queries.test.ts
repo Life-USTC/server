@@ -43,23 +43,23 @@ describe("buildScheduleListWhere", () => {
     });
   });
 
-  it("通过 teachers.some.id 应用 teacherId", () => {
+  it("通过 teacherParticipations.some.teacher.id 应用 teacherId", () => {
     expect(buildScheduleListWhere({ teacherId: 7 })).toEqual({
-      teachers: { some: { id: 7 } },
+      teacherParticipations: { some: { teacher: { id: 7 } } },
     });
   });
 
-  it("通过 teachers.some.code 应用 teacherCode", () => {
+  it("通过 teacherParticipations.some.teacher.code 应用 teacherCode", () => {
     expect(buildScheduleListWhere({ teacherCode: "DEV-T-001" })).toEqual({
-      teachers: { some: { code: "DEV-T-001" } },
+      teacherParticipations: { some: { teacher: { code: "DEV-T-001" } } },
     });
   });
 
-  it("将 teacherId 和 teacherCode 合并为一个 teachers.some 过滤", () => {
+  it("将 teacherId 和 teacherCode 合并为一个 teacherParticipations.some.teacher 过滤", () => {
     expect(
       buildScheduleListWhere({ teacherId: 5, teacherCode: "T-001" }),
     ).toEqual({
-      teachers: { some: { id: 5, code: "T-001" } },
+      teacherParticipations: { some: { teacher: { id: 5, code: "T-001" } } },
     });
   });
 
@@ -113,7 +113,7 @@ describe("buildScheduleListWhere", () => {
       sectionId: 42,
     });
     expect(buildScheduleListWhere({ teacherId: "7" })).toEqual({
-      teachers: { some: { id: 7 } },
+      teacherParticipations: { some: { teacher: { id: 7 } } },
     });
   });
 
@@ -128,7 +128,7 @@ describe("buildScheduleListWhere", () => {
     });
     expect(result).toEqual({
       section: { code: "DEV-CS201.01" },
-      teachers: { some: { code: "DEV-T-001" } },
+      teacherParticipations: { some: { teacher: { code: "DEV-T-001" } } },
       room: { jwId: 9910031 },
       weekday: 2,
       date: { gte: from },
@@ -139,7 +139,7 @@ describe("buildScheduleListWhere", () => {
     expect(buildScheduleListWhere({ teacherCode: "  " })).toEqual({});
     expect(buildScheduleListWhere({ sectionCode: "  " })).toEqual({});
     expect(buildScheduleListWhere({ teacherCode: "  T-001  " })).toEqual({
-      teachers: { some: { code: "T-001" } },
+      teacherParticipations: { some: { teacher: { code: "T-001" } } },
     });
   });
 });

@@ -33,7 +33,14 @@ const subscribedScheduleInclude = {
       roomType: true,
     },
   },
-  teachers: { select: scheduleTeacherContextSelect },
+  teacherParticipations: {
+    select: {
+      periods: true,
+      exerciseClass: true,
+      teacher: { select: scheduleTeacherContextSelect },
+    },
+    orderBy: { teacherId: "asc" },
+  },
   section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
@@ -47,24 +54,31 @@ export function toSubscribedScheduleEntryDto(
   locale: AppLocale,
 ) {
   const schedule = toScheduleEntryDto(input, locale) satisfies ScheduleEntryDto;
+  const teachers = schedule.teachers.map((teacher, index) => {
+    const source = input.teacherParticipations[index].teacher;
+    return {
+      ...teacher,
+      teacherTitle: source.teacherTitle
+        ? {
+            id: source.teacherTitle.id,
+            jwId: source.teacherTitle.jwId,
+            code: source.teacherTitle.code,
+            enabled: source.teacherTitle.enabled,
+            ...toLocalizedNameDto(source.teacherTitle, locale),
+          }
+        : null,
+      _count: { sections: source._count.sections },
+    };
+  });
   return subscribedScheduleEntrySchema.parse({
     ...schedule,
-    teachers: schedule.teachers.map((teacher, index) => {
-      const source = input.teachers[index];
-      return {
-        ...teacher,
-        teacherTitle: source.teacherTitle
-          ? {
-              id: source.teacherTitle.id,
-              jwId: source.teacherTitle.jwId,
-              code: source.teacherTitle.code,
-              enabled: source.teacherTitle.enabled,
-              ...toLocalizedNameDto(source.teacherTitle, locale),
-            }
-          : null,
-        _count: { sections: source._count.sections },
-      };
-    }),
+    teachers,
+    teacherParticipations: schedule.teacherParticipations.map(
+      (participation, index) => ({
+        ...participation,
+        teacher: teachers[index],
+      }),
+    ),
   });
 }
 
@@ -295,7 +309,13 @@ export async function listTodaySubscribedSchedulesWithCount(
             })
           : Promise.resolve([]),
       ]);
-      return { total, items };
+      return {
+        total,
+        items: items.map((item) => ({
+          ...item,
+          teachers: item.teacherParticipations.map(({ teacher }) => teacher),
+        })),
+      };
     },
     sectionIds,
     { total: 0, items: [] },

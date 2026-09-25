@@ -60,7 +60,13 @@ export const overviewScheduleSelect = {
   weekIndex: true,
   customPlace: true,
   room: { select: overviewRoomSelect },
-  teachers: { select: overviewTeacherSelect },
+  teacherParticipations: {
+    select: {
+      periods: true,
+      exerciseClass: true,
+      teacher: { select: overviewTeacherSelect },
+    },
+  },
   section: { select: overviewSectionSelect },
 } satisfies Prisma.ScheduleSelect;
 

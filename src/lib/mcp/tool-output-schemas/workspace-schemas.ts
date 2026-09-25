@@ -198,6 +198,13 @@ export const compactWorkspaceExamSectionSchema =
 export const compactWorkspaceScheduleSchema = compactScheduleSchema.extend({
   section: compactScheduleSectionSchema,
   teachers: z.array(compactWorkspaceScheduleTeacherSchema),
+  teacherParticipations: z.array(
+    z.strictObject({
+      teacher: compactWorkspaceScheduleTeacherSchema,
+      periods: z.number().nullable(),
+      exerciseClass: z.boolean().nullable(),
+    }),
+  ),
 });
 
 export const compactWorkspaceExamSchema = compactExamSchema.extend({

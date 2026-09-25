@@ -18,7 +18,7 @@ export function createScheduleEvent(
   schedule: Prisma.ScheduleGetPayload<{
     include: {
       room: { include: { building: { include: { campus: true } } } };
-      teachers: true;
+      teacherParticipations: { include: { teacher: true } };
     };
   }>,
   section: Prisma.SectionGetPayload<{ include: { course: true } }>,
@@ -38,9 +38,11 @@ export function createScheduleEvent(
     : schedule.customPlace || L.locationTbd;
 
   const teacherNames =
-    schedule.teachers?.length > 0
-      ? schedule.teachers
-          .map((t) => [t.nameCn, t.nameEn].filter(Boolean).join(" / "))
+    schedule.teacherParticipations?.length > 0
+      ? schedule.teacherParticipations
+          .map(({ teacher: t }) =>
+            [t.nameCn, t.nameEn].filter(Boolean).join(" / "),
+          )
           .join(", ")
       : "";
 

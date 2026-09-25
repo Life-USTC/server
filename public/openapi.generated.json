@@ -14534,6 +14534,121 @@
                     "additionalProperties": false
                   }
                 },
+                "teacherParticipations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "teacher": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "personId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "department": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "isCollege": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "isCollege",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "personId",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "namePrimary",
+                          "nameSecondary",
+                          "department"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "periods": {
+                        "nullable": true,
+                        "type": "number"
+                      },
+                      "exerciseClass": {
+                        "nullable": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "teacher",
+                      "periods",
+                      "exerciseClass"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "section": {
                   "type": "object",
                   "properties": {
@@ -14937,6 +15052,7 @@
                 "scheduleGroupId",
                 "room",
                 "teachers",
+                "teacherParticipations",
                 "section",
                 "scheduleGroup"
               ],
@@ -19712,6 +19828,121 @@
                         "additionalProperties": false
                       }
                     },
+                    "teacherParticipations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "teacher": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jwId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "personId": {
+                                "nullable": true,
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "department": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "nameCn": {
+                                    "type": "string"
+                                  },
+                                  "nameEn": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  },
+                                  "isCollege": {
+                                    "nullable": true,
+                                    "type": "boolean"
+                                  },
+                                  "namePrimary": {
+                                    "type": "string"
+                                  },
+                                  "nameSecondary": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "code",
+                                  "nameCn",
+                                  "nameEn",
+                                  "isCollege",
+                                  "namePrimary",
+                                  "nameSecondary"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "jwId",
+                              "personId",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "namePrimary",
+                              "nameSecondary",
+                              "department"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "periods": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "exerciseClass": {
+                            "nullable": true,
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "teacher",
+                          "periods",
+                          "exerciseClass"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "section": {
                       "type": "object",
                       "properties": {
@@ -20115,6 +20346,7 @@
                     "scheduleGroupId",
                     "room",
                     "teachers",
+                    "teacherParticipations",
                     "section",
                     "scheduleGroup"
                   ],
@@ -21904,6 +22136,185 @@
                     "additionalProperties": false
                   }
                 },
+                "teacherParticipations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "teacher": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "jwId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "personId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "department": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "isCollege": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "code",
+                              "nameCn",
+                              "nameEn",
+                              "isCollege",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "teacherTitle": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jwId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "nameCn": {
+                                "type": "string"
+                              },
+                              "nameEn": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "enabled": {
+                                "nullable": true,
+                                "type": "boolean"
+                              },
+                              "namePrimary": {
+                                "type": "string"
+                              },
+                              "nameSecondary": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "jwId",
+                              "nameCn",
+                              "nameEn",
+                              "code",
+                              "enabled",
+                              "namePrimary",
+                              "nameSecondary"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "_count": {
+                            "type": "object",
+                            "properties": {
+                              "sections": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "sections"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "jwId",
+                          "personId",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "namePrimary",
+                          "nameSecondary",
+                          "department",
+                          "teacherTitle",
+                          "_count"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "periods": {
+                        "nullable": true,
+                        "type": "number"
+                      },
+                      "exerciseClass": {
+                        "nullable": true,
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "teacher",
+                      "periods",
+                      "exerciseClass"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
                 "section": {
                   "type": "object",
                   "properties": {
@@ -22307,6 +22718,7 @@
                 "scheduleGroupId",
                 "room",
                 "teachers",
+                "teacherParticipations",
                 "section",
                 "scheduleGroup"
               ],

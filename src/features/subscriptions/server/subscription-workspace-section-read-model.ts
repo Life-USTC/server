@@ -80,7 +80,9 @@ export async function listSubscribedWorkspaceSections(
                     },
                   },
                 },
-                teachers: { select: { namePrimary: true } },
+                teacherParticipations: {
+                  select: { teacher: { select: { namePrimary: true } } },
+                },
               },
               orderBy: [{ date: "asc" }, { startTime: "asc" }],
             })
@@ -118,7 +120,11 @@ export async function listSubscribedWorkspaceSections(
       const schedulesBySectionId = groupByField(
         scheduleRows,
         "sectionId",
-        mapWorkspaceScheduleRow,
+        (row) =>
+          mapWorkspaceScheduleRow({
+            ...row,
+            teachers: row.teacherParticipations.map(({ teacher }) => teacher),
+          }),
       );
 
       const examsBySectionId = groupByField(

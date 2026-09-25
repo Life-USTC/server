@@ -14,7 +14,7 @@ export const sectionCalendarInclude = {
           },
         },
       },
-      teachers: true,
+      teacherParticipations: { include: { teacher: true } },
     },
   },
   exams: {

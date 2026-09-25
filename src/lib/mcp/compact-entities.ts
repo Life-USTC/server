@@ -143,6 +143,14 @@ export function compactSection(value: unknown) {
   };
 }
 
+function compactScheduleTeacherParticipation(value: unknown) {
+  if (!isRecord(value)) return value;
+  return {
+    ...pick(value, ["periods", "exerciseClass"]),
+    ...compactRelations(value, { teacher: compactTeacher }),
+  };
+}
+
 export function compactSchedule(value: unknown) {
   if (!isRecord(value)) return value;
   const base = pick(value, [
@@ -185,14 +193,20 @@ export function compactSchedule(value: unknown) {
         ? { section: compactSection(value.section) }
         : {}),
       room: roomOut,
-      ...compactArrayRelations(value, { teachers: compactTeacher }),
+      ...compactArrayRelations(value, {
+        teachers: compactTeacher,
+        teacherParticipations: compactScheduleTeacherParticipation,
+      }),
     };
   }
 
   return {
     ...base,
     ...compactRelations(value, { section: compactSection }),
-    ...compactArrayRelations(value, { teachers: compactTeacher }),
+    ...compactArrayRelations(value, {
+      teachers: compactTeacher,
+      teacherParticipations: compactScheduleTeacherParticipation,
+    }),
   };
 }
 

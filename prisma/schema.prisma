@@ -420,13 +420,27 @@ model Schedule {
   room          Room?         @relation(fields: [roomId], references: [id])
   section       Section       @relation(fields: [sectionId], references: [id])
   scheduleGroup ScheduleGroup @relation(fields: [scheduleGroupId], references: [id])
-  teachers      Teacher[]     @relation("ScheduleTeachers")
+  teacherParticipations ScheduleTeacher[]
 
   @@index([date])
   @@index([roomId])
   @@index([sectionId])
   @@index([sectionId, date, startTime])
   @@index([scheduleGroupId])
+}
+
+model ScheduleTeacher {
+  scheduleId Int @map("A")
+  teacherId Int @map("B")
+  periods Float?
+  exerciseClass Boolean?
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "_ScheduleTeachers_A_fkey")
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "_ScheduleTeachers_B_fkey")
+
+  @@id([scheduleId, teacherId], map: "_ScheduleTeachers_AB_pkey")
+  @@index([teacherId], map: "_ScheduleTeachers_B_index")
+  @@map("_ScheduleTeachers")
 }
 
 model ScheduleGroup {
@@ -636,7 +650,7 @@ model Teacher {
   sections           Section[]           @relation("SectionTeachers")
   sectionTeachers    SectionTeacher[]
   teacherAssignments TeacherAssignment[]
-  schedules          Schedule[]          @relation("ScheduleTeachers")
+  scheduleParticipations ScheduleTeacher[]
   comments           Comment[]
   description        Description?
 

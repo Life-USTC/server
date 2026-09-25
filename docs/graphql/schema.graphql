@@ -507,6 +507,7 @@ type Schedule {
   section: Section!
   startTime: Int!
   startUnit: Int!
+  teacherParticipations(page: PageInput): ScheduleTeacherParticipationPage!
   teachers(page: PageInput): TeacherPage!
   weekIndex: Int!
   weekday: Int!
@@ -537,6 +538,17 @@ type ScheduleRoom {
   jwId: Int!
   nameCn: String!
   nameEn: String
+}
+
+type ScheduleTeacherParticipation {
+  exerciseClass: Boolean
+  periods: Float
+  teacher: Teacher!
+}
+
+type ScheduleTeacherParticipationPage {
+  items: [ScheduleTeacherParticipation!]!
+  pageInfo: PageInfo!
 }
 
 type Section {

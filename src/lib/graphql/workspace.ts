@@ -76,6 +76,7 @@ type HomeworkParent = {
 
 type ScheduleParent = {
   teachers: readonly unknown[];
+  teacherParticipations: readonly unknown[];
 };
 
 type ExamParent = {
@@ -248,6 +249,17 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     isDefault: Boolean!
   }
 
+  type ScheduleTeacherParticipation {
+    teacher: Teacher!
+    periods: Float
+    exerciseClass: Boolean
+  }
+
+  type ScheduleTeacherParticipationPage {
+    items: [ScheduleTeacherParticipation!]!
+    pageInfo: PageInfo!
+  }
+
   type Schedule {
     id: Int!
     periods: Float!
@@ -263,6 +275,7 @@ export const graphqlScopeTypeDefs = /* GraphQL */ `
     endUnit: Int!
     room: ScheduleRoom
     teachers(page: PageInput): TeacherPage!
+    teacherParticipations(page: PageInput): ScheduleTeacherParticipationPage!
     scheduleGroup: ScheduleGroup!
     section: Section!
   }
@@ -385,6 +398,12 @@ export const graphqlScopeResolvers = {
       homework.completion?.completedAt ?? null,
   },
   Schedule: {
+    teacherParticipations(
+      schedule: ScheduleParent,
+      args: { page?: GraphqlPageInput | null },
+    ) {
+      return paginateGraphqlArray(schedule.teacherParticipations, args.page);
+    },
     teachers(
       schedule: ScheduleParent,
       args: { page?: GraphqlPageInput | null },

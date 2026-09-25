@@ -154,6 +154,13 @@ export const compactScheduleSchema = scheduleEntrySchema
   .extend({
     section: compactSectionSchema.optional(),
     teachers: z.array(compactScheduleTeacherSchema),
+    teacherParticipations: z.array(
+      z.strictObject({
+        teacher: compactScheduleTeacherSchema,
+        periods: z.number().nullable(),
+        exerciseClass: z.boolean().nullable(),
+      }),
+    ),
     room: scheduleRoomSchema
       .pick({
         id: true,

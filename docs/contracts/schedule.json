@@ -7,6 +7,7 @@
     "agent": "Can read schedules for specific sections; current-user schedule aggregation is primarily exposed via MCP; public schedule retrieval is available through REST and MCP."
   },
   "rules": {
+    "teacher-participation": "A physical meeting has one row. Teacher participation stores source periods and exerciseClass independently for each teacher; unknown participation facts stay null, including existing links migrated without source evidence. Schedule teachers is a flat projection of the same participation relation. Schedule list/detail REST, MCP and GraphQL expose teacherParticipations with public teacher identity and participation facts.",
     "schedule-definition": "Schedule refers to a section's class times, locations, and week patterns.",
     "schedule-as-context": "The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.",
     "personal-calendar-integrates": "The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates.",

@@ -61,7 +61,7 @@ export function buildScheduleListWhere(
 
   const teacherFilter = buildRelatedFilter("id", teacherId, teacherCode);
   if (teacherFilter) {
-    where.teachers = { some: teacherFilter };
+    where.teacherParticipations = { some: { teacher: teacherFilter } };
   }
 
   applyIntegerFilter(where, "roomId", roomId);

@@ -205,7 +205,7 @@ describe("unavailable static sources", () => {
             weekIndex: 1,
             startUnit: 1,
             endUnit: 2,
-            teachers: { connect: { id: teacher.id } },
+            teacherParticipations: { create: { teacherId: teacher.id } },
           },
         });
         const include = {
@@ -213,7 +213,9 @@ describe("unavailable static sources", () => {
           sectionTeachers: true,
           teacherAssignments: true,
           scheduleGroups: true,
-          schedules: { include: { teachers: true } },
+          schedules: {
+            include: { teacherParticipations: { include: { teacher: true } } },
+          },
           exams: { include: { examRooms: true } },
         } satisfies Prisma.SectionInclude;
         const before = await tx.section.findUniqueOrThrow({
