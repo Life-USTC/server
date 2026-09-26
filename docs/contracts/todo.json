@@ -7,6 +7,7 @@
     "agent": "After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability."
   },
   "rules": {
+    "calendar-write-commit": "Todo creates, updates, completion changes and deletes enqueue personal calendar export rebuilds only after their database transaction commits. Failed or rolled-back writes never enqueue a rebuild.",
     "web-list-state": "The Web todo list preserves the explicitly selected completion filter, including empty results. Local create, edit, completion and delete results are reflected without reloading or resurrecting stale rows when switching filters.",
     "web-due-order": "The Web todo list puts undated items first, then orders dated items by absolute distance from the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This order applies to every completion filter and updates after edits.",
     "web-detail": "Completed todo detail titles are struck through. Priority uses the same badge as the list. Footer actions are delete, completion toggle, then edit, with icons and accessible mobile controls.",
