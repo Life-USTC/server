@@ -36,7 +36,8 @@ export const PATCH: RequestHandler = ({ request, params }) =>
   );
 
 /**
- * Soft delete one shared section homework.
+ * Soft delete a shared section homework as its unsuspended creator.
+ * Administrators deleting another creator's homework must use the admin moderation endpoint.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
  * @response 401:openApiErrorSchema

@@ -6904,7 +6904,7 @@
       },
       "delete": {
         "operationId": "community_section_homework_delete",
-        "summary": "Soft delete one shared section homework",
+        "summary": "Soft delete a shared section homework as its unsuspended creator",
         "tags": [
           "community.section-homework"
         ],

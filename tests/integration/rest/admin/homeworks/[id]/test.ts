@@ -71,6 +71,15 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
     try {
       await signInAsDevAdminApi(request, "/admin");
 
+      const ordinaryDelete = await request.delete(
+        `/api/community/section-homeworks/${homeworkId}`,
+      );
+      expect(ordinaryDelete.status()).toBe(403);
+      const stillVisible = await request.get(
+        `/api/community/section-homeworks/${homeworkId}`,
+      );
+      expect(stillVisible.status()).toBe(200);
+
       const deleteResponse = await request.delete(`${BASE}/${homeworkId}`);
       expect(deleteResponse.status()).toBe(200);
       const deleteBody = (await deleteResponse.json()) as {
