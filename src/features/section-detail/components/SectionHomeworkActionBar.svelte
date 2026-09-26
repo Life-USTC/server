@@ -22,7 +22,7 @@ export let startEdit: () => void;
 
 <div class="flex items-center gap-2">
   <!-- Editing section homework is collaborative: any active signed-in user may
-       edit, matching `updateHomework`. Only the creator or an admin may delete. -->
+       edit, matching `updateHomework`. Only the creator may delete; moderation belongs to the admin surface. -->
   {#if canWrite && editing}
     <Button
       class="min-h-11 sm:min-h-9"

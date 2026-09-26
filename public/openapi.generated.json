@@ -125,6 +125,10 @@
       "description": "workspace.calendar operations"
     },
     {
+      "name": "workspace.exam",
+      "description": "workspace.exam operations"
+    },
+    {
       "name": "workspace.homework",
       "description": "workspace.homework operations"
     },
@@ -188,6 +192,7 @@
       "tags": [
         "workspace.bus-preferences",
         "workspace.calendar",
+        "workspace.exam",
         "workspace.homework",
         "workspace.link-pin",
         "workspace.overview",
@@ -3413,6 +3418,136 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspace/exams": {
+      "get": {
+        "operationId": "workspace_exam_list",
+        "summary": "List exams across the current user's subscribed sections and semesters",
+        "tags": [
+          "workspace.exam"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Inclusive Asia/Shanghai calendar date; accepts YYYY-MM-DD or ISO date/time."
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Inclusive Asia/Shanghai calendar date; accepts YYYY-MM-DD or ISO date/time."
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeDateUnknown",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "semesterId",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/subscribedExamsResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6904,7 +7039,7 @@
       },
       "delete": {
         "operationId": "community_section_homework_delete",
-        "summary": "Soft delete one shared section homework",
+        "summary": "Soft delete a shared section homework as its unsuspended creator",
         "tags": [
           "community.section-homework"
         ],
@@ -18594,6 +18729,569 @@
           "preferredOriginCampusId",
           "preferredDestinationCampusId",
           "showDepartedTrips"
+        ],
+        "additionalProperties": false
+      },
+      "subscribedExamsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "examType": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "startTime": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "endTime": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "examDate": {
+                  "nullable": true,
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "examTakeCount": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "examMode": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "grades": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "adminClassNames": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "monitors": {
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "nameCn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "jwId",
+                      "nameCn",
+                      "nameEn"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "examBatchId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "sectionId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "examBatch": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
+                },
+                "examRooms": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "room": {
+                        "type": "string"
+                      },
+                      "count": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "room",
+                      "count",
+                      "examId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "section": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "retiredAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "bizTypeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "credits": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "period": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "requiredWeeks": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "catalogAdminClasses": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "nameCn",
+                          "nameEn"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "periodsPerWeek": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "timesPerWeek": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "stdCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "limitCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "graduateAndPostgraduate": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "dateTimePlaceText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "dateTimePlacePersonText": {
+                      "nullable": true
+                    },
+                    "actualPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "theoryPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "practicePeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "experimentPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "machinePeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "designPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "testPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "scheduleState": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "suggestScheduleWeeks": {
+                      "nullable": true
+                    },
+                    "suggestScheduleWeekInfo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "scheduleJsonParams": {
+                      "nullable": true
+                    },
+                    "selectedStdCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "remark": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "scheduleRemark": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "courseId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "semesterId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "campusId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "examModeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "openDepartmentId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "teachLanguageId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "roomTypeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "course": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "categoryId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "classTypeId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "classifyId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "educationLevelId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "gradationId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "typeId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "jwId",
+                        "code",
+                        "nameCn",
+                        "nameEn",
+                        "categoryId",
+                        "classTypeId",
+                        "classifyId",
+                        "educationLevelId",
+                        "gradationId",
+                        "typeId",
+                        "namePrimary",
+                        "nameSecondary"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "semester": {
+                      "nullable": true,
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/semesterSchema"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "retiredAt",
+                    "code",
+                    "bizTypeId",
+                    "credits",
+                    "period",
+                    "requiredWeeks",
+                    "catalogAdminClasses",
+                    "periodsPerWeek",
+                    "timesPerWeek",
+                    "stdCount",
+                    "limitCount",
+                    "graduateAndPostgraduate",
+                    "dateTimePlaceText",
+                    "dateTimePlacePersonText",
+                    "actualPeriods",
+                    "theoryPeriods",
+                    "practicePeriods",
+                    "experimentPeriods",
+                    "machinePeriods",
+                    "designPeriods",
+                    "testPeriods",
+                    "scheduleState",
+                    "suggestScheduleWeeks",
+                    "suggestScheduleWeekInfo",
+                    "scheduleJsonParams",
+                    "selectedStdCount",
+                    "remark",
+                    "scheduleRemark",
+                    "courseId",
+                    "semesterId",
+                    "campusId",
+                    "examModeId",
+                    "openDepartmentId",
+                    "teachLanguageId",
+                    "roomTypeId",
+                    "course",
+                    "semester"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "examType",
+                "startTime",
+                "endTime",
+                "examDate",
+                "examTakeCount",
+                "examMode",
+                "grades",
+                "adminClassNames",
+                "monitors",
+                "examBatchId",
+                "sectionId",
+                "examBatch",
+                "examRooms",
+                "section"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
         ],
         "additionalProperties": false
       },

@@ -4,9 +4,10 @@
     "anon": "Can read exam information.",
     "user": "Can read exam information. Cannot modify exam fact data.",
     "admin": "Maintains exam data through admin or import flows, not direct edits on ordinary pages.",
-    "agent": "After authorization, can read exams relevant to the current user; this capability is primarily exposed via MCP."
+    "agent": "After authorization, can read exams relevant to the current user through REST, GraphQL, and MCP."
   },
   "rules": {
+    "complete-workspace-list": "Workspace exam lists cover all subscribed active sections across all semesters, including past exams and unknown dates by default. REST and GraphQL are paginated; the CLI exhausts REST pagination unless page or limit is explicitly selected, preserves the true result total and displays each exam's semester. Failed later pages fail the command instead of returning a partial success.",
     "source-audience-and-monitors": "Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved by import and exposed with exam records. Monitor school IDs are required, while missing names remain null. Monitor identities are not inferred from teacher names; no contact information is included.",
     "attached-to-section": "Exams are attached to sections and are high-priority time events.",
     "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
@@ -25,7 +26,21 @@
       "web": {
         "pages": ["/workspace/exams"]
       },
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/workspace/exams",
+            "method": "GET",
+            "auth": "user",
+            "returns": "{ data: ExamEntry[], pagination: { page, pageSize, total, totalPages } }",
+            "notes": [
+              "Requires workspace.exam:read. Ownership is derived from the authenticated principal's subscriptions.",
+              "Accepts dateFrom, dateTo, includeDateUnknown (default true), semesterId, page (default 1), pageSize (default 20, maximum 100), and locale.",
+              "Date-only and datetime bounds normalize to inclusive Asia/Shanghai calendar dates. Invalid or reversed bounds return 400. Results use stable examDate/startTime/jwId order."
+            ]
+          }
+        ]
+      },
       "graphql": {
         "fields": [
           {
@@ -38,6 +53,7 @@
             "returns": "ExamPage!",
             "auth": "user",
             "required_scopes": ["workspace.exam:read"],
+            "rest_equivalent": "GET /api/workspace/exams",
             "mcp_equivalent": "workspace_exam_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",

@@ -1,5 +1,6 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deleteHomeworkForModeration } from "@/features/homeworks/server/homework-mutations";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
@@ -151,6 +152,54 @@ afterAll(async () => {
 });
 
 describe("GraphQL homework CRUD mutations", () => {
+  it("keeps explicit administrator moderation available outside ordinary GraphQL writes", async () => {
+    const section = await fixturePrisma.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    const homework = await fixturePrisma.homework.create({
+      data: {
+        sectionId: section.id,
+        title: `${marker} moderation`,
+        createdById: creatorId,
+      },
+    });
+    createdHomeworkIds.push(homework.id);
+    await fixturePrisma.user.update({
+      where: { id: collaboratorId },
+      data: { isAdmin: true },
+    });
+    try {
+      await expect(
+        deleteHomeworkForModeration({
+          userId: creatorId,
+          homeworkId: homework.id,
+        }),
+      ).resolves.toMatchObject({ ok: false, error: "forbidden" });
+      await expect(
+        deleteHomeworkForModeration({
+          userId: collaboratorId,
+          homeworkId: homework.id,
+          audit: { channel: "web" },
+        }),
+      ).resolves.toMatchObject({ ok: true, alreadyDeleted: false });
+      await expect(
+        fixturePrisma.homework.findUniqueOrThrow({
+          where: { id: homework.id },
+          select: { deletedAt: true, deletedById: true },
+        }),
+      ).resolves.toEqual({
+        deletedAt: expect.any(Date),
+        deletedById: collaboratorId,
+      });
+    } finally {
+      await fixturePrisma.user.update({
+        where: { id: collaboratorId },
+        data: { isAdmin: false },
+      });
+    }
+  });
+
   it("requires the exact homework write scope before resolving a section", async () => {
     const readToken = await signToken(creatorId, [
       restReadScope("community.section-homework"),
@@ -421,6 +470,37 @@ describe("GraphQL homework CRUD mutations", () => {
       collaboratorToken,
     );
     expectErrorCode(forbiddenDelete.payload, "FORBIDDEN");
+
+    // The same ordinary grant must remain creator-scoped after promotion.
+    await fixturePrisma.user.update({
+      where: { id: collaboratorId },
+      data: { isAdmin: true },
+    });
+    try {
+      const adminToken = await signToken(collaboratorId, [
+        restWriteScope("community.section-homework"),
+      ]);
+      const adminDelete = await execute(
+        {
+          query:
+            "mutation DeleteOtherHomework($id: ID!) { homeworkDelete(id: $id) { success } }",
+          variables: { id: homeworkId },
+        },
+        adminToken,
+      );
+      expectErrorCode(adminDelete.payload, "FORBIDDEN");
+      await expect(
+        fixturePrisma.homework.findUniqueOrThrow({
+          where: { id: homeworkId },
+          select: { deletedAt: true },
+        }),
+      ).resolves.toEqual({ deletedAt: null });
+    } finally {
+      await fixturePrisma.user.update({
+        where: { id: collaboratorId },
+        data: { isAdmin: false },
+      });
+    }
 
     const deleted = await execute(
       {

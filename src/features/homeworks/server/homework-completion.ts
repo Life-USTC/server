@@ -108,7 +108,7 @@ async function writeHomeworkCompletion(
           homeworkId: input.homeworkId,
         },
       },
-      update: { completedAt: new Date() },
+      update: {},
       create: { userId: input.userId, homeworkId: input.homeworkId },
     });
 

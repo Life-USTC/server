@@ -546,7 +546,7 @@ export async function updateOwnedTodo(input: {
   userId: string;
 }) {
   const userId = normalizeTodoUserId(input.userId);
-  return withUserDbContext(userId, async (tx) => {
+  const result = await withUserDbContext(userId, async (tx) => {
     const ownership = await findOwnedTodo(tx, input.id, userId);
     if (!ownership.ok) return ownership;
 
@@ -560,9 +560,10 @@ export async function updateOwnedTodo(input: {
       data: updates,
       select: todoSnapshotSelect,
     });
-    scheduleInvalidateUserCalendarExportCache(userId);
     return { ok: true as const, todo };
   });
+  if (result.ok) scheduleInvalidateUserCalendarExportCache(userId);
+  return result;
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {

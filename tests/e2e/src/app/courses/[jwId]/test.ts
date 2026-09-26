@@ -100,12 +100,8 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     );
     await expect(heading).toContainText(DEV_SEED.course.nameCn);
     await expect(heading).toContainText(DEV_SEED.course.nameEn);
-    // course.code in the overview definition list (not section codes in the table)
-    const courseCode = page
-      .locator("#overview")
-      .locator("dd")
-      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
-      .first();
+    // The public code belongs to the title region, separate from section codes.
+    const courseCode = page.getByTestId("course-public-code");
     await expect(courseCode).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
@@ -215,13 +211,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
-    const courseCode = page
-      .locator("#overview")
-      .locator("dd")
-      .filter({ hasText: new RegExp(`^${DEV_SEED.course.code}$`) })
-      .first();
+    const courseCode = page.getByTestId("course-public-code");
     await expect(heading).toHaveCSS("font-size", "24px");
-    await expect(courseCode).toBeVisible();
+    await expect(courseCode).toBeInViewport();
+    const codeBox = await courseCode.boundingBox();
+    const titleBox = await heading.boundingBox();
+    expect(codeBox).not.toBeNull();
+    expect(titleBox).not.toBeNull();
+    if (!codeBox || !titleBox) throw new Error("Missing course title geometry");
+    expect(codeBox.y + codeBox.height).toBeLessThanOrEqual(titleBox.y);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);

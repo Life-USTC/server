@@ -181,6 +181,7 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "PUT /api/workspace/homeworks/completions": "put-api-homeworks-completions",
   "GET /api/workspace/overview": "workspace_overview_get",
   "GET /api/workspace/schedules": "workspace_schedule_list",
+  "GET /api/workspace/exams": "workspace_exam_list",
   "GET /api/catalog/metadata": "getMetadata",
   "GET /api/openapi": "getOpenApiSpec",
   "GET /api/catalog/schedules": "listSchedules",
@@ -551,6 +552,7 @@ function buildTag(routePath: string): string {
   ) {
     const canonicalDomain =
       {
+        exams: "exam",
         homeworks: "homework",
         links: "link",
         "link-pins": "link-pin",

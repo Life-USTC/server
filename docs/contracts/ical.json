@@ -7,6 +7,7 @@
     "agent": "After authorization, can read the current user's personal calendar subscription information. REST requires workspace.subscription:read and exposes the private feed URL only with the additional workspace.calendar-feed:read capability; MCP workspace_calendar_feed_get returns subscription information without the personal feed URL, path, credential, or token."
   },
   "rules": {
+    "committed-write-rebuilds": "Calendar export rebuild messages are enqueued only after the source write commits. Homework description edits through the independent description capability rebuild the same subscribed users' feeds as homework edits, including unchanged retries.",
     "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
     "no-second-model": "iCal is an export / subscription capability and should not carry a second business model.",
     "rfc5545-dtstamp-utc": "Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME with a Z suffix while retaining Asia/Shanghai TZID values for event start and end times.",

@@ -26,18 +26,22 @@ const coursePageSectionsSelect = {
   },
 } as const;
 
-const COURSE_PAGE_CORE_CACHE_SHAPE = "page-core-v1";
+const COURSE_PAGE_CORE_CACHE_SHAPE = "page-core-v2";
 
 /**
  * Loads the immutable public course core. Viewer, description, and comments
  * are assembled by catalog-detail-page-server outside this cache boundary.
  */
-export async function getCoursePage(jwId: number, locale: AppLocale = "zh-cn") {
+export async function getCoursePage(
+  jwId: number,
+  locale: AppLocale = "zh-cn",
+  sectionsPage = 1,
+) {
   return cachedPublicDetailRuntimeData({
     id: jwId,
     kind: "course",
     locale,
-    shape: COURSE_PAGE_CORE_CACHE_SHAPE,
+    shape: `${COURSE_PAGE_CORE_CACHE_SHAPE}:sections-page=${sectionsPage}`,
     validateResult: isCoursePageCore,
     load: async () => {
       const prisma = getPrisma(locale);
@@ -72,8 +76,14 @@ export async function getCoursePage(jwId: number, locale: AppLocale = "zh-cn") {
                   ...localizedNameSelect,
                 },
               },
+              _count: { select: { sections: true } },
               sections: {
-                orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+                orderBy: [
+                  { semester: { jwId: "desc" } },
+                  { code: "asc" },
+                  { jwId: "asc" },
+                ],
+                skip: (sectionsPage - 1) * PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 select: coursePageSectionsSelect,
               },

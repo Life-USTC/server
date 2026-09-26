@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDeferred } from "../../../shared/deferred";
 
 const { invalidateMock, withUserDbContextMock } = vi.hoisted(() => ({
   invalidateMock: vi.fn(),
@@ -22,6 +23,47 @@ import {
 describe("todo calendar export invalidation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  function holdUpdateCommit() {
+    const commit = createDeferred();
+    const callbackFinished = createDeferred();
+    withUserDbContextMock.mockImplementation(async (_userId, work) => {
+      const result = await work({
+        todo: {
+          findUnique: async () => ({ id: "todo-1", userId: "user-1" }),
+          update: async () => ({ id: "todo-1", completed: true }),
+        },
+      });
+      callbackFinished.resolve();
+      await commit.promise;
+      return result;
+    });
+    const pending = updateOwnedTodo({
+      id: "todo-1",
+      userId: "user-1",
+      data: { completed: true, dueAt: undefined, hasDueAt: false },
+    });
+    return { callbackFinished, commit, pending };
+  }
+
+  it("does not enqueue a rebuild until the update transaction commits", async () => {
+    const { callbackFinished, commit, pending } = holdUpdateCommit();
+    await callbackFinished.promise;
+    const callsBeforeCommit = invalidateMock.mock.calls.length;
+    commit.resolve();
+    await pending;
+    expect(callsBeforeCommit).toBe(0);
+    expect(invalidateMock).toHaveBeenCalledExactlyOnceWith("user-1");
+  });
+
+  it("does not enqueue a rebuild when the update transaction rolls back", async () => {
+    const { callbackFinished, commit, pending } = holdUpdateCommit();
+    const rejected = expect(pending).rejects.toThrow("commit failed");
+    await callbackFinished.promise;
+    commit.reject(new Error("commit failed"));
+    await rejected;
+    expect(invalidateMock).not.toHaveBeenCalled();
   });
 
   it("invalidates calendar cache after creating a todo", async () => {

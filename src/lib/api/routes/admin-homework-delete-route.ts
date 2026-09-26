@@ -1,4 +1,4 @@
-import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
+import { deleteHomeworkForModeration } from "@/features/homeworks/server/homework-mutations";
 import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { type IdParams, parseIdParam } from "./admin-shared";
@@ -15,7 +15,7 @@ export async function deleteAdminHomeworkRoute(
       if (parsed instanceof Response) return parsed;
       const id = parsed.id;
 
-      const result = await deleteHomework({
+      const result = await deleteHomeworkForModeration({
         audit: { channel: "rest" },
         homeworkId: id,
         userId: admin.userId,

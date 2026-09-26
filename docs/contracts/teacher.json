@@ -13,7 +13,9 @@
     "public-list-cache": "Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime caching. Localized HTML pages use their locale-partitioned SSR cache.",
     "mobile-detail-hierarchy": "Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab rail on mobile.",
     "detail-canonical-url": "The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=` deep links permanently redirect to the root; optional hash anchors scroll within the page.",
-    "bounded-detail-history": "Teacher detail returns the 20 most recent Section offerings plus the total Section count. Public teacher payloads explicitly select allowed fields and never expose source-only columns such as age, postcode, QQ, or WeChat.",
+    "bounded-detail-history": "Detail returns 20 Section offerings per page and the full count, including retired offerings. Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the entity root.",
+    "history-page-validation": "sectionsPage defaults to 1 only when omitted. Supplied values must be positive decimal integers without leading zeros, signs, fractions, exponent notation, or whitespace. Reject invalid values and pages above 450359962737050 with 400 before database access, keeping the 20-row offset within Number.MAX_SAFE_INTEGER.",
+    "public-detail-fields": "Public teacher payloads explicitly select allowed fields; never source-only columns such as age, postcode, QQ, or WeChat.",
     "public-detail-cache": "Anonymous REST, MCP, and single-entity GraphQL Teacher reads share a revision-, locale-, ID-, and response-shape-scoped runtime cache. Missing entities are not cached."
   },
   "capabilities": {

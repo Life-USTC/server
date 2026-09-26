@@ -92,11 +92,24 @@ export async function updateHomework(input: {
   return { ok: true as const };
 }
 
-export async function deleteHomework(input: {
+type DeleteHomeworkInput = {
   audit?: HomeworkAuditContext;
   homeworkId: string;
   userId: string;
-}) {
+};
+
+export function deleteHomework(input: DeleteHomeworkInput) {
+  return deleteHomeworkWithAuthority(input, false);
+}
+
+export function deleteHomeworkForModeration(input: DeleteHomeworkInput) {
+  return deleteHomeworkWithAuthority(input, true);
+}
+
+async function deleteHomeworkWithAuthority(
+  input: DeleteHomeworkInput,
+  moderation: boolean,
+) {
   const [viewer, homework] = await Promise.all([
     requireActiveHomeworkWriter(input.userId),
     prisma.homework.findUnique({
@@ -115,7 +128,9 @@ export async function deleteHomework(input: {
     return { ok: false as const, error: "not_found" as HomeworkMutationError };
   }
 
-  if (!viewer.viewer.isAdmin && homework.createdById !== input.userId) {
+  if (
+    moderation ? !viewer.viewer.isAdmin : homework.createdById !== input.userId
+  ) {
     return { ok: false as const, error: "forbidden" as HomeworkMutationError };
   }
 

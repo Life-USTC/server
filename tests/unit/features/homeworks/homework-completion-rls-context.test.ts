@@ -89,7 +89,7 @@ describe("homework completion owner context", () => {
           homeworkId: "homework-1",
         },
       },
-      update: { completedAt: expect.any(Date) },
+      update: {},
       create: { userId: "user-1", homeworkId: "homework-1" },
     });
     expect(transaction.homeworkCompletion.upsert).toBe(completionUpsertMock);

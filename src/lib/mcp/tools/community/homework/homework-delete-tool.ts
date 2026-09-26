@@ -14,7 +14,7 @@ export function registerDeleteHomeworkOnSectionTool(server: McpServer) {
     "community_section_homework_delete",
     {
       description:
-        "Delete a homework by ID. Requires an unsuspended signed-in creator or admin; normal users can delete only homework they created.",
+        "Delete a homework by ID. Requires the unsuspended signed-in creator. Administrator accounts cannot delete other users' homework through this tool; use the admin moderation surface.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         mode: mcpModeInputSchema,

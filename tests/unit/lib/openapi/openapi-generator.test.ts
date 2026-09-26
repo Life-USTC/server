@@ -20,6 +20,31 @@ describe("openapi generator", () => {
     expect(doc.components?.schemas).toBeDefined();
   });
 
+  it("publishes the protected paginated workspace exam capability", () => {
+    const operation = doc.paths?.["/api/workspace/exams"]?.get;
+    expect(operation).toMatchObject({
+      operationId: "workspace_exam_list",
+      tags: ["workspace.exam"],
+      security: [{ bearerAuth: [] }, { sessionCookie: [] }],
+    });
+    expect(
+      operation?.parameters?.map((parameter) =>
+        "name" in parameter ? parameter.name : undefined,
+      ),
+    ).toEqual([
+      "dateFrom",
+      "dateTo",
+      "includeDateUnknown",
+      "semesterId",
+      "page",
+      "pageSize",
+      "locale",
+    ]);
+    expect(operation?.responses).toHaveProperty("200");
+    expect(operation?.responses).toHaveProperty("401");
+    expect(operation?.responses).toHaveProperty("403");
+  });
+
   it("publishes pageSize and marks limit as its deprecated alias", () => {
     const paths = doc.paths as Record<
       string,

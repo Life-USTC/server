@@ -39,7 +39,7 @@ workspace UI (routes `/workspace/[tab]`); keep overview assembly there and use
 | comments | Scoped to section/course/teacher/homework; audience + anonymous flags; suspended cannot create |
 | catalog-links | Campus link catalog + pin/visit preferences |
 | descriptions | Shared wiki-like text on course/section/teacher/homework |
-| homeworks | Attached to section; signed-in unsuspended create/update; delete creator/admin; completion is per-user |
+| homeworks | Attached to section; signed-in unsuspended create/update; ordinary delete creator-only; admin deletion uses governance; completion is per-user |
 | markdown | Shared Markdown rendering helpers for guides/community |
 | mobile-app | Mobile app marketing/download page |
 | oauth | Device, consent, authorize, and client-registration policies |

@@ -29,6 +29,21 @@ function request(path: string, headers: HeadersInit = {}) {
 }
 
 describe("public SSR gateway", () => {
+  test.each(["/catalog/courses/101", "/catalog/teachers/21"])(
+    "does not reuse root HTML for history pagination on %s",
+    (path) => {
+      for (const headers of [
+        new Headers(),
+        new Headers({ cookie: "better-auth.session_token=test-session" }),
+      ]) {
+        expect(resolvePublicSsrMode(request(path, headers))).toBe("page");
+        expect(
+          resolvePublicSsrMode(request(`${path}?sectionsPage=2`, headers)),
+        ).toBeNull();
+      }
+    },
+  );
+
   test.each([
     PUBLIC_SSR_BROWSER_CACHE_CONTROL,
     PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,

@@ -4,7 +4,11 @@ import { UploadError } from "@/features/uploads/server/upload-quota";
 import { UploadPendingPhase } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import {
-  assertActivePendingUpload,
+  claimUploadCompletionLease,
+  releaseUploadCompletionLease,
+  UPLOAD_COMPLETION_LEASE_SECONDS,
+} from "./upload-completion-lease";
+import {
   deleteExpiredPendingUploads,
   findExistingUploadUsagePayload,
   getUploadUsedBytes,
@@ -36,144 +40,128 @@ export async function completeUploadSession(
   );
   if (existing) return existing;
 
-  try {
-    await withUserDbContext(userId, (tx) =>
-      assertActivePendingUpload(tx, {
-        key: input.key,
-        now,
-        userId,
-      }),
+  const attemptId = await claimUploadCompletionLease(userId, input.key);
+  if (!attemptId) {
+    const completed = await withUserDbContext(userId, (tx) =>
+      findExistingUploadUsagePayload(tx, input.key, userId, new Date()),
     );
-  } catch (error) {
-    if (error instanceof UploadError) {
-      const completed = await withUserDbContext(userId, (tx) =>
-        findExistingUploadUsagePayload(tx, input.key, userId, new Date()),
-      );
-      if (completed) return completed;
-    }
-    throw error;
+    if (completed) return completed;
+    throw new UploadError("Upload session expired");
   }
 
-  const uploadedObject = await validateUploadedObject(input);
+  try {
+    const uploadedObject = await validateUploadedObject(input);
 
-  const reservation = await runOwnedUploadSerializableTransaction(
-    userId,
-    async (tx) => {
-      const completed = await tx.upload.findUnique({
-        where: { key: input.key },
-      });
-      if (completed) {
-        if (completed.userId !== userId) {
+    const reservation = await runOwnedUploadSerializableTransaction(
+      userId,
+      async (tx) => {
+        const completed = await tx.upload.findUnique({
+          where: { key: input.key },
+        });
+        if (completed) {
+          if (completed.userId !== userId) {
+            return {
+              ok: false,
+              code: "Upload session expired",
+            } satisfies UploadCompletionResult;
+          }
+          await tx.uploadPending.deleteMany({
+            where: { key: input.key, userId },
+          });
+          const usedBytes = await getUploadUsedBytes({
+            prisma: tx,
+            userId,
+            now: new Date(),
+          });
+          return {
+            ok: true,
+            upload: completed,
+            usedBytes: usedBytes || completed.size,
+          } satisfies UploadCompletionResult;
+        }
+
+        const transactionNow = new Date();
+        // Lock the exact claim before checking quota. Cleanup or a replacement
+        // completion may have acquired an expired lease while HEAD was in flight.
+        const completing = await tx.uploadPending.updateMany({
+          where: {
+            attemptId,
+            key: input.key,
+            userId,
+            phase: UploadPendingPhase.completing,
+            expiresAt: { gt: transactionNow },
+            leaseExpiresAt: { gt: transactionNow },
+          },
+          data: {
+            leaseExpiresAt: new Date(
+              transactionNow.getTime() + UPLOAD_COMPLETION_LEASE_SECONDS * 1000,
+            ),
+          },
+        });
+        if (completing.count === 0) {
           return {
             ok: false,
             code: "Upload session expired",
           } satisfies UploadCompletionResult;
         }
+
+        const usedBytes = await getUploadUsedBytes({
+          excludePendingKey: input.key,
+          prisma: tx,
+          userId,
+          now: transactionNow,
+        });
+        if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
+          await tx.uploadPending.updateMany({
+            where: {
+              key: input.key,
+              userId,
+              expiresAt: { gte: transactionNow },
+            },
+            data: { expiresAt: new Date(transactionNow.getTime() - 1) },
+          });
+          return {
+            ok: false,
+            code: "Quota exceeded",
+          } satisfies UploadCompletionResult;
+        }
+
+        const upload = await tx.upload.create({
+          data: {
+            contentType: uploadedObject.contentType,
+            filename: input.filename,
+            key: input.key,
+            size: uploadedObject.size,
+            userId,
+          },
+        });
+
         await tx.uploadPending.deleteMany({
           where: { key: input.key, userId },
         });
-        const usedBytes = await getUploadUsedBytes({
-          prisma: tx,
-          userId,
-          now: new Date(),
-        });
+
         return {
           ok: true,
-          upload: completed,
-          usedBytes: usedBytes || completed.size,
+          upload,
+          usedBytes: usedBytes + uploadedObject.size,
         } satisfies UploadCompletionResult;
-      }
+      },
+      "Failed to finalize upload quota",
+    );
 
-      const pending = await tx.uploadPending.findUnique({
-        where: { key: input.key },
-      });
-      if (!pending || pending.userId !== userId) {
-        return {
-          ok: false,
-          code: "Upload session expired",
-        } satisfies UploadCompletionResult;
-      }
+    if (!reservation.ok) {
+      throw new UploadError(reservation.code);
+    }
 
-      const transactionNow = new Date();
-      if (pending.expiresAt < transactionNow) {
-        return {
-          ok: false,
-          code: "Upload session expired",
-        } satisfies UploadCompletionResult;
-      }
-
-      if (pending.phase !== UploadPendingPhase.uploaded) {
-        return {
-          ok: false,
-          code: "Upload session expired",
-        } satisfies UploadCompletionResult;
-      }
-
-      const completing = await tx.uploadPending.updateMany({
-        where: {
-          key: input.key,
-          userId,
-          phase: UploadPendingPhase.uploaded,
-        },
-        data: {
-          phase: UploadPendingPhase.completing,
-          leaseExpiresAt: new Date(transactionNow.getTime() + 30_000),
-        },
-      });
-      if (completing.count === 0) {
-        return {
-          ok: false,
-          code: "Upload session expired",
-        } satisfies UploadCompletionResult;
-      }
-
-      const usedBytes = await getUploadUsedBytes({
-        excludePendingKey: input.key,
-        prisma: tx,
-        userId,
-        now: transactionNow,
-      });
-      if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
-        await tx.uploadPending.updateMany({
-          where: {
-            key: input.key,
-            userId,
-            expiresAt: { gte: transactionNow },
-          },
-          data: { expiresAt: new Date(transactionNow.getTime() - 1) },
-        });
-        return {
-          ok: false,
-          code: "Quota exceeded",
-        } satisfies UploadCompletionResult;
-      }
-
-      const upload = await tx.upload.create({
-        data: {
-          contentType: uploadedObject.contentType,
-          filename: input.filename,
-          key: input.key,
-          size: uploadedObject.size,
-          userId,
-        },
-      });
-
-      await tx.uploadPending.deleteMany({ where: { key: input.key, userId } });
-
-      return {
-        ok: true,
-        upload,
-        usedBytes: usedBytes + uploadedObject.size,
-      } satisfies UploadCompletionResult;
-    },
-    "Failed to finalize upload quota",
-  );
-
-  if (!reservation.ok) {
-    throw new UploadError(reservation.code);
+    return uploadUsagePayload(reservation.upload, reservation.usedBytes);
+  } catch (error) {
+    // A database outage may also prevent release. The expiring, fenced lease
+    // then permits a later completion retry or the storage cleanup worker.
+    await releaseUploadCompletionLease(userId, input.key, attemptId).catch(
+      () => {},
+    );
+    throw error;
   }
-
-  return uploadUsagePayload(reservation.upload, reservation.usedBytes);
 }
 
 export async function completeOwnedUploadSession(

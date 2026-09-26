@@ -16,6 +16,7 @@ const {
   pendingDeleteManyMock,
   pendingFindManyMock,
   pendingFindUniqueMock,
+  pendingUpdateManyMock,
   runSerializableTransactionMock,
   txPendingAggregateMock,
   txPendingDeleteManyMock,
@@ -39,6 +40,7 @@ const {
   pendingDeleteManyMock: vi.fn(),
   pendingFindManyMock: vi.fn(),
   pendingFindUniqueMock: vi.fn(),
+  pendingUpdateManyMock: vi.fn(),
   runSerializableTransactionMock: vi.fn(),
   txPendingAggregateMock: vi.fn(),
   txPendingDeleteManyMock: vi.fn(),
@@ -143,6 +145,7 @@ const ownerPrisma = {
     deleteMany: pendingDeleteManyMock,
     findMany: pendingFindManyMock,
     findUnique: pendingFindUniqueMock,
+    updateMany: pendingUpdateManyMock,
   },
 };
 
@@ -154,6 +157,7 @@ describe("completeUploadSession", () => {
     pendingDeleteManyMock.mockResolvedValue({ count: 0 });
     pendingFindManyMock.mockResolvedValue([]);
     pendingFindUniqueMock.mockResolvedValue(validPending);
+    pendingUpdateManyMock.mockResolvedValue({ count: 1 });
     uploadFindUniqueMock.mockResolvedValue(null);
 
     headStorageObjectMock.mockResolvedValue({
@@ -187,8 +191,12 @@ describe("completeUploadSession", () => {
     vi.clearAllMocks();
   });
 
-  it("在开启可串行事务前校验已上传对象", async () => {
+  it("先领取完成租约，再在结算事务之外检查对象", async () => {
     const calls: string[] = [];
+    pendingUpdateManyMock.mockImplementation(async () => {
+      calls.push("claim");
+      return { count: 1 };
+    });
     headStorageObjectMock.mockImplementation(async () => {
       calls.push("head");
       return { contentType: "text/plain", size: 10 };
@@ -208,7 +216,19 @@ describe("completeUploadSession", () => {
       usedBytes: 10,
     });
 
-    expect(calls).toEqual(["head", "transaction"]);
+    expect(calls).toEqual(["claim", "head", "transaction"]);
+    const attemptId = pendingUpdateManyMock.mock.calls[0][0].data.attemptId;
+    expect(txPendingUpdateManyMock).toHaveBeenCalledWith({
+      where: {
+        attemptId,
+        key: KEY,
+        userId: USER_ID,
+        phase: "completing",
+        expiresAt: { gt: FIXED_NOW },
+        leaseExpiresAt: { gt: FIXED_NOW },
+      },
+      data: { leaseExpiresAt: new Date(FIXED_NOW.getTime() + 30_000) },
+    });
     expect(txUploadCreateMock).toHaveBeenCalledWith({
       data: {
         contentType: "application/octet-stream",
@@ -233,6 +253,15 @@ describe("completeUploadSession", () => {
     expect(runSerializableTransactionMock).not.toHaveBeenCalled();
     expect(pendingDeleteManyMock).not.toHaveBeenCalled();
     expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+    expect(pendingUpdateManyMock).toHaveBeenLastCalledWith({
+      where: {
+        attemptId: pendingUpdateManyMock.mock.calls[0][0].data.attemptId,
+        key: KEY,
+        phase: "completing",
+        userId: USER_ID,
+      },
+      data: { phase: "uploaded", leaseExpiresAt: null },
+    });
   });
 
   it("对象超过大小限制时保留待处理配额且不删除 R2", async () => {
@@ -252,8 +281,47 @@ describe("completeUploadSession", () => {
     expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
+  it("结算数据库失败时释放自己的租约", async () => {
+    const failure = new Error("Settlement unavailable");
+    runSerializableTransactionMock.mockRejectedValue(failure);
+
+    await expect(
+      completeUploadSession(USER_ID, { filename: "test.txt", key: KEY }),
+    ).rejects.toBe(failure);
+
+    expect(pendingUpdateManyMock).toHaveBeenLastCalledWith({
+      where: {
+        attemptId: pendingUpdateManyMock.mock.calls[0][0].data.attemptId,
+        key: KEY,
+        phase: "completing",
+        userId: USER_ID,
+      },
+      data: { phase: "uploaded", leaseExpiresAt: null },
+    });
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("释放租约也失败时保留原始错误并依靠租约过期恢复", async () => {
+    const failure = new Error("Settlement unavailable");
+    runSerializableTransactionMock.mockRejectedValue(failure);
+    pendingUpdateManyMock
+      .mockResolvedValueOnce({ count: 1 })
+      .mockRejectedValueOnce(new Error("Release unavailable"));
+
+    await expect(
+      completeUploadSession(USER_ID, { filename: "test.txt", key: KEY }),
+    ).rejects.toBe(failure);
+
+    expect(pendingUpdateManyMock).toHaveBeenCalledTimes(2);
+    expect(pendingUpdateManyMock.mock.calls[0][0].data).toMatchObject({
+      phase: "completing",
+      leaseExpiresAt: new Date(FIXED_NOW.getTime() + 30_000),
+    });
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
   it("返回并发完成的上传而非再次校验存储", async () => {
-    pendingFindUniqueMock.mockResolvedValue(null);
+    pendingUpdateManyMock.mockResolvedValue({ count: 0 });
     uploadFindUniqueMock
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(createdUpload);
@@ -278,14 +346,7 @@ describe("completeUploadSession", () => {
   });
 
   it("预留会话在事务重新检查前过期时保留待清理项", async () => {
-    const expiringPending = {
-      expiresAt: new Date(FIXED_NOW.getTime() + 1_000),
-      key: KEY,
-      size: 10,
-      userId: USER_ID,
-    };
-    pendingFindUniqueMock.mockResolvedValue(expiringPending);
-    txPendingFindUniqueMock.mockResolvedValue(expiringPending);
+    txPendingUpdateManyMock.mockResolvedValue({ count: 0 });
     headStorageObjectMock.mockImplementation(async () => {
       vi.setSystemTime(new Date(FIXED_NOW.getTime() + 2_000));
       return { contentType: "text/plain", size: 10 };

@@ -1,3 +1,4 @@
+import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   type AuditLogParams,
@@ -89,7 +90,14 @@ export async function upsertDescriptionContent({
     result = await writeDescription();
   }
 
-  if (targetType !== "homework") {
+  if (targetType === "homework") {
+    const homework = await prisma.homework.findUnique({
+      where: { id: String(target.targetId) },
+      select: { sectionId: true },
+    });
+    if (homework)
+      scheduleInvalidateCalendarExportsForSection(homework.sectionId);
+  } else {
     await invalidateCloudflareCatalogRepresentations();
   }
   return { ok: true as const, ...result };

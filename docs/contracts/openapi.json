@@ -7,6 +7,7 @@
     "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP capabilities only with explicit feature:action scopes such as workspace.todo:read and workspace.todo:write."
   },
   "rules": {
+    "workspace-exam-pagination": "GET /api/workspace/exams is an owner-scoped, private/no-store paginated exam list requiring workspace.exam:read. It supports semester and inclusive Shanghai calendar-date filters and includes unknown-date exams by default; clients needing a complete list must exhaust pagination rather than use overview samples.",
     "response-cache-policy": "REST JSON responses, including authentication and validation errors, default to private, no-store. Only explicitly viewer-independent public responses may opt into HTTP caching. The HTTP boundary also disables CDN storage for private responses; cookies or bearer identity must never personalize a publicly cacheable payload.",
     "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",

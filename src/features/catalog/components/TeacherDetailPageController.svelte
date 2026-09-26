@@ -2,6 +2,7 @@
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
+import type { PaginatedResponse } from "@/lib/pagination";
 import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import {
@@ -10,6 +11,7 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
+import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailSection,
@@ -29,6 +31,7 @@ type TeacherDetailData = CatalogNamed & {
   id: number | string;
   mobile?: string | null;
   sections: TeacherDetailSection[];
+  _count: { sections: number };
   teacherTitle?: CatalogNamed | null;
   telephone?: string | null;
 };
@@ -37,7 +40,7 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
-    common: { home: string; teachers: string };
+    common: { next: string; previous: string; home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {
@@ -49,6 +52,7 @@ type PageData = {
   descriptionData: CatalogDetailDescriptionData;
   detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
+  sectionsPagination: PaginatedResponse<unknown>["pagination"];
   structuredDataJson: string;
   teacher: TeacherDetailData;
 };
@@ -95,6 +99,14 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.teacherDetail.teachingSectionsDescription}
           </p>
+          <CatalogSectionHistoryPagination
+            pagination={data.sectionsPagination}
+            shown={data.teacher.sections.length}
+            summaryTemplate={copy.teacherDetail.sectionHistorySummary}
+            ariaLabel={copy.teacherDetail.sectionHistoryPagination}
+            nextLabel={copy.common.next}
+            previousLabel={copy.common.previous}
+          />
           <TeacherDetailSections
             copy={detailCopy}
             locale={data.locale}

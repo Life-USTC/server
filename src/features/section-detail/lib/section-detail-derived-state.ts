@@ -83,9 +83,7 @@ export function canManageSectionHomework(
 ) {
   return (
     canWriteSectionHomework(viewer) &&
-    Boolean(
-      homework && (viewer.isAdmin || homework.createdById === viewer.userId),
-    )
+    Boolean(homework && homework.createdById === viewer.userId)
   );
 }
 

@@ -2,6 +2,7 @@
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
+import type { PaginatedResponse } from "@/lib/pagination";
 import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import type { CatalogNamed } from "../lib/catalog-list-display";
@@ -10,6 +11,7 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
+import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
@@ -30,6 +32,7 @@ type CourseDetailData = CatalogNamed & {
   id: number | string;
   jwId: number | string;
   sections: CourseDetailSection[];
+  _count: { sections: number };
   type?: CatalogNamed | null;
 };
 
@@ -37,7 +40,7 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string };
-    common: { courses: string; home: string };
+    common: { next: string; previous: string; courses: string; home: string };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
@@ -61,6 +64,7 @@ type PageData = {
   descriptionData: CatalogDetailDescriptionData;
   detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
+  sectionsPagination: PaginatedResponse<unknown>["pagination"];
   structuredDataJson: string;
 };
 
@@ -83,7 +87,11 @@ $: displayName =
     <PageHeader
       title={displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    />
+    >
+      {#snippet eyebrowContent()}
+        <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
+      {/snippet}
+    </PageHeader>
   {/snippet}
 
         <section id="introduction" class="scroll-mt-4">
@@ -107,6 +115,14 @@ $: displayName =
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.courseDetail.teachingSectionsDescription}
           </p>
+          <CatalogSectionHistoryPagination
+            pagination={data.sectionsPagination}
+            shown={data.course.sections.length}
+            summaryTemplate={copy.courseDetail.sectionHistorySummary}
+            ariaLabel={copy.courseDetail.sectionHistoryPagination}
+            nextLabel={copy.common.next}
+            previousLabel={copy.common.previous}
+          />
           <CourseDetailSections
             copy={detailCopy}
             course={data.course}

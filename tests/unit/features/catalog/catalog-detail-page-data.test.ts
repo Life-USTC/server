@@ -82,6 +82,7 @@ function coursePage(overrides: object = {}) {
     classType: null,
     type: null,
     sections: [],
+    _count: { sections: 0 },
     ...overrides,
   };
 }
@@ -97,6 +98,7 @@ function teacherPage(overrides: object = {}) {
     department: null,
     teacherTitle: null,
     sections: [],
+    _count: { sections: 0 },
     ...overrides,
   };
 }
@@ -136,7 +138,7 @@ describe("catalog detail page data", () => {
     );
     const courseSelect = courseFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(courseSelect).not.toHaveProperty("description");
-    expect(courseSelect).not.toHaveProperty("_count");
+    expect(courseSelect?._count).toEqual({ select: { sections: true } });
     expect(courseSelect?.sections?.take).toBe(20);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
@@ -154,7 +156,7 @@ describe("catalog detail page data", () => {
     expect(result).toEqual(teacher);
     const teacherSelect = teacherFindUniqueMock.mock.calls[0]?.[0]?.select;
     expect(teacherSelect).not.toHaveProperty("description");
-    expect(teacherSelect).not.toHaveProperty("_count");
+    expect(teacherSelect?._count).toEqual({ select: { sections: true } });
     expect(teacherSelect?.sections?.take).toBe(20);
     expect(result).not.toHaveProperty("commentCount");
     expect(result).not.toHaveProperty("latestComments");
@@ -244,8 +246,55 @@ describe("catalog detail page data", () => {
 
     expect(requests).toHaveLength(1);
     expect(requests[0]?.url).toBe(
-      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/test-revision/course/page-core-v1/en-us/101",
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/test-revision/course/page-core-v2%3Asections-page%3D1/en-us/101",
     );
+  });
+
+  it("keeps history pages separate in the cache and counts the whole relation", async () => {
+    const firstCourse = coursePage({
+      sections: [coursePageSection()],
+      _count: { sections: 23 },
+    });
+    const lastCourse = coursePage({
+      sections: [coursePageSection({ jwId: 323 })],
+      _count: { sections: 23 },
+    });
+    const firstTeacher = teacherPage({
+      sections: [teacherPageSection()],
+      _count: { sections: 23 },
+    });
+    const lastTeacher = teacherPage({
+      sections: [teacherPageSection({ jwId: 323 })],
+      _count: { sections: 23 },
+    });
+    courseFindUniqueMock
+      .mockResolvedValueOnce(firstCourse)
+      .mockResolvedValueOnce(lastCourse);
+    teacherFindUniqueMock
+      .mockResolvedValueOnce(firstTeacher)
+      .mockResolvedValueOnce(lastTeacher);
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    const { getTeacherPage } = await import(
+      "@/features/catalog/server/teacher-page-data"
+    );
+    for (const [read, first, last, query] of [
+      [getCoursePage, firstCourse, lastCourse, courseFindUniqueMock],
+      [getTeacherPage, firstTeacher, lastTeacher, teacherFindUniqueMock],
+    ] as const) {
+      expect(await read(101, "en-us", 1)).toEqual(first);
+      expect(await read(101, "en-us", 2)).toEqual(last);
+      expect(await read(101, "en-us", 1)).toEqual(first);
+      expect(query).toHaveBeenCalledTimes(2);
+      const select = query.mock.calls[1]?.[0]?.select;
+      expect(select?.sections).toEqual(
+        expect.objectContaining({ skip: 20, take: 20 }),
+      );
+      expect(select?.sections).not.toHaveProperty("where");
+      expect(select?._count).toEqual({ select: { sections: true } });
+      expect(select?.sections?.orderBy.at(-1)).toEqual({ jwId: "asc" });
+    }
   });
 
   it("reloads a course when KV contains a corrupt page core", async () => {

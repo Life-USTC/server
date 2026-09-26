@@ -132,6 +132,25 @@ function schemaFieldMap(fields: GraphQLFieldMap<unknown, unknown> | undefined) {
 }
 
 describe("GraphQL contract and SDL parity", () => {
+  it("only advertises scoped query fields that exist in the executable schema", async () => {
+    const contract = JSON.parse(
+      await readFile(`${contractsDirectory}graphql.json`, "utf8"),
+    );
+    const schema = buildSchema(graphqlTypeDefs);
+    const paths: string[] =
+      contract.capabilities["scoped-queries"].display.fields;
+    for (const path of paths.flatMap((entry) => entry.split(" / "))) {
+      const [scope, name] = path.split(".");
+      const type = schema.getQueryType()?.getFields()[scope]?.type;
+      const scopedType = type && schema.getType(String(type).replace(/!$/, ""));
+      expect(isObjectType(scopedType), path).toBe(true);
+      expect(
+        isObjectType(scopedType) && scopedType.getFields()[name],
+        path,
+      ).toBeTruthy();
+    }
+  });
+
   it("documents valid OAuth scopes matching native MCP equivalents", async () => {
     const groups = await Promise.all(
       (["queries", "mutations", "fields"] as const).map(collectContractFields),

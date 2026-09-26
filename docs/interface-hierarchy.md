@@ -211,6 +211,7 @@ and retry guidance must make the distinction explicit.
 | `workspace_overview_get` | `/workspace/overview` | `GET /api/workspace/overview` | `workspace.overview` | `概览` | `workspace overview` |
 | `workspace_calendar_event_list` | `/workspace/calendar` | `GET /api/workspace/calendar/events` | `workspace.calendarEvents` | `日程 今日/本周` | `workspace calendar events` |
 | `workspace_schedule_list` | `/workspace/overview` (no dedicated schedules tab) | `GET /api/workspace/schedules` | `workspace.schedules` | `课表` | `workspace schedule list` |
+| `workspace_exam_list` | `/workspace/exams` | `GET /api/workspace/exams` | `workspace.exams` | `考试` | `workspace exam` |
 | `workspace_todo_create` | `/workspace/todos` | `POST /api/workspace/todos` | `todoCreate` | `待办 添加` | `workspace todo create` |
 | `workspace_homework_completion_set` | `/workspace/homeworks` | `PUT /api/workspace/homeworks/:id/completion` | `homeworkCompletionSet` | `作业 完成/恢复` | `workspace homework complete/reopen` |
 | `workspace_subscription_add` | `/workspace/subscriptions` | `PATCH /api/workspace/subscriptions` | `subscriptionAdd` | `订阅 添加` | `workspace subscription add` |

@@ -12,7 +12,7 @@ const { deleteHomeworkMock, withAdminApiRouteMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/homeworks/server/homework-mutations", () => ({
-  deleteHomework: deleteHomeworkMock,
+  deleteHomeworkForModeration: deleteHomeworkMock,
 }));
 
 vi.mock("@/lib/api/routes/admin-route-auth", () => ({
