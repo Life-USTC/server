@@ -13,7 +13,6 @@ import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/a
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { parsePositivePage } from "@/lib/load-data-utils";
 import { buildPaginatedResponse } from "@/lib/pagination";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
@@ -25,6 +24,7 @@ import {
   getCourseDetailCopy,
   getTeacherDetailCopy,
 } from "./catalog-detail-copy";
+import { parseSectionHistoryPage } from "./catalog-section-history-pagination";
 
 export type CourseDetailRouteSection = CatalogDetailTab;
 export type TeacherDetailRouteSection = CatalogDetailTab;
@@ -60,7 +60,9 @@ async function loadCourseDetailPageData({
   const copy = getCourseDetailCopy(locals.locale);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
-  const sectionsPage = parsePositivePage(url.searchParams.get("sectionsPage"));
+  const sectionsPage = parseSectionHistoryPage(
+    url.searchParams.get("sectionsPage"),
+  );
   // Stream layout always shows the sections table; include on first load.
   const [course, viewer] = await Promise.all([
     runCloudflareTraceSpan(
@@ -164,7 +166,9 @@ async function loadTeacherDetailPageData({
   const copy = getTeacherDetailCopy(locals.locale);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
-  const sectionsPage = parsePositivePage(url.searchParams.get("sectionsPage"));
+  const sectionsPage = parseSectionHistoryPage(
+    url.searchParams.get("sectionsPage"),
+  );
   // Stream layout always shows teaching sections; include on first load.
   const [teacher, viewer] = await Promise.all([
     runCloudflareTraceSpan(
