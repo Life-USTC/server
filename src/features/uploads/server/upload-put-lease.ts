@@ -35,7 +35,7 @@ export async function claimUploadPutLease(input: {
       return null;
     }
 
-    return tx.uploadPending.findUnique({
+    const pending = await tx.uploadPending.findUnique({
       where: { key: input.key },
       select: {
         attemptId: true,
@@ -43,15 +43,16 @@ export async function claimUploadPutLease(input: {
         size: true,
       },
     });
+    if (pending && input.requestContentLength > pending.size) {
+      // Reject inside the transaction so the lease claim is rolled back.
+      throw new UploadError("File too large");
+    }
+    return pending;
   });
 
   if (!claimed) {
     throw new UploadError("Upload session expired");
   }
-  if (input.requestContentLength > claimed.size) {
-    throw new UploadError("File too large");
-  }
-
   return {
     attemptId: claimed.attemptId,
     contentType:

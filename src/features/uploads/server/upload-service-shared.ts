@@ -302,31 +302,6 @@ export async function findExistingUploadUsagePayload(
   return uploadUsagePayload(existing, usedBytes || existing.size);
 }
 
-export async function assertActivePendingUpload(
-  uploadPrisma: Prisma.TransactionClient,
-  input: {
-    key: string;
-    now: Date;
-    userId: string;
-  },
-) {
-  const pending = await uploadPrisma.uploadPending.findUnique({
-    where: { key: input.key },
-    select: {
-      expiresAt: true,
-      userId: true,
-    },
-  });
-
-  if (!pending || pending.userId !== input.userId) {
-    throw new UploadError("Upload session expired");
-  }
-
-  if (pending.expiresAt < input.now) {
-    throw new UploadError("Upload session expired");
-  }
-}
-
 export async function runOwnedUploadSerializableTransaction<T>(
   userId: string,
   action: (tx: Prisma.TransactionClient) => Promise<T>,

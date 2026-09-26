@@ -7,6 +7,7 @@ const {
   pendingDeleteManyMock,
   pendingFindManyMock,
   pendingFindUniqueMock,
+  pendingUpdateManyMock,
   uploadFindUniqueMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const {
   pendingDeleteManyMock: vi.fn(),
   pendingFindManyMock: vi.fn(),
   pendingFindUniqueMock: vi.fn(),
+  pendingUpdateManyMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
   withUserDbContextMock: vi.fn(),
 }));
@@ -57,6 +59,7 @@ describe("owned upload workflow service", () => {
     pendingDeleteManyMock.mockResolvedValue({ count: 0 });
     pendingFindManyMock.mockResolvedValue([]);
     pendingFindUniqueMock.mockResolvedValue(null);
+    pendingUpdateManyMock.mockResolvedValue({ count: 0 });
     uploadFindUniqueMock.mockResolvedValue(null);
     deleteStorageObjectMock.mockResolvedValue(undefined);
     withUserDbContextMock.mockImplementation((_userId, action) =>
@@ -66,6 +69,7 @@ describe("owned upload workflow service", () => {
           deleteMany: pendingDeleteManyMock,
           findMany: pendingFindManyMock,
           findUnique: pendingFindUniqueMock,
+          updateMany: pendingUpdateManyMock,
         },
       }),
     );
