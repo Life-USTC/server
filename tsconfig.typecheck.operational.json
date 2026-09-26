@@ -9,7 +9,8 @@
     "vitest.base.ts",
     "vitest.config.ts",
     "vitest.integration.config.ts",
-    "tests/e2e/**/*.ts"
+    "tests/e2e/**/*.ts",
+    "scripts/specifications/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
