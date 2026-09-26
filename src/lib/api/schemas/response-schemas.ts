@@ -12,9 +12,9 @@ export * from "./response-publication-read-schemas";
 export * from "./response-schema-primitives";
 export { roomMapResponseSchema } from "./room-map-schemas";
 export * from "./schedule-response-schema-core";
+export { subscribedExamsResponseSchema } from "./subscribed-exams-schemas";
 export { subscriptionKindUpdateResponseSchema } from "./subscription-kind-schemas";
 export * from "./uploads-response-schemas";
 export * from "./weather-response-schemas";
 export * from "./young-event-schemas";
-
 export * from "./young-workspace-schemas";
