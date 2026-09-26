@@ -28,7 +28,7 @@ async function main() {
     }
     case "show": {
       const [id] = arguments_;
-      if (arguments_.length !== 1 || !id || !/^[a-z][a-z0-9-]*$/.test(id))
+      if (arguments_.length !== 1 || !id || !/^[a-z0-9][a-z0-9-]*$/.test(id))
         throw new Error("Usage: bun run specs:show <feature-id>");
       const filename = await resolveRepositoryFile(
         repositoryRoot,
