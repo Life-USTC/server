@@ -31,6 +31,7 @@ function feature(): SpecificationFile {
               id: "retry",
               given: "Already set",
               when: "Set again",
+              // biome-ignore lint/suspicious/noThenProperty: Acceptance results are a non-callable list.
               then: ["State remains stable"],
             },
           ],

@@ -14,6 +14,7 @@ export type Requirement = {
   id: string;
   category: string;
   rule: string;
+  topic?: string;
   applies_to?: string[];
   acceptance?: AcceptanceScenario[];
 };

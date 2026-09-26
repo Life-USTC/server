@@ -158,6 +158,15 @@ export async function validateSpecificationReferences(
       );
     }
     const capabilities = record(data.capabilities) ? data.capabilities : {};
+    const topicIds = new Set<string>();
+    if (Array.isArray(data.topics)) {
+      for (const topic of data.topics) {
+        if (!record(topic) || typeof topic.id !== "string") continue;
+        if (topicIds.has(topic.id))
+          errors.push(`${path}: duplicate topic ${topic.id}`);
+        topicIds.add(topic.id);
+      }
+    }
     if (Array.isArray(data.policy_refs)) {
       for (const policy of data.policy_refs) {
         if (!policies.has(policy))
@@ -169,6 +178,11 @@ export async function validateSpecificationReferences(
       if (requirementIds.has(requirement.id))
         errors.push(`${path}: duplicate requirement ID ${requirement.id}`);
       requirementIds.add(requirement.id);
+      if (requirement.topic && !topicIds.has(requirement.topic)) {
+        errors.push(
+          `${path}: ${requirement.id} references unknown topic ${requirement.topic}`,
+        );
+      }
       if (data.kind === "feature") {
         if (!requirement.id.startsWith(`${data.id}.`))
           errors.push(
@@ -194,6 +208,7 @@ export async function validateSpecificationReferences(
           try {
             if (
               !test.file.startsWith("tests/") ||
+              test.file.split("/").includes("..") ||
               !/(?:\.test|\/test)\.ts$/.test(test.file)
             ) {
               throw new Error(
