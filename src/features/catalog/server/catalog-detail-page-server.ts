@@ -9,9 +9,12 @@ import {
   buildTeacherStructuredData,
   serializeStructuredData,
 } from "@/features/catalog/lib/catalog-structured-data";
+import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
+import { parsePositivePage } from "@/lib/load-data-utils";
+import { buildPaginatedResponse } from "@/lib/pagination";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
   buildSocialMetadata,
@@ -57,12 +60,13 @@ async function loadCourseDetailPageData({
   const copy = getCourseDetailCopy(locals.locale);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
+  const sectionsPage = parsePositivePage(url.searchParams.get("sectionsPage"));
   // Stream layout always shows the sections table; include on first load.
   const [course, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "course" },
-      () => getCoursePage(jwId, locals.locale),
+      () => getCoursePage(jwId, locals.locale, sectionsPage),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -113,6 +117,12 @@ async function loadCourseDetailPageData({
     descriptionData,
     commentsData,
     detailSection: "overview" as const,
+    sectionsPagination: buildPaginatedResponse(
+      course.sections,
+      sectionsPage,
+      PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
+      course._count.sections,
+    ).pagination,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildCourseStructuredData({
@@ -154,12 +164,13 @@ async function loadTeacherDetailPageData({
   const copy = getTeacherDetailCopy(locals.locale);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
+  const sectionsPage = parsePositivePage(url.searchParams.get("sectionsPage"));
   // Stream layout always shows teaching sections; include on first load.
   const [teacher, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "teacher" },
-      () => getTeacherPage(id, locals.locale),
+      () => getTeacherPage(id, locals.locale, sectionsPage),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -204,6 +215,12 @@ async function loadTeacherDetailPageData({
     descriptionData,
     commentsData,
     detailSection: "overview" as const,
+    sectionsPagination: buildPaginatedResponse(
+      teacher.sections,
+      sectionsPage,
+      PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
+      teacher._count.sections,
+    ).pagination,
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildTeacherStructuredData({

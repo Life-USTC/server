@@ -1255,13 +1255,15 @@
     "summaryCategory": "类别",
     "summaryCategoryMeta": "课程目录类别",
     "teachingSections": "授课班级",
-    "teachingSectionsDescription": "此课程的近期班级记录。",
+    "teachingSectionsDescription": "按学期由近到远排列的历史教学班。",
     "semesterSections": "{semester} ({count})",
     "tabs": {
       "description": "简介",
       "comments": "评论",
       "sections": "班级"
-    }
+    },
+    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役班级）",
+    "sectionHistoryPagination": "历史教学班分页"
   },
   "sections": {
     "title": "所有班级",
@@ -1766,7 +1768,7 @@
     "contact": "联系方式",
     "teachingSections": "授课班级 ({count})",
     "teachingSectionsTitle": "授课班级",
-    "teachingSectionsDescription": "与此教师关联的近期班级记录。",
+    "teachingSectionsDescription": "按学期由近到远排列的历史教学班。",
     "noSections": "暂无授课班级",
     "noDepartment": "无院系",
     "notAvailable": "暂无",
@@ -1782,7 +1784,9 @@
     "semester": "学期",
     "courseName": "课程名称",
     "sectionCode": "班级代码",
-    "credits": "学分"
+    "credits": "学分",
+    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役班级）",
+    "sectionHistoryPagination": "历史教学班分页"
   },
   "descriptions": {
     "title": "简介",

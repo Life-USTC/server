@@ -1597,13 +1597,15 @@
     "summaryCategory": "Category",
     "summaryCategoryMeta": "Catalog category",
     "teachingSections": "Teaching Sections",
-    "teachingSectionsDescription": "Recent section records for this course.",
+    "teachingSectionsDescription": "Historical section offerings, ordered from newest to oldest.",
     "semesterSections": "{semester} ({count})",
     "tabs": {
       "description": "Description",
       "comments": "Comments",
       "sections": "Sections"
-    }
+    },
+    "sectionHistorySummary": "Showing {from}–{to}; total: {total} (retired sections included)",
+    "sectionHistoryPagination": "Historical offerings pagination"
   },
   "sections": {
     "title": "All Sections",
@@ -2108,7 +2110,7 @@
     "contact": "Contact",
     "teachingSections": "Teaching Sections ({count})",
     "teachingSectionsTitle": "Teaching Sections",
-    "teachingSectionsDescription": "Recent section records associated with this teacher.",
+    "teachingSectionsDescription": "Historical section offerings, ordered from newest to oldest.",
     "noSections": "No teaching sections available",
     "noDepartment": "No department",
     "notAvailable": "N/A",
@@ -2124,7 +2126,9 @@
     "semester": "Semester",
     "courseName": "Course Name",
     "sectionCode": "Section Code",
-    "credits": "Credits"
+    "credits": "Credits",
+    "sectionHistorySummary": "Showing {from}–{to}; total: {total} (retired sections included)",
+    "sectionHistoryPagination": "Historical offerings pagination"
   },
   "descriptions": {
     "title": "Description",

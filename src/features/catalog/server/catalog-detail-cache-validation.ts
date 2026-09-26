@@ -122,6 +122,7 @@ export function isCoursePageCore(value: unknown) {
       "classType",
       "type",
       "sections",
+      "_count",
     ])
   ) {
     return false;
@@ -139,6 +140,10 @@ export function isCoursePageCore(value: unknown) {
     isNullableLocalizedName(value.category) &&
     isNullableLocalizedName(value.classType) &&
     isNullableLocalizedName(value.type) &&
+    isPlainRecord(value._count) &&
+    hasExactKeys(value._count, ["sections"]) &&
+    isSafeInteger(value._count.sections) &&
+    (value._count.sections as number) >= 0 &&
     Array.isArray(value.sections) &&
     value.sections.every(isCoursePageSection)
   );
@@ -165,6 +170,7 @@ export function isTeacherPageCore(value: unknown) {
       "department",
       "teacherTitle",
       "sections",
+      "_count",
     ])
   ) {
     return false;
@@ -182,6 +188,10 @@ export function isTeacherPageCore(value: unknown) {
     isNullableString(value.address) &&
     isNullableLocalizedName(value.department) &&
     isNullableLocalizedName(value.teacherTitle) &&
+    isPlainRecord(value._count) &&
+    hasExactKeys(value._count, ["sections"]) &&
+    isSafeInteger(value._count.sections) &&
+    (value._count.sections as number) >= 0 &&
     Array.isArray(value.sections) &&
     value.sections.every(isTeacherPageSection)
   );

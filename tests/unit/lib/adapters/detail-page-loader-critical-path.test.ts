@@ -108,6 +108,7 @@ const course = {
   namePrimary: "Calculus",
   sectionCount: 0,
   sections: [],
+  _count: { sections: 0 },
 };
 
 const teacher = {
@@ -115,6 +116,7 @@ const teacher = {
   namePrimary: "Ada",
   sectionCount: 0,
   sections: [],
+  _count: { sections: 0 },
 };
 
 const section = {
@@ -361,7 +363,7 @@ describe("catalog detail loader critical path", () => {
     });
 
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", 1);
   });
 
   it("separates public detail core entries by locale and entity", async () => {
@@ -416,7 +418,7 @@ describe("catalog detail loader critical path", () => {
     await loadSignedInWithSections();
 
     expect(getTeacherPageMock).toHaveBeenCalledTimes(4);
-    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us");
+    expect(getTeacherPageMock).toHaveBeenCalledWith(teacher.id, "en-us", 1);
   });
 
   it("bypasses public detail core caching for default dynamic and authenticated SSR", async () => {
@@ -598,7 +600,7 @@ describe("detail request session resolution", () => {
 
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(getCoursePageMock).toHaveBeenCalledTimes(2);
-    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us");
+    expect(getCoursePageMock).toHaveBeenCalledWith(course.jwId, "en-us", 1);
   });
 });
 

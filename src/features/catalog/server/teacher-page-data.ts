@@ -20,18 +20,22 @@ const teacherPageSectionsSelect = {
   semester: { select: { nameCn: true } },
 } as const;
 
-const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v1";
+const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v2";
 
 /**
  * Loads the immutable public teacher core. Viewer, description, and comments
  * are assembled by catalog-detail-page-server outside this cache boundary.
  */
-export async function getTeacherPage(id: number, locale: AppLocale = "zh-cn") {
+export async function getTeacherPage(
+  id: number,
+  locale: AppLocale = "zh-cn",
+  sectionsPage = 1,
+) {
   return cachedPublicDetailRuntimeData({
     id,
     kind: "teacher",
     locale,
-    shape: TEACHER_PAGE_CORE_CACHE_SHAPE,
+    shape: `${TEACHER_PAGE_CORE_CACHE_SHAPE}:sections-page=${sectionsPage}`,
     validateResult: isTeacherPageCore,
     load: async () => {
       const prisma = getPrisma(locale);
@@ -58,11 +62,14 @@ export async function getTeacherPage(id: number, locale: AppLocale = "zh-cn") {
                   ...localizedNameSelect,
                 },
               },
+              _count: { select: { sections: true } },
               sections: {
                 orderBy: [
                   { semester: { jwId: "desc" } },
                   { course: { nameCn: "asc" } },
+                  { jwId: "asc" },
                 ],
+                skip: (sectionsPage - 1) * PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 select: teacherPageSectionsSelect,
               },

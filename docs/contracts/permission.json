@@ -7,7 +7,7 @@
     "agent": "Can receive more structured fields but should not produce a second product model as a result."
   },
   "rules": {
-    "name-first": "Users first identify by name, not by code.",
+    "name-first": "Names remain the primary identity: they own h1 and list titles. A compact public course code may precede the mobile detail title for disambiguation, while the name remains visually dominant; this does not authorize displaying jwId or database IDs.",
     "codes-for-disambiguation": "Codes, semesters, and numbers primarily serve disambiguation and retrieval.",
     "internal-ids-hidden": "jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default."
   },
