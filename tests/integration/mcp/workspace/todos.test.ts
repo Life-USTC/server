@@ -243,6 +243,32 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
         success: false,
         error: "forbidden",
       });
+      await fixtures.prisma.user.update({
+        where: { id: isolated.userId },
+        data: { isAdmin: true },
+      });
+      const adminClient = await fixtures.createMcpHarness(isolated.userId, [
+        "community.section-homework:write",
+      ]);
+      try {
+        await expect(
+          adminClient.call("community_section_homework_delete", {
+            homeworkId: homework.id,
+          }),
+        ).resolves.toMatchObject({ success: false, error: "forbidden" });
+        await expect(
+          fixtures.prisma.homework.findUniqueOrThrow({
+            where: { id: homework.id },
+            select: { deletedAt: true },
+          }),
+        ).resolves.toEqual({ deletedAt: null });
+      } finally {
+        await adminClient.close();
+        await fixtures.prisma.user.update({
+          where: { id: isolated.userId },
+          data: { isAdmin: false },
+        });
+      }
     } finally {
       await fixtures.deleteIntegrationHomework(homework.id);
       await fixtures.prisma.user.deleteMany({ where: { id: otherUser.id } });

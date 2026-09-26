@@ -2,8 +2,8 @@
   "name": "Homework",
   "access": {
     "anon": "Can read homework information under public sections, but cannot create, update, or delete.",
-    "user": "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
-    "admin": "Can delete homework and participate in governance.",
+    "user": "When signed in and not suspended, can create and update homework; ordinary deletion is limited to its creator, including when the caller is an administrator. Each user can only manage their own completion state.",
+    "admin": "Can delete other users' homework only through explicit admin governance surfaces; ordinary REST, GraphQL, MCP and detail-page actions retain creator ownership checks.",
     "agent": "After authorization, can read, create, update, and delete permitted homework and set the current user's completion state; REST, GraphQL, and MCP provide the supported business mutations."
   },
   "rules": {
@@ -14,7 +14,9 @@
     "teaching-assistant-completion": "For a viewer subscribed to a section as a teaching assistant, homework completion is never required and every homework surface displays 无需完成 / No completion required. The completionRequired field is derived from the current subscription kind; actual completion records remain preserved. TA homework with no due date remains in pending scopes, while TA homework is excluded from pending scopes at or after its due instant.",
     "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged.",
     "compact-card-list-surface": "In card and list views, the default homework surface only shows title, subtitle (course name when useful plus non-default attribute badges), submission due date, relative due label, and a small completion action. Standard/default homework is not shown as a separate badge. Course/section context, description, homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens on click and closes via outside click or Escape.",
-    "homework-style-guide-advisory": "Create and edit surfaces expose a collapsible homework style guide. Titles use 第{N}次作业 or {主题}作业 without course name/code, and explicitly avoid chapter-only titles such as 第一章作业. Descriptions list 题目, 提交方式, 提交地址, and 备注 in that order; 题目 uses 未记录 when unknown and unknown optional fields are omitted. The guide is advisory only and never blocks otherwise valid writes."
+    "homework-style-guide-advisory": "Section create and edit forms expose a collapsible homework style guide. The workspace create form deliberately omits this guide; the title and description conventions remain advisory on all surfaces. Titles use 第{N}次作业 or {主题}作业 without course name/code, and explicitly avoid chapter-only titles such as 第一章作业. Descriptions list 题目, 提交方式, 提交地址, and 备注 in that order; 题目 uses 未记录 when unknown and unknown optional fields are omitted. The guide is advisory only and never blocks otherwise valid writes.",
+    "creator-only-delete": "Ordinary delete requires the authenticated unsuspended creator. Administrator account status never expands a community.section-homework:write grant; moderation deletion is available only through the guarded admin workflow.",
+    "completion-set-idempotency": "Setting completed=true on an existing completion preserves its original completedAt; repeated single and batch completion requests are idempotent. Setting false removes the completion, and a subsequent true records a new completion time."
   },
   "capabilities": {
     "cross-section-homework-summary": {
@@ -194,7 +196,7 @@
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_delete",
             "notes": [
-              "Only the creator or an admin may delete; repeated deletion remains successful with alreadyDeleted=true and does not add another deletion audit row."
+              "Only the unsuspended creator may delete, including for administrator accounts. Deleting another user's homework requires the admin governance surface. Repeated creator deletion remains successful with alreadyDeleted=true and does not add another deletion audit row."
             ]
           }
         ]
@@ -238,7 +240,7 @@
             "returns": "{ success: Boolean, deletedId: String, alreadyDeleted: Boolean }",
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "notes": [
-              "Requires an unsuspended signed-in creator or admin, matching REST delete permission.",
+              "Requires an unsuspended signed-in creator, matching ordinary REST deletion; administrator accounts do not inherit moderation rights through this tool.",
               "Deletes through the shared homework mutation so soft-delete and homework audit behavior stay shared."
             ]
           }

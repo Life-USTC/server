@@ -83,13 +83,16 @@
         "fields": [
           "account.profile / account.clientActivity",
           "catalog.courses / catalog.sections / catalog.teachers",
-          "catalog.semesters / catalog.currentSemester / catalog.bus",
+          "catalog.semesters / catalog.currentSemester / catalog.busRoutes / catalog.busTimetable",
           "catalog.youngEvents / catalog.youngEvent",
-          "community.user / community.comments / community.description",
+          "community.user",
           "workspace.overview / workspace.todos",
-          "workspace.subscriptions / workspace.homeworks",
+          "workspace.subscribedSections / workspace.homeworks",
           "workspace.schedules / workspace.exams"
         ]
+      },
+      "rules": {
+        "community-read-boundary": "Community exposes user profiles only; comment and shared-description reads are unavailable in GraphQL. After an ambiguous write, inspect /api/community/comments or /api/community/descriptions using a session or a REST-audience token with the required read scope; MCP callers may use native read tools. A GraphQL token is not a REST token. Do not blindly retry."
       }
     },
     "schema-resources": {

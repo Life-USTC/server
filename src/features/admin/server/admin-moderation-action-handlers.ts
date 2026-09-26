@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
+import { deleteHomeworkForModeration } from "@/features/homeworks/server/homework-mutations";
 import type { CommentStatus } from "@/generated/prisma/client";
 import {
   liftAdminSuspension,
@@ -85,7 +85,7 @@ export async function deleteHomeworkAction({
     });
   const id = requiredModerationFormId(form, copy.missingHomeworkId);
   if (typeof id !== "string") return id;
-  const result = await deleteHomework({
+  const result = await deleteHomeworkForModeration({
     audit: { channel: "web", requestId },
     homeworkId: id,
     userId: admin.id,
