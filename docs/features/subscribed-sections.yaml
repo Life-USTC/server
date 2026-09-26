@@ -1,0 +1,87 @@
+kind: feature
+id: subscribed-sections
+name: Subscribed Sections
+areas:
+- workspace
+access:
+  anon: Cannot view their own subscribed sections list.
+  user: Can only view and manage their own subscribed sections list.
+  admin: Does not view or edit other users' subscription lists through ordinary pages.
+  agent: Can read and manage the subscribed sections list data with the same semantics as the web through
+    REST and MCP.
+requirements:
+- id: subscribed-sections.grouped-by-semester
+  category: presentation
+  rule: The list is grouped by semester rather than presented as a single flat list.
+- id: subscribed-sections.retired-history
+  category: consistency
+  rule: Existing subscription relationships to retired Sections remain visible in the owner's subscribed
+    Sections list and can be removed. Retired Sections cannot be newly discovered or added and are omitted
+    from current personal calendar events/feeds.
+- id: subscribed-sections.section-codes-promoted
+  category: presentation
+  rule: In the 'subscribed context', users manage specific section relationships, so section codes are
+    intentionally promoted.
+- id: subscribed-sections.sidebar-summary-only
+  category: presentation
+  rule: The shell exposes one Section Subscriptions destination and an optional count badge; it must not
+    mirror subscribed sections as dynamic child navigation.
+- id: subscribed-sections.legacy-sections-route
+  category: behavior
+  rule: /workspace/subscriptions/sections is a legacy redirect-only route to /workspace/subscriptions
+    and must not expose page actions.
+- id: subscribed-sections.subscription-kind
+  category: behavior
+  rule: 'Personal subscription items include kind: regular, auditor, or teaching_assistant. Public Section
+    facts remain unchanged. Non-regular kinds show badges in workspace and Bot.'
+capabilities:
+  subscribed-sections-tab:
+    title: Subscribed Sections Tab
+    auth: user
+    links:
+      models:
+      - User
+      - Section
+      ui:
+      - List Table
+    web:
+      pages:
+      - /workspace/subscriptions
+    rest:
+      routes:
+      - path: /api/workspace/subscriptions/current
+        notes:
+        - Returns the current user's subscribed section details and personal subscription feed information;
+          supports the subscribed sections list and personal calendar subscription entry.
+    graphql:
+      fields:
+      - parent: Workspace
+        name: subscribedSections
+        auth: user
+        required_scopes:
+        - workspace.subscription:read
+        rest_equivalent: GET /api/workspace/subscriptions/current
+        mcp_equivalent: workspace_subscription_list
+        notes:
+        - Each item contains kind and section. The nested Section is the public catalog shape.
+    mcp:
+      tools:
+      - name: workspace_subscription_list
+        rest_equivalent: GET /api/workspace/subscriptions/current
+        notes:
+        - Returns subscribed sections across all semesters, including past terms.
+      - name: workspace_calendar_feed_get
+        rest_equivalent: GET /api/workspace/subscriptions/current
+        notes:
+        - Returns subscription information and subscribed sections without a personal iCal feed URL, calendarPath,
+          credential, or token.
+        - Use full mode only when the caller explicitly needs the full subscribed section list on the
+          same response; full mode still does not include the private feed URL.
+    presentation:
+      items:
+      - semester group label and count
+      - subscription.sections[].code
+      - subscription.sections[].course.namePrimary
+      - section.teachers[]
+      - section.credits
+      - Row opens section subscription details and the available actions, including Unsubscribe

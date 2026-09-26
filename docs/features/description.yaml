@@ -1,0 +1,123 @@
+kind: feature
+id: description
+name: Description
+areas:
+- community
+- admin
+access:
+  anon: Can read public descriptions.
+  user: When signed in and not suspended, can maintain descriptions.
+  admin: Can review and maintain descriptions in the admin backend.
+  agent: Can read object descriptions through MCP and maintain them through GraphQL or MCP after authorization.
+requirements:
+- id: description.homework-calendar-invalidation
+  category: consistency
+  rule: A committed homework description write enqueues a calendar export rebuild for its section. Unchanged
+    retries enqueue the same rebuild so a previously failed enqueue can recover. Failed transactions never
+    enqueue a rebuild.
+- id: description.public-cache-invalidation
+  category: consistency
+  rule: Successful description writes and administrator moderation invalidate cached public HTML and its
+    structured data after the transaction commits. Repeating an unchanged write also retries invalidation
+    after a previous purge failure.
+- id: description.public-web-personal-overlay
+  category: consistency
+  rule: Public course, teacher and section SSR retains description text and structured data with an anonymous
+    viewer. Hydration resolves current viewer permissions through the existing private descriptions API
+    before enabling edit or sign-in actions; a failed read remains retryable and cannot grant write access.
+- id: description.supplement-not-comment
+  category: behavior
+  rule: Description is a Markdown supplement on an object, not equivalent to comments expressing personal
+    opinions.
+- id: description.attached-object-types
+  category: behavior
+  rule: Attached objects include courses, sections, teachers, homework, and similar.
+- id: description.platform-maintained
+  category: authorization
+  rule: When descriptions conflict with personal experiences in comments, descriptions are treated as
+    platform-maintained information by default.
+- id: description.server-rendered-markdown
+  category: presentation
+  rule: Description payloads include content as the source Markdown and renderedHtml as sanitized server-rendered
+    HTML. Web read surfaces consume renderedHtml without rerunning the Markdown pipeline during hydration;
+    REST and MCP full mode keep the shared description payload, while MCP compact modes omit renderedHtml
+    to avoid repeating the source Markdown in AI context.
+capabilities:
+  object-description-section:
+    title: Object Description Section
+    auth: anon
+    web: stable
+    graphql:
+      mutations:
+      - name: descriptionSet
+        auth: user
+        required_scopes:
+        - community.description:write
+        rest_equivalent: POST /api/community/descriptions
+        mcp_equivalent: community_description_set
+        notes:
+        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
+          teacherId, homeworkId.
+    rest:
+      routes:
+      - path: /api/community/descriptions
+        notes:
+        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
+          teacherId, homeworkId.
+        - Returns 404 when the attached target entity does not exist.
+      - path: /api/community/descriptions
+        method: POST
+        auth: user
+        notes:
+        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
+          teacherId, homeworkId.
+        - Concurrent first writes to the same target must resolve to a stable create/update result while
+          preserving DescriptionEdit operation history; previousContent snapshots are best-effort under
+          concurrent writes.
+    mcp:
+      tools:
+      - name: community_description_get
+        notes:
+        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
+          teacherId, homeworkId.
+      - name: community_description_set
+        auth: user
+        notes:
+        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
+          teacherId, homeworkId.
+        - Concurrent first writes to the same target must resolve to a stable create/update result while
+          preserving DescriptionEdit operation history; previousContent snapshots are best-effort under
+          concurrent writes.
+    presentation:
+      items:
+      - description.content (markdown-rendered)
+      - description.renderedHtml (sanitized server-rendered HTML)
+      - description.lastEditedBy.name
+      - description.lastEditedAt / updatedAt
+      - Edit button (if authorized)
+      - history count
+      - history editor
+      - previous/updated diff content
+  description-governance:
+    title: Description Governance
+    auth: admin
+    web:
+      pages:
+      - /admin/moderation
+    rest:
+      routes:
+      - path: /api/admin/descriptions
+        notes:
+        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+      - path: /api/admin/descriptions/[id]
+        method: PATCH
+        notes:
+        - Shares the same admin moderation service as /admin/moderation description edits and commits
+          DescriptionEdit plus admin_description_moderate audit entries with the content update.
+    mcp: unavailable
+    presentation:
+      items:
+      - description.content / preview
+      - object target
+      - lastEditedBy name
+      - timestamp

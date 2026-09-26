@@ -1,0 +1,215 @@
+kind: feature
+id: subscription
+name: Subscription
+areas:
+- workspace
+access:
+  anon: Can see the subscription entry but cannot directly create a subscription.
+  user: Can only manage their own section subscription relationships.
+  admin: Does not manage personal subscriptions on behalf of users through ordinary pages.
+  agent: After OAuth authorization, can manage the current user's own subscription relationships; REST
+    and MCP both support the same semantic operations.
+requirements:
+- id: subscription.subscription-language
+  category: presentation
+  rule: User-facing copy uses 'section subscription', 'subscribe', and 'unsubscribe' consistently; it
+    must not use 'follow' or describe the action as course enrollment.
+- id: subscription.web-quick-add-selection
+  category: presentation
+  rule: Quick-add search auto-selects a section only when the entire result contains exactly one section
+    and it is not already subscribed. Multiple results start unselected, even when only one result remains
+    unsubscribed. Each new search resets the selection. Already-subscribed sections remain checked and
+    disabled without contributing to the submission count. The results description explains the 20-section
+    limit and asks users to narrow their search.
+- id: subscription.user-scoped
+  category: authorization
+  rule: Subscription relationships belong only to the current user and determine the display scope for
+    home page, calendar, homework, and exam.
+- id: subscription.bounded-batch-input
+  category: validation
+  rule: Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500
+    lookup codes per request, in addition to the per-user batch request budget.
+- id: subscription.personal-kind
+  category: behavior
+  rule: Subscriptions default to regular. Only an existing subscription may be marked auditor or teaching_assistant
+    by its owner. Adding/importing never overwrites its kind. Web edits are available only in workspace
+    subscriptions, without explanatory callouts.
+- id: subscription.ta-calendar
+  category: consistency
+  rule: Personal calendar course names for teaching_assistant subscriptions are prefixed with [TA]. Public
+    calendar exports remain unpersonalized.
+capabilities:
+  subscribe-from-section:
+    title: Subscribe from Section Detail
+    auth: user
+    links:
+      models:
+      - User
+      - Section
+      ui:
+      - Detail Hero
+    web:
+      pages:
+      - /catalog/sections/[jwId]
+    graphql:
+      mutations:
+      - name: subscriptionAdd
+        auth: user
+        required_scopes:
+        - workspace.subscription:write
+        mcp_equivalent: workspace_subscription_add
+      - name: subscriptionRemove
+        auth: user
+        required_scopes:
+        - workspace.subscription:write
+        mcp_equivalent: workspace_subscription_remove
+    rest: unavailable
+    mcp:
+      tools:
+      - name: workspace_subscription_add
+        notes:
+        - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
+        - Default and the deprecated summary alias return a compact subscription update result instead
+          of the full subscribed section list.
+        - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
+      - name: workspace_subscription_remove
+        notes:
+        - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
+        - Default and the deprecated summary alias return a compact subscription update result instead
+          of the full subscribed section list.
+        - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
+    presentation:
+      items:
+      - Subscribe/unsubscribe icon button state
+      - Subscription disclaimer copy
+  batch-subscribe-by-codes:
+    title: Batch Subscribe by Course Codes
+    auth: user
+    links:
+      models:
+      - Section
+      - User
+    web:
+      pages:
+      - /workspace/subscriptions
+      - /account/welcome
+    graphql:
+      mutations:
+      - name: subscriptionsImport
+        auth: user
+        required_scopes:
+        - workspace.subscription:write
+        rest_equivalent: POST /api/workspace/subscriptions/batch
+        mcp_equivalent: workspace_subscription_import
+        notes:
+        - Accepts at most 500 unique public section/course codes; internal section IDs are intentionally
+          not exposed.
+        - ADD and REMOVE require at least one code.
+        - Unknown codes remain successful unmatchedCodes results, matching REST preview-and-apply semantics.
+    rest:
+      routes:
+      - path: /api/workspace/subscriptions/query
+        method: POST
+        notes:
+        - Preferred batch query endpoint for calendar subscription picker flows.
+        - Accepts sectionIds plus mixed section/course codes through codes[].
+        - Code matching is semester-scoped; omitted semesterId uses the current semester.
+      - path: /api/workspace/subscriptions/batch
+        method: POST
+        notes:
+        - Preferred mutation endpoint for batch subscribe and unsubscribe flows.
+        - Accepts action plus sectionIds and/or mixed section/course codes.
+        - ADD appends matched active sections and skips sections already subscribed; REMOVE removes only
+          matched sections.
+      - path: /api/catalog/sections/match-codes
+        method: POST
+        auth: anon
+      - path: /api/workspace/subscriptions
+        method: PATCH
+        notes:
+        - ID-only append endpoint for callers that already resolved section IDs; appends selected IDs
+          without replacing the caller's whole subscription set.
+        - Used by workspace and welcome bulk-import confirmation after users deselect unwanted matched
+          sections.
+        - Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.
+        - Already-subscribed selected sections are counted but not duplicated.
+      - path: /api/workspace/subscriptions
+        method: DELETE
+        notes:
+        - ID-only remove endpoint for callers that already resolved section IDs.
+        - Remove selected section IDs without replacing the caller's whole subscription set.
+        - Used by workspace opt-out controls so concurrent additions are not overwritten by stale client-side
+          read-merge-replace flows.
+        - Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.
+      - path: /api/workspace/subscriptions/import-codes
+        method: POST
+        notes:
+        - Compatibility convenience endpoint that combines code matching with an append-only subscription
+          mutation.
+        - Codes may be section codes or course codes in the selected/current semester.
+        - Does not replace the caller's whole subscription set, so concurrent additions are not overwritten
+          by stale client-side read-merge-replace flows.
+    mcp:
+      tools:
+      - name: catalog_section_match_preview
+        rest_equivalent: POST /api/catalog/sections/match-codes
+        notes:
+        - Returns suggestions for unmatched inputs when close section codes in the selected semester share
+          a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.
+        - Prefer this read-only preview before workspace_subscription_import when the caller needs confirmation
+          or typo recovery.
+        - MCP callers that need per-section selection can subscribe selected preview results by calling
+          workspace_subscription_add with each section.jwId.
+      - name: workspace_subscription_import
+        rest_equivalent: POST /api/workspace/subscriptions/import-codes
+        notes:
+        - Convenience mutation that combines matching with subscription update.
+        - Use catalog_section_match_preview first when the caller needs a dry-run style preview.
+        - Default and the deprecated summary alias return the subscription totals plus feed link information,
+          not the entire subscribed section list.
+        - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
+    presentation:
+      items:
+      - A standalone quick-add dialog searches section codes, course codes, localized course names, and
+        localized teacher names within one semester, shows matching sections as checkbox options, and
+        subscribes the selected sections without entering the batch-import confirmation flow
+      - A separate batch-import dialog links to the undergraduate and graduate academic systems, explains
+        how to copy section codes such as MATH1001.01 from course selection results, and accepts the pasted
+        text for the matching semester
+      - Batch subscribe and unsubscribe actions
+      - Subscribed sections are grouped by semester into separate responsive tables ordered from the latest
+        semester to the earliest; the layout stays single-column until an extra-wide viewport, where supporting
+        browsers use native CSS Grid Lanes to pack tables into two columns and other browsers fall back
+        to a row-ordered two-column grid
+      - Long course names and teacher lists are visually truncated inside table rows; when truncated,
+        their complete text remains available from the shared tooltip and the section details dialog
+      - Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe
+        action guarded by a destructive confirmation dialog
+      - Matched quick-add options show course, code, semester, campus, and teachers; already-subscribed
+        sections cannot be selected again
+      - Unmatched codes
+  update-kind:
+    title: Update personal subscription kind
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions
+    rest:
+      routes:
+      - path: /api/workspace/subscriptions/{jwId}
+        method: PATCH
+    graphql:
+      mutations:
+      - name: subscriptionKindUpdate
+        auth: user
+        required_scopes:
+        - workspace.subscription:write
+        rest_equivalent: PATCH /api/workspace/subscriptions/{jwId}
+        mcp_equivalent: workspace_subscription_kind_update
+    mcp:
+      tools:
+      - name: workspace_subscription_kind_update
+    presentation:
+      items:
+      - Auditor/teaching-assistant badge on subscribed sections; regular has no badge
+      - Subscription kind editor in workspace subscriptions only

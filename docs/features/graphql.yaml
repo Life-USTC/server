@@ -1,0 +1,223 @@
+kind: feature
+id: graphql
+name: GraphQL
+areas:
+- platform
+access:
+  anon: Can query the public academic catalog and bus timetable through /api/graphql.
+  user: Can use public queries, authenticated Workspace and Account fields, and personal mutations through
+    a trusted same-origin Session.
+  admin: Uses the same Account, Workspace, Catalog, Community, and ordinary mutation surfaces as a regular
+    user; GraphQL exposes no admin governance fields or mutations.
+  agent: Direct GraphQL HTTP callers use a bearer token issued for the GraphQL resource and matching feature
+    scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or compatible
+    registered operations through the shared schema and resolver-level feature scopes.
+requirements:
+- id: graphql.scoped-mutations
+  category: authorization
+  rule: Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer
+    callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session
+    callers receive the equivalent first-party access.
+- id: graphql.batch-mutations
+  category: behavior
+  rule: Todo, homework, and comment-delete batches preserve REST per-item results. Section subscriptions
+    reuse the shared transaction-aware service. Workspace pins validate all slugs, then preserve ordered
+    non-atomic execution and retry ambiguity. Every batch uses the stricter feature:batch-write budget;
+    ID-target batches reject duplicates before writing.
+- id: graphql.single-endpoint
+  category: behavior
+  rule: GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.
+- id: graphql.production-discovery
+  category: behavior
+  rule: GraphiQL and schema introspection are disabled in production.
+- id: graphql.request-budgets
+  category: validation
+  rule: Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level
+    fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated
+    selection by its effective pageSize, including values supplied through variables.
+- id: graphql.graphql-operation-runner
+  category: behavior
+  rule: MCP accepts exactly one arbitrary document or compatible registered operation ID. Arbitrary documents
+    pass through the production Yoga validation, introspection, depth, alias, directive, token, top-level-field,
+    cost, timeout, error-masking, and resolver scope pipeline. Every selected mutation requires confirmed=true.
+- id: graphql.graphql-operation-prompt
+  category: presentation
+  rule: MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation
+    manifest and guides one bounded graphql_operation_run call, including minimum scopes, explicit mutation
+    confirmation, and timeout-safe retry behavior.
+- id: graphql.mutation-timeout-ambiguity
+  category: consistency
+  rule: A GraphQL timeout or caller cancellation stops waiting for the result but cannot guarantee rollback
+    after a mutation resolver has started. The final state is indeterminate; clients must inspect current
+    state and must not blindly retry a mutation.
+- id: graphql.registered-operation-coverage
+  category: consistency
+  rule: The compatibility manifest covers every current public Query root field, each Workspace or Account
+    field, and every ordinary business Mutation root field. Authentication and OAuth protocol operations,
+    admin governance, upload raw-byte transfer, GraphQL subscriptions, and introspection remain outside
+    the MCP runner.
+- id: graphql.upload-workflow-boundary
+  category: privacy
+  rule: Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit,
+    and storage-delete invariants. They can return an authenticated on-site PUT workflow URL but never
+    accept or proxy raw bytes. Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves
+    metadata.
+- id: graphql.pagination
+  category: validation
+  rule: 'Every GraphQL collection is bounded: Workspace todos, subscriptions, homeworks, schedules, and
+    exams use PageInput, while nested Schedule.teachers, Schedule.teacherParticipations and Exam.examRooms
+    return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, page must be between
+    1 and 100, and pageSize must be between 1 and 100.'
+- id: graphql.search-boundary
+  category: validation
+  rule: GraphQL search filter strings accept 2-200 characters, matching public catalog REST, Web, and
+    MCP search surfaces.
+- id: graphql.resolver-boundary
+  category: consistency
+  rule: Resolvers call feature-owned services only; they do not issue internal HTTP requests or access
+    Prisma directly.
+- id: graphql.request-cache
+  category: consistency
+  rule: The principal and entity DataLoaders are request-scoped; authentication is resolved once per request
+    and every response is marked no-store.
+- id: graphql.safe-errors
+  category: privacy
+  rule: Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors
+    retain stable codes and status metadata across HTTP and the MCP registered runner; only trusted GraphQLErrors
+    pass the allowlist, while unexpected or forged resolver failures are masked without internal details.
+- id: graphql.semantic-observability
+  category: privacy
+  rule: Each attempted HTTP or MCP GraphQL operation records one sanitized semantic observation with its
+    operation name and type, top-level field count, estimated cost, duration, GraphQL error count, internal
+    error count, auth mode, and server request ID. Expected parse, validation, authorization, and domain
+    errors remain informational while INTERNAL_SERVER_ERROR outcomes use error severity; raw documents,
+    variables, credentials, argument values, and error details are excluded.
+- id: graphql.scoped-query-auth
+  category: authorization
+  rule: Query.account and Query.workspace return null for an anonymous caller. Their child fields independently
+    enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing
+    user authority.
+- id: graphql.workspace-ownership
+  category: authorization
+  rule: Workspace collections derive ownership from the authenticated user relation in feature services
+    and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.
+- id: graphql.homework-completion-requirement
+  category: consistency
+  rule: Workspace and community homework reads expose completionRequired, derived from the viewer's current
+    section subscription kind. Teaching-assistant homework displays no completion required while preserving
+    actual completion state and pending-scope deadline semantics.
+- id: graphql.zoned-datetime
+  category: consistency
+  rule: DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
+    with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize
+    to their Asia/Shanghai calendar day before querying @db.Date columns.
+- id: graphql.schema-evolution
+  category: consistency
+  rule: CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base
+    schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label
+    is present; approval skips only that base-compatibility comparison.
+- id: graphql.room-maps
+  category: behavior
+  rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,
+    or unavailable status.'
+- id: graphql.subscription-kind
+  category: behavior
+  rule: Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate
+    edits existing owner-scoped membership only.
+- id: graphql.young-workspace
+  category: behavior
+  rule: Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range
+    calendars use shared owner-scoped services. See docs/features/young-workspace.yaml for capability
+    scopes and docs/graphql/schema.graphql for generated signatures.
+- id: graphql.source-metadata
+  category: consistency
+  rule: 'YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST
+    and MCP: arrays are non-null, while unknown scalar fields are null. Section exposes requiredWeeks
+    and catalogAdminClasses localized names independently of ID-backed administrative classes. Exam exposes
+    grades, adminClassNames and monitors containing only school IDs and localized names, matching REST/MCP
+    catalog records.'
+- id: graphql.scoped-queries.community-read-boundary
+  category: authorization
+  rule: Community exposes user profiles only; comment and shared-description reads are unavailable in
+    GraphQL. After an ambiguous write, inspect /api/community/comments or /api/community/descriptions
+    using a session or a REST-audience token with the required read scope; MCP callers may use native
+    read tools. A GraphQL token is not a REST token. Do not blindly retry.
+  applies_to:
+  - scoped-queries
+capabilities:
+  public-query-endpoint:
+    title: Public Queries and Scoped Personal Mutations
+    auth: anon
+    graphql: stable
+    presentation:
+      items:
+      - /api/graphql
+      - Public semester, course, section, teacher, and bus queries
+      - Authenticated Workspace and Account reads with exact feature:read scopes
+      - Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches,
+        workspace pin batches, upload workflow metadata and ownership actions, bus preference, description,
+        and comment mutations
+      - GET, POST, and OPTIONS
+      - GraphQL-audience bearer tokens require matching feature scopes
+      - MCP executes arbitrary documents or compatible registered-operation IDs with resolver-level scopes
+  scoped-queries:
+    title: Authenticated Workspace and Account Queries
+    auth: user
+    graphql:
+      queries:
+      - name: catalog
+      - name: workspace
+        notes:
+        - Returns null for anonymous requests; each selected child field enforces its exact feature read
+          scope.
+      - name: community
+      - name: account
+        notes:
+        - Returns null for anonymous requests; each selected child field enforces its exact account read
+          scope.
+    presentation:
+      items:
+      - account.profile / account.clientActivity
+      - catalog.courses / catalog.sections / catalog.teachers
+      - catalog.semesters / catalog.currentSemester / catalog.busRoutes / catalog.busTimetable
+      - catalog.youngEvents / catalog.youngEvent
+      - community.user
+      - workspace.overview / workspace.todos
+      - workspace.subscribedSections / workspace.homeworks
+      - workspace.schedules / workspace.exams
+  schema-resources:
+    title: Schema Resources
+    auth: user
+    mcp:
+      resources:
+      - name: graphql_schema_sdl
+        uri: life-ustc://graphql/schema
+        mime_type: text/plain
+        description: Canonical public GraphQL SDL.
+      - name: graphql_operations_manifest
+        uri: life-ustc://graphql/operations
+        mime_type: application/json
+        description: Versioned registered GraphQL operation metadata, including variables, exact scopes,
+          and safety hints without documents.
+  operation-planning-prompt:
+    title: GraphQL Operation Planning Prompt
+    auth: user
+    mcp:
+      prompts:
+      - name: plan_graphql_operation
+        description: Injects the canonical schema and safe operation manifest before composing a bounded
+          GraphQL tool call.
+  registered-operation-runner:
+    title: GraphQL Operation Runner
+    auth: user
+    mcp:
+      tools:
+      - name: graphql_operation_run
+        description: Executes exactly one arbitrary document or compatible operationId. Every mutation
+          requires confirmed=true.
+        notes:
+        - The schema resource is canonical for arbitrary documents; the operation manifest remains a stable
+          compatibility and discovery surface.
+        - The static tool descriptor is conservative because selected fields determine scopes and safety;
+          exact authorization is enforced by the same resolvers as /api/graphql.
+        - Authorization headers and cookies are never copied into the in-process GraphQL context.

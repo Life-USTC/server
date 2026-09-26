@@ -1,0 +1,128 @@
+kind: feature
+id: ical
+name: Personal Calendar Subscription iCal
+areas:
+- catalog
+- workspace
+access:
+  anon: Can copy a single-section iCal link from the public section detail page and can retrieve a personal
+    feed only when holding its token-bearing URL.
+  user: Can copy their own personal subscription iCal link.
+  admin: No additional exclusive iCal capabilities.
+  agent: After authorization, can read the current user's personal calendar subscription information.
+    REST requires workspace.subscription:read and exposes the private feed URL only with the additional
+    workspace.calendar-feed:read capability; MCP workspace_calendar_feed_get returns subscription information
+    without the personal feed URL, path, credential, or token.
+requirements:
+- id: ical.committed-write-rebuilds
+  category: consistency
+  rule: Calendar export rebuild messages are enqueued only after the source write commits. Homework description
+    edits through the independent description capability rebuild the same subscribed users' feeds as homework
+    edits, including unchanged retries.
+- id: ical.copyable-links
+  category: presentation
+  rule: iCal links should be presented as copyable links rather than requiring users to manually construct
+    them.
+- id: ical.no-second-model
+  category: consistency
+  rule: iCal is an export / subscription capability and should not carry a second business model.
+- id: ical.rfc5545-dtstamp-utc
+  category: consistency
+  rule: Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME
+    with a Z suffix while retaining Asia/Shanghai TZID values for event start and end times.
+- id: ical.bounded-multi-section-export
+  category: validation
+  rule: A multi-section iCal export accepts at most 50 unique positive Section IDs. IDs are deduplicated
+    and sorted into one canonical URL before the expanded Section graph is loaded, so one cold request
+    can expand no more than 50 Sections and equivalent ID sets share the same CDN cache key.
+- id: ical.personal-feed-cache
+  category: consistency
+  rule: Personal feeds may use a private Workers KV cache (30m fresh / 24h stale). Fresh hits serve immediately;
+    stale hits serve cached ICS and enqueue CALENDAR_EXPORT_REBUILD. True misses rebuild on the request
+    path (KV put may defer). Write-time invalidation enqueues rebuilds instead of waitUntil deletes. Include
+    ETag/304. Check the current feed token before any cache read; revoked tokens for an existing user
+    return 410 with short Cache-Control. Never put user IDs or feed tokens in cache telemetry.
+- id: ical.static-json-resilient
+  category: consistency
+  rule: Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev;
+    when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal
+    should still be returned.
+- id: ical.room-maps
+  category: behavior
+  rule: Course and exam events attach highlighted room PNG URLs where annotations exist, otherwise available
+    floor/building images. Include room-labeled map URLs in DESCRIPTION and deduplicate ATTACH URLs across
+    all exam rooms. Unmapped locations do not prevent export.
+capabilities:
+  section-calendar-dialog:
+    title: Section Calendar Dialog
+    auth: anon
+    links:
+      ui:
+      - Calendar Export Dialog
+    web:
+      pages:
+      - /catalog/sections/[jwId]
+    rest:
+      routes:
+      - path: /api/catalog/sections/[jwId]/calendar.ics
+        notes:
+        - Returns text/calendar synthesized from the section's schedule and exams.
+    presentation:
+      items:
+      - iCalendar URL (copyable)
+      - section.code (context)
+      - 'Export format: .ics'
+      - Copy button
+  personal-calendar-subscription:
+    title: Personal Calendar Subscription
+    auth: user
+    links:
+      models:
+      - User
+      - Section
+      ui:
+      - Calendar Export Dialog
+    web:
+      pages:
+      - /workspace/calendar
+    rest:
+      routes:
+      - path: /api/calendar-feeds/[credential].ics
+        notes:
+        - The opaque credential authorizes feed retrieval.
+        - The credential is carried only in the canonical path segment.
+        - An existing user with a valid feed token receives a valid empty VCALENDAR when no items are
+          currently available, so calendar clients can keep the subscription active.
+        - When the user exists but the feed token is wrong or revoked, the route returns 410 Gone with
+          a short Cache-Control so calendar clients stop aggressive re-polling; unknown users return 404.
+          Legacy /api/users/[id]:[token]/calendar.ics URLs permanently redirect (308) here with the credential
+          preserved; the retired JWT-based /api/calendar-subscriptions/[id]/calendar.ics URL has no modern
+          equivalent and returns 410 Gone.
+      - path: /api/workspace/subscriptions/current
+        reference_only: true
+    mcp:
+      tools:
+      - name: workspace_calendar_feed_get
+        rest_equivalent: GET /api/workspace/subscriptions/current
+        notes:
+        - Requires workspace.subscription:read. Returns the current user's subscription information and
+          subscribed sections; it never returns the private personal iCal feed URL, calendarPath, credential,
+          or token-bearing URL.
+        - The deprecated summary input is an alias for the same compact default response.
+        - Full mode adds the complete subscribed section list but does not add a personal iCal feed URL
+          or other feed credential.
+    presentation:
+      items:
+      - iCalendar URL copy button
+  multi-section-ical:
+    title: Multi-Section iCal Export
+    auth: anon
+    web: unavailable
+    rest:
+      routes:
+      - path: /api/catalog/sections/calendar.ics
+        notes:
+        - Generates a multi-section iCal based on a comma-separated sectionIds query parameter.
+        - Accepts at most 50 unique positive Section IDs. Malformed or empty input returns 400.
+        - IDs are deduplicated and sorted; non-canonical requests permanently redirect to the canonical
+          cache URL before loading calendar relations.

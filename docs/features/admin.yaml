@@ -1,0 +1,211 @@
+kind: feature
+id: admin
+name: Admin
+areas:
+- admin
+access:
+  anon: Cannot access the admin backend.
+  user: Cannot access the admin backend.
+  admin: Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block admin
+    mutations but not read-only admin pages/list endpoints.
+  agent: No admin tools are currently provided.
+requirements:
+- id: admin.divided-by-responsibility
+  category: presentation
+  rule: The admin backend is divided by governance responsibility, not all actions on one page.
+- id: admin.moderation-centralized
+  category: presentation
+  rule: Comment and description governance are currently centralized on the moderation page.
+- id: admin.high-risk-feedback
+  category: presentation
+  rule: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
+- id: admin.admin-self-protection
+  category: authorization
+  rule: Admin user management must reject self-suspension, self-demotion, and removing the final remaining
+    admin.
+- id: admin.admin-rest-session-only
+  category: authorization
+  rule: Admin REST endpoints require the in-site Better Auth session cookie and do not accept OAuth bearer
+    tokens.
+- id: admin.paginated-moderation-lists
+  category: behavior
+  rule: Admin comments, descriptions, homeworks, and users use the shared { data, pagination } list envelope
+    and accept page/pageSize with the deprecated limit alias.
+- id: admin.suspended-admin-write-gate
+  category: authorization
+  rule: Admins with an active suspension may load read-only admin pages and list endpoints, but admin
+    REST mutations and page actions are blocked with the standard suspended 403 response until the suspension
+    is lifted.
+- id: admin.suspension-expiration-validation
+  category: validation
+  rule: Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty
+    date strings.
+- id: admin.single-open-suspension
+  category: consistency
+  rule: Each user can have at most one open suspension. Creating a new suspension closes any previous
+    open suspension for that user while retaining history; lifting an open suspension clears the user's
+    open suspension state.
+- id: admin.admin-mutation-not-found
+  category: validation
+  rule: PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return
+    404 when the target record is not found.
+- id: admin.suspension-retention
+  category: consistency
+  rule: Suspension history is retained when an admin account is deleted; creator and lifter actor references
+    may be null after account deletion.
+- id: admin.primary-admin-navigation
+  category: presentation
+  rule: The global shell exposes each admin tool (users, moderation, OAuth, and bus) under Admin tools.
+    /admin redirects to /admin/users; resource URLs remain stable.
+- id: admin.feature-experience-telemetry
+  category: behavior
+  rule: PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded
+    feature, operation, protocol, surface, authentication, outcome, error class, identity, and wall-duration
+    dimensions; Prometheus snapshots expose counters, duration histograms and activity gauges and deduplicate
+    identified users independently per window. Anonymous visitors are not unique users.
+- id: admin.feature-experience-outcomes
+  category: consistency
+  rule: Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no
+    identified error. They contribute to usage but not issue samples or warning logs.
+- id: admin.feature-experience-retention
+  category: consistency
+  rule: Background writes retain at most 256 events per request and use independent PostgreSQL transactions.
+    Overflow, process termination or database failure can lose records; missing history is not zero. Records
+    are cleaned in bounded batches after 90 days, without historical backfill. No Analytics Engine API,
+    token or binding is required.
+- id: admin.responsive-workspace
+  category: presentation
+  rule: Admin management pages share a lightweight workspace order of page identity, optional feedback
+    or filters, then records; desktop tables retain their density while existing compact record views
+    remain the mobile presentation.
+- id: admin.platform-runtime-logs
+  category: privacy
+  rule: Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary
+    paths, messages, stacks, request bodies, search text, IP addresses and credentials. Telemetry writer
+    failures cannot recursively generate telemetry writes.
+- id: admin.prometheus-export
+  category: behavior
+  rule: GET /metrics accepts only the dedicated METRICS_SECRET as a Bearer credential. Missing configuration
+    or invalid credentials return 401 without database reads. It exports durable event counters, cumulative
+    duration histograms and current-state/activity gauges; no raw logs or user/request/client identifiers.
+    This machine-only transport has no GraphQL or MCP equivalent.
+- id: admin.prometheus-collection
+  category: behavior
+  rule: Counters begin at the recorded installation epoch, with no backfill, and update atomically with
+    committed observations. Duplicate retained event IDs and rolled-back writes do not increment counters;
+    retention and identity deletion never decrement them. Counters are fresh each scrape. Expensive gauges
+    are cached 60 seconds (at most 120 during refresh contention); failures return 503.
+- id: admin.prometheus-windows
+  category: behavior
+  rule: Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature
+    activity is grouped by feature and protocol, excluding anonymous users. Event counters have no window
+    label; duration histograms use feature, operation and protocol. Raw observation capture remains bounded
+    and best effort.
+capabilities:
+  admin-entry:
+    title: Admin Entry
+    auth: admin
+    web:
+      pages:
+      - /admin
+    presentation:
+      items:
+      - Redirects to user management
+      - Primary sidebar links for moderation, users, OAuth, and bus
+  moderation:
+    title: Moderation
+    auth: admin
+    web:
+      pages:
+      - /admin/moderation
+    rest:
+      routes:
+      - path: /api/admin/comments
+      - path: /api/admin/comments/[id]
+        method: PATCH
+        reference_only: true
+      - path: /api/admin/descriptions
+      - path: /api/admin/descriptions/[id]
+        method: PATCH
+        reference_only: true
+      - path: /api/admin/suspensions
+      - path: /api/admin/suspensions
+        method: POST
+        reference_only: true
+      - path: /api/admin/suspensions/[id]
+        method: PATCH
+        reference_only: true
+      - path: /api/admin/homeworks
+      - path: /api/admin/homeworks/[id]
+        method: DELETE
+        reference_only: true
+    mcp: unavailable
+    presentation:
+      items:
+      - Comment moderation table
+      - Description moderation table
+      - content/descriptionPreview
+      - author / lastEditedBy
+      - postedIn target
+      - timestamp
+      - comment status
+      - detail dialog controls
+  user-management:
+    title: User Management
+    auth: admin
+    web:
+      pages:
+      - /admin/users
+    rest:
+      routes:
+      - path: /api/admin/users
+      - path: /api/admin/users/[id]
+        method: PATCH
+        notes:
+        - Returns 404 when the target user is not found.
+    mcp: unavailable
+    presentation:
+      items:
+      - user.email
+      - user.name
+      - user.username
+      - user.createdAt
+      - Is admin checkbox
+      - 'Actions: edit profile/admin state, suspend/unsuspend'
+  oauth-client-management:
+    title: OAuth Client Management
+    auth: admin
+    web:
+      pages:
+      - /admin/oauth
+    rest: unavailable
+    mcp: unavailable
+    presentation:
+      items:
+      - client.name and client.clientId
+      - client trust and fixed authentication type
+      - client enabled/disabled status
+      - client.scopes[] summary
+      - client.createdAt
+      - Empty inventory explanation and create-client action
+      - 'Create: name, explicit redirect URIs, scopes, and one of three fixed client patterns'
+      - Client secret is shown once after creation and never in the inventory
+      - 'Action: confirmed delete'
+  bus-management:
+    title: Bus Management
+    auth: admin
+    web:
+      pages:
+      - /admin/bus
+    rest: unavailable
+    mcp: unavailable
+    presentation:
+      items:
+      - Bus schedule version title
+      - version key
+      - tripCount
+      - weekday, Saturday, and Sunday service-day trip data
+      - importedAt
+      - effective range
+      - enabled status
+      - 'Actions: import, activate, delete'

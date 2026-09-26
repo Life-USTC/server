@@ -1,0 +1,151 @@
+kind: feature
+id: teacher
+name: Teacher
+areas:
+- catalog
+access:
+  anon: Can browse teacher information.
+  user: Can browse teacher information. Cannot modify teacher fact data.
+  admin: Can browse teacher information. Does not directly modify teacher facts through ordinary pages.
+  agent: Can directly read teacher lists and details; also indirectly consumes teacher information in
+    course and section results.
+requirements:
+- id: teacher.public-web-personal-overlay
+  category: consistency
+  rule: Teacher detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in
+    requests. Public description content remains in SSR; description permissions and comments are resolved
+    through private client requests.
+- id: teacher.identified-by-name
+  category: presentation
+  rule: Teacher objects are naturally identified by name.
+- id: teacher.section-code-auxiliary
+  category: presentation
+  rule: Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching
+    section list.
+- id: teacher.public-list-cache
+  category: consistency
+  rule: 'Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and
+    locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use
+    shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime
+    caching. Localized HTML pages use their locale-partitioned SSR cache.'
+- id: teacher.mobile-detail-hierarchy
+  category: presentation
+  rule: Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab
+    rail on mobile.
+- id: teacher.detail-canonical-url
+  category: behavior
+  rule: The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=`
+    deep links permanently redirect to the root; optional hash anchors scroll within the page.
+- id: teacher.bounded-detail-history
+  category: consistency
+  rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
+    Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated
+    HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
+    entity root.'
+- id: teacher.history-page-validation
+  category: validation
+  rule: sectionsPage defaults to 1 only when omitted. Supplied values must be positive decimal integers
+    without leading zeros, signs, fractions, exponent notation, or whitespace. Reject invalid values and
+    pages above 450359962737050 with 400 before database access, keeping the 20-row offset within Number.MAX_SAFE_INTEGER.
+- id: teacher.public-detail-fields
+  category: behavior
+  rule: Public teacher payloads explicitly select allowed fields; never source-only columns such as age,
+    postcode, QQ, or WeChat.
+- id: teacher.public-detail-cache
+  category: consistency
+  rule: Anonymous REST, MCP, and single-entity GraphQL Teacher reads share a revision-, locale-, ID-,
+    and response-shape-scoped runtime cache. Missing entities are not cached.
+capabilities:
+  teacher-list:
+    title: Teacher List & Filter
+    auth: anon
+    links:
+      models:
+      - Teacher
+      ui:
+      - List Table
+    web:
+      pages:
+      - /catalog/teachers
+    rest:
+      routes:
+      - path: /api/catalog/teachers
+        notes:
+        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated
+          limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are
+          rejected instead of clamped.
+    graphql:
+      queries:
+      - name: teachers
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/teachers
+        mcp_equivalent: catalog_teacher_search
+        notes:
+        - PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100, and
+          search within 2-200 characters.
+    mcp:
+      tools:
+      - name: catalog_teacher_search
+        rest_equivalent: GET /api/catalog/teachers
+        notes:
+        - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
+    presentation:
+      items:
+      - teacher.namePrimary
+      - teacher.nameSecondary (locale-dependent)
+      - teacher.department.namePrimary
+      - teacher.teacherTitle.namePrimary
+      - teacher.email
+      - teacher._count.sections
+      filters:
+      - search
+      - departmentId
+  teacher-detail:
+    title: Teacher Detail
+    auth: anon
+    links:
+      models:
+      - Teacher
+      ui:
+      - Detail Hero
+      - Detail Two-Column Stream
+      - Basic Info Card
+    web:
+      pages:
+      - /catalog/teachers/[id]
+    rest:
+      routes:
+      - path: /api/catalog/teachers/[id]
+        notes:
+        - sections is a newest-first preview capped at 20 records; _count.sections is the complete historical
+          total.
+    graphql:
+      queries:
+      - name: teacher
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/teachers/[id]
+        mcp_equivalent: catalog_teacher_get
+    mcp:
+      tools:
+      - name: catalog_teacher_get
+        rest_equivalent: GET /api/catalog/teachers/[id]
+    presentation:
+      items:
+      - teacher.namePrimary (h1)
+      - teacher.nameSecondary (Locale subtitle)
+      - teacher.department.namePrimary
+      - teacher.teacherTitle.namePrimary
+      - teacher.email (if not null)
+      - teacher.telephone (if not null)
+      - teacher.mobile (if not null)
+      - teacher.address (if not null)
+      - section.semester.nameCn (Badge)
+      - section.course.namePrimary + nameSecondary
+      - section.code (Plain monospace text)
+      - section.credits (or empty)
+      - comment.id
+      - comment.author.name
+      - comment.author.image
+      - comment.body
+      - comment.createdAt
+      - description.content (Markdown-rendered via DescriptionLoader)

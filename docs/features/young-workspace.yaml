@@ -1,0 +1,236 @@
+kind: feature
+id: young-workspace
+name: Young Workspace
+areas:
+- workspace
+access:
+  anon: Public catalog and permitted comments only.
+  user: Own activity and organizer subscriptions, notifications and personal calendar.
+  admin: Same personal capabilities as users.
+  agent: Same capabilities through feature-scoped OAuth.
+requirements:
+- id: young-workspace.subscription
+  category: behavior
+  rule: Subscribing never registers attendance. Event subscriptions add activity instants to personal
+    calendars and ICS; organizer follows only create daily new-event digests.
+- id: young-workspace.ownership
+  category: authorization
+  rule: User identity comes from the authenticated principal; private tables enforce owner RLS. Reads
+    are private/no-store.
+- id: young-workspace.reminders
+  category: behavior
+  rule: Signup opening after subscription, deadline 24h before, event start 1h before, each independently
+    configurable. Scheduled generation every 10 minutes and refresh on notification listing. Expired reminders
+    excluded; important activity changes refresh calendar export and remove superseded reminders.
+- id: young-workspace.digest
+  category: behavior
+  rule: Previous Shanghai day newly discovered future events, after follow time, grouped per organizer;
+    no retroactive flood and no automatic event subscriptions.
+- id: young-workspace.calendar
+  category: behavior
+  rule: Inclusive Shanghai date-only bounds; explicit-offset instants and Shanghai timezone-less datetime
+    bounds, maximum 366 days, paired bounds or default seven-day window. REST/GraphQL paginated; MCP complete
+    unified event list. GraphQL boundary strings share service validation. Unknown event start times are
+    not invented.
+- id: young-workspace.history
+  category: behavior
+  rule: Imported events and subscriptions survive source absence. Absence does not imply cancellation.
+capabilities:
+  workspace-young-event-subscription-list:
+    title: youngEventSubscriptions
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/young-event-subscriptions
+    graphql:
+      queries:
+      - name: youngEventSubscriptions
+        parent: Workspace
+        required_scopes:
+        - workspace.young-subscription:read
+        mcp_equivalent: workspace_young_event_subscription_list
+    mcp:
+      tools:
+      - name: workspace_young_event_subscription_list
+        rest_equivalent: GET /api/workspace/young-event-subscriptions
+  workspace-young-event-subscription-get:
+    title: youngEventSubscription
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/young-event-subscriptions/[youngId]
+    graphql:
+      queries:
+      - name: youngEventSubscription
+        parent: Workspace
+        required_scopes:
+        - workspace.young-subscription:read
+        mcp_equivalent: workspace_young_event_subscription_get
+    mcp:
+      tools:
+      - name: workspace_young_event_subscription_get
+        rest_equivalent: GET /api/workspace/young-event-subscriptions/[youngId]
+  workspace-young-organizer-subscription-list:
+    title: youngOrganizerSubscriptions
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/young-organizer-subscriptions
+    graphql:
+      queries:
+      - name: youngOrganizerSubscriptions
+        parent: Workspace
+        required_scopes:
+        - workspace.young-subscription:read
+        mcp_equivalent: workspace_young_organizer_subscription_list
+    mcp:
+      tools:
+      - name: workspace_young_organizer_subscription_list
+        rest_equivalent: GET /api/workspace/young-organizer-subscriptions
+  workspace-young-organizer-subscription-get:
+    title: youngOrganizerSubscription
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/young-organizer-subscriptions/[organizerId]
+    graphql:
+      queries:
+      - name: youngOrganizerSubscription
+        parent: Workspace
+        required_scopes:
+        - workspace.young-subscription:read
+        mcp_equivalent: workspace_young_organizer_subscription_get
+    mcp:
+      tools:
+      - name: workspace_young_organizer_subscription_get
+        rest_equivalent: GET /api/workspace/young-organizer-subscriptions/[organizerId]
+  workspace-young-notification-list:
+    title: youngNotifications
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/young-notifications
+    graphql:
+      queries:
+      - name: youngNotifications
+        parent: Workspace
+        required_scopes:
+        - workspace.young-notification:read
+        mcp_equivalent: workspace_young_notification_list
+    mcp:
+      tools:
+      - name: workspace_young_notification_list
+        rest_equivalent: GET /api/workspace/young-notifications
+  workspace-calendar-event-list:
+    title: calendarEvents
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/calendar/events
+    graphql:
+      queries:
+      - name: calendarEvents
+        parent: Workspace
+        required_scopes:
+        - workspace.calendar:read
+        mcp_equivalent: workspace_calendar_event_list
+    mcp:
+      tools:
+      - name: workspace_calendar_event_list
+        rest_equivalent: GET /api/workspace/calendar/events
+  workspace-young-event-subscription-set:
+    title: youngEventSubscriptionSet
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: PUT
+        path: /api/workspace/young-event-subscriptions/[youngId]
+    graphql:
+      mutations:
+      - name: youngEventSubscriptionSet
+        parent: Mutation
+        required_scopes:
+        - workspace.young-subscription:write
+        mcp_equivalent: workspace_young_event_subscription_set
+    mcp:
+      tools:
+      - name: workspace_young_event_subscription_set
+        rest_equivalent: PUT /api/workspace/young-event-subscriptions/[youngId]
+  workspace-young-organizer-subscription-set:
+    title: youngOrganizerSubscriptionSet
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: PUT
+        path: /api/workspace/young-organizer-subscriptions/[organizerId]
+    graphql:
+      mutations:
+      - name: youngOrganizerSubscriptionSet
+        parent: Mutation
+        required_scopes:
+        - workspace.young-subscription:write
+        mcp_equivalent: workspace_young_organizer_subscription_set
+    mcp:
+      tools:
+      - name: workspace_young_organizer_subscription_set
+        rest_equivalent: PUT /api/workspace/young-organizer-subscriptions/[organizerId]
+  workspace-young-notification-read:
+    title: youngNotificationRead
+    auth: user
+    web:
+      pages:
+      - /workspace/subscriptions/activities
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: POST
+        path: /api/workspace/young-notifications/[id]/read
+    graphql:
+      mutations:
+      - name: youngNotificationRead
+        parent: Mutation
+        required_scopes:
+        - workspace.young-notification:write
+        mcp_equivalent: workspace_young_notification_read
+    mcp:
+      tools:
+      - name: workspace_young_notification_read
+        rest_equivalent: POST /api/workspace/young-notifications/[id]/read
