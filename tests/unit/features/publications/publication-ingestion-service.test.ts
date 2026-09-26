@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { publicationIngestionBatchResponseSchema } from "@/lib/api/schemas/response-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL } from "@/lib/auth/service-principal";
-import fixture from "../../../../docs/contracts/fixtures/publication-batch.json";
+import fixture from "../../../fixtures/publication-batch.json";
 
 type QueryArgs = {
   where?: Record<string, unknown>;

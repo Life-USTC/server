@@ -1,0 +1,44 @@
+kind: policy
+id: permission-ui
+title: Permission-aware presentation
+requirements:
+- id: permission-ui.identity-1
+  category: presentation
+  topic: identity
+  rule: 'Names remain the primary identity: they own h1 and list titles.'
+- id: permission-ui.identity-2
+  category: presentation
+  topic: identity
+  rule: A compact public course code may precede the mobile detail title for disambiguation, while the name
+    remains visually dominant; this does not authorize displaying jwId or database IDs.
+- id: permission-ui.identity-3
+  category: presentation
+  topic: identity
+  rule: Codes, semesters, and numbers primarily serve disambiguation and retrieval.
+- id: permission-ui.identity-4
+  category: presentation
+  topic: identity
+  rule: jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default.
+roles:
+- id: anon
+  description: Can only perform public browsing and pre-sign-in guidance actions.
+- id: user
+  description: Cannot modify authoritative schedule or exam records. Users can manage their personal completion
+    state and todos; shared-content writes follow each feature's authorization rules.
+- id: admin
+  description: Has governance entries but this does not change the information hierarchy logic on ordinary
+    detail pages.
+- id: agent
+  description: Can receive more structured fields but should not produce a second product model as a result.
+applies_to:
+- id: list-page
+  title: List Page
+- id: detail-page
+  title: Detail Page
+- id: card
+  title: Card
+- id: auxiliary-pages
+  title: Auxiliary Pages
+topics:
+- id: identity
+  title: Identity

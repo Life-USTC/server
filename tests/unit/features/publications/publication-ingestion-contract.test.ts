@@ -17,7 +17,7 @@ import {
   OAUTH_PROVIDER_SCOPES,
   PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
-import fixture from "../../../../docs/contracts/fixtures/publication-batch.json";
+import fixture from "../../../fixtures/publication-batch.json";
 
 describe("publication ingestion contract", () => {
   it("accepts the shared camelCase crawler fixture", () => {

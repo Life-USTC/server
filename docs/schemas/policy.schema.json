@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/policy.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "policy"
+    },
+    "id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "title": {
+      "$ref": "defs.schema.json#/$defs/nonEmptyString"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/requirement"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "policy_refs": {
+      "$ref": "defs.schema.json#/$defs/policyRefs"
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "feature": {
+            "$ref": "defs.schema.json#/$defs/id"
+          },
+          "capability": {
+            "$ref": "defs.schema.json#/$defs/id"
+          }
+        },
+        "required": ["feature"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["id", "description"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "title": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["id", "title"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "audit_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "trigger": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["action", "trigger", "description"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "scopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "owns": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "excludes": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["id", "owns", "excludes"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "terms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "meaning": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["name", "meaning"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "surface_forms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "surface": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "form": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "example": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["surface", "form", "example"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "meaning": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["action", "meaning"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "surface_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "web": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "rest": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "graphql": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "bot": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "cli": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["capability", "web", "rest", "graphql", "bot", "cli"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "hierarchy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["path"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "graphql_roots": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "array",
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "mutation_prefixes": {
+          "type": "array",
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["query", "mutation_prefixes"]
+    },
+    "cache_layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "layer": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "content": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "invalidation": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["layer", "content", "invalidation"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "enforcement": {
+      "enum": ["advisory"]
+    },
+    "title_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pattern": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "when": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "example": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["pattern", "when", "example"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "avoid_examples": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "description_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "unknown": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "defs.schema.json#/$defs/nonEmptyString"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": ["label", "required"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "topics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title"],
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "title": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        }
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": ["kind", "id", "title", "requirements", "topics"]
+}

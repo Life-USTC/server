@@ -1,0 +1,224 @@
+kind: feature
+id: young-event
+name: Young Events
+areas:
+- catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.
+  user: Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.
+  admin: Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.
+  agent: Can read second-classroom (第二课堂) signup events from young.ustc.edu.cn.
+requirements:
+- id: young-event.shared-public-cache
+  category: consistency
+  rule: Public event lists, sanitized detail, categories, organizer identities and static counts share
+    the revision-scoped runtime cache across Web, REST, GraphQL and MCP. Query keys include normalized
+    filters, Shanghai date boundaries, ordering and pagination. Source freshness and organizer upcoming/history
+    counts are evaluated against the current clock outside the snapshot cache.
+- id: young-event.private-client-overlays
+  category: privacy
+  rule: Subscription controls and calendar conflicts share the root-layout viewer state and request their
+    private APIs with no-store only for signed-in viewers; an expired session returns the sign-in state.
+    They never issue a separate shell bootstrap request.
+- id: young-event.public-no-signin
+  category: authorization
+  rule: Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn,
+    so sign-in is not a prerequisite for browsing.
+- id: young-event.static-snapshot-sourced
+  category: behavior
+  rule: Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs)
+    into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time
+    call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once
+    and caches it in R2.
+- id: young-event.snapshot-authoritative
+  category: consistency
+  rule: A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It
+    never infers cancellation. Incomplete snapshots leave existing rows unchanged.
+- id: young-event.organizer-identity
+  category: consistency
+  rule: Organizer names use Unicode NFKC, trim, whitespace collapse, and lowercase. Exact normalized names
+    resolve to stable local YoungOrganizer IDs; matching never uses fuzzy similarity.
+- id: young-event.raw-payload-preserved
+  category: consistency
+  rule: Curated columns cover the high-value upstream fields, including the rich-text description and
+    participation notes, the 第二课堂 module, activity level and participation form, attendance and hour counters,
+    the sponsor and contact person, and the per-slot venue list. The upstream record, including itemPlaceDTO
+    and its place details split into snapshot subtables, stays available under rawJson for REST, GraphQL,
+    and MCP consumers.
+- id: young-event.rich-text-sanitized
+  category: validation
+  rule: description and participationNotes are stored exactly as young.ustc.edu.cn published them. Every
+    interface sanitizes them at serialization time with the shared markdown whitelist (no scripts, iframes,
+    or event handlers) and rewrites young.ustc.edu.cn image URLs to the local cached proxy, so no client
+    ever renders raw upstream HTML or calls the upstream image host.
+- id: young-event.signup-state
+  category: behavior
+  rule: The upstream activity status label and code (status, activityStatusCode) are distinct from the
+    signup phase code (signupStatusCode). requiresSignup reflects the upstream needApply flag. isActive
+    identifies the source list and alone does not guarantee that registration is currently possible. The
+    empty upstream registrationStatus key remains only in rawJson.
+- id: young-event.image-proxy-cached
+  category: consistency
+  rule: The public imageUrl is a local proxy path (/api/catalog/young-events/[youngId]/image). On first
+    miss the route fetches https://young.ustc.edu.cn/login/<pic>, stores bytes in R2 under young-events/images/<pic>,
+    and serves immutable year-long cache headers. Final responses are also held in the per-colo Cache
+    API keyed by youngId for their Cache-Control TTL (200 long-term, 404 for 300s, 502 for 60s); the 503
+    storage-unavailable response is never cached.
+- id: young-event.shanghai-local-times
+  category: consistency
+  rule: Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only
+    range boundaries use Asia/Shanghai day boundaries.
+- id: young-event.date-range-overlap
+  category: consistency
+  rule: dateFrom/dateTo include every overlapping interval selected by timeBasis=activity or registration.
+    Rows missing the selected start time are counted in unknownDateCount and can be paginated with dateUnknown=true.
+    A missing end time is treated as a point at the known start.
+- id: young-event.read-only
+  category: authorization
+  rule: Events are imported facts; no transport exposes writes.
+- id: young-event.structured-participation
+  category: behavior
+  rule: Source category/module/form/level codes, organization IDs, tag IDs and signup scope IDs remain
+    opaque, separate from labels and local organizer identity. Participation columns cover strict binary
+    signup-info and online flags, meeting text, normalized attachment extensions and external sponsor;
+    blank or placeholder sponsor text is null. Arrays use [] for missing values. Internal workflow fields
+    stay in rawJson.
+- id: young-event.display-known-values
+  category: presentation
+  rule: Web shows registration requirements, meeting information, accepted attachment formats and external
+    sponsor when supplied. isOnline reflects the upstream online-meeting option, not an exclusive activity
+    format; false never implies in-person attendance. Unknown occupancy is not zero. Partial time ranges
+    label their known endpoint in Asia/Shanghai; unknown scope codes are not translated into eligibility
+    claims.
+- id: young-event.web-browse-context
+  category: presentation
+  rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
+    detail return links preserve the originating catalog browse route. Unknown-date results show their
+    active filter explicitly.
+- id: young-event.web-organizer-order
+  category: presentation
+  rule: Web organizer browsing orders organizers with at least one isActive event first, then others;
+    each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and
+    MCP organizer ordering remains alphabetical.
+- id: young-event.web-detail-priority
+  category: presentation
+  rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
+    poster, statistics and record metadata are expandable.
+- id: young-event.web-mobile-calendar
+  category: presentation
+  rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;
+    earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify
+    their current view and title the matching date range.
+- id: young-event.fixed-browse-filter-options
+  category: presentation
+  rule: Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
+    校级, 省级 and 国家级. Other upstream values remain visible as badges but do not become filter choices.
+  surfaces:
+  - web
+capabilities:
+  young-event:
+    title: Second-Classroom Events
+    auth: anon
+    web:
+      pages:
+      - /catalog/young-events
+      - /catalog/young-events/[youngId]
+      - /catalog/young-events/calendar
+      - /catalog/young-events/organizers
+      - /catalog/young-events/organizers/[organizerId]
+    rest:
+      routes:
+      - path: /api/catalog/young-events
+        notes:
+        - 'Optional query parameters: active, category, module, activityLevel, search, organizerId, dateFrom,
+          dateTo, timeBasis, page, pageSize.'
+        - Summaries carry the structured upstream fields (activityStatusCode, signupStatusCode, requiresSignup,
+          module, activityLevel, form, grades, sponsor, contactName, contactTel, duration, serviceHour,
+          sumHours, sumPersons, partakeNum, favCount, limitNum, createdAtUpstream, auditedAt, updatedAtUpstream,
+          places) but not the rich-text bodies, which only the detail route returns.
+        - Date ranges include overlapping known intervals; unknown start times are counted separately
+          and available through the paginated dateUnknown filter. source reports fresh, stale, or unknown
+          snapshot freshness; sourceMissing marks rows absent from the latest complete snapshot.
+        - 'Default order: signup-open (active) events first, then by startAt descending; imageUrl is the
+          local cached proxy path.'
+      - path: /api/catalog/young-events/[youngId]
+        notes:
+        - 404 when the youngId is unknown.
+      - path: /api/catalog/young-organizers
+        notes:
+        - 'Optional query parameters: search, page, pageSize.'
+        - Each organizer has a stable id and totalCount, activeCount, upcomingCount, historyCount. Counts
+          are independent facts; activity histories use the paginated event list filtered by organizerId.
+      - path: /api/catalog/young-organizers/[organizerId]
+        notes:
+        - 404 when the organizer ID is unknown.
+      - path: /api/catalog/young-events/[youngId]/image
+        notes:
+        - 'Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable
+          year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic>
+          and stores the result. Repeat requests are served from the per-colo Cache API keyed by youngId.'
+        - 404 when the youngId is unknown or the event has no image (cached for 300s); 502 when the origin
+          fetch fails (cached for 60s).
+        - A companion route, GET /api/catalog/young-events/images/[...path], serves rich-text inline images
+          by their upstream pic path. It shares the same R2 objects and validation; because the bytes
+          are event-independent it skips the per-colo cache keyed by youngId.
+    graphql:
+      queries:
+      - name: youngEvents
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/young-events
+        mcp_equivalent: catalog_young_event_list
+        notes:
+        - filter accepts module and activityLevel for exact matches.
+      - name: youngEvent
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/young-events/[youngId]
+        mcp_equivalent: catalog_young_event_get
+        notes:
+        - Returns null when the youngId is unknown.
+        - Only this query populates description, participationNotes, and rawJson; rawJson is a JSON string
+          because the schema has no JSON scalar.
+      - name: youngOrganizers
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/young-organizers
+        mcp_equivalent: catalog_young_organizer_list
+      - name: youngOrganizer
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/young-organizers/[organizerId]
+        mcp_equivalent: catalog_young_organizer_get
+    mcp:
+      tools:
+      - name: catalog_young_event_list
+        rest_equivalent: GET /api/catalog/young-events
+        notes:
+        - Accepts active, category, module, activityLevel, search, organizerId, dateFrom, dateTo, timeBasis,
+          page, limit, and mode inputs.
+        - Default mode returns compact summaries with category, module, activityLevel, and form; full
+          mode adds the organizer, department, poster, counters, timestamps, and places.
+      - name: catalog_young_event_get
+        rest_equivalent: GET /api/catalog/young-events/[youngId]
+        notes:
+        - Accepts youngId and mode inputs.
+      - name: catalog_young_organizer_list
+        rest_equivalent: GET /api/catalog/young-organizers
+      - name: catalog_young_organizer_get
+        rest_equivalent: GET /api/catalog/young-organizers/[organizerId]
+    presentation:
+      items:
+      - event name
+      - category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form
+      - rich-text description and participation notes, sanitized with proxied inline images
+      - signup window, event time, and the upstream created, approved, and updated timestamps
+      - capacity, seat limit, applied count, actual participants, and total attendances
+      - credited hours, total credited hours, volunteer hours, and activity duration
+      - sponsor, organizer, department, and the published contact name and phone
+      - per-slot venues, falling back to the single location when there are none
+      - target years and favorite count
+      - status and source freshness
+      - organizer and stable organizer ID
+      - sourceMissing and lastSeenAt when applicable

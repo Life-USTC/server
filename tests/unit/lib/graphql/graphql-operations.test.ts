@@ -7,8 +7,7 @@ import {
   publicGraphqlOperationsManifest,
 } from "@/lib/graphql/operations";
 import { graphqlSchema } from "@/lib/graphql/schema";
-import graphqlContract from "../../../../docs/contracts/graphql.json";
-import mcpContract from "../../../../docs/contracts/mcp.json";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 describe("persisted GraphQL operation registry", () => {
   it("publishes the complete approved root-field capability matrix", () => {
@@ -194,7 +193,18 @@ describe("persisted GraphQL operation registry", () => {
     });
   });
 
-  it("keeps the product contracts pointed at the registered runner", () => {
+  it("keeps the product specifications pointed at the registered runner", async () => {
+    const [graphqlContract, mcpContract] = await Promise.all([
+      readSpecification<{
+        capabilities: Record<string, { mcp: { tools: { name: string }[] } }>;
+      }>("docs/features/graphql.yaml"),
+      readSpecification<{
+        capabilities: Record<
+          string,
+          { mcp: { groups: { tools: string[] }[] } }
+        >;
+      }>("docs/features/mcp.yaml"),
+    ]);
     expect(
       graphqlContract.capabilities["registered-operation-runner"].mcp.tools,
     ).toEqual([expect.objectContaining({ name: "graphql_operation_run" })]);

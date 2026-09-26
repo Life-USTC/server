@@ -1,144 +1,74 @@
-import { readdir, readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { buildSchema, type GraphQLFieldMap, isObjectType } from "graphql";
+import { buildSchema, isObjectType } from "graphql";
 import { describe, expect, it } from "vitest";
+import { publicGraphqlOperationsManifest } from "@/lib/graphql/operations";
 import { graphqlTypeDefs } from "@/lib/graphql/schema";
 import {
   getRequiredMcpScopes,
   hasExplicitMcpToolScopes,
 } from "@/lib/mcp/tool-scopes";
 import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
+import { readFeatureSpecifications } from "../../../../scripts/specifications/repository";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
-const contractsDirectory = fileURLToPath(
-  new URL("../../../../docs/contracts/", import.meta.url),
-);
-
-type GraphqlFieldContract = {
-  arguments?: Record<string, string>;
+type GraphqlFieldSpecification = {
   name: string;
   parent?: string;
-  returns: string;
+  auth?: string;
+  notes?: string[];
   required_scopes?: string[];
   mcp_equivalent?: string;
   status?: "stable" | "planned" | "unavailable";
 };
 
-type ContractModule = {
-  capabilities?: Record<
+type FeatureSpecification = {
+  id: string;
+  capabilities: Record<
     string,
     {
       graphql?:
         | string
         | {
-            queries?: GraphqlFieldContract[];
-            mutations?: GraphqlFieldContract[];
-            fields?: GraphqlFieldContract[];
+            queries?: GraphqlFieldSpecification[];
+            mutations?: GraphqlFieldSpecification[];
+            fields?: GraphqlFieldSpecification[];
           };
     }
   >;
 };
 
-async function collectContractFields(kind: "queries" | "mutations" | "fields") {
-  const filenames = (await readdir(contractsDirectory))
-    .filter((filename) => filename.endsWith(".json"))
-    .sort();
-  const fields: GraphqlFieldContract[] = [];
-
-  for (const filename of filenames) {
-    const module = JSON.parse(
-      await readFile(`${contractsDirectory}${filename}`, "utf8"),
-    ) as ContractModule;
-    for (const capability of Object.values(module.capabilities ?? {})) {
-      if (
-        typeof capability.graphql !== "object" ||
-        capability.graphql == null
-      ) {
-        continue;
-      }
-      fields.push(
-        ...(capability.graphql[kind] ?? []).filter(
-          (field) =>
-            field.status !== "planned" && field.status !== "unavailable",
-        ),
-      );
-    }
-  }
-  return fields;
-}
-
-type GraphqlFieldShape = {
-  arguments: Record<string, string>;
-  returns: string;
-};
-
-function sortedRecord(record: Record<string, string>) {
-  return Object.fromEntries(
-    Object.entries(record).sort(([left], [right]) => left.localeCompare(right)),
+async function collectSpecificationFields() {
+  const features = await readFeatureSpecifications<FeatureSpecification>();
+  return features.flatMap((feature) =>
+    Object.entries(feature.capabilities).flatMap(
+      ([capabilityId, capability]) => {
+        const graphql = capability.graphql;
+        if (typeof graphql !== "object" || graphql == null) return [];
+        return (["queries", "mutations", "fields"] as const).flatMap((kind) =>
+          (graphql[kind] ?? [])
+            .filter(
+              (field) =>
+                field.status !== "planned" && field.status !== "unavailable",
+            )
+            .map((field) => ({
+              ...field,
+              parent:
+                field.parent ?? (kind === "mutations" ? "Mutation" : "Query"),
+              source: `${feature.id}.${capabilityId}`,
+            })),
+        );
+      },
+    ),
   );
 }
 
-function contractFieldMap(
-  fields: GraphqlFieldContract[],
-  expectedParent:
-    | "Query"
-    | "Mutation"
-    | "Catalog"
-    | "Workspace"
-    | "Community"
-    | "Account",
-) {
-  const map = new Map<string, GraphqlFieldShape>();
-  for (const field of fields) {
-    const validParent =
-      field.parent === expectedParent ||
-      ((expectedParent === "Query" || expectedParent === "Mutation") &&
-        field.parent === undefined);
-    if (!validParent) continue;
-    if (map.has(field.name)) {
-      throw new Error(`Duplicate GraphQL contract field: ${field.name}`);
-    }
-    map.set(field.name, {
-      arguments: sortedRecord(field.arguments ?? {}),
-      returns: field.returns,
-    });
-  }
-  return Object.fromEntries(
-    [...map].sort(([left], [right]) => left.localeCompare(right)),
-  );
-}
-
-function schemaFieldMap(fields: GraphQLFieldMap<unknown, unknown> | undefined) {
-  return Object.fromEntries(
-    Object.entries(fields ?? {})
-      .map(
-        ([name, field]) =>
-          [
-            name,
-            {
-              arguments: sortedRecord(
-                Object.fromEntries(
-                  field.args.map((argument) => [
-                    argument.name,
-                    String(argument.type),
-                  ]),
-                ),
-              ),
-              returns: String(field.type),
-            },
-          ] as const,
-      )
-      .sort(([left], [right]) => left.localeCompare(right)),
-  );
-}
-
-describe("GraphQL contract and SDL parity", () => {
+describe("GraphQL product specification and executable schema parity", () => {
   it("only advertises scoped query fields that exist in the executable schema", async () => {
-    const contract = JSON.parse(
-      await readFile(`${contractsDirectory}graphql.json`, "utf8"),
-    );
+    const specification = await readSpecification<{
+      capabilities: Record<string, { presentation: { items: string[] } }>;
+    }>("docs/features/graphql.yaml");
     const schema = buildSchema(graphqlTypeDefs);
-    const paths: string[] =
-      contract.capabilities["scoped-queries"].display.fields;
+    const paths =
+      specification.capabilities["scoped-queries"].presentation.items;
     for (const path of paths.flatMap((entry) => entry.split(" / "))) {
       const [scope, name] = path.split(".");
       const type = schema.getQueryType()?.getFields()[scope]?.type;
@@ -152,12 +82,11 @@ describe("GraphQL contract and SDL parity", () => {
   });
 
   it("documents valid OAuth scopes matching native MCP equivalents", async () => {
-    const groups = await Promise.all(
-      (["queries", "mutations", "fields"] as const).map(collectContractFields),
-    );
-    const scopedFields = groups.flat().filter((field) => field.required_scopes);
-    expect(scopedFields.length).toBeGreaterThan(0);
-    for (const field of scopedFields) {
+    const fields = await collectSpecificationFields();
+    expect(
+      fields.filter((field) => field.required_scopes).length,
+    ).toBeGreaterThan(0);
+    for (const field of fields) {
       const scopes = field.required_scopes ?? [];
       for (const scope of scopes) {
         expect(
@@ -166,46 +95,81 @@ describe("GraphQL contract and SDL parity", () => {
         ).toContain(scope);
       }
       const tool = field.mcp_equivalent;
-      // The registered GraphQL runner resolves scopes per operation instead of
-      // advertising every operation's scopes on its transport descriptor.
-      if (tool && tool !== "graphql_operation_run") {
+      if (tool) {
         expect(
           hasExplicitMcpToolScopes(tool),
           `${field.name}: unknown MCP tool ${tool}`,
         ).toBe(true);
-        expect([...scopes].sort(), field.name).toEqual(
-          getRequiredMcpScopes(tool).sort(),
-        );
+        // The GraphQL runner resolves scopes per operation. A public GraphQL
+        // read may have a stricter native MCP boundary; explicit scope
+        // declarations must still match, including an explicit empty list.
+        if (tool !== "graphql_operation_run" && field.required_scopes) {
+          expect([...scopes].sort(), field.name).toEqual(
+            getRequiredMcpScopes(tool).sort(),
+          );
+        }
       }
     }
   });
 
-  it("keeps stable scope and mutation signatures aligned", async () => {
-    const schema = buildSchema(graphqlTypeDefs);
-    const [queryContracts, mutationContracts, scopeContracts] =
-      await Promise.all([
-        collectContractFields("queries"),
-        collectContractFields("mutations"),
-        collectContractFields("fields"),
-      ]);
+  it("documents anonymous Community.user reads and the stricter native MCP scope", async () => {
+    const fields = await collectSpecificationFields();
+    const user = fields.find(
+      (field) => field.parent === "Community" && field.name === "user",
+    );
+    expect(user).toMatchObject({
+      auth: "anon",
+      mcp_equivalent: "community_user_get",
+    });
+    expect(user?.required_scopes ?? []).toEqual([]);
+    expect(user?.notes?.join(" ")).toMatch(/anonymous/i);
+    expect(user?.notes?.join(" ")).toContain("community.user:read");
+    expect(getRequiredMcpScopes("community_user_get")).toEqual([
+      "community.user:read",
+    ]);
+    expect(
+      publicGraphqlOperationsManifest.operations.find(
+        (operation) => operation.id === "community.user.get.v1",
+      )?.scopes,
+    ).toEqual([]);
+  });
 
-    expect(contractFieldMap(queryContracts, "Query")).toEqual(
-      schemaFieldMap(schema.getQueryType()?.getFields()),
+  it("declares every stable root and scoped field exactly once", async () => {
+    const schema = buildSchema(graphqlTypeDefs);
+    const fields = await collectSpecificationFields();
+    const declaredPaths = fields.map(
+      (field) => `${field.parent}.${field.name}`,
     );
-    expect(contractFieldMap(mutationContracts, "Mutation")).toEqual(
-      schemaFieldMap(schema.getMutationType()?.getFields()),
-    );
-    for (const parent of [
+    expect(new Set(declaredPaths).size).toBe(declaredPaths.length);
+    for (const field of fields) {
+      const parent = schema.getType(field.parent);
+      const path = `${field.source}: ${field.parent}.${field.name}`;
+      expect(isObjectType(parent), path).toBe(true);
+      expect(
+        isObjectType(parent) && parent.getFields()[field.name],
+        path,
+      ).toBeTruthy();
+    }
+    // SDL snapshot tests own argument and return signatures. Product YAML owns
+    // the complete exposed capability set and its authorization relationships.
+    for (const parentName of [
+      "Query",
+      "Mutation",
       "Catalog",
       "Workspace",
       "Community",
       "Account",
-    ] as const) {
-      const type = schema.getType(parent);
-      expect(isObjectType(type)).toBe(true);
-      const contracts = [...queryContracts, ...scopeContracts];
-      expect(contractFieldMap(contracts, parent)).toEqual(
-        schemaFieldMap(isObjectType(type) ? type.getFields() : {}),
+    ]) {
+      const parent = schema.getType(parentName);
+      expect(isObjectType(parent), parentName).toBe(true);
+      expect(
+        fields
+          .filter((field) => field.parent === parentName)
+          .map((field) => field.name)
+          .sort(),
+        parentName,
+      ).toEqual(
+        Object.keys(isObjectType(parent) ? parent.getFields() : {}).sort(),
       );
     }
   });

@@ -1,0 +1,61 @@
+kind: policy
+id: cases.mcp-assistant-workflows
+title: 'Cross-feature scenarios: mcp-assistant-workflows'
+requirements:
+- id: cases.mcp-assistant-workflows.aggregate-first-1
+  category: behavior
+  topic: aggregate-first
+  rule: Prefer workspace_snapshot_get or other task-oriented aggregate tools before stitching together multiple
+    lower-level tool calls.
+- id: cases.mcp-assistant-workflows.preview-before-write-1
+  category: behavior
+  topic: preview-before-write
+  rule: Batch or fuzzy write flows should offer a read-only preview tool before the mutation tool.
+- id: cases.mcp-assistant-workflows.focused-over-raw-for-common-questions-1
+  category: behavior
+  topic: focused-over-raw-for-common-questions
+  rule: For prompts such as 'what is my next class?' or 'when is the next bus?', use focused extract tools
+    instead of raw dataset mirrors.
+- id: cases.mcp-assistant-workflows.compact-privacy-default-1
+  category: privacy
+  topic: compact-privacy-default
+  rule: Default output should stay compact and redact token-bearing URLs or repeated low-value nested objects;
+    the deprecated summary input is an alias for this same shape.
+- id: cases.mcp-assistant-workflows.scenario-guidance-1
+  category: behavior
+  topic: scenario-guidance
+  rule: Assistant-oriented MCP additions should land as aggregate snapshots or filtered convenience tools,
+    not only as raw dataset mirrors.
+- id: cases.mcp-assistant-workflows.scenario-guidance-2
+  category: behavior
+  topic: scenario-guidance
+  rule: Tool documentation should call out the preferred first tool, focused alternative, default parameters,
+    and privacy redaction behavior for common prompts.
+refs:
+- feature: mcp
+  capability: tool-groups
+- feature: overview
+  capability: workspace-snapshot
+- feature: subscription
+  capability: batch-subscribe-by-codes
+- feature: ical
+  capability: personal-calendar-subscription
+- feature: todo
+  capability: todo-list
+- feature: bus
+  capability: bus-timetable
+- feature: bus
+  capability: bus-route-search
+- feature: bus
+  capability: bus-next-departures
+topics:
+- id: aggregate-first
+  title: Aggregate first
+- id: preview-before-write
+  title: Preview before write
+- id: focused-over-raw-for-common-questions
+  title: Focused over raw for common questions
+- id: compact-privacy-default
+  title: Compact privacy default
+- id: scenario-guidance
+  title: Scenario guidance

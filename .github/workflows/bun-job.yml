@@ -103,6 +103,7 @@ jobs:
               bun run app:prepare
               bunx wrangler types --include-runtime=false --check
               bunx biome check
+              bun run specs:check
               bunx svelte-check --tsconfig ./tsconfig.json
               bunx tsc --noEmit -p tsconfig.typecheck.json
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json

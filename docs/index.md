@@ -1,59 +1,36 @@
-# Documentation Index
+# Documentation index
 
-Start with root [`AGENTS.md`](../AGENTS.md). For an end-to-end change, use
-[`$life-ustc-implement`](../.agents/skills/life-ustc-implement/SKILL.md).
+Requirements live in YAML; [schemas](schemas/) validate their structure and the
+specification checker validates references. Start with [product.yaml](product.yaml),
+then the relevant [feature](features/) and its referenced [policies](policies/).
 
-## Start here
+| Need | Read |
+|---|---|
+| Feature behavior, scope, permissions, fields, surfaces | [features/](features/) |
+| Canonical names and cross-surface parity | [interface-hierarchy](policies/interface-hierarchy.yaml) |
+| Display hierarchy and shared UI | [ui](policies/ui.yaml), [permission-ui](policies/permission-ui.yaml) |
+| Public SSR, personal overlays, caching | [rendering-and-cache](policies/rendering-and-cache.yaml) |
+| Edge cases spanning features | `policies/cases.*.yaml` |
+| Audit events and retention | [audit](policies/audit.yaml) |
+| Homework writing guidance | [homework-naming](policies/homework-naming.yaml) |
+| Why a retained architectural choice was made | [decisions/](decisions/) |
+| GraphQL mutation coverage | [mutation-capabilities](reference/mutation-capabilities.yaml) |
+| GraphQL SDL | [schema.graphql](graphql/schema.graphql) |
+| Generated REST contract | [openapi.generated.json](../public/openapi.generated.json) |
+| Models and enums | [schema.prisma](../prisma/schema.prisma) |
+| Editing and validating specifications | [docs/AGENTS.md](AGENTS.md) |
+| Implementation and local checks | [root AGENTS.md](../AGENTS.md), [implementation skill](../.agents/skills/life-ustc-implement/SKILL.md) |
 
-- [AGENTS.md](../AGENTS.md) — layout and local checks
-- [README](../README.md) — product overview
-- [Contracts](contracts/)
-- [Interface hierarchy](interface-hierarchy.md)
-- [Rendering and cache](rendering-and-cache.md) — which pages may be anonymously cached
+```bash
+bun run specs:list
+bun run specs:show homework
+bun run specs:check
+```
 
-## Read by task
+Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate
+product requirements. Build regenerates OpenAPI; `bun run openapi:check` detects
+drift. Intentional breaking changes require `api-breaking-approved` or
+`graphql-breaking-approved` respectively; approving compatibility checks does
+not disable validation of the current generated contracts.
 
-| Task | Read first |
-|------|------------|
-| Find your way around | Nearest `AGENTS.md` under the folder you are editing |
-| Add or change behavior | `$life-ustc-implement`, then `docs/contracts/<module>.json` |
-| UI / layout | Feature components + Playwright under `tests/e2e/` |
-| REST | Route handler, OpenAPI JSDoc, `docs/contracts/openapi.json` |
-| GraphQL | Module contract, `graphql.json`, SDL snapshot, resolvers |
-| MCP | `src/lib/mcp/AGENTS.md`, tool handler, module contract |
-| Data shape | `prisma/schema.prisma` + migrations |
-| Weather / young events / news | Module contracts `weather.json`, `young-event.json`, `publications.json` |
-| Env / CI | `.env.example`, `.github/workflows/AGENTS.md` |
-
-## Keep in sync
-
-| Change area | Update |
-|-------------|--------|
-| Public REST | Route OpenAPI JSDoc; `openapi.json` when coverage changes; `bun run openapi:check` |
-| GraphQL | Module contract; `graphql.json`; SDL snapshot + tests |
-| MCP | Module contract; `tests/integration/` |
-| User-visible web | Module contract; both message files when text changes |
-| Prisma / seed | schema, migrations, shared seed files |
-| Setup / CI | `.env.example`, `.github/workflows/AGENTS.md` |
-| Layout / boundaries | Root or nearest `AGENTS.md` |
-| How to split a change | `.agents/skills/life-ustc-implement` |
-
-## Major docs
-
-- [contracts/AGENTS.md](contracts/AGENTS.md)
-- [contracts.schema.json](contracts.schema.json)
-- [rendering-and-cache.md](rendering-and-cache.md)
-- [interface-hierarchy.md](interface-hierarchy.md)
-- [conventions/homework-naming.md](conventions/homework-naming.md)
-- [graphql/mutation-capabilities.json](graphql/mutation-capabilities.json)
-- Generated OpenAPI: [`public/openapi.generated.json`](../public/openapi.generated.json)
-
-`bun run build` regenerates the deployed OpenAPI document. Commit that generated
-snapshot and use `bun run openapi:check` as the clean-tree drift gate. Pull
-requests with an intentional breaking change require the
-`api-breaking-approved` label. Intentional GraphQL breaking changes require the
-separate `graphql-breaking-approved` label. Both canonical generated contracts
-remain checked even when their base-compatibility gate is approved.
-
-Production monitoring, role grants, and deploy runbooks are **not** published in
-this repository.
+Production monitoring, role grants, and deploy runbooks are not published here.

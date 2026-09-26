@@ -1,0 +1,268 @@
+kind: feature
+id: overview
+name: Overview
+areas:
+- workspace
+- platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
+- cases.semester
+access:
+  anon: The home page is a lightweight public catalog entry; bus and frequent links are independent pages
+    at /catalog/bus and /catalog/links.
+  user: Accessing the home page redirects to the personal workspace at /workspace.
+  admin: Accessing the home page redirects to the personal workspace at /workspace, with the same workspace
+    behavior as regular users.
+  agent: Can read overview results with the same semantics as the authenticated workspace; REST and MCP
+    should return consistent overview information.
+requirements:
+- id: overview.decision-page
+  category: presentation
+  rule: The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized
+    workspace data; the authenticated /workspace overview is the personal decision page for 'what to do
+    next'.
+- id: overview.semantic-route-compatibility
+  category: behavior
+  rule: Known legacy /?tab= inputs permanently redirect to semantic public or workspace paths while preserving
+    unrelated query parameters.
+- id: overview.now-next-first
+  category: presentation
+  rule: The authenticated overview begins with the current or next actionable schedule, homework, exam,
+    or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain
+    secondary and appear after planning content.
+- id: overview.current-semester-priority
+  category: presentation
+  rule: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical
+    semester content or complete directory information.
+- id: overview.homework-todo-layered
+  category: presentation
+  rule: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due
+    date does not participate in upcoming due date sorting.
+- id: overview.upcoming-exam-counts
+  category: behavior
+  rule: Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview.
+    They include known-date exams that have not ended or start later today, and exclude date-unknown exam
+    records that cannot be placed in the upcoming timeline.
+- id: overview.non-current-not-disguised
+  category: presentation
+  rule: Non-current-semester subscribed sections must not be disguised as current learning tasks.
+- id: overview.aggregate-first-for-assistants
+  category: presentation
+  rule: Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into
+    multiple narrower tool calls.
+- id: overview.assistant-tool-hierarchy
+  category: presentation
+  rule: Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my
+    next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when
+    lighter counts and samples suffice.
+- id: overview.historical-subscriptions-remain-discoverable
+  category: presentation
+  rule: A zero current-semester subscription count must not be presented as no course history when total
+    subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework,
+    schedules, and exams.
+- id: overview.focused-extracts-share-window
+  category: consistency
+  rule: Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon
+    window as the broader workspace snapshot.
+- id: overview.private-shell-overlay
+  category: privacy
+  rule: Public HTML remains viewer-independent. Authenticated browsers hydrate workspace navigation counts
+    through a session-only, private no-store Web bootstrap; workspace SSR seeds the same in-memory projection
+    without a duplicate browser request.
+- id: overview.workspace-card-priority
+  category: presentation
+  rule: Workspace cards prioritize the actionable object title, timing/status, and direct destination
+    over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary
+    context such as course, section, campus, or priority badge remains visible for disambiguation without
+    crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards
+    and MCP default output.
+- id: overview.workspace-shell-navigation.internal-endpoint
+  category: behavior
+  rule: /_internal/shell-bootstrap is a same-origin session-cookie-only Web transport and returns the
+    allowlisted viewer plus five workspace navigation counts.
+  applies_to:
+  - workspace-shell-navigation
+- id: overview.workspace-shell-navigation.private-cache-boundary
+  category: privacy
+  rule: Every response uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and
+    Vary Cookie; Bearer authentication is rejected.
+  applies_to:
+  - workspace-shell-navigation
+- id: overview.workspace-shell-navigation.ssr-csr-hydration
+  category: consistency
+  rule: Workspace SSR seeds the in-memory projection directly; other authenticated pages request it after
+    hydration; explicit anonymous results contain null viewer and navigation values.
+  applies_to:
+  - workspace-shell-navigation
+- id: overview.anonymous-overview.static-loader
+  category: consistency
+  rule: The loader returns localized static copy only and performs no business-data queries.
+  applies_to:
+  - anonymous-overview
+capabilities:
+  authenticated-overview:
+    title: Authenticated Workspace Overview
+    auth: user
+    links:
+      models:
+      - User
+      - Section
+      - Homework
+      - Todo
+      - Exam
+    web:
+      pages:
+      - /workspace/overview
+      - /workspace/calendar
+      - /workspace/subscriptions
+      - /workspace/exams
+      - /workspace/homeworks
+      - /workspace/todos
+      - /catalog/bus
+      - /catalog/links
+    rest:
+      routes:
+      - path: /api/workspace/overview
+        notes:
+        - Compact authenticated overview for bot, CLI, and mobile clients.
+        - Supports atTime, homeworkWindowDays, limit, and locale query parameters; date-only atTime values
+          anchor to the start of that Asia/Shanghai day.
+        - Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework,
+          and exam samples exposed by workspace_overview_get.
+    graphql:
+      fields:
+      - parent: Workspace
+        name: overview
+        auth: user
+        required_scopes:
+        - workspace.overview:read
+        rest_equivalent: GET /api/workspace/overview
+        mcp_equivalent: workspace_overview_get
+        notes:
+        - The optional atTime argument is a strict zoned DateTime; the GraphQL output keeps the compact
+          actionable counts.
+    mcp:
+      tools:
+      - name: workspace_overview_get
+        rest_equivalent: GET /api/workspace/overview
+        notes:
+        - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
+        - Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window
+          semantics as GET /api/workspace/overview; date-only atTime values anchor to the start of that
+          Asia/Shanghai day.
+        - Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact
+          overview read operation.
+        - The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and
+          upcomingExams[] structure returned by default; use workspace_snapshot_get for a richer single-call
+          assistant snapshot.
+    presentation:
+      items:
+      - pendingHomeworksCount
+      - upcomingExamsCount
+      - pendingTodosCount
+      - todaySchedulesCount
+      - Current or next actionable item
+      - Today highlight
+      - 7-day week grid
+      - Schedule events per day
+      - Pending homeworks (sorted by submissionDueAt)
+      - Tomorrow schedule section
+      - homework due today/due soon/all badges
+      - todo due today/due soon/all badges
+      - Pending todos
+      - Tab icons and counts
+  workspace-shell-navigation:
+    title: Workspace Shell Navigation Summary
+    description: Private Web-only projection used to hydrate viewer identity and workspace sidebar counts
+      without adding a public API surface.
+    auth: user
+    links:
+      models:
+      - UserSectionSubscription
+      - Schedule
+      - Homework
+      - Todo
+      - Exam
+    web:
+      pages:
+      - /workspace/overview
+      - /workspace/calendar
+      - /workspace/homeworks
+      - /workspace/todos
+      - /workspace/exams
+      - /workspace/subscriptions
+      - /catalog/courses
+      - /catalog/sections
+      - /catalog/teachers
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      items:
+      - Calendar item count
+      - Pending homework count
+      - Pending todo count
+      - Upcoming exam count
+      - Subscribed section count
+  workspace-snapshot:
+    title: Assistant Workspace Snapshot & Focused Extracts
+    auth: user
+    links:
+      models:
+      - User
+      - Section
+      - Homework
+      - Todo
+      - Exam
+    web: unavailable
+    rest: unavailable
+    mcp:
+      tools:
+      - name: workspace_snapshot_get
+        notes:
+        - Preferred single-call snapshot for assistant workflows.
+        - Overlaps workspace_overview_get but adds currentSemester, currentSemesterSections, nextClass,
+          merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time
+          windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount,
+          past-term subscriptions remain available through workspace_subscription_list and the semesterId
+          filters on workspace_homework_list, workspace_schedule_list, and workspace_exam_list.
+        - Default mode should stay assistant-compact; request full mode when the caller explicitly needs
+          full nested schedule, room, teacher, or homework payloads.
+        - The deprecated summary input is an alias for default and must preserve the same top-level workspace
+          collections rather than introducing alternate wrapper shapes.
+      - name: workspace_schedule_next
+        notes:
+        - Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader
+          workspace context is needed.
+        - Default mode compacts nextClass schedule payloads the same way as workspace_snapshot_get; request
+          full mode for raw nested schedule, room, and teacher fields.
+        - Accepts optional atTime to anchor the lookup instead of using the server clock.
+      - name: workspace_deadline_list
+        notes:
+        - dayLimit defaults to 7.
+        - Merges homework_due, exam, and todo_due entries into one ordered list.
+        - Accepts optional atTime to anchor the deadline window instead of using the server clock.
+    presentation:
+      items:
+      - currentSemester
+      - subscriptions.currentSemesterCount
+      - nextClass
+      - upcomingDeadlines
+      - todos.incompleteCount
+      - bus.nextDeparture
+  anonymous-overview:
+    title: Anonymous Homepage
+    auth: anon
+    web:
+      pages:
+      - /
+    presentation:
+      items:
+      - Public catalog introduction
+      - Course discovery
+      - Section discovery
+      - Teacher discovery
