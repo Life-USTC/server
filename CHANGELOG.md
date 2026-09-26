@@ -1,3 +1,10 @@
+## [1.121.7](https://github.com/Life-USTC/server/compare/v1.121.6...v1.121.7) (2026-09-26)
+
+
+### Bug Fixes
+
+* align feature permissions, histories, and calendar state ([#1137](https://github.com/Life-USTC/server/issues/1137)) ([81c6559](https://github.com/Life-USTC/server/commit/81c65596e36385a13c7634bba5ac614ac8b11de5))
+
 ## [1.121.6](https://github.com/Life-USTC/server/compare/v1.121.5...v1.121.6) (2026-09-25)
 
 
