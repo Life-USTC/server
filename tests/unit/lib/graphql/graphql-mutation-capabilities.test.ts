@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import Ajv2020 from "ajv/dist/2020";
 import { buildSchema } from "graphql";
 import { describe, expect, it } from "vitest";
 import { graphqlTypeDefs } from "@/lib/graphql/schema";
 import { getExplicitMcpToolScopeNames } from "@/lib/mcp/tool-scopes";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 type Capability = {
   id: string;
@@ -23,21 +25,74 @@ type CapabilityMatrix = {
   schemaVersion: number;
 };
 
-const matrixPath = fileURLToPath(
-  new URL(
-    "../../../../docs/graphql/mutation-capabilities.json",
-    import.meta.url,
-  ),
-);
 const openApiPath = fileURLToPath(
   new URL("../../../../public/openapi.generated.json", import.meta.url),
 );
 
 async function readMatrix() {
-  return JSON.parse(await readFile(matrixPath, "utf8")) as CapabilityMatrix;
+  return readSpecification<CapabilityMatrix>(
+    "docs/reference/mutation-capabilities.yaml",
+  );
 }
 
 describe("GraphQL mutation capability matrix", () => {
+  it("validates the matrix and rejects malformed bindings instead of accepting extra metadata", async () => {
+    const schema = JSON.parse(
+      await readFile(
+        new URL(
+          "../../../../docs/schemas/mutation-capabilities.schema.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    const validate = new Ajv2020({ strict: true, allErrors: true }).compile(
+      schema,
+    );
+    const matrix = await readMatrix();
+    expect(validate(matrix), JSON.stringify(validate.errors)).toBe(true);
+    const first = matrix.capabilities[0];
+    const invalid = [
+      { ...matrix, unexpected: true },
+      { ...matrix, capabilities: [{ ...first, unexpected: true }] },
+      {
+        ...matrix,
+        capabilities: [
+          { ...first, graphql: { ...first.graphql, arguments: {} } },
+        ],
+      },
+      {
+        ...matrix,
+        capabilities: [
+          { ...first, graphql: { status: "stable", field: null } },
+        ],
+      },
+      {
+        ...matrix,
+        capabilities: [
+          { ...first, graphql: { status: "intentional_gap", field: null } },
+        ],
+      },
+      {
+        ...matrix,
+        capabilities: [{ ...first, mcp: { status: "native", tools: [] } }],
+      },
+      {
+        ...matrix,
+        capabilities: [
+          {
+            ...first,
+            mcp: { status: "unavailable", tools: ["graphql_operation_run"] },
+          },
+        ],
+      },
+      { ...matrix, capabilities: [{ ...first, rest: ["PATCH invalid-path"] }] },
+    ];
+    for (const candidate of invalid) {
+      expect(validate(candidate), JSON.stringify(candidate)).toBe(false);
+    }
+  });
+
   it("maps every stable SDL mutation exactly once", async () => {
     const matrix = await readMatrix();
     const schema = buildSchema(graphqlTypeDefs);

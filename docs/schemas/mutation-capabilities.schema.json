@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/mutation-capabilities.schema.json",
+  "title": "Cross-transport mutation capability bindings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "id",
+    "schemaVersion",
+    "scope",
+    "excludedFamilies",
+    "capabilities"
+  ],
+  "properties": {
+    "kind": {
+      "const": "mutation-capabilities"
+    },
+    "id": {
+      "const": "mutation-capabilities"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "scope": {
+      "$ref": "#/$defs/text"
+    },
+    "excludedFamilies": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "reason"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "reason": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/capability"
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rest", "graphql", "mcp", "semantics"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(workspace|community)_[a-z0-9_]+$"
+        },
+        "rest": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(POST|PUT|PATCH|DELETE) /api/[^\\s]+$"
+          }
+        },
+        "graphql": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "field"],
+              "properties": {
+                "status": {
+                  "const": "stable"
+                },
+                "field": {
+                  "type": "string",
+                  "pattern": "^[_A-Za-z][_0-9A-Za-z]*$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status", "field"],
+              "properties": {
+                "status": {
+                  "const": "intentional_gap"
+                },
+                "field": {
+                  "type": "null"
+                }
+              }
+            }
+          ]
+        },
+        "mcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "tools"],
+          "properties": {
+            "status": {
+              "enum": [
+                "native",
+                "single_item_only",
+                "partial",
+                "registered_operation",
+                "native_and_registered",
+                "unavailable"
+              ]
+            },
+            "tools": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "unavailable"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "tools": {
+                    "maxItems": 0,
+                    "type": "array"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "tools": {
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "semantics": {
+          "enum": [
+            "single",
+            "per_item_partial",
+            "single_idempotent",
+            "service_transaction_or_single_atomic_write",
+            "single_audited",
+            "single_audited_idempotent",
+            "ordered_non_atomic",
+            "multi_step_storage_workflow",
+            "single_owned_write",
+            "storage_then_transactional_metadata_delete",
+            "transport_only"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "graphql": {
+                "properties": {
+                  "status": {
+                    "const": "intentional_gap"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "required": ["notes"],
+            "properties": {
+              "notes": {}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
