@@ -1,0 +1,217 @@
+kind: feature
+id: todo
+name: Todo
+areas:
+- workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
+access:
+  anon: Cannot read or write personal todos.
+  user: Can only manage their own todos.
+  admin: Has no ordinary page capability to independently manage other users' todos.
+  agent: After authorization, can only read and write the current user's own todos; both REST and MCP
+    currently provide this capability.
+requirements:
+- id: todo.calendar-write-commit
+  category: consistency
+  rule: Todo creates, updates, completion changes and deletes enqueue personal calendar export rebuilds
+    only after their database transaction commits. Failed or rolled-back writes never enqueue a rebuild.
+  acceptance:
+  - id: todo.calendar-write-commit.enqueue-after-commit
+    given: A todo update has finished its transaction callback but the commit is still pending.
+    when: The commit completes successfully.
+    then:
+    - No personal calendar rebuild is queued before the commit.
+    - Exactly one rebuild is queued for the owner after the commit.
+    tests:
+    - file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
+      name: does not enqueue a rebuild until the update transaction commits
+  - id: todo.calendar-write-commit.rollback-no-enqueue
+    given: A todo update has finished its transaction callback but the commit is still pending.
+    when: The transaction rolls back because the commit fails.
+    then:
+    - The write reports its failure and no personal calendar rebuild is queued.
+    tests:
+    - file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
+      name: does not enqueue a rebuild when the update transaction rolls back
+- id: todo.web-list-state
+  category: presentation
+  rule: The Web todo list preserves the explicitly selected completion filter, including empty results.
+    Local create, edit, completion and delete results are reflected without reloading or resurrecting
+    stale rows when switching filters.
+- id: todo.web-due-order
+  category: presentation
+  rule: The Web todo list puts undated items first, then orders dated items by absolute distance from
+    the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This
+    order applies to every completion filter and updates after edits.
+- id: todo.web-detail
+  category: presentation
+  rule: Completed todo detail titles are struck through. Priority uses the same badge as the list. Footer
+    actions are delete, completion toggle, then edit, with icons and accessible mobile controls.
+- id: todo.purely-personal
+  category: authorization
+  rule: Todo is a purely personal object and is not bound to any section.
+- id: todo.due-date-calendar
+  category: behavior
+  rule: Only incomplete todos with a due date appear in the calendar.
+- id: todo.completed-retained
+  category: presentation
+  rule: Completed todos retain history but no longer occupy urgent information areas.
+- id: todo.bounded-summary-read
+  category: consistency
+  rule: REST todo summaries default to 100 items and accept at most 200. The complete incomplete/completed/overdue
+    counts are fused into one RLS-scoped aggregate statement and remain independent of list filters; the
+    bounded list is loaded in one additional statement.
+- id: todo.mobile-toolbar-priority
+  category: presentation
+  rule: At mobile widths, completion-status filters stay directly available, card/list display mode moves
+    into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target.
+    Desktop toolbar behavior remains unchanged.
+capabilities:
+  todo-list:
+    title: Todo List & Filter
+    auth: user
+    links:
+      models:
+      - Todo
+    web:
+      pages:
+      - /workspace/todos
+    graphql:
+      fields:
+      - parent: Workspace
+        name: todos
+        auth: user
+        required_scopes:
+        - workspace.todo:read
+        rest_equivalent: GET /api/workspace/todos
+        mcp_equivalent: workspace_todo_list
+        notes:
+        - Ownership comes from the authenticated principal; PageInput defaults to 1/20 and caps pageSize
+          at 100.
+      mutations:
+      - name: todoCreate
+        auth: user
+        required_scopes:
+        - workspace.todo:write
+        rest_equivalent: POST /api/workspace/todos
+        mcp_equivalent: workspace_todo_create
+      - name: todoUpdate
+        auth: user
+        required_scopes:
+        - workspace.todo:write
+        rest_equivalent: PATCH /api/workspace/todos/[id]
+        mcp_equivalent: workspace_todo_update
+      - name: todoDelete
+        auth: user
+        required_scopes:
+        - workspace.todo:write
+        rest_equivalent: DELETE /api/workspace/todos/[id]
+        mcp_equivalent: workspace_todo_delete
+      - name: todoCompletionsSet
+        auth: user
+        required_scopes:
+        - workspace.todo:write
+        rest_equivalent: PATCH /api/workspace/todos/batch
+        mcp_equivalent: workspace_todo_update
+        notes:
+        - Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics.
+        - Missing and non-owned todos are reported on their result item without aborting valid updates.
+      - name: todosDelete
+        auth: user
+        required_scopes:
+        - workspace.todo:write
+        rest_equivalent: DELETE /api/workspace/todos/batch
+        mcp_equivalent: workspace_todo_delete
+        notes:
+        - Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics.
+    rest:
+      routes:
+      - path: /api/workspace/todos
+        notes:
+        - Returns the same count summary as workspace_todo_list plus todos[]; each item contains id, title,
+          content, completed, priority, dueAt, createdAt, and updatedAt.
+        - Supports completed, priority, dueBefore, dueAfter, and limit query parameters.
+        - 'REST defaults limit to 100. REST and MCP share the same explicit limit bounds: 1-200.'
+        - Summary counts cover all of the current user's todos regardless of list filters and are computed
+          in one aggregate statement.
+    mcp:
+      tools:
+      - name: workspace_todo_list
+        rest_equivalent: GET /api/workspace/todos?completed=false&limit=50
+        notes:
+        - 'Default parameters: includeCompleted=false, limit=50.'
+        - 'REST and MCP share the same limit bounds: 1-200.'
+        - Incomplete items are returned first; completed items are excluded unless includeCompleted=true.
+    presentation:
+      items:
+      - todo.title
+      - todo.content (description)
+      - todo.priority
+      - todo.dueAt
+      - detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority,
+        completion), then content; completion/edit/delete stay in the footer
+      - completed status action button
+      - 'filter: incomplete/completed/all'
+      - mobile compact toolbar with direct completion filters and overflow display-mode control
+  todo-edit:
+    title: Todo Create/Edit Form
+    auth: user
+    links:
+      models:
+      - Todo
+    web:
+      pages:
+      - /workspace/todos
+    rest:
+      routes:
+      - path: /api/workspace/todos
+        method: POST
+        status: 201
+      - path: /api/workspace/todos/[id]
+        method: PATCH
+        notes:
+        - Returns the updated todo snapshot so callers can confirm the applied changes without an extra
+          read. Missing todos and other users' todos hidden by row security return 404, including for
+          admin callers.
+      - path: /api/workspace/todos/batch
+        method: PATCH
+        notes:
+        - Batch completion endpoint for setting completed=true/false across up to 100 todos.
+        - Each item reports success or a per-item not_found/forbidden error without aborting the whole
+          batch.
+      - path: /api/workspace/todos/[id]
+        method: DELETE
+        notes:
+        - Missing todos and other users' todos hidden by row security return 404, including for admin
+          callers.
+      - path: /api/workspace/todos/batch
+        method: DELETE
+        notes:
+        - Batch delete endpoint for up to 100 todos.
+        - Each id reports success or a per-item not_found/forbidden error without aborting the whole batch.
+    mcp:
+      tools:
+      - name: workspace_todo_create
+        rest_equivalent: POST /api/workspace/todos
+      - name: workspace_todo_update
+        rest_equivalent: PATCH /api/workspace/todos/[id]
+        notes:
+        - Returns the updated todo snapshot so callers can confirm the applied changes without an extra
+          read. Missing todos and other users' todos hidden by row security return 404, including for
+          admin callers.
+      - name: workspace_todo_delete
+        rest_equivalent: DELETE /api/workspace/todos/[id]
+    presentation:
+      items:
+      - todo.title (text input)
+      - todo.content (text/markdown input)
+      - todo.priority (select)
+      - todo.dueAt (date/time picker)
+      - Save button
+      - Delete button (edit mode)
+      - Cancel button

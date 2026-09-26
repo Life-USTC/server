@@ -1,0 +1,32 @@
+kind: feature
+id: webhook-login
+name: Webhook Login
+areas:
+- platform
+policy_refs:
+- interface-hierarchy
+access:
+  anon: Not a public product entry point.
+  user: Not applicable.
+  admin: Internal ops only when explicitly enabled in a private environment.
+  agent: Not applicable.
+requirements:
+- id: webhook-login.not-product
+  category: behavior
+  rule: Webhook login is an internal debugging aid, not a Life@USTC product capability. Do not document
+    enablement flags, paths, or rate limits in public materials.
+- id: webhook-login.no-session-in-body
+  category: privacy
+  rule: When used, the session token must never appear in JSON response bodies.
+capabilities:
+  webhook-login:
+    title: Webhook Login
+    auth: admin
+    web: unavailable
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      items:
+      - Internal debugging aid only
+      - Session established via cookie; never returned in JSON bodies

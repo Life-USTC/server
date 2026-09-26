@@ -4,7 +4,7 @@ Shared UI primitives and layout components.
 
 ## Rules
 
-- Client navigation follows `docs/rendering-and-cache.md`: `src/app.html` sets
+- Client navigation follows `docs/policies/rendering-and-cache.yaml`: `src/app.html` sets
   `data-sveltekit-preload-code="hover"` and `data-sveltekit-preload-data="tap"`.
   Hover may warm route code only; `__data.json` preload waits for tap/click
   intent. `DetailSectionNav` links use `data-sveltekit-preload-data="off"`

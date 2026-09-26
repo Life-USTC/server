@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/product.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "product"
+    },
+    "id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "title": {
+      "$ref": "defs.schema.json#/$defs/nonEmptyString"
+    },
+    "priorities": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "enum": ["web", "rest", "graphql", "mcp", "cli", "bot", "ios"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["id", "description"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "terms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "meaning": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["name", "meaning"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "kind",
+    "id",
+    "title",
+    "priorities",
+    "surfaces",
+    "roles",
+    "terms"
+  ]
+}

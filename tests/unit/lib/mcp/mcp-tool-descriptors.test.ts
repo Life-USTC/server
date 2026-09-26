@@ -15,9 +15,11 @@ import {
   getMcpToolOutputSchema,
   getMcpToolOutputSchemaForMode,
 } from "@/lib/mcp/tool-output-schemas";
+import { getExplicitMcpToolScopeNames } from "@/lib/mcp/tool-scopes";
 import { jsonToolResult } from "@/lib/mcp/tools/_shared/helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
-import mcpContract from "../../../../docs/contracts/mcp.json";
+import { readFeatureSpecifications } from "../../../../scripts/specifications/repository";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 async function listTools() {
   const [clientTransport, serverTransport] =
@@ -101,6 +103,63 @@ describe("MCP tool descriptors", () => {
     // Each assertion gets a copy; custom-server behavior tests remain isolated.
     toolList = await listTools();
   });
+  it("binds every documented tool and group to an actual scoped descriptor", async () => {
+    const features = await readFeatureSpecifications<{
+      id: string;
+      capabilities: Record<
+        string,
+        {
+          mcp?:
+            | string
+            | {
+                tools?: {
+                  name: string;
+                  status?: "stable" | "planned" | "unavailable";
+                }[];
+                groups?: { name: string; tools: string[] }[];
+              };
+        }
+      >;
+    }>();
+    const registered = new Set(toolList.tools.map((tool) => tool.name));
+    const scoped = new Set(getExplicitMcpToolScopeNames());
+    let checked = 0;
+    for (const feature of features) {
+      for (const [id, capability] of Object.entries(feature.capabilities)) {
+        if (typeof capability.mcp !== "object" || !capability.mcp) continue;
+        const tools = [
+          ...(capability.mcp.tools ?? [])
+            .filter(
+              (tool) =>
+                tool.status !== "planned" && tool.status !== "unavailable",
+            )
+            .map((tool) => tool.name),
+          ...(capability.mcp.groups ?? []).flatMap((group) => group.tools),
+        ];
+        for (const tool of tools) {
+          const label = `${feature.id}.${id}: ${tool}`;
+          expect(
+            registered.has(tool),
+            `${label} has no registered descriptor`,
+          ).toBe(true);
+          expect(scoped.has(tool), `${label} has no explicit scope entry`).toBe(
+            true,
+          );
+          checked += 1;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+    const mcp = await readSpecification<{
+      capabilities: Record<string, { mcp: { groups: { tools: string[] }[] } }>;
+    }>("docs/features/mcp.yaml");
+    const grouped = mcp.capabilities["tool-groups"].mcp.groups.flatMap(
+      (group) => group.tools,
+    );
+    expect(new Set(grouped).size).toBe(grouped.length);
+    expect([...grouped].sort()).toEqual([...registered].sort());
+  });
+
   it("tracks the registered tool count without reading SDK private fields", async () => {
     const server = createMcpServer();
 
@@ -388,6 +447,9 @@ describe("MCP tool descriptors", () => {
       "Get subscribed sections and the personal iCal calendar feed URL",
     );
 
+    const mcpContract = await readSpecification<{
+      capabilities: Record<string, { mcp: { groups: { tools: string[] }[] } }>;
+    }>("docs/features/mcp.yaml");
     expect(
       mcpContract.capabilities["tool-groups"].mcp.groups
         .flatMap((group) => group.tools)

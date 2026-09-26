@@ -2,7 +2,7 @@
  * Decides which paths may use anonymous HTML SSR caching and which must stay
  * dynamic (account, admin, OAuth, or request-time bus data). Public content
  * uses the same anonymous representation for signed-in visitors.
- * See docs/rendering-and-cache.md for the product rules.
+ * See docs/policies/rendering-and-cache.yaml for the product rules.
  */
 import {
   resolveCatalogDetailTabQueryRedirect,

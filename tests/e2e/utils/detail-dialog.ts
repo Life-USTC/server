@@ -45,7 +45,7 @@ export async function expectDetailDialogFitsViewport(
 }
 
 /**
- * Homework popup (`docs/contracts/homework.json`): due datetime is primary,
+ * Homework popup (`docs/features/homework.yaml`): due datetime is primary,
  * relative urgency is secondary, and remaining facts are a table. The table
  * must not repeat the due date or expose a creation timestamp.
  */
@@ -76,7 +76,7 @@ export async function expectHomeworkDetailOrder(dialog: Locator) {
 
 /**
  * Discussion is the next block in the same reading column, not a right-hand
- * rail. Side rails belong on pages (`docs/contracts/_ui.json`).
+ * rail. Side rails belong on pages (`docs/policies/ui.yaml`).
  */
 export async function expectSingleColumnDiscussion(dialog: Locator) {
   const dueSummary = dialog

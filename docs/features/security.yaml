@@ -1,0 +1,62 @@
+kind: feature
+id: security
+name: Content / Security
+areas:
+- platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.content-security
+access:
+  anon: Anonymous comments do not expose real identity to regular users; identity is traceable by admins
+    for governance and security processing.
+  user: Can post anonymous comments with identity hidden from other users. Uploads and downloads require
+    permission validation. Destructive actions require explicit confirmation.
+  admin: Can trace anonymous comment identities in governance scenarios. High-risk actions (delete, suspend,
+    hide) must provide explicit feedback.
+  agent: Must maintain the same permission boundaries and error feedback as web/API.
+requirements:
+- id: security.anonymous-and-traceable
+  category: privacy
+  rule: Anonymous capability and traceability capability coexist; this is not an either-or design.
+- id: security.upload-download-both-checked
+  category: authorization
+  rule: Both uploads and downloads require permission checks; the security boundary must not apply only
+    to the upload entry point.
+capabilities:
+  anonymous-comment-visibility:
+    title: Anonymous Comment Visibility
+    auth: anon
+    web: stable
+    rest: stable
+    mcp: unavailable
+    presentation:
+      items:
+      - comment.visibility (public/logged_in_only)
+      - comment.isAnonymous
+      - Anonymous author badge / hidden identity UI
+  upload-download-access:
+    title: Upload / Download Access Control
+    auth: user
+    web: stable
+    rest: stable
+    mcp: unavailable
+    presentation:
+      items:
+      - Both upload and download require permission checks
+      - Security boundary not at upload entry point only
+  destructive-action-confirmation:
+    title: Destructive Action Confirmation
+    auth: user
+    web: stable
+    rest: unavailable
+    mcp: unavailable
+    presentation:
+      items:
+      - Account deletion confirmation word DELETE
+      - Comment/upload delete confirm dialog
+      - Warning text
+      - Confirm button
+      - Cancel button

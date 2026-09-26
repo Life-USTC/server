@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PUBLICATION_INGESTION_BATCH_MAX_BODY_BYTES } from "@/features/publications/lib/publication-ingestion-limits";
 import { PUBLICATION_INGESTION_PRINCIPAL_KEY } from "@/lib/auth/service-principal";
-import fixture from "../../../../docs/contracts/fixtures/publication-batch.json";
+import fixture from "../../../fixtures/publication-batch.json";
 
 const { requirePrincipalMock, prismaMock } = vi.hoisted(() => ({
   requirePrincipalMock: vi.fn(),

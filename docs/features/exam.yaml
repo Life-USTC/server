@@ -1,0 +1,162 @@
+kind: feature
+id: exam
+name: Exam
+areas:
+- catalog
+- workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.missing-data
+access:
+  anon: Can read exam information.
+  user: Can read exam information. Cannot modify exam fact data.
+  admin: Maintains exam data through admin or import flows, not direct edits on ordinary pages.
+  agent: After authorization, can read exams relevant to the current user through REST, GraphQL, and MCP.
+requirements:
+- id: exam.complete-workspace-list
+  category: consistency
+  rule: Workspace exam lists cover all subscribed active sections across all semesters, including past
+    exams and unknown dates by default. REST and GraphQL are paginated; the CLI exhausts REST pagination
+    unless page or limit is explicitly selected, preserves the true result total and displays each exam's
+    semester. Failed later pages fail the command instead of returning a partial success.
+  acceptance:
+  - id: exam.complete-workspace-list.owned-pages
+    given: Two users subscribe to different sections, and the first user has four exams across semesters
+      including an unknown-date exam.
+    when: The first user reads successive two-row REST-model pages without a date or semester filter.
+    then:
+    - Both pages preserve total=4 and together contain all four owned exams.
+    - The unknown-date exam and its semester context remain present.
+    - The second user sees only their separately subscribed exam.
+    tests:
+    - file: tests/integration/workspace-exam-list.test.ts
+      name: returns four owned exams across real pages with semester context and unknown dates
+  - id: exam.complete-workspace-list.scope-rejection
+    given: An active OAuth grant has a correctly signed REST token containing only workspace.overview:read.
+    when: The client requests the subscribed exam REST list with that token.
+    then:
+    - The request is rejected without returning exam data.
+    tests:
+    - file: tests/integration/workspace-exam-list.test.ts
+      name: rejects an active, correctly signed overview-only token without returning exam data
+  - id: exam.complete-workspace-list.retired-subscription
+    given: The owner still subscribes to a retired section with an exam.
+    when: The owner requests the complete workspace exam list.
+    then:
+    - The retired exam is excluded from the list and total.
+    - The subscription relationship is preserved.
+    tests:
+    - file: tests/integration/workspace-exam-list.test.ts
+      name: excludes retired sections while preserving the owner's subscription relationship
+- id: exam.source-audience-and-monitors
+  category: consistency
+  rule: Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved
+    by import and exposed with exam records. Monitor school IDs are required, while missing names remain
+    null. Monitor identities are not inferred from teacher names; no contact information is included.
+- id: exam.attached-to-section
+  category: behavior
+  rule: Exams are attached to sections and are high-priority time events.
+- id: exam.read-only
+  category: authorization
+  rule: Exams are read-only; no ordinary user edit entry point is provided.
+- id: exam.semester-required
+  category: presentation
+  rule: Semesters must be explicitly displayed when browsing exams across semesters.
+- id: exam.completion-time-zone
+  category: consistency
+  rule: Exam completion uses the Asia/Shanghai calendar date and local HHMM times. When no exam time is
+    available, the completion instant is the end of its exam date (23:59:59.999 Shanghai time); the exact
+    end instant counts as completed.
+- id: exam.mobile-toolbar-priority
+  category: presentation
+  rule: At mobile widths, completion-status filters stay directly available, card/list display mode moves
+    into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target.
+    Desktop toolbar behavior remains unchanged.
+- id: exam.section-exam-query
+  category: consistency
+  rule: A public section exam read fetches section context and its ordered exam children in one top-level
+    Section query.
+capabilities:
+  cross-section-exam-list:
+    title: Cross-Section Exam List
+    auth: user
+    links:
+      models:
+      - Exam
+    web:
+      pages:
+      - /workspace/exams
+    rest:
+      routes:
+      - path: /api/workspace/exams
+        method: GET
+        auth: user
+        notes:
+        - Requires workspace.exam:read. Ownership is derived from the authenticated principal's subscriptions.
+        - Accepts dateFrom, dateTo, includeDateUnknown (default true), semesterId, page (default 1), pageSize
+          (default 20, maximum 100), and locale.
+        - Date-only and datetime bounds normalize to inclusive Asia/Shanghai calendar dates. Invalid or
+          reversed bounds return 400. Results use stable examDate/startTime/jwId order.
+    graphql:
+      fields:
+      - parent: Workspace
+        name: exams
+        auth: user
+        required_scopes:
+        - workspace.exam:read
+        rest_equivalent: GET /api/workspace/exams
+        mcp_equivalent: workspace_exam_list
+        notes:
+        - DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included
+          by default.
+        - 'Each Exam.examRooms(page: PageInput) field returns ExamRoomPage! with the shared default page
+          1/pageSize 20 and maximum pageSize 100.'
+    mcp:
+      tools:
+      - name: workspace_exam_list
+        notes:
+        - Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn,
+          examDate, startTime, endTime, examBatch, and examRooms[].
+        - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
+          or past term.
+    presentation:
+      items:
+      - exam.examDate
+      - exam.startTime - endTime
+      - exam.examMode
+      - exam.examBatch.id
+      - exam.examBatch.namePrimary
+      - exam.examType
+      - exam.examTakeCount
+      - exam.examRooms[] (locations)
+      - section.course.namePrimary
+      - section.semester.nameCn
+      - 'completion filter: incomplete/completed/all'
+      - mobile compact toolbar with direct completion filters and overflow display-mode control
+      - Filter-empty explanation and clear-filter action
+  section-exam-info:
+    title: Section Exam Info
+    auth: anon
+    links:
+      models:
+      - Exam
+    web:
+      pages:
+      - /catalog/sections/[jwId]
+    rest: unavailable
+    mcp:
+      tools:
+      - name: catalog_section_exam_list
+        notes:
+        - Returns a single section's exams[].
+    presentation:
+      items:
+      - exam.examDate
+      - exam.startTime - endTime
+      - exam.examMode
+      - exam.examBatch.id
+      - exam.examBatch.namePrimary
+      - exam.examRooms[]

@@ -1,0 +1,86 @@
+kind: feature
+id: weather
+name: Weather
+areas:
+- catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: Can query weather for USTC campus locations.
+  user: Can query weather for USTC campus locations.
+  admin: Can query weather for USTC campus locations.
+  agent: Can read weather snapshots for USTC campus locations.
+requirements:
+- id: weather.public-no-signin
+  category: authorization
+  rule: Weather is public campus life information; sign-in should not be a prerequisite.
+- id: weather.two-locations-only
+  category: behavior
+  rule: 'Only two locations are tracked: ustc-main (本部, Amap adcode 340100) covers the closely clustered
+    east/west/south/north/central campuses, and ustc-gaoxin (高新校区, adcode 340104 Shushan — the Gaoxin
+    campus''s district; the economic-zone adcode 340171 has no AMap weather coverage) covers the distant
+    Gaoxin campus.'
+- id: weather.amap-primary
+  category: behavior
+  rule: Amap (高德) is the primary provider; Open-Meteo supplements hourly forecast, precipitation probability,
+    and other fields Amap does not return. The merged snapshot lists which providers contributed.
+- id: weather.rolling-hourly-forecast
+  category: behavior
+  rule: Web, REST, GraphQL and MCP return the available hourly points in [request time, request time +
+    24 hours), including tomorrow. Cached snapshots retain the full Open-Meteo seven-day hourly series
+    so each read advances the window without another provider request. Amap has no hourly forecast; unavailable
+    or expired hourly data stays empty instead of showing past hours.
+- id: weather.raw-extensions-preserved
+  category: behavior
+  rule: Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay
+    available under extensions for REST and MCP consumers.
+- id: weather.cache-and-history
+  category: consistency
+  rule: Snapshots are cached in the WEATHER KV namespace for 15 minutes per location and persisted to
+    WeatherObservation history; a scheduled cron refreshes both locations to stay within the Amap monthly
+    quota.
+- id: weather.location-key-boundary
+  category: consistency
+  rule: REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin;
+    unknown keys are rejected as bad input.
+capabilities:
+  weather:
+    title: Campus Weather
+    auth: anon
+    web:
+      pages:
+      - /catalog/weather
+    rest:
+      routes:
+      - path: /api/catalog/weather
+        notes:
+        - 'Optional locationKey query parameter: ustc-main (default) or ustc-gaoxin.'
+        - Returns 503 when every provider is unavailable.
+    graphql:
+      queries:
+      - name: weather
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/weather
+        mcp_equivalent: catalog_weather_get
+        notes:
+        - locationKey must be one of the canonical weather location keys.
+        - Returns null when every provider is unavailable.
+    mcp:
+      tools:
+      - name: catalog_weather_get
+        rest_equivalent: GET /api/catalog/weather
+        notes:
+        - Accepts locationKey (default ustc-main) and mode inputs.
+        - Default mode returns the merged snapshot without provider extensions; full mode returns the
+          complete payload including raw provider extensions.
+    presentation:
+      items:
+      - location name
+      - current temperature and condition
+      - hourly temperature curve and precipitation probability bars share one full-width plot; hour details
+        appear on hover, touch, or keyboard focus instead of a separate card strip
+      - daily high/low temperatures
+      - weather alerts

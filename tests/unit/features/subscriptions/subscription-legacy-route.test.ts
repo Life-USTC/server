@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 import * as legacySubscriptionsRoute from "@/routes/workspace/subscriptions/sections/+page.server";
-import overviewContract from "../../../../docs/contracts/overview.json";
-import subscribedSectionsContract from "../../../../docs/contracts/subscribed-sections.json";
-import subscriptionContract from "../../../../docs/contracts/subscription.json";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 const canonicalPath = "/workspace/subscriptions";
 const legacyPath = "/workspace/subscriptions/sections";
 
 type ContractModule = {
-  rules?: Record<string, string>;
+  requirements: { id: string; rule: string }[];
   capabilities: Record<
     string,
     {
@@ -43,7 +41,15 @@ describe("旧版订阅班级路由", () => {
     expect("actions" in legacySubscriptionsRoute).toBe(false);
   });
 
-  it("记录标准页面并保持旧版 URL 仅用于重定向", () => {
+  it("记录标准页面并保持旧版 URL 仅用于重定向", async () => {
+    const [subscriptionContract, subscribedSectionsContract, overviewContract] =
+      await Promise.all([
+        readSpecification<ContractModule>("docs/features/subscription.yaml"),
+        readSpecification<ContractModule>(
+          "docs/features/subscribed-sections.yaml",
+        ),
+        readSpecification<ContractModule>("docs/features/overview.yaml"),
+      ]);
     const canonicalCapabilities = [
       [subscriptionContract, "batch-subscribe-by-codes"],
       [subscribedSectionsContract, "subscribed-sections-tab"],
@@ -56,8 +62,10 @@ describe("旧版订阅班级路由", () => {
       expect(pages).not.toContain(legacyPath);
     }
 
-    const legacyRule =
-      subscribedSectionsContract.rules["legacy-sections-route"];
+    const legacyRule = subscribedSectionsContract.requirements.find(
+      (requirement) =>
+        requirement.id === "subscribed-sections.legacy-sections-route",
+    )?.rule;
     expect(legacyRule).toContain(legacyPath);
     expect(legacyRule).toContain(canonicalPath);
     expect(legacyRule).toMatch(/redirect-only/);

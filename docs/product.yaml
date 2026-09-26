@@ -1,0 +1,30 @@
+kind: product
+id: life-ustc
+title: Life@USTC
+priorities:
+- student learning workspace
+- public campus info browser
+- controlled REST / GraphQL / MCP surface
+- admin maintenance surface
+surfaces:
+- web
+- rest
+- graphql
+- mcp
+roles:
+- id: anon
+  description: Unauthenticated visitor; can browse all public information.
+- id: user
+  description: Authenticated, non-suspended user; can manage personal state and perform social actions.
+- id: admin
+  description: Platform administrator; has governance, moderation, and maintenance capabilities.
+- id: agent
+  description: OAuth-authorized third-party client or MCP caller; inherits user permissions after authorization;
+    does not inherit admin by default.
+terms:
+- name: sectionSubscription
+  meaning: In-app section subscription; not equivalent to official course enrollment.
+- name: homework
+  meaning: Class-attached learning task; completion state is tracked per user independently.
+- name: todo
+  meaning: Personal user task; not attached to any class.

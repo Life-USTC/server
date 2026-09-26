@@ -1,0 +1,272 @@
+kind: feature
+id: comment
+name: Comment
+areas:
+- community
+- admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
+- cases.content-security
+access:
+  anon: Can read public comments but cannot create sign-in-required comments.
+  user: Can post, reply, react, edit, and delete their own comments; suspended users can read permitted
+    comments but cannot use comment write actions or upload comment attachments.
+  admin: Unsuspended admins can hide, delete, and moderate comments through moderation surfaces, and handle
+    suspensions.
+  agent: Can read visible comment lists, focused threads, and ordinary signed-in user comment write actions
+    through MCP with authenticated viewer context; no admin moderation capability is provided.
+requirements:
+- id: comment.attached-to-object
+  category: behavior
+  rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
+- id: comment.attached-object-types
+  category: behavior
+  rule: Attached objects include courses, sections, teachers, homework, section-teacher relationships,
+    and young events.
+- id: comment.rich-content
+  category: presentation
+  rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
+- id: comment.server-rendered-markdown
+  category: presentation
+  rule: Visible comment nodes include body as the source Markdown and renderedBody as sanitized server-rendered
+    HTML. Web read surfaces consume renderedBody without rerunning the Markdown pipeline during hydration;
+    REST and MCP full mode keep the shared serialized comment-node shape, while MCP compact modes omit
+    renderedBody to avoid repeating the source Markdown in AI context.
+- id: comment.markdown-font-csp
+  category: presentation
+  rule: Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs
+    so every required math glyph can load under the configured font-src Content Security Policy.
+- id: comment.visibility-modes
+  category: authorization
+  rule: Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous
+    and hides identity from regular users while remaining traceable by admins in governance scenarios.
+- id: comment.shared-read-policy
+  category: authorization
+  rule: Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility
+    filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must
+    not create durable comment targets and valid empty section-teacher targets load as empty threads.
+- id: comment.thread-pagination
+  category: behavior
+  rule: Root/reply pages use viewer-safe createdAt/id order (hidden roots use earliest visible descendant
+    timestamp and root id). Each root has at most 10 preview descendants plus 20 ancestry levels. Missing
+    ancestors use privacy-inert isAncestryPlaceholder structural ids, preserving branches and one top-level
+    entry per root. repliesNextCursor is opaque; REST GET /api/community/comments/[id]/replies and MCP
+    community_comment_replies continue at most 20 descendants plus ancestry, preserving permissions/moderation.
+- id: comment.interaction-gate
+  category: authorization
+  rule: Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and
+    an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact
+    or accept those write actions. Admin moderation affordances require an unsuspended admin.
+capabilities:
+  object-comment-section:
+    title: Object Comment Section
+    auth: anon
+    web: stable
+    graphql:
+      mutations:
+      - name: commentCreate
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: POST /api/community/comments
+        mcp_equivalent: community_comment_create
+      - name: commentUpdate
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: PATCH /api/community/comments/[id]
+        mcp_equivalent: community_comment_update
+      - name: commentDelete
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: DELETE /api/community/comments/[id]
+        mcp_equivalent: community_comment_delete
+      - name: commentsDelete
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: DELETE /api/community/comments/batch
+        mcp_equivalent: graphql_operation_run
+        notes:
+        - 'Registered operation id: community.comments.delete.v1.'
+        - Accepts up to 50 unique comment ids and returns stable per-item success, not_found, forbidden,
+          or locked results.
+        - Each successful item uses the same permission, suspension, interaction-lock, transaction, and
+          audit path as the single-comment delete operation.
+      - name: commentReactionAdd
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: POST /api/community/comments/[id]/reactions
+        mcp_equivalent: community_comment_reaction_add
+      - name: commentReactionRemove
+        auth: user
+        required_scopes:
+        - community.comment:write
+        rest_equivalent: DELETE /api/community/comments/[id]/reactions
+        mcp_equivalent: community_comment_reaction_remove
+    rest:
+      routes:
+      - path: /api/community/comments
+        notes:
+        - Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers
+          such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event
+          targets require a validated public youngId.
+        - Returns 404 when the attached target entity does not exist.
+        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+      - path: /api/community/comments
+        method: POST
+        status: 201
+        auth: user
+        notes:
+        - Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers
+          such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event
+          targets require a validated public youngId.
+        - visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.
+        - Provided sectionJwId and courseJwId values must be valid positive integers; malformed values
+          return 400 even when targetId is also supplied.
+        - Returns 400 Invalid attachments when any requested upload is missing, owned by another user,
+          or already attached to a comment.
+      - path: /api/community/comments/[id]
+        method: PATCH
+        auth: user
+        notes:
+        - Only the comment owner may use the public edit endpoint; admins moderate through /api/admin/comments/[id].
+        - visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.
+        - Returns 400 Invalid attachments when any requested upload is missing, owned by another user,
+          or already attached to a different comment.
+      - path: /api/community/comments/[id]
+        method: DELETE
+        auth: user
+      - path: /api/community/comments/batch
+        method: DELETE
+        auth: user
+        notes:
+        - Accepts up to 50 comment ids.
+        - Deletes each comment using the same owner/locked checks as DELETE /api/community/comments/[id].
+        - Returns per-item results; failures do not stop processing of other ids.
+      - path: /api/community/comments/[id]/reactions
+        method: POST
+        auth: user
+      - path: /api/community/comments/[id]
+        notes:
+        - Returns 404 when the focused comment is missing or hidden by row security. Returns 403 only
+          when a database-visible comment cannot be included in the viewer-safe thread.
+        - The focused root is bounded to the same reply preview contract and exposes repliesNextCursor
+          when more descendants are available.
+      - path: /api/community/comments/[id]/replies
+        notes:
+        - Pass repliesNextCursor from a root node to continue its reply preview; each response includes
+          the root, at most 20 ranked descendants, and bounded ancestry rows needed to connect them.
+        - The cursor is scoped to the root comment and invalid or cross-thread cursors return 400; roots
+          hidden by row security return 404, while database-visible but inaccessible threads return 403.
+      - path: /api/community/comments/[id]/reactions
+        method: DELETE
+        auth: user
+    mcp:
+      tools:
+      - name: community_comment_list
+        auth: user
+        rest_equivalent: GET /api/community/comments
+        notes:
+        - Accepts page and limit; each paged root contains a bounded reply preview and repliesNextCursor
+          when continuation is available.
+        - Pass youngId when targetType is young-event; young-event target resolution never accepts an
+          arbitrary targetId.
+      - name: community_comment_replies
+        auth: user
+        rest_equivalent: GET /api/community/comments/[id]/replies
+        notes:
+        - Passes repliesNextCursor from community_comment_list or an earlier continuation response and
+          caps each ranked reply page at 20 descendants plus bounded ancestry rows.
+      - name: community_comment_get
+        auth: user
+        rest_equivalent: GET /api/community/comments/[id]
+        notes:
+        - Returns a bounded focused thread; the root exposes repliesNextCursor when more descendants are
+          available.
+      - name: community_comment_create
+        auth: user
+        rest_equivalent: POST /api/community/comments
+        notes:
+        - Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and
+          attachment validation as REST; MCP audit metadata records source=mcp.
+        - Pass youngId when targetType is young-event; writes require an authenticated, unsuspended user.
+      - name: community_comment_update
+        auth: user
+        rest_equivalent: PATCH /api/community/comments/[id]
+        notes:
+        - Only the comment owner may edit through this ordinary-user MCP tool; visibility validation and
+          isAnonymous match REST, and moderation remains unavailable through MCP.
+      - name: community_comment_delete
+        auth: user
+        rest_equivalent: DELETE /api/community/comments/[id]
+      - name: community_comment_reaction_add
+        auth: user
+        rest_equivalent: POST /api/community/comments/[id]/reactions
+      - name: community_comment_reaction_remove
+        auth: user
+        rest_equivalent: DELETE /api/community/comments/[id]/reactions
+    presentation:
+      items:
+      - comment.id
+      - comment.author.name
+      - comment.author.image (avatar)
+      - comment.body (markdown-rendered)
+      - comment.renderedBody (sanitized server-rendered HTML)
+      - comment.createdAt (timestamp)
+      - comment.updatedAt / edited timestamp
+      - comment.visibility badges
+      - comment.status (non-active states)
+      - comment.reactions[] (counts per reaction type)
+      - comment.replies[] (threaded)
+      - comment.repliesNextCursor (bounded reply continuation)
+      - comment.isAncestryPlaceholder (redacted structural context)
+      - comment.attachments[] filename/open action for signed-in viewers with attachment access
+      - canReply/canReact/canEdit/canDelete/canModerate actions
+      - Copy link action
+  comment-governance:
+    title: Comment Governance
+    auth: admin
+    web:
+      pages:
+      - /admin/moderation
+    rest:
+      routes:
+      - path: /api/admin/comments
+        notes:
+        - Omitted status defaults to the active moderation queue, matching /admin/moderation.
+        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+      - path: /api/admin/comments/[id]
+        method: PATCH
+      - path: /api/admin/suspensions
+        method: POST
+        status: 201
+      - path: /api/admin/suspensions/[id]
+        method: PATCH
+    mcp: unavailable
+    presentation:
+      items:
+      - comment.body/content preview
+      - comment.author.name
+      - target object
+      - creation timestamp
+      - 'Status: active/softbanned/deleted'
+      - Suspended filter
+      - Status radio + confirm action
+      - Suspension controls
+  comment-auxiliary-pages:
+    title: Comment Auxiliary Pages
+    auth: anon
+    web:
+      pages:
+      - /community/comments/[id]
+      - /guides/markdown-support
+    presentation:
+      items:
+      - Comment guidelines/help pages

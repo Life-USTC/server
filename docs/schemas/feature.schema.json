@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/feature.schema.json",
+  "title": "Feature product specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "id",
+    "name",
+    "areas",
+    "access",
+    "requirements",
+    "capabilities"
+  ],
+  "properties": {
+    "kind": {
+      "const": "feature"
+    },
+    "id": {
+      "$ref": "defs.schema.json#/$defs/localId"
+    },
+    "name": {
+      "$ref": "defs.schema.json#/$defs/nonEmptyString"
+    },
+    "areas": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "catalog",
+          "workspace",
+          "community",
+          "account",
+          "admin",
+          "platform"
+        ]
+      }
+    },
+    "access": {
+      "$ref": "defs.schema.json#/$defs/moduleAccess"
+    },
+    "policy_refs": {
+      "$ref": "defs.schema.json#/$defs/policyRefs"
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "defs.schema.json#/$defs/requirement"
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "defs.schema.json#/$defs/localId"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "auth"],
+        "properties": {
+          "title": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "auth": {
+            "$ref": "defs.schema.json#/$defs/authLevel"
+          },
+          "policy_refs": {
+            "$ref": "defs.schema.json#/$defs/policyRefs"
+          },
+          "links": {
+            "$ref": "defs.schema.json#/$defs/links"
+          },
+          "presentation": {
+            "$ref": "defs.schema.json#/$defs/presentation"
+          },
+          "web": {
+            "$ref": "defs.schema.json#/$defs/webSurface"
+          },
+          "rest": {
+            "$ref": "defs.schema.json#/$defs/restSurface"
+          },
+          "graphql": {
+            "$ref": "defs.schema.json#/$defs/graphqlSurface"
+          },
+          "mcp": {
+            "$ref": "defs.schema.json#/$defs/mcpSurface"
+          }
+        }
+      }
+    }
+  }
+}

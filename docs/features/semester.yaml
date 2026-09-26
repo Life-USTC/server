@@ -1,0 +1,101 @@
+kind: feature
+id: semester
+name: Semester
+areas:
+- catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+access:
+  anon: Can read semester information.
+  user: Can read semester information. Cannot modify semester data.
+  admin: Can read semester information. Does not directly modify semester facts through ordinary pages.
+  agent: Can only read existing semester information; no additional write permissions.
+requirements:
+- id: semester.organizational-dimension
+  category: behavior
+  rule: Semesters are the organizational dimension for courses, sections, schedules, and exams.
+- id: semester.current-semester-by-rules
+  category: consistency
+  rule: The current semester must be determined by explicit business rules against the current Asia/Shanghai
+    calendar date, not by rough natural-year inference. Public REST, GraphQL, and MCP reads share a static-revision-
+    and date-scoped runtime cache.
+- id: semester.semester-visible-in-filters
+  category: presentation
+  rule: Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester
+    browsing.
+- id: semester.current-semester.latest-startdate-wins
+  category: consistency
+  rule: The current semester is determined by date range; when multiple semester ranges overlap the current
+    date, the semester with the latest startDate is selected to prevent an older range or import residue
+    from shadowing a more specific newer semester.
+  applies_to:
+  - current-semester
+capabilities:
+  semester-list:
+    title: Semester List
+    auth: anon
+    links:
+      models:
+      - Semester
+    web: stable
+    rest:
+      routes:
+      - path: /api/catalog/semesters
+        notes:
+        - REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize
+          wins when both are supplied. Out-of-range values are rejected instead of clamped.
+    graphql:
+      queries:
+      - name: semesters
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/semesters
+        mcp_equivalent: catalog_semester_list
+        notes:
+        - PageInput defaults to page=1 and pageSize=20; page and pageSize must remain within 1-100.
+    mcp:
+      tools:
+      - name: catalog_semester_list
+        rest_equivalent: GET /api/catalog/semesters
+        notes:
+        - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
+    presentation:
+      items:
+      - semester.id
+      - semester.jwId
+      - semester.code
+      - semester.nameCn
+      - semester.startDate
+      - semester.endDate
+  current-semester:
+    title: Current Semester
+    auth: anon
+    links:
+      models:
+      - Semester
+    web: stable
+    rest:
+      routes:
+      - path: /api/catalog/semesters/current
+        notes:
+        - Returns the current semester or 404 when none is found.
+    graphql:
+      queries:
+      - name: currentSemester
+        parent: Catalog
+        rest_equivalent: GET /api/catalog/semesters/current
+        mcp_equivalent: catalog_semester_current
+    mcp:
+      tools:
+      - name: catalog_semester_current
+        rest_equivalent: GET /api/catalog/semesters/current
+    presentation:
+      items:
+      - semester.id
+      - semester.jwId
+      - semester.nameCn
+      - semester.startDate
+      - semester.endDate
+      - semester.code
