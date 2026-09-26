@@ -3,6 +3,8 @@ id: webhook-login
 name: Webhook Login
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
 access:
   anon: Not a public product entry point.
   user: Not applicable.

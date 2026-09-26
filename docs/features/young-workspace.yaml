@@ -3,6 +3,11 @@ id: young-workspace
 name: Young Workspace
 areas:
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Public catalog and permitted comments only.
   user: Own activity and organizer subscriptions, notifications and personal calendar.

@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://life-ustc.example/specifications/policy.schema.json",
   "type": "object",
   "additionalProperties": false,
@@ -37,9 +37,7 @@
             "$ref": "defs.schema.json#/$defs/id"
           }
         },
-        "required": [
-          "feature"
-        ]
+        "required": ["feature"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -57,10 +55,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "id",
-          "description"
-        ]
+        "required": ["id", "description"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -78,10 +73,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "id",
-          "title"
-        ]
+        "required": ["id", "title"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -102,11 +94,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "action",
-          "trigger",
-          "description"
-        ]
+        "required": ["action", "trigger", "description"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -127,11 +115,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "id",
-          "owns",
-          "excludes"
-        ]
+        "required": ["id", "owns", "excludes"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -149,10 +133,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "name",
-          "meaning"
-        ]
+        "required": ["name", "meaning"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -173,11 +154,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "surface",
-          "form",
-          "example"
-        ]
+        "required": ["surface", "form", "example"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -195,10 +172,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "action",
-          "meaning"
-        ]
+        "required": ["action", "meaning"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -228,14 +202,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "capability",
-          "web",
-          "rest",
-          "graphql",
-          "bot",
-          "cli"
-        ]
+        "required": ["capability", "web", "rest", "graphql", "bot", "cli"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -253,9 +220,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "path"
-        ]
+        "required": ["path"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -281,10 +246,7 @@
           "uniqueItems": true
         }
       },
-      "required": [
-        "query",
-        "mutation_prefixes"
-      ]
+      "required": ["query", "mutation_prefixes"]
     },
     "cache_layers": {
       "type": "array",
@@ -302,19 +264,13 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "layer",
-          "content",
-          "invalidation"
-        ]
+        "required": ["layer", "content", "invalidation"]
       },
       "minItems": 1,
       "uniqueItems": true
     },
     "enforcement": {
-      "enum": [
-        "advisory"
-      ]
+      "enum": ["advisory"]
     },
     "title_patterns": {
       "type": "array",
@@ -332,11 +288,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "pattern",
-          "when",
-          "example"
-        ]
+        "required": ["pattern", "when", "example"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -373,10 +325,7 @@
             "uniqueItems": true
           }
         },
-        "required": [
-          "label",
-          "required"
-        ]
+        "required": ["label", "required"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -387,10 +336,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "title"
-        ],
+        "required": ["id", "title"],
         "properties": {
           "id": {
             "$ref": "defs.schema.json#/$defs/localId"
@@ -403,11 +349,5 @@
       "uniqueItems": true
     }
   },
-  "required": [
-    "kind",
-    "id",
-    "title",
-    "requirements",
-    "topics"
-  ]
+  "required": ["kind", "id", "title", "requirements", "topics"]
 }

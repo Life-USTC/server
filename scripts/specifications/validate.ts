@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import type { AnySchema, ValidateFunction } from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import ts from "typescript";
@@ -108,6 +108,11 @@ export function declaredTestNames(text: string): Set<string> {
       if (
         !disabled &&
         ["test", "it"].includes(parts[0]) &&
+        parts
+          .slice(1)
+          .every((part) =>
+            ["only", "each", "for", "concurrent", "sequential"].includes(part),
+          ) &&
         node.arguments.length >= 2 &&
         first &&
         (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first))
@@ -152,9 +157,22 @@ export async function validateSpecificationReferences(
     if (documentIds.has(documentId))
       errors.push(`${path}: duplicate document ID ${documentId}`);
     documentIds.add(documentId);
-    if (data.kind !== "product" && basename(path, ".yaml") !== data.id) {
+    const directories: Record<string, string> = {
+      feature: "features",
+      policy: "policies",
+      decision: "decisions",
+      "mutation-capabilities": "reference",
+    };
+    const directory = directories[String(data.kind)];
+    const expectedPath =
+      data.kind === "product"
+        ? "docs/product.yaml"
+        : directory
+          ? `docs/${directory}/${data.id}.yaml`
+          : undefined;
+    if (expectedPath && path !== expectedPath) {
       errors.push(
-        `${path}: filename must match document ID ${String(data.id)}`,
+        `${path}: ${String(data.kind)} ${String(data.id)} must be stored at ${expectedPath}`,
       );
     }
     const capabilities = record(data.capabilities) ? data.capabilities : {};
@@ -167,12 +185,6 @@ export async function validateSpecificationReferences(
         topicIds.add(topic.id);
       }
     }
-    if (Array.isArray(data.policy_refs)) {
-      for (const policy of data.policy_refs) {
-        if (!policies.has(policy))
-          errors.push(`${path}: unknown policy ${String(policy)}`);
-      }
-    }
     for (const requirement of collectRequirements(data)) {
       requirements += 1;
       if (requirementIds.has(requirement.id))
@@ -183,11 +195,13 @@ export async function validateSpecificationReferences(
           `${path}: ${requirement.id} references unknown topic ${requirement.topic}`,
         );
       }
-      if (data.kind === "feature") {
+      if (data.kind === "feature" || data.kind === "policy") {
         if (!requirement.id.startsWith(`${data.id}.`))
           errors.push(
-            `${path}: requirement ${requirement.id} must use its feature prefix`,
+            `${path}: requirement ${requirement.id} must use its document prefix`,
           );
+      }
+      if (data.kind === "feature") {
         for (const capability of requirement.applies_to ?? []) {
           if (!Object.hasOwn(capabilities, capability))
             errors.push(
@@ -238,6 +252,12 @@ export async function validateSpecificationReferences(
       if (Array.isArray(value)) {
         value.forEach(checkReferences);
       } else if (record(value)) {
+        if (Array.isArray(value.policy_refs)) {
+          for (const policy of value.policy_refs) {
+            if (!policies.has(policy))
+              errors.push(`${path}: unknown policy ${String(policy)}`);
+          }
+        }
         if (typeof value.feature === "string") {
           const feature = features.get(value.feature);
           if (!feature)

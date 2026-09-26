@@ -4,6 +4,13 @@ name: Section
 areas:
 - catalog
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
+- cases.disambiguation
 access:
   anon: Can browse public section information.
   user: Can perform subscription, homework, comment, and description collaborative actions around sections,

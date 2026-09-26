@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://life-ustc.example/specifications/decision.schema.json",
   "type": "object",
   "additionalProperties": false,
@@ -18,10 +18,7 @@
       "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
     },
     "status": {
-      "enum": [
-        "accepted",
-        "superseded"
-      ]
+      "enum": ["accepted", "superseded"]
     },
     "refs": {
       "type": "array",
@@ -36,9 +33,7 @@
             "$ref": "defs.schema.json#/$defs/id"
           }
         },
-        "required": [
-          "feature"
-        ]
+        "required": ["feature"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -76,9 +71,6 @@
           "field": {
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           },
-          "storage_type": {
-            "$ref": "defs.schema.json#/$defs/nonEmptyString"
-          },
           "upstream": {
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           },
@@ -86,12 +78,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "field",
-          "storage_type",
-          "upstream",
-          "meaning"
-        ]
+        "required": ["field", "upstream", "meaning"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -106,7 +93,6 @@
     "refs",
     "context",
     "decisions",
-    "consequences",
-    "field_mappings"
+    "consequences"
   ]
 }

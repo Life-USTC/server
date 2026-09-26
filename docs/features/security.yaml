@@ -3,6 +3,12 @@ id: security
 name: Content / Security
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.content-security
 access:
   anon: Anonymous comments do not expose real identity to regular users; identity is traceable by admins
     for governance and security processing.

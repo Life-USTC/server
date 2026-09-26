@@ -3,6 +3,12 @@ id: admin
 name: Admin
 areas:
 - admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
 access:
   anon: Cannot access the admin backend.
   user: Cannot access the admin backend.

@@ -5,6 +5,14 @@ areas:
 - community
 - workspace
 - admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
+- homework-naming
+- cases.missing-data
 access:
   anon: Can read homework information under public sections, but cannot create, update, or delete.
   user: When signed in and not suspended, can create and update homework; ordinary deletion is limited
@@ -51,11 +59,9 @@ requirements:
     on click and closes via outside click or Escape.
 - id: homework.homework-style-guide-advisory
   category: presentation
-  rule: Section create and edit forms expose a collapsible homework style guide. The workspace create
-    form deliberately omits this guide; the title and description conventions remain advisory on all surfaces.
-    Titles use 第{N}次作业 or {主题}作业 without course name/code, and explicitly avoid chapter-only titles such
-    as 第一章作业. Descriptions list 题目, 提交方式, 提交地址, and 备注 in that order; 题目 uses 未记录 when unknown and unknown
-    optional fields are omitted. The guide is advisory only and never blocks otherwise valid writes.
+  rule: Section create and edit forms expose the collapsible advisory guide defined by the homework-naming
+    policy. The workspace create form deliberately omits the guide. Naming and description conventions
+    remain advisory on every surface and never block otherwise valid writes.
 - id: homework.creator-only-delete
   category: authorization
   rule: Ordinary delete requires the authenticated unsuspended creator. Administrator account status never

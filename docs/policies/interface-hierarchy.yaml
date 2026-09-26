@@ -2,280 +2,286 @@ kind: policy
 id: interface-hierarchy
 title: Canonical capabilities and surface parity
 requirements:
-- id: interface-hierarchy-1
+- id: interface-hierarchy.interface-hierarchy-1
   category: consistency
   topic: interface-hierarchy
   rule: This document defines the canonical information architecture shared by the Life@USTC web app, REST
     API, GraphQL API, MCP server, Bot, and CLI.
-- id: interface-hierarchy-2
+- id: interface-hierarchy.interface-hierarchy-2
   category: consistency
   topic: interface-hierarchy
-  rule: The same capability keeps one scope, domain noun, ownership rule, permission, effect, and error semantics
-    on every surface.
-- id: interface-hierarchy-3
+  rule: The same business capability keeps consistent domain naming, data scope, ownership, effects and
+    error semantics wherever it is exposed. Anonymous availability and OAuth grants are declared per
+    surface; intentional authentication differences must be explicit in the feature specification.
+- id: interface-hierarchy.interface-hierarchy-3
   category: consistency
   topic: interface-hierarchy
   rule: Each transport may use its native syntax.
-- id: interface-hierarchy-4
+- id: interface-hierarchy.interface-hierarchy-4
   category: consistency
   topic: interface-hierarchy
   rule: The server repository is the source of truth for Web, REST, GraphQL, and MCP.
-- id: interface-hierarchy-5
+- id: interface-hierarchy.interface-hierarchy-5
   category: consistency
   topic: interface-hierarchy
   rule: Bot and CLI entries are integration contracts verified in their repositories.
-- id: canonical-tree-1
+- id: interface-hierarchy.canonical-tree-1
   category: consistency
   topic: canonical-tree
   rule: '`me`, `viewer`, `my`, `own`, and `dashboard` are not formal hierarchy names.'
-- id: canonical-tree-2
+- id: interface-hierarchy.canonical-tree-2
   category: consistency
   topic: canonical-tree
   rule: They may appear in explanatory prose, but not in canonical routes, GraphQL fields, MCP tools, capability
     IDs, or CLI command paths.
-- id: surface-mapping-1
+- id: interface-hierarchy.surface-mapping-1
   category: consistency
   topic: surface-mapping
   rule: GraphQL queries use real object hierarchy rather than underscore-encoded RPC names.
-- id: surface-mapping-2
+- id: interface-hierarchy.surface-mapping-2
   category: consistency
   topic: surface-mapping
   rule: Mutation fields remain at the root because GraphQL only guarantees serial execution for root mutation
     fields.
-- id: surface-mapping-3
+- id: interface-hierarchy.surface-mapping-3
   category: consistency
   topic: surface-mapping
   rule: A mutation's capability ID still contains its full scope.
-- id: surface-mapping-4
+- id: interface-hierarchy.surface-mapping-4
   category: consistency
   topic: surface-mapping
-  rule: '`catalog` and public `community` reads are available anonymously.'
-- id: surface-mapping-5
+  surfaces: [graphql]
+  rule: 'GraphQL catalog and public community query fields are available anonymously; native MCP tools
+    retain their declared authorization scopes.'
+- id: interface-hierarchy.surface-mapping-5
   category: consistency
   topic: surface-mapping
-  rule: '`workspace` and `account` return null when there is no authenticated principal.'
-- id: surface-mapping-6
+  surfaces: [graphql]
+  rule: 'GraphQL Query.workspace and Query.account return null when there is no authenticated principal.
+    This does not define the HTTP status of protected REST endpoints.'
+- id: interface-hierarchy.surface-mapping-6
   category: consistency
   topic: surface-mapping
   rule: '`admin` is not exposed through GraphQL or MCP unless a concrete governance client and threat model
     are approved.'
-- id: canonical-actions-1
+- id: interface-hierarchy.canonical-actions-1
   category: consistency
   topic: canonical-actions
   rule: Service identifiers do not use `view`, `query`, or `by_id`.
-- id: canonical-actions-2
+- id: interface-hierarchy.canonical-actions-2
   category: consistency
   topic: canonical-actions
   rule: 'Human interfaces may adapt actions without changing semantics: CLI `complete` / `reopen` and Bot “完成”
     / “恢复” map to the capability action `completion_set`.'
-- id: canonical-actions-3
+- id: interface-hierarchy.canonical-actions-3
   category: consistency
   topic: canonical-actions
   rule: 'Plural capability domains are reserved for genuinely batch operations: `workspace_todo_delete` is
     single-item and `workspace_todos_delete` is batch.'
-- id: canonical-actions-4
+- id: interface-hierarchy.canonical-actions-4
   category: consistency
   topic: canonical-actions
   rule: Inputs, payloads, partial-success behavior, and retry guidance must make the distinction explicit.
-- id: representative-cross-surface-contract-1
+- id: interface-hierarchy.representative-cross-surface-contract-1
   category: consistency
   topic: representative-cross-surface-contract
   rule: The first column is the capability ID (also the MCP name where exposed), not a promise that Bot exposes
     that tool.
-- id: representative-cross-surface-contract-2
+- id: interface-hierarchy.representative-cross-surface-contract-2
   category: consistency
   topic: representative-cross-surface-contract
   rule: The bus map is Web-only.
-- id: representative-cross-surface-contract-3
+- id: interface-hierarchy.representative-cross-surface-contract-3
   category: consistency
   topic: representative-cross-surface-contract
   rule: A dash in a client column means there is no dedicated command.
-- id: representative-cross-surface-contract-4
+- id: interface-hierarchy.representative-cross-surface-contract-4
   category: consistency
   topic: representative-cross-surface-contract
   rule: '`workspace_calendar_feed_get` returns credential-free subscription information; the Bot and CLI feed
     commands use REST with `workspace.subscription:read` to retrieve subscription information, plus `workspace.calendar-feed:read`
     to include a private URL.'
-- id: representative-cross-surface-contract-5
+- id: interface-hierarchy.representative-cross-surface-contract-5
   category: consistency
   topic: representative-cross-surface-contract
   rule: The MCP tool requires `workspace.subscription:read` and never includes that URL.
-- id: representative-cross-surface-contract-6
+- id: interface-hierarchy.representative-cross-surface-contract-6
   category: consistency
   topic: representative-cross-surface-contract
   rule: Complete personal calendar clients use `GET /api/workspace/calendar/events`, `workspace.calendarEvents`,
     or `workspace_calendar_event_list` and the same Shanghai date bounds.
-- id: representative-cross-surface-contract-7
+- id: interface-hierarchy.representative-cross-surface-contract-7
   category: consistency
   topic: representative-cross-surface-contract
   rule: REST and GraphQL clients exhaust pagination instead of using the bounded overview as a calendar dataset.
-- id: representative-cross-surface-contract-8
+- id: interface-hierarchy.representative-cross-surface-contract-8
   category: consistency
   topic: representative-cross-surface-contract
   rule: Individual Young event subscriptions add activities to this calendar and ICS; organizer follows only
     produce daily new-event digests.
-- id: representative-cross-surface-contract-9
+- id: interface-hierarchy.representative-cross-surface-contract-9
   category: consistency
   topic: representative-cross-surface-contract
   rule: See `docs/features/young-workspace.yaml` for the owner-scoped subscription and notification interfaces.
-- id: representative-cross-surface-contract-10
+- id: interface-hierarchy.representative-cross-surface-contract-10
   category: consistency
   topic: representative-cross-surface-contract
-  rule: Feature-specific contract modules in `docs/features/` contain the exhaustive routes, fields, tools,
-    permissions, and return shapes.
-- id: transport-specific-exceptions-1
+  rule: Feature specifications in docs/features define product behavior, authorization, presentation and
+    supported interface bindings. Exact REST wire shapes come from public/openapi.generated.json and
+    GraphQL types from docs/graphql/schema.graphql.
+- id: interface-hierarchy.transport-specific-exceptions-1
   category: consistency
   topic: transport-specific-exceptions
   rule: Authentication redirects, OAuth endpoints, cookie writes, and raw upload bytes are transport operations,
     not business capabilities.
-- id: transport-specific-exceptions-2
+- id: interface-hierarchy.transport-specific-exceptions-2
   category: consistency
   topic: transport-specific-exceptions
   rule: They do not need GraphQL or MCP equivalents.
-- id: transport-specific-exceptions-3
+- id: interface-hierarchy.transport-specific-exceptions-3
   category: consistency
   topic: transport-specific-exceptions
   rule: Public resource pages use /catalog/*, with explicit public landing, news, search, guide, policy and
     API-documentation routes outside that prefix.
-- id: transport-specific-exceptions-4
+- id: interface-hierarchy.transport-specific-exceptions-4
   category: consistency
   topic: transport-specific-exceptions
   rule: Signed-in work uses /workspace/{overview,calendar,homeworks,todos,exams,subscriptions} and nested workspace
     paths.
-- id: transport-specific-exceptions-5
+- id: interface-hierarchy.transport-specific-exceptions-5
   category: consistency
   topic: transport-specific-exceptions
   rule: Tree entries such as workspace/schedules and workspace/uploads are API/MCP/CLI capabilities and do
     not imply a matching Web page.
-- id: transport-specific-exceptions-6
+- id: interface-hierarchy.transport-specific-exceptions-6
   category: consistency
   topic: transport-specific-exceptions
   rule: Bot exposes deterministic commands for frequent, short interactions.
-- id: transport-specific-exceptions-7
+- id: interface-hierarchy.transport-specific-exceptions-7
   category: consistency
   topic: transport-specific-exceptions
   rule: Its AI mode also discovers all tools published by the configured server MCP session through `search_campus_tools`
     / `call_campus_tool`, using per-user MCP OAuth.
-- id: transport-specific-exceptions-8
+- id: interface-hierarchy.transport-specific-exceptions-8
   category: consistency
   topic: transport-specific-exceptions
   rule: 'There is no client tool-name allowlist: schemas and read/write annotations come from the server.'
-- id: transport-specific-exceptions-9
+- id: interface-hierarchy.transport-specific-exceptions-9
   category: consistency
   topic: transport-specific-exceptions
   rule: Private MCP mutations use Bot's durable confirmation and execution records; interrupted writes with
     an uncertain result are not automatically replayed.
-- id: transport-specific-exceptions-10
+- id: interface-hierarchy.transport-specific-exceptions-10
   category: consistency
   topic: transport-specific-exceptions
   rule: Server scopes and ownership checks still apply.
-- id: transport-specific-exceptions-11
+- id: interface-hierarchy.transport-specific-exceptions-11
   category: consistency
   topic: transport-specific-exceptions
   rule: MCP resource and prompt readers supply the GraphQL schema and operation planning context.
-- id: transport-specific-exceptions-12
+- id: interface-hierarchy.transport-specific-exceptions-12
   category: consistency
   topic: transport-specific-exceptions
   rule: Shared conversations retain public host commands and do not expose MCP tools, resources, or prompts.
-- id: transport-specific-exceptions-13
+- id: interface-hierarchy.transport-specific-exceptions-13
   category: consistency
   topic: transport-specific-exceptions
   rule: CLI-local configuration and Bot-local AI/tool settings are client state and remain outside the server
     capability tree.
-- id: transport-specific-exceptions-14
+- id: interface-hierarchy.transport-specific-exceptions-14
   category: consistency
   topic: transport-specific-exceptions
   rule: Administration remains Web, REST, and CLI only by default.
-- id: transport-specific-exceptions-15
+- id: interface-hierarchy.transport-specific-exceptions-15
   category: consistency
   topic: transport-specific-exceptions
   rule: Surface symmetry is not permission to expose governance through GraphQL, MCP, or Bot.
-- id: semantic-parity-1
+- id: interface-hierarchy.semantic-parity-1
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on ownership and required permission or OAuth scope.
-- id: semantic-parity-2
+- id: interface-hierarchy.semantic-parity-2
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on identifiers and accepted filters.
-- id: semantic-parity-3
+- id: interface-hierarchy.semantic-parity-3
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on pagination bounds and default ordering.
-- id: semantic-parity-4
+- id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on Asia/Shanghai date boundaries and output timezone.
-- id: semantic-parity-5
+- id: interface-hierarchy.semantic-parity-5
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on mutation atomicity, partial-success shape, and
     idempotency.
-- id: semantic-parity-6
+- id: interface-hierarchy.semantic-parity-6
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on stable error class and not-found behavior.
-- id: semantic-parity-7
+- id: interface-hierarchy.semantic-parity-7
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on response freshness and mutation return snapshot.
-- id: semantic-parity-8
+- id: interface-hierarchy.semantic-parity-8
   category: consistency
   topic: semantic-parity
   rule: Every supported surface of a capability must agree on confirmation and retry guidance for destructive
     or timeout-ambiguous writes.
-- id: semantic-parity-9
+- id: interface-hierarchy.semantic-parity-9
   category: consistency
   topic: semantic-parity
   rule: OAuth feature scopes use the complete canonical feature name, for example `community.comment:write`,
     `workspace.subscription:write`, and `workspace.upload:write`.
-- id: semantic-parity-10
+- id: interface-hierarchy.semantic-parity-10
   category: consistency
   topic: semantic-parity
   rule: Short forms such as `comment:write` are not accepted.
-- id: semantic-parity-11
+- id: interface-hierarchy.semantic-parity-11
   category: consistency
   topic: semantic-parity
   rule: Contract `required_scopes` are checked against the OAuth registry and native MCP equivalents by `graphql-contract-parity.test.ts`.
-- id: semantic-parity-12
+- id: interface-hierarchy.semantic-parity-12
   category: consistency
   topic: semantic-parity
   rule: Public course/section lookups and subscription-kind updates use `jwId` at external boundaries.
-- id: semantic-parity-13
+- id: interface-hierarchy.semantic-parity-13
   category: consistency
   topic: semantic-parity
   rule: CLI subscription `add`, `remove`, and `preview` still interpret numeric references as database section
     IDs, as does their REST batch payload's `sectionIds`.
-- id: semantic-parity-14
+- id: interface-hierarchy.semantic-parity-14
   category: consistency
   topic: semantic-parity
   rule: Use section/course codes for these CLI commands to avoid confusing those IDs with the JW IDs used by
     `subscription kind` and catalog detail commands.
-- id: semantic-parity-15
+- id: interface-hierarchy.semantic-parity-15
   category: consistency
   topic: semantic-parity
   rule: GraphQL and native MCP subscription add/remove use JW IDs; Bot add/remove use section codes.
-- id: locale-caching-and-seo-1
+- id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency
   topic: locale-caching-and-seo
   rule: Canonical product URLs have no locale prefix or locale query segment.
-- id: locale-caching-and-seo-2
+- id: interface-hierarchy.locale-caching-and-seo-2
   category: consistency
   topic: locale-caching-and-seo
   rule: Locale is a presentation preference, not content identity.
-- id: locale-caching-and-seo-3
+- id: interface-hierarchy.locale-caching-and-seo-3
   category: consistency
   topic: locale-caching-and-seo
   rule: Chinese is the canonical indexable representation for shared public URLs.
-- id: locale-caching-and-seo-4
+- id: interface-hierarchy.locale-caching-and-seo-4
   category: consistency
   topic: locale-caching-and-seo
   rule: English is an adaptive experience on the same URL, not a separately indexed document.
-- id: locale-caching-and-seo-5
+- id: interface-hierarchy.locale-caching-and-seo-5
   category: consistency
   topic: locale-caching-and-seo
   rule: Localized responses are private or vary on a safe locale cache key.
-- id: locale-caching-and-seo-6
+- id: interface-hierarchy.locale-caching-and-seo-6
   category: consistency
   topic: locale-caching-and-seo
   rule: Domain records prefer locale-neutral values with presentation localized at the edge.

@@ -91,6 +91,9 @@ describe("specification structure and references", () => {
   it("rejects broken local capabilities, policies and cross-feature references", async () => {
     const file = feature();
     file.data.policy_refs = ["missing-policy"];
+    file.data.capabilities = {
+      set: { policy_refs: ["missing-capability-policy"] },
+    };
     file.data.refs = [
       { feature: "example", capability: "missing-capability" },
       { feature: "missing-feature" },
@@ -99,6 +102,9 @@ describe("specification structure and references", () => {
       ["missing-local"];
     const result = await validateSpecificationReferences([file]);
     expect(result.errors.join("\n")).toContain("unknown policy missing-policy");
+    expect(result.errors.join("\n")).toContain(
+      "unknown policy missing-capability-policy",
+    );
     expect(result.errors.join("\n")).toContain(
       "unknown capability missing-local",
     );
@@ -120,8 +126,28 @@ describe("specification structure and references", () => {
       test.skip("skipped", () => {});
       describe.skip("disabled group", () => { it("disabled child", () => {}); });
       other("not a test", () => {});
+      test.step("step only", () => {});
+      it.extend("not a declaration", () => {});
     `),
     ]).toEqual(["real test", "parameterized %s"]);
+  });
+
+  it("rejects specifications misplaced outside their canonical directory", async () => {
+    const file = feature();
+    file.path = "docs/policies/archive/example.yaml";
+    expect(
+      (await validateSpecificationReferences([file])).errors.join("\n"),
+    ).toContain("must be stored at docs/features/example.yaml");
+  });
+
+  it("requires policy requirement IDs to use their document prefix", async () => {
+    const file = feature();
+    file.path = "docs/policies/example.yaml";
+    file.data.kind = "policy";
+    (file.data.requirements as Array<{ id: string }>)[0].id = "unrelated.rule";
+    expect(
+      (await validateSpecificationReferences([file])).errors.join("\n"),
+    ).toContain("must use its document prefix");
   });
 
   it("checks exact linked test names and reports unlinked scenarios honestly", async () => {

@@ -4,6 +4,12 @@ name: Exam
 areas:
 - catalog
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.missing-data
 access:
   anon: Can read exam information.
   user: Can read exam information. Cannot modify exam fact data.

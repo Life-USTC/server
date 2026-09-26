@@ -35,82 +35,62 @@ consequences:
   not be fabricated.
 field_mappings:
 - field: description
-  storage_type: String? @db.Text
   upstream: baseContent
   meaning: 活动介绍正文（HTML 富文本，含 <img>）
 - field: participationNotes
-  storage_type: String? @db.Text
   upstream: conceive
   meaning: 参与方式/注意事项（HTML）
 - field: activityLevel
-  storage_type: String?
   upstream: activityLevel_dictText
   meaning: 活动级别（院级/校级/省级/国家级…）
 - field: module
-  storage_type: String?
   upstream: module_dictText
   meaning: 二课堂模块（德/智/体/美/劳）
 - field: form
-  storage_type: String?
   upstream: form_dictText
   meaning: 参与形式（现场参与/提交作品…）
 - field: grades
-  storage_type: String?
   upstream: nj
   meaning: 面向年级（逗号分隔原始值，如 1,2,3,4,5,6）
 - field: sponsor
-  storage_type: String?
   upstream: sponsor_dictText
   meaning: 主办单位（与 organizer 承办单位区分）
 - field: contactName
-  storage_type: String?
   upstream: linkMan
   meaning: 联系人姓名
 - field: contactTel
-  storage_type: String?
   upstream: tel
   meaning: 联系人电话
 - field: duration
-  storage_type: Float?
   upstream: duration
   meaning: 活动持续时长（小时，≠学时）
 - field: serviceHour
-  storage_type: Float?
   upstream: serviceHour
   meaning: 志愿服务时长
 - field: sumHours
-  storage_type: Float?
   upstream: sumHours
   meaning: 累计认定学时（已结束活动）
 - field: sumPersons
-  storage_type: Int?
   upstream: sumPersons
   meaning: 累计参与人次（已结束活动）
 - field: partakeNum
-  storage_type: Int?
   upstream: partakeNum
   meaning: 实际参与人数
 - field: favCount
-  storage_type: Int?
   upstream: favCount
   meaning: 收藏数
 - field: limitNum
-  storage_type: Int?
   upstream: itemLimitNum
   meaning: 名额上限（另一口径）
 - field: createdAtUpstream
-  storage_type: DateTime?
   upstream: createTime
   meaning: 上游创建时间（Asia/Shanghai）
 - field: auditedAt
-  storage_type: DateTime?
   upstream: auditTime
   meaning: 上游审核时间
 - field: updatedAtUpstream
-  storage_type: DateTime?
   upstream: updateTime
   meaning: 上游更新时间
 - field: places
-  storage_type: Json?
   upstream: itemPlaceDTO.places[]
   meaning: 分时段场地：[{ placeInfo, placeSt, placeEt }]

@@ -4,6 +4,11 @@ name: Calendar
 areas:
 - workspace
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can browse calendar information on public section detail pages.
   user: Can browse the personal calendar view.

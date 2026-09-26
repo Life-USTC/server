@@ -4,6 +4,13 @@ name: Personal Calendar Subscription iCal
 areas:
 - catalog
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
+- cases.missing-data
 access:
   anon: Can copy a single-section iCal link from the public section detail page and can retrieve a personal
     feed only when holding its token-bearing URL.

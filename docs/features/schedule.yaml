@@ -4,6 +4,12 @@ name: Schedule
 areas:
 - catalog
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.missing-data
 access:
   anon: Can read public schedule information.
   user: Can read public schedule information. Cannot modify schedule fact data.

@@ -4,6 +4,12 @@ name: User
 areas:
 - account
 - community
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.account
 access:
   anon: Can browse all public information; further actions are not available before entering the sign-in
     flow.

@@ -4,6 +4,12 @@ name: Bus
 areas:
 - catalog
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
 access:
   anon: Can query bus information.
   user: Can query bus information and save preferences.

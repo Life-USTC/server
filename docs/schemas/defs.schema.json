@@ -145,24 +145,12 @@
         "required": ["reference_only"]
       },
       "then": {
-        "not": {
-          "anyOf": [
-            {
-              "required": ["description"]
-            },
-            {
-              "required": ["content_type"]
-            },
-            {
-              "required": ["status"]
-            },
-            {
-              "required": ["auth"]
-            },
-            {
-              "required": ["notes"]
-            }
-          ]
+        "properties": {
+          "description": false,
+          "content_type": false,
+          "status": false,
+          "auth": false,
+          "notes": false
         }
       }
     },
@@ -201,12 +189,8 @@
         "required": ["status"]
       },
       "then": {
-        "not": {
-          "anyOf": [
-            {
-              "required": ["rest_equivalent"]
-            }
-          ]
+        "properties": {
+          "rest_equivalent": false
         }
       }
     },
@@ -425,13 +409,22 @@
           "additionalProperties": false,
           "anyOf": [
             {
-              "required": ["queries"]
+              "required": ["queries"],
+              "properties": {
+                "queries": true
+              }
             },
             {
-              "required": ["mutations"]
+              "required": ["mutations"],
+              "properties": {
+                "mutations": true
+              }
             },
             {
-              "required": ["fields"]
+              "required": ["fields"],
+              "properties": {
+                "fields": true
+              }
             }
           ],
           "properties": {
@@ -474,16 +467,28 @@
           "additionalProperties": false,
           "anyOf": [
             {
-              "required": ["tools"]
+              "required": ["tools"],
+              "properties": {
+                "tools": true
+              }
             },
             {
-              "required": ["groups"]
+              "required": ["groups"],
+              "properties": {
+                "groups": true
+              }
             },
             {
-              "required": ["resources"]
+              "required": ["resources"],
+              "properties": {
+                "resources": true
+              }
             },
             {
-              "required": ["prompts"]
+              "required": ["prompts"],
+              "properties": {
+                "prompts": true
+              }
             }
           ],
           "properties": {

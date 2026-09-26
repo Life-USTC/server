@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://life-ustc.example/specifications/product.schema.json",
   "type": "object",
   "additionalProperties": false,
@@ -24,15 +24,7 @@
     "surfaces": {
       "type": "array",
       "items": {
-        "enum": [
-          "web",
-          "rest",
-          "graphql",
-          "mcp",
-          "cli",
-          "bot",
-          "ios"
-        ]
+        "enum": ["web", "rest", "graphql", "mcp", "cli", "bot", "ios"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -50,10 +42,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "id",
-          "description"
-        ]
+        "required": ["id", "description"]
       },
       "minItems": 1,
       "uniqueItems": true
@@ -71,10 +60,7 @@
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": [
-          "name",
-          "meaning"
-        ]
+        "required": ["name", "meaning"]
       },
       "minItems": 1,
       "uniqueItems": true

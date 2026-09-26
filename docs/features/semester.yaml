@@ -3,6 +3,11 @@ id: semester
 name: Semester
 areas:
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can read semester information.
   user: Can read semester information. Cannot modify semester data.

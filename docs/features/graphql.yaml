@@ -3,6 +3,8 @@ id: graphql
 name: GraphQL
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
 access:
   anon: Can query the public academic catalog and bus timetable through /api/graphql.
   user: Can use public queries, authenticated Workspace and Account fields, and personal mutations through

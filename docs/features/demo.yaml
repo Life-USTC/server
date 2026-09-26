@@ -3,6 +3,11 @@ id: demo
 name: Production Demo
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Demo mode is not shipped as a public product surface yet.
   user: Ordinary signed-in sessions are never converted to demo mode.

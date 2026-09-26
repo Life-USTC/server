@@ -2,19 +2,19 @@ kind: policy
 id: audit
 title: Audit events and retention
 requirements:
-- id: writer-1
+- id: audit.writer-1
   category: privacy
   topic: writer
   rule: AuditLog is sole store.
-- id: writer-2
+- id: audit.writer-2
   category: privacy
   topic: writer
   rule: Mutations write trails transactionally where practical; Better Auth hooks contain logging failures.
-- id: writer-3
+- id: audit.writer-3
   category: privacy
   topic: writer
   rule: Static imports write lifecycle rows transactionally.
-- id: writer-4
+- id: audit.writer-4
   category: privacy
   topic: writer
   rule: Six-hour maintenance clears network data at 30 days, attribution at 90, and events at 400 via a maintenance-only

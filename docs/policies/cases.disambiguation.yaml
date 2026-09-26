@@ -2,37 +2,37 @@ kind: policy
 id: cases.disambiguation
 title: 'Cross-feature scenarios: disambiguation'
 requirements:
-- id: duplicate-course-names-1
+- id: cases.disambiguation.duplicate-course-names-1
   category: behavior
   topic: duplicate-course-names
   rule: Course code or other disambiguation information should be displayed.
-- id: multiple-sections-same-course-1
+- id: cases.disambiguation.multiple-sections-same-course-1
   category: behavior
   topic: multiple-sections-same-course
   rule: Section code and semester should be displayed.
-- id: required-disambiguation-contexts-1
+- id: cases.disambiguation.required-disambiguation-contexts-1
   category: behavior
   topic: required-disambiguation-contexts
   rule: Disambiguation information is required in section search.
-- id: required-disambiguation-contexts-2
+- id: cases.disambiguation.required-disambiguation-contexts-2
   category: behavior
   topic: required-disambiguation-contexts
   rule: Disambiguation information is required in child sections in course detail.
-- id: required-disambiguation-contexts-3
+- id: cases.disambiguation.required-disambiguation-contexts-3
   category: behavior
   topic: required-disambiguation-contexts
   rule: Disambiguation information is required in batch import results.
-- id: scenario-guidance-1
+- id: cases.disambiguation.scenario-guidance-1
   category: behavior
   topic: scenario-guidance
   rule: Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make
     a selection.
-- id: scenario-guidance-2
+- id: cases.disambiguation.scenario-guidance-2
   category: behavior
   topic: scenario-guidance
   rule: Courses with the same name and multiple sections under the same course must not display only the course
     name.
-- id: scenario-guidance-3
+- id: cases.disambiguation.scenario-guidance-3
   category: behavior
   topic: scenario-guidance
   rule: In cross-semester or multi-section scenarios, semester and section code are mandatory information to

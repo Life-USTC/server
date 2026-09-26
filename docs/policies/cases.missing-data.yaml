@@ -2,23 +2,23 @@ kind: policy
 id: cases.missing-data
 title: 'Cross-feature scenarios: missing-data'
 requirements:
-- id: section-missing-teacher-location-or-exam-1
+- id: cases.missing-data.section-missing-teacher-location-or-exam-1
   category: behavior
   topic: section-missing-teacher-location-or-exam
   rule: A default empty state should be displayed.
-- id: section-missing-teacher-location-or-exam-2
+- id: cases.missing-data.section-missing-teacher-location-or-exam-2
   category: behavior
   topic: section-missing-teacher-location-or-exam
   rule: The entire object must not be hidden.
-- id: homework-no-due-date-1
+- id: cases.missing-data.homework-no-due-date-1
   category: behavior
   topic: homework-no-due-date
   rule: Does not enter the 'upcoming due' sort.
-- id: homework-no-due-date-2
+- id: cases.missing-data.homework-no-due-date-2
   category: behavior
   topic: homework-no-due-date
   rule: Can still be viewed in the homework list.
-- id: ical-no-events-1
+- id: cases.missing-data.ical-no-events-1
   category: behavior
   topic: ical-no-events
   rule: A valid but empty or informational calendar content should be returned.

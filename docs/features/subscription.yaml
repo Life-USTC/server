@@ -3,6 +3,14 @@ id: subscription
 name: Subscription
 areas:
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.disambiguation
+- cases.mcp-assistant-workflows
+- cases.semester
 access:
   anon: Can see the subscription entry but cannot directly create a subscription.
   user: Can only manage their own section subscription relationships.

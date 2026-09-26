@@ -3,6 +3,11 @@ id: openapi
 name: REST / OpenAPI
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can browse API documentation and public REST capabilities.
   user: When signed in, can call their own restricted REST capabilities.

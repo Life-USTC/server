@@ -4,6 +4,13 @@ name: Comment
 areas:
 - community
 - admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
+- cases.content-security
 access:
   anon: Can read public comments but cannot create sign-in-required comments.
   user: Can post, reply, react, edit, and delete their own comments; suspended users can read permitted

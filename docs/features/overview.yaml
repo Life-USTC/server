@@ -4,6 +4,13 @@ name: Overview
 areas:
 - workspace
 - platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
+- cases.semester
 access:
   anon: The home page is a lightweight public catalog entry; bus and frequent links are independent pages
     at /catalog/bus and /catalog/links.

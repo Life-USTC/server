@@ -3,6 +3,11 @@ id: teacher
 name: Teacher
 areas:
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can browse teacher information.
   user: Can browse teacher information. Cannot modify teacher fact data.

@@ -3,6 +3,11 @@ id: young-event
 name: Young Events
 areas:
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.
   user: Can browse second-classroom (第二课堂) signup events from young.ustc.edu.cn.

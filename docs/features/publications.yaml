@@ -4,6 +4,11 @@ name: Publications / Public Read and Crawler Ingestion
 areas:
 - catalog
 - platform
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: May read published news and notices, including verified linked media and attachments; cannot write
     or inspect crawler ingestion data.

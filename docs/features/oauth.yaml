@@ -5,6 +5,11 @@ areas:
 - account
 - platform
 - admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: When accessing the authorization page, will first be guided to sign in.
   user: Can only approve or reject third-party client authorization requests.

@@ -3,6 +3,11 @@ id: room-map
 name: Room maps
 areas:
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Read room maps
   user: Read room maps

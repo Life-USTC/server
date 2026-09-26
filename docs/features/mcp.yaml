@@ -3,6 +3,9 @@ id: mcp
 name: MCP
 areas:
 - platform
+policy_refs:
+- interface-hierarchy
+- cases.mcp-assistant-workflows
 access:
   anon: Cannot call MCP tools that require user context.
   user: After authorization, can call personal workspace-related tools.

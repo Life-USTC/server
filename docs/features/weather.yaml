@@ -3,6 +3,11 @@ id: weather
 name: Weather
 areas:
 - catalog
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
 access:
   anon: Can query weather for USTC campus locations.
   user: Can query weather for USTC campus locations.

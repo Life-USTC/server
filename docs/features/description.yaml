@@ -4,6 +4,12 @@ name: Description
 areas:
 - community
 - admin
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
 access:
   anon: Can read public descriptions.
   user: When signed in and not suspended, can maintain descriptions.

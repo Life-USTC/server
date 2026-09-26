@@ -2,19 +2,19 @@ kind: policy
 id: homework-naming
 title: Homework title and description guidance
 requirements:
-- id: title-1
+- id: homework-naming.title-1
   category: presentation
   topic: title
   rule: Use exactly one title pattern.
-- id: title-2
+- id: homework-naming.title-2
   category: presentation
   topic: title
   rule: Do not include course name, course code, or section information.
-- id: description-1
+- id: homework-naming.description-1
   category: presentation
   topic: description
   rule: Use fixed bullets in the declared field order.
-- id: description-2
+- id: homework-naming.description-2
   category: presentation
   topic: description
   rule: Omit unknown optional fields.

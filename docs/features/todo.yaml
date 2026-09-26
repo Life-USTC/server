@@ -3,6 +3,12 @@ id: todo
 name: Todo
 areas:
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- cases.mcp-assistant-workflows
 access:
   anon: Cannot read or write personal todos.
   user: Can only manage their own todos.

@@ -2,188 +2,188 @@ kind: policy
 id: rendering-and-cache
 title: Public rendering, viewer overlays, and cache invalidation
 requirements:
-- id: web-rendering-and-cache-1
+- id: rendering-and-cache.web-rendering-and-cache-1
   category: consistency
   topic: web-rendering-and-cache
   rule: Public content is independent of the viewer.
-- id: web-rendering-and-cache-2
+- id: rendering-and-cache.web-rendering-and-cache-2
   category: consistency
   topic: web-rendering-and-cache
   rule: Canonical public pages serve the same anonymous HTML representation to visitors with or without a session;
     personal data is fetched after hydration through private endpoints.
-- id: cacheable-public-pages-1
+- id: rendering-and-cache.cacheable-public-pages-1
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes course / section / teacher lists with canonical filters.
-- id: cacheable-public-pages-2
+- id: rendering-and-cache.cacheable-public-pages-2
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes catalog detail root paths (`/catalog/{courses|sections|teachers}/:id`).
-- id: cacheable-public-pages-3
+- id: rendering-and-cache.cacheable-public-pages-3
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes campus links.
-- id: cacheable-public-pages-4
+- id: rendering-and-cache.cacheable-public-pages-4
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes second-classroom lists, details, calendars, and organizers
     without query parameters.
-- id: cacheable-public-pages-5
+- id: rendering-and-cache.cacheable-public-pages-5
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes usage guides, privacy, terms, Markdown guide, and API docs.
-- id: cacheable-public-pages-6
+- id: rendering-and-cache.cacheable-public-pages-6
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes sign-in without query parameters, for anonymous visitors only.
-- id: cacheable-public-pages-7
+- id: rendering-and-cache.cacheable-public-pages-7
   category: consistency
   topic: cacheable-public-pages
   rule: Account, workspace, admin, OAuth, and Bearer requests use dynamic SSR.
-- id: cacheable-public-pages-8
+- id: rendering-and-cache.cacheable-public-pages-8
   category: consistency
   topic: cacheable-public-pages
   rule: Sign-in with session cookies also remains dynamic so its redirect behavior is preserved.
-- id: cacheable-public-pages-9
+- id: rendering-and-cache.cacheable-public-pages-9
   category: consistency
   topic: cacheable-public-pages
   rule: SvelteKit `__data.json` navigations stay private; their public reads still reuse the shared data caches.
-- id: cacheable-public-pages-10
+- id: rendering-and-cache.cacheable-public-pages-10
   category: consistency
   topic: cacheable-public-pages
   rule: Filtered second-classroom pages reuse the public data cache even when their HTML is dynamic.
-- id: cacheable-public-pages-11
+- id: rendering-and-cache.cacheable-public-pages-11
   category: consistency
   topic: cacheable-public-pages
   rule: Bus pages remain dynamic because departures and map positions are sensitive to the request time.
-- id: cacheable-public-pages-12
+- id: rendering-and-cache.cacheable-public-pages-12
   category: consistency
   topic: cacheable-public-pages
   rule: Shared schedule/topology reads remain cached, and personal preferences are fetched separately.
-- id: cacheable-public-pages-13
+- id: rendering-and-cache.cacheable-public-pages-13
   category: consistency
   topic: cacheable-public-pages
   rule: News and global-search pages remain dynamic.
-- id: cacheable-public-pages-14
+- id: rendering-and-cache.cacheable-public-pages-14
   category: consistency
   topic: cacheable-public-pages
   rule: The homepage preserves its signed-in redirect to the workspace.
-- id: personal-overlays-1
+- id: rendering-and-cache.personal-overlays-1
   category: privacy
   topic: personal-overlays
   rule: Public SSR never includes subscription state, homework completion, edit permissions, link pins/visits,
     or bus preferences.
-- id: personal-overlays-2
+- id: rendering-and-cache.personal-overlays-2
   category: privacy
   topic: personal-overlays
   rule: Feature components load that state from private APIs and wait for the result before enabling personal
     writes.
-- id: personal-overlays-3
+- id: rendering-and-cache.personal-overlays-3
   category: privacy
   topic: personal-overlays
   rule: The publicly readable description remains in the HTML and structured data; its editing permissions
     are resolved separately.
-- id: personal-overlays-4
+- id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
   rule: The app shell uses the session-only `/_internal/shell-bootstrap` endpoint for the viewer and workspace
     navigation counts.
-- id: personal-overlays-5
+- id: rendering-and-cache.personal-overlays-5
   category: privacy
   topic: personal-overlays
   rule: Workspace SSR seeds the same projection directly.
-- id: personal-overlays-6
+- id: rendering-and-cache.personal-overlays-6
   category: privacy
   topic: personal-overlays
   rule: Feature components use their own APIs rather than fetching the complete shell just to discover identity.
-- id: personal-overlays-7
+- id: rendering-and-cache.personal-overlays-7
   category: privacy
   topic: personal-overlays
   rule: Shell state lives only in the root layout's memory; it is not persisted in localStorage or a shared
     cache.
-- id: personal-overlays-8
+- id: rendering-and-cache.personal-overlays-8
   category: privacy
   topic: personal-overlays
   rule: JSON responses default to `private, no-store`, including validation and auth errors.
-- id: personal-overlays-9
+- id: rendering-and-cache.personal-overlays-9
   category: privacy
   topic: personal-overlays
   rule: Public APIs opt into caching explicitly and must remain independent of session/Bearer identity.
-- id: personal-overlays-10
+- id: rendering-and-cache.personal-overlays-10
   category: privacy
   topic: personal-overlays
   rule: The HTTP boundary also sets CDN `no-store` for private responses.
-- id: personal-overlays-11
+- id: rendering-and-cache.personal-overlays-11
   category: privacy
   topic: personal-overlays
   rule: '`/_internal` endpoints stay outside public cache admission.'
-- id: cache-layers-and-invalidation-1
+- id: rendering-and-cache.cache-layers-and-invalidation-1
   category: consistency
   topic: cache-layers-and-invalidation
   rule: 'Final HTML responses sent to the browser and zone CDN are `private, no-store`: a new nonce and request
     ID are applied on every request.'
-- id: cache-layers-and-invalidation-2
+- id: rendering-and-cache.cache-layers-and-invalidation-2
   category: consistency
   topic: cache-layers-and-invalidation
   rule: The stored entrypoint representation uses `max-age=0` plus a shared `s-maxage`.
-- id: cache-layers-and-invalidation-3
+- id: rendering-and-cache.cache-layers-and-invalidation-3
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Most public HTML has a 24-hour shared lifetime.
-- id: cache-layers-and-invalidation-4
+- id: rendering-and-cache.cache-layers-and-invalidation-4
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Second-classroom HTML has at most 60 seconds; calendar seeds expire at the next Shanghai midnight without
     stale-while-revalidate.
-- id: cache-layers-and-invalidation-5
+- id: rendering-and-cache.cache-layers-and-invalidation-5
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A committed static import purges both the zone and Workers entrypoint layers.
-- id: cache-layers-and-invalidation-6
+- id: rendering-and-cache.cache-layers-and-invalidation-6
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A failed purge fails the sync; rerunning the same already-committed snapshot retries the purge.
-- id: cache-layers-and-invalidation-7
+- id: rendering-and-cache.cache-layers-and-invalidation-7
   category: consistency
   topic: cache-layers-and-invalidation
   rule: The current revision is memoized only within a request, so an old isolate revision cannot refill freshly
     purged HTML for another 24 hours.
-- id: cache-layers-and-invalidation-8
+- id: rendering-and-cache.cache-layers-and-invalidation-8
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Description edits and moderation invalidate the HTML after the database commit, including retries that
     submit the same description content.
-- id: cache-layers-and-invalidation-9
+- id: rendering-and-cache.cache-layers-and-invalidation-9
   category: consistency
   topic: cache-layers-and-invalidation
   rule: '`cache.cross_version_cache` stays off, so deployments start with fresh HTML.'
-- id: cache-layers-and-invalidation-10
+- id: rendering-and-cache.cache-layers-and-invalidation-10
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Catalog public data keys include revision, locale where applicable, entity kind, ID or canonical filters,
     and payload shape.
-- id: cache-layers-and-invalidation-11
+- id: rendering-and-cache.cache-layers-and-invalidation-11
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Invalid/null detail results are not retained; data-cache failures fall through to the origin.
-- id: contributor-notes-1
+- id: rendering-and-cache.contributor-notes-1
   category: consistency
   topic: contributor-notes
   rule: Keep public data and viewer projections separate in feature services.
-- id: contributor-notes-2
+- id: rendering-and-cache.contributor-notes-2
   category: consistency
   topic: contributor-notes
   rule: Never add a new page to cache admission before its personal overlay works.
-- id: contributor-notes-3
+- id: rendering-and-cache.contributor-notes-3
   category: consistency
   topic: contributor-notes
   rule: Public mutable content needs a write-triggered invalidation path; time-derived content needs an explicit
     time boundary rather than only a static revision.
-- id: contributor-notes-4
+- id: rendering-and-cache.contributor-notes-4
   category: consistency
   topic: contributor-notes
   rule: Client navigation warms route code on hover; data preload waits for tap/click (`src/app.html`, `src/lib/components/AGENTS.md`).
-- id: contributor-notes-5
+- id: rendering-and-cache.contributor-notes-5
   category: consistency
   topic: contributor-notes
   rule: Regression tests must cover auth/no-auth responses, mutation and subsequent reads, failed purge retries,

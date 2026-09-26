@@ -4,6 +4,13 @@ name: Upload
 areas:
 - community
 - workspace
+policy_refs:
+- interface-hierarchy
+- ui
+- permission-ui
+- rendering-and-cache
+- audit
+- cases.content-security
 access:
   anon: Cannot upload attachments.
   user: Can upload in the comment attachment flow; download permissions must be re-validated.
