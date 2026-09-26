@@ -1,0 +1,40 @@
+kind: policy
+id: cases.content-security
+title: 'Cross-feature scenarios: content-security'
+requirements:
+- id: suspended-user-1
+  category: authorization
+  topic: suspended-user
+  rule: Suspended users cannot post new comments; both the product and permission layers must enforce this
+    restriction.
+- id: upload-attachment-download-1
+  category: authorization
+  topic: upload-attachment-download
+  rule: Attachment download must revalidate access permissions; possession of a link alone does not authorize
+    downloading.
+- id: destructive-actions-1
+  category: authorization
+  topic: destructive-actions
+  rule: Deletion must have explicit feedback.
+- id: destructive-actions-2
+  category: authorization
+  topic: destructive-actions
+  rule: Suspension must have explicit feedback.
+- id: destructive-actions-3
+  category: authorization
+  topic: destructive-actions
+  rule: Hiding must have explicit feedback.
+refs:
+- feature: comment
+  capability: object-comment-section
+- feature: upload
+  capability: comment-attachment-download
+- feature: security
+  capability: destructive-action-confirmation
+topics:
+- id: suspended-user
+  title: Suspended user
+- id: upload-attachment-download
+  title: Upload attachment download
+- id: destructive-actions
+  title: Destructive actions

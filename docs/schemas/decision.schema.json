@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://life-ustc.example/specifications/decision.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "decision"
+    },
+    "id": {
+      "$ref": "defs.schema.json#/$defs/id"
+    },
+    "title": {
+      "$ref": "defs.schema.json#/$defs/nonEmptyString"
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "superseded"
+      ]
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "feature": {
+            "$ref": "defs.schema.json#/$defs/id"
+          },
+          "capability": {
+            "$ref": "defs.schema.json#/$defs/id"
+          }
+        },
+        "required": [
+          "feature"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "consequences": {
+      "type": "array",
+      "items": {
+        "$ref": "defs.schema.json#/$defs/nonEmptyString"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "field_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "storage_type": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "upstream": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "meaning": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": [
+          "field",
+          "storage_type",
+          "upstream",
+          "meaning"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "kind",
+    "id",
+    "title",
+    "date",
+    "status",
+    "refs",
+    "context",
+    "decisions",
+    "consequences",
+    "field_mappings"
+  ]
+}

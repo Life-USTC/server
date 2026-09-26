@@ -4,7 +4,7 @@
 
 ## Changed Surfaces
 
-<!-- Code paths, docs/contracts, routes/MCP tools, UI screens, data shape, CI/workflows. -->
+<!-- Code paths, docs/features + docs/policies, routes/MCP tools, UI screens, data shape, CI/workflows. -->
 
 ## Evidence
 
@@ -12,7 +12,7 @@
 
 ## Docs / Contracts
 
-<!-- Updated docs/contracts/OpenAPI/message files, or explain why no docs change is needed. -->
+<!-- Updated feature/policy YAML, validated with specs:check, and updated OpenAPI/message files as needed; otherwise explain why no documentation change is needed. -->
 
 ## Risk Areas
 

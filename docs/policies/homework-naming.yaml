@@ -1,0 +1,55 @@
+kind: policy
+id: homework-naming
+title: Homework title and description guidance
+requirements:
+- id: title-1
+  category: presentation
+  topic: title
+  rule: Use exactly one title pattern.
+- id: title-2
+  category: presentation
+  topic: title
+  rule: Do not include course name, course code, or section information.
+- id: description-1
+  category: presentation
+  topic: description
+  rule: Use fixed bullets in the declared field order.
+- id: description-2
+  category: presentation
+  topic: description
+  rule: Omit unknown optional fields.
+enforcement: advisory
+title_patterns:
+- pattern: 第{N}次作业
+  when: Numbered sequence (default)
+  example: 第一次作业
+- pattern: '{主题}作业'
+  when: One-off or themed
+  example: 期中论文作业
+avoid_examples:
+- 第一章作业
+- 组合数学第一次作业
+- CONT6102P 第一次作业
+description_fields:
+- label: 题目
+  required: true
+  unknown: 未记录
+- label: 提交方式
+  required: false
+  examples:
+  - 电子版
+  - 纸质版
+- label: 提交地址
+  required: false
+  examples:
+  - URL
+- label: 备注
+  required: false
+  examples:
+  - deadlines
+  - formats
+topics:
+- id: title
+  title: Title
+- id: description
+  title: Description

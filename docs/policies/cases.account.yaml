@@ -1,0 +1,47 @@
+kind: policy
+id: cases.account
+title: 'Cross-feature scenarios: account'
+requirements:
+- id: username-change-1
+  category: behavior
+  topic: username-change
+  rule: The new profile page should be accessible.
+- id: username-change-2
+  category: behavior
+  topic: username-change
+  rule: The old username must not continue to represent the user.
+- id: oauth-connection-error-1
+  category: behavior
+  topic: oauth-connection-error
+  rule: Duplicate OAuth connection should give a clear error response.
+- id: oauth-connection-error-2
+  category: behavior
+  topic: oauth-connection-error
+  rule: Disconnecting the last sign-in account must be blocked with a clear error; it is not an ordinary failure-retry
+    scenario.
+- id: account-deletion-1
+  category: behavior
+  topic: account-deletion
+  rule: Account deletion requires entering the fixed confirmation word DELETE.
+- id: account-deletion-2
+  category: behavior
+  topic: account-deletion
+  rule: After successful deletion, the current session should be terminated and the settings page exited.
+- id: scenario-guidance-1
+  category: behavior
+  topic: scenario-guidance
+  rule: After a username change, the new address should immediately become the canonical entry.
+refs:
+- feature: user
+  capability: settings
+- feature: user
+  capability: public-profile
+topics:
+- id: username-change
+  title: Username change
+- id: oauth-connection-error
+  title: Oauth connection error
+- id: account-deletion
+  title: Account deletion
+- id: scenario-guidance
+  title: Scenario guidance

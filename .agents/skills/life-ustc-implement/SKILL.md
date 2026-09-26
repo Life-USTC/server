@@ -21,18 +21,21 @@ Every change usually touches several of these. Skip a layer only if you say why
 
 | # | Piece | Location |
 |---|--------|----------|
-| 1 | Contract | `docs/contracts/<module>.json` (+ `openapi.json` / `graphql.json` / `mcp.json` as needed) |
+| 1 | Contract | `docs/features/<feature>.yaml` (+ `docs/features/openapi.yaml` / `docs/features/graphql.yaml` / `docs/features/mcp.yaml` as needed) |
 | 2 | Use-case | `src/features/<domain>/server/` — one function (or a small set) per behavior |
-| 3 | Web (if UI) | Thin `src/routes/...` + `src/features/<domain>/components/` (workspace UI → `dashboard/`, routes `/workspace/*`) |
+| 3 | Web (if UI) | Thin `src/routes/...` + `src/features/<domain>/components/` (workspace UI → `workspace/`, routes `/workspace/*`) |
 | 4 | REST (if HTTP API) | `src/routes/api/.../+server.ts` → `src/lib/api/routes/` → feature server |
 | 5 | GraphQL (if exposed) | `src/lib/graphql/` resolver calling the same feature server |
 | 6 | MCP (if exposed) | `src/lib/mcp/tools/<domain>/` — thin adapter; tool name matches the contract id |
 | 7 | Copy | Both `messages/zh-cn.json` and `messages/en-us.json` when user-facing text changes |
 | 8 | Data | `prisma/schema.prisma` + migration when persistence changes; keep seed fixtures in sync |
 
-Names and scope: `docs/interface-hierarchy.md`. Don't put business rules in
+Names and scope: `docs/policies/interface-hierarchy.yaml`. Don't put business rules in
 `src/lib/api`, `src/lib/graphql`, or `src/lib/mcp` (MCP compact / `mode` is
 presentation only).
+
+Read the affected specification with `bun run specs:show <feature-id>` and its
+referenced policies. Validate specification edits with `bun run specs:check`.
 
 ## Adapter pattern
 
@@ -66,7 +69,7 @@ When one of REST / GraphQL / MCP changes:
 
 1. List which of those should change.
 2. If only one changes, say why (transport-only exception or intentional exclusion —
-   see `docs/graphql/mutation-capabilities.json` for write parity).
+   see `docs/reference/mutation-capabilities.yaml` for write parity).
 3. Keep ownership, permissions, ids, Shanghai date rules, and error types aligned
    everywhere you expose the same behavior.
 

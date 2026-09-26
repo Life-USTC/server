@@ -1,0 +1,508 @@
+kind: policy
+id: ui
+title: Shared interface presentation
+requirements:
+- id: layout-principles-1
+  category: presentation
+  topic: layout-principles
+  rule: 'Put reading-first content in the left/main column: introductions, descriptions, markdown, homework
+    content, and comments.'
+- id: layout-principles-2
+  category: presentation
+  topic: layout-principles
+  rule: 'Put structured facts in the right/side column: identifiers, metadata, dates, counts, actions, mini
+    calendars, and quick links.'
+- id: layout-principles-3
+  category: presentation
+  topic: layout-principles
+  rule: On mobile, stack in that order.
+- id: layout-principles-4
+  category: presentation
+  topic: layout-principles
+  rule: Reuse existing grids, cards, borders, muted text, and buttons.
+- id: layout-principles-5
+  category: presentation
+  topic: layout-principles
+  rule: 'Popups are one scrollable column at a comfortable reading width with a sticky title header, never
+    a two-column page: due datetime first, relative urgency second, remaining facts in a table, then reading,
+    then discussion.'
+- id: layout-principles-6
+  category: presentation
+  topic: layout-principles
+  rule: No status side column, chip row, or nested collapsible in an overlay; side rails belong on pages.
+- id: list-table-1
+  category: presentation
+  topic: list-table
+  rule: 'Collection pages compose PageLayout, PageHeader and Panel: FilterToolbar/ActiveFilters, ResultsSummary/domain
+    results, then ListPagination links preserving filters.'
+- id: list-table-2
+  category: presentation
+  topic: list-table
+  rule: SearchField owns the search shortcut.
+- id: list-table-3
+  category: presentation
+  topic: list-table
+  rule: Advanced filters use a Sheet with a complete form.
+- id: list-table-4
+  category: presentation
+  topic: list-table
+  rule: The URL owns applied values; opening resets drafts, closing does not apply.
+- id: list-table-5
+  category: presentation
+  topic: list-table
+  rule: Apply sends the current query and all draft values, resetting page; primary search uses applied advanced
+    values.
+- id: list-table-6
+  category: presentation
+  topic: list-table
+  rule: Compact lists avoid page overflow; wide tables retain comparison columns.
+- id: list-table-7
+  category: presentation
+  topic: list-table
+  rule: News keeps title-led rows.
+- id: list-table-8
+  category: presentation
+  topic: list-table
+  rule: Query parsing, caching and URL builders remain in features.
+- id: list-table-9
+  category: presentation
+  topic: list-table
+  rule: Route tabs use PageSectionNav; settings retains DetailSectionNav.
+- id: data-table-cells-1
+  category: presentation
+  topic: data-table-cells
+  rule: Desktop data-table rows keep a consistent compact height; optional secondary lines reserve space when
+    absent.
+- id: data-table-cells-2
+  category: presentation
+  topic: data-table-cells
+  rule: Overflowing text is truncated, with its full value available from a tooltip on pointer hover and keyboard
+    focus.
+- id: data-table-cells-3
+  category: presentation
+  topic: data-table-cells
+  rule: Course and section codes use plain monospace text, never badge styling.
+- id: data-table-cells-4
+  category: presentation
+  topic: data-table-cells
+  rule: Header labels and cell content share the same column edge; textual and categorical values align left,
+    while numeric measures and counts align right.
+- id: data-table-cells-5
+  category: presentation
+  topic: data-table-cells
+  rule: Blank placeholders are hidden from assistive technology and do not replace meaningful labels such as
+    unknown or TBD.
+- id: data-table-cells-6
+  category: presentation
+  topic: data-table-cells
+  rule: Numeric, status, control, and action cells do not receive truncation tooltips when their content fits.
+- id: detail-hero-1
+  category: presentation
+  topic: detail-hero
+  rule: Used at the top of course, section, and teacher detail pages.
+- id: detail-hero-2
+  category: presentation
+  topic: detail-hero
+  rule: Contains breadcrumb, h1, and an optional subtitle.
+- id: detail-hero-3
+  category: presentation
+  topic: detail-hero
+  rule: h1 uses the primary display name of the current object, not an internal ID.
+- id: detail-hero-4
+  category: presentation
+  topic: detail-hero
+  rule: At mobile widths, stable public identifiers and concise metadata precede a responsive title so long
+    localized names do not crowd out context or actions.
+- id: detail-hero-5
+  category: presentation
+  topic: detail-hero
+  rule: Course codes live in the title region, in plain monospace text before the name; the localized name
+    remains the dominant h1.
+- id: detail-hero-6
+  category: presentation
+  topic: detail-hero
+  rule: This compact context follows the name-first identity rule.
+- id: detail-two-column-stream-1
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Catalog detail (course, section, teacher): one scrollable main column plus facts/actions sidebar;
+    no Context Tabs, ?tab= or legacy path deep links.'
+- id: detail-two-column-stream-2
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Section: intro → schedule → exams → homework → comments.'
+- id: detail-two-column-stream-3
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Course/teacher: intro → offerings → comments.'
+- id: detail-two-column-stream-4
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Sidebar: Basic Info Card, teachers, subscribe/calendar actions.'
+- id: detail-two-column-stream-5
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Mobile: hero → main → side, or compact facts under hero per mobile hierarchy.'
+- id: detail-two-column-stream-6
+  category: presentation
+  topic: detail-two-column-stream
+  rule: Comments are client-fetched; PublicSsr never personalizes visibility.
+- id: detail-two-column-stream-7
+  category: presentation
+  topic: detail-two-column-stream
+  rule: Hash anchors scroll in-page.
+- id: detail-two-column-stream-8
+  category: presentation
+  topic: detail-two-column-stream
+  rule: 'Course/teacher offerings show total and URL pagination (20 per page), including retired records; navigation
+    stays in the offerings section with #sections.'
+- id: model-property-priority-1
+  category: presentation
+  topic: model-property-priority
+  rule: Properties are ranked as primary, secondary, or tertiary so web, REST, and MCP surfaces present task-relevant
+    information consistently.
+- id: model-property-priority-primary-1
+  category: presentation
+  topic: model-property-priority-primary
+  rule: 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
+    code, due/departure/start time, status, and primary action state.'
+- id: model-property-priority-primary-2
+  category: presentation
+  topic: model-property-priority-primary
+  rule: Put them in h1, card titles, the first list column, or the first line of compact assistant output.
+- id: model-property-priority-primary-3
+  category: presentation
+  topic: model-property-priority-primary
+  rule: For teaching sections, student-facing primary identity is course name plus teachers, not section code.
+- id: model-property-priority-secondary-1
+  category: presentation
+  topic: model-property-priority-secondary
+  rule: 'Secondary properties support disambiguation and comparison: localized secondary name, semester, campus/location,
+    teacher/department, counts, section code, and short metadata.'
+- id: model-property-priority-secondary-2
+  category: presentation
+  topic: model-property-priority-secondary
+  rule: Use muted text, badges, side columns, or compact nested summaries.
+- id: model-property-priority-tertiary-1
+  category: presentation
+  topic: model-property-priority-tertiary
+  rule: 'Tertiary properties support audit or exact reconstruction: internal IDs, raw timestamps, platform
+    metadata, long nested relations, and repeated parent objects.'
+- id: model-property-priority-tertiary-2
+  category: presentation
+  topic: model-property-priority-tertiary
+  rule: Hide or de-emphasize them in ordinary UI; MCP default output may omit, redact, or compact them.
+- id: model-property-priority-surfaces-1
+  category: presentation
+  topic: model-property-priority-surfaces
+  rule: REST may expose fuller records for application clients.
+- id: model-property-priority-surfaces-2
+  category: presentation
+  topic: model-property-priority-surfaces
+  rule: MCP default output preserves primary and important secondary fields, simplifies repeated low-priority
+    fields, and reserves exact raw payloads for explicit full mode where supported; the deprecated summary
+    input is an alias for default.
+- id: basic-info-card-1
+  category: presentation
+  topic: basic-info-card
+  rule: Used in detail page sidebars or collapsible panels.
+- id: basic-info-card-2
+  category: presentation
+  topic: basic-info-card
+  rule: Displays structured fields; does not carry comment or homework interactions.
+- id: context-tabs-1
+  category: presentation
+  topic: context-tabs
+  rule: Not used for course, section, or teacher catalog detail pages (see Detail Two-Column Stream).
+- id: context-tabs-2
+  category: presentation
+  topic: context-tabs
+  rule: May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
+    branches).
+- id: context-tabs-3
+  category: presentation
+  topic: context-tabs
+  rule: When present, context navigation is a horizontal, touch-scrollable row with an overflow affordance
+    on mobile and a vertical sidebar on larger screens; the active destination remains programmatically identified
+    and scrolls into view.
+- id: global-search-results-1
+  category: presentation
+  topic: global-search-results
+  rule: Catalog group order is sections → teachers → courses → links, then signed-in homeworks and todos.
+- id: global-search-results-2
+  category: presentation
+  topic: global-search-results
+  rule: Section items use title `course.namePrimary · teachers` (fall back to course name · section code when
+    teachers are empty) and description `semester · campus · section.code` with code last.
+- id: global-search-results-3
+  category: presentation
+  topic: global-search-results
+  rule: Course items use title `course.namePrimary` and description `course.code`.
+- id: global-search-results-4
+  category: presentation
+  topic: global-search-results
+  rule: Teacher items use title `teacher.namePrimary` and description department or code.
+- id: calendar-export-dialog-1
+  category: presentation
+  topic: calendar-export-dialog
+  rule: Used to display single-object iCal and personal subscription iCal.
+- id: calendar-export-dialog-2
+  category: presentation
+  topic: calendar-export-dialog
+  rule: Presented as a copyable link; users are not required to manually construct the URL.
+- id: shell-layout-1
+  category: presentation
+  topic: shell-layout
+  rule: Desktop sidebar and main content scroll independently.
+- id: shell-layout-2
+  category: presentation
+  topic: shell-layout
+  rule: Signed-in desktop nav keeps task links in Workspace; Explore and Admin are progressive groups.
+- id: shell-layout-3
+  category: presentation
+  topic: shell-layout
+  rule: A destination row is either a link or a disclosure, never both.
+- id: shell-layout-4
+  category: presentation
+  topic: shell-layout
+  rule: Signed-in mobile nav pins Today, Calendar, Tasks, and Explore, reserving height and safe area.
+- id: shell-layout-5
+  category: presentation
+  topic: shell-layout
+  rule: Language and theme stay in the topbar; signed-in profile actions in the sidebar footer.
+- id: shell-layout-6
+  category: presentation
+  topic: shell-layout
+  rule: Onboarding (`/account/welcome`) hides sidebar, global search, and mobile nav.
+- id: shell-layout-7
+  category: presentation
+  topic: shell-layout
+  rule: Anonymous topbars retain Sign in.
+- id: shell-layout-8
+  category: presentation
+  topic: shell-layout
+  rule: Mobile topbar/nav controls are at least 44 by 44 CSS pixels.
+- id: shell-layout-9
+  category: presentation
+  topic: shell-layout
+  rule: System/light/dark themes apply before first paint; system follows live OS changes, with a no-JS fallback.
+- id: workspace-footer-policy-1
+  category: presentation
+  topic: workspace-footer-policy
+  rule: Public discovery, content, policy, and marketing pages retain the public footer.
+- id: workspace-footer-policy-2
+  category: presentation
+  topic: workspace-footer-policy
+  rule: Signed-in workspace roots, onboarding (`/account/welcome`), and their settings/admin branches do not
+    append the public footer.
+- id: workspace-footer-policy-3
+  category: presentation
+  topic: workspace-footer-policy
+  rule: A signed-in user visiting a public content route still sees the public footer.
+- id: workspace-filters-and-empty-states-1
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Homework, todo, and exam filters retain one selection through repeated clicks, Space, empty results,
+    and completing the last pending task; never automatically select All.
+- id: workspace-filters-and-empty-states-2
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Selection colors update immediately; controls stay disabled until hydration.
+- id: workspace-filters-and-empty-states-3
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: 'All three use the homework empty-state style: retain desktop table headers, left-align compact text
+    without an icon or filled background, and place an outline clear-filter action below the description.'
+- id: workspace-filters-and-empty-states-4
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Mobile uses the same message and action styling.
+- id: workspace-filters-and-empty-states-5
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Filter-empty results explain the selection and offer clear-filter.
+- id: workspace-filters-and-empty-states-6
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Setup-empty states offer existing setup or create actions.
+- id: settings-navigation-1
+  category: presentation
+  topic: settings-navigation
+  rule: Settings use concise labels in a desktop rail and scrollable mobile row.
+- id: settings-navigation-2
+  category: presentation
+  topic: settings-navigation
+  rule: '`/account/settings/profile` is the default; legacy tab inputs only redirect.'
+- id: settings-navigation-3
+  category: presentation
+  topic: settings-navigation
+  rule: Legacy appearance, language, and preferences values redirect to `/account/settings/preferences`.
+- id: settings-navigation-4
+  category: presentation
+  topic: settings-navigation
+  rule: Preferences reuse the pre-paint/localStorage theme mechanism and `/api/account/preferences`; URLs have
+    no locale segments.
+- id: settings-navigation-5
+  category: presentation
+  topic: settings-navigation
+  rule: Authorizations remain distinct from linked sign-in accounts and require confirmation before revocation.
+- id: settings-navigation-6
+  category: presentation
+  topic: settings-navigation
+  rule: The active section owns its copy, exposes one aria-current page link, and scrolls into view on mobile.
+- id: settings-navigation-7
+  category: presentation
+  topic: settings-navigation
+  rule: Danger stays separate from routine settings.
+- id: contribution-heatmap-1
+  category: presentation
+  topic: contribution-heatmap
+  rule: Public profile contribution history keeps a readable minimum cell size and scrolls horizontally when
+    needed.
+- id: contribution-heatmap-2
+  category: presentation
+  topic: contribution-heatmap
+  rule: Each contribution day exposes its localized date/count to keyboard, touch, and assistive-technology
+    users.
+- id: workspace-page-identity-1
+  category: presentation
+  topic: workspace-page-identity
+  rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
+- id: workspace-page-identity-2
+  category: presentation
+  topic: workspace-page-identity
+  rule: The main content landmark uses the same localized branch label.
+- id: workspace-page-identity-3
+  category: presentation
+  topic: workspace-page-identity
+  rule: The document title identifies the active branch before the Life@USTC suffix.
+- id: workspace-page-identity-4
+  category: presentation
+  topic: workspace-page-identity
+  rule: Identity follows the semantic workspace path after root or query compatibility redirects.
+- id: workspace-mobile-priority-1
+  category: presentation
+  topic: workspace-mobile-priority
+  rule: Personal workspace mobile layouts prioritize the next actionable information before directory-style
+    shortcuts or wide planning grids.
+- id: workspace-mobile-priority-2
+  category: presentation
+  topic: workspace-mobile-priority
+  rule: Calendar uses a readable agenda at mobile widths while retaining semester, month, and week grids on
+    desktop.
+- id: workspace-mobile-priority-3
+  category: presentation
+  topic: workspace-mobile-priority
+  rule: Homework, todo, and exam mobile toolbars keep status filters directly available, move card/list display
+    mode into an accessible overflow menu, and keep primary controls at least 44 by 44 CSS pixels.
+- id: social-sharing-metadata-1
+  category: presentation
+  topic: social-sharing-metadata
+  rule: Every rendered page exposes one localized description plus one complete Open Graph and Twitter card
+    set.
+- id: social-sharing-metadata-2
+  category: presentation
+  topic: social-sharing-metadata
+  rule: Canonical and Open Graph URLs are absolute, same-origin, and exclude query strings and fragments.
+- id: social-sharing-metadata-3
+  category: presentation
+  topic: social-sharing-metadata
+  rule: Course, section, and teacher detail subroutes canonicalize to the entity root and use controlled localized
+    summaries rather than editable user content.
+- id: social-sharing-metadata-4
+  category: presentation
+  topic: social-sharing-metadata
+  rule: Social images use the 1200 by 630 Life@USTC PNG card with explicit dimensions, MIME type, and localized
+    alternative text.
+- id: social-sharing-metadata-5
+  category: presentation
+  topic: social-sharing-metadata
+  rule: Every page and locale uses the same fixed /open-graph.png static asset without query parameters.
+- id: social-sharing-metadata-6
+  category: presentation
+  topic: social-sharing-metadata
+  rule: The image does not contain page titles, profile names, or avatars and is served without invoking application
+    code.
+- id: localized-count-copy-1
+  category: presentation
+  topic: localized-count-copy
+  rule: User-visible English count copy distinguishes singular from plural forms; Chinese may share one count
+    template when its grammar does not change.
+- id: navigation-landmarks-1
+  category: presentation
+  topic: navigation-landmarks
+  rule: 'Desktop: Primary navigation / 主导航.'
+- id: navigation-landmarks-2
+  category: presentation
+  topic: navigation-landmarks
+  rule: 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+- id: navigation-landmarks-3
+  category: presentation
+  topic: navigation-landmarks
+  rule: Each surface exposes at most one aria-current page.
+- id: navigation-landmarks-4
+  category: presentation
+  topic: navigation-landmarks
+  rule: The first focusable shell control is a localized skip link to main; footer links have their own landmark.
+- id: navigation-landmarks-5
+  category: presentation
+  topic: navigation-landmarks
+  rule: Campus services contains catalog, second classroom and news.
+- id: navigation-landmarks-6
+  category: presentation
+  topic: navigation-landmarks
+  rule: Public notices stay separate from personal activity reminders; the workspace exposes reminders with
+    an unexpired unread count.
+- id: navigation-landmarks-7
+  category: presentation
+  topic: navigation-landmarks
+  rule: Activity/calendar navigation and detail returns preserve filters; current views remain identified.
+topics:
+- id: layout-principles
+  title: Layout Principles
+- id: list-table
+  title: List Table
+- id: data-table-cells
+  title: Data Table Cells
+- id: detail-hero
+  title: Detail Hero
+- id: detail-two-column-stream
+  title: Detail Two-Column Stream
+- id: model-property-priority
+  title: Model Property Priority
+- id: model-property-priority-primary
+  title: Model Property Priority - Primary
+- id: model-property-priority-secondary
+  title: Model Property Priority - Secondary
+- id: model-property-priority-tertiary
+  title: Model Property Priority - Tertiary
+- id: model-property-priority-surfaces
+  title: Model Property Priority - Surfaces
+- id: basic-info-card
+  title: Basic Info Card
+- id: context-tabs
+  title: Context Tabs
+- id: global-search-results
+  title: Global Search Results
+- id: calendar-export-dialog
+  title: Calendar Export Dialog
+- id: shell-layout
+  title: Shell Layout
+- id: workspace-footer-policy
+  title: Workspace Footer Policy
+- id: workspace-filters-and-empty-states
+  title: Workspace Filters and Empty States
+- id: settings-navigation
+  title: Settings Navigation
+- id: contribution-heatmap
+  title: Contribution Heatmap
+- id: workspace-page-identity
+  title: Workspace Page Identity
+- id: workspace-mobile-priority
+  title: Workspace Mobile Priority
+- id: social-sharing-metadata
+  title: Social Sharing Metadata
+- id: localized-count-copy
+  title: Localized Count Copy
+- id: navigation-landmarks
+  title: Navigation Landmarks

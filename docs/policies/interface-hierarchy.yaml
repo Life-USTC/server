@@ -1,0 +1,651 @@
+kind: policy
+id: interface-hierarchy
+title: Canonical capabilities and surface parity
+requirements:
+- id: interface-hierarchy-1
+  category: consistency
+  topic: interface-hierarchy
+  rule: This document defines the canonical information architecture shared by the Life@USTC web app, REST
+    API, GraphQL API, MCP server, Bot, and CLI.
+- id: interface-hierarchy-2
+  category: consistency
+  topic: interface-hierarchy
+  rule: The same capability keeps one scope, domain noun, ownership rule, permission, effect, and error semantics
+    on every surface.
+- id: interface-hierarchy-3
+  category: consistency
+  topic: interface-hierarchy
+  rule: Each transport may use its native syntax.
+- id: interface-hierarchy-4
+  category: consistency
+  topic: interface-hierarchy
+  rule: The server repository is the source of truth for Web, REST, GraphQL, and MCP.
+- id: interface-hierarchy-5
+  category: consistency
+  topic: interface-hierarchy
+  rule: Bot and CLI entries are integration contracts verified in their repositories.
+- id: canonical-tree-1
+  category: consistency
+  topic: canonical-tree
+  rule: '`me`, `viewer`, `my`, `own`, and `dashboard` are not formal hierarchy names.'
+- id: canonical-tree-2
+  category: consistency
+  topic: canonical-tree
+  rule: They may appear in explanatory prose, but not in canonical routes, GraphQL fields, MCP tools, capability
+    IDs, or CLI command paths.
+- id: surface-mapping-1
+  category: consistency
+  topic: surface-mapping
+  rule: GraphQL queries use real object hierarchy rather than underscore-encoded RPC names.
+- id: surface-mapping-2
+  category: consistency
+  topic: surface-mapping
+  rule: Mutation fields remain at the root because GraphQL only guarantees serial execution for root mutation
+    fields.
+- id: surface-mapping-3
+  category: consistency
+  topic: surface-mapping
+  rule: A mutation's capability ID still contains its full scope.
+- id: surface-mapping-4
+  category: consistency
+  topic: surface-mapping
+  rule: '`catalog` and public `community` reads are available anonymously.'
+- id: surface-mapping-5
+  category: consistency
+  topic: surface-mapping
+  rule: '`workspace` and `account` return null when there is no authenticated principal.'
+- id: surface-mapping-6
+  category: consistency
+  topic: surface-mapping
+  rule: '`admin` is not exposed through GraphQL or MCP unless a concrete governance client and threat model
+    are approved.'
+- id: canonical-actions-1
+  category: consistency
+  topic: canonical-actions
+  rule: Service identifiers do not use `view`, `query`, or `by_id`.
+- id: canonical-actions-2
+  category: consistency
+  topic: canonical-actions
+  rule: 'Human interfaces may adapt actions without changing semantics: CLI `complete` / `reopen` and Bot “完成”
+    / “恢复” map to the capability action `completion_set`.'
+- id: canonical-actions-3
+  category: consistency
+  topic: canonical-actions
+  rule: 'Plural capability domains are reserved for genuinely batch operations: `workspace_todo_delete` is
+    single-item and `workspace_todos_delete` is batch.'
+- id: canonical-actions-4
+  category: consistency
+  topic: canonical-actions
+  rule: Inputs, payloads, partial-success behavior, and retry guidance must make the distinction explicit.
+- id: representative-cross-surface-contract-1
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: The first column is the capability ID (also the MCP name where exposed), not a promise that Bot exposes
+    that tool.
+- id: representative-cross-surface-contract-2
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: The bus map is Web-only.
+- id: representative-cross-surface-contract-3
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: A dash in a client column means there is no dedicated command.
+- id: representative-cross-surface-contract-4
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: '`workspace_calendar_feed_get` returns credential-free subscription information; the Bot and CLI feed
+    commands use REST with `workspace.subscription:read` to retrieve subscription information, plus `workspace.calendar-feed:read`
+    to include a private URL.'
+- id: representative-cross-surface-contract-5
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: The MCP tool requires `workspace.subscription:read` and never includes that URL.
+- id: representative-cross-surface-contract-6
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: Complete personal calendar clients use `GET /api/workspace/calendar/events`, `workspace.calendarEvents`,
+    or `workspace_calendar_event_list` and the same Shanghai date bounds.
+- id: representative-cross-surface-contract-7
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: REST and GraphQL clients exhaust pagination instead of using the bounded overview as a calendar dataset.
+- id: representative-cross-surface-contract-8
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: Individual Young event subscriptions add activities to this calendar and ICS; organizer follows only
+    produce daily new-event digests.
+- id: representative-cross-surface-contract-9
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: See `docs/features/young-workspace.yaml` for the owner-scoped subscription and notification interfaces.
+- id: representative-cross-surface-contract-10
+  category: consistency
+  topic: representative-cross-surface-contract
+  rule: Feature-specific contract modules in `docs/features/` contain the exhaustive routes, fields, tools,
+    permissions, and return shapes.
+- id: transport-specific-exceptions-1
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Authentication redirects, OAuth endpoints, cookie writes, and raw upload bytes are transport operations,
+    not business capabilities.
+- id: transport-specific-exceptions-2
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: They do not need GraphQL or MCP equivalents.
+- id: transport-specific-exceptions-3
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Public resource pages use /catalog/*, with explicit public landing, news, search, guide, policy and
+    API-documentation routes outside that prefix.
+- id: transport-specific-exceptions-4
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Signed-in work uses /workspace/{overview,calendar,homeworks,todos,exams,subscriptions} and nested workspace
+    paths.
+- id: transport-specific-exceptions-5
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Tree entries such as workspace/schedules and workspace/uploads are API/MCP/CLI capabilities and do
+    not imply a matching Web page.
+- id: transport-specific-exceptions-6
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Bot exposes deterministic commands for frequent, short interactions.
+- id: transport-specific-exceptions-7
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Its AI mode also discovers all tools published by the configured server MCP session through `search_campus_tools`
+    / `call_campus_tool`, using per-user MCP OAuth.
+- id: transport-specific-exceptions-8
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: 'There is no client tool-name allowlist: schemas and read/write annotations come from the server.'
+- id: transport-specific-exceptions-9
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Private MCP mutations use Bot's durable confirmation and execution records; interrupted writes with
+    an uncertain result are not automatically replayed.
+- id: transport-specific-exceptions-10
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Server scopes and ownership checks still apply.
+- id: transport-specific-exceptions-11
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: MCP resource and prompt readers supply the GraphQL schema and operation planning context.
+- id: transport-specific-exceptions-12
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Shared conversations retain public host commands and do not expose MCP tools, resources, or prompts.
+- id: transport-specific-exceptions-13
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: CLI-local configuration and Bot-local AI/tool settings are client state and remain outside the server
+    capability tree.
+- id: transport-specific-exceptions-14
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Administration remains Web, REST, and CLI only by default.
+- id: transport-specific-exceptions-15
+  category: consistency
+  topic: transport-specific-exceptions
+  rule: Surface symmetry is not permission to expose governance through GraphQL, MCP, or Bot.
+- id: semantic-parity-1
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on ownership and required permission or OAuth scope.
+- id: semantic-parity-2
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on identifiers and accepted filters.
+- id: semantic-parity-3
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on pagination bounds and default ordering.
+- id: semantic-parity-4
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on Asia/Shanghai date boundaries and output timezone.
+- id: semantic-parity-5
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on mutation atomicity, partial-success shape, and
+    idempotency.
+- id: semantic-parity-6
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on stable error class and not-found behavior.
+- id: semantic-parity-7
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on response freshness and mutation return snapshot.
+- id: semantic-parity-8
+  category: consistency
+  topic: semantic-parity
+  rule: Every supported surface of a capability must agree on confirmation and retry guidance for destructive
+    or timeout-ambiguous writes.
+- id: semantic-parity-9
+  category: consistency
+  topic: semantic-parity
+  rule: OAuth feature scopes use the complete canonical feature name, for example `community.comment:write`,
+    `workspace.subscription:write`, and `workspace.upload:write`.
+- id: semantic-parity-10
+  category: consistency
+  topic: semantic-parity
+  rule: Short forms such as `comment:write` are not accepted.
+- id: semantic-parity-11
+  category: consistency
+  topic: semantic-parity
+  rule: Contract `required_scopes` are checked against the OAuth registry and native MCP equivalents by `graphql-contract-parity.test.ts`.
+- id: semantic-parity-12
+  category: consistency
+  topic: semantic-parity
+  rule: Public course/section lookups and subscription-kind updates use `jwId` at external boundaries.
+- id: semantic-parity-13
+  category: consistency
+  topic: semantic-parity
+  rule: CLI subscription `add`, `remove`, and `preview` still interpret numeric references as database section
+    IDs, as does their REST batch payload's `sectionIds`.
+- id: semantic-parity-14
+  category: consistency
+  topic: semantic-parity
+  rule: Use section/course codes for these CLI commands to avoid confusing those IDs with the JW IDs used by
+    `subscription kind` and catalog detail commands.
+- id: semantic-parity-15
+  category: consistency
+  topic: semantic-parity
+  rule: GraphQL and native MCP subscription add/remove use JW IDs; Bot add/remove use section codes.
+- id: locale-caching-and-seo-1
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: Canonical product URLs have no locale prefix or locale query segment.
+- id: locale-caching-and-seo-2
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: Locale is a presentation preference, not content identity.
+- id: locale-caching-and-seo-3
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: Chinese is the canonical indexable representation for shared public URLs.
+- id: locale-caching-and-seo-4
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: English is an adaptive experience on the same URL, not a separately indexed document.
+- id: locale-caching-and-seo-5
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: Localized responses are private or vary on a safe locale cache key.
+- id: locale-caching-and-seo-6
+  category: consistency
+  topic: locale-caching-and-seo
+  rule: Domain records prefer locale-neutral values with presentation localized at the edge.
+scopes:
+- id: catalog
+  owns: Public academic and transit facts
+  excludes: User state or shared user-authored content
+- id: workspace
+  owns: The current user's todos, completion state, subscriptions, preferences, files, and derived schedule
+    views
+  excludes: Identity, authentication, or globally shared records
+- id: community
+  owns: Public user profiles and shared comments, descriptions, and section homework records
+  excludes: Private account data or file ownership
+- id: account
+  owns: The current principal's profile, session, security, locale preferences, and authorizations
+  excludes: Campus work or another user's public profile
+- id: admin
+  owns: Moderation, user governance, OAuth client governance, and managed source data
+  excludes: Ordinary user workflows
+terms:
+- name: schedule
+  meaning: A class meeting or schedule view composed from class meetings
+- name: calendar
+  meaning: A time-ordered aggregation of schedules, exams, homework, todos, and subscribed activities
+- name: subscription
+  meaning: The current user's relationship to a section
+- name: calendar feed
+  meaning: An iCalendar representation exported from workspace data
+- name: community section homework
+  meaning: A shared homework record attached to a section
+- name: workspace homework
+  meaning: The current user's view and completion state for shared homework
+- name: catalog link
+  meaning: A public link-directory record
+- name: workspace link pin
+  meaning: The current user's pin or preference state for a catalog link
+- name: workspace upload
+  meaning: A file owned by the current user
+- name: community attachment
+  meaning: Shared content's authorized reference to a workspace upload
+surface_forms:
+- surface: Capability ID
+  form: <scope>_<domain>_<action>
+  example: workspace_todo_create
+- surface: Web
+  form: /<scope>/…
+  example: '/workspace/todos (signed-in tabs: overview, calendar, homeworks, todos, exams, subscriptions)'
+- surface: REST
+  form: /api/<scope>/<plural-resource>
+  example: /api/workspace/todos
+- surface: GraphQL query
+  form: <scope>.<field>
+  example: workspace.todos
+- surface: GraphQL mutation
+  form: <domain><Action>
+  example: todoCreate
+- surface: GraphQL operation ID
+  form: <scope>.<domain>.<action>.v1
+  example: workspace.todo.create.v1
+- surface: MCP
+  form: Capability ID verbatim
+  example: workspace_todo_create
+- surface: Bot
+  form: <Chinese domain> <Chinese action>
+  example: 待办 添加
+- surface: Bot extension action
+  form: life_ustc.<capability_id>
+  example: life_ustc.workspace_todo_list
+- surface: CLI
+  form: <scope> <domain> <action>
+  example: workspace todo create
+actions:
+- action: get
+  meaning: Read one object by a unique identifier
+- action: list
+  meaning: Read a bounded, filterable collection
+- action: search
+  meaning: Perform keyword or fuzzy discovery
+- action: preview
+  meaning: Calculate a match or change without side effects
+- action: create
+  meaning: Create a new entity
+- action: update
+  meaning: Partially change entity attributes
+- action: delete
+  meaning: Delete an entity
+- action: set
+  meaning: Idempotently set a state or complete collection
+- action: add / remove
+  meaning: Change membership in a collection
+- action: import / export
+  meaning: Move data across a system or representation boundary
+surface_mappings:
+- capability: catalog_course_search
+  web: /catalog/courses
+  rest: GET /api/catalog/courses
+  graphql: catalog.courses
+  bot: 课程 搜索
+  cli: catalog course --search <query>
+- capability: catalog_section_get
+  web: /catalog/sections/:jwId
+  rest: GET /api/catalog/sections/:jwId
+  graphql: catalog.section
+  bot: 教学班 查看
+  cli: catalog section get
+- capability: catalog_bus_departure_next
+  web: /catalog/bus
+  rest: GET /api/catalog/bus/next
+  graphql: —
+  bot: 校车 下一班
+  cli: catalog bus
+- capability: bus map (Web-only)
+  web: /catalog/bus/map
+  rest: —
+  graphql: —
+  bot: —
+  cli: —
+- capability: catalog_link_list
+  web: /catalog/links
+  rest: GET /api/catalog/links
+  graphql: catalog.links
+  bot: —
+  cli: catalog link
+- capability: catalog_young_event_list / catalog_young_event_get
+  web: /catalog/young-events
+  rest: GET /api/catalog/young-events, GET /api/catalog/young-events/:youngId
+  graphql: catalog.youngEvents, catalog.youngEvent
+  bot: 第二课堂 / 第二课堂 查看 <youngId>
+  cli: catalog young-event list/get
+- capability: catalog_weather_get
+  web: /catalog/weather
+  rest: GET /api/catalog/weather
+  graphql: catalog.weather
+  bot: 天气 / 天气 高新
+  cli: catalog weather
+- capability: catalog_rooms_map
+  web: /catalog/rooms
+  rest: GET /api/catalog/rooms/:code/map
+  graphql: catalog.roomMap
+  bot: 教室 <code> or a recognized bare room code
+  cli: catalog room map <code>
+- capability: workspace_overview_get
+  web: /workspace/overview
+  rest: GET /api/workspace/overview
+  graphql: workspace.overview
+  bot: 概览
+  cli: workspace overview
+- capability: workspace_calendar_event_list
+  web: /workspace/calendar
+  rest: GET /api/workspace/calendar/events
+  graphql: workspace.calendarEvents
+  bot: 日程 今日/本周
+  cli: workspace calendar events
+- capability: workspace_schedule_list
+  web: /workspace/overview (no dedicated schedules tab)
+  rest: GET /api/workspace/schedules
+  graphql: workspace.schedules
+  bot: 课表
+  cli: workspace schedule list
+- capability: workspace_exam_list
+  web: /workspace/exams
+  rest: GET /api/workspace/exams
+  graphql: workspace.exams
+  bot: 考试
+  cli: workspace exam
+- capability: workspace_todo_create
+  web: /workspace/todos
+  rest: POST /api/workspace/todos
+  graphql: todoCreate
+  bot: 待办 添加
+  cli: workspace todo create
+- capability: workspace_homework_completion_set
+  web: /workspace/homeworks
+  rest: PUT /api/workspace/homeworks/:id/completion
+  graphql: homeworkCompletionSet
+  bot: 作业 完成/恢复
+  cli: workspace homework complete/reopen
+- capability: workspace_subscription_add
+  web: /workspace/subscriptions
+  rest: PATCH /api/workspace/subscriptions
+  graphql: subscriptionAdd
+  bot: 订阅 添加
+  cli: workspace subscription add
+- capability: workspace_subscription_kind_update
+  web: /workspace/subscriptions
+  rest: PATCH /api/workspace/subscriptions/:jwId
+  graphql: subscriptionKindUpdate
+  bot: 订阅 身份 <jwId> <普通|助教|旁听>
+  cli: workspace subscription kind <jwId> <kind>
+- capability: workspace_calendar_feed_get
+  web: /workspace/subscriptions
+  rest: GET /api/calendar-feeds/:credential.ics
+  graphql: —
+  bot: 订阅 链接
+  cli: workspace calendar feed
+- capability: workspace_bus_preferences_set
+  web: /catalog/bus
+  rest: POST /api/workspace/bus-preferences
+  graphql: busPreferencesSet
+  bot: 校车 偏好 设置
+  cli: workspace bus-preferences set
+- capability: workspace_link_pin_set
+  web: /catalog/links
+  rest: POST /api/workspace/link-pins
+  graphql: linkPinSet
+  bot: —
+  cli: workspace link-pin pin/unpin
+- capability: community_comment_create
+  web: target comment panel
+  rest: POST /api/community/comments
+  graphql: commentCreate
+  bot: —
+  cli: community comment create
+- capability: community_description_set
+  web: target editor
+  rest: POST /api/community/descriptions
+  graphql: descriptionSet
+  bot: —
+  cli: community description set
+- capability: account_profile_get
+  web: /account/settings/profile
+  rest: GET /api/account/profile
+  graphql: account.profile
+  bot: 账户 信息
+  cli: account profile
+- capability: account_client_activity_list
+  web: /account/settings/security
+  rest: GET /api/account/client-activity
+  graphql: account.clientActivity
+  bot: —
+  cli: account client activity
+hierarchy:
+- path: catalog
+  description: public campus facts
+- path: catalog.metadata
+- path: catalog.semesters
+- path: catalog.semesters.list
+- path: catalog.semesters.current
+- path: catalog.courses
+- path: catalog.courses.search
+- path: catalog.courses.get
+- path: catalog.sections
+- path: catalog.sections.search
+- path: catalog.sections.get
+- path: catalog.sections.match-preview
+- path: catalog.sections.schedules
+- path: catalog.sections.exams
+- path: catalog.teachers
+- path: catalog.teachers.search
+- path: catalog.teachers.get
+- path: catalog.schedules
+- path: catalog.bus
+- path: catalog.bus.routes
+- path: catalog.bus.timetable
+- path: catalog.bus.next-departures
+- path: catalog.bus.map
+- path: catalog.young-events
+- path: catalog.young-events.list
+- path: catalog.young-events.get
+- path: catalog.weather
+- path: catalog.weather.snapshot
+- path: catalog.rooms
+- path: catalog.rooms.map
+- path: catalog.publications
+  description: REST + ingestion; Web at /news
+- path: catalog.publications.list
+- path: catalog.publications.get
+- path: catalog.publications.sources
+  description: source registry directory; Web at /news/sources
+- path: catalog.links
+- path: workspace
+  description: current user's campus work
+- path: workspace.overview
+- path: workspace.calendar
+- path: workspace.calendar.events
+- path: workspace.calendar.feed
+- path: workspace.schedules
+- path: workspace.schedules.next
+- path: workspace.exams
+- path: workspace.todos
+- path: workspace.todos.list
+- path: workspace.todos.get
+- path: workspace.todos.create
+- path: workspace.todos.update
+- path: workspace.todos.delete
+- path: workspace.todos.completion-set
+- path: workspace.todos.batch
+- path: workspace.homeworks
+- path: workspace.homeworks.list
+- path: workspace.homeworks.completion-set
+- path: workspace.homeworks.completions-set
+- path: workspace.subscriptions
+- path: workspace.subscriptions.list
+- path: workspace.subscriptions.add
+- path: workspace.subscriptions.remove
+- path: workspace.subscriptions.set
+- path: workspace.subscriptions.preview
+- path: workspace.subscriptions.import
+- path: workspace.subscriptions.kind-update
+- path: workspace.bus-preferences
+- path: workspace.link-pins
+- path: workspace.link-pins.list
+- path: workspace.link-pins.pin-set
+- path: workspace.uploads
+- path: workspace.uploads.list
+- path: workspace.uploads.create
+- path: workspace.uploads.rename
+- path: workspace.uploads.delete
+- path: community
+  description: public identity and shared content
+- path: community.users
+- path: community.section-homeworks
+- path: community.comments
+- path: community.comments.reactions
+- path: community.descriptions
+- path: community.attachments
+  description: references to workspace uploads
+- path: account
+  description: current principal identity and settings
+- path: account.profile
+- path: account.session
+- path: account.sign-in
+- path: account.sign-out
+- path: account.preferences
+  description: locale only today
+- path: account.client-activity
+- path: account.authorizations
+- path: admin
+  description: platform governance
+- path: admin.overview
+- path: admin.users
+- path: admin.suspensions
+- path: admin.comments
+- path: admin.descriptions
+- path: admin.homeworks
+- path: admin.oauth-clients
+- path: admin.bus-data
+graphql_roots:
+  query:
+  - catalog
+  - workspace
+  - community
+  - account
+  mutation_prefixes:
+  - todo
+  - homework
+  - subscription
+  - comment
+  - description
+  - busPreferences
+  - linkPin
+  - upload
+policy_refs:
+- permission-ui
+- rendering-and-cache
+topics:
+- id: interface-hierarchy
+  title: Interface Hierarchy
+- id: canonical-tree
+  title: Canonical Tree
+- id: surface-mapping
+  title: Surface Mapping
+- id: canonical-actions
+  title: Canonical Actions
+- id: representative-cross-surface-contract
+  title: Representative Cross-Surface Contract
+- id: transport-specific-exceptions
+  title: Transport-Specific Exceptions
+- id: semantic-parity
+  title: Semantic Parity
+- id: locale-caching-and-seo
+  title: Locale, Caching, and SEO

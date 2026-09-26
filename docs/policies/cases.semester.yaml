@@ -1,0 +1,61 @@
+kind: policy
+id: cases.semester
+title: 'Cross-feature scenarios: semester'
+requirements:
+- id: no-current-semester-1
+  category: behavior
+  topic: no-current-semester
+  rule: The home page should display a recoverable empty state.
+- id: no-current-semester-2
+  category: behavior
+  topic: no-current-semester
+  rule: Users should be guided to browse or import sections.
+- id: only-non-current-semester-subscriptions-1
+  category: behavior
+  topic: only-non-current-semester-subscriptions
+  rule: The home page must not pretend to have current learning tasks.
+- id: only-non-current-semester-subscriptions-2
+  category: behavior
+  topic: only-non-current-semester-subscriptions
+  rule: Must clearly indicate that no sections are subscribed for the current semester.
+- id: only-non-current-semester-subscriptions-3
+  category: behavior
+  topic: only-non-current-semester-subscriptions
+  rule: Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
+- id: cross-semester-browsing-1
+  category: behavior
+  topic: cross-semester-browsing
+  rule: Courses must display semester.
+- id: cross-semester-browsing-2
+  category: behavior
+  topic: cross-semester-browsing
+  rule: Sections must display semester.
+- id: cross-semester-browsing-3
+  category: behavior
+  topic: cross-semester-browsing
+  rule: Homework must display semester.
+- id: cross-semester-browsing-4
+  category: behavior
+  topic: cross-semester-browsing
+  rule: Exams must display semester.
+- id: scenario-guidance-1
+  category: behavior
+  topic: scenario-guidance
+  rule: Current-semester empty states and assistant snapshots must not imply that past-term subscriptions or
+    their homework and schedules were deleted.
+refs:
+- feature: overview
+  capability: authenticated-overview
+- feature: subscription
+  capability: batch-subscribe-by-codes
+- feature: subscribed-sections
+  capability: subscribed-sections-tab
+topics:
+- id: no-current-semester
+  title: No current semester
+- id: only-non-current-semester-subscriptions
+  title: Only non current semester subscriptions
+- id: cross-semester-browsing
+  title: Cross semester browsing
+- id: scenario-guidance
+  title: Scenario guidance

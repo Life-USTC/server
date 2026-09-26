@@ -2,7 +2,7 @@
 
 Start here instead of grepping the whole tree. Nested `AGENTS.md` files go
 deeper on one area (closest file wins). Shared names live in
-`docs/interface-hierarchy.md` and `docs/contracts/`. To add or change behavior,
+`docs/policies/interface-hierarchy.yaml` and `docs/features/`. To add or change behavior,
 use `$life-ustc-implement`.
 
 ## How the system fits together
@@ -47,8 +47,11 @@ src/lib/                 Infrastructure only
   auth/ · db/ · oauth/ · storage/ · time/ · …
 messages/                i18n: zh-cn (default), en-us — no locale URL prefix
 prisma/                  schema.prisma + migrations + seed.sql
-docs/contracts/          Product / API / GraphQL / MCP JSON contracts
-docs/graphql/            SDL snapshot + mutation matrix
+docs/features/           Feature specifications (YAML)
+docs/policies/           Cross-feature product and architecture requirements
+docs/schemas/            Strict JSON Schemas for specification data
+docs/graphql/            Generated SDL snapshot
+docs/reference/          Structured interface reference data
 tests/unit|integration|e2e
 .agents/skills/          Project skills (how to implement changes)
 .github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
@@ -81,6 +84,7 @@ bunx tsc --noEmit -p tsconfig.typecheck.json
 bunx tsc --noEmit -p tsconfig.typecheck.tests.json
 bunx tsc --noEmit -p tsconfig.typecheck.operational.json
 bunx vitest run
+bun run specs:check
 bun run openapi:check
 bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
@@ -115,8 +119,8 @@ specifically testing object storage.
 
 | Concern | Where |
 |---------|--------|
-| Product / API contract | `docs/contracts/<module>.json` |
-| Shared naming | `docs/interface-hierarchy.md` |
+| Product / API contract | `docs/features/<feature>.yaml` |
+| Shared naming | `docs/policies/interface-hierarchy.yaml` |
 | Use-case | `src/features/<domain>/server/` |
 | Web | `src/routes/...` + `src/features/<domain>/components/` |
 | REST | `src/routes/api/**/+server.ts` → `src/lib/api/routes/` → feature |
@@ -132,13 +136,8 @@ with that scenario; not auto-generated in-repo).
 
 ## Web and auth
 
-- Catalog: `/catalog/courses|sections|teachers|bus|links|young-events|weather`,
-  `/search`, `/news` (publications)
-- Workspace tabs: `/workspace/{overview,calendar,homeworks,todos,exams,subscriptions}`
-- Account: `/account/sign-in` (+ settings); Admin: `/admin/...`
-- Schedules list and uploads are mostly API / MCP / CLI — not always a Web tab
-- Public HTML cache rules: `docs/rendering-and-cache.md` (lists, detail roots,
-  bus map, legal pages, and a few others — not only catalog detail)
+Read `docs/policies/interface-hierarchy.yaml` for route scope and surface rules,
+and `docs/policies/rendering-and-cache.yaml` for public/private rendering.
 
 | Entry | Auth |
 |-------|------|
@@ -147,8 +146,8 @@ with that scenario; not auto-generated in-repo).
 | GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
 | MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
 
-Suspended users can't collaborative-write. Upload downloads use the shared
-permission gate.
+Read the security and upload feature specifications for suspension and download
+authorization requirements; enforce them through the shared permission gates.
 
 Never use an ambient OAuth identity for optional personalization. Use
 `requireAuth` / `resolveApiPrincipal` with an explicit feature/action scope for
@@ -198,9 +197,9 @@ Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
 | Area | File |
 |------|------|
 | Doc index | `docs/index.md` |
-| Contracts | `docs/contracts/AGENTS.md` |
+| Contracts | `docs/AGENTS.md` |
 | Features / lib / GraphQL / MCP / components | `src/**/AGENTS.md` |
 | Prisma | `prisma/AGENTS.md` |
 | Tests | `tests/**/AGENTS.md` |
 | CI workflows | `.github/workflows/AGENTS.md` |
-| Public SSR cache notes | `docs/rendering-and-cache.md` |
+| Public SSR cache notes | `docs/policies/rendering-and-cache.yaml` |
