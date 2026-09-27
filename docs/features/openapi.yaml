@@ -378,6 +378,17 @@ requirements:
 - id: openapi.state-setting-status
   category: consistency
   rule: Successful idempotent upserts and state-setting REST operations return 200 rather than advertising creation of a distinct resource with 201.
+  acceptance:
+    given: Isolated user, section, homework, comment, event, organizer, todo and notification fixtures
+      behind the actual REST modules and production database roles.
+    when: Repeat sixteen description, preference, pin, subscription, reaction, completion, and read-state
+      operations through HTTP.
+    then:
+    - Both the initial and repeated successful request return200, matching OpenAPI and never claiming201.
+    - Each requested state persists exactly once under its intended owner and target.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.state-setting-status
 - id: openapi.schema-query-parsing
   category: validation
   rule: Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are
