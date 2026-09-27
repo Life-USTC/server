@@ -44,6 +44,25 @@ requirements:
     test:
       file: tests/integration/mcp/workspace/young-transport-contract.test.ts
       name: young-workspace.ownership
+- id: young-workspace.list-transport-pagination
+  category: consistency
+  rule: REST, GraphQL and MCP return equivalent ordered pages of the authenticated owner's activity subscriptions,
+    organizer follows and unexpired notifications. Subscriptions/follows sort by creation descending then
+    source ID ascending; notifications sort by creation descending then ID descending. The unread filter
+    selects unread notices; omitted or false includes both read states.
+  acceptance:
+    given: Isolated owners have subscriptions, organizer follows and notifications with tied nonzero-millisecond creation times,
+      read/unread states and an expired notice; insertion order differs from display order.
+    when: Signed REST and GraphQL requests and registered native MCP tools read two-item pages through exhaustion,
+      with omitted, false and true notification unread filters.
+    then:
+    - All transports return the same exact IDs, positions, operational fields and stable page totals.
+    - Every matching row appears once; expired and foreign-owner notices never appear, and exhausted pages are empty.
+    - Timestamp ties follow the documented ID direction and unread filtering preserves that order.
+    - Differently formatted transport timestamps preserve the exact millisecond instant.
+    test:
+      file: tests/integration/mcp/workspace/young-list-contract.test.ts
+      name: young-workspace.list-transport-pagination
 - id: young-workspace.reminders
   category: behavior
   rule: Signup-opening reminders apply only when registration opens after subscription.
