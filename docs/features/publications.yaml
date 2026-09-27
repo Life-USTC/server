@@ -247,6 +247,18 @@ requirements:
     is a transport boundary, not an implicit GraphQL/MCP capability.
   rationale: The crawler write transport boundary is owned by openapi.crawler-ingestion-rest-only. Publication
     read surfaces remain an intentional Web/REST-only exception.
+  acceptance:
+    given: A real ingested public publication, the production public REST and GraphQL handlers over HTTP,
+      and actual MCP SDK clients.
+    when: Read publication list/detail/source directory, query GraphQL publication fields, and discover/call
+      publication tools with anonymous and feature-scoped MCP contexts.
+    then:
+    - Public REST list/detail/source-directory reads succeed without credentials.
+    - The executable GraphQL schema has no publication types and rejects publication/source queries.
+    - MCP discovery contains no publication tools and rejects a publication-list tool name.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.read-transport-boundary
 - id: publications.service-auth
   category: authorization
   rule: Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker

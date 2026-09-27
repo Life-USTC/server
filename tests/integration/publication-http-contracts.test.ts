@@ -1,13 +1,23 @@
 import { createServer, type Server } from "node:http";
+import type { RequestEvent } from "@sveltejs/kit";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { postPublicationIngestionBatchRoute } from "@/lib/api/routes/publication-ingestion-routes";
 import {
   getPublicationsRoute,
+  getPublicationSourcesRoute,
   getPublicPublicationRoute,
 } from "@/lib/api/routes/publication-public-routes";
 import { createFixturePrisma } from "../shared/prisma";
 
+import { createGraphqlRequestHandler } from "@/lib/graphql/server";
+import { graphqlSchema } from "@/lib/graphql/schema";
+import {
+  createAnonymousMcpHarness,
+  createMcpHarness,
+} from "./mcp/_harness/client";
+
+const graphqlHandler = createGraphqlRequestHandler(false);
 const db = createFixturePrisma();
 const marker = crypto.randomUUID();
 const secret = `private-ingestion-${marker}`;
@@ -66,13 +76,20 @@ beforeAll(async () => {
       const request = await getRequest({ request: incoming, base: origin });
       const path = new URL(request.url).pathname;
       const response =
-        request.method === "POST"
-          ? await postPublicationIngestionBatchRoute(request)
-          : path === "/api/publications"
-            ? await getPublicationsRoute(request)
-            : await getPublicPublicationRoute(request, {
-                id: path.split("/").at(-1)!,
-              });
+        path === "/api/graphql"
+          ? await graphqlHandler({
+              request,
+              locals: { authUser: null, locale: "en-us", requestId: marker },
+            } as unknown as RequestEvent)
+          : path === "/api/publications/sources"
+            ? await getPublicationSourcesRoute(request)
+            : request.method === "POST"
+              ? await postPublicationIngestionBatchRoute(request)
+              : path === "/api/publications"
+                ? await getPublicationsRoute(request)
+                : await getPublicPublicationRoute(request, {
+                    id: path.split("/").at(-1)!,
+                  });
       await setResponse(outgoing, response);
     } catch {
       outgoing.statusCode = 500;
@@ -324,6 +341,64 @@ it("publications.batch-idempotency", async () => {
       where: { clientRunId: payload.clientRunId },
     }),
   ).toBe(1);
+});
+
+it("publications.read-transport-boundary", async () => {
+  const payload = batch("transport");
+  const ingested = await post(payload);
+  expect(ingested.status).toBe(200);
+  const result = await ingested.json();
+  const publicationId = result.results[0].publicationId;
+  const list = await fetch(
+    `${origin}/api/publications?source=${payload.sources[0].id}`,
+  );
+  expect(list.status).toBe(200);
+  expect((await list.json()).data.map((row: { id: string }) => row.id)).toEqual(
+    [publicationId],
+  );
+  const detail = await fetch(`${origin}/api/publications/${publicationId}`);
+  expect(detail.status).toBe(200);
+  expect(await detail.json()).toMatchObject({ id: publicationId });
+  const sources = await fetch(`${origin}/api/publications/sources`);
+  expect(sources.status).toBe(200);
+  expect(JSON.stringify(await sources.json())).toContain(payload.sources[0].id);
+  expect(
+    Object.keys(graphqlSchema.getTypeMap()).filter((name) =>
+      /publication/i.test(name),
+    ),
+  ).toEqual([]);
+  for (const field of ["publications", "publicationSources"]) {
+    const response = await fetch(`${origin}/api/graphql`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: `{ ${field} { id } }` }),
+    });
+    const body = await response.json();
+    expect(body.data).toBeUndefined();
+    expect(body.errors[0].message).toContain(`Cannot query field "${field}"`);
+  }
+  const clients = await Promise.all([
+    createAnonymousMcpHarness(),
+    createMcpHarness("publication-read-transport-test"),
+  ]);
+  try {
+    for (const client of clients) {
+      const discovery = await client.listTools();
+      expect(
+        discovery.tools.filter((tool) => /publication/i.test(tool.name)),
+      ).toEqual([]);
+      const missing = await client.callToolResult("publication_list", {});
+      expect(missing.isError).toBe(true);
+      expect(missing.content).toEqual([
+        expect.objectContaining({
+          type: "text",
+          text: expect.stringContaining("not found"),
+        }),
+      ]);
+    }
+  } finally {
+    await Promise.all(clients.map((client) => client.close()));
+  }
 });
 
 it("publications.public-cache", async () => {
