@@ -24,6 +24,14 @@ const {
   setCloudflareRequestContextMock: vi.fn(),
 }));
 
+vi.mock("@/features/weather/server/weather-cache", () => ({
+  readWeatherCache: vi.fn(),
+  writeWeatherCache: vi.fn(async () => undefined),
+}));
+vi.mock("@/features/weather/server/weather-history", () => ({
+  writeWeatherHistory: vi.fn(async () => undefined),
+}));
+
 vi.mock("@/features/admin/server/audit-retention", () => ({
   maintainAuditLogRetention: maintainAuditLogRetentionMock,
   maintainOAuthGrantUsageRetention: vi.fn(async () => ({
@@ -1064,5 +1072,88 @@ it("audit.retention-maintenance-cadence", async () => {
       }),
       expect.any(Error),
     ]);
+  }
+});
+
+it("weather.weather-refresh-budget", async () => {
+  const { writeWeatherCache, readWeatherCache } = await import(
+    "@/features/weather/server/weather-cache"
+  );
+  const { writeWeatherHistory } = await import(
+    "@/features/weather/server/weather-history"
+  );
+  const config = parse(readFileSync("wrangler.jsonc", "utf8"));
+  const calls: URL[] = [];
+  vi.stubEnv("AMAP_API_KEY", "test-provider-key");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      calls.push(url);
+      return Response.json(
+        url.hostname === "restapi.amap.com"
+          ? { lives: [{ temperature: "22", weather: "晴" }], forecasts: [] }
+          : { current: { temperature_2m: 21, weather_code: 0 } },
+      );
+    }),
+  );
+  vi.mocked(writeWeatherCache).mockClear();
+  vi.mocked(writeWeatherHistory).mockClear();
+  vi.mocked(readWeatherCache).mockClear();
+  const ticks: Record<string, number> = { "ustc-main": 0, "ustc-gaoxin": 0 };
+  try {
+    for (const [cron, interval, key, adcode] of [
+      ["*/20 * * * *", 20, "ustc-main", "340100"],
+      ["*/30 * * * *", 30, "ustc-gaoxin", "340104"],
+    ] as const) {
+      expect(config.triggers.crons).toContain(cron);
+      for (let minute = 0; minute < 1440; minute += interval) {
+        const start = calls.length;
+        await worker.scheduled({ cron }, {}, { waitUntil: vi.fn() });
+        ticks[key]++;
+        const tick = calls.slice(start);
+        expect(tick).toHaveLength(3);
+        expect(
+          tick
+            .filter((url) => url.hostname === "restapi.amap.com")
+            .map((url) => [
+              url.searchParams.get("city"),
+              url.searchParams.get("extensions"),
+            ]),
+        ).toEqual([
+          [adcode, "base"],
+          [adcode, "all"],
+        ]);
+        expect(
+          tick.filter((url) => url.hostname === "api.open-meteo.com"),
+        ).toHaveLength(1);
+        expect(vi.mocked(writeWeatherCache).mock.calls.at(-1)?.[0]).toBe(key);
+      }
+    }
+    expect(ticks).toEqual({ "ustc-main": 72, "ustc-gaoxin": 48 });
+    expect(
+      calls.filter((url) => url.hostname === "restapi.amap.com"),
+    ).toHaveLength(240);
+    expect(
+      calls.filter((url) => url.hostname === "api.open-meteo.com"),
+    ).toHaveLength(120);
+    expect(writeWeatherHistory).toHaveBeenCalledTimes(120);
+    expect(readWeatherCache).not.toHaveBeenCalled();
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      calls.push(new URL(String(input)));
+      return new Response(null, { status: 503 });
+    });
+    const start = calls.length;
+    await worker.scheduled(
+      { cron: "*/20 * * * *" },
+      {},
+      { waitUntil: vi.fn() },
+    );
+    expect(calls.length - start).toBe(3);
+    expect(writeWeatherCache).toHaveBeenCalledTimes(120);
+    expect(writeWeatherHistory).toHaveBeenCalledTimes(120);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   }
 });

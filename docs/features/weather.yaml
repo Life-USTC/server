@@ -27,9 +27,19 @@ requirements:
       file: tests/integration/mcp/catalog/weather.test.ts
       name: weather.public-no-signin
 - id: weather.two-locations-only
-  category: behavior
-  rule: Campus weather supports ustc-main for the closely clustered main campuses and ustc-gaoxin for
-    Gaoxin.
+  category: presentation
+  rule: The weather page displays exactly two campus panels in order, ustc-main for the main campuses
+    followed by ustc-gaoxin for Gaoxin, with localized campus headings on desktop and mobile.
+  rationale: Accepted API location keys and provider mapping are independently owned by weather.location-key-boundary
+    and weather.location-provider-mapping.
+  acceptance:
+    given: The production weather page receives valid forecast fixtures built for its configured locations.
+    when: The browser renders Chinese and English at desktop and mobile widths.
+    then:
+    - Exactly the main-campus and Gaoxin panels appear in order, each with its own forecast chart and localized heading.
+    test:
+      file: tests/e2e/src/app/weather/test.ts
+      name: weather.two-locations-only
 - id: weather.amap-primary
   category: behavior
   rule: Current conditions prefer an available Amap current observation and otherwise use an available
@@ -61,10 +71,20 @@ requirements:
       name: weather.rolling-hourly-forecast
 - id: weather.raw-extensions-preserved
   category: behavior
-  rule: Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay
-    available under extensions for REST and MCP consumers.
-  rationale: 'Product decision required: Raw provider payload publication expands contract and data exposure
-    without student-facing need; separate debugging/admin source retention from public full output.'
+  rule: Provider response payloads are preserved under extensions in REST and MCP full weather snapshots,
+    including unknown provider fields. MCP default mode omits extensions while retaining canonical weather values.
+    Extensions contain provider response data, not request credentials or URLs.
+  rationale: Raw weather responses let clients inspect provider-specific measurements and compare normalized
+    values with their source. Compact display does not need these payloads; the full public weather contract retains them.
+  acceptance:
+    given: Real weather merging receives Amap and Open-Meteo response payloads with nested unknown provider fields for both campuses.
+    when: Actual REST and MCP default/full reads consume the merged cached snapshot.
+    then:
+    - REST and MCP full preserve both original JSON payloads exactly alongside normalized current conditions.
+    - MCP default omits extensions without changing normalized current weather.
+    test:
+      file: tests/integration/mcp/catalog/weather.test.ts
+      name: weather.raw-extensions-preserved
 - id: weather.cache-and-history
   category: consistency
   expectation:
@@ -143,7 +163,20 @@ requirements:
       name: weather.weather-observation-history
 - id: weather.weather-refresh-budget
   category: consistency
-  rule: Scheduled refreshes cover both locations within the configured provider quota.
+  rule: Scheduled weather refreshes run every 20 minutes for ustc-main and every 30 minutes for ustc-gaoxin.
+    Each delivery bypasses cached snapshots and makes at most two Amap requests and one Open-Meteo request,
+    with no application retries. One nominal day therefore schedules 240 Amap and 120 Open-Meteo requests.
+  rationale: This is the budget for one execution per scheduled delivery. On-demand refreshes, platform
+    redelivery and provider-account quotas are separate; a cron frequency alone cannot guarantee their total.
+  acceptance:
+    given: The deployed cron configuration and real Worker scheduled handler use actual weather refresh and provider adapters with controlled HTTP and storage IO.
+    when: Execute every nominal daily weather tick and a provider failure tick.
+    then:
+    - Both campus schedules dispatch their correct location, producing 72 and 48 refreshes and exactly 240 Amap and 120 Open-Meteo requests.
+    - Scheduled runs bypass reads from cache; failures do not retry provider requests or persist failed snapshots.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: weather.weather-refresh-budget
 - id: weather.hourly-provider-supplement
   category: behavior
   rule: Hourly forecasts and precipitation fields come from Open-Meteo and remain aligned with their timestamps.

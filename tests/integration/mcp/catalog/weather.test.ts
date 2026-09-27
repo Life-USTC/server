@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
+import { getWeatherLocation } from "@/features/weather/server/weather-types";
 import { getWeatherRoute } from "@/lib/api/routes/weather";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 import { createGraphqlYoga } from "@/lib/graphql/server";
@@ -102,4 +104,58 @@ describe("weather transport contracts", () => {
       expect(mocks.readCache).not.toHaveBeenCalled();
     }
   });
+});
+
+it("weather.raw-extensions-preserved", async () => {
+  const amapRaw = {
+    base: { status: "1", lives: [{ temperature: "22", humidity: "71" }] },
+    all: { status: "1", forecasts: [] },
+    futureProviderField: { source: "station", flags: [1, true, null] },
+  };
+  const meteoRaw = {
+    latitude: 31.826,
+    longitude: 117.27,
+    current: { temperature_2m: 21 },
+    units: { temperature: "°C" },
+    futureProviderField: ["observation", { quality: 0.8 }],
+  };
+  for (const locationKey of ["ustc-main", "ustc-gaoxin"] as const) {
+    const merged = mergeWeatherSnapshots(
+      getWeatherLocation(locationKey),
+      {
+        ok: true,
+        data: { current: { temperature: 22, weather: "晴" } },
+        raw: amapRaw,
+      },
+      {
+        ok: true,
+        data: { current: { temperature_2m: 21, weather_code: 0 } },
+        raw: meteoRaw,
+      },
+    );
+    mocks.readCache.mockResolvedValue(merged);
+    const response = await getWeatherRoute(
+      new Request(
+        `https://example.test/api/catalog/weather?locationKey=${locationKey}`,
+      ),
+    );
+    expect(response.status).toBe(200);
+    const rest = await response.json();
+    expect(rest.current.temperature).toBe(22);
+    expect(rest.extensions).toEqual({ amap: amapRaw, openMeteo: meteoRaw });
+    const full = await client.call("catalog_weather_get", {
+      locationKey,
+      mode: "full",
+    });
+    expect(full).toMatchObject({
+      current: { temperature: 22 },
+      extensions: rest.extensions,
+    });
+    const compact = await client.call("catalog_weather_get", {
+      locationKey,
+      mode: "default",
+    });
+    expect(compact).not.toHaveProperty("extensions");
+    expect(compact).toMatchObject({ current: { temperature: 22 } });
+  }
 });
