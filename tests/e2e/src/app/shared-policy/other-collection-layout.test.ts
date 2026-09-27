@@ -226,10 +226,26 @@ test("ui.other-browse-responsive-lists", async ({ page, baseURL }) => {
         ),
         item.name,
       ).toBe(true);
-      for (const row of await records.all()) {
-        await row.scrollIntoViewIfNeeded();
-        const box = await row.boundingBox();
-        if (!box) throw new Error(`Expected visible ${item.name} record`);
+      const boxes = await records.evaluateAll((elements) =>
+        elements.map((element) => {
+          element.scrollIntoView({
+            behavior: "instant",
+            block: "nearest",
+            inline: "nearest",
+          });
+          const box = element.getBoundingClientRect();
+          return {
+            x: box.x,
+            width: box.width,
+            visible:
+              getComputedStyle(element).visibility === "visible" &&
+              box.width > 0 &&
+              box.height > 0,
+          };
+        }),
+      );
+      for (const box of boxes) {
+        expect(box.visible, `Expected visible ${item.name} record`).toBe(true);
         expect(box.x, item.name).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width, item.name).toBeLessThanOrEqual(width);
       }
