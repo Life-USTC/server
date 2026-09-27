@@ -367,7 +367,7 @@ requirements:
   rule: Numeric, status, control, and action cells do not receive truncation tooltips when their content fits.
   rationale: Icon-only controls retain their intentional action-label tooltips; those communicate the control's purpose rather than duplicate clipped cell content. The shared text truncation primitive is exercised with a fitting status detail as well as plain numeric/status cells and action controls.
   acceptance:
-    given: Isolated administrative tables contain fitting trip counts, role and moderation badges, suspension details and icon-only actions.
+    given: Isolated administrative tables contain fitting trip counts, role and moderation badges, a permanent suspension detail and icon-only actions.
     when: The browser hovers the numeric/status cells and focuses fitting text and action controls across bus, comment, suspension and user tables.
     then:
     - Fitting cell content has no native title or truncation tooltip; icon controls expose only the intentional tooltip matching their accessible action label.
