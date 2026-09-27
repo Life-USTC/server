@@ -1196,6 +1196,14 @@ requirements:
   topic: navigation-landmarks
   rule: Activity and calendar navigation preserves the applied filters when opening a detail and returning
     to the list. The active view remains programmatically identified.
+  acceptance:
+    given: Isolated activities match every supported list and calendar filter, with activity and signup dates and more than one result page.
+    when: A browser opens a detail from page two of the activity list and from day, week and month calendar views under both time bases, then follows the detail return link.
+    then:
+    - Detail and return links preserve the exact originating filters, pagination and calendar date/view; returned records remain present and the active browse and calendar views are programmatically identified.
+    test:
+      file: tests/e2e/src/app/shared-policy/young-return-navigation.test.ts
+      name: ui.navigation-landmarks-7
 - id: ui.list-pagination-filter-state
   category: presentation
   topic: list-table
