@@ -783,6 +783,279 @@ describe("GraphQL HTTP boundary", () => {
     }
   });
 
+  it("graphql.semantic-observability", async () => {
+    const { runRegisteredGraphqlOperation } = await import(
+      "@/lib/graphql/operation-runner"
+    );
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+    const privateValue = "private-query-variable-and-error-detail";
+    try {
+      for (const transport of ["http", "mcp"] as const) {
+        for (const outcome of [
+          "success",
+          "expected-error",
+          "internal-error",
+        ] as const) {
+          info.mockClear();
+          error.mockClear();
+          writeDataPoint.mockClear();
+          if (outcome === "success") {
+            courseService.listCourseSummaries.mockResolvedValue({
+              data: [],
+              pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+            });
+          } else {
+            courseService.listCourseSummaries.mockRejectedValue(
+              outcome === "expected-error"
+                ? new GraphQLError("Safe validation failure", {
+                    extensions: { code: "BAD_USER_INPUT" },
+                  })
+                : new Error(privateValue),
+            );
+          }
+          if (transport === "http") {
+            await execute(
+              {
+                query:
+                  "query PrivateSearch($filter: CourseFilter) { catalog { courses(filter: $filter) { items { jwId } } } }",
+                variables: { filter: { search: privateValue } },
+              },
+              true,
+            );
+          } else {
+            await runRegisteredGraphqlOperation({
+              operationId: "catalog.course.search.v1",
+              variables: { filter: { search: privateValue } },
+              locale: "zh-cn",
+              principal: { kind: "session", userId: "observation-user" },
+              signal: new AbortController().signal,
+              requestInfo: {
+                requestId: "graphql-unit-test",
+                headers: {
+                  authorization: "Bearer private-credential",
+                  cookie: "private-session",
+                },
+              },
+            });
+          }
+          const points = writeDataPoint.mock.calls
+            .map(([point]) => point)
+            .filter((point) => point.blobs?.[0] === "graphql_operation_v3");
+          expect(points).toHaveLength(1);
+          expect(points[0]).toMatchObject({
+            indexes: ["graphql:query"],
+            blobs: [
+              "graphql_operation_v3",
+              "named",
+              "query",
+              transport === "http" ? "anonymous" : "session",
+              outcome === "success" ? "success" : "error",
+            ],
+            doubles: [
+              expect.any(Number),
+              1,
+              expect.any(Number),
+              outcome === "success" ? 0 : 1,
+              outcome === "internal-error" ? 1 : 0,
+            ],
+          });
+          const infoRows = info.mock.calls
+            .map(([, row]) => row)
+            .filter((row) => row?.event === "graphql.operation");
+          const errorRows = error.mock.calls
+            .map(([, row]) => row)
+            .filter((row) => row?.event === "graphql.operation");
+          const rows = [...infoRows, ...errorRows];
+          expect(rows).toHaveLength(1);
+          expect(rows[0]).toMatchObject({
+            authMode: transport === "http" ? "anonymous" : "session",
+            requestId: "graphql-unit-test",
+            operationName:
+              transport === "http" ? "PrivateSearch" : "CatalogCourses",
+            operationType: "query",
+            topLevelFieldCount: 1,
+            estimatedCost: expect.any(Number),
+            ioObservedDurationMs: expect.any(Number),
+            errorCount: outcome === "success" ? 0 : 1,
+            internalErrorCount: outcome === "internal-error" ? 1 : 0,
+          });
+          expect(errorRows).toHaveLength(outcome === "internal-error" ? 1 : 0);
+          const recorded = JSON.stringify({ points, rows });
+          for (const secret of [
+            privateValue,
+            "private-credential",
+            "private-session",
+            "$filter",
+            "Safe validation failure",
+          ])
+            expect(recorded).not.toContain(secret);
+        }
+      }
+    } finally {
+      info.mockRestore();
+      error.mockRestore();
+    }
+  });
+
+  it("graphql.safe-errors", async () => {
+    const { runRegisteredGraphqlOperation } = await import(
+      "@/lib/graphql/operation-runner"
+    );
+    const query = "{ catalog { courses { items { jwId } } } }";
+    for (const [code, status] of [
+      ["UNAUTHENTICATED", 401],
+      ["FORBIDDEN", 403],
+      ["BAD_USER_INPUT", 400],
+      ["NOT_FOUND", 404],
+      ["RATE_LIMITED", 429],
+      ["SERVICE_UNAVAILABLE", 503],
+    ] as const) {
+      const message = `Safe ${code}`;
+      const error = new GraphQLError(message, {
+        extensions: { code, http: { status } },
+      });
+      courseService.listCourseSummaries.mockRejectedValue(error);
+      const http = await execute({ query }, true);
+      expect(http.response.status).toBe(status);
+      expect(http.payload).toMatchObject({
+        errors: [{ message, extensions: { code } }],
+      });
+      const mcp = await runRegisteredGraphqlOperation({
+        operationId: "catalog.course.search.v1",
+        variables: {},
+        locale: "zh-cn",
+        principal: { kind: "session", userId: "error-user" },
+        signal: new AbortController().signal,
+      });
+      expect(mcp).toMatchObject({
+        success: false,
+        errors: [{ message, extensions: { code, http: { status } } }],
+      });
+    }
+    const secret = "private-database-credential";
+    const forged = Object.assign(new Error(secret), {
+      name: "GraphQLError",
+      extensions: { code: "BAD_USER_INPUT" },
+      [Symbol.toStringTag]: "GraphQLError",
+    });
+    const nested = new GraphQLError(secret, {
+      extensions: { code: "FORBIDDEN" },
+      originalError: forged,
+    });
+    const cyclic = new GraphQLError(secret, {
+      extensions: { code: "NOT_FOUND" },
+    });
+    Object.defineProperty(cyclic, "originalError", { value: cyclic });
+    for (const error of [new Error(secret), forged, nested, cyclic]) {
+      courseService.listCourseSummaries.mockRejectedValue(error);
+      const http = await execute({ query }, true);
+      const mcp = await runRegisteredGraphqlOperation({
+        operationId: "catalog.course.search.v1",
+        variables: {},
+        locale: "zh-cn",
+        principal: { kind: "session", userId: "error-user" },
+        signal: new AbortController().signal,
+      });
+      for (const payload of [http.payload, mcp]) {
+        expect(payload).toMatchObject({
+          errors: [
+            {
+              message: "Unexpected error.",
+              extensions: { code: "INTERNAL_SERVER_ERROR" },
+            },
+          ],
+        });
+        expect(JSON.stringify(payload)).not.toContain(secret);
+      }
+    }
+  });
+
+  it("graphql.mutation-timeout-ambiguity", async () => {
+    const { runRegisteredGraphqlOperation } = await import(
+      "@/lib/graphql/operation-runner"
+    );
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    vi.useFakeTimers();
+    try {
+      for (const transport of ["http", "mcp"] as const) {
+        for (const stop of ["timeout", "cancel"] as const) {
+          const release = createDeferred<void>();
+          const started = createDeferred<void>();
+          const completed = createDeferred<void>();
+          let committed = false;
+          todoService.createTodo.mockImplementation(async () => {
+            started.resolve();
+            await release.promise;
+            committed = true;
+            completed.resolve();
+            return { id: "late-write" };
+          });
+          const controller = new AbortController();
+          const event = sessionRequestEvent({
+            query:
+              'mutation { todoCreate(input: { title: "Late write" }) { id } }',
+          });
+          event.request = new Request(event.request, {
+            signal: controller.signal,
+          });
+          let settled = false;
+          const execution =
+            transport === "http"
+              ? productionHandler(event)
+              : runRegisteredGraphqlOperation({
+                  operationId: "workspace.todo.create.v1",
+                  confirmed: true,
+                  variables: { input: { title: "Late write" } },
+                  locale: "zh-cn",
+                  principal: { kind: "session", userId: "session-user" },
+                  signal: controller.signal,
+                });
+          const outcome = execution.then(
+            (value) => {
+              settled = true;
+              return value;
+            },
+            (error: unknown) => {
+              settled = true;
+              return error;
+            },
+          );
+          try {
+            await started.promise;
+            if (stop === "cancel")
+              controller.abort(new DOMException("Cancelled", "AbortError"));
+            await vi.advanceTimersByTimeAsync(stop === "timeout" ? 5000 : 1);
+            expect(settled, `${transport}/${stop} must stop waiting`).toBe(
+              true,
+            );
+            expect(committed).toBe(false);
+            const result = await outcome;
+            if (result instanceof Response) {
+              expect(result.status).toBeGreaterThanOrEqual(400);
+            } else {
+              expect(result).toMatchObject({
+                code:
+                  stop === "timeout" ? "REQUEST_TIMEOUT" : "REQUEST_CANCELLED",
+              });
+            }
+          } finally {
+            release.resolve();
+            await completed.promise;
+            await outcome;
+          }
+          expect(committed).toBe(true);
+        }
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("graphql.request-timeout", async () => {
     expect(GRAPHQL_LIMITS.timeoutMs).toBe(5000);
     vi.useFakeTimers();

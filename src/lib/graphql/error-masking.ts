@@ -50,14 +50,16 @@ function hasTrustedGraphqlErrorChain(value: unknown): value is GraphQLError {
   return false;
 }
 
-export const maskGraphqlError: MaskError = (error, message, isDev) => {
-  if (
+function isSafeGraphqlError(error: unknown): error is GraphQLError {
+  return (
     hasTrustedGraphqlErrorChain(error) &&
     typeof error.extensions.code === "string" &&
     SAFE_GRAPHQL_ERROR_CODES.has(error.extensions.code)
-  ) {
-    return error;
-  }
+  );
+}
+
+export const maskGraphqlError: MaskError = (error, message, isDev) => {
+  if (isSafeGraphqlError(error)) return error;
   return maskUnexpectedGraphqlError(error, message, isDev);
 };
 
@@ -66,13 +68,10 @@ export function formatMaskedGraphqlError(
 ): GraphQLFormattedError {
   const candidate =
     error.originalError instanceof GraphQLError ? error.originalError : error;
-  const masked = maskGraphqlError(candidate, "Unexpected error.", false);
-  const formatted =
-    masked instanceof GraphQLError
-      ? masked.toJSON()
-      : { message: masked.message };
+  const safe = isSafeGraphqlError(candidate);
   return {
-    ...formatted,
+    message: safe ? candidate.message : "Unexpected error.",
+    extensions: safe ? candidate.extensions : { code: "INTERNAL_SERVER_ERROR" },
     ...(error.locations ? { locations: error.locations } : {}),
     ...(error.path ? { path: error.path } : {}),
   };

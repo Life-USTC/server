@@ -88,6 +88,16 @@ requirements:
   rule: A GraphQL timeout or caller cancellation stops waiting for the result but cannot guarantee rollback
     after a mutation resolver has started. The final state is indeterminate; clients must inspect current
     state and must not blindly retry a mutation.
+  acceptance:
+    given: A started mutation whose resolver is held pending before its side effect.
+    when: HTTP and registered MCP requests time out or are cancelled before the resolver is released.
+    then:
+    - Each transport stops waiting while the resolver remains pending.
+    - Releasing the already-started resolver still permits its side effect, so timeout or cancellation
+      does not establish rollback.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.mutation-timeout-ambiguity
 - id: graphql.registered-operation-coverage
   category: consistency
   rule: The registered-operation manifest covers current public Query root fields, each Workspace or Account
@@ -151,6 +161,15 @@ requirements:
   rule: Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors
     retain stable codes and status metadata across HTTP and the MCP registered runner; only trusted GraphQLErrors
     pass the allowlist, while unexpected or forged resolver failures are masked without internal details.
+  acceptance:
+    given: Trusted error codes and forged, nested, cyclic, or unexpected resolver failures.
+    when: The production HTTP handler and MCP registered runner execute the same feature resolver failure.
+    then:
+    - All six safe classifications preserve messages, codes and transport status metadata.
+    - Unexpected or forged failures become INTERNAL_SERVER_ERROR without private details.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.safe-errors
 - id: graphql.semantic-observability
   category: privacy
   rule: Each attempted HTTP or MCP GraphQL operation records one sanitized semantic observation with its
@@ -158,6 +177,17 @@ requirements:
     error count, auth mode, and server request ID. Expected parse, validation, authorization, and domain
     errors remain informational while INTERNAL_SERVER_ERROR outcomes use error severity; raw documents,
     variables, credentials, argument values, and error details are excluded.
+  acceptance:
+    given: Successful, expected-error, and internal-error operations through production HTTP and the registered
+      MCP runner.
+    when: Each request executes with private query variables, error details and request credentials.
+    then:
+    - Exactly one semantic Analytics observation records the operation and bounded counts.
+    - Structured log severity is informational for expected outcomes and error for internal failures.
+    - Operation metadata includes its server request ID and excludes private inputs and error details.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.semantic-observability
 - id: graphql.scoped-query-auth
   category: authorization
   rule: Each protected Workspace and Account child field independently checks its required OAuth feature
