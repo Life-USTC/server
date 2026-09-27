@@ -134,6 +134,17 @@ requirements:
   category: presentation
   rule: Homework naming/description guidance is advisory on every surface and never rejects otherwise
     valid writes.
+  acceptance:
+    given: An isolated active owner supplies discouraged chapter-only wording with a course name/code
+      and an unstructured description.
+    when: Actual section create/edit and workspace create forms, REST, GraphQL and OAuth-authenticated
+      MCP submit those otherwise valid writes.
+    then:
+    - Every surface successfully persists the discouraged title and the unchanged description.
+    - Transport create/edit writes retain the same owner and edits retain the original record ID.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/advisory-viewer-contract.test.ts
+      name: homework.homework-style-guide-advisory
 - id: homework.creator-only-delete
   category: authorization
   applies_to:
@@ -283,6 +294,19 @@ requirements:
   category: presentation
   rule: Authenticated personal homework views display 无需完成 / No completion required for teaching-assistant
     subscriptions. Public and anonymous views do not infer or expose a viewer's subscription kind.
+  acceptance:
+    given: An isolated owner has a teaching-assistant subscription and a real section homework; anonymous
+      users have no session.
+    when: Personal workspace and section summaries/details render in Chinese and English at desktop/mobile
+      widths, followed by anonymous section and REST reads.
+    then:
+    - Personal views display the corresponding localized no-completion-required label and omit completion
+      actions.
+    - Anonymous views do not display the teaching-assistant status and REST returns neutral completion
+      state without subscription-kind disclosure.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/advisory-viewer-contract.test.ts
+      name: homework.teaching-assistant-label
 - id: homework.rest-completion-batch-input
   category: behavior
   applies_to:
