@@ -26,6 +26,19 @@ requirements:
 - id: todo.web-list-state
   category: presentation
   rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
+  acceptance:
+    given: The owner has todos and no completed rows; original completion states are restored after the
+      test.
+    when: Desktop and mobile views repeatedly select the empty completed filter, switch to populated filters
+      and explicitly clear the filter.
+    then:
+    - The selected completed filter remains checked while the actual empty state is rendered and no task
+      actions exist.
+    - Repeated selection does not fall back to another filter.
+    - Explicitly clearing the filter selects All and restores the populated list.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-list-state
 - id: todo.web-due-order
   category: presentation
   rule: The Web todo list puts undated items first, then orders dated items by absolute distance from
@@ -34,19 +47,72 @@ requirements:
   rationale: 'Product decision required: Undated first and absolute-distance sorting can hide severely
     overdue urgent work; no product rationale establishes why old overdue tasks should fall behind future
     tasks.'
+  acceptance:
+    given: The owner has undated, long-overdue, next-day and equally distant past/future todos.
+    when: Desktop and mobile Web lists select every completion filter, complete the fixtures and edit
+      a deadline through the actual form.
+    then:
+    - Undated items come first, followed by absolute deadline distance, with the earlier deadline first
+      for an exact tie.
+    - Incomplete, completed and All filters preserve the required order.
+    - A successful edit recalculates the order using the refreshed page reference time and the changed
+      deadline.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-due-order
 - id: todo.web-detail
   category: presentation
   rule: Todo detail and list views display the same priority value and localized badge semantics.
+  acceptance:
+    given: The authenticated owner has low-, medium- and high-priority todos.
+    when: Each todo is opened from desktop and mobile views in Chinese and English.
+    then:
+    - List/card and detail display the same localized priority label.
+    - Priority badge foreground, background and border colors match between the list/card and detail.
+    - Raw priority enum values are not displayed in detail.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-detail
 - id: todo.purely-personal
   category: authorization
   rule: A todo can be created and managed without a section or section subscription and never appears
     as shared section homework.
+  acceptance:
+    given: A new owner has no section subscriptions.
+    when: Real owner-scoped services create, list, edit and delete a dated todo.
+    then:
+    - All operations succeed without adding a section subscription.
+    - The updated todo appears in the owner calendar and no matching shared homework exists.
+    - Deletion removes the personal task.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.purely-personal
 - id: todo.due-date-calendar
   category: behavior
   rule: Only incomplete todos with a due date appear in the calendar.
+  acceptance:
+    given: The owner has all four combinations of dated/undated and completed/incomplete todos.
+    when: The real unified calendar reads those rows, then the dated incomplete todo is completed, reopened
+      and made undated.
+    then:
+    - Only the dated incomplete todo appears initially.
+    - Completion removes it, reopening restores it, and clearing the due date removes it again.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.due-date-calendar
 - id: todo.completed-retained
   category: presentation
   rule: Completing a todo preserves it in personal task history.
+  acceptance:
+    given: The owner has a dated high-priority todo with content.
+    when: Real services complete it, read completion-filtered history and reopen it.
+    then:
+    - The completed history retains the same identity, title, content, priority, due date and creation
+      time.
+    - Completion removes it from incomplete reads without deleting it; reopening moves the same row back.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.completed-retained
 - id: todo.bounded-summary-read
   category: consistency
   rule: Incomplete, completed and overdue summary counts cover all of the authenticated owner's todos
@@ -64,6 +130,17 @@ requirements:
   category: presentation
   rule: At mobile widths, completion-status filters stay directly available and todos use cards. Desktop
     todos use the table view; there is no display-mode menu.
+  acceptance:
+    given: The authenticated owner has personal todos.
+    when: The actual workspace is viewed at desktop and mobile widths and each completion filter is selected.
+    then:
+    - Desktop displays a table and mobile displays cards.
+    - All completion filters remain directly visible and selectable; mobile controls have at least 44px
+      targets within the viewport.
+    - No view-mode menu or list/card selector is shown, and the page does not overflow horizontally.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.mobile-toolbar-priority
 - id: todo.rest-list-limit
   category: validation
   applies_to:
@@ -340,9 +417,31 @@ requirements:
   category: presentation
   rule: Successful local todo creates, edits, completion changes and deletes update the list without a
     reload; changing filters does not resurrect stale rows.
+  acceptance:
+    given: An authenticated owner opens the todo workspace.
+    when: The owner creates, edits, completes and deletes a todo through the actual Web controls, switching
+      completion filters after changes.
+    then:
+    - The new and edited titles appear immediately; replaced titles disappear.
+    - Completed state appears only in matching filters and deleted rows never reappear when filters change.
+    - A marker on the original document survives the complete flow, proving that no full reload occurred.
+    test:
+      file: tests/e2e/src/app/workspace/todos/test.ts
+      name: todo.web-local-mutation-state
 - id: todo.completed-not-urgent
   category: presentation
   rule: Completed todos do not appear in urgent overview or calendar information.
+  acceptance:
+    given: The owner has overdue and upcoming completed tasks plus one upcoming incomplete task.
+    when: Real compact overview and calendar reads run before and after the remaining task is completed.
+    then:
+    - Completed tasks contribute to history counts but never overdue or upcoming urgent items.
+    - Only the incomplete task appears in due samples and calendar events.
+    - Completing it leaves no urgent items or calendar events and retains all three completed history
+      rows.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.completed-not-urgent
 - id: todo.delete-calendar-after-commit
   category: consistency
   rule: A successful todo delete requests an owner calendar rebuild only after commit; a rolled-back delete

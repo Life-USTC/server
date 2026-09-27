@@ -311,10 +311,13 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-action-error");
   });
 
-  test("可以创建、编辑和删除待办", async ({ page }, testInfo) => {
+  test("todo.web-local-mutation-state", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await signInAsDebugUser(page, "/workspace/todos");
 
+    await page.evaluate(() => {
+      document.documentElement.dataset.todoMutationSession = "retained";
+    });
     const title = `e2e-workspace-todo-${Date.now()}`;
     const editedTitle = `${title}-edited`;
 
@@ -406,6 +409,37 @@ test.describe("仪表盘待办", () => {
         '[data-slot="dialog-title"]',
       );
       await expect(detailTitle).toHaveText(editedTitle);
+      await editedDetailDialog
+        .getByRole("button", { name: /标记为完成|Mark as complete/i })
+        .click();
+      await expect(
+        editedDetailDialog.getByRole("button", {
+          name: /取消完成|Mark as incomplete/i,
+        }),
+      ).toBeEnabled();
+      await page.keyboard.press("Escape");
+      const completedFilter = page.getByRole("radio", {
+        name: /^(已完成|Completed)$/i,
+      });
+      const incompleteFilter = page.getByRole("radio", {
+        name: /^(未完成|Incomplete)$/i,
+      });
+      const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
+      for (const filter of [
+        incompleteFilter,
+        completedFilter,
+        allFilter,
+        completedFilter,
+      ]) {
+        await filter.click();
+        await expect(filter).toBeChecked();
+        await expect(
+          page.getByRole("button", { name: editedTitle, exact: true }),
+        ).toHaveCount(filter === incompleteFilter ? 0 : 1);
+      }
+      await page
+        .getByRole("button", { name: editedTitle, exact: true })
+        .click();
       const deleteButton = page
         .getByRole("button", { name: /删除待办|Delete todo/i })
         .first();
@@ -441,6 +475,26 @@ test.describe("仪表盘待办", () => {
       await expect(page.getByText(editedTitle)).toHaveCount(0, {
         timeout: 15_000,
       });
+      for (const filter of [
+        allFilter,
+        incompleteFilter,
+        completedFilter,
+        allFilter,
+      ]) {
+        await filter.click();
+        await expect(filter).toBeChecked();
+        await expect(
+          page.getByRole("button", { name: editedTitle, exact: true }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: title, exact: true }),
+        ).toHaveCount(0);
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.dataset.todoMutationSession,
+        ),
+      ).toBe("retained");
       await captureStepScreenshot(page, testInfo, "workspace-todos-deleted");
     } finally {
       await cleanupTodosByTitlePrefix(page, title);
