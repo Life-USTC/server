@@ -9,7 +9,7 @@ describe("user mutation rate limits", () => {
     vi.restoreAllMocks();
   });
 
-  it("explicitly bypasses the gate outside a Cloudflare runtime", async () => {
+  it("openapi.rate-limit-host-native-bypass", async () => {
     await expect(
       checkUserMutationRateLimit({
         action: "workspace.todo:write",
@@ -19,7 +19,7 @@ describe("user mutation rate limits", () => {
     ).resolves.toEqual({ allowed: true });
   });
 
-  it("uses one canonical per-host, per-user, per-feature-action key", async () => {
+  it("openapi.rate-limit-key", async () => {
     const limit = vi.fn().mockResolvedValue({ success: true });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
 
@@ -40,7 +40,7 @@ describe("user mutation rate limits", () => {
     ]);
   });
 
-  it("selects the stricter batch binding", async () => {
+  it("openapi.rate-limit-batch-binding", async () => {
     const batchLimit = vi.fn().mockResolvedValue({ success: true });
     const writeLimit = vi.fn().mockResolvedValue({ success: true });
     setCloudflareRuntimeEnv({

@@ -414,6 +414,9 @@
         },
         {
           "$ref": "#/$defs/retention"
+        },
+        {
+          "$ref": "#/$defs/rate_limit_budget"
         }
       ]
     },
@@ -533,6 +536,37 @@
         },
         "boundary": {
           "const": "inclusive"
+        }
+      }
+    },
+    "rate_limit_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "period_seconds",
+        "standard_limit",
+        "batch_limit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "rate_limit_budget"
+        },
+        "surface": {
+          "const": "deployment"
+        },
+        "period_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "standard_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "batch_limit": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     }

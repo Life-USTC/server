@@ -64,6 +64,12 @@ function validateExpectation(
   const errors: string[] = [];
   const { kind } = value;
   if (
+    kind === "rate_limit_budget" &&
+    Number(value.batch_limit) > Number(value.standard_limit)
+  ) {
+    errors.push("batch rate limit must not exceed the standard rate limit");
+  }
+  if (
     kind === "enum_input" &&
     Array.isArray(value.values) &&
     !value.values.includes(value.default)

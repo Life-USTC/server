@@ -20,12 +20,6 @@ requirements:
   rule: GET /api/workspace/exams is an owner-scoped, private/no-store paginated exam list requiring workspace.exam:read.
     It supports semester and inclusive Shanghai calendar-date filters and includes unknown-date exams
     by default; clients needing a complete list must exhaust pagination rather than use overview samples.
-- id: openapi.response-cache-policy
-  category: consistency
-  rule: REST JSON responses, including authentication and validation errors, default to private, no-store.
-    Only explicitly viewer-independent public responses may opt into HTTP caching. The HTTP boundary also
-    disables CDN storage for private responses; cookies or bearer identity must never personalize a publicly
-    cacheable payload.
 - id: openapi.session-and-bearer
   category: authorization
   rule: Ordinary user business REST capabilities explicitly declare session-cookie and resource-bound
@@ -98,17 +92,125 @@ requirements:
       file: tests/unit/lib/api/api-observability.test.ts
       name: openapi.rest-observability
 - id: openapi.authenticated-mutation-rate-limits
+  category: authorization
+  rule: Every authenticated end-user and admin REST mutation checks the shared mutation rate limit after authentication and before its write. REST and MCP use the same canonical feature action for equivalent operations.
+- id: openapi.rate-limit-production-budgets
   category: validation
-  rule: 'Authenticated end-user and admin REST mutations use Cloudflare rate-limit bindings keyed by deployment
-    host, user, and canonical feature action. Standard writes allow 60 checks per minute; batch writes
-    allow 10. REST and MCP share the same feature-action keys. The gate runs after authentication and
-    before mutation. Exceeded budgets return 429; missing or failing Cloudflare bindings fail closed with
-    503. Both responses include Retry-After: 60. Host-native development bypasses the gate explicitly.'
-- id: openapi.workspace-rate-limit-fallbacks
+  applies_to:
+  - business-rest-routes
+  expectation:
+    kind: rate_limit_budget
+    surface: deployment
+    period_seconds: 60
+    standard_limit: 60
+    batch_limit: 10
+  acceptance:
+    given: The production Worker deployment configuration declares mutation limiter bindings.
+    when: The configured periods and standard/batch limits are read.
+    then:
+    - Both bindings match the structured budget and use distinct namespaces.
+    test:
+      file: tests/unit/lib/cloudflare/wrangler-rate-limit-config.test.ts
+      name: openapi.rate-limit-production-budgets
+- id: openapi.rate-limit-key
+  category: consistency
+  rule: The mutation limiter keys its budget by normalized deployment host, authenticated user ID, and canonical feature action.
+  acceptance:
+    given: A mutation uses an uppercase deployment host and an authenticated user ID.
+    when: The real limiter adapter submits its budget check.
+    then:
+    - The key contains the lowercased host, user ID and exact feature action as separate fields.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-key
+- id: openapi.rate-limit-batch-binding
   category: validation
-  rule: 'For the workspace pin HTML form, rate-limit rejection skips the write and redirects with an error
-    marker; JSON/API callers receive 429 or 503 directly. Catalog link visits are best-effort analytics
-    writes: rejection skips click recording but preserves the target redirect.'
+  rule: A batch-tier mutation consumes the batch limiter and never the standard-write limiter.
+  acceptance:
+    given: Independent standard and batch bindings are available.
+    when: The limiter checks a batch-tier action.
+    then:
+    - Exactly one batch check occurs and the standard binding remains unused.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-batch-binding
+- id: openapi.rate-limit-host-native-bypass
+  category: behavior
+  rule: Host-native development without a Cloudflare runtime bypasses the mutation budget.
+  acceptance:
+    given: No Cloudflare runtime is installed in the current execution context.
+    when: The production limiter checks a mutation.
+    then:
+    - The mutation is allowed.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-host-native-bypass
+- id: openapi.rate-limit-rejection
+  category: validation
+  rule: After successful authentication, an exhausted REST mutation budget returns status 429, the standard error envelope and Retry-After of 60 seconds.
+  acceptance:
+    given: A verified active write principal and a rejecting limiter binding.
+    when: The REST authorization boundary checks the mutation budget.
+    then:
+    - It returns 429 with the rate-limit error envelope and Retry-After 60 instead of an authorized principal.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.rate-limit-rejection
+- id: openapi.rate-limit-unavailable
+  category: validation
+  rule: Once a Cloudflare runtime exists, a missing or throwing limiter fails closed with status 503, the standard error envelope and Retry-After of 60 seconds.
+  acceptance:
+    given: An authenticated write request and a runtime with a missing or throwing binding.
+    when: The REST authorization boundary checks the mutation budget in each failure mode.
+    then:
+    - It returns 503 with the unavailable error envelope and Retry-After 60 instead of an authorized principal.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.rate-limit-unavailable
+- id: openapi.read-rate-limit-exclusion
+  category: behavior
+  rule: An authorized REST read does not consume the authenticated mutation budget.
+  acceptance:
+    given: A verified active read-only principal and an exhausted mutation binding.
+    when: The REST authorization boundary processes a read.
+    then:
+    - It returns the authenticated user without invoking the mutation limiter.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.read-rate-limit-exclusion
+- id: openapi.pin-form-rate-limit-fallback
+  category: behavior
+  rule: When pinning is denied by exhausted or unavailable mutation budgets, an HTML form receives a redirect with the error marker and no pin write occurs.
+  acceptance:
+    given: The authorization boundary returns 429 or 503 for a pin form submission.
+    when: The actual pin route handles the response for an HTML client.
+    then:
+    - It redirects with workspaceLinkPinError=1 without calling the write service.
+    test:
+      file: tests/unit/features/catalog-links/workspace-link-pin-route.test.ts
+      name: openapi.pin-form-rate-limit-fallback
+- id: openapi.pin-json-rate-limit-response
+  category: consistency
+  rule: JSON pin clients receive the original rate-limit 429 or 503 response including Retry-After, and no pin write occurs.
+  acceptance:
+    given: The authorization boundary returns 429 or 503 for a pin request accepting JSON.
+    when: The actual pin route handles the response.
+    then:
+    - It preserves the exact response and Retry-After header without calling the write service.
+    test:
+      file: tests/unit/features/catalog-links/workspace-link-pin-route.test.ts
+      name: openapi.pin-json-rate-limit-response
+- id: openapi.link-visit-rate-limit-fallback
+  category: behavior
+  rule: Catalog link visits still redirect to the public destination when the click-recording mutation budget is exhausted or unavailable; the rejected click is not recorded.
+  acceptance:
+    given: A session principal visits a valid catalog link while the limiter rejects, throws or is missing from the runtime.
+    when: The actual link route checks the click budget.
+    then:
+    - Every failure mode preserves the destination redirect and skips click recording.
+    test:
+      file: tests/unit/features/catalog-links/catalog-link-visit-route.test.ts
+      name: openapi.link-visit-rate-limit-fallback
 - id: openapi.rate-limit-accuracy-boundary
   category: consistency
   rule: 'Mutation throttles are abuse controls, not exact accounting: Cloudflare counters are per-location,
@@ -297,3 +399,4 @@ rationale:
   product layer.
 - Public documentation helps callers understand the existing product capability boundaries, not to introduce
   a separate developer-specific business model.
+- REST private response defaults, CDN no-store and opt-in viewer-independent caching are owned by rendering-and-cache.personal-overlays-8, rendering-and-cache.personal-overlays-9 and rendering-and-cache.personal-overlays-10.

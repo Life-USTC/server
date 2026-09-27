@@ -81,10 +81,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       {},
     );
 
-    const adminHomeworksLimit = body.paths?.[
+    const adminHomeworksPageSize = body.paths?.[
       "/api/admin/homeworks"
-    ]?.get?.parameters?.find((parameter) => parameter.name === "limit");
-    expect(adminHomeworksLimit?.schema).toMatchObject({
+    ]?.get?.parameters?.find((parameter) => parameter.name === "pageSize");
+    expect(adminHomeworksPageSize?.schema).toMatchObject({
       type: "integer",
       format: "int64",
     });
@@ -234,11 +234,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(
       body.paths?.["/api/calendar-feeds/{credential}.ics"]?.get?.security,
-    ).toEqual([
-      { bearerAuth: [] },
-      { sessionCookie: [] },
-      { calendarFeedToken: [] },
-    ]);
+    ).toEqual([{ sessionCookie: [] }, { calendarFeedToken: [] }]);
     expect(body.paths?.["/api/mcp"]?.options?.security).toBeUndefined();
     expect(body.paths?.["/api/account/profile"]?.get?.security).toEqual([
       { bearerAuth: [] },

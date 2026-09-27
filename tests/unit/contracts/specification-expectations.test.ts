@@ -59,6 +59,35 @@ function numeric() {
 }
 
 describe("typed specification expectations", () => {
+  it("validates positive integral rate budgets and rejects a weaker batch budget", async () => {
+    const validators = await loadSpecificationValidators();
+    const budget = {
+      kind: "rate_limit_budget",
+      surface: "deployment",
+      period_seconds: 60,
+      standard_limit: 60,
+      batch_limit: 10,
+    };
+    expect(
+      validateSpecificationShapes([specification(budget)], validators),
+    ).toEqual([]);
+    for (const field of ["period_seconds", "standard_limit", "batch_limit"]) {
+      for (const value of [0, -1, 0.5, "60"]) {
+        expect(
+          validateSpecificationShapes(
+            [specification({ ...budget, [field]: value })],
+            validators,
+          ),
+        ).not.toEqual([]);
+      }
+    }
+    const result = await validateSpecificationReferences([
+      specification({ ...budget, batch_limit: 61 }),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "batch rate limit must not exceed the standard rate limit",
+    );
+  });
   it("rejects enum defaults outside the allowed input values", async () => {
     const value = {
       kind: "enum_input",

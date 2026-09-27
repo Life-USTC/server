@@ -57,52 +57,52 @@ describe("POST /api/workspace/link-pins", () => {
     });
   });
 
-  it("JSON 客户端收到保留 Retry-After 的原始限流响应", async () => {
-    requireAuthMock.mockResolvedValue(
-      Response.json(
-        { error: "Rate limit exceeded" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      ),
-    );
+  it("openapi.pin-json-rate-limit-response", async () => {
     const { postWorkspaceLinkPinRoute } = await import(
       "@/lib/api/routes/workspace-link-pin-route"
     );
-
-    const response = await postWorkspaceLinkPinRoute(
-      new Request("http://localhost/api/workspace/link-pins", {
-        method: "POST",
-        body: new FormData(),
-        headers: { accept: "application/json" },
-      }),
-    );
-
-    expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("60");
-    expect(withUserDbContextMock).not.toHaveBeenCalled();
+    for (const status of [429, 503]) {
+      const rejected = Response.json(
+        { error: "Rate limit rejection" },
+        { status, headers: { "Retry-After": "60" } },
+      );
+      requireAuthMock.mockResolvedValue(rejected);
+      const response = await postWorkspaceLinkPinRoute(
+        new Request("http://localhost/api/workspace/link-pins", {
+          method: "POST",
+          body: new FormData(),
+          headers: { accept: "application/json" },
+        }),
+      );
+      expect(response).toBe(rejected);
+      expect(response.status).toBe(status);
+      expect(response.headers.get("Retry-After")).toBe("60");
+      expect(withUserDbContextMock).not.toHaveBeenCalled();
+    }
   });
 
-  it("HTML 表单被限流时重定向并标记错误", async () => {
-    requireAuthMock.mockResolvedValue(
-      Response.json(
-        { error: "Rate limit exceeded" },
-        { status: 429, headers: { "Retry-After": "60" } },
-      ),
-    );
+  it("openapi.pin-form-rate-limit-fallback", async () => {
     const { postWorkspaceLinkPinRoute } = await import(
       "@/lib/api/routes/workspace-link-pin-route"
     );
-
-    const response = await postWorkspaceLinkPinRoute(
-      new Request("http://localhost/api/workspace/link-pins", {
-        method: "POST",
-        body: new FormData(),
-      }),
-    );
-
-    expect(response.status).toBe(303);
-    expect(response.headers.get("Location")).toBe(
-      "http://localhost/?workspaceLinkPinError=1",
-    );
-    expect(withUserDbContextMock).not.toHaveBeenCalled();
+    for (const status of [429, 503]) {
+      requireAuthMock.mockResolvedValue(
+        Response.json(
+          { error: "Rate limit rejection" },
+          { status, headers: { "Retry-After": "60" } },
+        ),
+      );
+      const response = await postWorkspaceLinkPinRoute(
+        new Request("http://localhost/api/workspace/link-pins", {
+          method: "POST",
+          body: new FormData(),
+        }),
+      );
+      expect(response.status).toBe(303);
+      expect(response.headers.get("Location")).toBe(
+        "http://localhost/?workspaceLinkPinError=1",
+      );
+      expect(withUserDbContextMock).not.toHaveBeenCalled();
+    }
   });
 });

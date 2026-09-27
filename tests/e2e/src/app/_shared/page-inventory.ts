@@ -1079,14 +1079,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         (tab): PrimaryAction => ({
           id: `workspace-tab-${tab}`,
           role: "link",
-          e2eSpec: E2E.workspaceTab,
-          evidence: "登录工作台各分支提供唯一页面身份",
+          e2eSpec: "src/app/shared-policy/test.ts",
+          evidence: "ui.workspace-page-identity-1",
         }),
       ),
       {
         id: "overview-now-next",
         e2eSpec: E2E.workspace,
-        evidence: "移动端总览优先显示此刻与下一步",
+        evidence: "ui.workspace-mobile-priority-1",
       },
       {
         id: "calendar-export",
