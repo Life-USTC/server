@@ -84,6 +84,40 @@ requirements:
     test:
       file: tests/integration/subscription-rate-limit.test.ts
       name: subscription.per-user-rate-limit
+- id: subscription.duplicate-input-semantics
+  category: validation
+  rule: REST subscription query, append/remove, batch and code import deduplicate repeated section IDs
+    and trimmed case-insensitive codes. MCP code import has the same deduplication behavior. GraphQL
+    import rejects repeated case-insensitive codes with BAD_USER_INPUT before changing membership.
+    Repeating a successful add or remove is idempotent; existing membership metadata is preserved.
+  acceptance:
+    given: An isolated owner can subscribe to a newly created Section through real authenticated transports.
+    when: REST and OAuth HTTP MCP receive duplicate IDs or codes, GraphQL receives duplicate codes,
+      and successful mutations are repeated.
+    then:
+    - REST and MCP resolve one target, count it once and preserve complete existing membership rows on retry.
+    - GraphQL rejects duplicates without a membership change and accepts unique add and remove requests.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
+      name: subscription.duplicate-input-semantics
+- id: subscription.membership-atomicity
+  category: consistency
+  rule: Each subscription membership mutation commits all of its matched additions or removals in one
+    transaction. A database failure rolls back every membership change in that mutation. Responses read
+    the subscription after commit; their membership snapshot can include other concurrent committed
+    changes while counts describe this mutation. Retrying after a lost response does not duplicate membership.
+  acceptance:
+    given: An isolated owner targets two Sections and an owner-scoped PostgreSQL trigger fails the second
+      insert or delete.
+    when: Actual REST append, batch add/remove, import and remove routes run, then the failure is removed
+      and a successful import response is dropped before reaching the browser.
+    then:
+    - Failed additions leave no memberships and failed removals preserve both complete membership rows.
+    - A successful response contains both committed Sections; losing that response leaves both rows committed.
+    - Retrying reports zero additions and preserves existing membership rows and timestamps.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
+      name: subscription.membership-atomicity
 - id: subscription.personal-kind
   category: behavior
   rule: New section subscriptions default to regular.
