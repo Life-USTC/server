@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { DESCRIPTION_TARGET_TYPES } from "@/features/descriptions/lib/description-target-types";
 import {
   commentAttachmentSummarySchema,
   commentAuthorSummarySchema,
   commentReactionSummarySchema,
 } from "@/lib/api/schemas/comment-node-response-schema";
-import { commentsListResponseSchema } from "@/lib/api/schemas/comments-response-schemas";
+import {
+  commentsListResponseSchema,
+  commentThreadResponseSchema,
+} from "@/lib/api/schemas/comments-response-schemas";
 import {
   descriptionDetailSchema,
   descriptionHistoryEntrySchema,
@@ -30,7 +34,6 @@ import {
   sectionHomeworkListDefaultSchema,
   sectionHomeworkListFullSchema,
   sectionPublicContextSchema,
-  topLevelOutputSchema,
   viewerContextSchema,
 } from "./shared";
 
@@ -99,8 +102,8 @@ export function commentThreadOutputSchema(commentSchema: z.ZodType) {
     thread: collectionOutputSchema(commentSchema),
     focusId: z.string(),
     hiddenCount: z.number().int().nonnegative(),
-    viewer: z.unknown(),
-    target: z.unknown(),
+    viewer: viewerContextSchema,
+    target: commentThreadResponseSchema.shape.target,
   });
 }
 
@@ -110,13 +113,16 @@ export function commentRepliesOutputSchema(commentSchema: z.ZodType) {
     rootId: z.string(),
     thread: collectionOutputSchema(commentSchema),
     nextCursor: z.string().nullable(),
-    viewer: z.unknown(),
+    viewer: viewerContextSchema,
   });
 }
 
 export function descriptionOutputSchema(descriptionSchema: z.ZodType) {
   return objectOutputSchema({
-    target: z.unknown(),
+    target: z.strictObject({
+      type: z.enum(DESCRIPTION_TARGET_TYPES),
+      targetId: z.union([z.number().int(), z.string()]),
+    }),
     description: descriptionSchema,
     history: collectionOutputSchema(descriptionHistoryEntrySchema),
     viewer: viewerContextSchema,
@@ -127,7 +133,10 @@ export function descriptionUpsertOutputSchema(descriptionSchema: z.ZodType) {
   return objectOutputSchema({
     id: z.string(),
     updated: z.boolean(),
-    target: z.unknown(),
+    target: z.strictObject({
+      type: z.enum(DESCRIPTION_TARGET_TYPES),
+      targetId: z.union([z.number().int(), z.string()]),
+    }),
     description: descriptionSchema,
     history: collectionOutputSchema(descriptionHistoryEntrySchema),
     viewer: viewerContextSchema,
@@ -208,11 +217,11 @@ export const communityToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     reason: z.string().nullable(),
     hint: z.string(),
   }),
-  community_section_homework_delete: topLevelOutputSchema([
-    "deletedId",
-    "alreadyDeleted",
-    "reason",
-  ]),
+  community_section_homework_delete: objectOutputSchema({
+    deletedId: z.string(),
+    alreadyDeleted: z.boolean(),
+    reason: z.string().nullable(),
+  }),
   community_comment_list: commentListMcpSchema,
   community_comment_get: commentThreadMcpSchema,
   community_comment_replies: commentRepliesOutputSchema(commentNodeMcpSchema),
@@ -220,7 +229,9 @@ export const communityToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     success: z.boolean(),
     id: z.string(),
   }),
-  community_comment_update: topLevelOutputSchema(["comment"]),
+  community_comment_update: objectOutputSchema({
+    comment: commentNodeMcpSchema,
+  }),
   community_comment_delete: objectOutputSchemaFromApi(successResponseSchema),
   community_comment_reaction_add: objectOutputSchema({
     success: z.boolean(),

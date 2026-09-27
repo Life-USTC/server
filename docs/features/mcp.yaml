@@ -398,11 +398,27 @@ requirements:
       name: mcp.openai-compatible-descriptors
 - id: mcp.typed-output-fields
   category: consistency
-  rule: Every known MCP output field has an explicit value schema; known fields must not silently become
-    unconstrained unknown values.
-  rationale: The descriptor contract separately verifies closed top-level objects and boolean success.
-    Existing unconstrained domain fields remain an implementation and acceptance-test gap; shared error
-    classification is canonical in mcp.error-classification-shape.
+  rule: Every known non-community MCP output field has an explicit value schema; known fields must not
+    silently become unconstrained unknown values.
+  rationale: Community field schemas are independently canonical in mcp.typed-community-output-fields.
+    Generic serializer result and selection-dependent GraphQL data are open JSON containers, not fixed
+    domain projections. Remaining unconstrained domain fields are still an implementation gap.
+- id: mcp.typed-community-output-fields
+  category: consistency
+  rule: Community MCP tools advertise explicit schemas for every known field, including viewer context,
+    target references, threaded comments, description targets and homework deletion results. Nested academic-source
+    metadata retains its documented string/number/JSON array types.
+  acceptance:
+    given: Actual community tool descriptors returned over SDK tools/list and their production Zod validators.
+    when: The complete known-field schema graph is inspected and formerly unconstrained fields receive
+      invalid values.
+    then:
+    - Every known field has a nonempty explicit schema, including nested collection elements and union
+      alternatives.
+    - Incorrect viewer/target/comment/deletion field types are rejected.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-community-output-fields
 - id: mcp.tool-registry-completeness
   category: consistency
   rule: Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output

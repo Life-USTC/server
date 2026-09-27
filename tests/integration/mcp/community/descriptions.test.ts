@@ -148,7 +148,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
         targetType: "teacher",
       });
 
-      const idempotent = results[2]?.result ?? {};
+      const idempotent = results[1]?.result ?? {};
 
       expect(idempotent.success).toBe(true);
       expect(idempotent.id).toBe(descriptionId);

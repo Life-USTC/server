@@ -173,3 +173,53 @@ it("mcp.error-classification-shape", () => {
   }
   expect(checked).toBeGreaterThan(0);
 });
+
+it("mcp.typed-community-output-fields", () => {
+  const community = tools.filter((tool) => tool.name.startsWith("community_"));
+  expect(community.length).toBeGreaterThan(0);
+  function inspect(schema: unknown, path: string): void {
+    if (typeof schema === "boolean") {
+      expect(schema, path).toBe(false);
+      return;
+    }
+    if (!schema || typeof schema !== "object")
+      throw new Error(`Missing schema at ${path}`);
+    const node = schema as Record<string, unknown>;
+    expect(Object.keys(node).length, path).toBeGreaterThan(0);
+    for (const [key, field] of Object.entries(
+      (node.properties ?? {}) as Record<string, unknown>,
+    )) {
+      // result is the generic non-object serializer envelope; it is not a domain field.
+      if (path.endsWith("output") && key === "result") continue;
+      inspect(field, `${path}.${key}`);
+    }
+    if (node.items) inspect(node.items, `${path}[]`);
+    for (const union of ["anyOf", "oneOf", "allOf"]) {
+      if (Array.isArray(node[union]))
+        for (const [index, variant] of node[union].entries())
+          inspect(variant, `${path}.${union}[${index}]`);
+    }
+    for (const [key, definition] of Object.entries(
+      (node.$defs ?? {}) as Record<string, unknown>,
+    ))
+      inspect(definition, `${path}.$defs.${key}`);
+  }
+  for (const tool of community)
+    inspect(tool.outputSchema, `${tool.name}.output`);
+  for (const [name, key] of [
+    ["community_comment_get", "viewer"],
+    ["community_comment_get", "target"],
+    ["community_comment_replies", "viewer"],
+    ["community_comment_update", "comment"],
+    ["community_description_get", "target"],
+    ["community_description_set", "target"],
+    ["community_section_homework_delete", "alreadyDeleted"],
+  ] as const) {
+    for (const value of [0, "invalid", [], null])
+      expect(
+        getMcpToolOutputSchema(name).safeParse({ success: true, [key]: value })
+          .success,
+        `${name}.${key}`,
+      ).toBe(false);
+  }
+});
