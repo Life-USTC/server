@@ -25,7 +25,23 @@ requirements:
     separate feature-owned workflows.
 - id: upload.permission-and-quota
   category: authorization
-  rule: Permission and quota checks are required before upload.
+  rule: Upload session creation requires an authenticated actor and rejects reservations that exceed that
+    owner's total quota. Completed upload sizes and unexpired reservations count toward usage; expired
+    reservations and another user's usage do not. A reservation exactly filling the remaining quota is allowed.
+  acceptance:
+    given: An isolated owner has completed-upload ledger rows within the per-file limit, one live reservation,
+      and one expired reservation, leaving two bytes of available quota; another user has no usage.
+    when: Anonymous and authenticated HTTP requests reserve quota below, at, and beyond the limit, and the
+      exact-boundary reservation PUTs and completes a real two-byte object.
+    then:
+    - Anonymous reservation receives 401; requests exceeding the remaining quota receive Quota exceeded and
+      create no live reservation.
+    - Expired reservations do not count, and the exact-boundary reservation completes with its actual two
+      bytes, total usage equal to quota, and downloadable original content.
+    - The second user's reservation succeeds with zero prior usage despite the owner's exhausted quota.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-security.test.ts
+      name: upload.permission-and-quota
 - id: upload.pure-upload-reads
   category: consistency
   rule: GET upload-list requests never delete pending reservations. Expired reservations are excluded
