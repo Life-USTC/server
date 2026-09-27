@@ -34,6 +34,14 @@ requirements:
   category: consistency
   rule: The workspace bus page determines weekday, Saturday, or Sunday by Shanghai time by default and
     allows manual switching.
+  acceptance:
+    given: A timetable is read immediately before and after Shanghai midnight at weekday, Saturday and Sunday boundaries.
+    when: The actual planner initializes from each read time and its day-type action selects each manual option.
+    then:
+    - The default day type follows Shanghai calendar boundaries, and manual selections update the applicable trip list.
+    test:
+      file: tests/unit/features/bus/bus-tab-state.test.ts
+      name: bus.weekday-by-shanghai-time
 - id: bus.shanghai-time-interpretation
   category: consistency
   rule: When calculating 'how long until departure', whether a trip has departed, and route ordering,
@@ -75,6 +83,15 @@ requirements:
     stop. Unknown times never imply a boardable departure.
   rationale: An estimate is identified by the ~ marker and an explanation, and is permitted only under
     bus.stop-time-estimate-bounds.
+  acceptance:
+    given: Three routes serve a selected intermediate stop with a known time, an earlier bounded estimate, and an unknown time after their first-stop departures.
+    when: The actual planner reads before, between and after the boardable times, with departed trips shown and hidden.
+    then:
+    - The estimated and known departures sort by the selected stop's boarding time and carry their correct estimate flags and wait minutes.
+    - Unknown times never produce next departures; passed boarding times disappear from the next-departure list.
+    test:
+      file: tests/unit/features/bus/bus-client.test.ts
+      name: bus.sort-by-next-boardable
 - id: bus.merged-table-grouped-by-route
   category: presentation
   rule: The signed-in workspace and the public /catalog/bus default timetable use a single merged large

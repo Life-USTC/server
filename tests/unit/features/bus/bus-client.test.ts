@@ -303,3 +303,70 @@ test("bus.stop-time-estimate-bounds", () => {
     }
   }
 });
+
+test("bus.sort-by-next-boardable", () => {
+  const data = createBusData();
+  const route = data.routes[1];
+  data.routes = [8, 9, 10].map((id) => ({ ...route, id }));
+  data.trips = [
+    { routeId: 8, times: ["08:00", "08:12", "08:24"] },
+    { routeId: 9, times: ["08:00", null, "08:20"] },
+    { routeId: 10, times: ["08:00", null, null] },
+  ].map(({ routeId, times }) => {
+    const stopTimes = times.map((time, index) => ({
+      stopOrder: index + 1,
+      campusId: [1, 3, 2][index],
+      campusName: ["东区", "北区", "西区"][index],
+      time,
+      minutesSinceMidnight: parseBusTimeMinutes(time),
+      isPassThrough: time === null,
+    }));
+    return {
+      id: routeId * 100,
+      routeId,
+      dayType: "weekday" as const,
+      position: 1,
+      stopTimes,
+      departureTime: times[0],
+      departureMinutes: parseBusTimeMinutes(times[0]),
+      arrivalTime: times[2],
+      arrivalMinutes: parseBusTimeMinutes(times[2]),
+    };
+  });
+  for (const showDepartedTrips of [false, true]) {
+    const read = (minute: number) =>
+      getApplicableBusRoutes({
+        data,
+        dayType: "weekday",
+        startCampusId: 3,
+        endCampusId: 2,
+        showDepartedTrips,
+        now: new Date(`2026-04-22T00:${String(minute).padStart(2, "0")}:00Z`),
+      });
+    const before = read(5);
+    expect(before.map(({ route }) => route.id)).toEqual([9, 8, 10]);
+    expect(before[0].nextTrip?.startTime).toMatchObject({
+      displayTime: "08:10",
+      isEstimated: true,
+    });
+    expect(before[1].nextTrip?.startTime).toMatchObject({
+      displayTime: "08:12",
+      isEstimated: false,
+    });
+    expect(before[0].nextTrip?.minutesUntilStart).toBe(5);
+    expect(before[1].nextTrip?.minutesUntilStart).toBe(7);
+    expect(before[2].nextTrip).toBeNull();
+    expect(before[2].upcomingTrips).toEqual([]);
+    expect(nextBusDepartures(before).map(({ trip }) => trip.trip.id)).toEqual([
+      900, 800,
+    ]);
+    const middle = read(11);
+    expect(middle[0].route.id).toBe(8);
+    expect(nextBusDepartures(middle).map(({ trip }) => trip.trip.id)).toEqual([
+      800,
+    ]);
+    const after = read(13);
+    expect(after.every(({ nextTrip }) => nextTrip === null)).toBe(true);
+    expect(nextBusDepartures(after)).toEqual([]);
+  }
+});

@@ -114,3 +114,29 @@ describe("班车标签页状态", () => {
     expect(state.applicableRoutes()[0]?.nextTrip?.minutesUntilStart).toBe(15);
   });
 });
+
+test("bus.weekday-by-shanghai-time", () => {
+  for (const [fetchedAt, expected] of [
+    ["2026-04-24T15:59:00Z", "weekday"],
+    ["2026-04-24T16:00:00Z", "saturday"],
+    ["2026-04-25T16:00:00Z", "sunday"],
+    ["2026-04-26T16:00:00Z", "weekday"],
+  ] as const) {
+    const bus = { ...createBusData(), fetchedAt };
+    const state = createBusTabState({
+      getBus: () => bus,
+      getBusCopy: () => ({}) as WorkspaceBusCopy,
+      getSavePreferences: () => false,
+      invalidate: () => {},
+    });
+    state.initializeWhenNeeded();
+    expect(state.values.busDayType).toBe(expected);
+    for (const manual of ["weekday", "saturday", "sunday"] as const) {
+      state.actions.setBusDayType(manual);
+      expect(state.values.busDayType).toBe(manual);
+      expect(state.applicableRoutes()[0].allTrips).toHaveLength(
+        manual === "saturday" ? 1 : 0,
+      );
+    }
+  }
+});
