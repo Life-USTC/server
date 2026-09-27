@@ -536,6 +536,22 @@ requirements:
     request.
   applies_to:
   - authorization-management
+  acceptance:
+    given: Real signed resource JWTs, hashed opaque and refresh tokens, a confidential OAuth client, and
+      a persisted consent generation; MCP verifies against a live local JWKS endpoint.
+    when: Access REST, GraphQL, MCP, userinfo, introspection and refresh lookup before and after consent
+      revocation, reauthorization, scope reduction and missing generation; interrupt authentication database
+      access and mark an explicit trusted client.
+    then:
+    - All resource endpoints accept the current generation and reject revoked, superseded, over-scoped
+      or unbound tokens on the next request.
+    - Introspection and refresh lookup reject inactive hashed token rows even when those rows remain persisted.
+    - A real database authentication failure rejects the grant lookup and protected REST request; access
+      resumes only with the valid database connection.
+    - Only an explicit skipConsent marker bypasses consent and an absent user still fails.
+    test:
+      file: tests/integration/oauth-active-grant-contract.test.ts
+      name: oauth.authorization-management.active-user-grant-enforcement
 - id: oauth.authorization-management.refresh-revocation-race
   category: consistency
   rule: Refresh exchange verifies the hashed token row and exact grant generation before delegation, preserves
@@ -544,6 +560,20 @@ requirements:
     rows are purged and no token can continue under the newer grant.
   applies_to:
   - authorization-management
+  acceptance:
+    given: Actual provider refresh exchanges for both resource-bound JWT and opaque access-token formats
+      with hashed refresh rows and exact consent generations.
+    when: Hold a successful actual provider response, revoke its grant, create a replacement generation
+      and its tokens, then release the response.
+    then:
+    - Healthy refresh preserves the original generation and scopes on JWT or opaque access and rotated
+      refresh tokens.
+    - A refresh overtaken by revocation returns invalid_grant without either token.
+    - Old-generation rows are absent by both grantId and referenceId, while replacement consent and token
+      rows remain unchanged.
+    test:
+      file: tests/integration/oauth-refresh-race-contract.test.ts
+      name: oauth.authorization-management.refresh-revocation-race
 - id: oauth.authorization-management.singleton-form-parameters
   category: validation
   rule: OAuth token and introspection form parameters are single-valued and repeated values fail with
