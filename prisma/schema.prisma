@@ -1123,8 +1123,7 @@ model Publication {
   updatedAt         DateTime        @updatedAt
 
   /// Database-generated (STORED) fold key: NFKC-normalized, whitespace-collapsed,
-  /// lowercased title. Populated by Postgres, never written by the app. Kept in
-  /// sync with normalizePublicationTitle() in publication-title-normalization.ts.
+  /// lowercased title. Postgres is the sole producer of the persisted fold key.
   normalizedTitle String @default(dbgenerated())
   /// Database-generated (STORED) fold key: COALESCE(publishedAt, firstSeenAt)
   /// bucketed to its Asia/Shanghai calendar date. Populated by Postgres.

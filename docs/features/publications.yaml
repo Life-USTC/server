@@ -37,11 +37,22 @@ requirements:
     content. Changing the default or equivalence criteria requires a product decision.
 - id: publications.reprint-fold-title-normalization
   category: consistency
-  rule: Reprint grouping uses NFKC-normalized titles with the configured invisible characters removed,
-    whitespace collapsed, and text lowercased. Application and database grouping produce identical keys
-    for the same title.
-  rationale: SQL grouping avoids loading the full publication list into application memory; implementation
-    paths are not part of the wire contract.
+  rule: 'Reprint grouping uses the persisted Postgres-generated title key: NFKC normalization, configured
+    invisible-character removal, whitespace collapse, and lowercase conversion. All list grouping and
+    detail sibling lookups use this same stored key.'
+  rationale: The database is the sole producer of fold keys. No duplicate application normalization implementation
+    is maintained.
+  acceptance:
+    given: Eleven ingested titles covering full-width forms, whitespace, invisible characters, and distinct
+      CJK punctuation or suffixes.
+    when: Read the actual Postgres-generated normalizedTitle column.
+    then:
+    - Every stored fold key equals its independent expected NFKC, invisible-stripped, whitespace-collapsed
+      lowercase form.
+    - Distinct CJK punctuation styles and identifying suffixes remain distinct.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.reprint-fold-title-normalization
 - id: publications.reprint-sibling-exposure
   category: presentation
   rule: A folded row representing two or more members carries foldGroup.siblingCount; an unfolded request
@@ -96,6 +107,16 @@ requirements:
   rule: All crawler batches, runs, and object claims use the stable service:publication-crawler principal
     key. The service principal has no User row, OAuth grant, or administrator flag; this key scopes ownership
     and idempotency.
+  acceptance:
+    given: A real runtime-role ingestion service and an isolated batch with an object manifest.
+    when: Ingest the batch and inspect committed batch, run, object-claim, and user records.
+    then:
+    - The exact service:publication-crawler principal owns the batch and run; both principalId fields
+      are null.
+    - The object claim belongs to that batch and no User row represents the service key.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.service-principal
 - id: publications.source-registration
   category: behavior
   rule: Every batch carries source descriptors, either the full id/name/organizationLevel/allowedHosts/seedUrls
@@ -103,6 +124,16 @@ requirements:
     to the registry enum and reusing persisted host restrictions and the persisted level for minimal descriptors,
     then accepts an item only when its sourceId is in that batch, enabled and not discovery-only. Canonical
     URLs must match an allowed source host and no blocked host.
+  acceptance:
+    given: A full source descriptor with level and allow/block host lists, followed by a minimal descriptor.
+    when: Ingest full/minimal batches and then blocked-host, outside-host, disabled-source, and discovery-only
+      cases.
+    then:
+    - The minimal descriptor updates the name but retains persisted level and host restrictions.
+    - Permitted items commit; blocked/outside hosts and disabled/discovery-only sources reject.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.source-registration
 - id: publications.identity
   category: consistency
   rule: A publication is identified by (sourceId, canonicalUrl). A revision is identified by (publicationId,
@@ -115,17 +146,44 @@ requirements:
   rule: observedAt is the source observation time. An older observation never overwrites the current revision;
     equal timestamps use the revision hash as a deterministic tie-breaker. A date-only or timezone-less
     crawler timestamp is interpreted as Asia/Shanghai local time before persistence.
+  acceptance:
+    given: A real publication with a date-only first observation.
+    when: Ingest newer, older, and equal-time revisions with larger and smaller hashes.
+    then:
+    - Date-only and timezone-less inputs persist as independently expected Shanghai-local instants.
+    - Older observations cannot replace the current revision; equal-time larger hash wins.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.revision-ordering
 - id: publications.tombstones
   category: consistency
   rule: 'Deletion is explicit: a tombstone item creates a tombstone revision for an existing publication
     and marks it deleted. Tombstoning an unknown publication is an idempotent no-op reported as unchanged
     with null publication and revision ids. A tombstone applied to an existing publication is reported
     as updated.'
+  acceptance:
+    given: A missing publication identity and a later created publication at that identity.
+    when: Ingest a tombstone before creation and another after creation.
+    then:
+    - Unknown deletion is unchanged with null publication/revision IDs and creates no publication.
+    - Existing deletion is updated, sets deletedAt, and installs a tombstone revision.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.tombstones
 - id: publications.batch-idempotency
   category: consistency
   rule: Batch identity is scoped by principalKey and batchId. Replaying the same canonical payload returns
     the stored result without reapplying writes; reusing the pair with another digest returns 409. clientRunId
     is likewise scoped by principalKey.
+  acceptance:
+    given: An isolated source and canonical publication batch.
+    when: Ingest the payload, replay it, then reuse the same batch identity with changed content.
+    then:
+    - Replay returns exactly the stored result.
+    - Changed content raises the conflict mapped to409; only one batch, run, and revision exist.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.batch-idempotency
 - id: publications.batch-size
   category: validation
   rule: A publication ingestion request body is at most 8 MiB. An oversized body returns 413 while streaming
@@ -137,6 +195,15 @@ requirements:
   rule: A source or item validation error is returned as a per-item rejected result and does not roll
     back other valid items in the batch. Batch-level identity, manifest, and database failures remain
     errors.
+  acceptance:
+    given: A batch containing one permitted source URL and one URL outside its host restriction.
+    when: Ingest through the production service and query committed rows.
+    then:
+    - The valid item is created while the invalid item is rejected.
+    - Only the accepted publication and revision persist.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.partial-item-rejection
 - id: publications.objects
   category: consistency
   rule: The server generates content-addressed object keys from registered manifests. Metadata may arrive
