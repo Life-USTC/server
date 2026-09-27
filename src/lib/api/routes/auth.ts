@@ -1,7 +1,6 @@
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   enforceAuthorizationCodeGrantBinding,
-  maybeNormalizeAuthorizeLoopbackRedirectRequest,
   maybeNormalizeAuthorizeResourceRequest,
   resolveAuthorizationCodeGrantExpectation,
 } from "./auth-authorize-grant-binding";
@@ -25,10 +24,7 @@ async function authHandler(request: Request) {
 }
 
 export const authGetRoute = async (request: Request) => {
-  const normalizedRequest =
-    await maybeNormalizeAuthorizeLoopbackRedirectRequest(
-      maybeNormalizeAuthorizeResourceRequest(request),
-    );
+  const normalizedRequest = maybeNormalizeAuthorizeResourceRequest(request);
   const expectation =
     await resolveAuthorizationCodeGrantExpectation(normalizedRequest);
   const response = await withBetterAuthOAuthDebug(

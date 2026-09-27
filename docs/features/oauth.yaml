@@ -161,6 +161,17 @@ requirements:
     and 127.0.0.1 are distinct registered hostnames; the authorization server does not substitute one
     for the other. Any permitted ephemeral-port behavior is limited to the registered native loopback
     client pattern.
+  acceptance:
+    given: Actual provider-registered native IPv4, IPv6, and localhost clients and a signed browser session.
+    when: Authorize, submit provider-signed consent, and exchange authorization codes with unchanged and
+      changed callback components.
+    then:
+    - IPv4 and IPv6 callbacks permit native ephemeral ports end to end and preserve the requested host/port/path/query.
+    - Host substitution, scheme/path/query changes, and localhost port changes reject before consent;
+      token exchanges reject any URI different from the code authorization.
+    test:
+      file: tests/integration/oauth-loopback-contracts.test.ts
+      name: oauth.loopback-redirect-tolerance
 - id: oauth.device-grant-custom
   category: behavior
   rule: Device authorization is available only to enabled public clients registered for the device-code

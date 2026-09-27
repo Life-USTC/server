@@ -239,7 +239,7 @@ test.describe("OAuth 提供者", () => {
     });
   });
 
-  test("loopback 授权接受 127.0.0.1 DCR 客户端的 localhost 别名", async ({
+  test("loopback 授权拒绝替换已注册的 127.0.0.1 主机", async ({
     page,
     request,
   }) => {
@@ -287,6 +287,8 @@ test.describe("OAuth 提供者", () => {
     );
 
     expect(authorizeResponse.status()).toBe(302);
-    expect(authorizeResponse.headers().location).toContain("/oauth/authorize?");
+    expect(authorizeResponse.headers().location).toContain(
+      "error=invalid_redirect",
+    );
   });
 });
