@@ -68,6 +68,22 @@ async function textStyle(locator: Locator) {
 }
 async function assertVisibleField(field: VisiblePriorityField) {
   await field.locator.scrollIntoViewIfNeeded();
+  await expect(field.locator).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        field.locator.evaluate((element) =>
+          element.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+          }),
+        ),
+      {
+        message:
+          "declared field must be visibly painted, including its ancestors",
+      },
+    )
+    .toBe(true);
   await expect(field.locator).toBeInViewport();
   if (field.attribute)
     await expect(field.locator).toHaveAttribute(
@@ -97,9 +113,56 @@ export async function assertNoStandaloneInternalText(
   scope: Locator,
   value: string,
 ) {
-  await expect(
-    scope.getByText(value, { exact: true }).filter({ visible: true }),
-  ).toHaveCount(0);
+  expect(
+    await scope
+      .getByText(value, { exact: true })
+      .evaluateAll(
+        (elements) =>
+          elements.filter((element) =>
+            element.checkVisibility({
+              opacityProperty: true,
+              visibilityProperty: true,
+            }),
+          ).length,
+      ),
+  ).toBe(0);
+}
+
+export async function assertInternalPriorityFieldAbsent(
+  scope: Locator,
+  field: InternalPriorityField,
+) {
+  if (field.exactText) await assertNoStandaloneInternalText(scope, field.value);
+  else expect(await scope.innerText()).not.toContain(field.value);
+  const values = await scope.evaluate((root) => {
+    const elements = [
+      root,
+      ...root.querySelectorAll("input, textarea, select"),
+    ];
+    return elements.flatMap((element) => {
+      if (
+        !element.checkVisibility({
+          opacityProperty: true,
+          visibilityProperty: true,
+        })
+      )
+        return [];
+      if (element instanceof HTMLInputElement)
+        return ["hidden", "password", "checkbox", "radio", "file"].includes(
+          element.type,
+        )
+          ? []
+          : [element.value];
+      if (element instanceof HTMLTextAreaElement) return [element.value];
+      if (element instanceof HTMLSelectElement)
+        return [...element.selectedOptions].map((option) => option.text);
+      return [];
+    });
+  });
+  for (const value of values) {
+    if (field.exactText) expect(value.trim()).not.toBe(field.value);
+    else expect(value).not.toContain(field.value);
+  }
 }
 
 /** Every declared property is consumed; missing and surplus assertions fail. */
@@ -142,10 +205,8 @@ export async function assertPriorityView(check: PriorityViewCheck) {
         expected: field.value,
       });
       await assertSecondaryStyle(field.locator, check.identity);
-    } else if (field.exactText) {
-      await assertNoStandaloneInternalText(check.scope, field.value);
     } else {
-      expect(await check.scope.innerText()).not.toContain(field.value);
+      await assertInternalPriorityFieldAbsent(check.scope, field);
     }
   }
 }

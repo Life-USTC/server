@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { assertNoStandaloneInternalText } from "../../../utils/property-priority";
+import {
+  assertInternalPriorityFieldAbsent,
+  assertNoStandaloneInternalText,
+  assertPriorityView,
+  type PriorityViewCheck,
+} from "../../../utils/property-priority";
 
 test("raw numeric absence distinguishes date substrings and nested visible enum values", async ({
   page,
@@ -15,4 +20,108 @@ test("raw numeric absence distinguishes date substrings and nested visible enum 
     element.append(wrapper);
   });
   await expect(assertNoStandaloneInternalText(scope, "7")).rejects.toThrow();
+});
+
+test("priority fields reject transparent and hidden elements through their ancestors", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const html =
+    '<main><h1 id="title" style="font-size:20px;font-weight:600">Public task</h1><div><span id="due">Tomorrow 12:30</span></div><span id="completed">Pending</span><div><span id="priority" style="font-size:14px;font-weight:400">High</span></div><div><span id="raw-id" style="font-size:14px;font-weight:400">internal-id-42</span></div></main>';
+  function check(): PriorityViewCheck {
+    return {
+      feature: "todo",
+      capability: "todo-list",
+      view: "web-list",
+      scope: page.locator("main"),
+      identity: page.locator("#title"),
+      primary: {
+        "todo.title": {
+          locator: page.locator("#title"),
+          expected: "Public task",
+        },
+        "todo.dueAt": {
+          locator: page.locator("#due"),
+          expected: "Tomorrow 12:30",
+        },
+        "todo.completed": {
+          locator: page.locator("#completed"),
+          expected: "Pending",
+        },
+      },
+      secondary: {
+        "todo.priority": {
+          locator: page.locator("#priority"),
+          expected: "High",
+        },
+      },
+      tertiary: {
+        "todo.id": {
+          value: "internal-id-42",
+          locator: page.locator("#raw-id"),
+        },
+        "todo.userId": { value: "absent-user" },
+        "todo.createdAt": { value: "absent-created" },
+        "todo.updatedAt": { value: "absent-updated" },
+      },
+    };
+  }
+  await page.setContent(html);
+  await assertPriorityView(check());
+  for (const selector of ["#due", "#priority", "#raw-id"]) {
+    for (const style of ["opacity:0", "visibility:hidden"]) {
+      for (const ancestor of [false, true]) {
+        await test.step(`${selector} ${ancestor ? "ancestor" : "self"} ${style}`, async () => {
+          await page.setContent(html);
+          await page.locator(selector).evaluate(
+            (element, input) => {
+              (input.ancestor ? element.parentElement : element)?.setAttribute(
+                "style",
+                input.style,
+              );
+            },
+            { ancestor, style },
+          );
+          await expect(assertPriorityView(check())).rejects.toThrow();
+        });
+      }
+    }
+  }
+});
+
+test("internal-field absence checks displayed form values without exposing hidden controls", async ({
+  page,
+}) => {
+  for (const field of [
+    { value: "internal-id-42" },
+    { value: "7", exactText: true },
+  ]) {
+    await page.setContent(
+      `<main><time>2026-09-27</time><input type="hidden" value="${field.value}"><input style="visibility:hidden" value="${field.value}"><div style="opacity:0"><textarea>${field.value}</textarea></div><select><option value="${field.value}">Public label</option></select></main>`,
+    );
+    await assertInternalPriorityFieldAbsent(page.locator("main"), field);
+    for (const tag of ["input", "textarea"]) {
+      const element = page.locator("main");
+      await element.evaluate(
+        (root, { tag, value }) => {
+          const input = document.createElement(tag);
+          input.setAttribute("readonly", "");
+          if (
+            input instanceof HTMLInputElement ||
+            input instanceof HTMLTextAreaElement
+          )
+            input.value = value;
+          input.id = "visible-internal";
+          root.append(input);
+        },
+        { tag, value: field.value },
+      );
+      await expect(
+        assertInternalPriorityFieldAbsent(element, field),
+      ).rejects.toThrow();
+      await page
+        .locator("#visible-internal")
+        .evaluate((input) => input.remove());
+    }
+  }
 });
