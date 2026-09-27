@@ -18,7 +18,11 @@ export type LocaleHiddenPriorityField = {
   text: string;
 };
 export type PriorityField = VisiblePriorityField | LocaleHiddenPriorityField;
-export type InternalPriorityField = { value: string; locator?: Locator };
+export type InternalPriorityField = {
+  value: string;
+  locator?: Locator;
+  exactText?: boolean;
+};
 export type PriorityViewCheck = {
   feature: string;
   capability: string;
@@ -88,6 +92,16 @@ async function assertSecondaryStyle(locator: Locator, identity: Locator) {
   ).toBe(true);
 }
 
+/** Raw small enums may be substrings of legitimate dates; reject standalone visible values. */
+export async function assertNoStandaloneInternalText(
+  scope: Locator,
+  value: string,
+) {
+  await expect(
+    scope.getByText(value, { exact: true }).filter({ visible: true }),
+  ).toHaveCount(0);
+}
+
 /** Every declared property is consumed; missing and surplus assertions fail. */
 export async function assertPriorityView(check: PriorityViewCheck) {
   const key = `${check.feature}/${check.capability}/${check.view}` as const;
@@ -128,6 +142,8 @@ export async function assertPriorityView(check: PriorityViewCheck) {
         expected: field.value,
       });
       await assertSecondaryStyle(field.locator, check.identity);
+    } else if (field.exactText) {
+      await assertNoStandaloneInternalText(check.scope, field.value);
     } else {
       expect(await check.scope.innerText()).not.toContain(field.value);
     }
