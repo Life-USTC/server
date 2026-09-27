@@ -28,6 +28,20 @@ requirements:
   rule: The MCP workflow documentation identifies the snapshot, focused next-class/next-bus, and subscription-preview
     tools by their actual registered names and states their required scopes, defaults, and secret-redaction
     behavior.
+  acceptance:
+    given: A real MCP SDK client initializes the production server and reads its tool descriptors.
+    when: Inspect the client-visible workflow reference in initialization instructions against the registered
+      tools, their OAuth metadata and input-schema defaults.
+    then:
+    - Snapshot, next-class, next-bus and preview guidance names the actual tools and their exact required
+      scopes or public access; importer guidance uses the actual write scope.
+    - Documentation states mode/locale/clock defaults, bus defaults and required campuses, current-semester
+      preview resolution and confirmation before subscription import.
+    - The reference distinguishes Life@USTC subscriptions from official enrollment and states that full mode
+      retains secret exclusions for private calendar URLs, credentials and tokens.
+    test:
+      file: tests/unit/lib/mcp/workflow-guidance.test.ts
+      name: cases.mcp-assistant-workflows.scenario-guidance-2
 refs:
 - feature: mcp
   capability: tool-groups

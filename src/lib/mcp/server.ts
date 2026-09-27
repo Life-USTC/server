@@ -31,6 +31,10 @@ const SERVER_INSTRUCTIONS = [
   "Use catalog_course_search, catalog_section_search, catalog_teacher_search, catalog_bus_route_list, or catalog_link_list to discover stable IDs before ID-based calls.",
   `Use ${GRAPHQL_OPERATION_PROMPT_NAME} when composing an unfamiliar GraphQL call. It injects life-ustc://graphql/schema and life-ustc://graphql/operations; graphql_operation_run accepts arbitrary documents or compatible registered operations. Field scopes and mutation confirmation are always enforced.`,
   "Mutation tools change Life@USTC user or collaborative data; summarize the intended change and ask for user confirmation before calling them.",
+  "Workflow reference: workspace_snapshot_get provides broad personal context and requires workspace.overview:read. workspace_schedule_next answers the focused next-class question and requires both workspace.overview:read and workspace.schedule:read.",
+  "catalog_bus_departure_next answers the focused next-bus question; it is public and requires no OAuth scopes. Supply originCampusId and destinationCampusId; omitted dayType=auto, includeDeparted=false and limit=5 use the current Shanghai day and exclude departed trips.",
+  "catalog_section_match_preview is public and requires no OAuth scopes. It lists all matching sections and the subscription effect without changing user data; omitted semesterId selects the current semester. Review the preview before calling workspace_subscription_import with the same codes and semesterId; import requires workspace.subscription:write and changes only Life@USTC subscriptions, not official course enrollment.",
+  "For these workflows, omitted mode=default and locale=zh-cn. Omitted atTime uses the server clock for snapshot, next class and next bus. Full mode adds only allowed fields and never relaxes privacy: private calendar-feed URLs, calendar path credentials and tokens are never exposed by MCP; do not request, echo or invent those secrets.",
 ].join(" ");
 
 export function createMcpServer() {
