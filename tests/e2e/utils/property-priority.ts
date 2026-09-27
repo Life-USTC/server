@@ -90,7 +90,7 @@ async function assertSecondaryStyle(locator: Locator, identity: Locator) {
 
 /** Every declared property is consumed; missing and surplus assertions fail. */
 export async function assertPriorityView(check: PriorityViewCheck) {
-  const key = `${check.feature}/${check.capability}/${check.view}`;
+  const key = `${check.feature}/${check.capability}/${check.view}` as const;
   const fields = (await declarations).get(key);
   expect(fields, key).toBeDefined();
   if (!fields) throw new Error(`Missing presentation view: ${key}`);

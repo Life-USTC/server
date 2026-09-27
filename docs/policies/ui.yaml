@@ -543,6 +543,25 @@ requirements:
     test:
       file: tests/unit/specifications/presentation-fields.test.ts
       name: ui.model-property-priority-1
+- id: ui.model-property-priority-catalog-views
+  category: presentation
+  topic: model-property-priority
+  rule: Every declared catalog Web field view presents its identifying name or history browsing key as the
+    title or leading summary, renders its declared primary and secondary fields, visually subordinates
+    secondary metadata and keeps reconstruction identifiers absent or visually subordinate.
+  rationale: Course and teacher history may lead with semester because the enclosing detail already identifies
+    the entity. English views retain the Chinese name as secondary text; Chinese views need not repeat the English name.
+  acceptance:
+    given: Distinct catalog fixtures supplying all declared fields and the finite catalog view inventory.
+    when: Visit all eight course, section and teacher list/detail/history views in both locales at desktop
+      and mobile widths and compare the rendered fields with each feature's declared groups.
+    then:
+    - Every view and declared field is checked; primary identity is visible, secondary metadata is readable
+      and visually subordinate, and internal identifiers do not appear as ordinary identifying content.
+    - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
+      name: ui.model-property-priority-catalog-views
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary
