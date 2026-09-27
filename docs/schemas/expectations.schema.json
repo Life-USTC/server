@@ -21,7 +21,11 @@
         },
         "surface": {
           "type": "string",
-          "enum": ["rest", "graphql", "mcp"]
+          "enum": [
+            "rest",
+            "graphql",
+            "mcp"
+          ]
         },
         "operation": {
           "$ref": "defs.schema.json#/$defs/nonEmptyString"
@@ -61,7 +65,11 @@
         },
         "surface": {
           "type": "string",
-          "enum": ["rest", "graphql", "mcp"]
+          "enum": [
+            "rest",
+            "graphql",
+            "mcp"
+          ]
         },
         "operation": {
           "$ref": "defs.schema.json#/$defs/nonEmptyString"
@@ -85,7 +93,12 @@
     "ordered_items": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "surface", "target", "items"],
+      "required": [
+        "kind",
+        "surface",
+        "target",
+        "items"
+      ],
       "properties": {
         "kind": {
           "const": "ordered_items"
@@ -130,7 +143,10 @@
         "viewport": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["width", "height"],
+          "required": [
+            "width",
+            "height"
+          ],
           "properties": {
             "width": {
               "type": "integer",
@@ -155,7 +171,13 @@
     "state_presentation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "surface", "target", "state", "text_decoration"],
+      "required": [
+        "kind",
+        "surface",
+        "target",
+        "state",
+        "text_decoration"
+      ],
       "properties": {
         "kind": {
           "const": "state_presentation"
@@ -169,7 +191,9 @@
         "state": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["completed"],
+          "required": [
+            "completed"
+          ],
           "properties": {
             "completed": {
               "type": "boolean"
@@ -178,21 +202,35 @@
         },
         "text_decoration": {
           "type": "string",
-          "enum": ["line-through", "none"]
+          "enum": [
+            "line-through",
+            "none"
+          ]
         }
       }
     },
     "authorization": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "surface", "operation", "cases", "denied_effects"],
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "cases",
+        "denied_effects"
+      ],
       "properties": {
         "kind": {
           "const": "authorization"
         },
         "surface": {
           "type": "string",
-          "enum": ["service", "rest", "graphql", "mcp"]
+          "enum": [
+            "service",
+            "rest",
+            "graphql",
+            "mcp"
+          ]
         },
         "operation": {
           "$ref": "defs.schema.json#/$defs/nonEmptyString"
@@ -223,11 +261,18 @@
               },
               "role": {
                 "type": "string",
-                "enum": ["user", "admin"]
+                "enum": [
+                  "user",
+                  "admin"
+                ]
               },
               "relationship": {
                 "type": "string",
-                "enum": ["owner", "creator", "other"]
+                "enum": [
+                  "owner",
+                  "creator",
+                  "other"
+                ]
               },
               "outcome": {
                 "type": "string",
@@ -267,7 +312,11 @@
         },
         "subscription_kind": {
           "type": "string",
-          "enum": ["regular", "auditor", "teaching_assistant"]
+          "enum": [
+            "regular",
+            "auditor",
+            "teaching_assistant"
+          ]
         },
         "completion_required": {
           "type": "boolean"
@@ -295,7 +344,11 @@
         },
         "subscription_kind": {
           "type": "string",
-          "enum": ["regular", "auditor", "teaching_assistant"]
+          "enum": [
+            "regular",
+            "auditor",
+            "teaching_assistant"
+          ]
         },
         "without_deadline": {
           "type": "boolean"
@@ -344,7 +397,9 @@
         "state": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["completed"],
+          "required": [
+            "completed"
+          ],
           "properties": {
             "completed": {
               "type": "boolean"
@@ -495,6 +550,41 @@
         "default": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "network_days",
+        "attribution_days",
+        "event_days",
+        "boundary"
+      ],
+      "properties": {
+        "kind": {
+          "const": "retention"
+        },
+        "operation": {
+          "const": "maintain_audit_log_retention"
+        },
+        "network_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attribution_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "event_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "boundary": {
+          "const": "inclusive"
         }
       }
     }

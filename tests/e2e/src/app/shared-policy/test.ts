@@ -1,0 +1,288 @@
+import { expect, type Page, test } from "@playwright/test";
+import { uiExpectation } from "../../../../shared/specifications/ui";
+import { signInAsDebugUser } from "../../../utils/auth";
+import { DEV_SEED } from "../../../utils/dev-seed";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
+
+const viewports = [
+  { width: 1280, height: 900 },
+  { width: 390, height: 844 },
+];
+const locales = ["zh-cn", "en-us"] as const;
+const workspace = {
+  overview: ["总览", "Overview"],
+  calendar: ["日历", "Calendar"],
+  homeworks: ["作业", "Homework"],
+  todos: ["待办", "Todos"],
+  exams: ["考试", "Exams"],
+  subscriptions: ["教学班订阅", "Section Subscriptions"],
+} as const;
+
+async function setLocale(page: Page, locale: string) {
+  expect(
+    (
+      await page.request.post("/api/account/preferences", { data: { locale } })
+    ).status(),
+  ).toBe(200);
+}
+
+async function catalogPages(page: Page) {
+  await gotoAndWaitForReady(
+    page,
+    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+  );
+  const teacherHref = await page
+    .locator('#main-content a[href^="/catalog/teachers/"]:visible')
+    .first()
+    .getAttribute("href");
+  expect(teacherHref).toBeTruthy();
+  return [
+    {
+      href: `/catalog/courses/${DEV_SEED.course.jwId}`,
+      collection: "/catalog/courses",
+      names: [DEV_SEED.course.nameCn, DEV_SEED.course.nameEn],
+    },
+    {
+      href: `/catalog/sections/${DEV_SEED.section.jwId}`,
+      collection: "/catalog/sections",
+      names: [DEV_SEED.course.nameCn, DEV_SEED.course.nameEn],
+    },
+    {
+      href: teacherHref as string,
+      collection: "/catalog/teachers",
+      names: [DEV_SEED.teacher.nameCn, DEV_SEED.teacher.nameEn],
+    },
+  ];
+}
+
+async function openMobileMenu(page: Page) {
+  await page
+    .locator("[data-shell-topbar]")
+    .getByRole("button", { name: /^菜单$|^Menu$/i })
+    .click();
+  await expect(
+    page.locator('[data-shell-navigation="secondary"]'),
+  ).toBeVisible();
+}
+
+async function assertReadingOrder(page: Page, id: string) {
+  const { items } = uiExpectation(id, "ordered_items");
+  const actual = await page
+    .locator(
+      "[data-detail-scroll-container] > div > div:first-child > section[id]",
+    )
+    .evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(actual).toEqual(items);
+  let previousBottom = -Infinity;
+  for (const id of items) {
+    const box = await page.locator(`#${id}`).boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) throw new Error(`Missing section ${id}`);
+    expect(box.y).toBeGreaterThanOrEqual(previousBottom);
+    previousBottom = box.y + box.height;
+  }
+}
+
+test("ui.detail-two-column-stream-2", async ({ page }) => {
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${DEV_SEED.section.jwId}`,
+    );
+    await assertReadingOrder(page, "ui.detail-two-column-stream-2");
+  }
+});
+
+test("ui.detail-two-column-stream-3", async ({ page }) => {
+  const pages = (await catalogPages(page)).filter(
+    (p) => p.collection !== "/catalog/sections",
+  );
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const { href } of pages) {
+      await gotoAndWaitForReady(page, href);
+      await assertReadingOrder(page, "ui.detail-two-column-stream-3");
+    }
+  }
+});
+
+test("ui.detail-hero-2", async ({ page }) => {
+  const pages = await catalogPages(page);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const { href, collection } of pages) {
+      await gotoAndWaitForReady(page, href);
+      if (viewport.width < 768) await openMobileMenu(page);
+      const navigation = page.locator(
+        `[data-shell-navigation="${viewport.width < 768 ? "secondary" : "desktop"}"]`,
+      );
+      const link = navigation.locator(`a[href="${collection}"]`);
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(page).toHaveURL(new RegExp(`${collection}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    }
+  }
+});
+
+test("ui.detail-hero-3", async ({ page }) => {
+  const pages = await catalogPages(page);
+  for (const [index, locale] of locales.entries()) {
+    await setLocale(page, locale);
+    for (const { href, collection, names } of pages) {
+      await gotoAndWaitForReady(page, href);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        locale === "en-us" && collection !== "/catalog/sections"
+          ? `${names[1]} (${names[0]})`
+          : names[index],
+      );
+    }
+  }
+});
+
+test("ui.layout-principles-1", async ({ page }) => {
+  await page.setViewportSize(viewports[0]);
+  for (const { href, collection } of await catalogPages(page)) {
+    await gotoAndWaitForReady(page, href);
+    const column = page.locator(
+      "[data-detail-scroll-container] > div > div:first-child",
+    );
+    for (const id of [
+      "introduction",
+      "comments",
+      ...(collection === "/catalog/sections" ? ["homework"] : []),
+    ]) {
+      await expect(column.locator(`#${id}`)).toHaveCount(1);
+      const reading = await column.locator(`#${id}`).boundingBox();
+      const aside = await page
+        .locator("[data-detail-scroll-container] aside")
+        .boundingBox();
+      expect(reading).not.toBeNull();
+      expect(aside).not.toBeNull();
+      if (!reading || !aside)
+        throw new Error("Missing reading/sidebar geometry");
+      expect(reading.x + reading.width).toBeLessThan(aside.x);
+    }
+  }
+});
+
+test("ui.layout-principles-2", async ({ page }) => {
+  await page.setViewportSize(viewports[0]);
+  for (const { href } of await catalogPages(page)) {
+    await gotoAndWaitForReady(page, href);
+    const aside = page.locator("[data-detail-scroll-container] aside");
+    await expect(page.locator("#overview")).toBeVisible();
+    await expect(aside.locator("dl, table").first()).toBeVisible();
+    const main = await page.locator("#introduction").boundingBox();
+    const facts = await aside.boundingBox();
+    expect(main).not.toBeNull();
+    expect(facts).not.toBeNull();
+    if (!main || !facts) throw new Error("Missing detail columns");
+    expect(facts.x).toBeGreaterThan(main.x + main.width);
+  }
+});
+
+async function eachWorkspacePage(
+  page: Page,
+  assertion: (title: string) => Promise<void>,
+) {
+  test.setTimeout(90_000);
+  await signInAsDebugUser(page, "/workspace/overview");
+  for (const [index, locale] of locales.entries()) {
+    await setLocale(page, locale);
+    await page.setViewportSize(viewports[index]);
+    for (const [tab, titles] of Object.entries(workspace)) {
+      await gotoAndWaitForReady(page, `/workspace/${tab}`);
+      await assertion(titles[index]);
+    }
+  }
+}
+
+test("ui.workspace-page-identity-1", async ({ page }) => {
+  await eachWorkspacePage(page, async (title) => {
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  });
+});
+test("ui.workspace-page-identity-2", async ({ page }) => {
+  await eachWorkspacePage(page, async (title) => {
+    await expect(page.getByRole("main")).toHaveCount(1);
+    await expect(page.getByRole("main")).toHaveAccessibleName(title);
+  });
+});
+test("ui.workspace-page-identity-3", async ({ page }) => {
+  await eachWorkspacePage(page, async (title) => {
+    await expect(page).toHaveTitle(`${title} - Life@USTC`);
+  });
+});
+
+test("ui.navigation-landmarks-1", async ({ page }) => {
+  await page.setViewportSize(viewports[0]);
+  for (const locale of locales) {
+    await setLocale(page, locale);
+    await gotoAndWaitForReady(page, "/catalog/courses");
+    const nav = page.getByRole("navigation", {
+      name: locale === "zh-cn" ? "主导航" : "Primary navigation",
+      exact: true,
+    });
+    await expect(nav).toHaveCount(1);
+    await expect(nav).toBeVisible();
+  }
+});
+
+test("ui.navigation-landmarks-2", async ({ page }) => {
+  await page.setViewportSize(viewports[1]);
+  await signInAsDebugUser(page, "/workspace/overview");
+  for (const locale of locales) {
+    await setLocale(page, locale);
+    await gotoAndWaitForReady(page, "/workspace/overview");
+    await expect(
+      page.getByRole("navigation", {
+        name: locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await openMobileMenu(page);
+    await expect(
+      page.getByRole("navigation", {
+        name: locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+        exact: true,
+      }),
+    ).toBeVisible();
+  }
+});
+
+test("ui.navigation-landmarks-3", async ({ page }) => {
+  await signInAsDebugUser(page, "/workspace/overview");
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const href of [
+      "/workspace/todos",
+      "/catalog/courses",
+      "/account/settings/preferences",
+    ]) {
+      await gotoAndWaitForReady(page, href);
+      if (viewport.width < 768) await openMobileMenu(page);
+      for (const nav of await page.getByRole("navigation").all()) {
+        expect(
+          await nav.locator('[aria-current="page"]').count(),
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+  }
+});
+
+test("ui.footer-navigation-landmark", async ({ page }) => {
+  for (const href of ["/catalog/courses", "/terms", "/privacy"]) {
+    await gotoAndWaitForReady(page, href);
+    const footer = page.locator("footer");
+    await expect(footer).toBeVisible();
+    const navigation = footer.getByRole("navigation");
+    await expect(navigation).toHaveCount(1);
+    await expect(navigation).toHaveAccessibleName(/.+/);
+    expect(await navigation.getByRole("link").count()).toBe(
+      await footer.getByRole("link").count(),
+    );
+  }
+});

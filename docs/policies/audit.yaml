@@ -20,9 +20,27 @@ requirements:
 - id: audit.writer-4
   category: privacy
   topic: writer
-  rule: Retention maintenance removes network fields from audit events at least 30 days old, attribution fields
-    at least 90 days old, and events at least 400 days old. Eligibility uses the event timestamp and the maintenance
-    clock.
+  expectation:
+    kind: retention
+    operation: maintain_audit_log_retention
+    network_days: 30
+    attribution_days: 90
+    event_days: 400
+    boundary: inclusive
+  acceptance:
+    given: Persisted audit rows one millisecond before, exactly at, and one millisecond after each declared
+      age threshold.
+    when: The actual restricted maintenance role runs retention with an injected maintenance clock.
+    then:
+    - At network_days, ipAddress and userAgent are cleared; at attribution_days, oauthGrantId, sessionId, and
+      requestId are cleared; at event_days, the entire row is deleted.
+    - Each boundary is inclusive; younger rows retain the corresponding fields. Event identity, actor, and
+      safe metadata survive until event expiry.
+    test:
+      file: tests/integration/audit-policy-retention.test.ts
+      name: audit.writer-4
+  applies_to:
+  - writer
 - id: audit.auth-hook-failure-isolation
   category: privacy
   topic: writer
@@ -39,6 +57,15 @@ requirements:
   topic: writer
   rule: Audit retention cleanup is performed only through the maintenance-only SECURITY DEFINER function. Ordinary
     application and authentication database roles cannot invoke cleanup or delete audit history directly.
+  acceptance:
+    given: Separate application, authentication, and maintenance database role connections.
+    when: Each role attempts cleanup and direct audit deletion; the function definition is inspected.
+    then:
+    - Only the maintenance role can execute the SECURITY DEFINER cleanup function; runtime roles cannot call
+      it or directly delete audit rows.
+    test:
+      file: tests/integration/audit-policy-retention.test.ts
+      name: audit.retention-maintenance-authority
 - id: audit.action-comment-create
   category: privacy
   topic: actions
@@ -152,11 +179,32 @@ requirements:
   category: privacy
   topic: actions
   rule: Records successful sign-out after the session transaction commits.
+  acceptance:
+    given: An isolated real account and a valid authenticated session with private fixture values.
+    when: The production Better Auth handler commits the specified account operation.
+    then:
+    - Records successful sign-out after the session transaction commits.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private field
+      or token values.
+    test:
+      file: tests/integration/auth-lifecycle-audit.test.ts
+      name: audit.action-account-sign-out
 - id: audit.action-account-profile-update
   category: privacy
   topic: actions
   rule: Records successful profile changes with an allowlisted changed-field list, never field values or request
     bodies.
+  acceptance:
+    given: An isolated real account and a valid authenticated session with private fixture values.
+    when: The production Better Auth handler commits the specified account operation.
+    then:
+    - Records successful profile changes with an allowlisted changed-field list, never field values or request
+      bodies.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private field
+      or token values.
+    test:
+      file: tests/integration/auth-lifecycle-audit.test.ts
+      name: audit.action-account-profile-update
 - id: audit.action-account-credential-update
   category: privacy
   topic: actions
@@ -171,6 +219,16 @@ requirements:
   category: privacy
   topic: actions
   rule: Records successful provider unlinking after commit, excluding provider credentials and tokens.
+  acceptance:
+    given: An isolated real account and a valid authenticated session with private fixture values.
+    when: The production Better Auth handler commits the specified account operation.
+    then:
+    - Records successful provider unlinking after commit, excluding provider credentials and tokens.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private field
+      or token values.
+    test:
+      file: tests/integration/auth-lifecycle-audit.test.ts
+      name: audit.action-account-unlink
 - id: audit.action-account-delete
   category: privacy
   topic: actions

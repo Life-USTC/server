@@ -7,11 +7,31 @@ requirements:
   topic: layout-principles
   rule: Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
     and comments in the main reading column.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
+      and comments in the main reading column.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.layout-principles-1
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
-  rule: Desktop catalog detail pages place identifiers, structured facts, and related actions in a facts sidebar.
-    Workspace task views and task-detail overlays use their own declared action-first order.
+  rule: Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
+    sidebar.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
+      sidebar.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.layout-principles-2
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
@@ -107,11 +127,31 @@ requirements:
 - id: ui.detail-hero-2
   category: presentation
   topic: detail-hero
-  rule: Contains breadcrumb, h1, and an optional subtitle.
+  rule: A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
+    without requiring browser history.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
+      without requiring browser history.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-hero-2
 - id: ui.detail-hero-3
   category: presentation
   topic: detail-hero
   rule: h1 uses the primary display name of the current object, not an internal ID.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - h1 uses the primary display name of the current object, not an internal ID.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-hero-3
 - id: ui.detail-hero-4
   category: presentation
   topic: detail-hero
@@ -140,11 +180,49 @@ requirements:
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Section: intro → schedule → exams → homework → comments.'
+  expectation:
+    kind: ordered_items
+    surface: web
+    target: section detail reading sections
+    items:
+    - introduction
+    - calendar
+    - exams
+    - homework
+    - comments
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-two-column-stream-2
+  applies_to:
+  - detail-two-column-stream
 - id: ui.detail-two-column-stream-3
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Course/teacher: intro → offerings → comments.'
+  expectation:
+    kind: ordered_items
+    surface: web
+    target: course and teacher detail reading sections
+    items:
+    - introduction
+    - sections
+    - comments
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-two-column-stream-3
+  applies_to:
+  - detail-two-column-stream
 - id: ui.detail-two-column-stream-4
   category: presentation
   topic: detail-two-column-stream
@@ -401,14 +479,41 @@ requirements:
   category: presentation
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Every signed-in workspace branch exposes exactly one localized level-one heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-1
 - id: ui.workspace-page-identity-2
   category: presentation
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - The main content landmark uses the same localized branch label.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-2
 - id: ui.workspace-page-identity-3
   category: presentation
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - The document title identifies the active branch before the Life@USTC suffix.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-3
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity
@@ -505,15 +610,43 @@ requirements:
   category: presentation
   topic: navigation-landmarks
   rule: The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-1
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
   rule: 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-2
 - id: ui.navigation-landmarks-3
   category: presentation
   topic: navigation-landmarks
   rule: Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
     navigation landmarks may each identify their own active destination.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
+      navigation landmarks may each identify their own active destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-3
 - id: ui.navigation-landmarks-4
   category: presentation
   topic: navigation-landmarks
@@ -577,6 +710,15 @@ requirements:
   category: presentation
   topic: navigation-landmarks
   rule: Public footer links are contained in a distinct navigation landmark.
+  acceptance:
+    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
+      exercised by the test.
+    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    then:
+    - Public footer links are contained in a distinct navigation landmark.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.footer-navigation-landmark
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -640,3 +782,5 @@ rationale:
 - 'Course and teacher offering history, 20-item pagination, retired-record inclusion and #sections navigation
   are owned by course.bounded-detail-history; repeating the same behavior here would create a second acceptance
   owner.'
+- Detail orientation requires recognizable entity identity and a route back to its owning collection. Persistent
+  navigation or an explicit parent link can provide this; breadcrumb styling is not required.
