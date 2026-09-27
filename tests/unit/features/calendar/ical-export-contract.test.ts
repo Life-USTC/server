@@ -172,6 +172,38 @@ test("ical.rfc5545-dtstamp-utc", async () => {
       expect(events[2]).toContain("DTSTART;TZID=Asia/Shanghai:20260911T180000");
       expect(events[3]).toContain("DTSTART;TZID=Asia/Shanghai:20260911T190000");
       expect(events[4]).toContain("DTSTART;TZID=Asia/Shanghai:20260911T200000");
+      expect(events[4]).toContain("DTEND;TZID=Asia/Shanghai:20260911T210000");
     }
   }
+});
+
+test("Young calendar timestamps cross midnight in Shanghai independently of the host timezone", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request) =>
+      Response.json(validMetadata(String(input))),
+    ),
+  );
+  const { createUserCalendar } = await import(
+    "@/features/calendar/server/ical"
+  );
+  const calendar = await createUserCalendar({
+    sections: [],
+    homeworks: [],
+    todos: [],
+    youngEvents: [
+      {
+        youngId: "midnight",
+        name: "After midnight",
+        startAt: new Date("2026-09-11T16:30:00Z"),
+        endAt: new Date("2026-09-11T18:00:00Z"),
+        location: null,
+        sourceMissing: false,
+        lastSeenAt: null,
+      },
+    ],
+  });
+  const output = calendar.toString();
+  expect(output).toContain("DTSTART;TZID=Asia/Shanghai:20260912T003000");
+  expect(output).toContain("DTEND;TZID=Asia/Shanghai:20260912T020000");
 });

@@ -11,6 +11,7 @@ import {
 } from "@/features/calendar/server/ical-event-builders";
 import type { AppLocale } from "@/i18n/config";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 function generateShanghaiVTimezone(timezone: string): string | null {
   if (timezone !== APP_TIME_ZONE) return null;
@@ -123,10 +124,12 @@ export async function createUserCalendar({
     if (!event.startAt) continue;
     calendar.createEvent({
       id: `young-${event.youngId}@life-ustc`,
-      start: event.startAt,
+      // Native Date values use the host's wall clock in ical-generator;
+      // pass a timezone-aware value, as the other event builders already do.
+      start: shanghaiDayjs(event.startAt),
       timezone: APP_TIME_ZONE,
       ...(event.endAt && event.endAt > event.startAt
-        ? { end: event.endAt }
+        ? { end: shanghaiDayjs(event.endAt) }
         : {}),
       summary: event.name,
       location: event.location ?? undefined,
