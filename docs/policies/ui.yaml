@@ -49,12 +49,7 @@ requirements:
   topic: layout-principles
   rule: Homework and todo detail overlays use one scrollable content column with a visible sticky title. Their
     content order is due date/time, relative urgency, remaining facts, reading content, then discussion when
-    available.
-- id: ui.layout-principles-6
-  category: presentation
-  topic: layout-principles
-  rule: Homework and todo detail overlays do not introduce a second facts/status rail. Their primary content
-    and actions remain reachable within the single scrollable column.
+    available. Primary content and actions remain reachable within that column without a second facts/status rail.
 - id: ui.list-table-1
   category: presentation
   topic: list-table
@@ -256,11 +251,6 @@ requirements:
   rule: Each catalog detail sidebar contains that feature’s structured facts and applicable actions. Section
     detail includes teachers and section subscription/calendar actions; course and teacher pages do not invent
     section-specific actions without a selected section.
-- id: ui.detail-two-column-stream-5
-  category: presentation
-  topic: detail-two-column-stream
-  rule: Catalog detail mobile order is hero, compact identity facts, main reading stream, then remaining secondary
-    facts.
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
@@ -288,8 +278,7 @@ requirements:
 - id: ui.model-property-priority-secondary-2
   category: presentation
   topic: model-property-priority-secondary
-  rule: Secondary metadata uses shared secondary-text styling without hiding required disambiguation. Public
-    course and section codes retain their plain monospace style rather than badge styling.
+  rule: Secondary metadata uses shared secondary-text styling without hiding required disambiguation.
 - id: ui.model-property-priority-tertiary-2
   category: presentation
   topic: model-property-priority-tertiary
@@ -941,6 +930,12 @@ topics:
 - id: navigation-landmarks
   title: Navigation Landmarks
 rationale:
+- Mobile catalog detail order has one owner, ui.layout-principles-3; the identical detail-two-column-stream
+  restatement was removed without changing the required order.
+- The single-column homework/todo overlay requirement, including reachable actions and absence of a second
+  facts/status rail, is owned by ui.layout-principles-5 rather than two overlapping layout requirements.
+- Public course and section code styling is owned by ui.data-table-cells-3. Secondary metadata styling retains
+  its independent legibility and disambiguation obligation without repeating the code-specific rule.
 - This compact context follows the name-first identity rule.
 - 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
   code, due/departure/start time, status, and primary action state.'
