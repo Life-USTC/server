@@ -664,6 +664,16 @@ describe("MCP tool descriptors", () => {
   });
 
   it("keeps compact and full Markdown output schemas mutually strict", () => {
+    const viewer = {
+      userId: "viewer-1",
+      name: null,
+      image: null,
+      isAdmin: false,
+      isAuthenticated: true,
+      isSuspended: false,
+      suspensionReason: null,
+      suspensionExpiresAt: null,
+    };
     const fullComment = {
       id: "comment-1",
       body: "Source Markdown",
@@ -718,7 +728,7 @@ describe("MCP tool descriptors", () => {
           rootId: "comment-1",
           thread: [compactComment],
           nextCursor: null,
-          viewer: {},
+          viewer,
         },
         full: {
           success: true,
@@ -726,7 +736,7 @@ describe("MCP tool descriptors", () => {
           rootId: "comment-1",
           thread: [fullComment],
           nextCursor: null,
-          viewer: {},
+          viewer,
         },
       },
       {
