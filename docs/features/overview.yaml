@@ -104,25 +104,6 @@ requirements:
   category: presentation
   rule: Workspace cards present the actionable title, time/status and direct destination before secondary
     details.
-- id: overview.workspace-shell-navigation.internal-endpoint
-  category: behavior
-  rule: The same-origin session-cookie-only /_internal/shell-bootstrap Web transport returns only the
-    allowlisted viewer fields and counts for calendar items, pending homework, pending todos, upcoming
-    exams and subscribed sections.
-  applies_to:
-  - workspace-shell-navigation
-- id: overview.workspace-shell-navigation.private-cache-boundary
-  category: privacy
-  rule: Every response uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and
-    Vary Cookie; Bearer authentication is rejected.
-  applies_to:
-  - workspace-shell-navigation
-- id: overview.workspace-shell-navigation.ssr-csr-hydration
-  category: consistency
-  rule: Workspace SSR seeds the in-memory projection directly; other authenticated pages request it after
-    hydration; explicit anonymous results contain null viewer and navigation values.
-  applies_to:
-  - workspace-shell-navigation
 - id: overview.public-html-viewer-independent
   category: privacy
   rule: Public HTML contains no viewer identity, personal counts or other private workspace state.
@@ -230,7 +211,9 @@ capabilities:
       - Pending todos
       - Tab icons and counts
     requirement_refs:
-    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
     - overview.historical-subscriptions-remain-discoverable
   workspace-shell-navigation:
     title: Workspace Shell Navigation Summary
@@ -266,7 +249,9 @@ capabilities:
       - Upcoming exam count
       - Subscribed section count
     requirement_refs:
-    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
     - overview.historical-subscriptions-remain-discoverable
   workspace-snapshot:
     title: Assistant Workspace Snapshot & Focused Extracts
@@ -313,7 +298,9 @@ capabilities:
       - todos.incompleteCount
       - bus.nextDeparture
     requirement_refs:
-    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
     - overview.historical-subscriptions-remain-discoverable
   anonymous-overview:
     title: Anonymous Homepage
@@ -328,7 +315,9 @@ capabilities:
       - Section discovery
       - Teacher discovery
     requirement_refs:
-    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
     - overview.historical-subscriptions-remain-discoverable
 rationale:
 - Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple

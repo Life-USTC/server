@@ -106,6 +106,31 @@ test("rendering-and-cache.personal-overlays-4", async ({
           pendingTodosCount: index === 0 ? 2 : 0,
           subscribedSectionCount: index === 0 ? 1 : 0,
         });
+        expect(Object.keys(payload.navigation).sort()).toEqual([
+          "calendarItemsCount",
+          "examsCount",
+          "pendingHomeworksCount",
+          "pendingTodosCount",
+          "subscribedSectionCount",
+          "unreadActivityNotificationsCount",
+          "userId",
+        ]);
+        const page = await context.newPage();
+        for (const path of [
+          "/catalog/courses",
+          "/account/settings/preferences",
+        ]) {
+          const bootstrap = page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+          );
+          await gotoAndWaitForReady(page, path);
+          const hydrated = await bootstrap;
+          expect(hydrated.request().resourceType()).toBe("fetch");
+          expect(hydrated.headers()["cache-control"]).toBe("private, no-store");
+          expect(await hydrated.json()).toEqual(payload);
+          await expect(page.locator("#app-user-menu")).toContainText(user.name);
+        }
         expect(JSON.stringify(payload)).not.toContain(user.email);
         expect(JSON.stringify(payload)).not.toContain(users[1 - index].id);
         const token = await authorizeDeviceBearer(

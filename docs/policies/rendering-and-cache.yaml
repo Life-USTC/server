@@ -169,18 +169,23 @@ requirements:
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
-  rule: The shell viewer and workspace navigation projection is obtained through the session-only /_internal/shell-bootstrap
-    endpoint. OAuth bearer identity is not used as ambient shell identity.
+  rule: Pages without a workspace SSR projection hydrate viewer and navigation state through the same-origin,
+    session-cookie-only /_internal/shell-bootstrap endpoint. It returns only viewer id, name, username, image
+    and isAdmin plus matching navigation userId and calendar, pending homework, pending todo, upcoming exam, subscribed section,
+    and unread activity notification counts. Anonymous results have null viewer and navigation. Every response
+    uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and Vary Cookie. Bearer
+    authentication is rejected even alongside a session cookie.
   acceptance:
     given: Anonymous requests and two isolated session users with distinct navigation counts; each user
       also authorizes a valid profile-reading OAuth bearer.
     when: The real shell bootstrap endpoint is requested anonymously, with each session, with bearer only,
-      and with both session and bearer.
+      and with both session and bearer; public catalog and account settings pages hydrate their shell.
     then:
     - Anonymous responses contain null viewer/navigation; session responses contain only the matching
       allowlisted viewer and navigation counts, without email or another user's identity.
     - Valid bearer-only and combined bearer/session requests receive 401 instead of shell identity.
-    - Every response is private, no-store and varies on Cookie.
+    - Every response is private, no-store and varies on Cookie; hydrated pages obtain the identical
+      projection through a private client fetch.
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: rendering-and-cache.personal-overlays-4
@@ -447,3 +452,11 @@ rationale:
   ui.detail-two-column-stream-6 for privately loaded comments. These remain separate acceptance obligations.
 - The former rendering-and-cache.personal-overlays-3 duplicates description.public-web-personal-overlay,
   which retains public description text and structured data in SSR and privately resolves editing permissions.
+- The former overview.workspace-shell-navigation.internal-endpoint and
+  overview.workspace-shell-navigation.private-cache-boundary are owned by rendering-and-cache.personal-overlays-4.
+  Its explicit projection includes the unread activity notification count required by ui.navigation-landmarks-6
+  alongside the five workspace counts; email and other user fields remain excluded.
+- The former overview.workspace-shell-navigation.ssr-csr-hydration is owned by
+  rendering-and-cache.personal-overlays-5 for direct workspace SSR seeding and
+  rendering-and-cache.personal-overlays-4 for client hydration and anonymous results. user.shell-viewer
+  independently owns reuse of that state without duplicate identity requests.
