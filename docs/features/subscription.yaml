@@ -54,6 +54,21 @@ requirements:
   rule: Only the authenticated owner may read or change their section subscriptions. Personal academic
     homework, exam and schedule scope is derived from those subscriptions; personal todos and independently
     subscribed activities do not require section subscriptions.
+  acceptance:
+    given: Isolated regular and administrator owners have distinct Sections, schedules, exams, homeworks,
+      personal todos and independently subscribed activities.
+    when: Anonymous requests and both owners exercise real Web, session and OAuth REST/GraphQL, and
+      OAuth HTTP MCP reads and writes, then unsubscribe and resubscribe through the Section page.
+    then:
+    - Anonymous personal reads and writes require authentication; desktop and mobile lists contain only
+      the authenticated owner’s subscriptions.
+    - Supplied foreign user IDs cannot redirect a read or write; absent own memberships cannot change
+      another owner’s kind and all foreign membership rows remain unchanged.
+    - Unsubscribing removes the owner’s schedules, exams and homeworks from personal lists and calendar;
+      personal todos and independent activities remain, and resubscribing restores academic entries.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/ownership-contract.test.ts
+      name: subscription.user-scoped
 - id: subscription.bounded-batch-input
   category: validation
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
