@@ -599,11 +599,8 @@
     "acceptance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "given", "when", "then"],
+      "required": ["given", "when", "then", "test"],
       "properties": {
-        "id": {
-          "$ref": "#/$defs/id"
-        },
         "given": {
           "$ref": "#/$defs/nonEmptyString"
         },
@@ -618,13 +615,8 @@
             "$ref": "#/$defs/nonEmptyString"
           }
         },
-        "tests": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/testReference"
-          }
+        "test": {
+          "$ref": "#/$defs/testReference"
         }
       }
     },
@@ -670,12 +662,7 @@
           }
         },
         "acceptance": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/acceptance"
-          }
+          "$ref": "#/$defs/acceptance"
         },
         "expectation": {
           "$ref": "expectations.schema.json#/$defs/expectation"
@@ -696,16 +683,7 @@
           "required": ["expectation", "acceptance", "applies_to"],
           "properties": {
             "expectation": true,
-            "acceptance": {
-              "items": {
-                "required": ["tests"],
-                "properties": {
-                  "tests": true
-                },
-                "type": "object"
-              },
-              "type": "array"
-            },
+            "acceptance": true,
             "applies_to": true,
             "rule": false
           }

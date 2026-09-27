@@ -7,13 +7,20 @@ async function main() {
   const [command, ...arguments_] = process.argv.slice(2);
   switch (command) {
     case "check": {
-      if (arguments_.length) throw new Error("Usage: bun run specs:check");
-      const result = await checkSpecifications();
-      console.log(
-        `Validated ${result.files} YAML documents, ${result.requirements} requirements, ${result.scenarios} acceptance scenarios (${result.linkedScenarios} with checked test references).`,
+      if (
+        arguments_.length > 1 ||
+        (arguments_.length === 1 && arguments_[0] !== "--complete")
+      )
+        throw new Error("Usage: bun run specs:check [--complete]");
+      const result = await checkSpecifications(
+        repositoryRoot,
+        arguments_[0] === "--complete",
       );
       console.log(
-        "Test references establish traceability; execute the test suites to verify behavior.",
+        `Validated ${result.files} YAML documents, ${result.requirements} requirements, ${result.linkedScenarios} canonical acceptance tests; ${result.missing.length} requirements still have no acceptance test.`,
+      );
+      console.log(
+        "Structural validity does not mean complete acceptance. Use --complete to require a test for every requirement, and execute the suites for behavioral evidence.",
       );
       return;
     }

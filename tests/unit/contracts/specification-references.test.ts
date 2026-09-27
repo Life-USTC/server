@@ -9,6 +9,7 @@ import {
 } from "../../../scripts/specifications/repository";
 import {
   declaredTestNames,
+  validateCanonicalTestOwnership,
   validateSpecificationReferences,
   validateSpecificationShapes,
 } from "../../../scripts/specifications/validate";
@@ -26,15 +27,12 @@ function feature(): SpecificationFile {
           category: "consistency",
           rule: "Repeated sets preserve state.",
           applies_to: ["set"],
-          acceptance: [
-            {
-              id: "retry",
-              given: "Already set",
-              when: "Set again",
-              // biome-ignore lint/suspicious/noThenProperty: Acceptance results are a non-callable list.
-              then: ["State remains stable"],
-            },
-          ],
+          acceptance: {
+            given: "Already set",
+            when: "Set again",
+            // biome-ignore lint/suspicious/noThenProperty: Acceptance results are a non-callable list.
+            then: ["State remains stable"],
+          },
         },
       ],
     },
@@ -74,18 +72,16 @@ describe("specification structure and references", () => {
     ).toContain("unsupported specification kind typo");
   });
 
-  it("rejects duplicate requirement IDs and acceptance IDs", async () => {
+  it("rejects duplicate requirement IDs", async () => {
     const file = feature();
     const requirements = file.data.requirements as Array<{
-      acceptance: unknown[];
+      acceptance: unknown;
     }>;
-    requirements[0].acceptance.push(requirements[0].acceptance[0]);
     requirements.push(requirements[0]);
     const result = await validateSpecificationReferences([file]);
     expect(result.errors.join("\n")).toContain(
       "duplicate requirement ID example.idempotency",
     );
-    expect(result.errors.join("\n")).toContain("duplicate scenario retry");
   });
 
   it("rejects broken local capabilities, policies and cross-feature references", async () => {
@@ -133,6 +129,46 @@ describe("specification structure and references", () => {
     ]).toEqual(["real test"]);
   });
 
+  it("rejects duplicate literal names even when they occur in different suites", () => {
+    expect([
+      ...declaredTestNames(`
+      describe("first", () => { it("example.rule", () => {}); });
+      describe("second", () => { it("example.rule", () => {}); });
+    `),
+    ]).toEqual([]);
+  });
+
+  it("checks the reverse mapping and rejects orphan and duplicate canonical tests", async () => {
+    const root = await mkdtemp(join(tmpdir(), "spec-bijection-"));
+    directories.push(root);
+    await mkdir(join(root, "tests"));
+    await writeFile(
+      join(root, "tests/behavior.test.ts"),
+      'it("example.idempotency", () => {});',
+    );
+    const file = feature();
+    const requirement = (
+      file.data.requirements as Array<{
+        acceptance: { test?: { file: string; name: string } };
+      }>
+    )[0];
+    requirement.acceptance.test = {
+      file: "tests/behavior.test.ts",
+      name: "example.idempotency",
+    };
+    expect(await validateCanonicalTestOwnership([file], root)).toEqual([]);
+    await writeFile(
+      join(root, "tests/duplicate.test.ts"),
+      'it("example.idempotency", () => {}); it("example.removed", () => {});',
+    );
+    const errors = (await validateCanonicalTestOwnership([file], root)).join(
+      "\n",
+    );
+    expect(errors).toContain("is not bound by its requirement");
+    expect(errors).toContain("is also declared");
+    expect(errors).toContain("has no requirement");
+  });
+
   it("rejects specifications misplaced outside their canonical directory", async () => {
     const file = feature();
     file.path = "docs/policies/archive/example.yaml";
@@ -166,38 +202,41 @@ describe("specification structure and references", () => {
     ).toContain("must use its document prefix");
   });
 
-  it("checks exact linked test names and reports unlinked scenarios honestly", async () => {
+  it("requires a unique test named after the requirement", async () => {
     const root = await mkdtemp(join(tmpdir(), "spec-references-"));
     directories.push(root);
     await mkdir(join(root, "tests"));
     await writeFile(
       join(root, "tests/behavior.test.ts"),
-      'it("preserves state on retry", () => { expect(actual).toEqual(expected); });',
+      'it("example.idempotency", () => { expect(actual).toEqual(expected); });',
     );
     const file = feature();
     const scenario = (
       file.data.requirements as Array<{
-        acceptance: Array<{ tests?: Array<{ file: string; name: string }> }>;
+        acceptance: { test?: { file: string; name: string } };
       }>
-    )[0].acceptance[0];
+    )[0].acceptance;
     const unlinked = await validateSpecificationReferences([file], root);
     expect(unlinked).toMatchObject({
-      errors: [],
       requirements: 1,
       scenarios: 1,
       linkedScenarios: 0,
     });
-    scenario.tests = [
-      { file: "tests/behavior.test.ts", name: "preserves state on retry" },
-    ];
+    expect(unlinked.errors.join("\n")).toContain(
+      "acceptance requires exactly one test",
+    );
+    scenario.test = {
+      file: "tests/behavior.test.ts",
+      name: "example.idempotency",
+    };
     expect(await validateSpecificationReferences([file], root)).toMatchObject({
       errors: [],
       linkedScenarios: 1,
     });
-    scenario.tests[0].name = "nonexistent test";
+    scenario.test.name = "nonexistent test";
     expect(
       (await validateSpecificationReferences([file], root)).errors.join("\n"),
-    ).toContain("no enabled literal test");
+    ).toContain("canonical test name must equal its requirement ID");
   });
 
   it("does not silently ignore a reintroduced JSON specification", async () => {

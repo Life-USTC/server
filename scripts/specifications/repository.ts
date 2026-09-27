@@ -4,11 +4,10 @@ import { readSpecification, repositoryRoot } from "./yaml";
 
 export type TestReference = { file: string; name: string };
 export type AcceptanceScenario = {
-  id: string;
   given: string;
   when: string;
   then: string[];
-  tests?: TestReference[];
+  test: TestReference;
 };
 export type Requirement = {
   id: string;
@@ -18,7 +17,7 @@ export type Requirement = {
   rationale?: string;
   topic?: string;
   applies_to?: string[];
-  acceptance?: AcceptanceScenario[];
+  acceptance?: AcceptanceScenario;
 };
 export type FeatureSpecification = {
   kind: "feature";

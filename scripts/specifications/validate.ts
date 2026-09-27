@@ -216,6 +216,7 @@ export function declaredTestNames(text: string): Set<string> {
     true,
   );
   const names = new Set<string>();
+  const duplicates = new Set<string>();
   function unsafeOptions(node: ts.CallExpression): boolean {
     // A callback plus dynamic/spread options cannot establish an enabled test.
     // Both current (name, options, fn) and older (name, fn, options) orderings
@@ -264,12 +265,14 @@ export function declaredTestNames(text: string): Set<string> {
         first &&
         (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first))
       ) {
+        if (names.has(first.text)) duplicates.add(first.text);
         names.add(first.text);
       }
     }
     ts.forEachChild(node, (child) => walk(child, disabled));
   }
   walk(source, false);
+  for (const name of duplicates) names.delete(name);
   return names;
 }
 
@@ -299,6 +302,7 @@ export async function validateSpecificationReferences(
       .map(({ data }) => [data.id, data]),
   );
   const testNames = new Map<string, Set<string>>();
+  const testOwners = new Map<string, string>();
   let requirements = 0;
   let scenarios = 0;
   let linkedScenarios = 0;
@@ -362,42 +366,52 @@ export async function validateSpecificationReferences(
             );
         }
       }
-      const scenarioIds = new Set<string>();
-      for (const scenario of requirement.acceptance ?? []) {
-        scenarios += 1;
-        if (scenarioIds.has(scenario.id))
-          errors.push(
-            `${path}: ${requirement.id} has duplicate scenario ${scenario.id}`,
+      const acceptance = requirement.acceptance;
+      if (!acceptance) continue;
+      scenarios += 1;
+      const test = acceptance.test;
+      if (!test) {
+        errors.push(
+          `${path}: ${requirement.id}: acceptance requires exactly one test`,
+        );
+        continue;
+      }
+      linkedScenarios += 1;
+      try {
+        if (
+          !test.file.startsWith("tests/") ||
+          test.file.split("/").includes("..") ||
+          !/(?:\.test|\/test)\.ts$/.test(test.file)
+        ) {
+          throw new Error(
+            "test reference must point to a TypeScript test under tests/",
           );
-        scenarioIds.add(scenario.id);
-        if (scenario.tests?.length) linkedScenarios += 1;
-        for (const test of scenario.tests ?? []) {
-          try {
-            if (
-              !test.file.startsWith("tests/") ||
-              test.file.split("/").includes("..") ||
-              !/(?:\.test|\/test)\.ts$/.test(test.file)
-            ) {
-              throw new Error(
-                "test reference must point to a TypeScript test under tests/",
-              );
-            }
-            const filename = await resolveRepositoryFile(root, test.file);
-            if (!testNames.has(filename))
-              testNames.set(
-                filename,
-                declaredTestNames(await readFile(filename, "utf8")),
-              );
-            if (!testNames.get(filename)?.has(test.name))
-              throw new Error(
-                `no enabled literal test named ${JSON.stringify(test.name)}`,
-              );
-          } catch (error) {
-            errors.push(
-              `${path}: ${requirement.id}/${scenario.id}: ${test.file}: ${error instanceof Error ? error.message : String(error)}`,
-            );
-          }
         }
+        if (test.name !== requirement.id) {
+          throw new Error("canonical test name must equal its requirement ID");
+        }
+        const filename = await resolveRepositoryFile(root, test.file);
+        const identity = `${filename}\0${test.name}`;
+        const owner = testOwners.get(identity);
+        if (owner) {
+          throw new Error(
+            `test already belongs to ${owner}; one test cannot verify multiple requirements`,
+          );
+        }
+        testOwners.set(identity, requirement.id);
+        if (!testNames.has(filename))
+          testNames.set(
+            filename,
+            declaredTestNames(await readFile(filename, "utf8")),
+          );
+        if (!testNames.get(filename)?.has(test.name))
+          throw new Error(
+            `no unique enabled literal test named ${JSON.stringify(test.name)}`,
+          );
+      } catch (error) {
+        errors.push(
+          `${path}: ${requirement.id}: ${test.file}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
     // Policy and decision references use the same feature/capability identity.
@@ -439,7 +453,62 @@ export async function validateSpecificationReferences(
   return { errors, requirements, scenarios, linkedScenarios };
 }
 
-export async function checkSpecifications(root = repositoryRoot) {
+/** Stable requirement IDs form the namespace for canonical acceptance tests. */
+export async function validateCanonicalTestOwnership(
+  files: SpecificationFile[],
+  root = repositoryRoot,
+): Promise<string[]> {
+  const errors: string[] = [];
+  const owners = new Map(
+    files.flatMap(({ data }) =>
+      collectRequirements(data).map(
+        (requirement) => [requirement.id, requirement] as const,
+      ),
+    ),
+  );
+  const prefixes = files
+    .filter(({ data }) => data.kind === "feature" || data.kind === "policy")
+    .map(({ data }) => `${String(data.id)}.`);
+  const seen = new Map<string, string>();
+  async function walk(directory: string) {
+    for (const entry of await readdir(join(root, directory), {
+      withFileTypes: true,
+    })) {
+      const path = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) await walk(path);
+      else if (/(?:\.test|\/test)\.ts$/.test(path)) {
+        for (const name of declaredTestNames(
+          await readFile(join(root, path), "utf8"),
+        )) {
+          if (
+            !prefixes.some((prefix) => name.startsWith(prefix)) ||
+            !/^[a-z0-9.-]+$/.test(name)
+          )
+            continue;
+          const owner = owners.get(name);
+          if (!owner)
+            errors.push(`${path}: canonical test ${name} has no requirement`);
+          else if (owner.acceptance?.test.file !== path)
+            errors.push(
+              `${path}: canonical test ${name} is not bound by its requirement`,
+            );
+          if (seen.has(name))
+            errors.push(
+              `${path}: canonical test ${name} is also declared in ${seen.get(name)}`,
+            );
+          seen.set(name, path);
+        }
+      }
+    }
+  }
+  await walk("tests");
+  return errors;
+}
+
+export async function checkSpecifications(
+  root = repositoryRoot,
+  complete = false,
+) {
   const [files, validators] = await Promise.all([
     readSpecifications(root),
     loadSpecificationValidators(root),
@@ -448,6 +517,23 @@ export async function checkSpecifications(root = repositoryRoot) {
   const shapeErrors = validateSpecificationShapes(files, validators);
   if (shapeErrors.length) throw new Error(shapeErrors.join("\n"));
   const references = await validateSpecificationReferences(files, root);
-  if (references.errors.length) throw new Error(references.errors.join("\n"));
-  return { files: files.length, ...references };
+  const ownershipErrors = await validateCanonicalTestOwnership(files, root);
+  const missing = files
+    .flatMap(({ data }) => collectRequirements(data))
+    .filter((requirement) => !requirement.acceptance)
+    .map((requirement) => requirement.id);
+  const errors = [
+    ...references.errors,
+    ...ownershipErrors,
+    ...(complete
+      ? missing.map((id) => `${id}: missing canonical acceptance test`)
+      : []),
+  ];
+  if (errors.length) throw new Error(errors.join("\n"));
+  return {
+    files: files.length,
+    ...references,
+    missing,
+    complete: missing.length === 0,
+  };
 }

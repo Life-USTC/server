@@ -10,7 +10,6 @@ import { checkSpecifications, collectRequirements } from "./validate";
 import { repositoryRoot } from "./yaml";
 
 export type EvidenceStatus =
-  | "missing-scenarios"
   | "missing-tests"
   | "not-run"
   | "skipped"
@@ -212,7 +211,6 @@ export function parseNativeReport(
 }
 
 const precedence: EvidenceStatus[] = [
-  "missing-scenarios",
   "missing-tests",
   "failed",
   "skipped",
@@ -286,26 +284,14 @@ export function buildEvidenceReport(
 ) {
   const requirements = files.flatMap(({ path, data }) =>
     collectRequirements(data).map((requirement) => {
-      const scenarios = (requirement.acceptance ?? []).map((scenario) => {
-        const tests = (scenario.tests ?? []).map((test) =>
-          matchTest(test, observations),
-        );
-        return {
-          id: scenario.id,
-          status: tests.length
-            ? combinedStatus(tests.map((test) => test.status))
-            : ("missing-tests" as EvidenceStatus),
-          tests,
-        };
-      });
+      const test = requirement.acceptance?.test;
+      const result = test ? matchTest(test, observations) : undefined;
       return {
         document: path,
         id: requirement.id,
         structured: "expectation" in requirement,
-        status: scenarios.length
-          ? combinedStatus(scenarios.map((scenario) => scenario.status))
-          : ("missing-scenarios" as EvidenceStatus),
-        scenarios,
+        status: result?.status ?? ("missing-tests" as EvidenceStatus),
+        test: result,
       };
     }),
   );
@@ -353,12 +339,11 @@ export function buildEvidenceReport(
       unstructured: requirements.length - structured.length,
       ...counts,
     },
-    // No typed requirements is not an evidence pass. Legacy prose gaps remain
-    // visible without pretending that their conversion has already happened.
+    // Completeness applies to every requirement, regardless of its representation.
     gatePassed:
       executionFailures.length === 0 &&
-      structured.length > 0 &&
-      structured.every((requirement) => requirement.status === "passed"),
+      requirements.length > 0 &&
+      requirements.every((requirement) => requirement.status === "passed"),
   };
 }
 
@@ -508,7 +493,7 @@ export async function runEvidenceCoverage(
   } else process.stdout.write(json);
   if (enforce && !report.gatePassed)
     throw new Error(
-      "Specification evidence gate failed; inspect executionFailures and requirement/scenario statuses in the report",
+      "Specification evidence gate failed; inspect executionFailures and requirement statuses in the report",
     );
   return report;
 }
