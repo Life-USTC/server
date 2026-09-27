@@ -193,13 +193,13 @@ export type SettingsOAuthAuthorization = {
 };
 
 export type SettingsUser = {
-  accountCount: number;
   name?: string | null;
   username?: string | null;
 };
 
 export type SettingsAccount = {
   id: string;
+  canUnlink: boolean;
   linked: boolean;
   name: string;
   providerAccountId?: string | null;

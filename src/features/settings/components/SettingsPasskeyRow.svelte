@@ -1,4 +1,5 @@
 <script lang="ts">
+import { invalidateAll } from "$app/navigation";
 import type { Passkey } from "@better-auth/passkey";
 import {
   passkeyAuthClient,
@@ -31,6 +32,7 @@ $: hasNameChange = name.trim().length > 0 && name.trim() !== displayName;
 
 function errorMessage(error: unknown) {
   const kind = passkeyClientErrorKind(error);
+  if (kind === "last-method") return copy.profile.cannotDisconnectLast;
   if (kind === "stale-session") return copy.settings.passkeys.staleSession;
   if (kind === "duplicate") return copy.settings.passkeys.duplicate;
   if (kind === "cancelled") return copy.settings.passkeys.cancelled;
@@ -72,11 +74,13 @@ async function deletePasskey() {
       id: passkey.id,
     });
     if (result.error) {
+      deleteOpen = false;
       reportStatus({ kind: "error", message: errorMessage(result.error) });
       return;
     }
     deleteOpen = false;
     onSuccess(copy.settings.passkeys.deleted);
+    await invalidateAll();
   } catch {
     deleteOpen = false;
     reportStatus({

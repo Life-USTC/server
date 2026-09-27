@@ -1,4 +1,5 @@
 <script lang="ts">
+import { invalidateAll } from "$app/navigation";
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
@@ -64,6 +65,7 @@ async function addPasskey() {
     status = null;
     toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
+    await invalidateAll();
   } catch {
     status = {
       kind: "error",

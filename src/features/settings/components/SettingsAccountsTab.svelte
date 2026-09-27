@@ -8,7 +8,6 @@ import type {
   SettingsAccountAction,
   SettingsCopy,
   SettingsPendingAccountAction,
-  SettingsUser,
 } from "./settings-component-types";
 
 export let accountAction: SettingsAccountAction;
@@ -19,7 +18,6 @@ export let isMounted: boolean;
 export let pendingAccountAction: SettingsPendingAccountAction;
 export let unlinkAccount: SettingsAccount | null;
 export let unlinkAccountId: string | null;
-export let user: SettingsUser;
 </script>
 
 <section
@@ -36,7 +34,6 @@ export let user: SettingsUser;
         {isMounted}
         {pendingAccountAction}
         bind:unlinkAccountId
-        {user}
       />
     {/each}
   </Item.Group>

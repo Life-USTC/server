@@ -260,6 +260,7 @@ GRANT DELETE ON TABLE "User" TO life_ustc_function_owner;
 GRANT SELECT, DELETE ON TABLE
   "Account",
   "VerifiedEmail",
+  "Passkey",
   "OAuthAccessToken",
   "OAuthRefreshToken",
   "DeviceCode",
@@ -298,7 +299,7 @@ ALTER FUNCTION public.delete_own_account(
   text,
   text
 ) OWNER TO life_ustc_function_owner;
-ALTER FUNCTION public.unlink_settings_account(text, text)
+ALTER FUNCTION public.remove_sign_in_method(text, text, text, jsonb)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.find_downloadable_upload(text)
   OWNER TO life_ustc_function_owner;
@@ -414,7 +415,7 @@ CREATE POLICY "OAuthGrantUsageDaily_function_owner"
   ON "OAuthGrantUsageDaily"
   FOR ALL TO life_ustc_function_owner USING (true) WITH CHECK (true);
 
-GRANT EXECUTE ON FUNCTION public.unlink_settings_account(text, text)
+GRANT EXECUTE ON FUNCTION public.remove_sign_in_method(text, text, text, jsonb)
   TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION
   public.find_downloadable_upload(text),

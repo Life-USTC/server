@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
@@ -68,6 +68,8 @@ async function createSessionCookie() {
 
 describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
   beforeAll(async () => {
+    vi.stubEnv("AUTH_GOOGLE_ID", "test-google");
+    vi.stubEnv("AUTH_GOOGLE_SECRET", "test-google-secret");
     const user = await fixturePrisma.user.create({
       data: {
         email: `auth-lifecycle-${marker}@example.test`,
@@ -80,7 +82,7 @@ describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
               providerAccountId: `github-${marker}`,
             },
             {
-              issuer: "https://google.example",
+              issuer: "https://accounts.google.com",
               provider: "google",
               providerAccountId: `google-${marker}`,
             },
@@ -97,6 +99,7 @@ describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
   });
 
   afterAll(async () => {
+    vi.unstubAllEnvs();
     await fixturePrisma.auditLog.deleteMany({
       where: {
         OR: [{ id: replayAuditId }, { userId }, { subjectUserId: userId }],

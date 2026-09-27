@@ -6,6 +6,10 @@ import { listOwnAccountSecurityActivityPage } from "@/features/settings/server/a
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { listUserUstcIdentities } from "@/features/settings/server/user-ustc-identity-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import {
+  enabledSignInProviders,
+  hasUsableAccount,
+} from "@/lib/auth/sign-in-methods";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
 
@@ -13,6 +17,7 @@ export type SettingsAccountProvider = {
   id: "oidc" | "github" | "google";
   name: string;
   linked: boolean;
+  canUnlink: boolean;
   accountId: string | null;
   providerAccountId: string | null;
   ustcIdentities: UserUstcIdentitySummary | null;
@@ -35,42 +40,52 @@ export async function getSettingsPageData(
 ) {
   const sessionUser = await requireSettingsUser(request, url);
   const loadUstcIdentities = tab === "accounts";
-  const [user, accounts, authorizations, ustcIdentities, securityActivity] =
-    await Promise.all([
-      prisma.user.findUnique({
-        where: { id: sessionUser.id },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          email: true,
-          image: true,
-          profilePictures: true,
-        },
-      }),
-      authPrisma.account.findMany({
-        where: { userId: sessionUser.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          provider: true,
-          providerAccountId: true,
-          createdAt: true,
-        },
-      }),
-      tab === "authorizations"
-        ? listUserOAuthAuthorizations(sessionUser.id)
-        : Promise.resolve([]),
-      loadUstcIdentities
-        ? listUserUstcIdentities(sessionUser.id)
-        : Promise.resolve({ upstreamUids: [], records: [] }),
-      tab === "security"
-        ? listOwnAccountSecurityActivityPage(sessionUser.id, {
-            cursor: url.searchParams.get("cursor"),
-            limit: 20,
-          })
-        : Promise.resolve({ hasCursor: false, items: [], nextCursor: null }),
-    ]);
+  const [
+    user,
+    accounts,
+    authorizations,
+    ustcIdentities,
+    securityActivity,
+    passkeyCount,
+  ] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        image: true,
+        profilePictures: true,
+      },
+    }),
+    authPrisma.account.findMany({
+      where: { userId: sessionUser.id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        provider: true,
+        password: true,
+        issuer: true,
+        userId: true,
+        providerAccountId: true,
+        createdAt: true,
+      },
+    }),
+    tab === "authorizations"
+      ? listUserOAuthAuthorizations(sessionUser.id)
+      : Promise.resolve([]),
+    loadUstcIdentities
+      ? listUserUstcIdentities(sessionUser.id)
+      : Promise.resolve({ upstreamUids: [], records: [] }),
+    tab === "security"
+      ? listOwnAccountSecurityActivityPage(sessionUser.id, {
+          cursor: url.searchParams.get("cursor"),
+          limit: 20,
+        })
+      : Promise.resolve({ hasCursor: false, items: [], nextCursor: null }),
+    authPrisma.passkey.count({ where: { userId: sessionUser.id } }),
+  ]);
 
   if (!user) {
     throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
@@ -80,6 +95,17 @@ export async function getSettingsPageData(
     accounts,
     ustcIdentities,
   );
+
+  const enabledProviders = enabledSignInProviders();
+  for (const provider of accountProviders) {
+    provider.canUnlink =
+      passkeyCount > 0 ||
+      accounts.some(
+        (account) =>
+          account.id !== provider.accountId &&
+          hasUsableAccount(account, enabledProviders),
+      );
+  }
 
   return {
     tab,
@@ -98,7 +124,6 @@ export async function getSettingsPageData(
       email: user.email,
       image: user.image,
       profilePictures: user.profilePictures,
-      accountCount: accounts.length,
     },
     accounts: accountProviders,
     authorizations,

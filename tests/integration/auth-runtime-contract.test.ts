@@ -227,7 +227,7 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
         },
         {
           signature:
-            "public.unlink_settings_account(p_user_id text, p_provider text):EXECUTE",
+            "public.remove_sign_in_method(p_user_id text, p_kind text, p_key text, p_enabled_providers jsonb):EXECUTE",
         },
       ]);
     });

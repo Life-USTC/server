@@ -30,6 +30,9 @@ export const betterAuthAccountOptions = {
     // User-initiated linking must support providers like USTC OIDC that do
     // not expose the user's email and therefore use a local fallback email.
     allowDifferentEmails: true,
+    // The adapter enforces the atomic usable-provider/passkey invariant.
+    // Better Auth's account-row count cannot recognize a remaining passkey.
+    allowUnlinkingAll: true,
   },
   fields: {
     providerId: "provider",

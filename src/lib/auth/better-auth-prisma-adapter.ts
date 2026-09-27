@@ -1,5 +1,7 @@
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
 import type { PrismaClient } from "@/generated/prisma/client";
+import { removeSignInMethod } from "./sign-in-methods";
 
 function isOAuthRefreshTokenLookup(input: {
   model: string;
@@ -39,6 +41,25 @@ export function createBetterAuthPrismaAdapter(prisma: PrismaClient) {
       }
       return row;
     };
-    return { ...adapter, findOne };
+    const remove: typeof adapter.delete = async (input) => {
+      const model = input.model.toLowerCase();
+      if (model !== "account" && model !== "passkey")
+        return adapter.delete(input);
+      const row = await adapter.findOne<{ id: string; userId: string }>(input);
+      if (!row) return;
+      const result = await removeSignInMethod(
+        prisma,
+        row.userId,
+        model,
+        row.id,
+      );
+      if (result === "last_account") {
+        throw new APIError("BAD_REQUEST", {
+          code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
+          message: "Cannot remove the last usable sign-in method",
+        });
+      }
+    };
+    return { ...adapter, findOne, delete: remove };
   };
 }

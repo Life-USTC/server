@@ -212,3 +212,127 @@ test("cases.account.username-change-2", async ({ page }) => {
     await user.cleanup();
   }
 });
+
+test("cases.account.oauth-connection-error-2", async ({ page }) => {
+  test.setTimeout(90_000);
+  const user = await accountFixture(page);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  const { authenticatorId } = await cdp.send(
+    "WebAuthn.addVirtualAuthenticator",
+    {
+      options: {
+        protocol: "ctap2",
+        ctap2Version: "ctap2_1",
+        transport: "internal",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    },
+  );
+  const account = await withE2ePrisma((db) =>
+    db.account.create({
+      data: {
+        userId: user.id,
+        provider: "github",
+        providerAccountId: `github-${user.id}`,
+        issuer: "https://github.com",
+      },
+    }),
+  );
+  await withE2ePrisma((db) =>
+    db.account.create({
+      data: {
+        userId: user.id,
+        provider: "disabled-provider",
+        providerAccountId: `disabled-${user.id}`,
+        issuer: "https://disabled.example",
+      },
+    }),
+  );
+  try {
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
+    const github = page.getByRole("listitem").filter({ hasText: "GitHub" });
+    await expect(
+      github.getByRole("button", { name: /断开连接|Disconnect/i }),
+    ).toBeDisabled();
+    await expect(
+      github.getByText(/不能断开|无法断开|至少|Cannot disconnect|last/i),
+    ).toBeVisible();
+    const denied = await page.request.post("/api/auth/unlink-account", {
+      data: { accountId: account.id },
+      headers: { origin: new URL(page.url()).origin },
+    });
+    expect(denied.status()).toBe(400);
+    expect(
+      await withE2ePrisma((db) =>
+        db.account.count({ where: { id: account.id } }),
+      ),
+    ).toBe(1);
+
+    const passkeys = page.locator("[data-passkey-settings]");
+    await passkeys.getByLabel(/通行密钥名称|Passkey name/i).fill("Policy key");
+    await passkeys
+      .getByRole("button", { name: /添加通行密钥|Add passkey/i })
+      .click();
+    await expect(
+      passkeys.getByLabel(/重命名 Policy key|Rename Policy key/i),
+    ).toHaveValue("Policy key");
+    await expect(
+      github.getByRole("button", { name: /断开连接|Disconnect/i }),
+    ).toBeEnabled();
+    await github.getByRole("button", { name: /断开连接|Disconnect/i }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: /断开连接|Disconnect/i })
+      .click();
+    await expect
+      .poll(() =>
+        withE2ePrisma((db) => db.account.count({ where: { id: account.id } })),
+      )
+      .toBe(0);
+
+    await page.locator("#app-user-menu").getByRole("button").click();
+    await page.getByRole("menuitem", { name: /登出|Sign Out/i }).click();
+    await gotoAndWaitForReady(
+      page,
+      "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Faccounts",
+    );
+    await page
+      .getByRole("button", { name: /使用通行密钥登录|Sign in with a passkey/i })
+      .click();
+    await expect(page).toHaveURL(/\/account\/settings\/accounts(?:\?.*)?$/);
+    expect(
+      (await (await page.request.get("/api/auth/get-session")).json()).user.id,
+    ).toBe(user.id);
+    const key = await withE2ePrisma((db) =>
+      db.passkey.findFirstOrThrow({ where: { userId: user.id } }),
+    );
+    expect(
+      (
+        await page.request.post("/api/auth/passkey/delete-passkey", {
+          data: { id: key.id },
+          headers: { origin: new URL(page.url()).origin },
+        })
+      ).status(),
+    ).toBe(400);
+    await expect
+      .poll(() =>
+        withE2ePrisma((db) =>
+          db.auditLog.count({
+            where: {
+              userId: user.id,
+              action: "account_passkey_delete",
+            },
+          }),
+        ),
+      )
+      .toBeGreaterThan(0);
+  } finally {
+    await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
+    await cdp.send("WebAuthn.disable");
+    await user.cleanup();
+  }
+});

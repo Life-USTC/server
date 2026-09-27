@@ -201,7 +201,6 @@ onMount(() => {
           pendingAccountAction={_pendingAccountAction}
           unlinkAccount={_unlinkAccount}
           bind:unlinkAccountId={_unlinkAccountId}
-          user={data.user}
         />
       {:else if data.tab === "authorizations"}
         <SettingsAuthorizationsTab

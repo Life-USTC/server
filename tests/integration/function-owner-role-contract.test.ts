@@ -159,7 +159,7 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.unlink_settings_account(p_user_id text, p_provider text)",
+      "public.remove_sign_in_method(p_user_id text, p_kind text, p_key text, p_enabled_providers jsonb)",
     volatility: "VOLATILE",
   },
 ] as const;
@@ -188,6 +188,8 @@ const expectedTablePrivileges = [
   "public.OAuthGrantUsageDaily:UPDATE",
   "public.OAuthRefreshToken:DELETE",
   "public.OAuthRefreshToken:SELECT",
+  "public.Passkey:DELETE",
+  "public.Passkey:SELECT",
   "public.PrometheusCounter:INSERT",
   "public.PrometheusCounter:SELECT",
   "public.PrometheusCounter:UPDATE",

@@ -29,6 +29,38 @@ requirements:
   rule: Removing a linked sign-in provider must not leave the account with no usable sign-in method. The server
     evaluates the remaining permitted providers and passkeys at mutation time; the settings UI displays an
     explicit refusal when removal would leave none.
+  acceptance:
+    given: A signed-in user has a linked GitHub account and an unavailable provider, but no passkey.
+    when: The user views account settings and attempts direct unlinking, then registers a passkey with a
+      browser authenticator, unlinks GitHub through settings, signs out, and signs in with that passkey.
+    then:
+    - The initial disconnect control is disabled with an explanation, and direct unlinking is rejected without
+      deleting the account.
+    - After passkey registration, settings allows unlinking; the retained passkey successfully authenticates
+      the same user, and its removal as the sole usable method is rejected.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.oauth-connection-error-2
+- id: cases.account.sign-in-method-removal-atomic
+  category: authorization
+  topic: oauth-connection-error
+  rule: Settings provider removal, direct authentication unlinking, and passkey removal share an atomic
+    last-usable-method guard. Concurrent provider and passkey removals cannot leave an account without a
+    permitted provider, enabled password credential, or passkey.
+  acceptance:
+    given: Isolated users have an enabled GitHub provider, a disabled Google provider, a password credential,
+      or a stored passkey in combinations that exercise the last usable method.
+    when: Settings and direct authentication endpoints remove methods, and concurrent provider/passkey
+      removals target the same user.
+    then:
+    - Disabled providers do not permit removing the last usable method; an enabled provider or passkey does.
+    - A password without the required local issuer and user subject does not count; after correction the
+      retained password credential successfully authenticates the same user.
+    - Direct unlinking recognizes a remaining passkey, and deleting the sole passkey is rejected.
+    - Each concurrent pair permits exactly one removal and leaves exactly one usable method persisted.
+    test:
+      file: tests/integration/sign-in-method-removal.test.ts
+      name: cases.account.sign-in-method-removal-atomic
 - id: cases.account.account-deletion-1
   category: behavior
   topic: account-deletion
