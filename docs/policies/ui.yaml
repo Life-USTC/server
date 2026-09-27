@@ -973,6 +973,17 @@ requirements:
   rule: Rendered pages provide one localized description and one Open Graph/Twitter card set. Account, OAuth,
     admin, and private workspace metadata uses non-sensitive page descriptions and never embeds credentials
     or private task content.
+  acceptance:
+    given: The complete rendered-page inventory, every settings and workspace tab, and isolated catalog, activity, publication, profile, incomplete-welcome, private-task and OAuth-client fixtures.
+    when: Chinese and English browsers visit every page with credential-like continuation parameters, using the appropriate anonymous, user or administrator session.
+    then:
+    - Raw SSR and hydrated head metadata agree, with exactly one nonempty description, canonical link and complete localized Open Graph/Twitter card set per page.
+    - Every page has matching card descriptions, titles and image metadata, canonical URLs omit continuation parameters, and descriptions change with the selected locale.
+    - Private surfaces use controlled descriptions; no tested card contains private task title/body, calendar token, client secret, authorization code, OAuth state, private user identity or application name.
+    - Every document loads successfully at its intended route without browser console errors or uncaught page errors.
+    test:
+      file: tests/e2e/src/app/shared-policy/social-metadata-matrix.test.ts
+      name: ui.social-sharing-metadata-1
 - id: ui.social-sharing-metadata-2
   category: presentation
   topic: social-sharing-metadata
