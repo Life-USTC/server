@@ -51,6 +51,15 @@ requirements:
   category: consistency
   rule: Incomplete, completed and overdue summary counts cover all of the authenticated owner's todos
     regardless of list filters. The returned list remains bounded by its requested limit.
+  acceptance:
+    given: The owner has completed, undated, overdue and future todos.
+    when: The real summary service lists one row with all, completed and incomplete filters.
+    then:
+    - Counts always include the complete owner task population.
+    - Each returned list obeys its limit and selected completion filter.
+    test:
+      file: tests/integration/todo-overview-counts.test.ts
+      name: todo.bounded-summary-read
 - id: todo.mobile-toolbar-priority
   category: presentation
   rule: At mobile widths, completion-status filters stay directly available and todos use cards. Desktop

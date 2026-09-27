@@ -121,20 +121,23 @@ describe("overview todo bundle counts", () => {
     expect(fusedCounts.dueSoon).toBe(dueSoon);
   });
 
-  it("keeps complete summary counts independent from the bounded list filters", async () => {
-    const summary = await listTodoSummary({
-      filters: { completed: true },
-      now,
-      take: 1,
-      userId,
-    });
+  it("todo.bounded-summary-read", async () => {
+    for (const completed of [undefined, true, false]) {
+      const summary = await listTodoSummary({
+        filters: { completed },
+        now,
+        take: 1,
+        userId,
+      });
 
-    expect(summary.counts).toEqual({
-      incomplete: 4,
-      completed: 1,
-      overdue: 1,
-    });
-    expect(summary.todos).toHaveLength(1);
-    expect(summary.todos[0]?.completed).toBe(true);
+      expect(summary.counts).toEqual({
+        incomplete: 4,
+        completed: 1,
+        overdue: 1,
+      });
+      expect(summary.todos).toHaveLength(1);
+      if (completed !== undefined)
+        expect(summary.todos[0]?.completed).toBe(completed);
+    }
   });
 });

@@ -60,10 +60,22 @@ requirements:
       name: calendar.feed-cache-refresh
 - id: calendar.teaching-assistant-homework
   category: consistency
-  rule: Personal calendar views, event sources, and iCal feeds preserve actual completion records but
-    exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline
-    TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed
-    promptly.
+  rule: Personal pending-homework reads and calendar export sources preserve actual completion records.
+    For teaching-assistant subscriptions, incomplete homework stops being pending at its due instant;
+    undated homework stays pending in workspace lists but produces no dated calendar event. Unified calendar
+    events and ICS include only future dated, uncompleted TA homework.
+  acceptance:
+    given: A teaching-assistant subscription has past, exact-deadline, future, undated and actually completed
+      homework.
+    when: The real pending read, unified calendar event service and ICS exporter read the same owner at
+      the due boundary.
+    then:
+    - Only future uncompleted dated homework enters unified calendar and ICS.
+    - Undated homework remains pending but has no dated calendar event.
+    - Existing completion timestamps are unchanged.
+    test:
+      file: tests/integration/calendar-teaching-assistant-contract.test.ts
+      name: calendar.teaching-assistant-homework
 - id: calendar.revoked-feed-access
   category: privacy
   rule: The personal-feed access gate rejects a revoked credential with 410 and private, no-store, without

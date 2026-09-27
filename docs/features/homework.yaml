@@ -172,6 +172,16 @@ requirements:
   rule: Setting completed=true on an existing completion preserves its original completedAt; repeated
     single and batch completion requests are idempotent. Setting false removes the completion, and a subsequent
     true records a new completion time.
+  acceptance:
+    given: A persisted completion already has an original timestamp.
+    when: Real single and batch setters receive repeated true, false, then repeated true writes.
+    then:
+    - Repeated true preserves the original timestamp.
+    - False removes completion; the next true creates a new timestamp that later retries preserve.
+    - The final persisted database timestamp matches the returned state.
+    test:
+      file: tests/integration/calendar-write-state.test.ts
+      name: homework.completion-set-idempotency
 - id: homework.moderation-delete
   category: authorization
   applies_to:
