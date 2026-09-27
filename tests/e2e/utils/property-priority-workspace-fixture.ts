@@ -144,8 +144,23 @@ export async function createWorkspacePriorityFixture() {
         dueAt: new Date(`${today}T11:45:00+08:00`),
       },
     });
+    const activity = await db.youngEvent.create({
+      data: {
+        youngId: `priority-activity-${catalog.marker}`,
+        name: `Activity ${catalog.marker}`,
+        startAt: new Date(`${today}T17:00:00+08:00`),
+        endAt: new Date(`${today}T18:00:00+08:00`),
+        isActive: true,
+        location: `Activity room ${catalog.marker}`,
+        rawJson: {},
+      },
+    });
+    await db.userYoungEventSubscription.create({
+      data: { userId: user.id, youngId: activity.youngId, observedState: "{}" },
+    });
     return {
       catalog,
+      activity,
       user,
       semester,
       section,
@@ -171,6 +186,7 @@ export async function cleanupWorkspacePriorityFixture(
   await withE2ePrisma(async (db) => {
     await db.homework.delete({ where: { id: data.homework.id } });
     await db.user.delete({ where: { id: data.user.id } });
+    await db.youngEvent.delete({ where: { youngId: data.activity.youngId } });
     await cleanupCatalogContractFixture(db, data.catalog);
     await db.examBatch.delete({ where: { id: data.batch.id } });
     await db.room.delete({ where: { id: data.room.id } });

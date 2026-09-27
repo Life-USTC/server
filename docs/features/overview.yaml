@@ -312,6 +312,15 @@ capabilities:
           - upcomingExams.examDate
           tertiary:
           - focus.key
+        # Each horizontally scrollable week card identifies its business object;
+        # time/type and extra context stay subordinate to that title.
+        web-week-strip:
+          primary:
+          - days.events.title
+          secondary:
+          - days.events.time
+          - days.events.meta
+          tertiary: []
         mcp-workspace-overview-get:
           primary:
           - overview.pendingHomeworksCount
@@ -466,3 +475,4 @@ rationale:
   class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter
   counts and samples suffice.
 - The loader returns localized static copy only and performs no business-data queries.
+- The overview week strip uses each business title as its identity on desktop and mobile; time and additional context stay subordinate within that individual card. Event-type labels are included for academic/task cards; subscribed activity cards identify their specific title and location.

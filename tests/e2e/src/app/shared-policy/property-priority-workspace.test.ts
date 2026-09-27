@@ -2,6 +2,7 @@ import { test } from "@playwright/test";
 import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { createPriorityViewAudit } from "../../../utils/property-priority";
 import { checkWorkspaceCalendarPriorityViews } from "../../../utils/property-priority-workspace-calendar";
+import { checkWorkspaceEventPriorityViews } from "../../../utils/property-priority-workspace-events";
 import {
   cleanupWorkspacePriorityFixture,
   createWorkspacePriorityFixture,
@@ -11,7 +12,7 @@ import { checkWorkspaceTaskPriorityViews } from "../../../utils/property-priorit
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
 test("ui.model-property-priority-workspace-views", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   page.setDefaultTimeout(5_000);
   const data = await createWorkspacePriorityFixture();
   try {
@@ -24,11 +25,18 @@ test("ui.model-property-priority-workspace-views", async ({ page }) => {
         .addCookies([
           { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
         ]);
+      const audit = createPriorityViewAudit("workspace");
       for (const width of [1280, 390]) {
         await page.setViewportSize({ width, height: 844 });
-        const audit = createPriorityViewAudit("workspace");
         await checkWorkspaceTaskPriorityViews(audit, page, data, locale, width);
         await checkWorkspaceOverviewPriorityViews(
+          audit,
+          page,
+          data,
+          locale,
+          width,
+        );
+        await checkWorkspaceEventPriorityViews(
           audit,
           page,
           data,
@@ -42,8 +50,10 @@ test("ui.model-property-priority-workspace-views", async ({ page }) => {
           locale,
           width,
         );
-        audit.finish();
       }
+      // Grid views exist on desktop; mobile owns the responsive agenda. Both
+      // widths execute every applicable view before the full inventory closes.
+      audit.finish();
     }
   } finally {
     await cleanupWorkspacePriorityFixture(data);

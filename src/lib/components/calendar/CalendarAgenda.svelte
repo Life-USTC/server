@@ -51,7 +51,7 @@ export let todayLabel: string;
                       {event.title}
                     </Item.Title>
                     <Item.Description>
-                      {event.label}{event.meta ? ` · ${event.meta}` : ""}
+                      {event.label}{event.meta ? ` · ${event.meta}` : ""}{event.detail ? ` · ${event.detail}` : ""}
                     </Item.Description>
                   </Item.Content>
                 </a>

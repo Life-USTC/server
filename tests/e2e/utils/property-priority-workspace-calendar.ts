@@ -3,7 +3,6 @@ import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { gotoAndWaitForReady } from "./page-ready";
 import type {
   createPriorityViewAudit,
-  PriorityField,
   VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
@@ -33,66 +32,6 @@ export async function checkWorkspaceCalendarPriorityViews(
   const teacherName = local(catalog.teachers[0], locale);
   const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
   const roomName = local(room, locale);
-  const dayUrl = `/workspace/calendar?calendarView=day&calendarDay=${data.today}&calendarSemester=${data.semester.id}`;
-  await gotoAndWaitForReady(page, dayUrl);
-  const agenda = main.getByTestId("calendar-agenda").filter({ visible: true });
-  const event = agenda
-    .locator(`a[href="/catalog/sections/${section.jwId}"]`)
-    .first();
-  const identity = event.locator('[data-slot="item-title"]');
-  const eventPrimary: Record<string, PriorityField> = {
-    "event.title": field(identity, courseName),
-    "event.startAt": text(event, "08:00"),
-    "event.endAt": text(event, "09:35"),
-    "event.type": text(event, locale === "en-us" ? "Courses" : "课程"),
-  };
-  const eventSecondary = {
-    "event.location": text(event, roomName),
-    "event.teachers": text(event, teacherName),
-  };
-  await audit.check({
-    feature: "calendar",
-    capability: "event-card",
-    view: "web",
-    scope: event,
-    identity,
-    primary: eventPrimary,
-    secondary: eventSecondary,
-    tertiary: { "event.id": { value: `session-${schedule.id}` } },
-  });
-  await audit.check({
-    feature: "calendar",
-    capability: "personal-calendar-view",
-    view: "web",
-    scope: main,
-    identity,
-    primary: eventPrimary,
-    secondary: eventSecondary,
-    tertiary: { "event.id": { value: `session-${schedule.id}` } },
-  });
-  const dayHeading = agenda.locator("h2").first();
-  await audit.check({
-    feature: "schedule",
-    capability: "my-schedule",
-    view: "web",
-    scope: agenda,
-    identity,
-    primary: {
-      "section.course.namePrimary": field(identity, courseName),
-      "schedule.date": field(
-        dayHeading,
-        new RegExp(String(Number(data.today.slice(8)))),
-      ),
-      "schedule.startTime": text(event, "08:00"),
-      "schedule.endTime": text(event, "09:35"),
-    },
-    secondary: {
-      "schedule.room.namePrimary": text(event, roomName),
-      "schedule.teachers.namePrimary": text(event, teacherName),
-    },
-    tertiary: { "schedule.id": { value: String(schedule.id) } },
-  });
-
   await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#calendar`);
   const table = main.getByTestId("section-calendar-table");
   const row = table.getByRole("row").filter({ hasText: "08:00" });

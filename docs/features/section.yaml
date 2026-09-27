@@ -598,3 +598,4 @@ rationale:
 - A section is a specific teaching class for a course in a given semester.
 
 - The former section.public-web-personal-overlay is owned by rendering-and-cache.web-rendering-and-cache-1 for public HTML and page-data and description.public-web-personal-overlay for public descriptions. Private Section projections and deep-link gates remain independent requirements.
+- The section iCalendar Web dialog explains the scope of the feed. Its description is user-facing context; the iCalendar format is separately enforced by protocol requirements.

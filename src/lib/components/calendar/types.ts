@@ -37,7 +37,7 @@ export type CalendarGridWeek = {
 
 export type CalendarAgendaEvent = Pick<
   CalendarGridEvent,
-  "badge" | "done" | "label" | "meta"
+  "badge" | "done" | "label" | "meta" | "detail"
 > & {
   href: string;
   title: string;

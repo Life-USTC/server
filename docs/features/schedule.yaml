@@ -151,7 +151,18 @@ capabilities:
     presentation:
       kind: fields
       views:
-        web:
+        web-agenda:
+          primary:
+          - section.course.namePrimary
+          - schedule.date
+          - schedule.startTime
+          - schedule.endTime
+          secondary:
+          - schedule.room.namePrimary
+          - schedule.teachers.namePrimary
+          tertiary:
+          - schedule.id
+        web-desktop-grid:
           primary:
           - section.course.namePrimary
           - schedule.date
@@ -311,3 +322,4 @@ rationale:
   in one top-level Section query while preserving includeSection output semantics.
 - GraphQL Schedule is currently a private workspace relation, while public schedule lists and Section
   schedules are exposed through REST/MCP; their transport obligations are separate.
+- Personal schedule agenda fields apply to desktop day and mobile calendar views. Desktop grid fields apply to week/month/semester grids; the date belongs to its grid cell and complete place/teacher context remains available by hovering the class.

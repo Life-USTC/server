@@ -276,7 +276,7 @@ capabilities:
     presentation:
       kind: fields
       views:
-        web:
+        web-agenda:
           primary:
           - event.title
           - event.startAt
@@ -287,6 +287,18 @@ capabilities:
           - event.teachers
           # Day/week/month views identify events by their actual dates. Semester
           # selection belongs to semester navigation, not every event card.
+          tertiary:
+          - event.id
+        # Desktop week/month/semester cells show the name and time first. Full
+        # place/teacher context remains available through the actual tooltip.
+        web-desktop-grid:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.teachers
           tertiary:
           - event.id
         mcp-workspace-calendar-event-list:
@@ -361,9 +373,8 @@ capabilities:
           - event.teachers
           tertiary:
           - event.id
-      items:
-      - Month and week views preserve today highlighting and Monday-first weekdays
     requirement_refs:
+    - calendar.week-starts-monday
     - section.retired-read-semantics
   event-card:
     title: Event Card
@@ -374,7 +385,7 @@ capabilities:
     presentation:
       kind: fields
       views:
-        web:
+        web-agenda-class:
           primary:
           - event.title
           - event.startAt
@@ -385,7 +396,96 @@ capabilities:
           - event.teachers
           tertiary:
           - event.id
+        web-agenda-exam:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.mode
+          - event.location
+          tertiary:
+          - event.id
+        web-agenda-homework:
+          primary:
+          - event.title
+          - event.dueAt
+          - event.type
+          secondary:
+          - event.description
+          tertiary:
+          - event.id
+        web-agenda-todo:
+          primary:
+          - event.title
+          - event.dueAt
+          - event.type
+          secondary:
+          - event.priority
+          - event.content
+          tertiary:
+          - event.id
+        web-desktop-grid-class:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
+        web-desktop-grid-exam:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.mode
+          - event.location
+          tertiary:
+          - event.id
+        web-desktop-grid-homework:
+          primary:
+          - event.title
+          - event.dueAt
+          secondary:
+          - event.description
+          tertiary:
+          - event.id
+        web-desktop-grid-todo:
+          primary:
+          - event.title
+          - event.dueAt
+          secondary:
+          - event.priority
+          - event.content
+          tertiary:
+          - event.id
+        web-agenda-activity:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          tertiary:
+          - event.id
+        web-desktop-grid-activity:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          tertiary:
+          - event.id
       items:
       - Event popovers expose the available location.
     requirement_refs:
     - section.retired-read-semantics
+rationale:
+- Personal calendar day, week and month events are identified by their actual dates; semester context belongs to navigation instead of repeating on every event.
+- Calendar agenda views apply on desktop day view and mobile day/week/month/semester views. Desktop grid views apply to week/month/semester cells, where the business title and time identify each item; full class location and teachers remain available in the tooltip. Event type labels are explicit in the agenda, while compact grid cells use established type styling and exam labels.
+- Class and exam cards have start/end times and locations. Homework and todo cards have a due time and task context, so separate field views avoid pretending every event has a location or end time.

@@ -61,7 +61,10 @@ export function personalItemsForDay(
       href: item.url,
       title: item.title,
       label: item.title,
-      meta: item.at ? shanghaiDayjs(item.at).format("HH:mm") : "",
+      meta: [item.at, item.endsAt]
+        .filter((value): value is string => Boolean(value))
+        .map((value) => shanghaiDayjs(value).format("HH:mm"))
+        .join("–"),
       detail: item.location ?? "",
       sort: item.at
         ? shanghaiDayjs(item.at).hour() * 100 + shanghaiDayjs(item.at).minute()

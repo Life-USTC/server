@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test";
+import { type Locator, type Page, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
 import type {
   createPriorityViewAudit,
@@ -108,6 +108,57 @@ export async function checkWorkspaceOverviewPriorityViews(
       ),
     },
     tertiary: { "focus.key": { value: `todo-${todo.id}` } },
+  });
+  // The same real week-strip cards scroll into view at both widths.
+  for (const item of [
+    {
+      title: data.activity.name,
+      time: "17:00",
+      meta: data.activity.location ?? "",
+    },
+    {
+      title: courseName,
+      time: "08:00",
+      meta: "09:35",
+    },
+    {
+      title: todo.title,
+      time: "11:45",
+      meta: todo.content ?? "",
+    },
+    {
+      title: homework.title,
+      time: "12:30",
+      meta: `Instructions ${catalog.marker}`,
+    },
+  ]) {
+    const card = week.getByRole("link").filter({ hasText: item.title }).first();
+    const cardTitle = card.locator('[data-slot="item-title"]');
+    const metadata = (expected: string) =>
+      field(
+        card
+          .locator('[data-slot="item-description"]')
+          .filter({ hasText: expected })
+          .first(),
+        expected,
+      );
+    await audit.check({
+      feature: "overview",
+      capability: "authenticated-overview",
+      view: "web-week-strip",
+      scope: card,
+      identity: cardTitle,
+      primary: { "days.events.title": field(cardTitle, item.title) },
+      secondary: {
+        "days.events.time": metadata(item.time),
+        "days.events.meta": metadata(item.meta),
+      },
+      tertiary: {},
+    });
+  }
+  await test.info().attach(`overview-week-priority-${locale}-${width}`, {
+    body: await week.screenshot(),
+    contentType: "image/png",
   });
   if (width < 768)
     await page.getByRole("button", { name: /^(菜单|Menu)$/i }).click();

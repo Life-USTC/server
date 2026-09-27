@@ -475,3 +475,4 @@ capabilities:
 rationale:
 - Personal Web role badges and unchanged course titles are canonically owned by calendar.subscription-badges;
   teaching-assistant ICS prefixes remain owned by subscription.ta-calendar-label.
+- Bulk-import confirmation identifies each matched course by name. The pasted public code and semester distinguish the match without requiring users to decode a code as the title.

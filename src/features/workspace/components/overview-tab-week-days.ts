@@ -37,12 +37,14 @@ export function overviewCalendarWeekDays(
       isToday: dayKey === overviewCalendar.todayDate,
       events: timelineItems.map((item) => ({
         href: item.href,
-        label:
-          item.sort === 2400
-            ? item.label
-            : `${fmtTime(item.sort)} ${item.label}`,
-        title: item.title,
-        meta: item.meta,
+        label: item.title,
+        meta:
+          item.label === item.title
+            ? item.meta
+            : item.sort === 2400
+              ? item.label
+              : `${fmtTime(item.sort)} ${item.label}`,
+        detail: item.label === item.title ? item.detail : item.meta,
         tone: item.tone,
         done: item.done,
       })),
