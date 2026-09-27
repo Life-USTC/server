@@ -73,24 +73,42 @@ test("calendar.views", async ({ page }) => {
   }
 });
 
-test("calendar.week-starts-sunday", async ({ page }) => {
+test("calendar.week-starts-monday", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await owner(page, 0);
   for (const view of ["semester", "month", "week"]) {
     await gotoAndWaitForReady(page, fixture.academicUrl(view));
+    if (view === "week")
+      await page.screenshot({
+        path: testInfo.outputPath("academic-week.png"),
+        fullPage: true,
+      });
     const headers = page
       .getByTestId("workspace-calendar-grid")
       .getByRole("columnheader");
     await expect(headers).toHaveCount(8);
     expect((await headers.allTextContents()).slice(1)).toEqual([
-      "Sun",
       "Mon",
       "Tue",
       "Wed",
       "Thu",
       "Fri",
       "Sat",
+      "Sun",
     ]);
+    const courseCell = page
+      .getByTestId("workspace-calendar-grid")
+      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+      .first()
+      .locator('xpath=ancestor::*[@role="gridcell"][1]');
+    await expect(courseCell).toContainText("04-29");
+    expect(
+      await courseCell.evaluate((cell) =>
+        Array.from(
+          cell.parentElement?.querySelectorAll('[role="gridcell"]') ?? [],
+        ).indexOf(cell),
+      ),
+    ).toBe(2);
   }
   await activityCalendar(page);
   for (const label of [/^(Week|周)$/, /^(Month|月)$/]) {

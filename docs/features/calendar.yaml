@@ -61,20 +61,21 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/calendar/test.ts
       name: calendar.mobile-agenda-first
-- id: calendar.week-starts-sunday
+- id: calendar.week-starts-monday
   category: presentation
-  rule: Existing academic grids start on Sunday; activity calendars use Monday-start weeks.
-  rationale: 'Product decision required: Existing implementation is not a product reason for Sunday academic
-    and Monday activity calendars in one workspace; mixed subscriptions expose inconsistency.'
+  rule: All personal academic and activity calendar grids start on Monday and end on Sunday. Date cells
+    remain aligned with their weekday headers.
+  rationale: One weekday order keeps dates in the same columns when viewers change mode or add course
+    subscriptions, matching the campus workweek.
   acceptance:
     given: Two isolated owners open academic and activity-only personal calendars in English.
     when: The real academic semester/month/week grids and activity week/month grids render.
     then:
-    - Academic grid headers are ordered Sunday through Saturday.
-    - Activity grid headers are ordered Monday through Sunday.
+    - Academic and activity grids order weekday headers Monday through Sunday.
+    - Date cells and their actual course events align with the matching weekday column.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
-      name: calendar.week-starts-sunday
+      name: calendar.week-starts-monday
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop

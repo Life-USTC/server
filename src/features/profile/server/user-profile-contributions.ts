@@ -105,8 +105,9 @@ export async function buildUserProfileContributions(
       .filter(({ date }) => date >= startDateKey && date <= todayKey)
       .map(({ count, date }) => [date, count]),
   );
-  const gridStartKey = campusWeekStartKey(startDateKey);
-  const gridEndKey = addCampusDays(campusWeekStartKey(todayKey), 6);
+  // Contribution heatmaps retain their Sunday-first row labels.
+  const gridStartKey = campusWeekStartKey(startDateKey, 0);
+  const gridEndKey = addCampusDays(campusWeekStartKey(todayKey, 0), 6);
   const days: ContributionCell[] = campusDateKeyRange(
     gridStartKey,
     gridEndKey,

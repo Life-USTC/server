@@ -10,12 +10,12 @@ export function buildCalendarWeekdayLabels(sectionCopy: {
   };
 }) {
   return [
-    sectionCopy.weekdays.shortSunday,
     sectionCopy.weekdays.shortMonday,
     sectionCopy.weekdays.shortTuesday,
     sectionCopy.weekdays.shortWednesday,
     sectionCopy.weekdays.shortThursday,
     sectionCopy.weekdays.shortFriday,
     sectionCopy.weekdays.shortSaturday,
+    sectionCopy.weekdays.shortSunday,
   ];
 }
