@@ -142,7 +142,7 @@ test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({
+test("openapi.todo-created-status", async ({
   request,
 }) => {
   await signInAsDebugUserApi(request, "/");

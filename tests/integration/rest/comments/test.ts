@@ -2,7 +2,7 @@
  * E2E tests for GET /api/community/comments and POST /api/community/comments.
  *
  * ## GET /api/community/comments
- * - Query: targetType (section|course|teacher|homework|section-teacher|young-event), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, youngId, page, pageSize (deprecated alias: limit)
+ * - Query: targetType (section|course|teacher|homework|section-teacher|young-event), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, youngId, page, pageSize
  * - Response: { data: CommentNode[], pagination, meta: { hiddenCount, viewer, target } }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
@@ -312,7 +312,7 @@ test("/api/community/comments GET 按根评论分页并保留有界回复树", a
     });
 
     const secondResponse = await request.get(
-      `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&page=2&limit=1`,
+      `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&page=2&pageSize=1`,
     );
     expect(secondResponse.status()).toBe(200);
     const second = (await secondResponse.json()) as CommentListResponse;
@@ -601,9 +601,7 @@ test("/api/community/comments POST 拒绝匿名可见性", async ({ request }) =
   expect(created).toBeNull();
 });
 
-test("/api/community/comments POST 登录后可发布新评论并清理", async ({
-  request,
-}) => {
+test("openapi.comment-created-status", async ({ request }) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 

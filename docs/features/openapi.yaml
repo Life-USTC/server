@@ -305,11 +305,57 @@ requirements:
   rule: Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages.
     Resource-specific list metadata is nested under meta instead of introducing alternate collection keys;
     REST and equivalent MCP list tools share this core envelope.
-- id: openapi.created-resource-status
+- id: openapi.todo-created-status
   category: consistency
-  rule: POST /api/workspace/todos, /api/community/comments, /api/community/section-homeworks, and /api/admin/suspensions
-    return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting
-    operations continue to return 200.
+  rule: Creating a Todo through POST /api/workspace/todos returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new Todo request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/workspace/todos.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/todos/test.ts
+      name: openapi.todo-created-status
+- id: openapi.homework-created-status
+  category: consistency
+  rule: Creating a section homework through POST /api/community/section-homeworks returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new section homework request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/community/section-homeworks.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/homeworks/test.ts
+      name: openapi.homework-created-status
+- id: openapi.comment-created-status
+  category: consistency
+  rule: Creating a comment through POST /api/community/comments returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new comment request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/community/comments.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/comments/test.ts
+      name: openapi.comment-created-status
+- id: openapi.suspension-created-status
+  category: consistency
+  rule: Creating a suspension through POST /api/admin/suspensions returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new suspension request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/admin/suspensions.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/admin/suspensions/test.ts
+      name: openapi.suspension-created-status
+- id: openapi.state-setting-status
+  category: consistency
+  rule: Successful idempotent upserts and state-setting REST operations return 200 rather than advertising creation of a distinct resource with 201.
 - id: openapi.schema-query-parsing
   category: validation
   rule: Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are

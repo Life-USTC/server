@@ -94,7 +94,7 @@ export async function assertApiContract(
 ) {
   switch (routePath) {
     case "/api/catalog/sections": {
-      const response = await request.get("/api/catalog/sections?limit=20");
+      const response = await request.get("/api/catalog/sections?pageSize=20");
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         data?: Array<{

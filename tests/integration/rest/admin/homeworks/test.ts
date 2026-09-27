@@ -156,7 +156,7 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
 
   test("无效 limit 参数返回 400", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const response = await request.get(`${BASE}?limit=not-a-number`);
+    const response = await request.get(`${BASE}?pageSize=not-a-number`);
     expect(response.status()).toBe(400);
   });
 });

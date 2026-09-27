@@ -26,14 +26,14 @@ test.describe("GET /api/community/users/[identifier]", () => {
         username?: string | null;
         _count?: { comments?: number; uploads?: number };
       };
-      sectionCount?: number;
       weeks?: Array<Array<{ date?: string; count?: number }>>;
       totalContributions?: number;
     };
 
     expect(body.user?.name).toBe(DEV_SEED.debugName);
     expect(body.user?.username).toBe(DEV_SEED.debugUsername);
-    expect(typeof body.sectionCount).toBe("number");
+    expect(body).not.toHaveProperty("sectionCount");
+    expect(body.user?._count).not.toHaveProperty("subscribedSections");
     expect(typeof body.user?._count?.comments).toBe("number");
     expect(typeof body.user?._count?.uploads).toBe("number");
     expect((body.weeks?.length ?? 0) > 0).toBe(true);

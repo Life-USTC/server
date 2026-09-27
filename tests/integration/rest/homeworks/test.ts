@@ -185,7 +185,7 @@ test("/api/community/section-homeworks POST 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/section-homeworks POST 登录后可创建作业并清理", async ({
+test("openapi.homework-created-status", async ({
   request,
 }) => {
   await signInAsDebugUserApi(request, "/");

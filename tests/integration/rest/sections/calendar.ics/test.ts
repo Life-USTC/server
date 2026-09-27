@@ -70,6 +70,7 @@ test("/api/catalog/sections/calendar.ics rejects 51 unique IDs", async ({
 
 test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({
   request,
+  baseURL,
 }) => {
   const response = await request.get(
     "/api/catalog/sections/calendar.ics?sectionIds=3,1,3",
@@ -78,7 +79,8 @@ test("/api/catalog/sections/calendar.ics canonicalizes duplicate IDs", async ({
 
   expect(response.status()).toBe(308);
   expect(response.headers().location).toBe(
-    "http://localhost:3000/api/catalog/sections/calendar.ics?sectionIds=1%2C3",
+    new URL("/api/catalog/sections/calendar.ics?sectionIds=1%2C3", baseURL)
+      .href,
   );
 });
 

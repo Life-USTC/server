@@ -57,7 +57,7 @@ export async function assertApiContract(
 ) {
   switch (routePath) {
     case "/api/catalog/sections": {
-      const response = await request.get("/api/catalog/sections?limit=20");
+      const response = await request.get("/api/catalog/sections?pageSize=20");
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         data?: Array<{
@@ -163,24 +163,22 @@ export async function assertApiContract(
           _count?: {
             comments?: number;
             homeworksCreated?: number;
-            subscribedSections?: number;
             uploads?: number;
           };
         };
-        sectionCount?: number;
         totalContributions?: number;
         weeks?: unknown[];
       };
       expect(body.user?.id).toBeTruthy();
       expect(body.user?.name).toBe(DEV_SEED.debugName);
       expect(body.user?.username).toBe(DEV_SEED.debugUsername);
-      expect(typeof body.sectionCount).toBe("number");
+      expect(body).not.toHaveProperty("sectionCount");
+      expect(body.user?._count).not.toHaveProperty("subscribedSections");
       expect(typeof body.totalContributions).toBe("number");
       expect(Array.isArray(body.weeks)).toBe(true);
       expect(typeof body.user?._count?.comments).toBe("number");
       expect(typeof body.user?._count?.uploads).toBe("number");
       expect(typeof body.user?._count?.homeworksCreated).toBe("number");
-      expect(typeof body.user?._count?.subscribedSections).toBe("number");
       return;
     }
 

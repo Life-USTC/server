@@ -60,7 +60,7 @@ test.describe("GET /api/admin/comments 评论列表", () => {
   test("管理员可翻到第二页且不会重复第一条评论", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
     const firstResponse = await request.get(`${BASE}?page=1&pageSize=1`);
-    const secondResponse = await request.get(`${BASE}?page=2&limit=1`);
+    const secondResponse = await request.get(`${BASE}?page=2&pageSize=1`);
     expect(firstResponse.status()).toBe(200);
     expect(secondResponse.status()).toBe(200);
     const first = (await firstResponse.json()) as {
