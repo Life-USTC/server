@@ -763,7 +763,7 @@ describe("其他请求 schema", () => {
       adminUsersQuerySchema,
     ]) {
       expect(schema.safeParse({ pageSize: "50" }).success).toBe(true);
-      expect(schema.safeParse({ limit: "50" }).success).toBe(true);
+      expect(schema.safeParse({ limit: "50" }).success).toBe(false);
       expect(schema.safeParse({ page: "2" }).success).toBe(true);
       expect(schema.safeParse({ pageSize: "201" }).success).toBe(false);
     }
