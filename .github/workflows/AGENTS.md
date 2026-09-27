@@ -2,7 +2,7 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
+| CI (`ci.yml`) | push main, PRs, manual | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | Bun job | workflow_call | Reusable non-DB Bun job for static checks, unit coverage, and builds |
