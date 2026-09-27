@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { todoExpectation } from "../../../shared/specifications/todo";
 
 const requireAuthMock = vi.fn();
 const updateOwnedTodoMock = vi.fn();
@@ -45,6 +46,52 @@ const sampleTodo = {
 };
 
 describe("patchTodoBatchRoute", () => {
+  it("enforces specified PATCH collection boundaries", async () => {
+    const rule = await todoExpectation(
+      "todo.rest-batch-patch-bounds",
+      "collection_input",
+    );
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    updateOwnedTodoMock.mockResolvedValue({ ok: true, todo: sampleTodo });
+    const { patchTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+    const [method, path] = rule.operation.split(" ");
+    const send = (ids: string[]) =>
+      patchTodoBatchRoute(
+        new Request(`https://example.test${path}`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            [rule.input]: ids.map((todoId) => ({ todoId, completed: true })),
+          }),
+        }),
+      );
+    for (const count of [rule.min_items, rule.max_items]) {
+      updateOwnedTodoMock.mockClear();
+      const response = await send(
+        Array.from({ length: count }, (_, i) => `todo-${i}`),
+      );
+      expect(response.status).toBe(200);
+      expect((await response.json()).results).toHaveLength(count);
+      expect(updateOwnedTodoMock).toHaveBeenCalledTimes(count);
+    }
+    for (const count of [rule.min_items - 1, rule.max_items + 1]) {
+      updateOwnedTodoMock.mockClear();
+      expect(
+        (await send(Array.from({ length: count }, (_, i) => `todo-${i}`)))
+          .status,
+      ).toBe(400);
+      expect(updateOwnedTodoMock).not.toHaveBeenCalled();
+    }
+    updateOwnedTodoMock.mockClear();
+    const duplicateResponse = await send(["todo-duplicate", "todo-duplicate"]);
+    expect(duplicateResponse.status).toBe(rule.unique_items ? 400 : 200);
+    expect(updateOwnedTodoMock).toHaveBeenCalledTimes(
+      rule.unique_items ? 0 : 2,
+    );
+  });
+
   afterEach(() => {
     requireAuthMock.mockReset();
     updateOwnedTodoMock.mockReset();
@@ -204,6 +251,50 @@ describe("patchTodoBatchRoute", () => {
 });
 
 describe("deleteTodoBatchRoute", () => {
+  it("enforces specified DELETE collection boundaries", async () => {
+    const rule = await todoExpectation(
+      "todo.rest-batch-delete-bounds",
+      "collection_input",
+    );
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    deleteOwnedTodoMock.mockResolvedValue({ ok: true });
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+    const [method, path] = rule.operation.split(" ");
+    const send = (ids: string[]) =>
+      deleteTodoBatchRoute(
+        new Request(`https://example.test${path}`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [rule.input]: ids }),
+        }),
+      );
+    for (const count of [rule.min_items, rule.max_items]) {
+      deleteOwnedTodoMock.mockClear();
+      const response = await send(
+        Array.from({ length: count }, (_, i) => `todo-${i}`),
+      );
+      expect(response.status).toBe(200);
+      expect((await response.json()).results).toHaveLength(count);
+      expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(count);
+    }
+    for (const count of [rule.min_items - 1, rule.max_items + 1]) {
+      deleteOwnedTodoMock.mockClear();
+      expect(
+        (await send(Array.from({ length: count }, (_, i) => `todo-${i}`)))
+          .status,
+      ).toBe(400);
+      expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
+    }
+    deleteOwnedTodoMock.mockClear();
+    const duplicateResponse = await send(["todo-duplicate", "todo-duplicate"]);
+    expect(duplicateResponse.status).toBe(rule.unique_items ? 400 : 200);
+    expect(deleteOwnedTodoMock).toHaveBeenCalledTimes(
+      rule.unique_items ? 0 : 2,
+    );
+  });
+
   afterEach(() => {
     requireAuthMock.mockReset();
     deleteOwnedTodoMock.mockReset();

@@ -20,6 +20,7 @@
  * - Empty state shown when filter yields no matching todos
  */
 import { expect, type Page, test } from "@playwright/test";
+import { todoExpectation } from "../../../../../shared/specifications/todo";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   closeDetailDialog,
@@ -94,21 +95,25 @@ test.describe("仪表盘待办", () => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
-    await page.setViewportSize({ height: 844, width: 390 });
+    const target = await todoExpectation(
+      "todo.web-create-target",
+      "target_size",
+    );
+    await page.setViewportSize(target.viewport);
     await signInAsDebugUser(page, "/workspace/todos");
 
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId("workspace-todos-add");
+    const add = page.getByTestId(target.target);
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(0);
 
     for (const control of [incomplete, add]) {
       const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(target.min_height);
+      expect(box?.width).toBeGreaterThanOrEqual(target.min_width);
     }
 
     const all = page.getByRole("radio", { name: /全部|All/i }).first();
@@ -193,8 +198,16 @@ test.describe("仪表盘待办", () => {
   test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
+    const titleRule = await todoExpectation(
+      "todo.web-completed-title",
+      "state_presentation",
+    );
     const completedFilter = page
-      .getByRole("radio", { name: /已完成|Completed/i })
+      .getByRole("radio", {
+        name: titleRule.state.completed
+          ? /已完成|Completed/i
+          : /未完成|Incomplete/i,
+      })
       .first();
     const completedTodo = visibleText(page, DEV_SEED.todos.completedTitle);
     await completedFilter.click();
@@ -211,9 +224,10 @@ test.describe("仪表盘待办", () => {
       name: DEV_SEED.todos.completedTitle,
     });
     await expect(completedDetail).toBeVisible();
-    await expect(
-      completedDetail.locator('[data-slot="dialog-title"]'),
-    ).toHaveClass(/line-through/);
+    await expect(completedDetail.locator(titleRule.target)).toHaveCSS(
+      "text-decoration-line",
+      titleRule.text_decoration,
+    );
     // The single-column popup moved the priority badge out of the dialog
     // description and into the facts table; the severity variant is unchanged.
     await expect(
@@ -246,6 +260,23 @@ test.describe("仪表盘待办", () => {
       summary.getByText(/待处理|已完成|Pending|Completed/i).first(),
     ).toBeVisible();
 
+    const actionsRule = await todoExpectation(
+      "todo.web-detail-actions",
+      "ordered_items",
+    );
+    const actionLabels = {
+      delete: /删除待办|Delete todo/i,
+      completion: /标记为完成|Mark as complete/i,
+      edit: /编辑待办|Edit Todo/i,
+    };
+    const footer = dialog.locator(actionsRule.target);
+    const buttons = footer.getByRole("button");
+    await expect(buttons).toHaveCount(actionsRule.items.length);
+    for (const [index, action] of actionsRule.items.entries()) {
+      await expect(buttons.nth(index)).toHaveAccessibleName(
+        actionLabels[action],
+      );
+    }
     await expectDialogAction(dialog, /删除待办|Delete todo/i);
     await expectDialogAction(dialog, /编辑待办|Edit Todo/i);
     await expectDialogAction(dialog, /标记为完成|Mark as complete/i);

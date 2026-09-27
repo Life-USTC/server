@@ -18,8 +18,14 @@
  * - Non-owner PATCH/DELETE → 404, with the owner's todo unchanged
  * - Creates temporary todos for mutation tests (cleanup via DELETE)
  */
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import {
+  type APIRequestContext,
+  expect,
+  type PlaywrightWorkerArgs,
+  test,
+} from "@playwright/test";
 import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
+import { todoExpectation } from "../../../../shared/specifications/todo";
 import { signInAsDebugUserApi, signInAsDevAdminApi } from "../../_harness/auth";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -159,4 +165,98 @@ test("/api/workspace/todos/[id] DELETE 登录后可删除待办", async ({
     todos?: Array<{ id?: string }>;
   };
   expect(listBody.todos?.some((todo) => todo.id === todoId)).toBe(false);
+});
+
+async function assertSpecifiedOwnership(
+  playwright: PlaywrightWorkerArgs["playwright"],
+  requirementId: string,
+) {
+  const rule = await todoExpectation(requirementId, "authorization");
+  const user = await playwright.request.newContext();
+  const admin = await playwright.request.newContext();
+  const anonymous = await playwright.request.newContext();
+  try {
+    await signInAsDebugUserApi(user);
+    await signInAsDevAdminApi(admin);
+    const [method, path] = rule.operation.split(" ");
+    for (const scenario of rule.cases) {
+      const actor = scenario.role === "admin" ? admin : user;
+      const owner =
+        scenario.relationship === "owner"
+          ? actor
+          : scenario.role === "admin"
+            ? user
+            : admin;
+      const caller = scenario.authenticated ? actor : anonymous;
+      const sessionResponse = await caller.get("/api/auth/get-session");
+      const session = (await sessionResponse.json()) as {
+        user?: { id: string; isAdmin: boolean };
+      } | null;
+      expect(Boolean(session?.user)).toBe(scenario.authenticated);
+      if (session?.user) {
+        expect(session.user.isAdmin).toBe(scenario.role === "admin");
+        const suspensionCount = await withE2ePrisma((prisma) =>
+          prisma.userSuspension.count({
+            where: {
+              userId: session.user?.id,
+              liftedAt: null,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
+          }),
+        );
+        expect(suspensionCount > 0).toBe(scenario.suspended);
+      }
+
+      const title = `e2e-todo-spec-${scenario.id}-${crypto.randomUUID()}`;
+      const id = await createTodo(owner, title);
+      try {
+        const before = await withE2ePrisma((prisma) =>
+          prisma.todo.findUniqueOrThrow({ where: { id } }),
+        );
+        if (session?.user)
+          expect(before.userId === session.user.id).toBe(
+            scenario.relationship === "owner",
+          );
+        const response = await caller.fetch(path.replace("[id]", id), {
+          method,
+          ...(method === "PATCH" ? { data: { completed: true } } : {}),
+        });
+        const statuses = { allowed: 200, not_found: 404, unauthenticated: 401 };
+        expect(response.status(), scenario.id).toBe(statuses[scenario.outcome]);
+        const after = await withE2ePrisma((prisma) =>
+          prisma.todo.findUnique({ where: { id } }),
+        );
+        if (scenario.outcome === "allowed") {
+          if (method === "PATCH") expect(after?.completed).toBe(true);
+          else expect(after).toBeNull();
+        } else {
+          for (const effect of rule.denied_effects) {
+            switch (effect) {
+              case "todo":
+                expect(after).toEqual(before);
+                break;
+              default:
+                throw new Error(`Unverified denied effect: ${effect}`);
+            }
+          }
+        }
+      } finally {
+        await owner.delete(path.replace("[id]", id));
+      }
+    }
+  } finally {
+    await Promise.all([user.dispose(), admin.dispose(), anonymous.dispose()]);
+  }
+}
+
+test("enforces specified PATCH ownership through the real REST endpoint", async ({
+  playwright,
+}) => {
+  await assertSpecifiedOwnership(playwright, "todo.rest-patch-ownership");
+});
+
+test("enforces specified DELETE ownership through the real REST endpoint", async ({
+  playwright,
+}) => {
+  await assertSpecifiedOwnership(playwright, "todo.rest-delete-ownership");
 });
