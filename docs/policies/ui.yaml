@@ -76,8 +76,20 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: Collection pages use the shared PageLayout, PageHeader, and Panel primitives, with filters before the
-    results summary and results, followed by pagination.
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel, with visible filters before the result summary and records, followed by pagination.
+  rationale: Administrative and personal workspaces deliberately use their shared workspace structures; ui.layout-principles-4 owns primitive reuse. Their applicable collection ordering remains in ui.other-collection-order.
+  acceptance:
+    given: Isolated data provides more than one page of results for each of the six public browse collections.
+    when: A browser opens the filtered first page at mobile and desktop widths.
+    then:
+    - The shared page frame contains its heading and panel; visible filters precede the result summary and records, and pagination follows in the panel footer.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.list-table-1
+- id: ui.other-collection-order
+  category: presentation
+  topic: list-table
+  rule: Other collection surfaces, including link and publication-source directories, workspace uploads and activity reminders, and administrative lists, put their page heading before the applicable filters, result summary and records; available pagination follows the records. Their layout uses the shared primitives required by ui.layout-principles-4.
 - id: ui.list-table-2
   category: presentation
   topic: list-table
@@ -139,8 +151,19 @@ requirements:
 - id: ui.list-table-6
   category: presentation
   topic: list-table
-  rule: At narrow widths, compact lists do not cause horizontal document overflow. Wide comparison tables retain
-    their required columns inside a horizontally scrollable table region.
+  rule: Outside the six public browse collections covered by ui.public-browse-responsive-lists, compact lists do not cause horizontal document overflow at narrow widths. Wide comparison tables retain their required columns inside a horizontally scrollable table region.
+- id: ui.public-browse-responsive-lists
+  category: presentation
+  topic: list-table
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections display compact records without horizontal document overflow at narrow widths, including long entity names and publication summaries.
+  acceptance:
+    given: Isolated long-name records populate the first page of each of the six public browse collections.
+    when: A browser opens each filtered collection at 320 and 390 pixels and scrolls every record into view.
+    then:
+    - Twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow and the active pagination page remains identified.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.public-browse-responsive-lists
 - id: ui.list-table-7
   category: presentation
   topic: list-table
@@ -1176,8 +1199,20 @@ requirements:
 - id: ui.list-pagination-filter-state
   category: presentation
   topic: list-table
-  rule: Collection pagination links preserve the applied search query and filters while changing only pagination
+  rule: Outside the six public browse collections covered by ui.public-browse-pagination-state, collection pagination links preserve the applied search query and filters while changing only pagination
     state; browser back/forward restores the corresponding query and results.
+- id: ui.public-browse-pagination-state
+  category: presentation
+  topic: list-table
+  rule: Pagination links in public course, teacher, section, Young event, Young organizer and news browse collections preserve all applied search/filter values while changing only the page. Browser back and forward restore that query and its corresponding records.
+  acceptance:
+    given: Each public collection has two result pages under its supported search and filters.
+    when: The browser inspects every pagination link, activates page two with the keyboard, and traverses back and forward.
+    then:
+    - Every link preserves the applied query apart from page; the two pages show disjoint records and browser history restores each page's query, records and active page marker.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.public-browse-pagination-state
 - id: ui.theme-system-response
   category: presentation
   topic: shell-layout
