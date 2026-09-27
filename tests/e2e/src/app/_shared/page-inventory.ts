@@ -1091,7 +1091,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "calendar-export",
         e2eSpec: E2E.workspaceCalendar,
-        evidence: "复制日历链接生成有效的 iCal URL",
+        evidence: "ical.copyable-links",
       },
       {
         id: "homework-crud",
@@ -1137,7 +1137,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "calendar-feed-copy",
         e2eSpec: E2E.workspaceSubscriptions,
-        evidence: "复制日历链接生成有效的 iCal URL",
+        evidence: "ical.copyable-links",
       },
     ],
   },

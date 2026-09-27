@@ -27,6 +27,7 @@ describe("MCP 作业日期解析", () => {
 
     expect(parseToolPayload(result.result)).toEqual({
       message: "Submission start must be before due",
+      error: "invalid_dates",
       success: false,
     });
   });
