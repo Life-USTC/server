@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
   logServerActionErrorMock,
   requireSettingsUserMock,
-  resolveAuthoritativeRecentSessionMock,
+  resolveAuthoritativeSessionMock,
   revokeUserOAuthAuthorizationMock,
 } = vi.hoisted(() => ({
   logServerActionErrorMock: vi.fn(),
   requireSettingsUserMock: vi.fn(),
-  resolveAuthoritativeRecentSessionMock: vi.fn(),
+  resolveAuthoritativeSessionMock: vi.fn(),
   revokeUserOAuthAuthorizationMock: vi.fn(),
 }));
 
@@ -31,7 +31,7 @@ vi.mock("@/lib/audit/write-audit-log", () => ({
 }));
 
 vi.mock("@/lib/auth/recent-session", () => ({
-  resolveAuthoritativeRecentSession: resolveAuthoritativeRecentSessionMock,
+  resolveAuthoritativeSession: resolveAuthoritativeSessionMock,
 }));
 
 function request(origin?: string) {
@@ -54,11 +54,11 @@ describe("settings OAuth authorization action", () => {
     vi.resetModules();
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
     requireSettingsUserMock.mockReset();
-    resolveAuthoritativeRecentSessionMock.mockReset();
+    resolveAuthoritativeSessionMock.mockReset();
     revokeUserOAuthAuthorizationMock.mockReset();
     logServerActionErrorMock.mockReset();
     requireSettingsUserMock.mockResolvedValue({ id: "user-1" });
-    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+    resolveAuthoritativeSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-1",
       userId: "user-1",
@@ -175,10 +175,10 @@ describe("settings OAuth authorization action", () => {
     );
   });
 
-  it("rejects stale sessions with explicit reauthentication guidance", async () => {
-    resolveAuthoritativeRecentSessionMock.mockResolvedValue({
+  it("rejects a revoked authoritative session before revocation", async () => {
+    resolveAuthoritativeSessionMock.mockResolvedValue({
       ok: false,
-      reason: "session_not_fresh",
+      reason: "unauthenticated",
       sessionId: "session-1",
       userId: "user-1",
     });
@@ -186,14 +186,16 @@ describe("settings OAuth authorization action", () => {
       "@/features/settings/server/settings-authorization-actions"
     );
 
-    const result = await revokeSettingsAuthorizationAction({
-      locale: "en-us",
-      request: request("https://life.example"),
-      url: new URL("https://life.example/account/settings/authorizations"),
-    });
-    expect(result).toMatchObject({
-      status: 403,
-      data: { message: expect.stringMatching(/sign out and sign in again/i) },
+    await expect(
+      revokeSettingsAuthorizationAction({
+        locale: "en-us",
+        request: request("https://life.example"),
+        url: new URL("https://life.example/account/settings/authorizations"),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location:
+        "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Fauthorizations",
     });
     expect(revokeUserOAuthAuthorizationMock).not.toHaveBeenCalled();
   });

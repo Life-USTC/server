@@ -117,9 +117,9 @@ requirements:
   category: authorization
   rule: Adding credentials or linked accounts, expanding OAuth grants, changing passwords or email, deleting
     an account, and rotating calendar feed credentials require an authoritative session created within
-    the last 15 minutes. Revoking grants or sessions and reducing scopes require a valid authoritative
-    session, ownership and origin checks, but no new recent-authentication barrier. Stale authority-expanding
-    actions provide explicit sign-in guidance.
+    the last 15 minutes. Stale authority-expanding actions provide explicit sign-in guidance.
+  rationale: 'Revocation and scope reduction have their own valid-session requirements: reducing existing
+    authority does not require a new sign-in.'
 - id: user.oauth-authorization-management
   category: behavior
   rule: Settings presents linked sign-in identities separately from delegated application grants. Authorized-application
@@ -181,6 +181,68 @@ requirements:
     test:
       file: tests/integration/user-profile-contributions.test.ts
       name: user.private-workspace-profile-exclusion
+- id: user.session-revocation-valid-session
+  category: authorization
+  rule: Session revocation requires a valid authoritative session and does not require a recent sign-in.
+    Single-session, other-session, and all-session operations remove only the selected sessions belonging
+    to the actor.
+  applies_to:
+  - settings
+  acceptance:
+    given: A user has a valid session older than 15 minutes and another active owned session.
+    when: The user invokes single, other-session, or all-session revocation.
+    then:
+    - The selected owned sessions are removed.
+    - Another user's sessions are retained.
+    - The current session is retained except for revoke-all.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-valid-session
+- id: user.session-revocation-ownership
+  category: authorization
+  rule: Single-session revocation cannot delete a session belonging to another user, even when its token
+    is supplied.
+  applies_to:
+  - settings
+  acceptance:
+    given: The actor and another user each have an active session.
+    when: The actor submits the other user's session token to single-session revocation.
+    then:
+    - The other user's session is not deleted.
+    - The actor session remains valid.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-ownership
+- id: user.session-revocation-origin
+  category: authorization
+  rule: Cookie-authenticated session revocation rejects untrusted request origins before changing any
+    session.
+  applies_to:
+  - settings
+  acceptance:
+    given: An authenticated user has two active sessions.
+    when: Each session-revocation endpoint receives a foreign Origin.
+    then:
+    - Each response is 403.
+    - Neither session is deleted.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-origin
+- id: user.session-revocation-authoritative
+  category: authorization
+  rule: A revoked session cannot authorize session revocation; session validity is checked against authoritative
+    server state.
+  applies_to:
+  - settings
+  acceptance:
+    given: A signed cookie refers to a session that has been revoked.
+    when: The cookie calls each session-revocation endpoint.
+    then:
+    - Each request is unauthorized.
+    - Other owned sessions are unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-authoritative
 capabilities:
   sign-in:
     title: Sign In
@@ -326,6 +388,11 @@ capabilities:
       - Compact responsive section navigation with active-section description
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface
+    requirement_refs:
+    - user.session-revocation-valid-session
+    - user.session-revocation-ownership
+    - user.session-revocation-origin
+    - user.session-revocation-authoritative
   oauth-client-activity:
     title: Current OAuth Client Activity
     auth: user

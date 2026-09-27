@@ -117,9 +117,10 @@ requirements:
     to their Asia/Shanghai calendar day before querying @db.Date columns.
 - id: graphql.schema-evolution
   category: consistency
-  rule: CI compares the canonical SDL snapshot with the current executable schema and fails on drift.
-    Intentional changes update the snapshot and affected current clients together; historical schema compatibility
-    is not a requirement.
+  rule: CI checks the current executable schema against the canonical SDL snapshot. Pull requests compare
+    the snapshot with the base schema and require explicit graphql-breaking-approved acknowledgement for
+    breaking or dangerous changes. An intentional breaking change updates current contracts and clients
+    without a compatibility shim; approval skips only the base-schema change gate.
 - id: graphql.room-maps
   category: behavior
   rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,

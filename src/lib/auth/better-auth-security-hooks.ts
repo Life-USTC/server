@@ -258,9 +258,6 @@ const RECENT_AUTH_PATHS = new Set([
   "/passkey/delete-passkey",
   "/passkey/update-passkey",
   "/passkey/verify-registration",
-  "/revoke-other-sessions",
-  "/revoke-session",
-  "/revoke-sessions",
   "/set-password",
   "/unlink-account",
 ]);

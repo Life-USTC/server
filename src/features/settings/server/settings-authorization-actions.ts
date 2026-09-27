@@ -8,8 +8,9 @@ import {
   getAuditRequestMetadata,
 } from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { resolveAuthoritativeSession } from "@/lib/auth/recent-session";
 import { logServerActionError } from "@/lib/log/app-logger";
-import { authorizeRecentSettingsAction } from "./settings-recent-auth";
 
 function assertTrustedSettingsActionOrigin(request: Request) {
   const origin =
@@ -28,18 +29,22 @@ export async function revokeSettingsAuthorizationAction({
   assertTrustedSettingsActionOrigin(request);
   const copy = getSettingsCopy(locale);
   const user = await requireSettingsUser(request, url);
-  const recent = await authorizeRecentSettingsAction({
-    action: "oauth_authorization_revoke",
-    request,
-    targetType: "oauth_consent",
-    requestId,
-    userId: user.id,
+  const session = await resolveAuthoritativeSession(request.headers, {
+    expectedUserId: user.id,
   });
-  if (!recent.ok) {
-    return fail(403, {
-      kind: "authorizations",
-      message: copy.settings.recentAuthRequired,
+  if (!session.ok) {
+    await fireAuditLog({
+      action: "oauth_authorization_revoke",
+      channel: "web",
+      outcome: "denied",
+      subjectUserId: user.id,
+      targetType: "oauth_consent",
+      userId: user.id,
+      ...(session.sessionId ? { sessionId: session.sessionId } : {}),
+      metadata: { reason: session.reason },
+      ...getAuditRequestMetadata(request, requestId),
     });
+    throw redirect(303, buildSignInPageUrl(url.pathname + url.search));
   }
   const form = await request.formData();
   const consentId = String(form.get("consentId") ?? "").trim();
@@ -55,7 +60,7 @@ export async function revokeSettingsAuthorizationAction({
     result = await revokeUserOAuthAuthorization(user.id, consentId, {
       ...getAuditRequestMetadata(request, requestId),
       channel: "web",
-      sessionId: recent.sessionId,
+      sessionId: session.sessionId,
     });
   } catch (error) {
     logServerActionError("settings.authorization.revoke.failed", error, {
@@ -67,7 +72,7 @@ export async function revokeSettingsAuthorizationAction({
       action: "oauth_authorization_revoke",
       channel: "web",
       outcome: "failure",
-      sessionId: recent.sessionId,
+      sessionId: session.sessionId,
       subjectUserId: user.id,
       targetId: consentId,
       targetType: "oauth_consent",
@@ -84,7 +89,7 @@ export async function revokeSettingsAuthorizationAction({
       action: "oauth_authorization_revoke",
       channel: "web",
       outcome: "denied",
-      sessionId: recent.sessionId,
+      sessionId: session.sessionId,
       subjectUserId: user.id,
       targetId: consentId,
       targetType: "oauth_consent",

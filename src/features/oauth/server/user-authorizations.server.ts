@@ -4,6 +4,7 @@ import {
   writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { authPrisma as prisma } from "@/lib/db/auth-prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import {
   hasActiveOAuthUserGrant,
   type OAuthUserGrantIdentity,
@@ -416,51 +417,60 @@ export async function updateUserOAuthAuthorizationScopes(
   audit: OAuthAuthorizationAuditContext = SYSTEM_OAUTH_AUDIT_CONTEXT,
 ): Promise<UpdateUserOAuthAuthorizationScopesResult> {
   const normalizedScopes = [...new Set(scopes)].sort();
-  return prisma.$transaction(async (tx) => {
-    const consent = await tx.oAuthConsent.findFirst({
-      where: {
-        id: consentId,
-        userId,
-        client: NONTRUSTED_OAUTH_CLIENT_WHERE,
-      },
-      select: {
-        clientId: true,
-        client: { select: { scopes: true } },
-      },
-    });
-    if (!consent) return { ok: false, reason: "not_found" };
-    if (
-      !normalizedScopes.every((scope) => consent.client.scopes.includes(scope))
-    ) {
-      return { ok: false, reason: "invalid_scope" };
-    }
-
-    const grantId = await rotateGrantInTransaction(tx, {
-      clientId: consent.clientId,
-      consentId,
-      scopes: normalizedScopes,
-      userId,
-    });
-    if (!grantId) return { ok: false, reason: "not_found" };
-    await writeAuditLog(
-      {
-        action: "oauth_authorization_update",
-        oauthClientId: consent.clientId,
-        oauthGrantId: grantId,
-        subjectUserId: userId,
-        targetId: consentId,
-        targetType: "oauth_consent",
-        userId,
-        metadata: {
-          changedFields: ["scopes"],
-          scopeCount: normalizedScopes.length,
+  return runSerializableTransaction(
+    async (tx) => {
+      const consent = await tx.oAuthConsent.findFirst({
+        where: {
+          id: consentId,
+          userId,
+          client: NONTRUSTED_OAUTH_CLIENT_WHERE,
         },
-        ...audit,
-      },
-      tx,
-    );
-    return { ok: true, consentId, grantId, scopes: normalizedScopes };
-  });
+        select: {
+          clientId: true,
+          client: { select: { scopes: true } },
+          scopes: true,
+        },
+      });
+      if (!consent) return { ok: false, reason: "not_found" };
+      if (
+        !normalizedScopes.every(
+          (scope) =>
+            consent.scopes.includes(scope) &&
+            consent.client.scopes.includes(scope),
+        )
+      ) {
+        return { ok: false, reason: "invalid_scope" };
+      }
+
+      const grantId = await rotateGrantInTransaction(tx, {
+        clientId: consent.clientId,
+        consentId,
+        scopes: normalizedScopes,
+        userId,
+      });
+      if (!grantId) return { ok: false, reason: "not_found" };
+      await writeAuditLog(
+        {
+          action: "oauth_authorization_update",
+          oauthClientId: consent.clientId,
+          oauthGrantId: grantId,
+          subjectUserId: userId,
+          targetId: consentId,
+          targetType: "oauth_consent",
+          userId,
+          metadata: {
+            changedFields: ["scopes"],
+            scopeCount: normalizedScopes.length,
+          },
+          ...audit,
+        },
+        tx,
+      );
+      return { ok: true, consentId, grantId, scopes: normalizedScopes };
+    },
+    "Failed to reduce OAuth authorization scopes",
+    prisma,
+  );
 }
 
 export async function rotateOAuthUserGrantAfterConsent(input: {

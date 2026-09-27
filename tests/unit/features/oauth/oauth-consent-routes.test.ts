@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/core", () => ({
 }));
 
 vi.mock("@/lib/auth/recent-session", () => ({
-  resolveAuthoritativeRecentSession: vi.fn().mockResolvedValue({
+  resolveAuthoritativeSession: vi.fn().mockResolvedValue({
     ok: true,
     sessionId: "session-1",
     userId: "user-1",
@@ -65,7 +65,7 @@ describe("OAuth consent mutation routes", () => {
     getSessionFromHeadersMock.mockResolvedValue({ user: { id: "user-1" } });
   });
 
-  it("blocks direct use of the provider consent endpoint", async () => {
+  it("oauth.authorization-management.consent-mutations", async () => {
     const { authPostRoute } = await import("@/lib/api/routes/auth");
 
     const response = await authPostRoute(

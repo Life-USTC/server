@@ -61,6 +61,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock("@/lib/db/prisma", () => ({ prisma: {} }));
+
 vi.mock("@/lib/db/auth-prisma", () => ({
   authPrisma: {
     $transaction: mocks.transactionRunner,
@@ -638,6 +640,7 @@ describe("user OAuth authorizations", () => {
   it("rejects an unknown scope without rotating the user's grant", async () => {
     mocks.consentFindFirst.mockResolvedValue({
       client: { scopes: ["profile"] },
+      scopes: ["profile"],
       clientId: CLIENT_ID,
     });
     const { updateUserOAuthAuthorizationScopes } = await import(
@@ -654,6 +657,7 @@ describe("user OAuth authorizations", () => {
   it("normalizes scopes, rotates credentials, and records an update audit", async () => {
     mocks.consentFindFirst.mockResolvedValue({
       client: { scopes: ["calendar:read", "profile"] },
+      scopes: ["calendar:read", "profile"],
       clientId: CLIENT_ID,
     });
     mocks.accessDeleteMany.mockResolvedValue({ count: 3 });
@@ -707,6 +711,7 @@ describe("user OAuth authorizations", () => {
   it("returns not found when scope rotation loses its compare-and-set race", async () => {
     mocks.consentFindFirst.mockResolvedValue({
       client: { scopes: ["profile"] },
+      scopes: ["profile"],
       clientId: CLIENT_ID,
     });
     mocks.consentUpdateMany.mockResolvedValue({ count: 0 });
@@ -834,5 +839,26 @@ describe("user OAuth authorizations", () => {
         userId: USER_ID,
       }),
     ).resolves.toBeNull();
+  });
+
+  it("rejects client-allowlisted scope expansion outside the signed consent flow", async () => {
+    mocks.consentFindFirst.mockResolvedValue({
+      clientId: CLIENT_ID,
+      client: { scopes: ["profile", "email"] },
+      scopes: ["profile"],
+    });
+    mocks.accessDeleteMany.mockClear();
+    mocks.consentUpdateMany.mockClear();
+    const { updateUserOAuthAuthorizationScopes } = await import(
+      "@/features/oauth/server/user-authorizations.server"
+    );
+    expect(
+      await updateUserOAuthAuthorizationScopes(USER_ID, "consent-1", [
+        "profile",
+        "email",
+      ]),
+    ).toEqual({ ok: false, reason: "invalid_scope" });
+    expect(mocks.accessDeleteMany).not.toHaveBeenCalled();
+    expect(mocks.consentUpdateMany).not.toHaveBeenCalled();
   });
 });

@@ -149,18 +149,16 @@ requirements:
   - authorization-management
 - id: oauth.authorization-management.recent-auth-for-consent
   category: authorization
-  rule: Approving a new grant or expanding an existing grant requires an authoritative session created
-    within the last 15 minutes. A stale attempt emits a denied audit event and sign-in guidance without
-    issuing a code. Reducing or revoking existing authority requires a valid authoritative session and
-    the same ownership and origin checks, without a recent-authentication requirement.
+  rule: Approving a new grant or expanding an existing grant requires an authoritative server-side session
+    created within the last 15 minutes. A stale attempt records a denied audit event and returns sign-in
+    guidance without issuing a code.
   applies_to:
   - authorization-management
 - id: oauth.authorization-management.ownership-scoped-transaction
   category: authorization
-  rule: A signed-in user may revoke only their own client grant through a trusted-origin request using
-    a valid authoritative session. Revocation atomically removes that user-client pair's consents, token
-    rows, pending or approved device codes, and usage aggregates together with its audit event. A stale
-    but valid session does not prevent revocation.
+  rule: Grant revocation atomically removes the selected user-client pair's consents, access-token rows,
+    refresh-token rows, pending or approved device codes, and usage aggregates together with its audit
+    event.
   applies_to:
   - authorization-management
 - id: oauth.authorization-management.active-user-grant-enforcement
@@ -189,12 +187,130 @@ requirements:
   - authorization-management
 - id: oauth.authorization-management.consent-mutations
   category: behavior
-  rule: Every consent mutation enforces the authenticated owner and trusted origin. Scope reduction and
-    revocation invalidate affected token generations; authority expansion requires recent authentication.
-    Settings revocation and authorization-page consent use these same rules, and direct provider routes
-    cannot bypass them.
+  rule: The direct provider consent-approval endpoint is unavailable. New grants and authority expansion
+    use the signed authorization page; protocol grant-management endpoints cannot bypass that approval
+    flow.
   applies_to:
   - authorization-management
+  acceptance:
+    given: A caller submits approval directly to the provider consent endpoint.
+    when: The application auth adapter handles the request.
+    then:
+    - The endpoint returns not found.
+    - No approval is delegated to the provider.
+    test:
+      file: tests/unit/features/oauth/oauth-consent-routes.test.ts
+      name: oauth.authorization-management.consent-mutations
+- id: oauth.authorization-revoke-valid-session
+  category: authorization
+  rule: A valid authoritative session may revoke its own application grants through settings or the supported
+    protocol endpoint regardless of session age.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A user has a valid session older than 15 minutes and two application grants.
+    when: The user revokes one grant through the protocol endpoint and another through settings.
+    then:
+    - Both revocations succeed.
+    - The selected grants are removed.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-revoke-valid-session
+- id: oauth.authorization-reduction-ownership
+  category: authorization
+  rule: Grant revocation and scope reduction derive the actor from the verified session and cannot change
+    another user's grant. An inaccessible consent identifier returns not found.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: Two users have distinct sessions and application grants.
+    when: One user attempts to revoke or reduce the other user's grant through protocol endpoints or settings.
+    then:
+    - The grant is not disclosed through the mutation result.
+    - The original scopes and generation remain unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduction-ownership
+- id: oauth.authorization-reduction-origin
+  category: authorization
+  rule: Cookie-authenticated grant revocation and scope reduction require a trusted request origin before
+    any grant state changes.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A user has a valid session and an owned grant.
+    when: Revocation or reduction is submitted with a foreign Origin through supported protocol endpoints
+      or settings.
+    then:
+    - Every request is rejected.
+    - The grant scopes and generation are unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduction-origin
+- id: oauth.authorization-reduction-authoritative
+  category: authorization
+  rule: Grant revocation and scope reduction revalidate the authoritative server session; a cached identity
+    from a revoked or expired session cannot authorize a mutation.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A request has already resolved its cookie identity, then its server session is revoked or expires.
+    when: The same request invokes grant revocation or scope reduction.
+    then:
+    - The request is unauthorized despite its cached identity.
+    - The grant scopes and generation are unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduction-authoritative
+- id: oauth.authorization-reduce-valid-session
+  category: authorization
+  rule: An owner with a valid authoritative session may reduce an existing grant without signing in again.
+    A committed reduction rotates the grant generation and invalidates credentials issued under the previous
+    generation.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A user has a valid session older than 15 minutes, an existing grant and a token issued under
+      it.
+    when: The user reduces the grant scopes through update-consent.
+    then:
+    - The requested subset is persisted.
+    - The grant generation rotates.
+    - The old token row is removed.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduce-valid-session
+- id: oauth.authorization-reduce-no-expansion
+  category: authorization
+  rule: The direct update-consent endpoint accepts only subsets of the current user grant. Additional
+    scopes require the signed authorization flow and its recent-authentication checks.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A client permits a scope that the user has not granted.
+    when: Fresh and stale valid sessions request that additional scope through update-consent.
+    then:
+    - Both requests fail.
+    - The current scope set and generation remain unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduce-no-expansion
+- id: oauth.authorization-reduce-concurrent
+  category: consistency
+  rule: Concurrent scope reductions serialize against the current grant. A request based on superseded
+    authority cannot restore a scope that another reduction has removed.
+  applies_to:
+  - authorization-management
+  acceptance:
+    given: A grant has two scopes.
+    when: Two concurrent requests independently reduce it to different one-scope subsets.
+    then:
+    - Only one incompatible reduction succeeds.
+    - The other request cannot restore a scope removed by the committed reduction.
+    - The persisted grant contains one scope and a new generation.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: oauth.authorization-reduce-concurrent
 capabilities:
   authorization:
     title: Authorization
@@ -217,7 +333,14 @@ capabilities:
     web:
       pages:
       - /account/settings/authorizations
-    rest: unavailable
+    rest:
+      routes:
+      - path: /api/auth/oauth2/delete-consent
+        method: POST
+        reference_only: true
+      - path: /api/auth/oauth2/update-consent
+        method: POST
+        reference_only: true
     graphql: unavailable
     mcp: unavailable
     presentation:
@@ -230,6 +353,14 @@ capabilities:
       - Current grant lastUsedAt, last channel, and last feature
       - Current grant 30-day read, write, and error totals
       - Revoke action with confirmation
+    requirement_refs:
+    - oauth.authorization-revoke-valid-session
+    - oauth.authorization-reduction-ownership
+    - oauth.authorization-reduction-origin
+    - oauth.authorization-reduction-authoritative
+    - oauth.authorization-reduce-valid-session
+    - oauth.authorization-reduce-no-expansion
+    - oauth.authorization-reduce-concurrent
   client-registration:
     title: Client Registration & Discovery
     auth: admin
