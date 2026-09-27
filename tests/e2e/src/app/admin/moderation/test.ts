@@ -147,7 +147,7 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   expect(keyword.length).toBeGreaterThan(0);
 
   await page
-    .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+    .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
     .fill(keyword);
   const record = page
     .getByTestId("admin-moderation-mobile-list")
@@ -203,7 +203,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
       `/admin/moderation?search=${encodeURIComponent(keyword)}`,
     );
     await page
-      .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+      .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
       .fill(keyword);
 
     const record = page
@@ -334,7 +334,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
 
   await gotoAndWaitForReady(page, "/admin/moderation");
   await page
-    .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+    .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
     .fill(body);
   await expect(visibleText(page, body)).toBeVisible();
   const manageDialog = await openModerationCommentDialog(page, body);
@@ -488,7 +488,7 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
 
     await signInAsDevAdmin(page, "/admin/moderation");
     await page
-      .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+      .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
       .fill(body);
     await expect(visibleText(page, body)).toBeVisible();
     await openModerationCommentDialog(page, body);
