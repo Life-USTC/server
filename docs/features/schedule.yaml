@@ -21,6 +21,16 @@ requirements:
 - id: schedule.teacher-participation
   category: behavior
   rule: A physical meeting is represented once even when several teachers participate.
+  acceptance:
+    given: One physical meeting has two distinct same-name teachers and independently stored participation
+      facts.
+    when: The database read model loads the meeting and filters by each teacher identity.
+    then:
+    - The section contains exactly one meeting and each teacher filter returns that same meeting once.
+    - Both distinct teacher identities and their different facts survive the DTO projection.
+    test:
+      file: tests/integration/schedule-teacher-participations.test.ts
+      name: schedule.teacher-participation
 - id: schedule.schedule-as-context
   category: presentation
   rule: The section calendar presents meeting dates/times, teachers and available location context with
@@ -29,14 +39,63 @@ requirements:
   category: consistency
   rule: 'Public schedule REST output is determined by URL parameters: omitted locale uses zh-cn and locale=en-us
     selects English. Cookie and Accept-Language do not personalize the output.'
+  acceptance:
+    given: A course has distinct Chinese and English labels, and request cookies/Accept-Language conflict.
+    when: The actual public schedule REST route handles omitted and explicit Chinese/English locale query
+      values.
+    then:
+    - Omitted locale produces Chinese and explicit English produces the English course label.
+    - Identical URLs retain identical public-cacheable output irrespective of cookies or Accept-Language.
+    test:
+      file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
+      name: schedule.public-rest-locale-cache
 - id: schedule.teacher-participation-facts
   category: behavior
   rule: Each schedule teacher retains independent source periods and exerciseClass facts; unsupported
     participation facts remain null.
+  acceptance:
+    given: Three source teacher rows describe the same meeting with different fractional periods/flags
+      and one unknown pair.
+    when: The actual mapper and schedule importer write three input orders to PostgreSQL, followed by
+      public REST reads.
+    then:
+    - The same meeting identity is retained across imports.
+    - Each teacher retains its independent facts and unsupported values remain null in both storage and
+      public output.
+    test:
+      file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
+      name: schedule.teacher-participation-facts
 - id: schedule.teacher-participation-output
   category: behavior
-  rule: Schedule list/detail REST, GraphQL and MCP expose public teacher identity and participation facts,
-    with teachers as the flat identity projection of the same relation.
+  rule: Public schedule-list and Section-schedule REST/MCP reads expose each teacher identity and independent
+    participation facts; teachers is the flat identity projection of the same relation.
+  acceptance:
+    given: One imported meeting has three same-name teachers with distinct public IDs/codes and different
+      participation facts.
+    when: Anonymous REST and registered MCP list and Section schedule calls retrieve the meeting.
+    then:
+    - All four outputs retain all three distinct public identities and exact independent facts.
+    - Each flat teachers array equals the identity projection of teacherParticipations.
+    test:
+      file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
+      name: schedule.teacher-participation-output
+- id: schedule.graphql-teacher-participation-output
+  category: behavior
+  rule: Authorized workspace GraphQL schedules expose teacher identities and independent participation
+    facts through paginated teachers and teacherParticipations relations for the current user's subscribed
+    sections.
+  acceptance:
+    given: Only one of two users subscribes to a meeting with three distinct same-name teachers and independent
+      participation facts.
+    when: The actual Yoga endpoint reads each user's workspace schedules and traverses two-item pages
+      of both nested relations.
+    then:
+    - The subscriber sees one physical meeting; the unrelated user sees none.
+    - Both nested relations report total three and return all exact public identities and facts across
+      pages.
+    test:
+      file: tests/integration/mcp/catalog/schedule-public-contract.test.ts
+      name: schedule.graphql-teacher-participation-output
 capabilities:
   my-schedule:
     title: My Schedule
@@ -180,3 +239,5 @@ rationale:
 - Schedule refers to a section's class times, locations, and week patterns.
 - A section schedule read fetches section context and its filtered, ordered, optionally bounded schedules
   in one top-level Section query while preserving includeSection output semantics.
+- GraphQL Schedule is currently a private workspace relation, while public schedule lists and Section
+  schedules are exposed through REST/MCP; their transport obligations are separate.

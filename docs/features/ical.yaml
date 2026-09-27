@@ -87,6 +87,16 @@ requirements:
 - id: ical.feed-telemetry-private
   category: privacy
   rule: Calendar cache telemetry never includes user IDs, feed credentials or token-bearing URLs.
+  acceptance:
+    given: A private owner export contains a token-bearing feed URL and uses a shared KV cache with recorded
+      analytics.
+    when: The actual cache builds a miss and a second isolate reuses the fresh export.
+    then:
+    - Cache miss and hit analytics contain only fixed cache/status labels and numeric measurements.
+    - Neither owner ID, feed credential nor token-bearing URL appears in any telemetry payload.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: ical.feed-telemetry-private
 - id: ical.feed-cold-miss
   category: consistency
   rule: A valid personal feed request with no usable cached export builds and returns its current export

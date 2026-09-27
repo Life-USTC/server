@@ -45,7 +45,7 @@ describe("用户 iCal 导出缓存", () => {
     vi.restoreAllMocks();
   });
 
-  it("跨 isolate 从 KV 复用 fresh 导出", async () => {
+  it("ical.feed-telemetry-private", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
@@ -54,7 +54,12 @@ describe("用户 iCal 导出缓存", () => {
       ANALYTICS: { writeDataPoint },
       CALENDAR_EXPORTS: namespace,
     });
-    const buildExport = vi.fn().mockResolvedValue(calendarExport);
+    const buildExport = vi
+      .fn()
+      .mockResolvedValue({
+        ...calendarExport,
+        text: "BEGIN:VCALENDAR\nDESCRIPTION:https://example.test/api/calendar-feeds/feed-credential-secret.ics\nEND:VCALENDAR",
+      });
 
     const first = await getCachedUserCalendarExport("user-1", buildExport);
     resetUserCalendarExportCacheForTest();
@@ -84,7 +89,13 @@ describe("用户 iCal 导出缓存", () => {
       blobs: ["calendar_feed_cache", "user", "fresh"],
       doubles: [USER_CALENDAR_EXPORT_FRESH_TTL_MS, 1],
     });
-    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("user-1");
+    for (const secret of [
+      "user-1",
+      "feed-credential-secret",
+      "https://example.test/api/calendar-feeds/",
+    ]) {
+      expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(secret);
+    }
   });
 
   it("calendar.feed-cache-refresh", async () => {
