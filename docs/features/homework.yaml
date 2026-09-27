@@ -334,6 +334,17 @@ requirements:
 - id: homework.public-section-read
   category: authorization
   rule: Anonymous viewers can read homework under public sections.
+  acceptance:
+    given: An isolated public section has homework with a description and another user’s private completion
+      record.
+    when: Anonymous clients read the real REST summary/detail and registered MCP section-homework list.
+    then:
+    - Every available public read returns the homework identity and title; REST detail includes its description.
+    - The anonymous result does not reveal another owner’s completion state.
+    - The existing private completion remains intact.
+    test:
+      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      name: homework.public-section-read
 - id: homework.active-collaborator-write
   category: authorization
   rule: Signed-in unsuspended users can create and update section homework.
@@ -368,6 +379,21 @@ requirements:
   category: authorization
   rule: Bearer-authenticated REST, GraphQL and MCP homework mutations require the action-specific OAuth
     scope.
+  acceptance:
+    given: The authenticated owner has a real OAuth client/grant; tokens carry either collaborative-homework
+      write or personal-homework completion write permission.
+    when: Signed REST, signed GraphQL and a real MCP HTTP SDK client exercise create, update, delete,
+      single completion and available batch completion operations with the wrong and correct feature scope.
+    then:
+    - A scope for the other feature cannot authorize the mutation, and rejected attempts leave homework/completion
+      data unchanged.
+    - The action-specific scope permits the intended write and produces the expected persisted title,
+      completion state and deletion attribution.
+    - MCP uses the actual HTTP scope guard and verifies signed JWTs against the real issuer’s JWKS handler;
+      the in-memory tool harness is not used to prove scope enforcement.
+    test:
+      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
   rule: Workspace homework displays cards on mobile and lists on desktop, with directly available completion
@@ -438,6 +464,18 @@ requirements:
   category: authorization
   rule: Ordinary homework deletion retains creator-only authority on REST, GraphQL and MCP; administrator
     moderation is a separate capability.
+  acceptance:
+    given: An ordinary user authored homework under an isolated section; another ordinary user and an
+      administrator have valid OAuth grants.
+    when: REST, signed GraphQL and registered MCP attempt ordinary deletion as each foreign actor and
+      then as the creator.
+    then:
+    - Foreign users and administrators are rejected through every ordinary delete surface, leaving deletedAt
+      unset.
+    - The creator succeeds through each surface and the stored deletion attribution names that creator.
+    test:
+      file: tests/integration/mcp/community/homework-transport-contract.test.ts
+      name: homework.transport-creator-delete
 - id: homework.section-completed-deadline-display
   category: presentation
   applies_to:
