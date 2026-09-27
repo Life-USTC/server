@@ -621,6 +621,26 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
       name: ui.model-property-priority-account-views
+- id: ui.model-property-priority-discovery-views
+  category: presentation
+  topic: model-property-priority
+  rule: Discovery Web field views visibly present the declared identity and task-critical values, render
+    supporting fields with subordinate emphasis, and keep reconstruction identifiers out of ordinary content.
+  rationale: Bus maps communicate topology graphically, while timetable and departure views communicate times.
+    Publication source directories group by organization level. Activity details provide richer context than
+    list and calendar entries; opaque upstream identifiers remain technical metadata.
+  acceptance:
+    given: Isolated bus, news/source, activity/organizer and weather records and configured campus links.
+    when: Open the fifteen declared discovery views in both locales at desktop and mobile widths, including
+      the next-departure summary at its implemented mobile width.
+    then:
+    - Every declared view and field is compared with actual visible values, including news organization level,
+      source hosts and activity organizer names.
+    - Secondary text is visually subordinate to the actual identifying name or departure time and internal
+      identifiers are absent from ordinary display content.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
+      name: ui.model-property-priority-discovery-views
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary
