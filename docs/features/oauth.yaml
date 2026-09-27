@@ -470,6 +470,21 @@ requirements:
     grant's last 30 days and selects the latest feature/channel by lastUsedAt.
   applies_to:
   - authorization-management
+  acceptance:
+    given: Real completed OAuth request bookkeeping inside the Worker scheduler with an authentication-role
+      Hyperdrive connection.
+    when: Coalesce duplicate request registration, cross Shanghai midnight, reorder times, count errors
+      and concurrent writes, and exceed 256 pending dimensions.
+    then:
+    - Shanghai days remain separate, repeated request registration counts once, and the latest timestamp
+      never regresses.
+    - Current-grant summaries include only the last thirty Shanghai dates through today, select the latest
+      feature/channel, and exclude other generations.
+    - Overflow persists as singleton batches without losing counts; rows contain no request payload, target,
+      network, token, or credential data.
+    test:
+      file: tests/integration/oauth-usage-contracts.test.ts
+      name: oauth.authorization-management.oauth-usage-aggregation
 - id: oauth.authorization-management.recent-auth-for-consent
   category: authorization
   rule: Approving a new grant or expanding an existing grant requires an authoritative server-side session
@@ -499,6 +514,18 @@ requirements:
     event.
   applies_to:
   - authorization-management
+  acceptance:
+    given: Two users and two clients with consents, access/refresh tokens, pending/approved device codes,
+      and usage records.
+    when: Try another user’s consent, force a real final audit-insert failure, then revoke the selected
+      owned grant.
+    then:
+    - Ownership rejection and audit failure leave every grant artifact unchanged and create no audit event.
+    - Successful revocation atomically removes all selected user/client material with one audit event
+      and preserves both another user and another client.
+    test:
+      file: tests/integration/oauth-revoke-transaction-contract.test.ts
+      name: oauth.authorization-management.ownership-scoped-transaction
 - id: oauth.authorization-management.active-user-grant-enforcement
   category: authorization
   rule: User JWTs, opaque access tokens, and refresh tokens bind the exact consent generation and scopes
@@ -523,6 +550,15 @@ requirements:
     invalid_request before delegation; resource remains multi-valued.
   applies_to:
   - authorization-management
+  acceptance:
+    given: The actual token and introspection form boundaries with a provider delegation spy.
+    when: Repeat every singleton field and send two distinct resource values.
+    then:
+    - Every repeated singleton returns invalid_request before provider delegation.
+    - Multiple resource values remain intact when the request is delegated.
+    test:
+      file: tests/unit/features/oauth/oauth-singleton-contract.test.ts
+      name: oauth.authorization-management.singleton-form-parameters
 - id: oauth.authorization-management.consent-mutations
   category: behavior
   rule: The direct provider consent-approval endpoint is unavailable. New grants and authority expansion

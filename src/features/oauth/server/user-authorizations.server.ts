@@ -88,6 +88,9 @@ export async function listUserOAuthAuthorizations(
           userId,
           clientId: { in: clientIds },
           day: {
+            lte: new Date(
+              `${shanghaiDayjs(now).format("YYYY-MM-DD")}T00:00:00.000Z`,
+            ),
             gte: new Date(
               `${shanghaiDayjs(now).subtract(29, "day").format("YYYY-MM-DD")}T00:00:00.000Z`,
             ),

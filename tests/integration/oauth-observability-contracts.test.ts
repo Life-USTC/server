@@ -52,6 +52,7 @@ function tokenRequest() {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
+      origin,
       authorization: "Basic private-authorization",
       cookie: "private-cookie",
     },
@@ -69,11 +70,14 @@ function tokenRequest() {
 
 it("oauth.token-endpoint-observability", async () => {
   const writeDataPoint = vi.fn();
+  const connectionString = process.env.AUTH_DATABASE_URL;
+  if (!connectionString)
+    throw new Error("Expected production authentication database URL");
   const response = await runWithCloudflareRuntimeEnv(
-    { ANALYTICS: { writeDataPoint } },
+    { ANALYTICS: { writeDataPoint }, HYPERDRIVE_AUTH: { connectionString } },
     () => tokenPostRoute(tokenRequest()),
   );
-  expect(response.status).toBeGreaterThanOrEqual(400);
+  expect([400, 401], await response.clone().text()).toContain(response.status);
   const events = writeDataPoint.mock.calls
     .map(([point]) => point)
     .filter((point) => point.blobs[0] === "oauth_event_v3");

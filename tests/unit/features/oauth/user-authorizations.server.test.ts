@@ -262,7 +262,10 @@ describe("user OAuth authorizations", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           clientId: { in: [CLIENT_ID, "client-2"] },
-          day: { gte: new Date("2026-08-17T00:00:00.000Z") },
+          day: {
+            gte: new Date("2026-08-17T00:00:00.000Z"),
+            lte: new Date("2026-09-15T00:00:00.000Z"),
+          },
           userId: USER_ID,
         }),
       }),
