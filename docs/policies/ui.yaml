@@ -325,6 +325,18 @@ requirements:
   category: presentation
   topic: global-search-results
   rule: Catalog group order is sections → teachers → courses → links, then signed-in homeworks and todos.
+  acceptance:
+    given: A query matches an isolated course, section, and teacher, a shipped campus link, and an isolated
+      user's subscribed homework and owned todo.
+    when: The browser searches anonymously and then with that user's real session.
+    then:
+    - Anonymous results contain nonempty sections, teachers, courses, and links groups in that order without
+      the private homework or todo.
+    - Signed-in results keep the same public group order and append homeworks then todos, including the user's
+      matching task in its respective group.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-1
 - id: ui.global-search-results-2
   category: presentation
   topic: global-search-results

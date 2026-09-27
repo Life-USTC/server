@@ -122,6 +122,80 @@ test("mobile catalog cards retain list and link semantics", async ({
   }
 });
 
+test("ui.global-search-results-1", async ({ page }) => {
+  const fixture = await createFixture();
+  const homeworkTitle = `email homework ${fixture.course.code}`;
+  const todoTitle = `email todo ${fixture.course.code}`;
+  try {
+    await withE2ePrisma(async (db) => {
+      await db.course.update({
+        where: { id: fixture.course.id },
+        data: { nameCn: "email课程", nameEn: "email course" },
+      });
+      await db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: { nameCn: "email教师", nameEn: "email teacher" },
+      });
+      await db.userSectionSubscription.create({
+        data: { userId: fixture.user.id, sectionId: fixture.section.id },
+      });
+      await db.homework.create({
+        data: {
+          title: homeworkTitle,
+          sectionId: fixture.section.id,
+          createdById: fixture.user.id,
+        },
+      });
+      await db.todo.create({
+        data: { title: todoTitle, userId: fixture.user.id },
+      });
+    });
+    for (const signedIn of [false, true]) {
+      if (signedIn)
+        await page
+          .context()
+          .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+      await gotoAndWaitForReady(page, "/search?q=email");
+      const expected = [
+        "sections",
+        "teachers",
+        "courses",
+        "links",
+        ...(signedIn ? ["homeworks", "todos"] : []),
+      ];
+      const groups = page.getByRole("listbox").getByRole("group");
+      await expect(groups).toHaveCount(expected.length);
+      expect(
+        await groups.evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("aria-labelledby")),
+        ),
+      ).toEqual(expected.map((type) => `global-search-group-${type}`));
+      for (const group of await groups.all()) {
+        await expect(group.getByRole("option").first()).toBeVisible();
+      }
+      for (const [group, title] of [
+        ["homeworks", homeworkTitle],
+        ["todos", todoTitle],
+      ]) {
+        if (signedIn) {
+          const results = page.locator(
+            `[role="group"][aria-labelledby="global-search-group-${group}"]`,
+          );
+          await expect(
+            results
+              .getByRole("option")
+              .filter({ has: page.getByText(title, { exact: true }) }),
+          ).toHaveCount(1);
+        } else {
+          await expect(page.getByText(title, { exact: true })).toHaveCount(0);
+        }
+      }
+    }
+  } finally {
+    await cleanup(fixture);
+  }
+});
+
 test("ui.global-search-results-2", async ({ page }) => {
   const fixture = await createFixture();
   let campusId: number | undefined;
