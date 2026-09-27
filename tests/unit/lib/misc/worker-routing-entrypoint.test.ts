@@ -304,7 +304,7 @@ describe("Worker routing entrypoint", () => {
     expect(JSON.stringify(completion)).not.toContain("private-value");
   });
 
-  it("uses the same credential-free cache request for anonymous and signed-in catalog visitors", async () => {
+  it("rendering-and-cache.cache-layers-and-invalidation-1", async () => {
     const publicSsrFetchMock = vi.fn().mockImplementation(
       () =>
         new Response(null, {

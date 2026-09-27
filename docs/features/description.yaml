@@ -29,13 +29,14 @@ requirements:
   category: consistency
   rule: A committed course, section, or teacher description write invalidates its cached public HTML and
     structured data only after the content is committed. Administrator moderation follows the same invalidation
-    contract.
+    contract. A same-content retry repeats failed invalidation without creating another edit history entry.
   acceptance:
-    given: Public teacher HTML is cached before an ordinary edit and an admin moderation edit.
-    when: The production write and moderation services commit and invoke the cache purge.
+    given: Public teacher HTML is cached and the first purge after a description edit will fail.
+    when: The production write commits, retries identical content after purge recovery, and an administrator moderates it.
     then:
     - A separate database connection sees committed content before each purge.
     - The next rendered representation reflects the committed write and moderation.
+    - The identical-content retry purges again, reports updated=false and leaves exactly one edit history entry.
     test:
       file: tests/integration/description-cache-invalidation.test.ts
       name: description.public-cache-invalidation

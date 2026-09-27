@@ -68,7 +68,7 @@ describe("catalog detail cache revision", () => {
     await expect(getCatalogDetailCacheRevision()).resolves.not.toBe(first);
   });
 
-  it("reads the committed revision immediately after HTML purge in a new request", async () => {
+  it("rendering-and-cache.cache-layers-and-invalidation-7", async () => {
     const state = {
       snapshotSha256: "snapshot-before",
       updatedAt: new Date("2026-08-16T03:00:00.000Z"),

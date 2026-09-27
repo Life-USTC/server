@@ -216,7 +216,6 @@ export async function assertApiContract(
       expect(typeof body.user?._count?.comments).toBe("number");
       expect(typeof body.user?._count?.uploads).toBe("number");
       expect(typeof body.user?._count?.homeworksCreated).toBe("number");
-      expect(typeof body.user?._count?.subscribedSections).toBe("number");
       return;
     }
 

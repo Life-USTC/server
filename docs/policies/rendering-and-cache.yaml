@@ -193,6 +193,15 @@ requirements:
   category: privacy
   topic: personal-overlays
   rule: JSON responses default to `private, no-store`, including validation and auth errors.
+  acceptance:
+    given: The JSON response helpers receive success, creation, validation, authentication, authorization, not-found,
+      rate-limit, and server-error outcomes.
+    when: Each helper constructs its response, and the test reads its headers and JSON body.
+    then:
+    - JSON responses default to `private, no-store`, including validation and auth errors.
+    test:
+      file: tests/unit/lib/api/response-cache-policy.test.ts
+      name: rendering-and-cache.personal-overlays-8
 - id: rendering-and-cache.personal-overlays-9
   category: privacy
   topic: personal-overlays
@@ -201,6 +210,15 @@ requirements:
   category: privacy
   topic: personal-overlays
   rule: The HTTP boundary also sets CDN `no-store` for private responses.
+  acceptance:
+    given: Signed-in account, workspace, community, and shell-bootstrap requests resolve to responses with status
+      200, 400, 401, 403, 404, or 500 and conflicting positive browser and CDN lifetimes.
+    when: The production HTTP hook finalizes each response and the test reads both delivered cache headers.
+    then:
+    - The HTTP boundary also sets CDN `no-store` for private responses.
+    test:
+      file: tests/unit/lib/hooks/hooks-cache-control.test.ts
+      name: rendering-and-cache.personal-overlays-10
 - id: rendering-and-cache.personal-overlays-11
   category: privacy
   topic: personal-overlays
@@ -218,6 +236,17 @@ requirements:
   topic: cache-layers-and-invalidation
   rule: Final HTML delivered to the browser and zone CDN uses private, no-store; shared storage applies only
     to the internal anonymous entrypoint representation.
+  acceptance:
+    given: The same Chinese course-list HTML URL is requested once anonymously and once with a signed-in session
+      cookie.
+    when: The production Worker dispatches each request through the public SSR entrypoint and finalizes its
+      delivered response.
+    then:
+    - Final HTML delivered to the browser and zone CDN uses private, no-store; shared storage applies only
+      to the internal anonymous entrypoint representation.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-1
 - id: rendering-and-cache.cache-layers-and-invalidation-2
   category: consistency
   topic: cache-layers-and-invalidation
@@ -265,20 +294,44 @@ requirements:
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A committed static import purges both the zone and Workers entrypoint layers.
+  acceptance:
+    given: A static import has committed and both the zone and Workers entrypoint purge endpoints are configured.
+    when: The production post-import invalidator receives the committed report and both endpoints accept their
+      purge requests.
+    then:
+    - A committed static import purges both the zone and Workers entrypoint layers.
+    test:
+      file: tests/unit/static-loader/post-import-cache-purge.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-5
 - id: rendering-and-cache.cache-layers-and-invalidation-6
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A failed purge fails the sync; rerunning the same already-committed snapshot retries the purge.
+  acceptance:
+    given: The CLI imports a snapshot successfully, but both configured purge endpoints reject invalidation
+      with HTTP 503.
+    when: The CLI completes, then runs again with the same snapshot hash and an unchanged import report after
+      both purge endpoints recover.
+    then:
+    - A failed purge fails the sync; rerunning the same already-committed snapshot retries the purge.
+    test:
+      file: tests/unit/static-loader/cache-purge-cli-policy.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-6
 - id: rendering-and-cache.cache-layers-and-invalidation-7
   category: consistency
   topic: cache-layers-and-invalidation
   rule: After a committed revision change and successful purge, a reused isolate cannot repopulate the public
     HTML cache using a previous revision. Revision memoization does not cross request boundaries.
-- id: rendering-and-cache.cache-layers-and-invalidation-8
-  category: consistency
-  topic: cache-layers-and-invalidation
-  rule: Description edits and moderation invalidate affected public HTML after the database transaction commits.
-    A same-content retry repeats failed invalidation without requiring another content change.
+  acceptance:
+    given: A reused runtime data cache contains a value under the previous committed snapshot revision.
+    when: A new request reads a changed committed revision and asks the same cache instance for the same catalog-list
+      key.
+    then:
+    - After a committed revision change and successful purge, a reused isolate cannot repopulate the public
+      HTML cache using a previous revision. Revision memoization does not cross request boundaries.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-revision.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-7
 - id: rendering-and-cache.cache-layers-and-invalidation-9
   category: consistency
   topic: cache-layers-and-invalidation
@@ -345,3 +398,4 @@ rationale:
 - Separating public facts from private overlays is a prerequisite for sharing an anonymous representation safely.
 - Authentication variants, write/read invalidation, purge failure recovery, and revision changes are separate
   sources of cache regressions; their acceptance evidence belongs to the corresponding behavioral requirements.
+- Description commit ordering, moderation and failed-purge retry are owned by description.public-cache-invalidation.

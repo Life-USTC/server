@@ -117,3 +117,33 @@ it.each(["private, no-store", "private, max-age=1800"])(
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   },
 );
+
+it("rendering-and-cache.personal-overlays-10", async () => {
+  for (const path of [
+    "/api/account/profile",
+    "/api/workspace/overview",
+    "/api/community/comments",
+    "/_internal/shell-bootstrap",
+  ]) {
+    for (const status of [200, 400, 401, 403, 404, 500]) {
+      const response = await respond(
+        path,
+        Response.json(
+          { privateValue: "viewer-1" },
+          {
+            status,
+            headers: {
+              "Cache-Control": "private, max-age=1800",
+              "Cloudflare-CDN-Cache-Control": "public, max-age=86400",
+            },
+          },
+        ),
+        { cookie: "better-auth.session_token=private-session" },
+      );
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    }
+  }
+});
