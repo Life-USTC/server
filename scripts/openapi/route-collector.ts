@@ -83,35 +83,18 @@ const REDIRECT_DESCRIPTIONS: Record<
 // Pre-computed operationIds that mirror the checked-in spec for existing routes.
 // New routes fall back to a deterministic path-derived id.
 const OPERATION_ID_OVERRIDES: Record<string, string> = {
-  "GET /.well-known/oauth-authorization-server": "listOauthAuthorizationServer",
-  "OPTIONS /.well-known/oauth-authorization-server":
-    "options-.well-known-oauth-authorization-server",
   "GET /.well-known/oauth-authorization-server/api/auth":
     "get-.well-known-oauth-authorization-server-api-auth",
   "OPTIONS /.well-known/oauth-authorization-server/api/auth":
     "options-.well-known-oauth-authorization-server-api-auth",
-  "GET /.well-known/oauth-authorization-server/api/mcp":
-    "get-.well-known-oauth-authorization-server-api-mcp",
-  "OPTIONS /.well-known/oauth-authorization-server/api/mcp":
-    "options-.well-known-oauth-authorization-server-api-mcp",
-  "GET /.well-known/oauth-protected-resource": "listOauthProtectedResource",
-  "OPTIONS /.well-known/oauth-protected-resource":
-    "options-.well-known-oauth-protected-resource",
   "GET /.well-known/oauth-protected-resource/api/mcp":
     "get-.well-known-oauth-protected-resource-api-mcp",
   "OPTIONS /.well-known/oauth-protected-resource/api/mcp":
     "options-.well-known-oauth-protected-resource-api-mcp",
-  "GET /.well-known/openid-configuration": "listOpenidConfiguration",
-  "OPTIONS /.well-known/openid-configuration":
-    "options-.well-known-openid-configuration",
   "GET /.well-known/openid-configuration/api/auth":
     "get-.well-known-openid-configuration-api-auth",
   "OPTIONS /.well-known/openid-configuration/api/auth":
     "options-.well-known-openid-configuration-api-auth",
-  "GET /.well-known/openid-configuration/api/mcp":
-    "get-.well-known-openid-configuration-api-mcp",
-  "OPTIONS /.well-known/openid-configuration/api/mcp":
-    "options-.well-known-openid-configuration-api-mcp",
   "GET /api/admin/comments": "listAdminComments",
   "PATCH /api/admin/comments/{id}": "moderateAdminComment",
   "GET /api/admin/descriptions": "listAdminDescriptions",
@@ -167,14 +150,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "POST /api/account/preferences": "setLocale",
   "GET /api/mcp": "listMcp",
   "POST /api/mcp": "createMcp",
-  "GET /api/mcp/.well-known/oauth-authorization-server":
-    "get-api-mcp-.well-known-oauth-authorization-server",
-  "OPTIONS /api/mcp/.well-known/oauth-authorization-server":
-    "options-api-mcp-.well-known-oauth-authorization-server",
-  "GET /api/mcp/.well-known/openid-configuration":
-    "get-api-mcp-.well-known-openid-configuration",
-  "OPTIONS /api/mcp/.well-known/openid-configuration":
-    "options-api-mcp-.well-known-openid-configuration",
   "GET /api/account/profile": "account_profile_get",
   "GET /api/account/client-activity": "account_client_activity_list",
   "GET /api/community/users/{identifier}": "community_user_get",
