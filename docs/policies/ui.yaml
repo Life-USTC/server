@@ -72,7 +72,9 @@ requirements:
   category: presentation
   topic: list-table
   rule: The sidebar owns navigation between routes. Do not repeat those destinations
-    as page tabs. PageSectionNav is only for in-page anchors. Settings retains DetailSectionNav.
+    as page tabs. PageSectionNav is only for in-page anchors. Settings routes replace
+    the primary sidebar with a settings sidebar. Its top control returns home, and
+    its only group is the settings sections. The home page keeps the primary sidebar.
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells

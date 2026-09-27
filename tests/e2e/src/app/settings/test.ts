@@ -8,7 +8,7 @@
  * - Layout requires authentication (`requireSignedInUserId`).
  *
  * ## UI/UX Elements
- * - Settings nav bar with semantic section links
+ * - Settings section links in the level-2 sidebar, with a control that returns home
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *
@@ -41,105 +41,46 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-default-profile");
   });
 
-  test("设置导航在移动端紧凑显示并在桌面形成侧栏", async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test("设置路由使用二级侧栏，主页保持主导航", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
     await signInAsDebugUser(page, "/account/settings");
 
-    const navigation = page.getByTestId("detail-section-nav");
-    const scrollViewport = navigation.locator('[data-sidebar="content"]');
+    const sidebar = page.getByTestId("settings-sidebar");
+    const back = page.getByTestId("settings-sidebar-back");
     const activePanel = page.locator("[data-settings-active-panel]");
-    const profileLink = navigation.getByRole("link", {
-      name: /个人资料|Profile/i,
-    });
-
-    await expect(profileLink).toHaveAttribute("aria-current", "page");
-    await expect
-      .poll(() =>
-        Promise.all([
-          navigation.getAttribute("data-overflow-left"),
-          navigation.getAttribute("data-overflow-right"),
-        ]),
-      )
-      .toEqual(["false", "true"]);
-    const mobileNavigationBox = await scrollViewport.boundingBox();
-    const mobilePanelBox = await activePanel.boundingBox();
-    expect(mobileNavigationBox?.height).toBeLessThan(80);
-    expect(mobilePanelBox?.y).toBeLessThan(844);
-    await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
-
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, "/account/settings");
-    const desktopNavigationBox = await navigation.boundingBox();
-    const desktopPanelBox = await activePanel.boundingBox();
-    expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
-    expect(desktopNavigationBox?.width).toBe(224);
+    await expect(
+      sidebar.getByRole("link", { name: /个人资料|Profile/i }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(back).toHaveAttribute("href", "/");
+    await expect(
+      sidebar.getByRole("link", { name: /^(今天|Today)$/i }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
+    const sidebarBox = await sidebar.boundingBox();
+    const panelBox = await activePanel.boundingBox();
+    expect(sidebarBox?.x).toBeLessThan(panelBox?.x ?? 0);
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
-  });
 
-  test("移动端直接打开末尾标签时当前项保持可见", async ({ page }) => {
-    const localeResponse = await page.request.post("/api/account/preferences", {
-      data: { locale: "zh-cn" },
-    });
-    expect(localeResponse.status()).toBe(200);
-    await page.setViewportSize({ width: 375, height: 900 });
-    await signInAsDebugUser(page, "/account/settings/danger");
+    await back.click();
+    await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
+    await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
+    await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId("app-sidebar")
+        .getByRole("link", { name: /^(今天|Today)$/i }),
+    ).toBeVisible();
 
-    const navigation = page.getByTestId("detail-section-nav");
-    const scrollViewport = navigation.locator('[data-sidebar="content"]');
-    const activeLink = navigation.locator('a[aria-current="page"]');
-
-    for (const width of [280, 320, 375]) {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/account/settings/danger");
-      await expect(activeLink).toBeVisible();
-      await expect
-        .poll(() =>
-          scrollViewport.evaluate((nav) => {
-            const link = nav.querySelector<HTMLElement>(
-              'a[aria-current="page"]',
-            );
-            const wrapper = nav.parentElement;
-            if (!link || !wrapper) return null;
-            const linkBox = link.getBoundingClientRect();
-            const navBox = nav.getBoundingClientRect();
-            const wrapperBox = wrapper.getBoundingClientRect();
-            const leftFade = getComputedStyle(wrapper, "::before");
-            const rightFade = getComputedStyle(wrapper, "::after");
-            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
-            return {
-              activeClearOfLeftFade:
-                linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
-              activeWithinNavigation:
-                linkBox.left >= navBox.left - 1 &&
-                linkBox.right <= navBox.right + 1,
-              documentFitsViewport:
-                document.documentElement.scrollWidth <=
-                document.documentElement.clientWidth,
-              navigationScrollable: nav.scrollWidth > nav.clientWidth,
-              navigationScrolled: nav.scrollLeft > 0,
-              leftFadeVisible:
-                wrapper.dataset.overflowLeft === "true" &&
-                leftFade.backgroundImage !== "none",
-              rightFadeHidden:
-                wrapper.dataset.overflowRight === "false" &&
-                rightFade.backgroundImage === "none",
-              windowScrollX: window.scrollX,
-            };
-          }),
-        )
-        .toEqual({
-          activeClearOfLeftFade: true,
-          activeWithinNavigation: true,
-          documentFitsViewport: true,
-          navigationScrollable: true,
-          navigationScrolled: true,
-          leftFadeVisible: true,
-          rightFadeHidden: true,
-          windowScrollX: 0,
-        });
-    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, "/account/settings/danger");
+    await page.locator('[data-slot="sidebar-trigger"]').click();
+    const mobileSidebar = page.getByTestId("settings-sidebar");
+    await expect(mobileSidebar).toBeVisible();
+    await expect(page.getByTestId("settings-sidebar-back")).toBeVisible();
+    await expect(
+      mobileSidebar.getByRole("link", { name: /危险操作|Danger zone/i }),
+    ).toHaveAttribute("aria-current", "page");
+    await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {

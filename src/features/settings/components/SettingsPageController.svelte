@@ -1,10 +1,4 @@
 <script lang="ts">
-import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
-import KeyRound from "@lucide/svelte/icons/key-round";
-import Link2 from "@lucide/svelte/icons/link-2";
-import ShieldAlert from "@lucide/svelte/icons/shield-alert";
-import ShieldCheck from "@lucide/svelte/icons/shield-check";
-import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
@@ -23,7 +17,6 @@ import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
-import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -33,23 +26,12 @@ import type {
 } from "./settings-component-types";
 
 type PageData = {
-  activeTab: SettingsTab;
   accounts: SettingsAccount[];
   authorizations: SettingsOAuthAuthorization[];
   securityActivity: SettingsSecurityActivity;
   copy: SettingsCopy;
   locale: "en-us" | "zh-cn";
   message?: string | null;
-  settingsNav: {
-    title: string;
-    tabs: Array<{
-      description: string;
-      href: string;
-      icon: string;
-      id: SettingsTab;
-      title: string;
-    }>;
-  };
   tab: SettingsTab;
   user: SettingsUser & {
     image?: string | null;
@@ -124,15 +106,6 @@ $: _unlinkAccount =
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
 $: _hasPendingAccountAction = Boolean(_pendingAccountAction);
 $: copy = data.copy;
-$: sectionNavItems = data.settingsNav.tabs.map((item) => ({
-  href: item.href,
-  icon: tabIcon(item.icon),
-  label: item.title,
-}));
-$: activeNavHref =
-  data.settingsNav.tabs.find((item) => item.id === data.activeTab)?.href ??
-  data.settingsNav.tabs[0]?.href ??
-  "";
 
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
@@ -146,15 +119,6 @@ const deleteAccountAction = createDeleteAccountAction({
   },
 });
 
-function tabIcon(icon: string) {
-  if (icon === "preferences") return SlidersHorizontal;
-  if (icon === "accounts") return Link2;
-  if (icon === "authorizations") return KeyRound;
-  if (icon === "security") return ShieldCheck;
-  if (icon === "danger") return ShieldAlert;
-  return CircleUserRound;
-}
-
 onMount(() => {
   const mountTimer = setTimeout(() => {
     _isMounted = true;
@@ -166,15 +130,7 @@ onMount(() => {
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
 
 <CollectionPage description={copy.settings.description} panel={false} title={copy.settings.title} width="content">
-
-  <div class="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-6">
-    <DetailSectionNav
-      activeHref={activeNavHref}
-      ariaLabel={data.settingsNav.title}
-      items={sectionNavItems}
-    />
-
-    <div class="grid min-w-0 gap-4" data-settings-active-panel>
+  <div class="grid min-w-0 gap-4" data-settings-active-panel>
       <SettingsStatusAlert {copy} {statusMessage} />
 
       {#if data.tab === "profile"}
@@ -223,6 +179,5 @@ onMount(() => {
           isMounted={_isMounted}
         />
       {/if}
-    </div>
   </div>
 </CollectionPage>

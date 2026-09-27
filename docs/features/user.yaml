@@ -284,7 +284,7 @@ capabilities:
         display name, and cursor pagination'
       - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last
         authorization time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
-      - Compact responsive section navigation with active-section description
+      - Settings routes replace the primary sidebar with a settings section sidebar whose top control returns home
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface
   oauth-client-activity:

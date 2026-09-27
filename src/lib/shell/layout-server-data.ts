@@ -18,6 +18,7 @@ const layoutMessages = {
     theme: enUsMessages.theme,
     weather: enUsMessages.weather,
     youngEvents: enUsMessages.youngEvents,
+    settingsNav: enUsMessages.settings.nav,
   },
   "zh-cn": {
     accessibility: zhCnMessages.accessibility,
@@ -34,6 +35,7 @@ const layoutMessages = {
     theme: zhCnMessages.theme,
     weather: zhCnMessages.weather,
     youngEvents: zhCnMessages.youngEvents,
+    settingsNav: zhCnMessages.settings.nav,
   },
 };
 
@@ -94,6 +96,14 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         secondary: locale === "zh-cn" ? "次级导航" : "Secondary",
         preferences: locale === "zh-cn" ? "偏好设置" : "Preferences",
       },
+      settingsSections: {
+        accounts: messages.settingsNav.accounts.title,
+        authorizations: messages.settingsNav.authorizations.title,
+        danger: messages.settingsNav.danger.title,
+        preferences: messages.settingsNav.preferences.title,
+        profile: messages.settingsNav.profile.title,
+        security: messages.settingsNav.security.title,
+      },
       admin: {
         title: messages.admin.title,
         moderation: messages.admin.moderationTitle,
@@ -123,6 +133,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      backToHome: messages.common.backToHome,
       footerNavigation: messages.common.footerNavigation,
       loading: messages.common.loading,
       menu: locale === "zh-cn" ? "菜单" : "Menu",

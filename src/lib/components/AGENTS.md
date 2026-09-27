@@ -7,9 +7,7 @@ Shared UI primitives and layout components.
 - Client navigation follows `docs/policies/rendering-and-cache.yaml`: `src/app.html` sets
   `data-sveltekit-preload-code="hover"` and `data-sveltekit-preload-data="tap"`.
   Hover may warm route code only; `__data.json` preload waits for tap/click
-  intent. `DetailSectionNav` links use `data-sveltekit-preload-data="off"`
-  because tab switches are handled client-side or should not prefetch sibling
-  tabs on pointer hover.
+  intent.
 - Keep components feature-neutral: no route data loading, mutations, or
   feature-owned state machines.
 - Feature-specific UI stays under `src/features/<feature>/components`.

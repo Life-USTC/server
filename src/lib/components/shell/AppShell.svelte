@@ -5,6 +5,7 @@ import BotIcon from "@lucide/svelte/icons/bot";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CableIcon from "@lucide/svelte/icons/cable";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import CircleUserRoundIcon from "@lucide/svelte/icons/circle-user-round";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
@@ -13,11 +14,15 @@ import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import LinkIcon from "@lucide/svelte/icons/link";
+import Link2Icon from "@lucide/svelte/icons/link-2";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ScrollTextIcon from "@lucide/svelte/icons/scroll-text";
+import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
+import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
+import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
@@ -139,23 +144,31 @@ $: if (
 }
 $: profileHref = resolveProfileHref(viewerUser);
 $: avatarFallback = resolveAvatarFallback(viewerUser);
-$: navGroups = buildShellNavGroups(
-  data.copy,
-  Boolean(viewerUser),
-  viewerUser?.isAdmin ?? false,
-  $page.url.pathname,
-  $page.data,
-  workspaceNavigation,
-);
-$: mobileNavGroups = viewerUser
-  ? buildMobileSecondaryNavGroups(
+$: settingsSidebar = isSettingsPath($page.url.pathname);
+$: navGroups = settingsSidebar
+  ? buildSettingsNavGroups(data.copy)
+  : buildShellNavGroups(
       data.copy,
-      viewerUser.isAdmin,
+      Boolean(viewerUser),
+      viewerUser?.isAdmin ?? false,
       $page.url.pathname,
       $page.data,
       workspaceNavigation,
-    )
-  : navGroups;
+    );
+$: mobileNavGroups = settingsSidebar
+  ? navGroups
+  : viewerUser
+    ? buildMobileSecondaryNavGroups(
+        data.copy,
+        viewerUser.isAdmin,
+        $page.url.pathname,
+        $page.data,
+        workspaceNavigation,
+      )
+    : navGroups;
+$: settingsBackLink = settingsSidebar
+  ? { href: "/", label: data.copy.shell.backToHome }
+  : null;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
 $: adminRoute =
   $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
@@ -196,6 +209,54 @@ async function handleGlobalSearchKeydown(event: KeyboardEvent) {
 function resolveMainContentLabel(pageData: Record<string, unknown>) {
   const label = pageData.mainContentLabel;
   return typeof label === "string" && label.trim() ? label : undefined;
+}
+
+function isSettingsPath(pathname: string) {
+  return (
+    pathname === "/account/settings" ||
+    pathname.startsWith("/account/settings/")
+  );
+}
+
+function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
+  return [
+    {
+      defaultOpen: true,
+      label: copy.nav.settings,
+      links: [
+        {
+          href: "/account/settings/profile",
+          icon: CircleUserRoundIcon,
+          label: copy.nav.settingsSections.profile,
+        },
+        {
+          href: "/account/settings/preferences",
+          icon: SlidersHorizontalIcon,
+          label: copy.nav.settingsSections.preferences,
+        },
+        {
+          href: "/account/settings/accounts",
+          icon: Link2Icon,
+          label: copy.nav.settingsSections.accounts,
+        },
+        {
+          href: "/account/settings/security",
+          icon: ShieldCheckIcon,
+          label: copy.nav.settingsSections.security,
+        },
+        {
+          href: "/account/settings/authorizations",
+          icon: KeyRoundIcon,
+          label: copy.nav.settingsSections.authorizations,
+        },
+        {
+          href: "/account/settings/danger",
+          icon: ShieldAlertIcon,
+          label: copy.nav.settingsSections.danger,
+        },
+      ],
+    },
+  ];
 }
 
 function buildShellNavGroups(
@@ -686,8 +747,11 @@ function isActiveLink(link: ShellLink) {
   if (target.pathname === "/account/settings/profile") {
     return (
       pathname === "/account/settings" ||
-      pathname.startsWith("/account/settings/")
+      pathname === "/account/settings/profile"
     );
+  }
+  if (target.pathname.startsWith("/account/settings/")) {
+    return pathname === target.pathname;
   }
   if (target.pathname.startsWith("/admin/")) {
     return (
@@ -974,6 +1038,7 @@ afterNavigate(({ from, to }) => {
         copy={data.copy}
         currentPathname={$page.url.pathname}
         dockAboveFooter={showFooter}
+        backLink={settingsBackLink}
         {isActiveLink}
         {mobileNavGroups}
         {navGroups}

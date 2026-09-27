@@ -1,4 +1,5 @@
 <script lang="ts">
+import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
@@ -13,6 +14,7 @@ import type { ShellLink, ShellNavGroup } from "./types";
 
 let {
   avatarFallback,
+  backLink = null,
   closeMenus,
   copy,
   currentPathname,
@@ -28,6 +30,7 @@ let {
   viewerLoading,
 }: {
   avatarFallback: string;
+  backLink?: { href: string; label: string } | null;
   closeMenus: () => void;
   copy: LayoutCopy;
   currentPathname: string;
@@ -79,34 +82,55 @@ function closeMobileSidebar(): void {
 
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
-    aria-label={mobile
-      ? copy.shell.secondaryNavigation
-      : copy.shell.primaryNavigation}
+    aria-label={backLink
+      ? copy.nav.settings
+      : mobile
+        ? copy.shell.secondaryNavigation
+        : copy.shell.primaryNavigation}
     data-shell-navigation={mobile ? "secondary" : "desktop"}
+    data-sidebar-level={backLink ? "settings" : undefined}
+    data-testid={backLink ? "settings-sidebar" : undefined}
     class="flex min-h-0 flex-1 flex-col"
   >
     <Sidebar.Header>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          <Sidebar.MenuButton tooltipContent="Life@USTC">
-            {#snippet child({ props })}
-              <a
-                {...props}
-                id="app-logo"
-                href="/"
-                aria-label="Life@USTC"
-                onclick={closeMobileSidebar}
-              >
-                <img
-                  class="size-6 rounded-md"
-                  src={appIconUrl}
-                  alt=""
-                  aria-hidden="true"
-                />
-                <span>Life@USTC</span>
-              </a>
-            {/snippet}
-          </Sidebar.MenuButton>
+          {#if backLink}
+            {@const homeLink = backLink}
+            <Sidebar.MenuButton tooltipContent={homeLink.label}>
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  href={homeLink.href}
+                  data-testid="settings-sidebar-back"
+                  onclick={closeMobileSidebar}
+                >
+                  <ArrowLeftIcon />
+                  <span>{homeLink.label}</span>
+                </a>
+              {/snippet}
+            </Sidebar.MenuButton>
+          {:else}
+            <Sidebar.MenuButton tooltipContent="Life@USTC">
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  id="app-logo"
+                  href="/"
+                  aria-label="Life@USTC"
+                  onclick={closeMobileSidebar}
+                >
+                  <img
+                    class="size-6 rounded-md"
+                    src={appIconUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>Life@USTC</span>
+                </a>
+              {/snippet}
+            </Sidebar.MenuButton>
+          {/if}
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>

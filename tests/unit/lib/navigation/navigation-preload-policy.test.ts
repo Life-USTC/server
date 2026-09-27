@@ -49,15 +49,6 @@ describe("navigation preload policy", () => {
     expect(hasHoverDataPreload(appHtml)).toBe(false);
   });
 
-  it("disables SvelteKit data preload on detail section nav links", async () => {
-    const detailNav = await readFile(
-      path.join(repoRoot, "src/lib/components/DetailSectionNav.svelte"),
-      "utf8",
-    );
-
-    expect(detailNav).toContain('data-sveltekit-preload-data="off"');
-  });
-
   it("does not opt links back into hover data preload", async () => {
     const violations: string[] = [];
 
