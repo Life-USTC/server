@@ -117,6 +117,16 @@ requirements:
   rule: The complete personal calendar is available through the calendar-events capability. Its paginated results
     cover all eligible events within the requested Shanghai date bounds; the bounded overview is not an exhaustive
     calendar dataset.
+  acceptance:
+    given: An isolated subscriber has all five calendar event types plus enough todos to span eight pages, with out-of-range, undated and foreign-owner records.
+    when: Real REST and GraphQL requests read every page of an explicit Shanghai date range, and an OAuth MCP client reads the same range in default and full modes.
+    then:
+    - All 130 eligible events appear exactly once in chronological order across all three transports.
+    - Every page reports the full total and exact continuation state, while native MCP returns the complete range without sample truncation.
+    - Out-of-range and undated tasks are excluded; a different owner sees only that owner's eligible events.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/transport-completeness.test.ts
+      name: interface-hierarchy.representative-cross-surface-contract-6
 - id: interface-hierarchy.transport-specific-exceptions-3
   category: consistency
   topic: transport-specific-exceptions
