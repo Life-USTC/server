@@ -34,6 +34,17 @@ requirements:
   rationale: 'Product decision required: Changing navigation modes when a user adds their first course
     subscription creates surprising loss of day view; define a unified personal calendar hierarchy or
     justify academic semester context.'
+  acceptance:
+    given: One isolated owner has a course and an activity subscription; another has only the same activity
+      subscription.
+    when: The actual desktop calendar renders academic semester/month/week views and activity-only day/week/month
+      views.
+    then:
+    - Every academic mode includes both course events and the individually subscribed activity.
+    - Every activity-only mode displays the activity without requiring or leaking course subscriptions.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.views
 - id: calendar.mobile-agenda-first
   category: presentation
   rule: At mobile widths, the personal calendar presents the selected week as a vertically readable agenda
@@ -55,6 +66,15 @@ requirements:
   rule: Existing academic grids start on Sunday; activity calendars use Monday-start weeks.
   rationale: 'Product decision required: Existing implementation is not a product reason for Sunday academic
     and Monday activity calendars in one workspace; mixed subscriptions expose inconsistency.'
+  acceptance:
+    given: Two isolated owners open academic and activity-only personal calendars in English.
+    when: The real academic semester/month/week grids and activity week/month grids render.
+    then:
+    - Academic grid headers are ordered Sunday through Saturday.
+    - Activity grid headers are ordered Monday through Sunday.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.week-starts-sunday
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
@@ -74,6 +94,16 @@ requirements:
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
     events.
+  acceptance:
+    given: An isolated course subscriber owns real schedule, exam, homework, todo and individually subscribed
+      activity events in one week.
+    when: The actual desktop grid and mobile agenda render that selected week.
+    then:
+    - All five event kinds are visible with their correct times and titles.
+    - Course, exam and activity cards retain their respective navigation destinations.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.event-card-types
 - id: calendar.feed-cache-refresh
   category: consistency
   rule: A stale cached personal export remains available while an asynchronous refresh is requested.

@@ -1,0 +1,152 @@
+import { expect, type Page, test } from "@playwright/test";
+import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
+import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+
+let fixture: Awaited<ReturnType<typeof createCalendarContractFixture>>;
+test.beforeEach(async () => {
+  fixture = await createCalendarContractFixture();
+});
+test.afterEach(async () => {
+  await fixture?.cleanup();
+});
+
+async function owner(page: Page, index: number) {
+  await page.context().clearCookies();
+  await page
+    .context()
+    .addCookies([
+      await createSignedSessionCookie(fixture.users[index].id),
+      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+    ]);
+}
+async function activityCalendar(page: Page) {
+  await owner(page, 1);
+  await gotoAndWaitForReady(page, "/workspace/calendar");
+  await page.locator("#personal-activity-date").fill(fixture.activityDate);
+  await page.locator("#personal-activity-date").press("Tab");
+}
+
+test("calendar.views", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await owner(page, 0);
+  for (const [view, label] of [
+    ["semester", /^(This semester|学期)$/],
+    ["month", /^(This month|本月)$/],
+    ["week", /^(This week|本周)$/],
+  ] as const) {
+    await gotoAndWaitForReady(page, fixture.academicUrl(view));
+    await expect(page.getByRole("radio", { name: label })).toBeChecked();
+    await expect(page.getByTestId("workspace-calendar-grid")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("workspace-calendar-grid")
+        .getByRole("link", { name: new RegExp(fixture.young.name) }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("workspace-calendar-grid")
+        .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+        .first(),
+    ).toBeVisible();
+  }
+  await activityCalendar(page);
+  for (const [view, label] of [
+    ["day", /^(Day|日)$/],
+    ["week", /^(Week|周)$/],
+    ["month", /^(Month|月)$/],
+  ] as const) {
+    const control = page.getByRole("radio", { name: label });
+    await control.click();
+    await expect(control).toHaveAttribute("data-state", "on");
+    const viewSurface =
+      view === "day"
+        ? page.getByTestId("calendar-agenda").filter({ visible: true })
+        : page.getByRole("grid").filter({ visible: true });
+    await expect(
+      viewSurface.getByRole("link", { name: new RegExp(fixture.young.name) }),
+    ).toBeVisible();
+    await expect(
+      page.locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`),
+    ).toHaveCount(0);
+  }
+});
+
+test("calendar.week-starts-sunday", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await owner(page, 0);
+  for (const view of ["semester", "month", "week"]) {
+    await gotoAndWaitForReady(page, fixture.academicUrl(view));
+    const headers = page
+      .getByTestId("workspace-calendar-grid")
+      .getByRole("columnheader");
+    await expect(headers).toHaveCount(8);
+    expect((await headers.allTextContents()).slice(1)).toEqual([
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+    ]);
+  }
+  await activityCalendar(page);
+  for (const label of [/^(Week|周)$/, /^(Month|月)$/]) {
+    await page.getByRole("radio", { name: label }).click();
+    const headers = page
+      .getByRole("grid")
+      .filter({ visible: true })
+      .getByRole("columnheader");
+    await expect(headers).toHaveCount(7);
+    expect(await headers.allTextContents()).toEqual([
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ]);
+  }
+});
+
+test("calendar.event-card-types", async ({ page }) => {
+  await owner(page, 0);
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoAndWaitForReady(page, fixture.academicUrl());
+    const surface = page
+      .getByTestId(width >= 768 ? "workspace-calendar-grid" : "calendar-agenda")
+      .filter({ visible: true });
+    const course = surface
+      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+      .first();
+    await expect(course).toContainText(fixture.course.nameEn ?? "");
+    await expect(course).toContainText("09:00");
+    const exam = surface.locator('a[href="/workspace/exams"]').first();
+    await expect(exam).toBeVisible();
+    await expect(exam).toContainText(/Exam/i);
+    await expect(exam).toContainText("13:00");
+    const homework = surface.getByRole("link", {
+      name: new RegExp(fixture.homework.title),
+    });
+    await expect(homework).toBeVisible();
+    await expect(homework).toContainText("12:00");
+    const todo = surface.getByRole("link", {
+      name: new RegExp(fixture.todo.title),
+    });
+    await expect(todo).toBeVisible();
+    await expect(todo).toContainText("03:00 PM");
+    const activity = surface.getByRole("link", {
+      name: new RegExp(fixture.young.name),
+    });
+    await expect(activity).toBeVisible();
+    await expect(activity).toContainText("16:00");
+    await expect(activity).toHaveAttribute(
+      "href",
+      `/catalog/young-events/${fixture.young.youngId}`,
+    );
+  }
+});
