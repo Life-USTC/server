@@ -50,11 +50,6 @@ requirements:
     test:
       file: tests/e2e/src/app/test.ts
       name: cases.semester.only-non-current-semester-subscriptions-3
-- id: cases.semester.cross-semester-browsing-1
-  category: behavior
-  topic: cross-semester-browsing
-  rule: A course with offerings in multiple semesters displays the semester on each offering. The course itself
-    is not assigned a single inferred semester.
 - id: cases.semester.cross-semester-browsing-3
   category: behavior
   topic: cross-semester-browsing
@@ -81,3 +76,4 @@ topics:
   title: Scenario guidance
 rationale:
 - The zero-current-subscription explanation is part of cases.semester.only-non-current-semester-subscriptions-1 alongside accurate historical term labels.
+- Course-offering term labels and the absence of a single inferred course term are verified by cases.disambiguation.multiple-sections-same-course-1.

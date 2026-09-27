@@ -498,6 +498,9 @@ test("cases.disambiguation.multiple-sections-same-course-1", async ({
         await expect(page.getByRole("heading", { level: 1 })).toContainText(
           name,
         );
+        const courseFacts = await page.locator("#overview").innerText();
+        expect(courseFacts).not.toContain(current.nameCn);
+        expect(courseFacts).not.toContain(previous.nameCn);
         for (const section of [fixture.section, ...sections]) {
           const link = page
             .locator(`a[href="/catalog/sections/${section.jwId}"]`)
@@ -516,6 +519,13 @@ test("cases.disambiguation.multiple-sections-same-course-1", async ({
           );
         }
       }
+      const courseResponse = await page.request.get(
+        `/api/catalog/courses/${fixture.course.jwId}`,
+      );
+      expect(courseResponse.status()).toBe(200);
+      const coursePayload = await courseResponse.json();
+      expect(Object.hasOwn(coursePayload, "semester")).toBe(false);
+      expect(Object.hasOwn(coursePayload, "semesterId")).toBe(false);
       await page
         .context()
         .addCookies([await createSignedSessionCookie(fixture.user.id)]);
