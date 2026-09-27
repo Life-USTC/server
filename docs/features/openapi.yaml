@@ -152,6 +152,14 @@ requirements:
 - id: openapi.public-catalog-pagination-bounds
   category: validation
   rule: Public catalog list page and pageSize inputs are integers from 1 through 100.
+  acceptance:
+    given: Each catalog list receives page or pageSize at valid boundaries or invalid numeric forms.
+    when: The production REST schemas validate the query.
+    then:
+    - 1 and 100 pass; zero, negative, fractional, excessive, non-finite and empty input fail.
+    test:
+      file: tests/unit/lib/api/api-schemas.test.ts
+      name: openapi.public-catalog-pagination-bounds
 capabilities:
   api-docs-page:
     title: API Docs Page

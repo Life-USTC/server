@@ -694,6 +694,23 @@ describe("其他请求 schema", () => {
     ).toBe(validVersionKey);
   });
 
+  it("openapi.public-catalog-pagination-bounds", () => {
+    for (const schema of [
+      coursesQuerySchema,
+      sectionsQuerySchema,
+      schedulesQuerySchema,
+      teachersQuerySchema,
+      semestersQuerySchema,
+    ]) {
+      for (const input of ["page", "pageSize"]) {
+        for (const value of ["1", "100"])
+          expect(schema.safeParse({ [input]: value }).success).toBe(true);
+        for (const value of ["0", "-1", "101", "1.5", "NaN", "Infinity", ""])
+          expect(schema.safeParse({ [input]: value }).success).toBe(false);
+      }
+    }
+  });
+
   it("校验分页 pageSize 和原生 limit 参数的边界", () => {
     const paginatedSchemas = [
       coursesQuerySchema,

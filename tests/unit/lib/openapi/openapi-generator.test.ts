@@ -45,7 +45,7 @@ describe("openapi generator", () => {
     expect(operation?.responses).toHaveProperty("403");
   });
 
-  it("publishes pageSize and marks limit as its deprecated alias", () => {
+  it("publishes pageSize without the removed pagination limit alias", () => {
     const paths = doc.paths as Record<
       string,
       {
@@ -82,8 +82,7 @@ describe("openapi generator", () => {
 
       expect(pageSize, path).toBeDefined();
       expect(pageSize?.deprecated, path).not.toBe(true);
-      expect(limit?.deprecated, path).toBe(true);
-      expect(limit?.description, path).toContain("pageSize");
+      expect(limit, path).toBeUndefined();
     }
   });
 
