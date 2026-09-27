@@ -15,11 +15,6 @@ access:
   agent: Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP
     capabilities only with explicit feature:action scopes such as workspace.todo:read and workspace.todo:write.
 requirements:
-- id: openapi.workspace-exam-pagination
-  category: behavior
-  rule: GET /api/workspace/exams is an owner-scoped, private/no-store paginated exam list requiring workspace.exam:read.
-    It supports semester and inclusive Shanghai calendar-date filters and includes unknown-date exams
-    by default; clients needing a complete list must exhaust pagination rather than use overview samples.
 - id: openapi.session-and-bearer
   category: authorization
   rule: Ordinary user business REST capabilities explicitly declare session-cookie and resource-bound
@@ -511,6 +506,7 @@ capabilities:
       - OAuth/provider catch-all endpoints
       - Webhook endpoint via Better Auth catch-all
 rationale:
+- The workspace exam REST contract is owned by exam.owned-page-completeness, exam.rest-read-scope and exam.rest-date-semester-filters; client pagination completeness is verified in the CLI and Bot repositories.
 - The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional
   product layer.
 - Public documentation helps callers understand the existing product capability boundaries, not to introduce

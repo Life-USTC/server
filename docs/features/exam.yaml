@@ -132,6 +132,15 @@ requirements:
   rule: Workspace.exams GraphQL pages cover all subscribed active Sections across semesters by default,
     including past and unknown-date exams. Every page retains the complete total and each result exposes
     Section semester context; retired and unowned exams are excluded.
+  acceptance:
+    given: An OAuth principal subscribes to active Sections in two semesters and a retired Section, while an unowned Section also has exams.
+    when: Actual signed GraphQL requests exhaust one-item pages and read an extra empty page.
+    then:
+    - The four active owned exams appear exactly once, including past and unknown dates and their semester context.
+    - Every page retains total=4; retired and unowned exams are excluded.
+    test:
+      file: tests/integration/graphql-exam-page-completeness.test.ts
+      name: exam.graphql-page-completeness
 capabilities:
   cross-section-exam-list:
     title: Cross-Section Exam List
