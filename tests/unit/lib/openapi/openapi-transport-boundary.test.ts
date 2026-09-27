@@ -7,7 +7,8 @@ import { graphqlTypeDefs } from "@/lib/graphql/schema";
 import { createMcpServer } from "@/lib/mcp/server";
 import openapi from "../../../../public/openapi.generated.json";
 
-it("openapi.crawler-ingestion-rest-only", async () => {
+// This checks the complete transport registries, including MCP schema setup.
+it("openapi.crawler-ingestion-rest-only", { timeout: 15_000 }, async () => {
   const operations = Object.entries(openapi.paths).flatMap(([path, methods]) =>
     path.startsWith("/api/ingestion/publications/")
       ? Object.keys(methods).map((method) => `${method.toUpperCase()} ${path}`)

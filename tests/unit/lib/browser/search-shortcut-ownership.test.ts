@@ -21,7 +21,8 @@ async function sources(directory: string): Promise<string[]> {
   return nested.flat();
 }
 
-it("ui.list-table-2", async () => {
+// Parse every source owner; this is not a shortcut-response latency contract.
+it("ui.list-table-2", { timeout: 15_000 }, async () => {
   const mountImports: string[] = [];
   const mountCalls: string[] = [];
   for (const filename of await sources("src")) {

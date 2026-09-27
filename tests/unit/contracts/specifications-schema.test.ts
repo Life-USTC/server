@@ -45,7 +45,10 @@ describe("versioned YAML product specifications", () => {
       validateSpecificationShapes(files, validators).length,
     ).toBeGreaterThan(0);
   });
-  it("validates every source against its schema and checks references", async () => {
+  // This compiles all canonical declarations, rather than one small fixture.
+  it("validates every source against its schema and checks references", {
+    timeout: 15_000,
+  }, async () => {
     const result = await checkSpecifications();
     expect(result.files).toBeGreaterThan(0);
     expect(result.requirements).toBeGreaterThan(0);

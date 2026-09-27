@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 
 // Resolving the repository's real type graph under coverage takes longer than
 // a small unit test; this budget does not constrain any application request.
-it("rendering-and-cache.contributor-notes-1", { timeout: 15_000 }, () => {
+it("rendering-and-cache.contributor-notes-1", { timeout: 30_000 }, () => {
   const project = new Project({
     tsConfigFilePath: "tsconfig.typecheck.json",
     skipAddingFilesFromTsConfig: true,

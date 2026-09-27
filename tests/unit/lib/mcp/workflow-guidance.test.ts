@@ -3,7 +3,10 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
 
-it("cases.mcp-assistant-workflows.scenario-guidance-2", async () => {
+// Building and enumerating the full tool schema registry is part of this audit.
+it("cases.mcp-assistant-workflows.scenario-guidance-2", {
+  timeout: 15_000,
+}, async () => {
   const server = createMcpServer();
   const client = new Client({ name: "workflow-guide", version: "1" });
   const [clientTransport, serverTransport] =

@@ -38,7 +38,8 @@ type Schema = {
   anyOf?: Schema[];
 };
 
-it("interface-hierarchy.semantic-parity-13", async () => {
+// Includes the real transport/type graph and schema registry under coverage.
+it("interface-hierarchy.semantic-parity-13", { timeout: 15_000 }, async () => {
   const spec = await readSpecification<Spec>("docs/features/subscription.yaml");
   const openapi = JSON.parse(
     await readFile("public/openapi.generated.json", "utf8"),
