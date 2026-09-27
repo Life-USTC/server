@@ -278,6 +278,19 @@ requirements:
   topic: detail-two-column-stream
   rule: Public catalog detail HTML contains no personalized comment visibility or moderation permission state.
     The comment panel loads viewer-dependent results through its private client request.
+  acceptance:
+    given: Isolated owner, ordinary viewer, and administrator accounts and an anonymous browser visit
+      course, section, and teacher details containing fixture public, logged-in-only, and hidden comments.
+    when: Each browser loads the raw HTML and holds the comment client request before allowing it to complete.
+    then:
+    - Raw HTML includes neither fixture comment IDs/bodies nor viewer user IDs, and no fixture comments
+      render before the private client response arrives.
+    - The no-store client response identifies the current viewer and supplies the permitted comment bodies
+      and owner edit/delete actions; ordinary catalog reads expose no administrator moderation capabilities.
+    - Rendered comments match the current viewer's visibility instead of inheriting a previous visitor's data.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-comment-privacy.test.ts
+      name: ui.detail-two-column-stream-6
 - id: ui.detail-two-column-stream-7
   category: presentation
   topic: detail-two-column-stream
