@@ -313,6 +313,7 @@ export async function planPublicationObjects(input: {
 
 export async function uploadPublicationObject(input: {
   body: ReadableStream<Uint8Array>;
+  contentType: string | null;
   payload: PublicationObjectUploadParams;
   principal: PublicationIngestionServicePrincipal;
   size: number;
@@ -325,6 +326,11 @@ export async function uploadPublicationObject(input: {
     payload.sha256,
   );
   const object = claim.object;
+  if (input.contentType !== claim.expectedContentType) {
+    throw new PublicationObjectBadRequestError(
+      "object content type does not match manifest",
+    );
+  }
   if (input.size !== claim.expectedSize) {
     throw new PublicationObjectBadRequestError(
       "object size does not match manifest",

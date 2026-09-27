@@ -71,6 +71,17 @@ requirements:
     that relationship, and returns not found when the permitted object or bytes are missing.
   rationale: Public cache lifetime and removal freshness require a consistent delivery policy; historical
     revision links do not independently authorize a fresh origin read.
+  acceptance:
+    given: A current public revision linked to a real uploaded object in local workerd R2.
+    when: Read anonymously, then vary object status/key, publication deletion/type/current revision, revision
+      tombstone/type, and stored byte presence/size/type.
+    then:
+    - Only verified or linked objects authorized by the current live public revision are readable.
+    - Ineligible relationships, noncanonical keys, missing bytes, or mismatched storage metadata return
+      404, including conditional requests.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.public-object-read
 - id: publications.publication-markdown
   category: presentation
   rule: Detail loads a verified body_markdown object from R2 and returns bodyMarkdown or null, never substituting
@@ -156,7 +167,7 @@ requirements:
     revisionHash), and each revision owns its object links. Reporter, editor and originalPublisher are
     distinct nullable revision fields. Per-revision image metadata (altText/title/caption) and attachment
     filename/sourceUrl are retained separately from shared URL/hash object identities and participate
-    in replay equality.
+    in replay equality, together with object order and revision-specific media metadata.
 - id: publications.revision-ordering
   category: consistency
   rule: observedAt is the source observation time. An older observation never overwrites the current revision;
@@ -237,6 +248,17 @@ requirements:
     already verified objects from objects requiring upload. An authenticated Worker PUT verifies the declared
     size, content type and SHA-256 before linking the uploaded object; there is no separate completion
     endpoint.
+  acceptance:
+    given: A real registered batch and local workerd R2 bucket with pending content-addressed manifests.
+    when: Plan and PUT actual fixture bytes through production routes, including foreign-batch claims,
+      missing batches, wrong lengths, and wrong SHA-256 bytes.
+    then:
+    - Keys are server-derived; absent bytes require upload and claims from another batch are rejected.
+    - Wrong sizes or hashes never link the object. Correct bytes persist with canonical metadata and status
+      linked; a repeated plan returns already_present.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.objects
 - id: publications.unchanged-objects
   category: consistency
   rule: An unchanged item still re-registers its object claims against the current batch so a redelivery
@@ -244,6 +266,18 @@ requirements:
     verified or linked), the item result carries objectsNeedingUpload entries ({ kind, sha256 }) and the
     client must plan and upload those objects against the new batchId; the field is absent when every
     claimed object is already verified.
+  acceptance:
+    given: A publication revision with a pending object claim and no bytes in local workerd R2.
+    when: Redeliver the same revision under a new batch ID, plan and upload through that batch, then redeliver
+      again.
+    then:
+    - Unchanged redelivery creates a new batch claim and reports objectsNeedingUpload while bytes are
+      unverified.
+    - The new batch can upload the bytes; verified redelivery omits objectsNeedingUpload without duplicating
+      the revision.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.unchanged-objects
 - id: publications.outbox
   category: consistency
   rule: Accepted revisions write a durable PublicationEventOutbox row in the same transaction. A future
@@ -253,13 +287,38 @@ requirements:
   category: validation
   rule: The first accepted content type for an object kind and SHA-256 is canonical. Later equivalent
     MIME labels cannot change its key, size, canonical delivery type, or revision identity. Plans, authenticated
-    PUT validation, and object reads use the canonical content type; revision equality also includes object
-    order and revision-specific media metadata.
+    PUT validation, and object reads use the canonical content type.
+  acceptance:
+    given: A registered object with an initial MIME type and size, backed by real production-role database
+      and local workerd R2.
+    when: Redeliver a same-size MIME alias, try the alias in PUT, and attempt conflicting sizes before
+      and after verification.
+    then:
+    - The first content type, key, size, and revision identity remain stable; plans and public delivery
+      use the first type.
+    - PUT requires the canonical type. Conflicting sizes reject without silently rewriting pending or
+      linked object metadata.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.content-type
 - id: publications.required-upload-headers
   category: validation
   rule: An upload plan returns the authenticated on-site Worker PUT URL and its required Content-Type
     header. The registered manifest determines object kind, SHA-256 and storage key; callers cannot override
     them through metadata headers. Upload plans never return R2 credentials or presigned URLs.
+  acceptance:
+    given: A registered manifest and authenticated production object-plan route backed by local workerd
+      R2.
+    when: Inspect the exact plan and upload with missing, incorrect, or parameterized Content-Type, invalid
+      credentials, or forged metadata headers.
+    then:
+    - The plan returns only the onsite authenticated PUT URL and canonical Content-Type, with no storage
+      credentials.
+    - Invalid credentials or Content-Type cannot write bytes. Forged metadata headers cannot override
+      kind, SHA-256, or the generated storage key.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.required-upload-headers
 - id: publications.source-registry
   category: behavior
   rule: PublicationSource is the registry of who publishes. organizationLevel is a closed enum (university,
