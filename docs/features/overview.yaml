@@ -132,6 +132,23 @@ requirements:
   category: presentation
   rule: Compact workspace cards and default MCP output omit platform audit timestamps and repeated parent
     objects.
+- id: overview.activity-owner-transition
+  category: privacy
+  rule: Activity reads and rendered activity state are keyed by the authenticated owner as well as locale
+    and dates. Changing owner clears the previous owner’s activities, cancels pending requests and rejects
+    late results. An unresolved activity read shows loading rather than claiming the agenda is empty.
+  acceptance:
+    given: Two isolated owners have different ongoing subscribed activities, and the first owner’s response
+      is either already displayed or held after the real server has answered.
+    when: Session cookies change and same-document workspace navigation loads the second owner at the same
+      locale and date range, then the first owner’s held response is released.
+    then:
+    - The second owner triggers a fresh read and displays only their own activity; a DOM observer detects
+      no frame combining the second owner’s workspace with the first owner’s activity.
+    - Pending activity reads display loading and suppress the empty-agenda claim.
+    test:
+      file: tests/e2e/src/app/workspace/overview/activity-owner.test.ts
+      name: overview.activity-owner-transition
 - id: overview.card-order
   category: presentation
   applies_to:

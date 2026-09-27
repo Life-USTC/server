@@ -590,6 +590,7 @@ export type CatalogLinksData = WorkspaceRecord & {
 };
 
 export type WorkspaceNavStats = WorkspaceRecord & {
+  user: { id: string };
   calendarItemsCount: number;
   examsCount: number;
   pendingHomeworksCount: number;

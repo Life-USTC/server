@@ -87,8 +87,12 @@ export let updatingCatalogLinkSlug: string | null;
 
 let youngItems: PersonalCalendarItem[] = [];
 let youngFailed = false;
+let youngLoading = true;
+let youngOwnerId = "";
 let youngController: AbortController | undefined;
 let requestedRange = "";
+$: ownerId = signedData.navStats.user.id;
+$: visibleYoungItems = youngOwnerId === ownerId ? youngItems : [];
 $: activityCopy = getWorkspacePageCopy(locale === "en-us" ? "en-us" : "zh-cn");
 $: overviewStart = signedData.overview?.calendar?.todayDate ?? "";
 $: overviewWeekStart = buildWorkspaceOverviewWeekStart(signedData);
@@ -104,23 +108,38 @@ $: if (
   browser &&
   rangeStart &&
   rangeEnd &&
-  `${locale}:${rangeStart}:${rangeEnd}` !== requestedRange
+  `${ownerId}:${locale}:${rangeStart}:${rangeEnd}` !== requestedRange
 ) {
-  requestedRange = `${locale}:${rangeStart}:${rangeEnd}`;
-  void loadYoung(rangeStart, rangeEnd);
+  requestedRange = `${ownerId}:${locale}:${rangeStart}:${rangeEnd}`;
+  void loadYoung(ownerId, rangeStart, rangeEnd);
 }
-async function loadYoung(from: string, to: string) {
+async function loadYoung(requestOwnerId: string, from: string, to: string) {
   youngController?.abort();
   const controller = new AbortController();
   youngController = controller;
   youngItems = [];
+  youngOwnerId = requestOwnerId;
   youngFailed = false;
+  youngLoading = true;
   try {
     const items = await fetchPersonalCalendar(from, to, controller.signal);
-    if (!controller.signal.aborted)
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId
+    )
       youngItems = items.filter((item) => item.type === "young_event");
   } catch {
-    if (!controller.signal.aborted) youngFailed = true;
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId
+    )
+      youngFailed = true;
+  } finally {
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId
+    )
+      youngLoading = false;
   }
 }
 onDestroy(() => youngController?.abort());
@@ -254,11 +273,12 @@ function overviewFocus(
     {@const overviewCalendar = signedData.overview.calendar}
     {@const overviewWeekStart = workspaceOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
-    {@const agendaDays = overviewAgendaDays(overviewCalendar, youngItems)}
+    {@const agendaDays = overviewAgendaDays(overviewCalendar, visibleYoungItems)}
     <div class="grid min-w-0 gap-8 lg:gap-10">
       <OverviewFocusCard
         copy={workspaceCopy.focus}
-        focus={overviewFocus(overviewCalendar, agendaDays, youngItems)}
+        loadingLabel={youngLoading ? activityCopy.youngEvents.workspace.loading : null}
+        focus={overviewFocus(overviewCalendar, agendaDays, visibleYoungItems)}
       />
 
       {#if youngFailed}
@@ -292,7 +312,7 @@ function overviewFocus(
         <OverviewWeekCard
           {workspaceCopy}
           {workspaceTabHref}
-          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart, youngItems)}
+          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart, visibleYoungItems)}
           {formatMessage}
         />
       </div>
