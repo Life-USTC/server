@@ -11,4 +11,4 @@ $: primary = catalogPrimaryName(item) || catalogSecondaryName(item);
 $: secondary = catalogSecondaryName(item);
 </script>
 
-<span data-slot="entity-primary-name">{primary}</span>{#if locale === "en-us" && secondary && secondary !== primary} <span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({secondary})</span>{/if}
+<span data-slot="entity-primary-name">{primary}</span>{#if locale === "en-us" && secondary && secondary !== primary}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({secondary})</span>{/if}

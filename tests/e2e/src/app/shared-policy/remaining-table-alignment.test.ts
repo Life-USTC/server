@@ -12,25 +12,30 @@ async function checkColumns(
   table: Locator,
   expected: Alignment[],
   name: string,
+  headers = "thead th",
+  rows = "tbody tr",
 ) {
   await expect(table).toBeVisible();
-  await expect(table.locator("thead th")).toHaveCount(expected.length);
-  await expect(table.locator("tbody tr").first()).toBeVisible();
-  const columns = await table.evaluate((element) => {
-    const normalize = (node: Element) => {
-      const align = getComputedStyle(node).textAlign;
-      return align === "start" ? "left" : align === "end" ? "right" : align;
-    };
-    return Array.from(element.querySelectorAll("thead th")).map(
-      (header, index) => ({
-        label: header.textContent?.trim(),
-        header: normalize(header),
-        cells: Array.from(element.querySelectorAll("tbody tr"))
-          .filter((row) => row.children.length > 1)
-          .map((row) => normalize(row.children[index])),
-      }),
-    );
-  });
+  await expect(table.locator(headers)).toHaveCount(expected.length);
+  await expect(table.locator(rows).first()).toBeVisible();
+  const columns = await table.evaluate(
+    (element, selectors) => {
+      const normalize = (node: Element) => {
+        const align = getComputedStyle(node).textAlign;
+        return align === "start" ? "left" : align === "end" ? "right" : align;
+      };
+      return Array.from(element.querySelectorAll(selectors.headers)).map(
+        (header, index) => ({
+          label: header.textContent?.trim(),
+          header: normalize(header),
+          cells: Array.from(element.querySelectorAll(selectors.rows))
+            .filter((row) => row.children.length > 1)
+            .map((row) => normalize(row.children[index])),
+        }),
+      );
+    },
+    { headers, rows },
+  );
   for (const [index, column] of columns.entries()) {
     if (expected[index] === null) continue;
     expect
@@ -218,16 +223,21 @@ test("ui.data-table-cells-4", async ({ page, baseURL }) => {
     await page
       .getByRole("switch", { name: "Show departed trips", exact: true })
       .click();
-    const bus = page.getByTestId("bus-route-section").locator("table").first();
-    const count = await bus.locator("thead th").count();
-    expect(count).toBeGreaterThanOrEqual(2);
-    await checkColumns(
-      bus,
-      Array.from({ length: count }, (_, index) =>
-        index === 0 ? "left" : index === count - 1 ? "right" : "center",
-      ),
-      "bus-stops",
-    );
+    const groups = page.getByTestId("bus-route-section");
+    expect(await groups.count()).toBeGreaterThan(0);
+    for (const bus of await groups.all()) {
+      const count = await bus.locator('th[scope="col"]').count();
+      expect(count).toBeGreaterThanOrEqual(2);
+      await checkColumns(
+        bus,
+        Array.from({ length: count }, (_, index) =>
+          index === 0 ? "left" : index === count - 1 ? "right" : "center",
+        ),
+        "bus-stops",
+        'th[scope="col"]',
+        "tr:has(td[headers])",
+      );
+    }
   } finally {
     await cleanupEmbeddedTablePolicyFixture(f);
   }

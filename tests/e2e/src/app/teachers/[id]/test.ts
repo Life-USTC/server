@@ -168,8 +168,13 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       "#sections",
     );
 
-    // section.semester.nameCn badge
-    await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
+    const locale = await page.locator("html").getAttribute("lang");
+    await expect(
+      visibleText(
+        page,
+        locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+      ),
+    ).toBeVisible();
     // section.course.namePrimary (locale-dependent)
     await expect(
       page
