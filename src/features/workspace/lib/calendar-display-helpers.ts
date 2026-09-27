@@ -1,10 +1,11 @@
 import { fmtTime } from "@/features/workspace/lib/overview";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export function timeSortValue(value: Date | string | null | undefined) {
   if (!value) return 2400;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 2400;
-  return date.getHours() * 100 + date.getMinutes();
+  const date = shanghaiDayjs(value);
+  if (!date.isValid()) return 2400;
+  return date.hour() * 100 + date.minute();
 }
 
 export function calendarTimelineClass(tone: string) {

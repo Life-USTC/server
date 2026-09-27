@@ -10,6 +10,7 @@ import type {
   CalendarSessionEvent,
   CalendarTodoEvent,
 } from "@/features/workspace/lib/calendar-display-types";
+import { formatShanghaiTime } from "@/lib/time/shanghai-format";
 
 export function calendarHomeworkHref(
   homework: CalendarHomeworkEvent,
@@ -96,10 +97,7 @@ export function calendarHomeworkChipFields(
   noCompletionRequired?: string,
 ): CalendarEventChipFields {
   const dueTime = homework.submissionDueAt
-    ? new Date(homework.submissionDueAt).toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+    ? formatShanghaiTime(homework.submissionDueAt)
     : "";
   return {
     meta: dueTime,
@@ -125,12 +123,7 @@ export function calendarTodoChipFields(
   todo: CalendarTodoEvent,
   priorityLabel: string,
 ): CalendarEventChipFields {
-  const dueTime = todo.dueAt
-    ? new Date(todo.dueAt).toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
+  const dueTime = todo.dueAt ? formatShanghaiTime(todo.dueAt) : "";
   return {
     meta: dueTime,
     detail: calendarEventParts([priorityLabel, compactDetail(todo.content)]),

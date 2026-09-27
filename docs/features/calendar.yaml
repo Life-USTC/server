@@ -114,13 +114,15 @@ requirements:
 - id: calendar.event-card-types
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
-    events.
+    events. Their times use 24-hour Asia/Shanghai campus time regardless of the server or viewer timezone;
+    agendas order timestamp-based deadlines alongside course and exam slots by that same campus time.
   acceptance:
     given: An isolated course subscriber owns real schedule, exam, homework, todo and individually subscribed
       activity events in one week.
-    when: The actual desktop grid and mobile agenda render that selected week.
+    when: The actual desktop grid and mobile agenda render that selected week in UTC and Asia/Shanghai browser contexts.
     then:
-    - All five event kinds are visible with their correct times and titles.
+    - All five event kinds are visible with their correct campus times and titles in both timezones.
+    - The agenda places the 09:00 class, 12:00 homework, 13:00 exam and 15:00 todo in chronological order.
     - Course, exam and activity cards retain their respective navigation destinations.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
@@ -489,3 +491,4 @@ rationale:
 - Personal calendar day, week and month events are identified by their actual dates; semester context belongs to navigation instead of repeating on every event.
 - Calendar agenda views apply on desktop day view and mobile day/week/month/semester views. Desktop grid views apply to week/month/semester cells, where the business title and time identify each item; full class location and teachers remain available in the tooltip. Event type labels are explicit in the agenda, while compact grid cells use established type styling and exam labels.
 - Class and exam cards have start/end times and locations. Homework and todo cards have a due time and task context, so separate field views avoid pretending every event has a location or end time.
+- Campus event time is shared by calendar cards, agenda ordering and overview focus/week cards. Explicit Shanghai formatting prevents the server and browser host timezone from shifting a deadline, and the 24-hour display matches academic timetable slots.

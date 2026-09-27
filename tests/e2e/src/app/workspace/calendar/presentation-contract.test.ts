@@ -226,41 +226,65 @@ test("calendar.week-starts-monday", async ({ page }, testInfo) => {
   await expect(cells.nth(4)).toContainText("Calendar teaching room");
 });
 
-test("calendar.event-card-types", async ({ page }) => {
-  await owner(page, 0);
-  for (const width of [1280, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    await gotoAndWaitForReady(page, fixture.academicUrl());
-    const surface = page
-      .getByTestId(width >= 768 ? "workspace-calendar-grid" : "calendar-agenda")
-      .filter({ visible: true });
-    const course = surface
-      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
-      .first();
-    await expect(course).toContainText(fixture.course.nameEn ?? "");
-    await expect(course).toContainText("09:00");
-    const exam = surface.locator('a[href="/workspace/exams"]').first();
-    await expect(exam).toBeVisible();
-    await expect(exam).toContainText(/Exam/i);
-    await expect(exam).toContainText("13:00");
-    const homework = surface.getByRole("link", {
-      name: new RegExp(fixture.homework.title),
+test("calendar.event-card-types", async ({ browser }) => {
+  for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
+    const context = await browser.newContext({
+      baseURL: PLAYWRIGHT_BASE_URL,
+      timezoneId,
     });
-    await expect(homework).toBeVisible();
-    await expect(homework).toContainText("12:00");
-    const todo = surface.getByRole("link", {
-      name: new RegExp(fixture.todo.title),
-    });
-    await expect(todo).toBeVisible();
-    await expect(todo).toContainText("03:00 PM");
-    const activity = surface.getByRole("link", {
-      name: new RegExp(fixture.young.name),
-    });
-    await expect(activity).toBeVisible();
-    await expect(activity).toContainText("16:00");
-    await expect(activity).toHaveAttribute(
-      "href",
-      `/catalog/young-events/${fixture.young.youngId}`,
-    );
+    const page = await context.newPage();
+    try {
+      await owner(page, 0);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(page, fixture.academicUrl());
+        const surface = page
+          .getByTestId(
+            width >= 768 ? "workspace-calendar-grid" : "calendar-agenda",
+          )
+          .filter({ visible: true });
+        const course = surface
+          .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+          .first();
+        await expect(course).toContainText(fixture.course.nameEn ?? "");
+        await expect(course).toContainText("09:00");
+        const exam = surface.locator('a[href="/workspace/exams"]').first();
+        await expect(exam).toBeVisible();
+        await expect(exam).toContainText(/Exam/i);
+        await expect(exam).toContainText("13:00");
+        const homework = surface.getByRole("link", {
+          name: new RegExp(fixture.homework.title),
+        });
+        await expect(homework).toBeVisible();
+        await expect(homework).toContainText("12:00");
+        const todo = surface.getByRole("link", {
+          name: new RegExp(fixture.todo.title),
+        });
+        await expect(todo).toBeVisible();
+        await expect(todo).toContainText("15:00");
+        if (width < 768) {
+          const day = surface
+            .locator(`#agenda-${fixture.date}`)
+            .locator("xpath=ancestor::section[1]");
+          await expect(day.locator('[data-slot="item-title"]')).toHaveText([
+            fixture.course.nameEn ?? "",
+            fixture.homework.title,
+            fixture.course.nameEn ?? "",
+            fixture.todo.title,
+          ]);
+        }
+        const activity = surface.getByRole("link", {
+          name: new RegExp(fixture.young.name),
+        });
+        await expect(activity).toBeVisible();
+        await expect(activity).toContainText("16:00");
+        await expect(activity).toHaveAttribute(
+          "href",
+          `/catalog/young-events/${fixture.young.youngId}`,
+        );
+      }
+    } finally {
+      await context.close();
+    }
   }
 });
