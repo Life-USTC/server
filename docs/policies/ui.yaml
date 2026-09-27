@@ -101,7 +101,20 @@ requirements:
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Other collection surfaces, including link and publication-source directories, workspace uploads and activity reminders, and administrative lists, put their page heading before the applicable filters, result summary and records; available pagination follows the records. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before the applicable filters, result summary and records; available pagination follows the records. Their layout uses the shared primitives required by ui.layout-principles-4.
+  acceptance:
+    given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
+    when: A browser opens each view at mobile and desktop widths.
+    then:
+    - The visible page heading precedes applicable filters and summaries, which precede records; every available pagination region follows the final record.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
+      name: ui.other-collection-order
+- id: ui.embedded-collection-order
+  category: presentation
+  topic: list-table
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before applicable filters, result summary and records; available pagination follows the records.
+  rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts.
 - id: ui.list-table-2
   category: presentation
   topic: list-table
@@ -163,7 +176,19 @@ requirements:
 - id: ui.list-table-6
   category: presentation
   topic: list-table
-  rule: Outside the six public browse collections covered by ui.public-browse-responsive-lists, compact lists do not cause horizontal document overflow at narrow widths. Wide comparison tables retain their required columns inside a horizontally scrollable table region.
+  rule: Outside the public browse collections covered by ui.public-browse-responsive-lists and the directory/workspace/administrative views covered by ui.other-browse-responsive-lists, compact lists do not cause horizontal document overflow at narrow widths. Wide comparison tables retain their required columns inside a horizontally scrollable table region.
+- id: ui.other-browse-responsive-lists
+  category: presentation
+  topic: list-table
+  rule: Link/source directories, uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists display compact records within the narrow viewport without horizontal document overflow.
+  acceptance:
+    given: Long-name isolated records populate each directory/workspace/administrative collection alongside the application link registry and publication source fixture.
+    when: A browser opens all thirteen views at 320 and 390 pixels and scrolls each rendered record into view.
+    then:
+    - Each view contains records; every compact record fits the viewport and the document does not overflow horizontally.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
+      name: ui.other-browse-responsive-lists
 - id: ui.public-browse-responsive-lists
   category: presentation
   topic: list-table
