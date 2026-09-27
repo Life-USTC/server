@@ -37,7 +37,9 @@ test("section.schedule-response-schema", async ({ request }) => {
       });
       return teacher;
     });
-    const documentResponse = await request.get("/api/openapi");
+    const documentResponse = await request.get("/api/openapi", {
+      maxRetries: 1,
+    });
     expect(documentResponse.status()).toBe(200);
     const document = await documentResponse.json();
     const components = document.components.schemas;
@@ -77,6 +79,7 @@ test("section.schedule-response-schema", async ({ request }) => {
     for (const locale of ["zh-cn", "en-us"]) {
       const response = await request.get(
         `/api/catalog/sections/${fixture.section.jwId}/schedules?locale=${locale}`,
+        { maxRetries: 1 },
       );
       expect(response.status()).toBe(200);
       const body = await response.json();
@@ -104,6 +107,7 @@ test("section.schedule-response-schema", async ({ request }) => {
       expect(JSON.stringify(body)).not.toContain("private-schedule-");
       const groupsResponse = await request.get(
         `/api/catalog/sections/${fixture.section.jwId}/schedule-groups?locale=${locale}`,
+        { maxRetries: 1 },
       );
       expect(groupsResponse.status()).toBe(200);
       const groups = await groupsResponse.json();

@@ -101,6 +101,7 @@ test("description.public-web-personal-overlay", async ({
       for (const raw of jsonLd) expect(JSON.parse(raw)).toBeTruthy();
       const payload = await anonymous.request.get(
         `/api/community/descriptions?targetType=${target.type}&targetId=${target.id}`,
+        { maxRetries: 1 },
       );
       expect(payload.status()).toBe(200);
       expect((await payload.json()).viewer).toMatchObject({
