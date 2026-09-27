@@ -1,6 +1,6 @@
 ## Goal
 
-<!-- What should this change accomplish? -->
+<!-- Outcome and acceptance criteria. Link the owning Task and use closing references for completed leaf Issues. Keep Project status and lifecycle dates in Project fields. -->
 
 ## Changed Surfaces
 
@@ -8,7 +8,9 @@
 
 ## Evidence
 
-<!-- Commands run plus any browser screenshot/API/MCP output inspected. For typed requirements, identify the requirement IDs and tests that exercise the changed behavior; inspect CI specification evidence. Say N/A with reason for skipped checks. -->
+<!-- Link the successful full CI run for this branch's current commit before opening the PR; local check alone is insufficient. Identify changed requirement IDs, their behavioral tests, and specification execution evidence. -->
+
+<!-- Visual changes: upload matched before/after screenshots to GitHub user-attachments, then use a table with <img src="uploaded URL" width="420"> in each cell. Verify links while signed in. Never use a public asset repository or Contents API. If upload is unavailable, state that evidence upload is pending; omit this section for nonvisual changes. -->
 
 ## Docs / Contracts
 
