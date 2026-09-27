@@ -41,10 +41,23 @@ requirements:
       name: overview.now-next-first
 - id: overview.current-semester-priority
   category: presentation
-  rule: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical
-    semester content or complete directory information.
-  rationale: 'Product decision required: Current semester is useful default context but must not bury
-    urgent tasks from another still-relevant term or activities/personal todos.'
+  rule: The overview prioritizes actionable events from every subscribed Section within its rolling
+    date window, including still-relevant events from past terms, personal todos and independently subscribed
+    activities. Current-semester context and history links follow actionable content; no current-term
+    subscriptions must not replace the overview. The semester calendar remains scoped to its selected term.
+  acceptance:
+    given: An isolated owner has a historical Section with a current makeup class and deadline, a personal
+      todo and an independently subscribed activity, with and without an additional current-term subscription.
+    when: Chinese and English overview pages render at class, deadline, todo and activity times on desktop
+      and mobile.
+    then:
+    - The historical class, homework and activity remain eligible for the focus card, and the personal todo
+      remains visible in summaries.
+    - With only historical subscriptions, the term context and history links follow the focus instead of
+      replacing it.
+    test:
+      file: tests/e2e/src/app/workspace/overview/term-priority.test.ts
+      name: overview.current-semester-priority
 - id: overview.homework-todo-layered
   category: presentation
   rule: 'Homework and todo deadline groups use Shanghai calendar days: due today, due in the next three

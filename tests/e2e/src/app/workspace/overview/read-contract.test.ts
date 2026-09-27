@@ -40,10 +40,24 @@ test.afterEach(async () => {
     await withE2ePrisma((db) => db.oAuthClient.delete({ where: { clientId } }));
   await fixture?.cleanup();
 });
-async function call(name: string, args: Record<string, unknown> = {}) {
+type CalendarEvent = { payload: { id: string | number } };
+type SnapshotResult = {
+  nextClass: unknown;
+  upcomingDeadlines: { total: number; items: CalendarEvent[] };
+};
+type NextClassResult = { found: boolean; nextClass: unknown };
+type DeadlinesResult = { total: number; deadlines: CalendarEvent[] };
+type OverviewResult = {
+  overview: { upcomingExamsCount: number };
+  samples: { upcomingExams: { id: number }[] };
+};
+async function call<Result>(
+  name: string,
+  args: Record<string, unknown> = {},
+): Promise<Result> {
   const response = await client.callTool({ name, arguments: args });
   expect(response.isError).not.toBe(true);
-  return parseTextContent(response) as Record<string, any>;
+  return parseTextContent(response) as Result;
 }
 
 test("overview.upcoming-exam-counts", async ({ page }) => {
@@ -104,7 +118,7 @@ test("overview.upcoming-exam-counts", async ({ page }) => {
       .map((exam) => exam.id)
       .sort(),
   );
-  const mcp = await call("workspace_overview_get", {
+  const mcp = await call<OverviewResult>("workspace_overview_get", {
     atTime: now.toISOString(),
     limit: 10,
     mode: "full",
@@ -157,55 +171,61 @@ test("overview.focused-extracts-share-window", async () => {
     return created;
   });
   for (const mode of ["default", "full"]) {
-    const snapshot = await call("workspace_snapshot_get", { atTime, mode });
-    const next = await call("workspace_schedule_next", { atTime, mode });
+    const snapshot = await call<SnapshotResult>("workspace_snapshot_get", {
+      atTime,
+      mode,
+    });
+    const next = await call<NextClassResult>("workspace_schedule_next", {
+      atTime,
+      mode,
+    });
     expect(next.found).toBe(true);
     expect(next.nextClass).toEqual(snapshot.nextClass);
     expect(JSON.stringify(next.nextClass)).toContain(
       "2026-04-29T09:00:00+08:00",
     );
   }
-  const snapshot = await call("workspace_snapshot_get", {
+  const snapshot = await call<SnapshotResult>("workspace_snapshot_get", {
     atTime,
     mode: "full",
   });
-  const deadlines = await call("workspace_deadline_list", {
+  const deadlines = await call<DeadlinesResult>("workspace_deadline_list", {
     atTime,
     mode: "full",
   });
   expect(deadlines.deadlines).toEqual(snapshot.upcomingDeadlines.items);
   expect(deadlines.total).toBe(5);
   const ids = deadlines.deadlines.map(
-    (event: { payload: { id: string } }) => event.payload.id,
+    (event: CalendarEvent) => event.payload.id,
   );
   expect(ids).toContain(edgeTodos[1].id);
   expect(ids).toContain(edgeTodos[2].id);
   for (const index of [0, 3, 4]) expect(ids).not.toContain(edgeTodos[index].id);
-  const oneDay = await call("workspace_deadline_list", {
+  const oneDay = await call<DeadlinesResult>("workspace_deadline_list", {
     atTime,
     dayLimit: 1,
     mode: "full",
   });
   expect(oneDay.total).toBe(4);
   expect(
-    oneDay.deadlines.map(
-      (event: { payload: { id: string } }) => event.payload.id,
-    ),
+    oneDay.deadlines.map((event: CalendarEvent) => event.payload.id),
   ).not.toContain(edgeTodos[2].id);
-  const nineDays = await call("workspace_deadline_list", {
+  const nineDays = await call<DeadlinesResult>("workspace_deadline_list", {
     atTime,
     dayLimit: 9,
     mode: "full",
   });
   expect(nineDays.total).toBe(7);
   expect(
-    nineDays.deadlines.map(
-      (event: { payload: { id: string } }) => event.payload.id,
-    ),
+    nineDays.deadlines.map((event: CalendarEvent) => event.payload.id),
   ).toEqual(expect.arrayContaining([edgeTodos[3].id, edgeTodos[4].id]));
   expect(
-    (await call("workspace_snapshot_get", { atTime, mode: "full" }))
-      .upcomingDeadlines,
+    (
+      await call<SnapshotResult>("workspace_snapshot_get", {
+        atTime,
+        mode: "full",
+      })
+    ).upcomingDeadlines,
   ).toEqual(snapshot.upcomingDeadlines);
   await withE2ePrisma((db) =>
     db.schedule.updateMany({
@@ -213,9 +233,15 @@ test("overview.focused-extracts-share-window", async () => {
       data: { date: new Date("2026-05-06T00:00:00Z") },
     }),
   );
-  const beyond = await call("workspace_snapshot_get", { atTime, mode: "full" });
+  const beyond = await call<SnapshotResult>("workspace_snapshot_get", {
+    atTime,
+    mode: "full",
+  });
   expect(beyond.nextClass).toBeNull();
   expect(
-    await call("workspace_schedule_next", { atTime, mode: "full" }),
+    await call<NextClassResult>("workspace_schedule_next", {
+      atTime,
+      mode: "full",
+    }),
   ).toMatchObject({ found: false, nextClass: null });
 });

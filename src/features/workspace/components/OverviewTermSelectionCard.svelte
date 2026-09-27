@@ -15,7 +15,7 @@ export let historyCalendarSemesterId: number | null = null;
 export let showHistoryActions = false;
 </script>
 
-<OverviewSection title={workspaceCopy.termSelection.title}>
+<OverviewSection testId="workspace-overview-term-context" title={workspaceCopy.termSelection.title}>
   <SoftEmptyMessage message={description} />
   <div class="mt-1 flex flex-wrap gap-2">
     <Button href={workspaceTabHref("subscriptions")}>
@@ -51,6 +51,9 @@ export let showHistoryActions = false;
         </Button>
         <Button href={workspaceTabHref("subscriptions")} variant="outline">
           {workspaceCopy.termSelection.viewPastSections}
+        </Button>
+        <Button href={workspaceTabHref("exams")} variant="outline">
+          {workspaceCopy.nav.exams.title}
         </Button>
       </div>
     </div>

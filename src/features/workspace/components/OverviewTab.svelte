@@ -1,5 +1,9 @@
 <script lang="ts">
-import { calendarEventsForDay } from "@/features/workspace/lib/calendar";
+import { onDestroy } from "svelte";
+import {
+  addDays,
+  calendarEventsForDay,
+} from "@/features/workspace/lib/calendar";
 import { calendarExamDetail } from "@/features/workspace/lib/calendar-display";
 import {
   fmtTime,
@@ -31,9 +35,16 @@ import type {
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import {
+  fetchPersonalCalendar,
+  type PersonalCalendarItem,
+  personalItemsForDay,
+} from "@/features/young/lib/personal-calendar-client";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { browser } from "$app/environment";
+import { Button } from "$lib/components/ui/button";
 import OverviewFocusCard from "./OverviewFocusCard.svelte";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
-import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
 import OverviewTermSelectionCard from "./OverviewTermSelectionCard.svelte";
 import OverviewTodayOverdueCards from "./OverviewTodayOverdueCards.svelte";
@@ -74,6 +85,46 @@ export let calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay;
 export let overviewLinkItems: WorkspaceOverviewLinkItem[];
 export let updatingCatalogLinkSlug: string | null;
 
+let youngItems: PersonalCalendarItem[] = [];
+let youngFailed = false;
+let youngController: AbortController | undefined;
+let requestedRange = "";
+$: activityCopy = getWorkspacePageCopy(locale === "en-us" ? "en-us" : "zh-cn");
+$: overviewStart = signedData.overview?.calendar?.todayDate ?? "";
+$: overviewWeekStart = buildWorkspaceOverviewWeekStart(signedData);
+$: rangeStart =
+  overviewStart && overviewWeekStart
+    ? [overviewStart, overviewWeekStart].sort()[0]
+    : "";
+$: rangeEnd =
+  overviewStart && overviewWeekStart
+    ? [addDays(overviewStart, 6), addDays(overviewWeekStart, 6)].sort()[1]
+    : "";
+$: if (
+  browser &&
+  rangeStart &&
+  rangeEnd &&
+  `${locale}:${rangeStart}:${rangeEnd}` !== requestedRange
+) {
+  requestedRange = `${locale}:${rangeStart}:${rangeEnd}`;
+  void loadYoung(rangeStart, rangeEnd);
+}
+async function loadYoung(from: string, to: string) {
+  youngController?.abort();
+  const controller = new AbortController();
+  youngController = controller;
+  youngItems = [];
+  youngFailed = false;
+  try {
+    const items = await fetchPersonalCalendar(from, to, controller.signal);
+    if (!controller.signal.aborted)
+      youngItems = items.filter((item) => item.type === "young_event");
+  } catch {
+    if (!controller.signal.aborted) youngFailed = true;
+  }
+}
+onDestroy(() => youngController?.abort());
+
 function fmtDate(value: Date | string | null | undefined) {
   return formatOverviewDate(value, sectionCopy, signedData, locale);
 }
@@ -101,17 +152,20 @@ function sessionHref(session: Pick<WorkspaceCalendarSession, "sectionJwId">) {
 function overviewCalendarWeekDays(
   overviewCalendar: WorkspaceCalendarPreviewData,
   overviewWeekStart: string,
+  activities: PersonalCalendarItem[],
 ) {
   return buildOverviewCalendarWeekDays(
     overviewCalendar,
     overviewWeekStart,
     calendarTimelineItemsForDay,
     locale,
+    activities,
   );
 }
 
 function overviewAgendaDays(
   overviewCalendar: WorkspaceCalendarPreviewData,
+  activities: PersonalCalendarItem[],
 ): WorkspaceAgendaDay[] {
   return buildWorkspaceAgendaDays({
     calendar: overviewCalendar,
@@ -119,7 +173,12 @@ function overviewAgendaDays(
     locale,
     startKey: overviewCalendar.todayDate,
     timelineItemsForDay: calendarTimelineItemsForDay,
-  });
+  }).map((day) => ({
+    ...day,
+    events: [...day.events, ...personalItemsForDay(activities, day.key)].sort(
+      (left, right) => left.sort - right.sort,
+    ),
+  }));
 }
 
 function overviewReference(value: unknown): Date | string | null {
@@ -129,6 +188,7 @@ function overviewReference(value: unknown): Date | string | null {
 function overviewFocus(
   overviewCalendar: WorkspaceCalendarPreviewData,
   days: WorkspaceAgendaDay[],
+  activities: PersonalCalendarItem[],
 ) {
   const currentTime = workspaceReferenceTime(
     overviewReference(signedData.referenceNow) ??
@@ -138,8 +198,24 @@ function overviewFocus(
     overviewCalendar,
     overviewCalendar.todayDate,
   );
+  const now = Date.parse(
+    String(signedData.referenceNow ?? overviewCalendar.referenceDate),
+  );
+  const currentActivity = activities
+    .filter(
+      (item) =>
+        item.at &&
+        item.endsAt &&
+        Date.parse(item.at) <= now &&
+        Date.parse(item.endsAt) > now,
+    )
+    .sort(
+      (left, right) => Date.parse(left.at ?? "") - Date.parse(right.at ?? ""),
+    )[0];
   return workspaceFocusItem({
-    currentEventKey: currentWorkspaceTimedEventKey(todayEvents, currentTime),
+    currentEventKey:
+      currentWorkspaceTimedEventKey(todayEvents, currentTime) ??
+      currentActivity?.id,
     currentTime,
     days,
     todayKey: overviewCalendar.todayDate,
@@ -147,30 +223,19 @@ function overviewFocus(
 }
 </script>
 
-{#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
-  <OverviewMissingCurrentTerm
-    {workspaceCopy}
-    {workspaceTabHref}
-    {linkIconLabel}
-    links={overviewLinkItems}
-    pendingTodosCount={signedData.navStats.pendingTodosCount}
-    {signedData}
-    {submitWorkspaceLinkPin}
-    {updatingCatalogLinkSlug}
+{#if !hasWorkspaceSubscriptions(signedData)}
+  <WorkspaceNoSubscriptionsState
+    title={subscriptionsCopy.noSubscriptions}
+    description={subscriptionsCopy.noSubscriptionsDescription}
+    actions={[
+      { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
+      { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
+      { href: workspaceTabHref("subscriptions"), label: workspaceCopy.termSelection.matchByCode, variant: "outline" },
+    ]}
   />
-{:else}
-  {#if !hasWorkspaceSubscriptions(signedData)}
-    <WorkspaceNoSubscriptionsState
-      title={subscriptionsCopy.noSubscriptions}
-      description={subscriptionsCopy.noSubscriptionsDescription}
-      actions={[
-        { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
-        { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
-        { href: workspaceTabHref("subscriptions"), label: workspaceCopy.termSelection.matchByCode, variant: "outline" },
-      ]}
-    />
-  {/if}
+{/if}
 
+{#if signedData.overview}
   {@const overviewPendingTodos = pendingTodosForOverview(signedData)}
   {@const overviewTodosDueToday = todosDueTodayForOverview(overviewPendingTodos, signedData)}
   {@const overviewTodosDueSoon = todosDueSoonForOverview(overviewPendingTodos, signedData)}
@@ -189,12 +254,19 @@ function overviewFocus(
     {@const overviewCalendar = signedData.overview.calendar}
     {@const overviewWeekStart = workspaceOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
-    {@const agendaDays = overviewAgendaDays(overviewCalendar)}
+    {@const agendaDays = overviewAgendaDays(overviewCalendar, youngItems)}
     <div class="grid min-w-0 gap-8 lg:gap-10">
       <OverviewFocusCard
         copy={workspaceCopy.focus}
-        focus={overviewFocus(overviewCalendar, agendaDays)}
+        focus={overviewFocus(overviewCalendar, agendaDays, youngItems)}
       />
+
+      {#if youngFailed}
+        <div class="grid gap-2">
+          <p role="alert">{activityCopy.youngEvents.workspace.failed}</p>
+          <Button class="justify-self-start" variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>
+        </div>
+      {/if}
 
       <OverviewTodayOverdueCards
         {copy}
@@ -220,7 +292,7 @@ function overviewFocus(
         <OverviewWeekCard
           {workspaceCopy}
           {workspaceTabHref}
-          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
+          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart, youngItems)}
           {formatMessage}
         />
       </div>
@@ -247,6 +319,16 @@ function overviewFocus(
         viewAllLabel={workspaceCopy.viewAll as string}
       />
 
+      {#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasWorkspaceSubscriptions(signedData)}
+        <OverviewTermSelectionCard
+          {workspaceCopy}
+          {workspaceTabHref}
+          description={workspaceCopy.termSelection.noCurrentTerm}
+          historyCalendarSemesterId={signedData.overview.calendar.calendarSemesterPicker?.at(-1)?.id ?? null}
+          showHistoryActions={true}
+        />
+      {/if}
+
       <OverviewLinksGrid
         {workspaceCopy}
         {workspaceTabHref}
@@ -258,4 +340,3 @@ function overviewFocus(
     </div>
   {/if}
 {/if}
-  

@@ -75,6 +75,7 @@ export async function getWorkspaceOverviewData(
   const { semesterEnd, semesterStart } =
     resolveGridSemesterBounds(gridSemesterRow);
   const sectionScopePromise = resolveWorkspaceOverviewSectionScope({
+    calendarMode,
     calendarSemesterId: options.calendarSemesterId,
     currentSemester,
     gridSemesterRow,

@@ -13,6 +13,7 @@ type WorkspaceSemesterContext = WorkspaceOverviewContext["semesterContext"];
 type WorkspaceSemester = WorkspaceOverviewContext["semesters"][number];
 
 export async function resolveWorkspaceOverviewSectionScope(input: {
+  calendarMode: "preview" | "semester";
   calendarSemesterId: OverviewDataOptions["calendarSemesterId"];
   currentSemester: WorkspaceSemesterContext["currentSemester"];
   gridSemesterRow: WorkspaceSemesterContext["gridSemesterRow"];
@@ -29,10 +30,12 @@ export async function resolveWorkspaceOverviewSectionScope(input: {
       locale: input.locale,
       dateFrom: input.scheduleDateStart,
       dateTo: input.scheduleDateEnd,
-      detailSemesterIds: [
-        input.currentSemester?.id,
-        input.gridSemesterRow?.id,
-      ].filter((id): id is number => id != null),
+      detailSemesterIds:
+        input.calendarMode === "preview"
+          ? undefined
+          : [input.currentSemester?.id, input.gridSemesterRow?.id].filter(
+              (id): id is number => id != null,
+            ),
       sectionIds: input.sectionIds,
     }),
     getUserSubscriptionKinds(input.userId),
@@ -52,18 +55,29 @@ export async function resolveWorkspaceOverviewSectionScope(input: {
   const {
     hasAnySelection,
     hasCurrentTermSelection,
-    workspaceSections,
-    workspaceSectionIds,
+    workspaceSections: currentTermSections,
+    workspaceSectionIds: currentTermSectionIds,
   } = resolveWorkspaceSections(allSections, input.currentSemester);
 
-  const sectionsForCalendarGrid = input.gridSemesterRow
-    ? allSections.filter(
-        (section) => section.semester?.id === input.gridSemesterRow?.id,
-      )
-    : [];
+  const workspaceSections =
+    input.calendarMode === "preview" ? allSections : currentTermSections;
+  const workspaceSectionIds =
+    input.calendarMode === "preview"
+      ? allSections.map((section) => section.id)
+      : currentTermSectionIds;
+  const sectionsForCalendarGrid =
+    input.calendarMode === "preview"
+      ? allSections
+      : input.gridSemesterRow
+        ? allSections.filter(
+            (section) => section.semester?.id === input.gridSemesterRow?.id,
+          )
+        : [];
 
   const homeworkSectionIds =
-    input.isCalendarSemesterFromUrlValid && input.calendarSemesterId != null
+    input.calendarMode === "semester" &&
+    input.isCalendarSemesterFromUrlValid &&
+    input.calendarSemesterId != null
       ? sectionsForCalendarGrid.map((section) => section.id)
       : workspaceSectionIds;
 
