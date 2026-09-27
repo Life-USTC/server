@@ -229,7 +229,7 @@ test("ui.data-table-cells-5", async ({ page, baseURL }) => {
       expect(await blank.innerText()).toBe("");
       if (matrix.name === "users") {
         const unknown = fixtureRow(page, matrix.labels[1]).locator("td").nth(1);
-        expect(await unknown.ariaSnapshot()).toContain("no-username");
+        expect(await unknown.ariaSnapshot()).toContain("No ID");
       }
     }
     await gotoAndWaitForReady(

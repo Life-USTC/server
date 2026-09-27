@@ -357,7 +357,7 @@ requirements:
     given: Administrative table rows omit their optional secondary values, while a user lacks a username and a teacher lacks a title.
     when: The browser inspects the shared blank placeholders and the rendered accessibility trees for missing-value labels.
     then:
-    - Blank placeholders are empty and aria-hidden; meaningful no-username and Unknown labels remain exposed.
+    - Blank placeholders are empty and aria-hidden; meaningful No ID and Unknown labels remain exposed.
     test:
       file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
       name: ui.data-table-cells-5
