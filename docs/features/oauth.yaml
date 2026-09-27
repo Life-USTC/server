@@ -168,6 +168,20 @@ requirements:
     resource. DPoP-bound clients and DPoP proofs are rejected.
   rationale: The implementation belongs to the shared provider adapter; package-version limitations are
     not product requirements.
+  acceptance:
+    given: Real enabled and ineligible device clients, a signed browser session, and separate REST, GraphQL,
+      and MCP resources.
+    when: Request device authorization, approve or deny through the production action, and exchange or
+      replay codes through the actual token route.
+    then:
+    - Only enabled public device clients obtain codes; DPoP client policy and proof headers reject without
+      issuing credentials.
+    - Approval persists the exact scopes/resources and issues verifiable resource-bound JWTs and refresh
+      records; each other audience rejects the JWT.
+    - Pending, denied, expired, disabled, mismatched-resource, and replayed grants never issue credentials.
+    test:
+      file: tests/integration/oauth-device-contracts.test.ts
+      name: oauth.device-grant-custom
 - id: oauth.rest-bearer-scopes
   category: authorization
   rule: Protected REST and GraphQL endpoints accept OAuth bearer tokens only with the endpoint audience
