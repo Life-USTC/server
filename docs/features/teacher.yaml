@@ -62,6 +62,16 @@ requirements:
   category: presentation
   rule: At mobile widths, teacher detail presents a readable localized name and directly reachable public
     details without page-level horizontal overflow.
+  acceptance:
+    given: An isolated Teacher has long localized names, a department, a title and an offering.
+    when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
+    then:
+    - The localized name is a readable wrapping heading without horizontal overflow.
+    - Public department and title details are directly reachable by scrolling.
+    - The offering displays its course name and links to the exact Section.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: teacher.mobile-detail-hierarchy
 - id: teacher.detail-canonical-url
   category: behavior
   rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content

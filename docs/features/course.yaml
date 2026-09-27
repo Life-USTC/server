@@ -79,6 +79,16 @@ requirements:
   category: presentation
   rule: At mobile widths, course detail shows the public course code and localized name prominently, with
     a readable responsive title and directly reachable detail content.
+  acceptance:
+    given: An isolated course has a long localized name, a public course code and a related offering.
+    when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
+    then:
+    - The course name is a readable wrapping heading and the monospace public code is visible in the initial viewport.
+    - The offering is reachable, displays its localized semester and Teacher, and links to the exact Section.
+    - The document has no horizontal overflow.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: course.mobile-detail-hierarchy
 - id: course.detail-canonical-url
   category: behavior
   rule: The canonical course detail URL is /catalog/courses/[jwId]. Optional hash anchors identify content

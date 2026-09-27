@@ -125,6 +125,16 @@ requirements:
 - id: section.mobile-detail-actions
   category: presentation
   rule: Mobile section detail presents readable course identity, teachers and concise metadata.
+  acceptance:
+    given: An isolated Section has a long localized course name, a Teacher and populated semester, credit, capacity and period metadata.
+    when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
+    then:
+    - The course name remains a readable heading without horizontal overflow.
+    - The monospace Section code, localized semester and concise numeric metadata are directly reachable.
+    - The Teacher reference displays the localized name and links to the exact Teacher.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: section.mobile-detail-actions
 - id: section.detail-canonical-url
   category: behavior
   rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional hash anchors identify content
@@ -329,6 +339,16 @@ requirements:
   category: presentation
   rule: Mobile calendar and subscription actions remain reachable in a bottom action bar above the signed-in
     shell navigation.
+  acceptance:
+    given: A signed-in user opens an unsubscribed Section at mobile widths.
+    when: The user scrolls the detail to its end, opens the calendar dialog and subscribes then unsubscribes at 320 and 390 pixel widths.
+    then:
+    - The bottom action bar stays in the viewport above the signed-in shell navigation.
+    - Both actions remain enabled and receive pointer hits without an overlay or navigation obscuring them.
+    - The calendar dialog opens and the subscription actions persist and remove the exact membership.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: section.mobile-sticky-actions
 - id: section.teacher-assignment-reference
   category: privacy
   rule: TeacherAssignment output links to teacherId without duplicating the nested Teacher payload.
