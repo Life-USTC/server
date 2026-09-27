@@ -16,7 +16,6 @@ import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { page } from "$app/stores";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
@@ -165,10 +164,8 @@ const calendarLabels = $derived({
 
   </div>
 
-  <Panel>
-    {#snippet header()}
-      <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
-    {/snippet}
+  <div class="grid gap-4">
+    <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
 
     <div class="grid gap-3">
     <ResultsSummary summary={youngCopy.showing.replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
@@ -195,5 +192,5 @@ const calendarLabels = $derived({
       {view}
     />
     </div>
-  </Panel>
+  </div>
 </PageLayout>

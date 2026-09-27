@@ -17,7 +17,6 @@ import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
 import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Field from "$lib/components/ui/field";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { removeYoungFilter } from "../lib/young-navigation";
@@ -99,11 +98,9 @@ const summary = $derived(
     {#snippet header()}
       <FilterToolbar>
         {#snippet primary()}
-          <form action="/catalog/young-events/organizers" method="get">
-            <Field.FieldGroup class="flex-row flex-wrap items-center gap-3">
-            <div class="min-w-48 flex-1"><SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} /></div>
+          <form action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-1 items-center gap-2">
+            <SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} />
             <Button type="submit" class={toolbarControlClass}>{commonLabels.search}</Button>
-            </Field.FieldGroup>
           </form>
         {/snippet}
       </FilterToolbar>

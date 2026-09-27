@@ -143,7 +143,7 @@ function changeType(value: string) {
         </ToggleGroup.Root>
         <FilterToolbar filterTitle={copy.advancedFilters} activeCount={advancedCount} bind:open={() => filtersOpen, setFiltersOpen}>
           {#snippet primary()}
-            <form method="get" action="/news" class="min-w-0">
+            <form method="get" action="/news" class="min-w-0 flex-1">
               {#if data.filters.type}<input type="hidden" name="type" value={data.filters.type} />{/if}
               {#each data.filters.source ?? [] as source (source)}<input type="hidden" name="source" value={source} />{/each}
               {#each data.filters.organizationLevel ?? [] as level (level)}<input type="hidden" name="organizationLevel" value={level} />{/each}

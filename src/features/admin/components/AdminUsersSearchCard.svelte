@@ -13,7 +13,7 @@ export let search: string;
 
 <FilterToolbar>
   {#snippet primary()}
-    <form method="GET" class="flex min-w-0 flex-wrap items-center gap-2">
+    <form method="GET" class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       <SearchField id="admin-user-search" name="search" label={commonCopy.search} placeholder={copy.searchPlaceholder} value={search} />
       {#if search}
         <Button href="/admin/users" variant="outline" class={toolbarControlClass}>

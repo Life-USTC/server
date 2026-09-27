@@ -137,36 +137,36 @@ const activeFilters = $derived(
 
 <FilterToolbar bind:open {activeCount} filterTitle={labels.moreFilters} filterDescription={labels.description}>
   {#snippet primary()}
-    <form {action} method="get">
-      <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+    <form {action} method="get" class="contents">
       {@render browseContext()}
       {#each advancedKeys as key}
         {#if filters[key]}<input type="hidden" name={key} value={filters[key]} />{/if}
       {/each}
-      <div class="min-w-48 flex-1">
+      <div class="order-1 min-w-0 flex-1">
         <SearchField id={`${prefix}-search`} label={copy.common.search} name="search" placeholder={labels.searchPlaceholder} bind:value={searchDraft} />
       </div>
-      <Field.Field class="w-auto">
-        <Field.FieldLabel for={`${prefix}-active`}>{labels.signupStatus}</Field.FieldLabel>
-        <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-active`} name="active" bind:value={activeDraft}>
-          <NativeSelect.Option value="">{labels.statusAll}</NativeSelect.Option>
-          <NativeSelect.Option value="true">{labels.statusActive}</NativeSelect.Option>
-          <NativeSelect.Option value="false">{labels.statusEnded}</NativeSelect.Option>
-        </NativeSelect.Root>
-      </Field.Field>
-      {#if calendar}
+      <div class="order-3 grid w-full gap-2 md:order-2 md:flex md:w-auto">
         <Field.Field class="w-auto">
-          <Field.FieldLabel for="young-calendar-time-basis">{labels.timeBasis}</Field.FieldLabel>
-          <NativeSelect.Root class={toolbarSelectClass} id="young-calendar-time-basis" name="timeBasis" bind:value={timeBasisDraft}>
-            <NativeSelect.Option value="activity">{labels.eventTime}</NativeSelect.Option>
-            <NativeSelect.Option value="registration">{labels.signupWindow}</NativeSelect.Option>
+          <Field.FieldLabel for={`${prefix}-active`}>{labels.signupStatus}</Field.FieldLabel>
+          <NativeSelect.Root class={toolbarSelectClass} id={`${prefix}-active`} name="active" bind:value={activeDraft}>
+            <NativeSelect.Option value="">{labels.statusAll}</NativeSelect.Option>
+            <NativeSelect.Option value="true">{labels.statusActive}</NativeSelect.Option>
+            <NativeSelect.Option value="false">{labels.statusEnded}</NativeSelect.Option>
           </NativeSelect.Root>
         </Field.Field>
-      {:else}
-        <input type="hidden" name="timeBasis" value={timeBasisDraft} />
-      {/if}
-      <Button type="submit" class={toolbarControlClass}>{copy.common.search}</Button>
-      </Field.FieldGroup>
+        {#if calendar}
+          <Field.Field class="w-auto">
+            <Field.FieldLabel for="young-calendar-time-basis">{labels.timeBasis}</Field.FieldLabel>
+            <NativeSelect.Root class={toolbarSelectClass} id="young-calendar-time-basis" name="timeBasis" bind:value={timeBasisDraft}>
+              <NativeSelect.Option value="activity">{labels.eventTime}</NativeSelect.Option>
+              <NativeSelect.Option value="registration">{labels.signupWindow}</NativeSelect.Option>
+            </NativeSelect.Root>
+          </Field.Field>
+        {:else}
+          <input type="hidden" name="timeBasis" value={timeBasisDraft} />
+        {/if}
+      </div>
+      <Button type="submit" class="{toolbarControlClass} order-2 md:order-3">{copy.common.search}</Button>
     </form>
   {/snippet}
   {#snippet advanced()}

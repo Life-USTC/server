@@ -38,12 +38,11 @@ function submit(event: SubmitEvent) {
     <PageHeader description={copy.subtitle} title={copy.title} />
 {/snippet}
 
-    <Panel>
-      <form
-        aria-label={copy.searchLabel}
-        class="flex flex-col gap-3 sm:flex-row sm:items-end"
-        onsubmit={submit}
-      >
+    <form
+      aria-label={copy.searchLabel}
+      class="flex items-end gap-2"
+      onsubmit={submit}
+    >
         <Field.Field class="min-w-0 flex-1">
           <Field.FieldLabel for="room-map-code">{copy.searchLabel}</Field.FieldLabel>
           <Input
@@ -60,8 +59,7 @@ function submit(event: SubmitEvent) {
           <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
           {copy.submit}
         </Button>
-      </form>
-    </Panel>
+    </form>
 
     {#if selectedRoom}
       {#key `${searchRevision}:${selectedRoom}`}
