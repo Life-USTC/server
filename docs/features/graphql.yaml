@@ -138,10 +138,82 @@ requirements:
       name: graphql.registered-operation-coverage
 - id: graphql.upload-workflow-boundary
   category: privacy
-  rule: Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit,
-    and storage-delete invariants. They can return an authenticated on-site PUT workflow URL but never
-    accept or proxy raw bytes. Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves
-    metadata.
+  rule: GraphQL and registered MCP upload operations exchange metadata and an authenticated on-site PUT
+    URL; raw file bytes remain outside both transports. Completion follows the shared uploaded-object
+    lease lifecycle.
+  acceptance:
+    given: A signed owner, an empty upload inventory and object storage.
+    when: HTTP and registered MCP reject raw-byte fields, then create, complete, rename and delete an
+      upload using a separately completed PUT lease.
+    then:
+    - Unknown bytes/file fields are rejected before reservation or storage changes.
+    - The workflow URL points to the on-site object endpoint; completion records the authoritative stored
+      size, and rename/delete update owner metadata.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-workflow-boundary
+- id: graphql.upload-ownership
+  category: authorization
+  rule: Upload rename, delete and completion mutations enforce the shared owner boundary.
+  acceptance:
+    given: Another user owns an upload and a completed pending reservation.
+    when: An authenticated GraphQL writer tries to rename, delete or complete those objects.
+    then:
+    - All attempts reject without disclosing private filenames, changing records or deleting the stored
+      object.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-ownership
+- id: graphql.upload-suspension
+  category: authorization
+  rule: Active suspension denies every GraphQL upload mutation, including registered MCP operations.
+  acceptance:
+    given: A suspended owner has an uploaded file and pending reservation.
+    when: HTTP and registered MCP invoke create-session, complete-session, rename and delete.
+    then:
+    - Every mutation returns FORBIDDEN and existing upload and reservation records remain unchanged.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-suspension
+- id: graphql.upload-quota
+  category: validation
+  rule: Upload session creation and completion enforce the shared total quota; completion uses authoritative
+    object size rather than trusting the reservation.
+  acceptance:
+    given: An owner is at quota, then frees one byte and reserves it.
+    when: GraphQL creates a reservation and completes it after storage reports two bytes.
+    then:
+    - At-quota creation rejects; the one-byte reservation succeeds after space is freed.
+    - Completion rejects the larger stored object without creating upload metadata or exceeding the quota.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-quota
+- id: graphql.upload-audit
+  category: consistency
+  rule: Successful GraphQL upload deletion records the shared upload_delete audit with actor, target,
+    transport and OAuth provenance.
+  acceptance:
+    given: An OAuth writer owns a stored upload.
+    when: GraphQL deletes the upload successfully.
+    then:
+    - Metadata is removed and exactly one audit records actor/subject, upload target, OAuth client/grant,
+      graphql channel and deleted size.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-audit
+- id: graphql.upload-storage-delete-failure
+  category: behavior
+  rule: Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves metadata when the object
+    still exists.
+  acceptance:
+    given: An owner has a stored upload whose object deletion fails.
+    when: GraphQL invokes uploadDelete.
+    then:
+    - The HTTP response is503 with SERVICE_UNAVAILABLE and no private storage exception text.
+    - The upload metadata and object remain, and no success audit is written.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-storage-delete-failure
 - id: graphql.pagination
   category: validation
   rule: 'Every GraphQL collection is bounded: Workspace todos, subscriptions, homeworks, schedules, and
@@ -484,6 +556,17 @@ requirements:
   rule: Pull requests compare the canonical snapshot with the base schema and require explicit graphql-breaking-approved
     acknowledgement for breaking or dangerous changes. Approval skips only the base-schema gate. Intentional
     breaking changes update current contracts and clients without compatibility shims.
+  acceptance:
+    given: The real PR workflow and snapshot test execute against isolated Git fixtures with unchanged,
+      breaking and dangerous base schemas.
+    when: The actual snapshot test runs with and without explicit breaking-change acknowledgement.
+    then:
+    - Unchanged schemas pass; removed fields and changed argument defaults fail the base-schema gate.
+    - Acknowledgement skips only the base-schema comparison; current snapshot drift still fails.
+    - Workflow label changes rerun the review gate while the current snapshot check remains unconditional.
+    test:
+      file: tests/unit/lib/graphql/graphql-schema-review.test.ts
+      name: graphql.schema-change-review
 - id: graphql.calendar-date-filter-normalization
   category: consistency
   rule: Schedule and exam DateTime filters normalize to the Asia/Shanghai calendar day before querying
