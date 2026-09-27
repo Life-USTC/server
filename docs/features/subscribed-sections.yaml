@@ -98,13 +98,38 @@ capabilities:
         - Use full mode only when the caller explicitly needs the full subscribed section list on the
           same response; full mode still does not include the private feed URL.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - semester.nameCn
+          - section.code
+          - section.credits
+          - subscription.kind
+          tertiary:
+          - section.id
+        mcp-workspace-subscription-list:
+          primary:
+          - sections.course.nameCn
+          - sections.teachers.nameCn
+          secondary:
+          - sections.code
+          - sections.semester.nameCn
+          - sections.jwId
+          tertiary: []
+        mcp-workspace-calendar-feed-get:
+          primary:
+          - subscription.currentSemesterSections.course.namePrimary
+          secondary:
+          - subscription.currentSemesterSections.code
+          - subscription.currentSemesterSections.semester.nameCn
+          - subscription.sectionCount
+          tertiary: []
       items:
-      - semester group label and count
-      - subscription.sections[].code
-      - subscription.sections[].course.namePrimary
-      - section.teachers[]
-      - section.credits
-      - Row opens section subscription details and the available actions, including Unsubscribe
+      - Rows open subscription details and their available actions.
     requirement_refs:
     - section.retired-read-semantics
     - subscription.personal-kind

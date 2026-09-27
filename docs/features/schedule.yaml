@@ -149,14 +149,33 @@ capabilities:
         - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
           or past term.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - schedule.date
+          - schedule.startTime
+          - schedule.endTime
+          secondary:
+          - schedule.room.namePrimary
+          - schedule.teachers.namePrimary
+          tertiary:
+          - schedule.id
+        mcp-workspace-schedule-list:
+          primary:
+          - schedules.date
+          - schedules.startTime
+          - schedules.endTime
+          - schedules.section.course.nameCn
+          secondary:
+          - schedules.customPlace
+          - schedules.teachers.nameCn
+          - schedules.section.code
+          - schedules.id
+          tertiary: []
       items:
-      - 7-day grid (Sun-Sat)
-      - Today highlight
-      - schedule.date
-      - schedule.startTime - endTime
-      - schedule.room.namePrimary
-      - section.course.namePrimary
-      - teacher names
+      - Monday-first seven-day grid with today highlighted.
       filters:
       - Previous/next semester links
     requirement_refs:
@@ -185,7 +204,20 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items: []
+      kind: fields
+      views:
+        mcp-catalog-schedule-list:
+          primary:
+          - data.date
+          - data.startTime
+          - data.endTime
+          - data.section.course.nameCn
+          secondary:
+          - data.customPlace
+          - data.teachers.nameCn
+          - data.section.code
+          - data.id
+          tertiary: []
       filters:
       - sectionId
       - sectionJwId
@@ -237,12 +269,40 @@ capabilities:
         - Accepts optional atTime to anchor the 7-day window to a specific moment instead of the server
           clock; useful for asking about a future week.
     presentation:
-      items:
-      - schedule.date
-      - schedule.startTime - endTime
-      - schedule.room (with building/campus)
-      - schedule.weekday (1=Monday, 7=Sunday)
-      - schedule.teachers[] names
+      kind: fields
+      views:
+        web:
+          primary:
+          - schedule.date
+          - schedule.startTime
+          - schedule.endTime
+          secondary:
+          - schedule.room.namePrimary
+          - schedule.room.building.namePrimary
+          - schedule.room.building.campus.namePrimary
+          - schedule.teachers.namePrimary
+          tertiary:
+          - schedule.id
+          - schedule.weekday
+        mcp-catalog-section-schedule-list:
+          primary:
+          - schedules.date
+          - schedules.startTime
+          - schedules.endTime
+          secondary:
+          - schedules.customPlace
+          - schedules.teachers.nameCn
+          - schedules.id
+          - section.code
+          tertiary: []
+        mcp-workspace-calendar-timeline-get:
+          primary:
+          - events.at
+          - events.endsAt
+          - events.type
+          secondary:
+          - events.payload
+          tertiary: []
     requirement_refs:
     - calendar.event-card-types
 rationale:

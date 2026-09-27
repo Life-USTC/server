@@ -304,6 +304,14 @@ describe("requirement coverage", () => {
       list: {
         notes: ["At most 100"],
         presentation: {
+          kind: "fields",
+          views: {
+            web: {
+              primary: ["record.name"],
+              secondary: ["record.code"],
+              tertiary: ["record.id"],
+            },
+          },
           items: ["Hide if empty"],
           requirement_refs: ["example.ownership"],
         },

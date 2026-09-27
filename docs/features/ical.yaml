@@ -147,11 +147,16 @@ capabilities:
         notes:
         - Returns text/calendar synthesized from the section's schedule and exams.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - calendar.url
+          secondary:
+          - calendar.description
+          tertiary: []
       items:
-      - iCalendar URL (copyable)
-      - section.code (context)
-      - 'Export format: .ics'
-      - Copy button
+      - Copy the displayed iCalendar URL.
     requirement_refs:
     - room-map.calendar
   personal-calendar-subscription:
@@ -190,8 +195,24 @@ capabilities:
         - Full mode adds the complete subscribed section list but does not add a personal iCal feed URL
           or other feed credential.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - calendar.url
+          secondary:
+          - calendar.description
+          tertiary: []
+        mcp-workspace-calendar-feed-get:
+          primary:
+          - subscription.currentSemesterSections.course.namePrimary
+          secondary:
+          - subscription.currentSemesterSections.code
+          - subscription.currentSemesterSections.semester.nameCn
+          - subscription.sectionCount
+          tertiary: []
       items:
-      - iCalendar URL copy button
+      - Copy the private iCalendar URL.
     requirement_refs:
     - room-map.calendar
   multi-section-ical:

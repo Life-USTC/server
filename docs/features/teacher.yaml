@@ -197,13 +197,32 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items:
-      - teacher.namePrimary
-      - teacher.nameSecondary (locale-dependent)
-      - teacher.department.namePrimary
-      - teacher.teacherTitle.namePrimary
-      - teacher.email
-      - teacher._count.sections
+      kind: fields
+      views:
+        web:
+          primary:
+          - teacher.namePrimary
+          secondary:
+          - teacher.nameSecondary
+          - teacher.department.namePrimary
+          - teacher.teacherTitle.namePrimary
+          - teacher.email
+          - teacher._count.sections
+          - teacher.code
+          tertiary:
+          - teacher.id
+          - teacher.jwId
+          - teacher.personId
+        mcp-catalog-teacher-search:
+          primary:
+          - data.nameCn
+          secondary:
+          - data.nameEn
+          - data.department.nameCn
+          - data.teacherTitle.nameCn
+          - data.code
+          - data.id
+          tertiary: []
       filters:
       - search
       - departmentId
@@ -237,22 +256,41 @@ capabilities:
       - name: catalog_teacher_get
         rest_equivalent: GET /api/catalog/teachers/[id]
     presentation:
-      items:
-      - teacher.namePrimary (h1)
-      - teacher.nameSecondary (Locale subtitle)
-      - teacher.department.namePrimary
-      - teacher.teacherTitle.namePrimary
-      - teacher.email (if not null)
-      - teacher.telephone (if not null)
-      - teacher.mobile (if not null)
-      - teacher.address (if not null)
-      - section.semester.nameCn (Badge)
-      - section.course.namePrimary + nameSecondary
-      - section.code (Plain monospace text)
-      - section.credits (or empty)
-      - comment.id
-      - comment.author.name
-      - comment.author.image
-      - comment.body
-      - comment.createdAt
-      - description.content (Markdown-rendered via DescriptionLoader)
+      kind: fields
+      views:
+        web:
+          primary:
+          - teacher.namePrimary
+          secondary:
+          - teacher.nameSecondary
+          - teacher.department.namePrimary
+          - teacher.teacherTitle.namePrimary
+          - teacher.email
+          - teacher.telephone
+          - teacher.mobile
+          - teacher.address
+          tertiary:
+          - teacher.id
+          - teacher.jwId
+          - teacher.personId
+        web-history:
+          primary:
+          - section.course.namePrimary
+          secondary:
+          - section.semester.nameCn
+          - section.code
+          - section.credits
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-teacher-get:
+          primary:
+          - teacher.nameCn
+          secondary:
+          - teacher.nameEn
+          - teacher.department.nameCn
+          - teacher.teacherTitle.nameCn
+          - teacher.id
+          tertiary:
+          - teacher.email
+          - teacher.telephone

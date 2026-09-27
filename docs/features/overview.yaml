@@ -287,21 +287,44 @@ capabilities:
         - Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact
           overview read operation.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - focus.title
+          - focus.label
+          - focus.status
+          secondary:
+          - focus.dateLabel
+          - focus.weekdayLabel
+          - focus.meta
+          - todaySessions.startTime
+          - todaySessions.section.course.namePrimary
+          - dueTodayHomeworks.title
+          - dueTodayTodos.title
+          - days.label
+          - days.events.title
+          - pendingHomeworks.title
+          - pendingHomeworks.submissionDueAt
+          - pendingTodos.title
+          - pendingTodos.dueAt
+          - upcomingExams.section.course.namePrimary
+          - upcomingExams.examDate
+          tertiary:
+          - focus.key
+        mcp-workspace-overview-get:
+          primary:
+          - overview.pendingHomeworksCount
+          - overview.pendingTodosCount
+          - overview.upcomingExamsCount
+          - overview.todaySchedulesCount
+          secondary:
+          - samples.dueTodos
+          - samples.dueHomeworks
+          - samples.upcomingExams
+          tertiary: []
       items:
-      - pendingHomeworksCount
-      - upcomingExamsCount
-      - pendingTodosCount
-      - todaySchedulesCount
-      - Current or next actionable item
-      - Today highlight
-      - 7-day week grid
-      - Schedule events per day
-      - Pending homeworks (sorted by submissionDueAt)
-      - Tomorrow schedule section
-      - homework due today/due soon/all badges
-      - todo due today/due soon/all badges
-      - Pending todos
-      - Tab icons and counts
+      - Focus action, today and overdue lists, seven-day strip, then homework/todo/exam summaries.
     requirement_refs:
     - rendering-and-cache.personal-overlays-4
     - rendering-and-cache.personal-overlays-5
@@ -334,12 +357,14 @@ capabilities:
     graphql: unavailable
     mcp: unavailable
     presentation:
-      items:
-      - Calendar item count
-      - Pending homework count
-      - Pending todo count
-      - Upcoming exam count
-      - Subscribed section count
+      kind: fields
+      views:
+        web:
+          primary:
+          - navigation.title
+          secondary:
+          - navigation.count
+          tertiary: []
     requirement_refs:
     - rendering-and-cache.personal-overlays-4
     - rendering-and-cache.personal-overlays-5
@@ -382,13 +407,31 @@ capabilities:
         - Merges homework_due, exam, and todo_due entries into one ordered list.
         - Accepts optional atTime to anchor the deadline window instead of using the server clock.
     presentation:
-      items:
-      - currentSemester
-      - subscriptions.currentSemesterCount
-      - nextClass
-      - upcomingDeadlines
-      - todos.incompleteCount
-      - bus.nextDeparture
+      kind: fields
+      views:
+        mcp-workspace-snapshot-get:
+          primary:
+          - nextClass
+          secondary:
+          - currentSemester
+          - subscriptions
+          - upcomingDeadlines
+          - todos
+          - bus
+          tertiary: []
+        mcp-workspace-schedule-next:
+          primary:
+          - nextClass
+          secondary: []
+          tertiary: []
+        mcp-workspace-deadline-list:
+          primary:
+          - deadlines.at
+          - deadlines.type
+          secondary:
+          - deadlines.payload
+          - total
+          tertiary: []
     requirement_refs:
     - rendering-and-cache.personal-overlays-4
     - rendering-and-cache.personal-overlays-5
@@ -401,11 +444,16 @@ capabilities:
       pages:
       - /
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - catalog.title
+          secondary:
+          - catalog.description
+          tertiary: []
       items:
-      - Public catalog introduction
-      - Course discovery
-      - Section discovery
-      - Teacher discovery
+      - Public introduction links to course, section and teacher discovery.
     requirement_refs:
     - rendering-and-cache.personal-overlays-4
     - rendering-and-cache.personal-overlays-5

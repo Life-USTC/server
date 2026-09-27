@@ -427,13 +427,30 @@ capabilities:
           or stream object bytes.
         - Accepts page and limit.
     presentation:
-      items:
-      - upload.filename
-      - upload.size (formatted bytes)
-      - upload.createdAt
-      - usedBytes
-      - quotaBytes
-      - maxFileSizeBytes
+      kind: fields
+      views:
+        web:
+          primary:
+          - upload.filename
+          secondary:
+          - upload.size
+          - upload.createdAt
+          - usedBytes
+          - quotaBytes
+          - maxFileSizeBytes
+          tertiary:
+          - upload.id
+        mcp-workspace-upload-list:
+          primary:
+          - data.filename
+          secondary:
+          - data.size
+          - data.createdAt
+          - data.id
+          - meta.usedBytes
+          - meta.quotaBytes
+          - meta.maxFileSizeBytes
+          tertiary: []
   comment-attachment-upload:
     title: Comment Attachment Upload
     auth: user
@@ -495,11 +512,25 @@ capabilities:
         - Completion failures do not attempt request-path R2 cleanup; expired reservation rows and orphan
           objects have separate DB and storage lifecycle responsibilities.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - file.name
+          secondary:
+          - file.preview
+          - upload.progress
+          tertiary: []
+        mcp-graphql-operation-run:
+          primary:
+          - data
+          secondary:
+          - errors
+          - operationName
+          - operationType
+          tertiary: []
       items:
-      - File input
-      - File preview
-      - upload progress indicator
-      - Cancel button
+      - File input, preview and cancellation.
   comment-attachment-download:
     title: Comment Attachment Download
     auth: user
@@ -512,9 +543,16 @@ capabilities:
           from R2.
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - upload.filename
+          secondary:
+          - upload.size
+          tertiary: []
       items:
-      - attachment filename
-      - Open/download button
+      - Open/download action.
   upload-manage:
     title: Upload Rename & Delete
     auth: user
@@ -570,11 +608,29 @@ capabilities:
           metadata when storage cleanup fails, and commits metadata deletion plus the upload_delete audit
           log together after successful storage deletion.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - upload.filename
+          secondary:
+          - upload.feedback
+          tertiary: []
+        mcp-workspace-upload-rename:
+          primary:
+          - upload.filename
+          secondary:
+          - upload.id
+          tertiary: []
+        mcp-workspace-upload-delete:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
       items:
       - Rename action
       - Delete action
       - Per-upload feedback state
-
 rationale:
 - E2E upload coverage should exercise the same Workers upload object route used in production.
 - Download authorization is owned by cases.content-security.upload-attachment-download-1, including the authenticated

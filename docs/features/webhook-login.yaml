@@ -57,6 +57,7 @@ capabilities:
     graphql: unavailable
     mcp: unavailable
     presentation:
+      kind: protocol
       items:
       - Internal debugging aid only
       - Session established via cookie; never returned in JSON bodies

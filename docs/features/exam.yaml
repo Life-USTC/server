@@ -233,17 +233,38 @@ capabilities:
         - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
           or past term.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - exam.examDate
+          - exam.startTime
+          - exam.endTime
+          - exam.completed
+          secondary:
+          - section.semester.nameCn
+          - exam.examMode
+          - exam.examBatch.namePrimary
+          - exam.examType
+          - exam.examTakeCount
+          - exam.examRooms.namePrimary
+          tertiary:
+          - exam.id
+          - exam.examBatch.id
+        mcp-workspace-exam-list:
+          primary:
+          - exams.examDate
+          - exams.startTime
+          - exams.endTime
+          - exams.section.course.nameCn
+          secondary:
+          - exams.examMode
+          - exams.examRooms
+          - exams.section.semester.nameCn
+          - exams.id
+          tertiary: []
       items:
-      - exam.examDate
-      - exam.startTime - endTime
-      - exam.examMode
-      - exam.examBatch.id
-      - exam.examBatch.namePrimary
-      - exam.examType
-      - exam.examTakeCount
-      - exam.examRooms[] (locations)
-      - section.course.namePrimary
-      - section.semester.nameCn
       - 'completion filter: incomplete/completed/all'
       - mobile compact toolbar with direct completion filters and overflow display-mode control
       - Filter-empty explanation and clear-filter action
@@ -263,13 +284,31 @@ capabilities:
         notes:
         - Returns a single section's exams[].
     presentation:
-      items:
-      - exam.examDate
-      - exam.startTime - endTime
-      - exam.examMode
-      - exam.examBatch.id
-      - exam.examBatch.namePrimary
-      - exam.examRooms[]
+      kind: fields
+      views:
+        web:
+          primary:
+          - exam.examDate
+          - exam.startTime
+          - exam.endTime
+          secondary:
+          - exam.examMode
+          - exam.examBatch.namePrimary
+          - exam.examRooms.namePrimary
+          tertiary:
+          - exam.id
+          - exam.examBatch.id
+        mcp-catalog-section-exam-list:
+          primary:
+          - exams.examDate
+          - exams.startTime
+          - exams.endTime
+          secondary:
+          - exams.examMode
+          - exams.examBatch.namePrimary
+          - exams.examRooms
+          - exams.id
+          tertiary: []
 rationale:
 - A public section exam read fetches section context and its ordered exam children in one top-level Section
   query.

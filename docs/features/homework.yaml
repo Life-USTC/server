@@ -588,24 +588,54 @@ capabilities:
         - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
           or past term.
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          - homework.completed
+          secondary:
+          - section.course.namePrimary
+          - homework.isMajor
+          - homework.requiresTeam
+          tertiary:
+          - homework.id
+          - homework.createdAt
+        web-detail:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          - homework.completed
+          secondary:
+          - homework.isMajor
+          - homework.requiresTeam
+          - homework.publishedAt
+          - homework.submissionStartAt
+          - homework.description.content
+          tertiary:
+          - homework.id
+          - homework.createdAt
+        mcp-workspace-homework-list:
+          primary:
+          - homeworks.title
+          - homeworks.submissionDueAt
+          secondary:
+          - homeworks.id
+          - homeworks.isMajor
+          - homeworks.requiresTeam
+          - homeworks.section.course.nameCn
+          tertiary: []
       items:
-      - homework.title
-      - homework.description.content
-      - homework.submissionDueAt (with ETA label)
-      - section.course.namePrimary
-      - homework.isMajor badge
-      - homework.requiresTeam badge
       - completionStatus (completed/pending)
       - 'filter: incomplete/completed/all'
-      - 'detail popup is one scrollable column: due datetime, relative urgency, remaining facts in a table
-        excluding platform createdAt, then description, then full-width discussion; completion stays in
-        the footer; do not use a two-column overlay'
-      - create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style
-        guide, and uses aligned date inputs with adjacent shortcut menus
-      - create dialog uses a wider desktop layout with section, title, and timestamps on the left and
-        description editing with simultaneous live Markdown preview on the right; mobile stacks the fields
-      - create section options identify course, teachers, and semester; common deadlines include the selected
-        section's next classes and future this/next-week weekend cutoffs in Asia/Shanghai
+      - 'detail popup is one scrollable column: due datetime, relative urgency, remaining facts in a table excluding
+        platform createdAt, then description, then full-width discussion; completion stays in the footer; do not use
+        a two-column overlay'
+      - create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style guide, and
+        uses aligned date inputs with adjacent shortcut menus
+      - create section options identify course, teachers, and semester; common deadlines include the selected section's
+        next classes and future this/next-week weekend cutoffs in Asia/Shanghai
       requirement_refs:
       - homework.completed-deadline-display
       - homework.mobile-toolbar-priority
@@ -721,23 +751,67 @@ capabilities:
         requirement_refs:
         - homework.creator-only-delete
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          - homework.completed
+          secondary:
+          - homework.isMajor
+          - homework.requiresTeam
+          - homework.publishedAt
+          - homework.submissionStartAt
+          - homework.description.content
+          tertiary:
+          - homework.id
+          - homework.createdAt
+        mcp-community-section-homework-list:
+          primary:
+          - homeworks.title
+          - homeworks.submissionDueAt
+          secondary:
+          - homeworks.id
+          - homeworks.isMajor
+          - homeworks.requiresTeam
+          - homeworks.completionRequired
+          - section.code
+          tertiary: []
+        mcp-community-section-homework-create:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          secondary:
+          - homework.id
+          - homework.isMajor
+          - homework.requiresTeam
+          tertiary: []
+        mcp-community-section-homework-update:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          secondary:
+          - homework.id
+          - homework.isMajor
+          - homework.requiresTeam
+          tertiary: []
+        mcp-community-section-homework-delete:
+          primary:
+          - deletedId
+          - alreadyDeleted
+          secondary: []
+          tertiary: []
       items:
-      - homework.title
-      - homework.description.content
-      - homework.submissionDueAt
-      - homework.submissionStartAt
-      - homework.publishedAt as homework publication date
       - inline homework discussion
       - user completion status
       - edit action
       - cards/list view mode persisted in browser storage
-      - 'detail popup is one scrollable column: due datetime is primary, relative urgency is secondary,
-        remaining facts (status, tags, publication, submission opens) are a table that does not repeat
-        due date or platform createdAt, then description, then full-width discussion; edit/completion
-        stay in the footer; do not use a two-column overlay'
+      - 'detail popup is one scrollable column: due datetime is primary, relative urgency is secondary, remaining facts
+        (status, tags, publication, submission opens) are a table that does not repeat due date or platform createdAt,
+        then description, then full-width discussion; edit/completion stay in the footer; do not use a two-column overlay'
       - section cards use a responsive multi-column layout
-      - create and edit forms expose the same collapsible advisory homework title and description style
-        guide
+      - create and edit forms expose the same collapsible advisory homework title and description style guide
     requirement_refs:
     - homework.creator-only-delete
   homework-governance:
@@ -753,13 +827,20 @@ capabilities:
         method: DELETE
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - homework.title
+          - homework.status
+          secondary:
+          - section.code
+          - homework.creator.name
+          - homework.createdAt
+          tertiary:
+          - homework.id
       items:
-      - homework.title
-      - homework.section.code
-      - creator
-      - creation timestamp
-      - 'Action: delete'
-      - 'Status: active/deleted'
+      - Delete action.
     requirement_refs:
     - homework.moderation-delete
   homework-completion:
@@ -808,11 +889,24 @@ capabilities:
         notes:
         - Pass completed=true to mark as done, completed=false to revert to incomplete.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - homework.title
+          - homework.submissionDueAt
+          - homework.completed
+          secondary: []
+          tertiary: []
+        mcp-workspace-homework-completion-set:
+          primary:
+          - completion.completed
+          secondary:
+          - completion.homeworkId
+          - completion.completedAt
+          tertiary: []
       items:
-      - homework.title
-      - homework.submissionDueAt
-      - completion action button
-      - completion status
+      - Completion action.
     requirement_refs:
     - homework.rest-completion-batch-input
     - homework.graphql-completion-batch-input

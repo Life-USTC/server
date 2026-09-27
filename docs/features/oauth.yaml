@@ -762,12 +762,18 @@ capabilities:
       - /error
     rest: stable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - client.name
+          - scopes.name
+          secondary:
+          - client.host
+          - redirect.host
+          tertiary: []
       items:
-      - client.name (which app is requesting)
-      - Requested scopes[] (human-readable)
-      - Requested scopes[] checkboxes so the user can approve a subset
-      - Approve/Deny buttons
-      - Consent failure message when authorization cannot continue
+      - Per-scope approval controls, Approve/Deny actions and recoverable consent failure.
   authorization-management:
     title: Authorized Applications
     auth: user
@@ -785,15 +791,27 @@ capabilities:
     graphql: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - client.name
+          - consent.scopes
+          secondary:
+          - client.uri
+          - client.disabled
+          - consent.updatedAt
+          - activity.lastUsedAt
+          - activity.channel
+          - activity.feature
+          - activity.readCount
+          - activity.writeCount
+          - activity.errorCount
+          tertiary:
+          - client.id
+          - consent.id
       items:
-      - client.name (display name with an unnamed fallback)
-      - client.uri (public application URI)
-      - client.disabled (disabled badge)
-      - consent.scopes[] (approved permissions)
-      - consent.updatedAt (last authorization time)
-      - Current grant lastUsedAt, last channel, and last feature
-      - Current grant 30-day read, write, and error totals
-      - Revoke action with confirmation
+      - Revoke requires confirmation.
     requirement_refs:
     - oauth.authorization-revoke-valid-session
     - oauth.authorization-reduction-ownership
@@ -835,12 +853,19 @@ capabilities:
         auth: anon
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - client.name
+          - client.pattern
+          secondary:
+          - client.redirectUris
+          - client.scopes
+          tertiary: []
       items:
-      - 'Single client inventory: name/id, single-line trust/type/status badges, single-line scopes summary
-        with full-value overflow tooltip, created time, confirmed delete'
-      - client.name (required text input)
-      - client.redirectUris[] (explicit inputs for redirect-based client patterns)
-      - client.scopes[] (allowlisted checkboxes)
+      - 'Single client inventory: name/id, single-line trust/type/status badges, single-line scopes summary with full-value
+        overflow tooltip, created time, confirmed delete'
       - One of three fixed client patterns that derives token auth, PKCE, consent, and end-session settings
       - Register button and one-time post-create credentials dialog
   device-authorization-grant:
@@ -887,11 +912,27 @@ capabilities:
         method: GET
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web-code:
+          primary:
+          - device.userCode
+          secondary:
+          - device.status
+          tertiary: []
+        web-approval:
+          primary:
+          - client.name
+          - scopes.name
+          secondary:
+          - resources.name
+          - device.status
+          tertiary: []
+        web-result:
+          primary:
+          - device.status
+          secondary: []
+          tertiary: []
       items:
-      - One page-level title and description
-      - One segmented user-code input labelled Device Code
-      - One verify action
-      - Approval/result screens
-      - Requested scopes[] on approval screen
-      - Requested resources[] on approval screen
-      - device_auth status (pending/approved/denied)
+      - One page-level title and description, one segmented code input and one verify action.
+      - Approval and result screens.

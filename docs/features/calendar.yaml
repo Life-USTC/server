@@ -274,14 +274,62 @@ capabilities:
         - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
           or past term.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          - section.semester.nameCn
+          tertiary:
+          - event.id
+        mcp-workspace-calendar-event-list:
+          primary:
+          - events.at
+          - events.endsAt
+          - events.type
+          secondary:
+          - events.payload
+          tertiary: []
+        mcp-workspace-calendar-timeline-get:
+          primary:
+          - events.at
+          - events.endsAt
+          - events.type
+          secondary:
+          - events.payload
+          tertiary: []
+        mcp-workspace-schedule-list:
+          primary:
+          - schedules.date
+          - schedules.startTime
+          - schedules.endTime
+          - schedules.section.course.nameCn
+          secondary:
+          - schedules.customPlace
+          - schedules.teachers.nameCn
+          - schedules.section.code
+          - schedules.id
+          tertiary: []
+        mcp-workspace-exam-list:
+          primary:
+          - exams.examDate
+          - exams.startTime
+          - exams.endTime
+          - exams.section.course.nameCn
+          secondary:
+          - exams.examMode
+          - exams.examRooms
+          - exams.section.semester.nameCn
+          - exams.id
+          tertiary: []
       items:
-      - calendarEvents (schedules + exams + homeworks + todos + subscribed young events)
-      - schedule.date, startTime, endTime
-      - exam.examDate, startTime, endTime, examMode, examRooms
-      - homework.submissionDueAt
-      - todo.dueAt
-      - Week numbers
-      - Weekday labels (Sun-Sat)
+      - Week numbers and Monday-first weekday labels
       - Mobile week agenda
       filters:
       - View tabs
@@ -299,17 +347,21 @@ capabilities:
       - /catalog/sections/[jwId]
     rest: stable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
       items:
-      - calendarMonthStart (Month view)
-      - calendarEvents[]
-      - schedule.date, startTime, endTime
-      - schedule.room (with building/campus)
-      - schedule.teachers[].namePrimary
-      - exam.examDate, startTime, endTime
-      - exam.examRooms[]
-      - weekLabelTemplate (Week numbers)
-      - weekdayLabels (Sun-Sat)
-      - todayKey (Today highlight)
+      - Month and week views preserve today highlighting and Monday-first weekdays
     requirement_refs:
     - section.retired-read-semantics
   event-card:
@@ -319,10 +371,20 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
       items:
-      - Event type (schedule/exam/homework/todo)
-      - event.title or section.course.namePrimary
-      - event.time or first metadata segment
-      - Details/popover may show location
+      - Event popovers expose the available location.
     requirement_refs:
     - section.retired-read-semantics

@@ -117,13 +117,18 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items:
-      - semester.id
-      - semester.jwId
-      - semester.code
-      - semester.nameCn
-      - semester.startDate
-      - semester.endDate
+      kind: fields
+      views:
+        mcp-catalog-semester-list:
+          primary:
+          - data.nameCn
+          secondary:
+          - data.id
+          - data.jwId
+          - data.code
+          - data.startDate
+          - data.endDate
+          tertiary: []
   current-semester:
     title: Current Semester
     auth: anon
@@ -147,12 +152,17 @@ capabilities:
       - name: catalog_semester_current
         rest_equivalent: GET /api/catalog/semesters/current
     presentation:
-      items:
-      - semester.id
-      - semester.jwId
-      - semester.nameCn
-      - semester.startDate
-      - semester.endDate
-      - semester.code
+      kind: fields
+      views:
+        mcp-catalog-semester-current:
+          primary:
+          - semester.nameCn
+          secondary:
+          - semester.id
+          - semester.jwId
+          - semester.code
+          - semester.startDate
+          - semester.endDate
+          tertiary: []
 rationale:
 - Semesters are the organizational dimension for courses, sections, schedules, and exams.

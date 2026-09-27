@@ -705,6 +705,7 @@ capabilities:
     rest: stable
     mcp: unavailable
     presentation:
+      kind: interaction
       items:
       - 'OAuth provider buttons: GitHub, Google, OIDC/USTC'
       - Passkey sign-in button with unsupported, cancelled, and failure states
@@ -722,11 +723,31 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web-profile:
+          primary:
+          - user.name
+          - user.username
+          secondary:
+          - user.image
+          - user.profilePictures
+          tertiary: []
+        web-subscriptions:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.code
+          - semester.nameCn
+          tertiary: []
+        web-orientation:
+          primary:
+          - step.title
+          secondary:
+          - step.description
+          tertiary: []
       items:
-      - user.name (Current value display)
-      - user.username (Current value display)
-      - user.image (Current avatar)
-      - user.profilePictures[] (Avatar selector grid)
       - Custom avatar upload (server-cropped 256x256 WebP in R2)
       - Linked OAuth providers (reauthorize to refresh upstream profile options)
       - Step progress indicator with back, skip, and finish controls
@@ -739,6 +760,7 @@ capabilities:
     web: stable
     rest: unavailable
     presentation:
+      kind: protocol
       items:
       - callbackUrl query parameter (origin page)
       - External or protocol-relative callbackUrl values are rejected
@@ -794,17 +816,43 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - user.name
+          secondary:
+          - user.username
+          - user.image
+          - user.createdAt
+          - user._count.comments
+          - user._count.uploads
+          - user._count.homeworksCreated
+          - weeks.date
+          - weeks.count
+          - totalContributions
+          tertiary:
+          - user.id
+        mcp-account-profile-get:
+          primary:
+          - name
+          secondary:
+          - username
+          - image
+          - id
+          tertiary: []
+        mcp-community-user-get:
+          primary:
+          - user.name
+          secondary:
+          - user.username
+          - user.image
+          - user.id
+          - totalContributions
+          - weeks.date
+          - weeks.count
+          tertiary: []
       items:
-      - user.image (Avatar)
-      - user.name (Display name)
-      - user.username (@username)
-      - user.createdAt (Join date)
-      - user._count.comments (Total comments)
-      - user._count.uploads (Total uploads)
-      - user._count.homeworksCreated (Homeworks created)
-      - weeks[].date (YYYY-MM-DD)
-      - weeks[].count (Contribution count)
-      - totalContributions (Aggregate)
       - Keyboard- and touch-accessible horizontally scrollable contribution history
       - Public contribution counts and dates follow user.public-comment-contribution-privacy, user.public-upload-contribution-privacy,
         and user.private-workspace-profile-exclusion
@@ -825,19 +873,63 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web-profile:
+          primary:
+          - user.name
+          - user.username
+          secondary:
+          - user.image
+          - user.profilePictures
+          tertiary: []
+        web-accounts:
+          primary:
+          - account.provider
+          - account.connected
+          - passkey.name
+          secondary:
+          - passkey.createdAt
+          tertiary:
+          - passkey.id
+          - account.id
+        web-security:
+          primary:
+          - event.action
+          - event.outcome
+          secondary:
+          - event.createdAt
+          - event.channel
+          - event.network
+          - event.device
+          - event.client.name
+          tertiary:
+          - event.id
+        web-authorizations:
+          primary:
+          - authorization.clientName
+          - authorization.scopes
+          secondary:
+          - authorization.clientUri
+          - authorization.disabled
+          - authorization.updatedAt
+          - authorization.usage.lastUsedAt
+          - authorization.usage.lastChannel
+          - authorization.usage.lastFeature
+          - authorization.usage.readCount
+          - authorization.usage.writeCount
+          - authorization.usage.errorCount
+          tertiary:
+          - authorization.clientId
+          - authorization.consentId
       items:
-      - user.profilePictures[] (Avatar options)
-      - user.image (Current avatar)
-      - user.name (Display name)
-      - user.username (Username)
-      - user.accounts[].provider (github, google, oidc)
       - user passkeys with add, rename, and delete controls
       - Fresh-session and WebAuthn support states for passkey registration
       - Disconnect control reflects whether another supported sign-in method remains
-      - 'Security activity: sensitive action, outcome, channel, masked network, coarse device, client
-        display name, and cursor pagination'
-      - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last
-        authorization time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
+      - 'Security activity: sensitive action, outcome, channel, masked network, coarse device, client display name,
+        and cursor pagination'
+      - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization
+        time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
       - Compact responsive section navigation with active-section description
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface

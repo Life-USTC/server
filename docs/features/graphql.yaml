@@ -844,13 +844,13 @@ capabilities:
     auth: anon
     graphql: stable
     presentation:
+      kind: protocol
       items:
       - /api/graphql
       - Public semester, course, section, teacher, and bus queries
       - Authenticated Workspace and Account reads with exact feature:read scopes
-      - Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches,
-        workspace pin batches, upload workflow metadata and ownership actions, bus preference, description,
-        and comment mutations
+      - Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches, workspace
+        pin batches, upload workflow metadata and ownership actions, bus preference, description, and comment mutations
       - GET, POST, and OPTIONS
       - GraphQL-audience bearer tokens require matching feature scopes
       - MCP executes arbitrary documents or compatible registered-operation IDs with resolver-level scopes
@@ -872,6 +872,7 @@ capabilities:
         - Returns null for anonymous requests; each selected child field enforces its exact account read
           scope.
     presentation:
+      kind: protocol
       items:
       - account.profile / account.clientActivity
       - catalog.courses / catalog.sections / catalog.teachers

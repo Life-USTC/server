@@ -567,13 +567,46 @@ capabilities:
         requirement_refs:
         - todo.mcp-list-limit
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.priority
+          tertiary:
+          - todo.id
+          - todo.userId
+          - todo.createdAt
+          - todo.updatedAt
+        web-detail:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.priority
+          - todo.content
+          tertiary:
+          - todo.id
+          - todo.userId
+          - todo.createdAt
+          - todo.updatedAt
+        mcp-workspace-todo-list:
+          primary:
+          - todos.title
+          - todos.dueAt
+          - todos.completed
+          secondary:
+          - todos.id
+          - todos.priority
+          - todos.content
+          tertiary: []
       items:
-      - todo.title
-      - todo.content (description)
-      - todo.priority
-      - todo.dueAt
-      - detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority,
-        completion), then content; completion/edit/delete stay in the footer
+      - detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority, completion),
+        then content; completion/edit/delete stay in the footer
       - completed status action button
       - 'filter: incomplete/completed/all'
       - mobile compact toolbar with direct completion filters
@@ -633,11 +666,36 @@ capabilities:
       - name: workspace_todo_delete
         rest_equivalent: DELETE /api/workspace/todos/[id]
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - todo.title
+          secondary:
+          - todo.content
+          - todo.priority
+          - todo.dueAt
+          tertiary: []
+        mcp-workspace-todo-create:
+          primary:
+          - id
+          secondary: []
+          tertiary: []
+        mcp-workspace-todo-update:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.id
+          - todo.priority
+          tertiary: []
+        mcp-workspace-todo-delete:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
       items:
-      - todo.title (text input)
-      - todo.content (text/markdown input)
-      - todo.priority (select)
-      - todo.dueAt (date/time picker)
       - Save button
       - Delete button (edit mode)
       - Cancel button

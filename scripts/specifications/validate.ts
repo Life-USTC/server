@@ -214,6 +214,30 @@ export function validateSpecificationShapes(
         );
       }
     }
+    if (record(data.capabilities)) {
+      for (const [capabilityId, capability] of Object.entries(
+        data.capabilities,
+      )) {
+        if (!record(capability) || !record(capability.presentation)) continue;
+        const views = capability.presentation.views;
+        if (!record(views)) continue;
+        for (const [viewId, view] of Object.entries(views)) {
+          if (!record(view)) continue;
+          const seen = new Set<string>();
+          for (const group of ["primary", "secondary", "tertiary"]) {
+            if (!Array.isArray(view[group])) continue;
+            for (const field of view[group]) {
+              if (typeof field !== "string") continue;
+              if (seen.has(field))
+                errors.push(
+                  `${path}/capabilities/${capabilityId}/presentation/views/${viewId}: ${field} belongs to more than one priority group`,
+                );
+              seen.add(field);
+            }
+          }
+        }
+      }
+    }
   }
   return errors;
 }

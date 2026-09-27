@@ -443,19 +443,38 @@ capabilities:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
         - Retired Sections are excluded.
     presentation:
-      items:
-      - section.course.namePrimary
-      - section.teachers[].namePrimary
-      - section.semester.nameCn
-      - section.campus.namePrimary
-      - section.code (secondary monospace)
-      - section.credits
-      - section.stdCount / section.limitCount (capacity)
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.course.nameSecondary
+          - section.semester.nameCn
+          - section.campus.namePrimary
+          - section.code
+          - section.credits
+          - section.stdCount
+          - section.limitCount
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-section-search:
+          primary:
+          - data.course.nameCn
+          - data.teachers.nameCn
+          secondary:
+          - data.code
+          - data.semester.nameCn
+          - data.campus.nameCn
+          - data.jwId
+          tertiary: []
       filters:
       - Semester selector
       - Generic search
-      - 'REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId,
-        semesterJwId, advanced search syntax'
+      - 'REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId, semesterJwId,
+        advanced search syntax'
     requirement_refs:
     - subscription.subscription-language
   section-detail:
@@ -490,34 +509,51 @@ capabilities:
       - name: catalog_section_get
         rest_equivalent: GET /api/catalog/sections/[jwId]
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.course.nameSecondary
+          - section.semester.nameCn
+          - section.campus.namePrimary
+          - section.code
+          - section.credits
+          - section.stdCount
+          - section.limitCount
+          - section.period
+          - section.actualPeriods
+          - section.examMode.namePrimary
+          - section.remark
+          - section.adminClasses.namePrimary
+          - section.timesPerWeek
+          - section.periodsPerWeek
+          - section.theoryPeriods
+          - section.practicePeriods
+          - section.experimentPeriods
+          - section.machinePeriods
+          - section.designPeriods
+          - section.testPeriods
+          - section.teachLanguage.namePrimary
+          - section.roomType.namePrimary
+          - section.graduateAndPostgraduate
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-section-get:
+          primary:
+          - section.course.nameCn
+          - section.teachers.nameCn
+          secondary:
+          - section.code
+          - section.semester.nameCn
+          - section.campus.nameCn
+          - section.jwId
+          tertiary: []
       items:
-      - section.course.namePrimary (h1)
-      - section.course.nameSecondary (Locale subtitle)
-      - section.teachers[] (hero + side linked list)
-      - section.semester.nameCn
-      - section.campus.namePrimary + nameSecondary
-      - section.code (Monospace secondary in side column)
-      - section.graduateAndPostgraduate (yes/no)
-      - section.credits
-      - section.period + actualPeriods (if different)
-      - section.examMode.namePrimary
-      - section.remark (Whitespace-preserved)
-      - section.adminClasses[] (Collapsible details)
-      - section.timesPerWeek
-      - section.periodsPerWeek
-      - section.theoryPeriods
-      - section.practicePeriods
-      - section.experimentPeriods
-      - section.machinePeriods
-      - section.designPeriods
-      - section.testPeriods
-      - section.teachLanguage.namePrimary
-      - section.roomType.namePrimary
-      - description.content (main stream)
-      - scheduleDateKeys / schedule.* (main stream calendar)
-      - examDateKeys / exam.* (main stream exams)
-      - homework.title, submissionDueAt, description, completionStatus
-      - comment.* (client-fetched main stream only)
+      - Continuous description, schedule, exam, homework and comment reading stream.
     requirement_refs:
     - subscription.subscription-language
   section-ical:
@@ -538,9 +574,23 @@ capabilities:
         notes:
         - Returns a single-section iCal link and usage instructions.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - calendar.url
+          secondary:
+          - calendar.format
+          tertiary: []
+        mcp-catalog-section-calendar-feed-get:
+          primary:
+          - section.course.nameCn
+          secondary:
+          - section.code
+          - section.jwId
+          tertiary: []
       items:
-      - iCalendar URL (copyable)
-      - Export format indicator
+      - Copy the displayed iCalendar URL.
     requirement_refs:
     - subscription.subscription-language
 rationale:

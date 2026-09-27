@@ -54,5 +54,6 @@ capabilities:
     graphql: unavailable
     mcp: unavailable
     presentation:
+      kind: unavailable
       items:
       - Demo mode unavailable

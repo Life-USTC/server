@@ -188,13 +188,28 @@ capabilities:
           and descriptionPinyin.
         - The public output exposes target URLs but omits personal pin and click state.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - link.title
+          secondary:
+          - link.description
+          - link.group
+          - link.icon
+          - link.isPinned
+          tertiary:
+          - link.slug
+        mcp-catalog-link-list:
+          primary:
+          - links.title
+          secondary:
+          - links.description
+          - links.slug
+          - links.group
+          - links.icon
+          tertiary: []
       items:
-      - link.title
-      - link.description
-      - link.icon
-      - link.slug visit action
-      - link.group
-      - link.isPinned (if authenticated)
       - Search input/query
       - Grid/list view mode persisted in browser storage
   link-pin-and-visit:
@@ -254,8 +269,27 @@ capabilities:
         - No MCP visit tool is exposed; visit redirects and click recording are browser/REST navigation
           behavior.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - link.title
+          - link.isPinned
+          secondary:
+          - link.slug
+          tertiary: []
+        mcp-workspace-link-pin-list:
+          primary:
+          - pinnedSlugs
+          secondary:
+          - maxPinnedLinks
+          tertiary: []
+        mcp-workspace-link-pin-set:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
       items:
-      - link.slug visit action
       - Pin/unpin button
       - Pinned indicator
 rationale:

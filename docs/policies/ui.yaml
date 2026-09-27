@@ -509,9 +509,23 @@ requirements:
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
-  rule: Each feature declares its identifying, task-critical, and disambiguating display fields in presentation
-    data. UI and compact MCP projections retain those declared fields; JSON object key order is not a presentation
-    contract.
+  rule: Every capability presentation declares whether it describes field views, interactions, protocol output,
+    or an unavailable feature. Field views declare separate primary, secondary and tertiary property-path arrays
+    for each implemented Web or assistant view; a property belongs to exactly one group in a view.
+  rationale: This requirement owns the declaration format. Actual visibility, priority, disambiguation and compact
+    projection behavior remain independently required by the view-specific feature rules and the primary,
+    secondary, tertiary and MCP output requirements. JSON object key order is not a presentation contract.
+  acceptance:
+    given: All repository feature presentation declarations and the production specification schema validator.
+    when: The validator loads every declaration and checks malformed field arrays, missing kinds or view groups,
+      duplicate priority assignments and interaction declarations incorrectly containing field views.
+    then:
+    - Every declaration has an explicit kind; every field view has nonempty primary and explicit secondary/tertiary property arrays.
+    - Invalid field paths, duplicate assignments, missing groups and mismatched kinds fail validation.
+    - The production specification check consumes these declarations without treating shape validity as rendered UI or native-tool evidence.
+    test:
+      file: tests/unit/specifications/presentation-fields.test.ts
+      name: ui.model-property-priority-1
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary

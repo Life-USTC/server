@@ -323,15 +323,38 @@ capabilities:
         - description.target-identifiers
         - description.concurrent-first-write
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - description.content
+          secondary:
+          - description.lastEditedBy.name
+          - description.updatedAt
+          - history.count
+          - history.editor.name
+          - history.previousContent
+          - history.updatedContent
+          tertiary:
+          - description.id
+        mcp-community-description-get:
+          primary:
+          - description.content
+          secondary:
+          - description.id
+          - description.lastEditedBy.name
+          - description.lastEditedAt
+          tertiary: []
+        mcp-community-description-set:
+          primary:
+          - description.content
+          secondary:
+          - description.id
+          - description.lastEditedBy.name
+          - description.lastEditedAt
+          tertiary: []
       items:
-      - description.content (markdown-rendered)
-      - description.renderedHtml (sanitized server-rendered HTML)
-      - description.lastEditedBy.name
-      - description.lastEditedAt / updatedAt
-      - Edit button (if authorized)
-      - history count
-      - history editor
-      - previous/updated diff content
+      - Edit control follows the current permission state.
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types
@@ -353,11 +376,17 @@ capabilities:
         - description.moderation-atomicity
     mcp: unavailable
     presentation:
-      items:
-      - description.content / preview
-      - object target
-      - lastEditedBy name
-      - timestamp
+      kind: fields
+      views:
+        web:
+          primary:
+          - description.content
+          secondary:
+          - description.target
+          - description.lastEditedBy.name
+          - description.updatedAt
+          tertiary:
+          - description.id
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types

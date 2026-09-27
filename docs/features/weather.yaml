@@ -254,10 +254,29 @@ capabilities:
         - Default mode returns the merged snapshot without provider extensions; full mode returns the
           complete payload including raw provider extensions.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - location.name
+          - current.temperature
+          - current.condition
+          secondary:
+          - hourly.time
+          - hourly.temperature
+          - hourly.precipitationProbability
+          - daily.high
+          - daily.low
+          - alerts.title
+          tertiary:
+          - provider.rawResponse
+        mcp-catalog-weather-get:
+          primary:
+          - locationKey
+          - hasData
+          secondary:
+          - current
+          tertiary: []
       items:
-      - location name
-      - current temperature and condition
-      - hourly temperature curve and precipitation probability bars share one full-width plot; hour details
-        appear on hover, touch, or keyboard focus instead of a separate card strip
-      - daily high/low temperatures
-      - weather alerts
+      - Hourly temperature and precipitation probability share one full-width plot; details respond to hover, touch
+        and keyboard focus.

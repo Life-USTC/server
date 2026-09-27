@@ -621,12 +621,40 @@ capabilities:
           ports, private/local hosts, non-raster responses, oversized bodies, and origin failures are
           rejected without caching.
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - revision.title
+          secondary:
+          - source.name
+          - source.organizationLevel
+          - publication.publicationType
+          - revision.summary
+          - revision.publishedAt
+          tertiary:
+          - publication.id
+          - revision.id
+        web-detail:
+          primary:
+          - revision.title
+          secondary:
+          - source.name
+          - revision.summary
+          - revision.publishedAt
+          - revision.author
+          - revision.reporter
+          - revision.editor
+          - revision.originalPublisher
+          - revision.sourcePageUrl
+          - revision.bodyMarkdown
+          - attachments.filename
+          tertiary:
+          - publication.id
+          - revision.id
+          - revision.rawMetadata
       items:
-      - source name and organization level
-      - news/notice type
-      - current revision title, summary, and source URL
-      - current bodyMarkdown loaded from the body_markdown R2 object
-      - verified media and attachment links
+      - Verified Markdown content, sanitized media and attachment links.
   publication-source-directory:
     title: Public publication source directory
     auth: anon
@@ -648,11 +676,20 @@ capabilities:
         - organizationLevel uses the same documented registry vocabulary in directory, list, and detail
           responses; unknown upstream values normalize to unknown.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - source.name
+          secondary:
+          - source.organizationLevel
+          - source.allowedHosts
+          - source.publicationCount
+          - source.latestPublishedAt
+          tertiary:
+          - source.id
       items:
-      - organization level group with its source and publication counts
-      - source name, id, and allowed hosts
-      - per-source publication count and latest published date
-      - cross-link to the list filtered by that source or level
+      - Organization-level groups link to the filtered publication list.
   publication-ingestion:
     title: Crawler publication batch ingestion
     auth: internal
@@ -688,6 +725,7 @@ capabilities:
           R2 binding, and supplies the manifest SHA-256 to R2 for upload-time verification before linking
           it.
     presentation:
+      kind: protocol
       items:
       - source descriptor registration
       - publication and revision metadata

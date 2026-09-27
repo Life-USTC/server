@@ -460,15 +460,62 @@ capabilities:
         - Unknown non-null preferred origin or destination campus IDs return a serialized validation result
           with success=false and do not write preferences.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - route.descriptionPrimary
+          - trip.departureTime
+          secondary:
+          - route.stops.name
+          - trip.stopTimes
+          tertiary:
+          - version.key
+          - version.importedAt
+          - route.id
+        mcp-catalog-bus-timetable-get:
+          primary:
+          - routes.descriptionPrimary
+          - nextDepartures.departureTime
+          secondary:
+          - campuses.namePrimary
+          - nextDepartures.arrivalTime
+          - counts
+          tertiary: []
+        mcp-catalog-bus-route-list:
+          primary:
+          - routes.descriptionPrimary
+          secondary:
+          - routes.id
+          - routes.stops
+          - notice
+          tertiary: []
+        mcp-catalog-bus-route-get:
+          primary:
+          - route.descriptionPrimary
+          secondary:
+          - route.id
+          - route.stops
+          - weekday
+          - saturday
+          - sunday
+          tertiary: []
+        mcp-workspace-bus-preferences-get:
+          primary:
+          - preference.preferredOriginCampusId
+          - preference.preferredDestinationCampusId
+          secondary:
+          - preference.showDepartedTrips
+          tertiary: []
+        mcp-workspace-bus-preferences-set:
+          primary:
+          - preference.preferredOriginCampusId
+          - preference.preferredDestinationCampusId
+          secondary:
+          - preference.showDepartedTrips
+          tertiary: []
       items:
-      - route.descriptionPrimary
-      - next departure times
-      - campus stop columns
-      - route schedules
-      - day type control
-      - departure/arrival campus controls
-      - reverse direction control
-      - show-departed toggle
+      - Day type and departure/arrival campus controls, reverse direction and show-departed toggle.
   bus-route-search:
     title: Bus Route Search
     auth: anon
@@ -487,12 +534,28 @@ capabilities:
         - Filtered discovery helper for origin/destination prompts.
         - Use catalog_bus_route_list when the caller needs the entire current route catalog.
     presentation:
-      items:
-      - originCampus
-      - destinationCampus
-      - filtered route list
-      - route stop order
-      - weekday/Saturday/Sunday trip counts
+      kind: fields
+      views:
+        web:
+          primary:
+          - originCampus.name
+          - destinationCampus.name
+          - route.descriptionPrimary
+          secondary:
+          - route.stops.name
+          - route.weekdayTripCount
+          - route.saturdayTripCount
+          - route.sundayTripCount
+          tertiary:
+          - route.id
+        mcp-catalog-bus-route-search:
+          primary:
+          - routes.descriptionPrimary
+          secondary:
+          - originCampus.nameCn
+          - destinationCampus.nameCn
+          - routes.id
+          tertiary: []
   bus-next-departures:
     title: Bus Next Departures
     auth: anon
@@ -520,14 +583,30 @@ capabilities:
         - Default mode avoid repeating the same originCampus/destinationCampus object inside every departure
           item when they already appear at the top level.
     presentation:
-      items:
-      - originCampus
-      - destinationCampus
-      - dayType
-      - departureTime
-      - arrivalTime
-      - minutesUntilDeparture
-      - route description
+      kind: fields
+      views:
+        web:
+          primary:
+          - trip.departureTime
+          - trip.arrivalTime
+          - trip.minutesUntilDeparture
+          secondary:
+          - originCampus.name
+          - destinationCampus.name
+          - trip.dayType
+          - route.descriptionPrimary
+          tertiary:
+          - route.id
+        mcp-catalog-bus-departure-next:
+          primary:
+          - departures.departureTime
+          - departures.arrivalTime
+          secondary:
+          - departures.minutesUntilDeparture
+          - departures.route.descriptionPrimary
+          - departures.originCampus.nameCn
+          - departures.destinationCampus.nameCn
+          tertiary: []
   bus-map:
     title: Bus Route Map
     auth: anon
@@ -537,12 +616,20 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - route.descriptionPrimary
+          - stop.name
+          secondary:
+          - campus.name
+          - trip.location
+          tertiary:
+          - route.id
+          - trip.id
       items:
-      - Bus routes (polylines on map)
-      - Bus stops/stations (markers)
-      - Active trips derived from timetable times
-      - Campus locations reference
-      - Interactive map controls
+      - Route polylines, stop markers, current trips and interactive map controls.
 rationale:
 - The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
 - Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,

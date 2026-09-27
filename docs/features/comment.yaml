@@ -783,21 +783,74 @@ capabilities:
         auth: user
         rest_equivalent: DELETE /api/community/comments/[id]/reactions
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - comment.author.name
+          - comment.body
+          secondary:
+          - comment.author.image
+          - comment.createdAt
+          - comment.updatedAt
+          - comment.visibility
+          - comment.status
+          - comment.reactions.count
+          - comment.attachments.filename
+          tertiary:
+          - comment.id
+          - comment.userId
+        mcp-community-comment-list:
+          primary:
+          - data.body
+          secondary:
+          - data.author.name
+          - data.createdAt
+          - data.id
+          tertiary: []
+        mcp-community-comment-replies:
+          primary:
+          - thread.body
+          secondary:
+          - thread.author.name
+          - thread.createdAt
+          - thread.id
+          tertiary: []
+        mcp-community-comment-get:
+          primary:
+          - thread.body
+          secondary:
+          - thread.author.name
+          - thread.createdAt
+          - thread.id
+          tertiary: []
+        mcp-community-comment-create:
+          primary:
+          - id
+          secondary: []
+          tertiary: []
+        mcp-community-comment-update:
+          primary:
+          - comment.body
+          secondary:
+          - comment.id
+          tertiary: []
+        mcp-community-comment-delete:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
+        mcp-community-comment-reaction-add:
+          primary:
+          - changed
+          secondary: []
+          tertiary: []
+        mcp-community-comment-reaction-remove:
+          primary:
+          - changed
+          secondary: []
+          tertiary: []
       items:
-      - comment.id
-      - comment.author.name
-      - comment.author.image (avatar)
-      - comment.body (markdown-rendered)
-      - comment.renderedBody (sanitized server-rendered HTML)
-      - comment.createdAt (timestamp)
-      - comment.updatedAt / edited timestamp
-      - comment.visibility badges
-      - comment.status (non-active states)
-      - comment.reactions[] (counts per reaction type)
-      - comment.replies[] (threaded)
-      - comment.repliesNextCursor (bounded reply continuation)
-      - comment.isAncestryPlaceholder (redacted structural context)
-      - comment.attachments[] filename/open action for signed-in viewers with attachment access
       - canReply/canReact/canEdit/canDelete/canModerate actions
       - Copy link action
     requirement_refs:
@@ -824,15 +877,20 @@ capabilities:
         method: PATCH
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - comment.body
+          - comment.status
+          secondary:
+          - comment.author.name
+          - comment.target
+          - comment.createdAt
+          tertiary:
+          - comment.id
       items:
-      - comment.body/content preview
-      - comment.author.name
-      - target object
-      - creation timestamp
-      - 'Status: active/softbanned/deleted'
-      - Suspended filter
-      - Status radio + confirm action
-      - Suspension controls
+      - Suspension filter and controls, status selection and confirmation.
     requirement_refs:
     - comment.interaction-gate
     - comment.visibility-modes
@@ -847,6 +905,7 @@ capabilities:
       - /community/comments/[id]
       - /guides/markdown-support
     presentation:
+      kind: interaction
       items:
       - Comment guidelines/help pages
     requirement_refs:

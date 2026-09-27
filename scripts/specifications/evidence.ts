@@ -267,7 +267,8 @@ function residualTextLocations(
     );
   if (!value || typeof value !== "object") return [];
   return Object.entries(value).flatMap(([key, item]) =>
-    key === "requirement_refs"
+    key === "requirement_refs" ||
+    (path.endsWith("/presentation") && ["kind", "views"].includes(key))
       ? []
       : residualTextLocations(
           item,

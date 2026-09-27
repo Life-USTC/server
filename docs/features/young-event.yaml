@@ -520,16 +520,129 @@ capabilities:
       - name: catalog_young_organizer_get
         rest_equivalent: GET /api/catalog/young-organizers/[organizerId]
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - event.name
+          - event.startAt
+          - event.status
+          secondary:
+          - event.location
+          - event.category
+          - event.module
+          - event.organizer.name
+          tertiary: []
+        web-detail:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          - event.status
+          secondary:
+          - event.activityLevel
+          - event.allowedAttachmentTypes
+          - event.appliedCount
+          - event.applyEndAt
+          - event.applyStartAt
+          - event.capacity
+          - event.category
+          - event.contactName
+          - event.contactTel
+          - event.department
+          - event.description
+          - event.duration
+          - event.externalSponsor
+          - event.favCount
+          - event.form
+          - event.grades
+          - event.hours
+          - event.imageUrl
+          - event.isActive
+          - event.isOnline
+          - event.limitNum
+          - event.location
+          - event.module
+          - event.onlineMeetingInfo
+          - event.organizer
+          - event.partakeNum
+          - event.participationNotes
+          - event.places
+          - event.requiresSignup
+          - event.requiresSignupInfo
+          - event.serviceHour
+          - event.signupDepartmentIds
+          - event.signupScopeCode
+          - event.sponsor
+          - event.sumHours
+          - event.sumPersons
+          tertiary:
+          - event.youngId
+          - event.organizerId
+          - event.createdAtUpstream
+          - event.auditedAt
+          - event.updatedAtUpstream
+          - event.sourceMissing
+        web-calendar:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.status
+          tertiary: []
+        web-organizers:
+          primary:
+          - organizer.name
+          secondary:
+          - organizer.eventCount
+          tertiary:
+          - organizer.id
+        mcp-catalog-young-event-list:
+          primary:
+          - data.name
+          - data.startAt
+          - data.endAt
+          secondary:
+          - data.youngId
+          - data.location
+          - data.category
+          - data.module
+          - data.form
+          - data.activityLevel
+          - data.status
+          tertiary: []
+        mcp-catalog-young-event-get:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.youngId
+          - event.location
+          - event.category
+          - event.module
+          - event.form
+          - event.activityLevel
+          - event.status
+          tertiary: []
+        mcp-catalog-young-organizer-list:
+          primary:
+          - data.name
+          secondary:
+          - data.id
+          - data.totalCount
+          - data.upcomingCount
+          tertiary: []
+        mcp-catalog-young-organizer-get:
+          primary:
+          - organizer.name
+          secondary:
+          - organizer.id
+          - organizer.totalCount
+          - organizer.upcomingCount
+          tertiary: []
       items:
-      - event name
-      - category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form
-      - rich-text description and participation notes, sanitized with proxied inline images
-      - signup window, event time, and the upstream created, approved, and updated timestamps
-      - capacity, seat limit, applied count, actual participants, and total attendances
-      - credited hours, total credited hours, volunteer hours, and activity duration
-      - sponsor, organizer, department, and the published contact name and phone
-      - per-slot venues, falling back to the single location when there are none
-      - target years and favorite count
-      - status and source freshness
-      - organizer and stable organizer ID
-      - sourceMissing and lastSeenAt when applicable
+      - Rich descriptions and participation notes use sanitized content with proxied images.
+      - Per-slot venues take precedence over the single location.

@@ -318,6 +318,7 @@ capabilities:
       pages:
       - /admin
     presentation:
+      kind: interaction
       items:
       - Redirects to user management
       - Primary sidebar links for moderation, users, OAuth, and bus
@@ -350,15 +351,30 @@ capabilities:
         reference_only: true
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web-comments:
+          primary:
+          - comment.body
+          - comment.status
+          secondary:
+          - comment.user.name
+          - comment.target
+          - comment.createdAt
+          tertiary:
+          - comment.id
+        web-descriptions:
+          primary:
+          - description.content
+          secondary:
+          - description.target
+          - description.lastEditedBy.name
+          - description.lastEditedAt
+          - description.updatedAt
+          tertiary:
+          - description.id
       items:
-      - Comment moderation table
-      - Description moderation table
-      - content/descriptionPreview
-      - author / lastEditedBy
-      - postedIn target
-      - timestamp
-      - comment status
-      - detail dialog controls
+      - Separate comments and descriptions views with detail dialogs.
   user-management:
     title: User Management
     auth: admin
@@ -374,11 +390,20 @@ capabilities:
         - Returns 404 when the target user is not found.
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - user.name
+          - user.email
+          secondary:
+          - user.username
+          - user.createdAt
+          - user.isAdmin
+          - user.activeSuspension
+          tertiary:
+          - user.id
       items:
-      - user.email
-      - user.name
-      - user.username
-      - user.createdAt
       - Is admin checkbox
       - 'Actions: edit profile/admin state, suspend/unsuspend'
   oauth-client-management:
@@ -390,12 +415,23 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - client.name
+          - client.clientId
+          secondary:
+          - client.skipConsent
+          - client.tokenEndpointAuthMethod
+          - client.disabled
+          - client.scopes
+          - client.createdAt
+          tertiary:
+          - client.id
       items:
-      - client.name and client.clientId
       - client trust and fixed authentication type
       - client enabled/disabled status
-      - client.scopes[] summary
-      - client.createdAt
       - Empty inventory explanation and create-client action
       - 'Create: name, explicit redirect URIs, scopes, and one of three fixed client patterns'
       - Client secret is shown once after creation and never in the inventory
@@ -409,15 +445,22 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - version.title
+          secondary:
+          - version.sourceMessage
+          - version.key
+          - version.tripCount
+          - version.importedAt
+          - version.effectiveFrom
+          - version.effectiveUntil
+          - version.isEnabled
+          tertiary:
+          - version.id
       items:
-      - Bus schedule version title
-      - version key
-      - tripCount
-      - weekday, Saturday, and Sunday service-day trip data
-      - importedAt
-      - effective range
-      - enabled status
-      - 'Actions: import, activate, delete'
-
+      - Import, activate and delete actions.
 rationale:
 - Suspension history and nullified deleted-admin actor references are canonically owned and verified by user.account-deletion-retention.

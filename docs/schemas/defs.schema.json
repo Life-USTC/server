@@ -703,7 +703,7 @@
     "presentation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["items"],
+      "required": ["kind"],
       "properties": {
         "items": {
           "type": "array",
@@ -711,7 +711,7 @@
           "items": {
             "$ref": "#/$defs/nonEmptyString"
           },
-          "description": "Ordered presentation requirements, not a data-field schema. An empty list means this specification only defines filters."
+          "description": "Interaction, layout or protocol requirements; display property paths belong in views."
         },
         "filters": {
           "type": "array",
@@ -723,8 +723,51 @@
         },
         "requirement_refs": {
           "$ref": "#/$defs/requirementRefs"
+        },
+        "kind": {
+          "enum": ["fields", "interaction", "protocol", "unavailable"]
+        },
+        "views": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(web|mcp)(-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/presentationFieldView"
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "fields"
+              }
+            }
+          },
+          "then": {
+            "required": ["views"],
+            "properties": {
+              "views": {}
+            }
+          },
+          "else": {
+            "required": ["items"],
+            "not": {
+              "required": ["views"],
+              "properties": {
+                "views": {}
+              }
+            },
+            "properties": {
+              "items": {}
+            }
+          }
+        }
+      ]
     },
     "requirementRefs": {
       "type": "array",
@@ -744,6 +787,40 @@
       "additionalProperties": {
         "type": "string",
         "enum": ["Section.id", "Section.jwId", "Semester.id"]
+      }
+    },
+    "presentationFieldView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary", "tertiary"],
+      "properties": {
+        "primary": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[_a-z][A-Za-z0-9_]*(\\.[_a-z][A-Za-z0-9_]*)*$"
+          }
+        },
+        "secondary": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[_a-z][A-Za-z0-9_]*(\\.[_a-z][A-Za-z0-9_]*)*$"
+          }
+        },
+        "tertiary": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[_a-z][A-Za-z0-9_]*(\\.[_a-z][A-Za-z0-9_]*)*$"
+          }
+        }
       }
     }
   }

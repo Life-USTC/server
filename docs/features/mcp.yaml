@@ -643,6 +643,7 @@ capabilities:
         - Answers browser CORS preflight requests for trusted origins before bearer-token MCP transport
           handling.
     presentation:
+      kind: protocol
       items:
       - JSON-RPC over POST; trusted-origin OPTIONS preflight
       - GET returns method-not-allowed; stateless DELETE is idempotent
@@ -755,6 +756,7 @@ capabilities:
         - workspace_young_notification_list
         - workspace_young_notification_read
     presentation:
+      kind: protocol
       items:
       - Schedule tools
       - Homework tools
@@ -767,6 +769,5 @@ capabilities:
       - Input schema
       - Output schema
       - Preferred tool for common prompts
-
 rationale:
 - Public room-map projection and anonymous transport parity are owned by room-map.public; input normalization is owned by room-map.normalization.

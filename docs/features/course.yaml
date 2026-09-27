@@ -275,13 +275,29 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items:
-      - course.code
-      - course.namePrimary
-      - course.nameSecondary (locale-dependent)
-      - course.educationLevel.namePrimary
-      - course.category.namePrimary
-      - course.classType.namePrimary
+      kind: fields
+      views:
+        web:
+          primary:
+          - course.namePrimary
+          secondary:
+          - course.nameSecondary
+          - course.code
+          - course.educationLevel.namePrimary
+          - course.category.namePrimary
+          - course.classType.namePrimary
+          tertiary:
+          - course.id
+          - course.jwId
+        mcp-catalog-course-search:
+          primary:
+          - data.nameCn
+          secondary:
+          - data.nameEn
+          - data.code
+          - data.id
+          - data.jwId
+          tertiary: []
       filters:
       - search
       - educationLevelId
@@ -319,19 +335,43 @@ capabilities:
       - name: catalog_course_get
         rest_equivalent: GET /api/catalog/courses/[jwId]
     presentation:
-      items:
-      - course.namePrimary (h1 title)
-      - course.nameSecondary (Locale-dependent subtitle)
-      - course.code (Plain monospace text)
-      - course.educationLevel.namePrimary
-      - course.category.namePrimary
-      - course.classType.namePrimary
-      - section.semester.nameCn (Semester column)
-      - section.code (Plain monospace text)
-      - section.teachers[].namePrimary + nameSecondary (Teachers)
-      - section.campus.namePrimary (Campus)
-      - section.stdCount / section.limitCount (Capacity)
-      - description.content (Markdown-rendered via DescriptionLoader)
+      kind: fields
+      views:
+        web:
+          primary:
+          - course.namePrimary
+          secondary:
+          - course.nameSecondary
+          - course.code
+          - course.educationLevel.namePrimary
+          - course.category.namePrimary
+          - course.classType.namePrimary
+          - course.type.namePrimary
+          tertiary:
+          - course.id
+          - course.jwId
+        web-history:
+          primary:
+          - section.teachers.namePrimary
+          secondary:
+          - section.semester.nameCn
+          - section.code
+          - section.campus.namePrimary
+          - section.stdCount
+          - section.limitCount
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-course-get:
+          primary:
+          - course.nameCn
+          secondary:
+          - course.nameEn
+          - course.code
+          - course.id
+          - course.jwId
+          tertiary:
+          - course.sections
     requirement_refs:
     - section.retired-read-semantics
 rationale:
