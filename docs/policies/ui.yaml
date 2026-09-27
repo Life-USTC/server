@@ -358,14 +358,7 @@ requirements:
 - id: ui.model-property-priority-tertiary-2
   category: presentation
   topic: model-property-priority-tertiary
-  rule: Ordinary UI de-emphasizes internal reconstruction metadata. MCP default projections include only the
-    fields declared by that tool; full mode still obeys all secret and private-field exclusions.
-- id: ui.model-property-priority-surfaces-2
-  category: presentation
-  topic: model-property-priority-surfaces
-  rule: MCP tools declare a compact default projection and, where supported, an explicit full projection. Default
-    preserves the task identity and important disambiguation; full adds only explicitly allowed fields. No
-    deprecated summary input is part of the supported contract.
+  rule: Ordinary UI de-emphasizes internal reconstruction metadata.
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
@@ -1138,3 +1131,10 @@ rationale:
 - Settings destination separation for linked sign-in identities versus delegated application grants is
   owned by user.sign-in-identities-separate; ui.settings-navigation-5 independently owns explicit
   confirmation of the selected application's revocation.
+- The former ui.model-property-priority-surfaces-2 and the MCP clause of
+  ui.model-property-priority-tertiary-2 are owned by mcp.output-mode-input for supported modes and rejection
+  of summary, mcp.property-priority-parity for compact identity and disambiguation, mcp.output-modes for
+  mode shape and allowed projections, mcp.openai-compatible-descriptors plus mcp.typed-output-fields,
+  mcp.typed-bus-output-fields and mcp.typed-community-output-fields for explicit per-tool output fields,
+  and mcp.privacy-safe-default for identical privacy restrictions in default and full mode. The independent
+  UI treatment of reconstruction metadata remains ui.model-property-priority-tertiary-2.
