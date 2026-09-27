@@ -627,3 +627,79 @@ test("young-event.shared-public-cache", async () => {
   expect(youngEventMock.findUnique).toHaveBeenCalledTimes(2);
   expect(youngOrganizerMock.findUnique).toHaveBeenCalledTimes(2);
 });
+
+test("rendering-and-cache.cacheable-public-pages-10", async () => {
+  const {
+    loadYoungEventsPage,
+    loadYoungCalendarPage,
+    loadYoungOrganizerDetailPage,
+  } = await import("@/features/young/server/young-page-load");
+  const { resolvePublicSsrMode } = await import(
+    "@/lib/cloudflare/public-ssr-gateway"
+  );
+  const { resolveCatalogListPublicSsrMode } = await import(
+    "@/features/catalog/lib/catalog-list-query"
+  );
+  vi.useFakeTimers();
+  vi.setSystemTime("2026-09-10T00:00:00Z");
+  youngEventMock.count.mockResolvedValue(1);
+  youngEventMock.findMany.mockImplementation(async (args) =>
+    args.distinct ? [{ category: "单次项目" }] : [RECORD],
+  );
+  youngOrganizerMock.findMany.mockResolvedValue([
+    { id: "organizer-1", name: "学生会", normalizedName: "学生会" },
+  ]);
+  youngOrganizerMock.findUnique.mockResolvedValue({
+    id: "organizer-1",
+    name: "学生会",
+    normalizedName: "学生会",
+  });
+  const event = (path: string) => ({
+    locals: { locale: "zh-cn" as const },
+    url: new URL(path, "https://test.example"),
+    request: new Request(new URL(path, "https://test.example"), {
+      headers: { accept: "text/html" },
+    }),
+  });
+  for (const [path, load] of [
+    ["/catalog/young-events?module=美&search=读书", loadYoungEventsPage],
+    [
+      "/catalog/young-events/calendar?view=day&date=2026-09-10&module=美",
+      loadYoungCalendarPage,
+    ],
+    [
+      "/catalog/young-events/organizers/organizer-1?page=2",
+      (input: ReturnType<typeof event>) =>
+        loadYoungOrganizerDetailPage({ ...input, organizerId: "organizer-1" }),
+    ],
+  ] as const) {
+    resetPublicRuntimeCacheForTest();
+    youngEventMock.findMany.mockClear();
+    youngEventMock.count.mockClear();
+    const input = event(path);
+    expect(
+      resolvePublicSsrMode(input.request, resolveCatalogListPublicSsrMode),
+    ).toBeNull();
+    const first = await load(input);
+    const reads = youngEventMock.findMany.mock.calls.length;
+    const counts = youngEventMock.count.mock.calls.length;
+    expect(reads).toBeGreaterThan(0);
+    expect(await load(input)).toEqual(first);
+    expect(youngEventMock.findMany).toHaveBeenCalledTimes(reads);
+    expect(youngEventMock.count).toHaveBeenCalledTimes(counts);
+    revision.value += "-new";
+    await load(input);
+    expect(youngEventMock.findMany.mock.calls.length).toBeGreaterThan(reads);
+  }
+  resetPublicRuntimeCacheForTest();
+  youngEventMock.findMany.mockClear();
+  await loadYoungEventsPage(event("/catalog/young-events?module=美"));
+  const before = youngEventMock.findMany.mock.calls.length;
+  await loadYoungEventsPage(event("/catalog/young-events?module=智"));
+  expect(youngEventMock.findMany.mock.calls.length).toBeGreaterThan(before);
+  expect(youngEventMock.findMany).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({ module: "智" }),
+    }),
+  );
+});

@@ -348,7 +348,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(db.busTripFindMany).toHaveBeenCalledTimes(2);
   });
 
-  it("不把调用者偏好放进静态缓存", async () => {
+  it("rendering-and-cache.cacheable-public-pages-12", async () => {
     db.busPreferenceFindUnique.mockImplementation(async (args: unknown) => {
       const userId = (args as { where: { userId: string } }).where.userId;
       return {
@@ -378,6 +378,36 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
     expect(versionLookupCount("old-bus")).toBe(2);
     expect(db.busPreferenceFindUnique).toHaveBeenCalledTimes(2);
+    const publicInput = {
+      locale: "zh-cn" as const,
+      now: "2026-02-01T00:00:00.000Z",
+      versionKey: "old-bus",
+    };
+    const publicData = await timetable.getStaticBusTimetableData(publicInput);
+    const anonymous = await timetable.getBusTimetableData(publicInput);
+    expect(publicData).not.toHaveProperty("preferences");
+    expect(anonymous?.preferences).toBeNull();
+    for (const data of [first, second, anonymous]) {
+      if (!data) throw new Error("Expected timetable fixture");
+      const { preferences: _preference, ...facts } = data;
+      expect(facts).toEqual(publicData);
+    }
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    expect(db.busPreferenceFindUnique).toHaveBeenCalledTimes(2);
+    db.busPreferenceFindUnique.mockResolvedValue({
+      preferredOriginCampusId: 6,
+      preferredDestinationCampusId: 1,
+      showDepartedTrips: false,
+    });
+    const updated = await timetable.getBusTimetableData({
+      ...publicInput,
+      userId: "user-a",
+    });
+    expect(updated?.preferences?.preferredOriginCampusId).toBe(6);
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    expect(await timetable.getStaticBusTimetableData(publicInput)).toEqual(
+      publicData,
+    );
   });
 
   it("按 locale、日期和显式版本隔离静态数据", async () => {

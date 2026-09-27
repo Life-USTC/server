@@ -145,7 +145,18 @@ requirements:
 - id: rendering-and-cache.cacheable-public-pages-10
   category: consistency
   topic: cacheable-public-pages
-  rule: Filtered second-classroom pages reuse the public data cache even when their HTML is dynamic.
+  rule: Filtered second-classroom event lists, calendar ranges and organizer histories reuse public event
+    data caches even when their HTML is dynamic. Different filters and import revisions use distinct cached facts.
+  acceptance:
+    given: Controlled database rows and an imported revision supply public event facts to the actual page loaders and process cache.
+    when: Filtered list, dated calendar and paginated organizer-history loaders repeat reads, change revision,
+      or change module filters; the production HTML admission resolver evaluates each URL.
+    then:
+    - Filtered HTML stays dynamic while repeated page loads reuse event rows and totals.
+    - New revisions and different filters cause distinct fact reads rather than reusing the old selection.
+    test:
+      file: tests/unit/features/young/young-event-service.test.ts
+      name: rendering-and-cache.cacheable-public-pages-10
 - id: rendering-and-cache.cacheable-public-pages-11
   category: consistency
   topic: cacheable-public-pages
@@ -162,8 +173,21 @@ requirements:
 - id: rendering-and-cache.cacheable-public-pages-12
   category: consistency
   topic: cacheable-public-pages
-  rule: Bus topology and timetable data caches contain only public data. Personal bus preferences are fetched
-    through private endpoints and never stored in these shared entries.
+  rule: Shared bus topology and timetable cache entries contain only public data. Per-request preferences
+    are read separately and attached only after retrieving public facts; one viewer cannot populate another's preferences.
+  rationale: Private HTTP delivery is owned by bus.cache-boundaries and bus.preference-hydration-write-gate.
+    This requirement owns service/cache separation, including callers that read timetable facts directly.
+  acceptance:
+    given: Controlled database boundaries provide one timetable and distinct preferences for two users.
+    when: Actual timetable services and the process cache handle both owners, anonymous reads and a changed
+      preference while retaining the same imported timetable revision.
+    then:
+    - All calls share exactly the same cached public facts and load trips only once.
+    - Static results omit preferences; anonymous results have null preferences and owner calls receive only their fresh personal preference.
+    - Changing preferences neither changes nor reloads the cached public timetable.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: rendering-and-cache.cacheable-public-pages-12
 - id: rendering-and-cache.cacheable-public-pages-13
   category: consistency
   topic: cacheable-public-pages
