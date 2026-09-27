@@ -246,18 +246,70 @@ requirements:
     or invalid credentials return 401 without database reads. It exports durable event counters, cumulative
     duration histograms and current-state/activity gauges; no raw logs or user/request/client identifiers.
     This machine-only transport has no GraphQL or MCP equivalent.
+  acceptance:
+    given: The actual mounted metrics GET handler, dedicated secret configuration, and real database snapshots.
+    when: Try missing configuration, malformed/wrong credentials, cookie/query credentials, then a valid
+      dedicated Bearer scrape.
+    then:
+    - Unauthorized requests return 401 without invoking database collection.
+    - Authorized scrapes expose counters, histograms, and gauges with Prometheus content type and no raw
+      identifiers or secrets.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-export
 - id: admin.prometheus-collection
   category: behavior
   rule: Counters begin at the recorded installation epoch, with no backfill, and update atomically with
     committed observations. Duplicate retained event IDs and rolled-back writes do not increment counters;
-    retention and identity deletion never decrement them. Counters are fresh each scrape. Expensive gauges
-    are cached 60 seconds (at most 120 during refresh contention); failures return 503.
+    retention and identity deletion never decrement them. Counters and cumulative duration histograms
+    are fresh each scrape, independently of the activity gauge cache.
+  acceptance:
+    given: The installed counter epoch, legacy retained fixture rows without count triggers, and production-role
+      observation writes.
+    when: Scrape legacy history, concurrently insert and replay events, roll back a write, delete observations/users,
+      and record histogram boundary durations.
+    then:
+    - The epoch is reported and retained legacy history is not backfilled during collection.
+    - Only committed new events increment counters once; duplicate IDs, rollback, retention, and identity
+      deletion do not corrupt cumulative totals.
+    - Each scrape refreshes counters independently of gauge cache; histogram count, sum, and cumulative
+      boundaries match recorded durations.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-collection
+- id: admin.prometheus-gauge-cache
+  category: behavior
+  rule: Expensive Prometheus activity/current-state gauges are cached sixty seconds and may remain at
+    most 120 seconds old during refresh contention. Empty or older caches fail promptly with a 503 scrape
+    rather than blocking or presenting zero activity. Collection recovers when refresh is available.
+  acceptance:
+    given: Actual shared metric cache rows and an advisory refresh lock held by a separate database transaction.
+    when: Read fresh and 61-second-old snapshots, then scrape with empty or 121-second-old cache under
+      contention and release the lock.
+    then:
+    - Fresh gauges are reused; expired gauges refresh normally or serve bounded stale data during contention.
+    - Unusable caches return 503 with no metric values and recover after lock release.
+    test:
+      file: tests/integration/prometheus-metrics-cache.test.ts
+      name: admin.prometheus-gauge-cache
 - id: admin.prometheus-windows
   category: behavior
   rule: Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature
     activity is grouped by feature and protocol, excluding anonymous users. Event counters have no window
     label; duration histograms use feature, operation and protocol. Raw observation capture remains bounded
     and best effort.
+  acceptance:
+    given: Identified users and OAuth clients with repeated activity at half-day, two-day, eight-day,
+      and thirty-one-day ages plus anonymous and future observations.
+    when: Collect rolling gauges and render metric labels.
+    then:
+    - 24h, 7d, and 30d gauges deduplicate users and clients independently, exclude anonymous/future activity,
+      and keep feature/protocol groups separate.
+    - Only activity gauges carry window labels; duration histograms have only feature, operation, protocol,
+      and bucket boundary labels.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-windows
 capabilities:
   admin-entry:
     title: Admin Entry
