@@ -73,6 +73,18 @@ requirements:
     outside OpenAPI are separate transport responsibilities.
   rationale: Client usage is verified in the corresponding client repository; server schema generation
     alone does not establish client behavior.
+- id: openapi.rest-batch-unique-targets
+  category: validation
+  rule: REST todo completion/deletion, homework completion and comment-deletion batches reject duplicate normalized target IDs before any domain write. Distinct targets retain the feature's per-item outcome semantics.
+  acceptance:
+    given: A real authenticated owner, unchanged persisted todo, and the mounted REST batch handlers.
+    when: Send repeated IDs, whitespace-equivalent IDs, then distinct nonexistent targets to each batch route.
+    then:
+    - Repeated normalized targets return 400 and leave the stored record exactly unchanged.
+    - Distinct targets reach the domain service and return the ordered per-item failures.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.rest-batch-unique-targets
 - id: openapi.openapi-drift-gate
   category: consistency
   rule: The committed server OpenAPI document exactly matches regeneration from the current route declarations and schemas.

@@ -180,6 +180,9 @@
           "items": {
             "$ref": "#/$defs/text"
           }
+        },
+        "batch_contract": {
+          "$ref": "#/$defs/batchContract"
         }
       },
       "allOf": [
@@ -202,8 +205,151 @@
               "notes": {}
             }
           }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "semantics": {
+                    "enum": ["per_item_partial", "atomic", "ordered_non_atomic"]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "id": {
+                    "const": "workspace_subscription_internal_ids_append_remove"
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "batch_contract": {
+                "$ref": "#/$defs/batchContract"
+              }
+            },
+            "required": ["batch_contract"]
+          },
+          "else": {
+            "properties": {
+              "batch_contract": false
+            }
+          }
         }
       ]
+    },
+    "batchContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "results",
+        "atomicity",
+        "invalid_targets",
+        "retry",
+        "requirement_refs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "surface",
+              "identifiers",
+              "duplicates",
+              "max_items",
+              "limit_basis"
+            ],
+            "properties": {
+              "surface": {
+                "enum": ["rest", "graphql", "mcp-native", "mcp-registered"]
+              },
+              "identifiers": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "todo_id",
+                    "homework_id",
+                    "comment_id",
+                    "internal_section_id",
+                    "section_or_course_code",
+                    "catalog_link_slug"
+                  ]
+                }
+              },
+              "duplicates": {
+                "enum": [
+                  "reject_normalized",
+                  "deduplicate_normalized",
+                  "execute_in_order"
+                ]
+              },
+              "max_items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "limit_basis": {
+                "const": "each_raw_input_array"
+              }
+            }
+          }
+        },
+        "results": {
+          "enum": [
+            "ordered_per_item",
+            "aggregate_matches",
+            "final_collection",
+            "success"
+          ]
+        },
+        "atomicity": {
+          "enum": [
+            "independent_items",
+            "accepted_items_transaction",
+            "ordered_prefix"
+          ]
+        },
+        "invalid_targets": {
+          "enum": [
+            "per_item_error",
+            "omit_or_report_unmatched",
+            "reject_before_write"
+          ]
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["desired_state", "response", "after_uncertain_result"],
+          "properties": {
+            "desired_state": {
+              "const": "idempotent"
+            },
+            "response": {
+              "enum": ["may_change", "same_for_unchanged_targets"]
+            },
+            "after_uncertain_result": {
+              "const": "inspect_state_before_replay"
+            }
+          }
+        },
+        "requirement_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]+$"
+          }
+        }
+      }
     }
   }
 }

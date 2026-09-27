@@ -99,8 +99,17 @@ requirements:
 - id: interface-hierarchy.canonical-actions-4
   category: consistency
   topic: canonical-actions
-  rule: Each batch capability declares its input identifiers, duplicate handling, per-item or whole-operation
-    result, atomicity, and safe retry behavior in its feature specification.
+  rule: Each batch capability declares structured per-surface identifier types, raw input limits and duplicate handling, separately from result shape, transaction atomicity and safe retry behavior. The canonical mutation contract references the owning feature requirements.
+  acceptance:
+    given: The complete canonical mutation document, strict schema, executable operation registry and requirement IDs.
+    when: Validate each batch contract and try removing typed contract fields or substituting an undefined duplicate policy.
+    then:
+    - Every batch declares identifiers, limits and duplicate handling for its supported batch surfaces.
+    - Result shape, accepted-write atomicity and uncertain-result retry behavior are independent fields.
+    - References resolve to actual requirements; missing or free-form substitutes fail schema validation.
+    test:
+      file: tests/unit/policies/batch-specification-contract.test.ts
+      name: interface-hierarchy.canonical-actions-4
 - id: interface-hierarchy.representative-cross-surface-contract-4
   category: consistency
   topic: representative-cross-surface-contract
