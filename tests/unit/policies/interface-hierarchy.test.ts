@@ -245,3 +245,171 @@ test("interface-hierarchy.semantic-parity-9", async () => {
     }
   }
 });
+
+async function pageRoutes() {
+  const { readdir } = await import("node:fs/promises");
+  return (await readdir("src/routes", { recursive: true }))
+    .filter((path) => path.endsWith("+page.svelte"))
+    .map((path) => `/${path.replace(/\/?\+page\.svelte$/, "")}`);
+}
+
+function matchesPage(route: string, concrete: string) {
+  const routeParts = route.split("/");
+  const concreteParts = concrete.split("/");
+  return (
+    routeParts.every((part, index) => {
+      if (part.startsWith("[...")) return concreteParts.length > index;
+      return part.startsWith("[")
+        ? Boolean(concreteParts[index])
+        : part === concreteParts[index];
+    }) &&
+    (route.includes("[...") || routeParts.length === concreteParts.length)
+  );
+}
+
+test("interface-hierarchy.transport-specific-exceptions-3", async () => {
+  const { PAGE_INVENTORY } = await import(
+    "../../e2e/src/app/_shared/page-inventory"
+  );
+  const { readFeatureSpecifications } = await import(
+    "../../../scripts/specifications/repository"
+  );
+  const routes = await pageRoutes();
+  expect(PAGE_INVENTORY.map((page) => page.routeId).sort()).toEqual(
+    routes.sort(),
+  );
+  const catalogFeatures = new Set([
+    "bus",
+    "catalog-link",
+    "course",
+    "room-map",
+    "section",
+    "teacher",
+    "weather",
+    "young-event",
+  ]);
+  const specifications = await readFeatureSpecifications();
+  for (const feature of specifications.filter((item) =>
+    catalogFeatures.has(item.id),
+  )) {
+    let count = 0;
+    for (const value of Object.values(feature.capabilities)) {
+      const { web } = value as { web?: string | { pages?: string[] } };
+      if (!web || typeof web === "string") continue;
+      for (const page of web.pages ?? []) {
+        count++;
+        expect(page, feature.id).toMatch(/^\/catalog\//);
+        expect(
+          routes.some((route) => matchesPage(route, page)),
+          page,
+        ).toBe(true);
+      }
+    }
+    expect(count, feature.id).toBeGreaterThan(0);
+  }
+  const publicExceptions = [
+    "/",
+    "/account/sign-in",
+    "/api/docs",
+    "/api/docs/[...path]",
+    "/community/comments/[id]",
+    "/community/comments/guide",
+    "/community/users/[identifier]",
+    "/guides/markdown-support",
+    "/news",
+    "/news/[id]",
+    "/news/sources",
+    "/search",
+    "/usage/bot",
+    "/usage/cli",
+    "/usage/mcp",
+    "/usage/mobile",
+    "/privacy",
+    "/terms",
+    "/oauth/authorize",
+    "/oauth/device",
+    "/error",
+    "/e2e/oauth/callback",
+  ];
+  const outsideCatalog = PAGE_INVENTORY.filter(
+    (page) => page.auth === "public" && !page.routeId.startsWith("/catalog/"),
+  ).map((page) => page.routeId);
+  for (const route of outsideCatalog)
+    expect(publicExceptions, route).toContain(route);
+  for (const legacy of [
+    "bus",
+    "bus-map",
+    "courses",
+    "links",
+    "rooms",
+    "sections",
+    "teachers",
+    "weather",
+    "young-events",
+  ])
+    expect(
+      routes.some(
+        (route) => route === `/${legacy}` || route.startsWith(`/${legacy}/`),
+      ),
+      legacy,
+    ).toBe(false);
+});
+
+test("interface-hierarchy.transport-specific-exceptions-4", async () => {
+  const { PAGE_INVENTORY } = await import(
+    "../../e2e/src/app/_shared/page-inventory"
+  );
+  const { workspaceTabIds, workspaceTabHref } = await import(
+    "@/features/workspace/lib/workspace-nav"
+  );
+  const { SETTINGS_TABS } = await import(
+    "@/features/settings/lib/settings-tabs"
+  );
+  const { readFeatureSpecifications } = await import(
+    "../../../scripts/specifications/repository"
+  );
+  const routes = await pageRoutes();
+  for (const tab of workspaceTabIds) {
+    const href = workspaceTabHref(tab);
+    expect(href).toBe(`/workspace/${tab}`);
+    expect(
+      routes.some((route) => matchesPage(route, href)),
+      href,
+    ).toBe(true);
+  }
+  for (const tab of SETTINGS_TABS) {
+    const href = `/account/settings/${tab}`;
+    expect(
+      routes.some((route) => matchesPage(route, href)),
+      href,
+    ).toBe(true);
+  }
+  const governance = PAGE_INVENTORY.filter((page) => page.auth === "admin").map(
+    (page) => page.routeId,
+  );
+  expect(governance.sort()).toEqual(
+    routes
+      .filter((route) => route === "/admin" || route.startsWith("/admin/"))
+      .sort(),
+  );
+  for (const feature of await readFeatureSpecifications()) {
+    for (const value of Object.values(feature.capabilities)) {
+      const capability = value as {
+        auth?: string;
+        web?: string | { pages?: string[] };
+      };
+      if (!capability.web || typeof capability.web === "string") continue;
+      for (const page of capability.web.pages ?? []) {
+        if (capability.auth === "admin")
+          expect(page, feature.id).toMatch(/^\/admin(?:\/|$)/);
+        if (/^\/(workspace|account\/settings|admin)(?:\/|$)/.test(page))
+          expect(
+            routes.some((route) => matchesPage(route, page)),
+            page,
+          ).toBe(true);
+      }
+    }
+  }
+  expect(routes).not.toContain("/workspace/schedules");
+  expect(routes).toContain("/workspace/uploads");
+});

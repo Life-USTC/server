@@ -100,9 +100,17 @@ requirements:
 - id: interface-hierarchy.representative-cross-surface-contract-4
   category: consistency
   topic: representative-cross-surface-contract
-  rule: GET /api/workspace/subscriptions/current requires workspace.subscription:read. Its private calendar-feed
-    URL is included only when workspace.calendar-feed:read is also granted; the credential-bearing ICS retrieval
-    endpoint is a separate capability.
+  rule: GET /api/workspace/subscriptions/current permits a signed-in session or REST-audience OAuth with workspace.subscription:read. Only OAuth additionally granted workspace.calendar-feed:read receives the credential-bearing calendar URL; ordinary session reads and subscription-only tokens receive null URLs. The ICS retrieval endpoint is a separate capability.
+  acceptance:
+    given: Separate real session users and resource-bound OAuth tokens with different subscription and feed grants.
+    when: Real HTTP requests read current subscriptions using sessions, missing scopes, complete scopes and the wrong resource audience.
+    then:
+    - Session and subscription-read callers see only their own memberships.
+    - Only the token with both scopes at the REST audience receives the stored calendar credential and its separate feed URL.
+    - Missing subscription scope, anonymous requests and a wrong audience return 401 without membership or credential data.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.representative-cross-surface-contract-4
 - id: interface-hierarchy.representative-cross-surface-contract-6
   category: consistency
   topic: representative-cross-surface-contract
@@ -112,13 +120,28 @@ requirements:
 - id: interface-hierarchy.transport-specific-exceptions-3
   category: consistency
   topic: transport-specific-exceptions
-  rule: Public academic and campus resource pages use /catalog/*. Public landing, /news, search, guides, policy,
-    and API-documentation pages use the explicitly declared routes in their feature bindings.
+  rule: Public academic and campus resource pages use /catalog/*. Public landing, community, news, search, guides, usage, policy and API-documentation pages keep their explicit public routes; account sign-in, OAuth and error pages retain their protocol roles. The public page inventory records these exceptions.
+  acceptance:
+    given: The actual page route tree, public page inventory and academic/campus feature Web bindings.
+    when: Compare every catalog binding with a real route and check public exception and obsolete root inventories.
+    then:
+    - Academic and campus pages use /catalog; public utility and protocol pages retain their explicit roots, and obsolete unscoped catalog pages do not exist.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-3
 - id: interface-hierarchy.transport-specific-exceptions-4
   category: consistency
   topic: transport-specific-exceptions
   rule: Personal campus-work pages use /workspace/*; account settings use /account/settings/* and governance
     pages use /admin/*. A capability without a Web binding does not create a corresponding page route.
+  acceptance:
+    given: The real page routes, workspace and settings navigation constants, governance inventory and feature Web bindings.
+    when: Resolve every workspace/settings link and every declared protected Web binding against the actual route tree.
+    then:
+    - Workspace, account-settings and governance routes retain their correct namespaces; Web uploads exist while API-only schedules do not create a page.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-4
 - id: interface-hierarchy.transport-specific-exceptions-11
   category: consistency
   topic: transport-specific-exceptions
