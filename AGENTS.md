@@ -146,8 +146,8 @@ and `docs/policies/rendering-and-cache.yaml` for public/private rendering.
 | GraphQL | Bearer-first; audience `/api/graphql`; cookies need trusted Origin |
 | MCP | Bearer only; audience `/api/mcp`; `getUserId(authInfo)` |
 
-Read the security and upload feature specifications for suspension and download
-authorization requirements; enforce them through the shared permission gates.
+Read the comment/upload feature specifications and cases.content-security policy
+for suspension and download authorization requirements; enforce them through the shared permission gates.
 
 Never use an ambient OAuth identity for optional personalization. Use
 `requireAuth` / `resolveApiPrincipal` with an explicit feature/action scope for

@@ -920,7 +920,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "authorize-flow",
         e2eSpec: E2E.oauthAuthorize,
-        evidence: "允许授权时带 code 回跳",
+        evidence: "oauth.user-consent-framing",
       },
     ],
   },

@@ -255,10 +255,11 @@ test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
     }),
   );
   expect(persisted.scopes).toEqual(["openid", "profile"]);
+  if (!code) throw new Error("Expected consent authorization code");
   const exchanged = await request.post("/api/auth/oauth2/token", {
     form: {
       client_id: clientId,
-      code: code!,
+      code,
       code_verifier: OAUTH_E2E_CODE_VERIFIER,
       redirect_uri: REDIRECT_URI,
       grant_type: "authorization_code",

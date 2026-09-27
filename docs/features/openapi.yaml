@@ -21,6 +21,19 @@ requirements:
     OAuth bearer alternatives. Bearer access also requires the matching feature scope and owner permission.
     Administrator governance and sensitive account management are session-only; current OAuth-client activity
     is bearer-only; ingestion uses its dedicated service credential.
+  acceptance:
+    given: Three isolated owners including an administrator, real signed sessions, actual signed resource-bound
+      OAuth grants, and production database roles behind REST HTTP handlers.
+    when: Read and update owned todos with each mechanism; present mixed credentials, wrong scopes/resources,
+      expired and revoked grants, and attempt governance, client activity, credential mutation and ingestion.
+    then:
+    - Valid session and bearer requests read only their own data; bearer identity takes precedence over cookies.
+    - Invalid bearers cannot fall back to a valid cookie, and foreign writes remain hidden even from admins.
+    - Read-only scopes cannot write; governance and credential mutation reject bearer-only requests; client
+      activity rejects cookies and ingestion rejects both end-user credentials.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.session-and-bearer
 - id: openapi.rest-mcp-consistent
   category: consistency
   rule: Equivalent REST and MCP capabilities agree on authorized domain values, state transitions, ownership,
