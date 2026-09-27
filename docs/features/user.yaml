@@ -55,8 +55,9 @@ requirements:
     session creation directly, without losing state due to proxy wrapping or container-internal host differences.
 - id: user.welcome-flow-required
   category: behavior
-  rule: New users who have not set a name or username on first login must complete the welcome flow before
-    proceeding.
+  rule: New users must enter a nickname (name) and ID (username) during welcome before proceeding.
+    OAuth sign-up leaves the nickname empty, even when the provider supplies a name; no generated nickname
+    is assigned. Profile fields are labeled Nickname and ID in English, and 昵称 and ID in Chinese.
 - id: user.welcome-staged-steps
   category: presentation
   rule: 'Welcome renders one URL step at a time: required profile, skippable subscriptions, then orientation.
@@ -72,8 +73,8 @@ requirements:
 - id: user.welcome-oauth-refresh
   category: consistency
   rule: A user may reauthorize an already linked OAuth provider during welcome to fetch current upstream
-    name and avatar options. Refreshed upstream values fill missing data and add avatar choices without
-    overwriting profile values the user entered.
+    avatar and identity information. Refreshed upstream values add avatar choices without filling or
+    overwriting the user-controlled nickname or ID.
 - id: user.welcome-completion-resume
   category: consistency
   rule: If the welcome flow was reached from an app-relative callbackUrl, successful completion returns

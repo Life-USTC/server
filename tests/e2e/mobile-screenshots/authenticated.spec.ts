@@ -54,7 +54,7 @@ test.describe("移动端页面健全性", () => {
           });
           await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
           await expect(
-            page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
+            page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
           ).toBeVisible();
         } finally {
           await updateUserProfileById(sessionUser.id, {

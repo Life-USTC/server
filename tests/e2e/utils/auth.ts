@@ -97,9 +97,11 @@ async function completeWelcomeProfileIfNeeded(
     return;
   }
 
-  const nameInput = page.getByRole("textbox", { name: /^(姓名|Name)\b/i });
+  const nameInput = page.getByRole("textbox", {
+    name: /^(昵称|Nickname)(?:\s|$)/i,
+  });
   const usernameInput = page.getByRole("textbox", {
-    name: /^(用户名|Username)\b/i,
+    name: /^ID\b/i,
   });
   if ((await nameInput.count()) === 0 || (await usernameInput.count()) === 0) {
     return;

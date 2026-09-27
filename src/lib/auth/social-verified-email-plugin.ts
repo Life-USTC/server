@@ -17,19 +17,17 @@ async function applySocialVerifiedEmailToUser(input: {
   userId: string;
   email: string | null;
   emailVerified: boolean;
-  name: string | null;
   image: string | null;
 }) {
   const current = await authPrisma.user.findUnique({
     where: { id: input.userId },
-    select: { email: true, name: true, image: true, profilePictures: true },
+    select: { email: true, image: true, profilePictures: true },
   });
   if (!current) return;
 
   const profileUpdate: {
     email?: string;
     emailVerified?: boolean;
-    name?: string;
     image?: string | null;
   } = {};
 
@@ -40,9 +38,6 @@ async function applySocialVerifiedEmailToUser(input: {
   ) {
     profileUpdate.email = input.email;
     profileUpdate.emailVerified = input.emailVerified;
-  }
-  if (input.name && !current.name?.trim()) {
-    profileUpdate.name = input.name;
   }
   if (input.image && !current.image) {
     profileUpdate.image = input.image;
@@ -105,7 +100,6 @@ export async function syncSocialVerifiedEmailFromAccountHook(
     userId: account.userId,
     email,
     emailVerified: staged.emailVerified,
-    name: staged.name,
     image: staged.image,
   });
 }
