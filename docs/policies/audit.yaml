@@ -449,6 +449,20 @@ requirements:
   topic: actions
   rule: Records denial or failure while the user exists. The success row deliberately omits the deleted user's
     raw identifier.
+  acceptance:
+    given: An isolated signed-in user submits the real account-settings deletion action with a private
+      extra form field.
+    when: An old session denies the request, a fixture-only PostgreSQL foreign key then forces deletion
+      to roll back, and a final retry successfully deletes the user.
+    then:
+    - Denied and failure audit rows identify the existing subject and actor; failed deletion preserves
+      the user and does not persist a success row.
+    - Successful deletion removes the user and sessions, persists one success row without actor, subject,
+      or target identifiers, and clears the deleted user's raw identifier from the earlier audit rows.
+    - Audit records contain no email, name, signed session cookie, or private form value.
+    test:
+      file: tests/e2e/src/app/account-policy/account-deletion-audit.test.ts
+      name: audit.action-account-delete
 - id: audit.action-account-passkey-create
   category: privacy
   topic: actions
