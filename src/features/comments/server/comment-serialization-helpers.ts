@@ -85,10 +85,6 @@ export function shouldHideComment(
   );
 }
 
-export function shouldHideAuthor(
-  comment: RawComment,
-  viewer: ViewerInfo,
-  isAuthor: boolean,
-) {
-  return Boolean(comment.isAnonymous) && !viewer.isAdmin && !isAuthor;
+export function shouldHideAuthor(comment: RawComment) {
+  return Boolean(comment.isAnonymous);
 }

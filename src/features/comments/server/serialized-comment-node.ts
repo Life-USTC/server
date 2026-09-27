@@ -33,7 +33,7 @@ export function buildVisibleCommentNode({
     return null;
   }
 
-  const authorHidden = shouldHideAuthor(comment, viewer, isAuthor);
+  const authorHidden = shouldHideAuthor(comment);
   const author = authorHidden ? null : buildAuthorSummary(comment);
   const status =
     rawStatus === "softbanned" && !viewer.isAdmin ? "active" : rawStatus;

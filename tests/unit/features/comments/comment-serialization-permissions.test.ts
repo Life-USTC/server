@@ -72,6 +72,29 @@ describe("评论序列化权限", () => {
     expect(roots[0]?.renderedBody).not.toContain("<script>");
   });
 
+  it("masks anonymous authors for owners and admins without losing owner actions", () => {
+    for (const currentViewer of [
+      viewer(),
+      viewer({ isAdmin: true, userId: "admin-1" }),
+      viewer({ userId: "other" }),
+      viewer({ isAuthenticated: false, userId: null }),
+    ]) {
+      const { roots } = buildCommentNodes(
+        [comment({ isAnonymous: true })],
+        currentViewer,
+      );
+      expect(roots[0]).toMatchObject({
+        author: null,
+        authorHidden: true,
+        isAnonymous: true,
+        isAuthor: currentViewer.userId === "user-1",
+        canEdit: currentViewer.userId === "user-1",
+      });
+      expect(JSON.stringify(roots)).not.toContain("user-1");
+      expect(JSON.stringify(roots)).not.toContain('"name":"Author"');
+    }
+  });
+
   it("comment.owner-action-projection", () => {
     const { roots } = buildCommentNodes([comment()], viewer());
 

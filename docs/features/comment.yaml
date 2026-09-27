@@ -85,9 +85,21 @@ requirements:
     renderedBody while retaining source Markdown, including nested replies.
 - id: comment.anonymous-author-privacy
   category: privacy
-  rule: Author anonymity is independent of audience. Anonymous comments conceal author identity in ordinary
-    public and signed-in reads, including public contribution statistics. Only authorized administrator
-    governance reads may reveal that identity.
+  rule: Author anonymity is independent of audience. Anonymous comments conceal author identifiers, names,
+    avatars, and profile links in ordinary reads for every viewer, including their author and administrators.
+    Owner edit and delete actions remain available without exposing identity. Public contribution attribution
+    follows the user feature privacy requirements.
+  acceptance:
+    given: An anonymous root and reply have a known author.
+    when: Anonymous, owner, other-user, and administrator viewers load lists, focused threads, and reply
+      continuations through the production read models.
+    then:
+    - All ordinary projections hide author identifiers, names, avatars, and profile links.
+    - Owner edit and delete permissions remain true without author identity.
+    - Ordinary reads do not create identity-revelation audit events.
+    test:
+      file: tests/integration/comment-anonymous-author-privacy.test.ts
+      name: comment.anonymous-author-privacy
 - id: comment.read-target-nonmutation
   category: consistency
   rule: Comment reads do not create durable targets. An existing section-teacher relationship without
@@ -291,6 +303,46 @@ requirements:
   category: behavior
   rule: An omitted moderation comment status selects the active queue in both REST and the moderation
     page.
+- id: comment.governance-anonymous-author-access
+  category: authorization
+  rule: Only an authenticated, currently unsuspended administrator may reveal anonymous comment identities
+    through the dedicated Web or REST governance read models. Ordinary admin context is not a governance
+    read.
+  acceptance:
+    given: Anonymous, ordinary, and suspended-administrator callers request governance data.
+    when: The actual Web/REST handlers and dedicated governance read service check access.
+    then:
+    - Unauthenticated requests require sign-in.
+    - Non-admin and suspended callers receive no author identity.
+    test:
+      file: tests/integration/comment-anonymous-author-privacy.test.ts
+      name: comment.governance-anonymous-author-access
+- id: comment.governance-anonymous-author-audit
+  category: privacy
+  rule: Dedicated governance reads commit an admin_comment_identity_reveal audit entry for every anonymous
+    comment returned before releasing its identity. Audit records contain the actor, comment target ID,
+    and Web or REST channel, never the anonymous author identity or content.
+  acceptance:
+    given: An active administrator requests an anonymous comment through both dedicated governance surfaces.
+    when: The authorized services read and audit before returning.
+    then:
+    - The administrator receives the author identity.
+    - Each surface commits a corresponding audit with actor and comment ID but no author identity or content.
+    test:
+      file: tests/integration/comment-anonymous-author-privacy.test.ts
+      name: comment.governance-anonymous-author-audit
+- id: comment.governance-anonymous-author-audit-failure
+  category: privacy
+  rule: If mandatory anonymous-comment identity auditing fails, the governance read fails without returning
+    identities.
+  acceptance:
+    given: The audit storage operation rejects.
+    when: Each dedicated governance comment read tries to disclose an anonymous identity.
+    then:
+    - Both reads reject and no identity result is returned.
+    test:
+      file: tests/unit/features/admin/admin-moderation-list-pagination.test.ts
+      name: comment.governance-anonymous-author-audit-failure
 capabilities:
   object-comment-section:
     title: Object Comment Section
@@ -490,6 +542,9 @@ capabilities:
     requirement_refs:
     - comment.interaction-gate
     - comment.visibility-modes
+    - comment.governance-anonymous-author-access
+    - comment.governance-anonymous-author-audit
+    - comment.governance-anonymous-author-audit-failure
   comment-auxiliary-pages:
     title: Comment Auxiliary Pages
     auth: anon
