@@ -29,6 +29,18 @@ describe("Better Auth passkey plugin", () => {
           "https://preview.life.example.com",
         ],
       },
+      ...[
+        "https://branch.workers.dev",
+        "https://evil-life.example.com",
+        "https://life.example.com.evil.test",
+        "http://localhost:3000",
+      ].map((origin) => ({
+        mode: "production",
+        canonical: "https://life.example.com",
+        public: origin,
+        rp: new URL(origin).hostname,
+        origins: [origin],
+      })),
       {
         mode: "development",
         canonical: "http://127.0.0.1:3000",
@@ -69,9 +81,8 @@ describe("Better Auth passkey plugin", () => {
       ["", ""],
       ["http://life.example.com", "http://life.example.com"],
       ["ftp://life.example.com", "https://life.example.com"],
-      ["https://life.example.com", "https://evil-life.example.com"],
-      ["https://life.example.com", "https://life.example.com.evil.test"],
-      ["https://life.example.com", "https://branch.workers.dev"],
+      ["https://life.example.com", "http://branch.workers.dev"],
+      ["https://life.example.com", "ftp://branch.workers.dev"],
     ]) {
       passkeyMock.mockClear();
       vi.stubEnv("APP_CANONICAL_ORIGIN", canonical);
@@ -164,24 +175,6 @@ describe("Better Auth passkey plugin", () => {
       );
 
       expect(() => buildBetterAuthPasskeyPlugin()).toThrow();
-      expect(passkeyMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(["https://branch.workers.dev", "https://evil-life.example.com"])(
-    "rejects origin %s when it cannot use the canonical RP ID",
-    async (publicOrigin) => {
-      vi.stubEnv("NODE_ENV", "production");
-      vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
-      vi.stubEnv("APP_PUBLIC_ORIGIN", publicOrigin);
-
-      const { buildBetterAuthPasskeyPlugin } = await import(
-        "@/lib/auth/better-auth-passkey-plugin"
-      );
-
-      expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
-        /is not compatible with RP ID life\.example\.com/,
-      );
       expect(passkeyMock).not.toHaveBeenCalled();
     },
   );

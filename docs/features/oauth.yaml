@@ -328,11 +328,29 @@ requirements:
     authorization codes, refresh tokens, client secrets, cookies, raw errors, or resource values.
 - id: oauth.oauth-proxy-for-dev
   category: behavior
-  rule: Local development and preview deployments without fixed hostnames can reuse the production site's
-    registered provider callback address through an OAuth proxy; after sharing the proxy encryption key,
-    production completes the callback and returns the encrypted profile to the current instance. Better
-    Auth 1.7 uses /api/auth/callback/{provider-id}; provider redirect allowlists must include it before
-    deployment.
+  rule: Local development and preview deployments may reuse the production registered provider callback
+    through the OAuth proxy. Sharing the proxy encryption key lets production exchange the authorization
+    code and return an encrypted profile to the current instance, which consumes its own state and creates
+    the session. Provider allowlists include /api/auth/callback/{provider-id}; wrong keys and replayed
+    state cannot create sessions.
+  rationale: An unrelated preview deployment uses its own WebAuthn RP and origin. Only configured canonical-domain/subdomain
+    deployments share the canonical RP; OAuth profile proxying never makes passkeys valid across unrelated
+    domains.
+  acceptance:
+    given: Two actual authentication instances with different application secrets, a shared proxy encryption
+      key, application-built proxy/Passkey configuration, and controlled external-provider token/profile
+      responses.
+    when: Begin sign-in on an unrelated preview, return the code to the production callback, and deliver
+      the encrypted profile to the preview with correct and incorrect keys or replayed state.
+    then:
+    - The provider redirect URI and token exchange use the production /api/auth/callback/contract address
+      with S256 PKCE.
+    - Production returns no plaintext profile/token and creates no local user session; the preview creates
+      the correct issuer-bound account and one session.
+    - Wrong encryption keys and state replay cannot create accounts or additional sessions.
+    test:
+      file: tests/integration/oauth-proxy-contract.test.ts
+      name: oauth.oauth-proxy-for-dev
 - id: oauth.canonical-discovery-paths
   category: consistency
   rule: Canonical metadata is available at /.well-known/oauth-authorization-server/api/auth, /api/auth/.well-known/openid-configuration,
