@@ -1221,6 +1221,15 @@ requirements:
   topic: list-table
   rule: Outside the six public browse collections covered by ui.public-browse-pagination-state, collection pagination links preserve the applied search query and filters while changing only pagination
     state; browser back/forward restores the corresponding query and results.
+  rationale: The remaining current paginated collections are uploads, administrative users, activity subscriptions, followed organizers, unread/all notifications, organizer activity history, and course/teacher section histories. Directories without pagination are outside this pagination requirement.
+  acceptance:
+    given: Isolated fixtures provide twenty-five records for each remaining paginated collection and real signed-in administrative access where required.
+    when: The browser checks every pagination href, activates the second page with the keyboard, and traverses back and forward under supported search, view and unread filters.
+    then:
+    - Links change only page or sectionsPage while preserving the collection query; second-page records are disjoint, and history restores the exact records and active-page state for both pages.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-pagination.test.ts
+      name: ui.list-pagination-filter-state
 - id: ui.public-browse-pagination-state
   category: presentation
   topic: list-table
