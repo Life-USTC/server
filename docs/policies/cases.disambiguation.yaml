@@ -7,6 +7,15 @@ requirements:
   topic: duplicate-course-names
   rule: Course search and course-list results display the localized course name and public course code, so
     courses with identical names remain distinguishable.
+  acceptance:
+    given: Two isolated courses share identical Chinese and English names but have distinct public codes.
+    when: An anonymous browser opens the course list and global search in both locales at desktop and mobile widths.
+    then:
+    - Both results display the localized shared name and their distinct public course codes.
+    - Each course-list result links to its own course detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.disambiguation.duplicate-course-names-1
 - id: cases.disambiguation.multiple-sections-same-course-1
   category: behavior
   topic: multiple-sections-same-course

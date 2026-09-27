@@ -342,3 +342,70 @@ test("cases.missing-data.homework-no-due-date-1", async ({ page }) => {
     await cleanup(fixture);
   }
 });
+
+test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
+  const fixture = await createFixture();
+  const second = await withE2ePrisma((db) =>
+    db.course.create({
+      data: {
+        id: fixture.course.id + 6,
+        jwId: fixture.course.jwId + 6,
+        code: `${fixture.course.code}-OTHER`,
+        nameCn: fixture.course.nameCn,
+        nameEn: fixture.course.nameEn,
+      },
+    }),
+  );
+  try {
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      const name =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!name) throw new Error("Missing fixture course name");
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(
+          page,
+          `/catalog/courses?search=${encodeURIComponent(fixture.course.nameCn)}`,
+        );
+        for (const course of [fixture.course, second]) {
+          const row = page
+            .getByRole(width < 768 ? "listitem" : "row")
+            .filter({
+              has: page.locator(`a[href="/catalog/courses/${course.jwId}"]`),
+            })
+            .filter({ visible: true });
+          await expect(row).toHaveCount(1);
+          await expect(row).toContainText(name);
+          await expect(row).toContainText(course.code);
+          await expect(
+            row.locator(`a[href="/catalog/courses/${course.jwId}"]`),
+          ).toBeVisible();
+        }
+        await gotoAndWaitForReady(
+          page,
+          `/search?q=${encodeURIComponent(fixture.course.nameCn)}`,
+        );
+        for (const course of [fixture.course, second]) {
+          const result = page
+            .getByRole("option")
+            .filter({ hasText: course.code });
+          const exact = result.filter({
+            has: page.getByText(course.code, { exact: true }),
+          });
+          await expect(exact).toHaveCount(1);
+          await expect(exact).toContainText(name);
+        }
+      }
+    }
+  } finally {
+    await withE2ePrisma((db) => db.course.delete({ where: { id: second.id } }));
+    await cleanup(fixture);
+  }
+});
