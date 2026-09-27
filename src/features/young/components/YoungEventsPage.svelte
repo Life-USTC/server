@@ -147,7 +147,7 @@ const summary = $derived(
                   <Table.Head class="w-2/5">{youngCopy.eventName}</Table.Head>
                   <Table.Head>{youngCopy.eventTime}</Table.Head>
                   <Table.Head>{youngCopy.signupWindow}</Table.Head>
-                  <Table.Head>{youngCopy.capacity}</Table.Head>
+                  <Table.Head class="text-right">{youngCopy.capacity}</Table.Head>
                   <Table.Head>{youngCopy.status}</Table.Head>
                 </Table.Row>
               </Table.Header>
@@ -171,7 +171,7 @@ const summary = $derived(
                     <Table.Cell>
                       {event.requiresSignup === false ? youngCopy.signupNotRequired : youngDateRange(event.applyStartAt, event.applyEndAt, youngCopy) ?? youngCopy.unknownTime}
                     </Table.Cell>
-                    <Table.Cell class="tabular-nums">
+                    <Table.Cell class="text-right tabular-nums">
                       {youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue)}
                     </Table.Cell>
                     <Table.Cell>

@@ -53,12 +53,12 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
       <ResponsiveCollection>
         {#snippet desktop()}
           <Table.Root>
-            <Table.Header><Table.Row><Table.Head>{copy.tableName}</Table.Head><Table.Head>{copy.tableSize}</Table.Head><Table.Head>{copy.tableUploaded}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
+            <Table.Header><Table.Row><Table.Head>{copy.tableName}</Table.Head><Table.Head class="text-right">{copy.tableSize}</Table.Head><Table.Head>{copy.tableUploaded}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
             <Table.Body>
               {#each data.uploads as upload (upload.id)}
                 <Table.Row>
                   <Table.Cell class="max-w-64"><TruncatedText text={upload.filename} /></Table.Cell>
-                  <Table.Cell>{formatBytes(upload.size)}</Table.Cell>
+                  <Table.Cell class="text-right tabular-nums">{formatBytes(upload.size)}</Table.Cell>
                   <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
                   <Table.Cell>{@render actions(upload)}</Table.Cell>
                 </Table.Row>

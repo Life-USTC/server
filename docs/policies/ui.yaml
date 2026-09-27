@@ -299,8 +299,20 @@ requirements:
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
-  rule: In non-catalog application data tables, headers and cells use a consistent column alignment. Numeric measures and counts, including bytes, credits and capacity, align right. Text aligns left; status and action columns may center, and temporal columns use a consistent chosen alignment. Bus timetable stop columns preserve their positional left/center/right alignment.
-  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The remaining application tables retain this unbound obligation until their own rendered matrix is covered.
+  rule: In non-catalog application data tables, headers and cells use a consistent column alignment. Numeric measures and counts align right; the Young capacity/organizer-count, upload-byte and section-exam-count columns are covered independently by ui.numeric-measure-table-alignment. Text aligns left; status and action columns may center, and temporal columns use a consistent chosen alignment. Bus timetable stop columns preserve their positional left/center/right alignment.
+  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The remaining application table columns retain this unbound obligation until their own rendered matrix is covered; ui.numeric-measure-table-alignment covers only its specified numeric columns, not the other columns in those tables.
+- id: ui.numeric-measure-table-alignment
+  category: presentation
+  topic: data-table-cells
+  rule: Young activity capacity, all three organizer counts, upload file sizes and section exam attendee counts use right-aligned headers and numeric values whose rendered right edges line up.
+  acceptance:
+    given: Isolated activities, organizers, an upload and a section exam provide concrete capacity, zero/singular organizer counts, byte size and attendee values.
+    when: A desktop browser renders the four tables and measures the text ranges inside each numeric header and cell.
+    then:
+    - Numeric values remain visible; both header and cell align right, and their actual rendered right text edges differ by at most one pixel.
+    test:
+      file: tests/e2e/src/app/shared-policy/numeric-table-alignment.test.ts
+      name: ui.numeric-measure-table-alignment
 - id: ui.data-table-cells-5
   category: presentation
   topic: data-table-cells
