@@ -366,16 +366,22 @@ test("catalog-link.visit-tracking-link", async ({ browser }) => {
       const links = target.locator(
         'a[href^="/api/catalog/links/resolve?slug="]',
       );
-      expect(await links.count()).toBeGreaterThan(10);
-      for (const link of await links.all()) {
+      const attributes = await links.evaluateAll((elements) =>
+        elements.map((element) => ({
+          href: element.getAttribute("href"),
+          role: element.getAttribute("role"),
+          target: element.getAttribute("target"),
+        })),
+      );
+      expect(attributes.length).toBeGreaterThan(10);
+      for (const link of attributes) {
         expect(
-          new URL(
-            (await link.getAttribute("href")) ?? "",
-            PLAYWRIGHT_BASE_URL,
-          ).searchParams.get("slug"),
+          new URL(link.href ?? "", PLAYWRIGHT_BASE_URL).searchParams.get(
+            "slug",
+          ),
         ).toBeTruthy();
-        await expect(link).not.toHaveAttribute("role", "button");
-        await expect(link).toHaveAttribute("target", "_blank");
+        expect(link.role).not.toBe("button");
+        expect(link.target).toBe("_blank");
       }
       const clicked = context.waitForEvent("request", {
         predicate: (request) =>

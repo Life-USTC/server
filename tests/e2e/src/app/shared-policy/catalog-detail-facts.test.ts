@@ -23,6 +23,9 @@ async function reachable(locator: Locator) {
 }
 
 test("ui.detail-two-column-stream-4", async ({ page }) => {
+  // Three viewport matrices each exercise three routes, navigation, and writes.
+  // Keep the per-action deadlines while budgeting 30 seconds per viewport.
+  test.setTimeout(90_000);
   const fixture = await withE2ePrisma(createCatalogContractFixture);
   const { user, classType, courseType } = await withE2ePrisma(async (db) => {
     await db.semester.update({
