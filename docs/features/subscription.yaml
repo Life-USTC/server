@@ -24,15 +24,17 @@ requirements:
     must not use 'follow' or describe the action as course enrollment.
 - id: subscription.web-quick-add-selection
   category: presentation
-  rule: Quick-add auto-selects only when the entire result contains exactly one section and that section
-    is not already subscribed.
+  rule: A new quick-add search clears earlier manual selection. Exactly one unsubscribed result is selected
+    automatically; multiple results begin unselected. Already subscribed results remain checked and disabled
+    and do not count toward the submittable selection.
   acceptance:
     given: Desktop and mobile quick-add searches return multiple matches, a single unsubscribed match
       or a single subscribed match.
     when: The viewer changes searches and subscribes to a selected result.
     then:
     - Multiple matches begin unselected; exactly one unsubscribed result is selected automatically.
-    - An already subscribed sole result remains disabled and cannot be submitted.
+    - Already subscribed results remain checked and disabled, including within multiple matches, and cannot
+      enable submission by themselves.
     - Changing the search clears earlier manual selection.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/sections/test.ts
@@ -73,13 +75,6 @@ requirements:
     test:
       file: tests/integration/subscription-kind.test.ts
       name: subscription.ta-calendar
-- id: subscription.quick-add-selection-reset
-  category: presentation
-  rule: A new quick-add search clears selection; multiple matching sections initially remain unselected.
-- id: subscription.quick-add-existing-state
-  category: presentation
-  rule: Already-subscribed quick-add results remain checked and disabled and do not contribute to the
-    submission count.
 - id: subscription.quick-add-result-bound
   category: presentation
   rule: Quick-add explains its 20-section result limit and asks the user to narrow the search.
