@@ -171,7 +171,9 @@ it("ui.layout-principles-4", async () => {
       await renderedPrimitives(`src/features/${root}.svelte`),
       root,
     ).toContain("src/lib/components/ui/field");
+});
 
+it("ui.feature-interaction-ownership", async () => {
   const primitives = [
     "PageLayout",
     "PageHeader",
@@ -181,6 +183,10 @@ it("ui.layout-principles-4", async () => {
     "DetailSectionNav",
     "SearchField",
     "FilterToolbar",
+    "ResponsiveCollection",
+    "ResultsSummary",
+    "ResultsEmpty",
+    "ListPagination",
   ].map((name) => `src/lib/components/${name}.svelte`);
   for (const name of await readdir("src/lib/components/ui/field"))
     if (name.endsWith(".svelte"))
@@ -197,6 +203,21 @@ it("ui.layout-principles-4", async () => {
           filename,
         ).not.toMatch(
           /(?:src\/features\/|\$app\/(?:stores|state)|\/server\/|\/db\/)/,
+        );
+      if (node.type === "CallExpression") {
+        const callee = node.callee as Node | undefined;
+        const property = callee?.property as Node | undefined;
+        expect(callee?.name ?? property?.name, filename).not.toBe("fetch");
+      }
+      const literal =
+        node.type === "Literal"
+          ? node.value
+          : node.type === "Text"
+            ? node.data
+            : undefined;
+      if (typeof literal === "string")
+        expect(literal, filename).not.toMatch(
+          /^\/(?:api|catalog|workspace|account|admin|news)(?:\/|\?|$)/,
         );
     });
   }

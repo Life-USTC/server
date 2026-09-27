@@ -55,20 +55,28 @@ requirements:
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
-  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse panels use PageLayout, PageHeader and Panel; other workspace and administrative pages use PageLayout and PageHeader. Course and teacher details use DetailPageLayout, section detail reuses PageHeader in its streaming shell, profiles reuse Card, and homework/todo overlays reuse Dialog. Route navigation and local settings navigation reuse PageSectionNav and DetailSectionNav respectively; catalog/Young filters and workspace task/profile identity fields reuse Field. The shared layout, navigation and form primitives do not import feature, server, route-state or database modules.
+  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse panels use PageLayout, PageHeader and Panel; other workspace and administrative pages use PageLayout and PageHeader. Course and teacher details use DetailPageLayout, section detail reuses PageHeader in its streaming shell, profiles reuse Card, and homework/todo overlays reuse Dialog. Route navigation and local settings navigation reuse PageSectionNav and DetailSectionNav respectively; catalog/Young filters and workspace task/profile identity fields reuse Field.
   rationale: Section streaming and profile identity composition have specific layout needs; primitive reuse does not require turning those shells into browse panels. Feature data and interaction ownership remains independently required by ui.feature-interaction-ownership.
   acceptance:
-    given: The collection, detail, overlay, route/local navigation and form owners, plus shared layout/navigation/form implementations.
-    when: Parse Svelte compiler ASTs, follow actually rendered imported feature components, and inspect the shared primitives' import dependencies.
+    given: The collection, detail, overlay, route/local navigation and form owners.
+    when: Parse Svelte compiler ASTs and follow actually rendered imported feature components.
     then:
-    - Each owner renders the applicable shared primitive through its component tree; unused imports do not count, and the shared primitives have no feature/server/route-state/database imports.
+    - Each owner renders the applicable shared primitive through its component tree; unused imports do not count.
     test:
       file: tests/unit/lib/components/layout-primitive-ownership.test.ts
       name: ui.layout-principles-4
 - id: ui.feature-interaction-ownership
   category: presentation
   topic: layout-principles
-  rule: Feature components own domain-specific data and interactions rather than embedding that domain behavior in feature-neutral layout, panel, navigation or form primitives.
+  rule: Feature components supply application data, route URLs and interaction callbacks to feature-neutral layout, panel, collection, navigation and form primitives. Those primitives do not import feature/server/route-state/database modules, fetch application data themselves or embed application route destinations.
+  acceptance:
+    given: The shared page/detail layouts, panels, search/filter/collection/result/pagination/navigation primitives and every Field component.
+    when: Parse their Svelte compiler ASTs and inspect imports, transport calls and route literals.
+    then:
+    - The primitives have no feature/server/route-state/database imports, fetch calls or embedded API/catalog/workspace/account/admin/news destinations; application data and actions remain supplied by their callers.
+    test:
+      file: tests/unit/lib/components/layout-primitive-ownership.test.ts
+      name: ui.feature-interaction-ownership
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
