@@ -25,7 +25,15 @@ then the relevant [feature](features/) and its referenced [policies](policies/).
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
+bun run specs:coverage
 ```
+
+Typed requirements declare observable expectations and mandatory acceptance tests.
+The coverage command reports missing scenarios, missing tests and tests not run;
+the CI evidence job joins actual test results and gates typed requirements. Prose
+requirements and unstructured notes remain visible gaps until their behavior is
+specified and tested. See [editing specifications](AGENTS.md) for the distinction
+between schema validity, linked evidence and complete behavioral coverage.
 
 Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate
 product requirements. Build regenerates OpenAPI; `bun run openapi:check` detects

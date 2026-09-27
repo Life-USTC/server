@@ -54,7 +54,8 @@
     "integration:test:parallel": "bash tests/ci/integration-parallel-local.sh",
     "specs:check": "bun run scripts/specifications/cli.ts check",
     "specs:list": "bun run scripts/specifications/cli.ts list",
-    "specs:show": "bun run scripts/specifications/cli.ts show"
+    "specs:show": "bun run scripts/specifications/cli.ts show",
+    "specs:coverage": "bun run scripts/specifications/evidence.ts coverage"
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.5",

@@ -36,6 +36,10 @@ presentation only).
 
 Read the affected specification with `bun run specs:show <feature-id>` and its
 referenced policies. Validate specification edits with `bun run specs:check`.
+For typed requirements, update the `expectation` and its bound behavioral tests
+together. Use `bun run specs:coverage` to inspect requirement-level gaps; test
+existence alone is not execution evidence. Remove duplicated normative prose
+when its rule becomes structured and retain any useful rationale separately.
 
 ## Adapter pattern
 

@@ -33,20 +33,43 @@ tags, non-finite numbers and unsafe integers are rejected. Dates are strings.
 Schema validation rejects unknown fields; reference checks reject duplicate IDs,
 missing policies, features, capabilities, topics and test declarations.
 
-Acceptance scenarios use `id`, `given`, `when`, and a `then` list. Optional
-`tests` entries contain a repository-relative `file` and the exact literal
-`name` passed to an enabled `it` or `test` declaration. These links establish
-traceability, not execution or proof of coverage. Run the linked suites and
-review the assertions; do not invent scenarios or bindings just to increase counts.
+Requirements contain either a prose `rule` or a typed `expectation`, never both.
+Use `expectation` for the finite kinds in `schemas/expectations.schema.json`:
+input bounds, authorization cases, ordered actions, target sizes and state-based
+presentation. Keep background and tradeoffs in optional `rationale`. Remove the
+replaced normative text from `access`, `notes` and `presentation`; use
+`requirement_refs` to reference the canonical requirement instead.
+
+Typed requirements must declare `applies_to` capabilities and acceptance scenarios
+with tests. Transport-specific expectations bind to actual REST method/path,
+GraphQL `Parent.field` or mutation name, or MCP tool name. Preserve intentional
+transport differences such as defaults and duplicate-input handling.
+
+Acceptance scenarios use `id`, `given`, `when`, and a `then` list. Every typed
+scenario requires `tests` entries with a repository-relative `file` and exact
+literal `name` passed to an enabled `it` or `test` declaration. Read the expectation
+in those tests and compare it with an observation from the real implementation.
+Do not compare two values both generated from the specification. Service tests
+with mocks do not establish HTTP authentication, database isolation or browser
+behavior; bind tests at the layer that exercises the requirement.
+
+`specs:check` validates structure, consistency and test declarations. It does not
+execute tests. `specs:coverage` reports per-requirement gaps. CI separately joins
+native test results from the same workflow run to the declared test references,
+and requires every typed requirement's linked tests to run successfully. A prose
+requirement without tests remains a visible gap. Passing linked tests is evidence
+for their assertions, not proof of complete business or visual correctness.
 
 ## Change a requirement
 
 1. Identify the canonical feature, scope, noun, action and capability.
 2. Update the affected feature or shared policy first. Reuse `policy_refs` for
    shared policy IDs and `refs` for `{feature, capability?}` associations.
-3. Keep requirements atomic with stable globally unique IDs prefixed by the feature or policy ID, categories and a concrete
-   rule. Use structured fields for mappings and examples; do not embed a whole
-   Markdown document in a string.
+3. Keep requirements atomic with stable globally unique IDs prefixed by the feature
+   or policy ID. Use typed expectations where supported. Add a new kind only with
+   a real behavioral consumer and schema/negative tests; do not build a general
+   expression language. Leave requirements without adequate test evidence visible
+   as gaps rather than assigning irrelevant tests.
 4. Implement through `$life-ustc-implement`, updating supported Web, REST,
    GraphQL and MCP surfaces, message files and public schemas together.
 5. Verify ownership, OAuth scopes, effects, error semantics, pagination, Shanghai
