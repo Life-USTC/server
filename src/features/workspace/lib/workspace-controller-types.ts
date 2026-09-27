@@ -472,6 +472,7 @@ export type WorkspaceSessionItem = WorkspaceRecord & {
   id: number | string;
   location: string;
   sectionJwId: number | null;
+  sectionCode: string | null;
   startTime: number;
   teacherDisplay?: string | null;
 };

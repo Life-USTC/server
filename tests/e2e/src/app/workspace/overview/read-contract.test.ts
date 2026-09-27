@@ -245,3 +245,71 @@ test("overview.focused-extracts-share-window", async () => {
     }),
   ).toMatchObject({ found: false, nextClass: null });
 });
+
+test("overview.compact-operational-fields", async ({ page }) => {
+  const result = await call<{
+    overview: unknown;
+    samples: {
+      dueTodos: unknown[];
+      dueHomeworks: unknown[];
+      upcomingExams: unknown[];
+    };
+  }>("workspace_overview_get", {
+    atTime: "2026-04-29T09:30:00+08:00",
+    locale: "en-us",
+  });
+  expect(result.samples.dueTodos).toHaveLength(1);
+  expect(result.samples.dueHomeworks).toHaveLength(1);
+  expect(result.samples.upcomingExams).toHaveLength(1);
+  expect(result.samples.dueTodos[0]).toMatchObject({
+    id: fixture.todo.id,
+    title: fixture.todo.title,
+    priority: fixture.todo.priority,
+  });
+  expect(result.samples.dueHomeworks[0]).toMatchObject({
+    id: fixture.homework.id,
+    title: fixture.homework.title,
+    section: { jwId: fixture.section.jwId },
+  });
+  expect(result.samples.upcomingExams[0]).toMatchObject({
+    startTime: 1300,
+    endTime: 1400,
+    section: { jwId: fixture.section.jwId },
+  });
+  const inspect = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(inspect);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      expect(
+        ["createdAt", "updatedAt", "deletedAt", "retiredAt", "lastEditedAt"],
+        key,
+      ).not.toContain(key);
+      if (key === "section" && child && typeof child === "object") {
+        expect(child).not.toHaveProperty("schedules");
+        expect(child).not.toHaveProperty("exams");
+        expect(child).not.toHaveProperty("homeworks");
+      }
+      inspect(child);
+    }
+  };
+  inspect(result);
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(
+      "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
+    );
+    const focus = page.getByTestId("workspace-overview-focus");
+    await expect(focus.getByRole("link")).toBeVisible();
+    await expect(focus).not.toContainText(
+      /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
+    );
+
+    const summaries = page.getByTestId("workspace-overview-summaries");
+    await expect(summaries).not.toContainText(
+      /createdAt|updatedAt|Created at|Updated at|创建时间|更新时间/,
+    );
+  }
+});

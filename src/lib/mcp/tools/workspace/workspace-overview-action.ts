@@ -7,7 +7,10 @@ import {
   parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
-import { buildMyOverviewFullPayload } from "./workspace-overview-response";
+import {
+  buildMyOverviewCompactPayload,
+  buildMyOverviewFullPayload,
+} from "./workspace-overview-response";
 
 type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
 
@@ -43,7 +46,12 @@ export async function getMyOverviewAction(
     locale: isAppLocale(locale) ? locale : DEFAULT_LOCALE,
   });
 
-  return jsonToolResult(buildMyOverviewFullPayload(overview), {
-    mode: resolvedMode,
-  });
+  return jsonToolResult(
+    resolvedMode === "full"
+      ? buildMyOverviewFullPayload(overview)
+      : buildMyOverviewCompactPayload(overview),
+    {
+      mode: resolvedMode,
+    },
+  );
 }

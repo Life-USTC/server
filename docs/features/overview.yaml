@@ -23,6 +23,14 @@ requirements:
 - id: overview.decision-page
   category: presentation
   rule: The anonymous home page prioritizes public course, section and teacher discovery.
+  acceptance:
+    given: An anonymous visitor opens the homepage at desktop and mobile widths.
+    when: The visitor reads the public discovery entries and follows course, section and teacher links.
+    then:
+    - The first three discovery entries are courses, sections and teachers, and each opens its working public search page.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.decision-page
 - id: overview.now-next-first
   category: presentation
   rule: 'The overview focus is selected from today and the next six Shanghai calendar days: first the
@@ -127,6 +135,14 @@ requirements:
   category: presentation
   rule: Workspace cards present the actionable title, time/status and direct destination before secondary
     details.
+  acceptance:
+    given: An isolated subscriber has a current class and an upcoming homework deadline.
+    when: Desktop and mobile overview focus cards render at class and homework times.
+    then:
+    - The actionable title, time and direct link are visible before secondary metadata, and the link opens the precise destination.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.workspace-card-priority
 - id: overview.public-html-viewer-independent
   category: privacy
   rule: Public HTML contains no viewer identity, personal counts or other private workspace state.
@@ -134,14 +150,40 @@ requirements:
   category: presentation
   rule: The authenticated workspace overview prioritizes the next personal learning action rather than
     a complete catalog directory.
+  acceptance:
+    given: An isolated subscriber has an ongoing class and personal learning tasks.
+    when: The signed overview renders on desktop and mobile.
+    then:
+    - The current class focus precedes today, week, task summaries and frequent links; a full catalog directory does not replace the personal action.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.personal-next-action-page
 - id: overview.workspace-card-disambiguation
   category: presentation
   rule: Course, section, campus and relevant priority context remain available to distinguish similarly
     named objects without crowding the title.
+  acceptance:
+    given: Two subscribed sections share one course title but have different codes and campus rooms, and two same-title todos have different priorities.
+    when: Desktop and mobile overviews render each class as current.
+    then:
+    - Focus and today rows retain the exact section code and campus while keeping the course title separate.
+    - Both same-title todos retain their individual high/low priority labels.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.workspace-card-disambiguation
 - id: overview.compact-operational-fields
   category: presentation
   rule: Compact workspace cards and default MCP output omit platform audit timestamps and repeated parent
     objects.
+  acceptance:
+    given: An isolated owner has a dated todo, homework and exam.
+    when: The actual OAuth HTTP MCP default overview and signed desktop/mobile cards render.
+    then:
+    - MCP samples retain operational IDs, titles, times and offering context but omit audit timestamps and repeated nested child collections.
+    - Visible cards omit audit labels and timestamps.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.compact-operational-fields
 - id: overview.activity-owner-transition
   category: privacy
   rule: Activity reads and rendered activity state are keyed by the authenticated owner as well as locale

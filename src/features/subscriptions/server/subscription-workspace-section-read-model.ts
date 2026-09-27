@@ -49,6 +49,7 @@ export async function listSubscribedWorkspaceSections(
           select: {
             id: true,
             jwId: true,
+            code: true,
             course: { select: { namePrimary: true } },
             semester: { select: { id: true } },
           },
@@ -136,6 +137,7 @@ export async function listSubscribedWorkspaceSections(
       return sectionRows.map((section) => ({
         id: section.id,
         jwId: section.jwId,
+        code: section.code,
         course: { namePrimary: section.course.namePrimary },
         semester: section.semester,
         schedules: schedulesBySectionId.get(section.id) ?? [],

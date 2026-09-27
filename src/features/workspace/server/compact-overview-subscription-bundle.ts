@@ -1,4 +1,7 @@
-import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
+import {
+  type HomeworkItemWithState,
+  withHomeworkItemState,
+} from "@/features/homeworks/server/homework-item-state";
 import {
   fetchSubscribedHomeworkRlsSnapshot,
   localizeSubscribedHomeworkWorkspaceItems,
@@ -8,6 +11,7 @@ import {
   listTodaySubscribedSchedulesWithCount,
   listUpcomingSubscribedExamsWithCount,
 } from "@/features/subscriptions/server/subscription-read-model";
+import type { HomeworkWithSection } from "@/features/subscriptions/server/subscription-workspace-types";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -20,7 +24,7 @@ type OverviewSubscriptionReads = {
     upcomingExamsCount: number;
     dueSoonHomeworksCount: number;
   };
-  dueSoonHomeworks: Awaited<ReturnType<typeof withHomeworkItemState>>;
+  dueSoonHomeworks: HomeworkItemWithState<HomeworkWithSection>[];
   schedules: Awaited<
     ReturnType<typeof listTodaySubscribedSchedulesWithCount>
   >["items"];

@@ -71,6 +71,7 @@ export function calendarSessionChipFields(
 export function calendarSessionDetail(session: CalendarSessionEvent) {
   return calendarEventParts([
     calendarTimeRange(session.startTime, session.endTime),
+    session.sectionCode,
     session.location,
     session.teacherDisplay,
   ]);

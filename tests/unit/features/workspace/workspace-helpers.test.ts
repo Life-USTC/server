@@ -13,6 +13,7 @@ function session(startTime: number, endTime: number): SessionItem {
   return {
     id: `${startTime}-${endTime}`,
     sectionJwId: 1,
+    sectionCode: "COURSE.01",
     courseName: "Course",
     date: new Date("2026-05-22T00:00:00.000Z"),
     startTime,
