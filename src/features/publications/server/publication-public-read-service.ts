@@ -473,7 +473,13 @@ async function readBodyMarkdown(revision: PublicPublicationRevision) {
 
   const bucket = requirePublicationsBucket();
   const stored = await bucket.get(object.r2Key);
-  if (!stored?.body || stored.size !== object.size) return null;
+  if (
+    !stored?.body ||
+    stored.size !== object.size ||
+    (stored.httpMetadata?.contentType !== undefined &&
+      stored.httpMetadata.contentType !== object.contentType)
+  )
+    return null;
 
   const reader = stored.body.getReader();
   const chunks: Uint8Array[] = [];

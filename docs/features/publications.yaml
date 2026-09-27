@@ -112,6 +112,19 @@ requirements:
     bodyText. body_html remains archived. Publication holds discovery fields; content and provenance live
     on revisions. Lists select summaries and object links; detail adds images with local proxy URLs and
     revision alt/title/caption.
+  acceptance:
+    given: A pending or linked Markdown manifest and actual local workerd R2 storage, with separate bodyText
+      and archived HTML.
+    when: Read production detail and list projections before/after upload, with missing/wrong-size/wrong-type
+      stored bytes, and with a later HTML-only revision.
+    then:
+    - Detail returns the actual verified Markdown bytes or null; it never substitutes bodyText or archived
+      HTML.
+    - Lists contain summaries and object links without bodyText/bodyMarkdown/rawMetadata. Detail adds
+      local image proxy URLs and revision image metadata.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.publication-markdown
 - id: publications.markdown-presentation
   category: presentation
   rule: The public Web detail annotates sanitized Markdown with plain-text image captions and revision
@@ -119,11 +132,69 @@ requirements:
     attribution and attachment names. It never renders bodyText in place of unavailable bodyMarkdown.
 - id: publications.publication-images
   category: presentation
-  rule: Ingestion registers exact source URL SHA-256 hashes for current public revisions. Markdown uses
-    /api/publications/images/{hash}. Fetches and redirects allow the registered exact public hostname,
-    USTC and source allowed hosts; blocked hosts win. IP/local hosts, credentials, custom ports, non-HTTP(S),
-    non-raster and oversized responses are rejected. Successful images are archived in R2 with finite
-    response cache lifetimes; failures are not cached.
+  rule: Ingestion registers image identities as the SHA-256 of the exact source URL, and detail exposes
+    /api/publications/images/{hash}. Public image reads require a matching registry identity linked to
+    a current non-tombstone revision of a non-deleted news or notice publication; historical links alone
+    do not authorize archived bytes.
+  acceptance:
+    given: A registered exact mixed-case URL with query parameters and real archived image bytes in local
+      workerd R2.
+    when: Read the exact hash, attempt a hash of a normalized URL, ingest a mismatched URL/hash mapping,
+      then move the publication to a revision without that image.
+    then:
+    - The exact registered identity reads successfully; a changed URL identity does not.
+    - A mismatched registry mapping rejects without creating the wrong identity.
+    - Archived bytes become unreadable when only a historical revision links them, including conditional
+      requests.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.publication-images
+- id: publications.image-origin-policy
+  category: authorization
+  rule: Image origin fetches and every redirect allow the registered exact public hostname, USTC, or source
+    allowed hosts; blocked hosts win. IP/local hosts, credentials, custom ports, and non-HTTP(S) URLs
+    are rejected before an origin fetch.
+  acceptance:
+    given: Real source/image registrations and an observed controlled upstream fetch boundary.
+    when: Read images with forbidden initial origins, then follow redirects to exact registered hosts,
+      USTC/source subdomains, forbidden registered-host subdomains, blocked hosts, or loopback.
+    then:
+    - Forbidden initial origins make no fetch. Allowed redirect targets are fetched and returned; forbidden
+      targets are never fetched and failures are not cached.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-origin-policy
+- id: publications.image-response-validation
+  category: validation
+  rule: Origin responses must be nonempty raster images of at most 10 MiB. Non-raster, empty, unsuccessful,
+    or oversized responses are rejected; streaming overflow cancels the body and cannot archive bytes.
+  acceptance:
+    given: Real registered images and controlled upstream response bodies, backed by local workerd R2.
+    when: Read SVG, HTML, empty/error, declared-oversize and endless-stream responses, then an exactly
+      10 MiB raster response.
+    then:
+    - Invalid responses return 502 with no-store and leave R2 empty.
+    - Streaming overflow cancels after bounded over-read; exactly 10 MiB succeeds and is archived.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-response-validation
+- id: publications.image-archive
+  category: consistency
+  rule: Successful image origin responses are archived in R2 with finite response cache lifetimes. Later
+    authorized reads reuse the archive and provider ETag for conditional requests; origin failures are
+    not archived or cached.
+  acceptance:
+    given: A current public registered image with actual local workerd R2 and a controlled origin that
+      first fails and then succeeds.
+    when: Retry after origin failure, read the successful bytes, then read again while the origin fails
+      and make a conditional request.
+    then:
+    - Failure creates no archive; success stores exact bytes/type.
+    - Later reads and conditional 304 use the archived bytes and ETag without fetching the origin again
+      or advertising immutable caching.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-archive
 - id: publications.public-cache
   category: consistency
   rule: Successful public list/detail responses are JSON with browser max-age=0, shared-cache max-age=120
@@ -168,17 +239,14 @@ requirements:
     test:
       file: tests/integration/publication-object-contracts.test.ts
       name: publications.object-content-disposition
-- id: publications.rest-only
-  category: behavior
-  rule: Publication ingestion and object upload planning are exposed only under /api/ingestion/publications.
-    Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as
-    a user OAuth credential.
 - id: publications.read-transport-boundary
   category: behavior
   rule: The current product needs a public website preview plus public REST for read/list/detail, the
     source directory, and controlled object delivery. GraphQL and MCP are intentionally not added for
     publications, including the source registry, until a separate client contract requires them; this
     is a transport boundary, not an implicit GraphQL/MCP capability.
+  rationale: The crawler write transport boundary is owned by openapi.crawler-ingestion-rest-only. Publication
+    read surfaces remain an intentional Web/REST-only exception.
 - id: publications.service-auth
   category: authorization
   rule: Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker

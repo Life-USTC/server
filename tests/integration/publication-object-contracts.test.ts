@@ -5,14 +5,22 @@ import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
 import { ingestPublicationBatch } from "@/features/publications/server/publication-ingestion-service";
 import {
-  type CloudflareR2Bucket,
   runWithCloudflareRuntimeEnv,
+  type CloudflareR2Bucket,
 } from "@/lib/adapters/cloudflare-runtime";
 import {
   postPublicationObjectPlanRoute,
   putPublicationObjectRoute,
 } from "@/lib/api/routes/publication-ingestion-routes";
-import { getPublicPublicationObjectRoute } from "@/lib/api/routes/publication-public-routes";
+import {
+  getPublicPublicationObjectRoute,
+  getPublicPublicationImageRoute,
+} from "@/lib/api/routes/publication-public-routes";
+import {
+  getPublicPublicationById,
+  listPublications,
+} from "@/features/publications/server/publication-public-read-service";
+import { publicationImageR2Key } from "@/features/publications/server/publication-image-service";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
 import { createFixturePrisma } from "../shared/prisma";
@@ -23,6 +31,7 @@ const secret = `object-contract-${marker}`;
 const sources: string[] = [];
 const batches: string[] = [];
 const hashes: string[] = [];
+const imageHashes: string[] = [];
 let directory: string;
 let bucket: CloudflareR2Bucket;
 let platform: PlatformProxy<{ R2_PUBLICATIONS: CloudflareR2Bucket }>;
@@ -213,6 +222,9 @@ afterAll(async () => {
     where: { clientRunId: { startsWith: marker } },
   });
   await db.publicationObject.deleteMany({ where: { sha256: { in: hashes } } });
+  await db.publicationImageSource.deleteMany({
+    where: { id: { in: imageHashes } },
+  });
   await db.$disconnect();
   vi.unstubAllEnvs();
 });
@@ -478,6 +490,348 @@ it("publications.public-object-read", async () => {
     httpMetadata: { contentType: "text/html" },
   });
   expect((await read(f)).status).toBe(404);
+});
+
+async function registerImage(f: Fixture, url: string) {
+  const hash = Buffer.from(
+    await crypto.subtle.digest("SHA-256", new TextEncoder().encode(url)),
+  ).toString("hex");
+  imageHashes.push(hash);
+  const item = f.payload.items[0];
+  if (item.tombstone) throw new Error("Expected live revision");
+  await ingest({
+    ...f.payload,
+    batchId: `${f.payload.batchId}-image`,
+    items: [
+      {
+        ...item,
+        revisionHash: "b".repeat(64),
+        observedAt: "2026-09-02",
+        imageSources: { [hash]: url },
+        imageMetadata: {
+          [hash]: { altText: "Alt", title: "Title", caption: "Caption" },
+        },
+      },
+    ],
+  });
+  return { hash, url, key: publicationImageR2Key(hash) };
+}
+function imageRead(hash: string, headers: Record<string, string> = {}) {
+  return runtime(() =>
+    getPublicPublicationImageRoute(
+      new Request(`${origin}/api/publications/images/${hash}`, { headers }),
+      { hash },
+    ),
+  );
+}
+
+it("publications.publication-markdown", async () => {
+  const f = await fixture("markdown");
+  const detail = () => runtime(() => getPublicPublicationById(f.publicationId));
+  expect((await detail())?.revision).toMatchObject({
+    bodyMarkdown: null,
+    bodyText: "Never use bodyText as Markdown",
+  });
+  expect((await upload(f)).status).toBe(200);
+  expect((await detail())?.revision.bodyMarkdown).toBe(
+    new TextDecoder().decode(f.bytes),
+  );
+  const listed = await runtime(() =>
+    listPublications({ filters: { source: [f.payload.sources[0].id] } }),
+  );
+  expect(listed.data[0].revision).not.toHaveProperty("bodyText");
+  expect(listed.data[0].revision).not.toHaveProperty("bodyMarkdown");
+  expect(listed.data[0].revision).not.toHaveProperty("rawMetadata");
+  const image = await registerImage(
+    f,
+    `https://publication.example/${marker}/markdown.png`,
+  );
+  expect((await detail())?.revision.images).toEqual([
+    {
+      id: image.hash,
+      url: `/api/publications/images/${image.hash}`,
+      altText: "Alt",
+      title: "Title",
+      caption: "Caption",
+    },
+  ]);
+  await platform.env.R2_PUBLICATIONS.delete(f.key);
+  expect((await detail())?.revision.bodyMarkdown).toBeNull();
+  await platform.env.R2_PUBLICATIONS.put(f.key, "Wrong size", {
+    httpMetadata: { contentType: f.object.contentType },
+  });
+  expect((await detail())?.revision.bodyMarkdown).toBeNull();
+  await platform.env.R2_PUBLICATIONS.put(f.key, f.bytes, {
+    httpMetadata: { contentType: "text/html" },
+  });
+  expect((await detail())?.revision.bodyMarkdown).toBeNull();
+  const item = f.payload.items[0];
+  if (item.tombstone) throw new Error("Expected live revision");
+  await ingest({
+    ...f.payload,
+    batchId: `${f.payload.batchId}-html`,
+    items: [
+      {
+        ...item,
+        revisionHash: "c".repeat(64),
+        observedAt: "2026-09-03",
+        objects: [{ ...f.object, kind: "body_html", contentType: "text/html" }],
+      },
+    ],
+  });
+  const html = await db.publicationObject.findUniqueOrThrow({
+    where: { kind_sha256: { kind: "body_html", sha256: f.object.sha256 } },
+  });
+  await platform.env.R2_PUBLICATIONS.put(html.r2Key, "<h1>Archived only</h1>");
+  await db.publicationObject.update({
+    where: { id: html.id },
+    data: { status: "linked" },
+  });
+  expect((await detail())?.revision.bodyMarkdown).toBeNull();
+  expect(
+    await db.publicationObject.findUnique({ where: { id: html.id } }),
+  ).not.toBeNull();
+});
+
+it("publications.publication-images", async () => {
+  const f = await fixture("image-registry");
+  const url = `https://cdn.example/${marker}/image.png?Width=200`;
+  const image = await registerImage(f, url);
+  expect(
+    await db.publicationImageSource.findUnique({ where: { id: image.hash } }),
+  ).toMatchObject({ url });
+  await platform.env.R2_PUBLICATIONS.put(image.key, new Uint8Array([1, 2, 3]), {
+    httpMetadata: { contentType: "image/png" },
+  });
+  expect((await imageRead(image.hash)).status).toBe(200);
+  const wrongHash = Buffer.from(
+    await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(url.toLowerCase()),
+    ),
+  ).toString("hex");
+  expect((await imageRead(wrongHash)).status).toBe(404);
+  const item = f.payload.items[0];
+  if (item.tombstone) throw new Error("Expected live revision");
+  await expect(
+    ingest({
+      ...f.payload,
+      batchId: `${f.payload.batchId}-bad-hash`,
+      items: [
+        {
+          ...item,
+          revisionHash: "c".repeat(64),
+          observedAt: "2026-09-03",
+          imageSources: { [wrongHash]: url },
+        },
+      ],
+    }),
+  ).rejects.toThrow("Image source key does not match");
+  expect(
+    await db.publicationImageSource.findUnique({ where: { id: wrongHash } }),
+  ).toBeNull();
+  await ingest({
+    ...f.payload,
+    batchId: `${f.payload.batchId}-new-current`,
+    items: [
+      { ...item, revisionHash: "d".repeat(64), observedAt: "2026-09-04" },
+    ],
+  });
+  expect((await imageRead(image.hash, { "If-None-Match": "*" })).status).toBe(
+    404,
+  );
+  expect(await platform.env.R2_PUBLICATIONS.head(image.key)).not.toBeNull();
+});
+
+it("publications.image-origin-policy", async () => {
+  const requested: string[] = [];
+  let redirectTo: string | undefined;
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async (input) => {
+      const url = String(input);
+      requested.push(url);
+      if (redirectTo && url.includes("/start.png"))
+        return new Response(null, {
+          status: 302,
+          headers: { Location: redirectTo },
+        });
+      return new Response(new Uint8Array([1, 2, 3]), {
+        headers: { "Content-Type": "image/png" },
+      });
+    });
+  try {
+    const rejected = [
+      "http://127.0.0.1/a.png",
+      "http://[::1]/a.png",
+      "https://localhost/a.png",
+      "https://node.internal/a.png",
+      "https://user:pass@cdn.example/a.png",
+      "https://cdn.example:444/a.png",
+      "ftp://cdn.example/a.png",
+      "https://blocked.publication.example/a.png",
+    ];
+    for (const [index, url] of rejected.entries()) {
+      const f = await fixture(`origin-reject-${index}`);
+      await db.publicationSource.update({
+        where: { id: f.payload.sources[0].id },
+        data: { blockedHosts: ["blocked.publication.example"] },
+      });
+      const img = await registerImage(f, url);
+      expect((await imageRead(img.hash)).status).toBe(404);
+      expect(requested).toHaveLength(0);
+      expect(await platform.env.R2_PUBLICATIONS.head(img.key)).toBeNull();
+    }
+    for (const [index, target] of [
+      "https://cdn.example/accepted.png",
+      "https://news.ustc.edu.cn/accepted.png",
+      "https://sub.publication.example/accepted.png",
+      "https://sub.cdn.example/rejected.png",
+      "https://blocked.publication.example/rejected.png",
+      "http://127.0.0.1/rejected.png",
+    ].entries()) {
+      const f = await fixture(`redirect-${index}`);
+      await db.publicationSource.update({
+        where: { id: f.payload.sources[0].id },
+        data: { blockedHosts: ["blocked.publication.example"] },
+      });
+      const img = await registerImage(
+        f,
+        `https://cdn.example/${marker}/${index}/start.png`,
+      );
+      redirectTo = target;
+      requested.length = 0;
+      const response = await imageRead(img.hash);
+      expect(response.status).toBe(index < 3 ? 200 : 502);
+      expect(requested).toEqual(index < 3 ? [img.url, target] : [img.url]);
+      if (index >= 3)
+        expect(response.headers.get("cache-control")).toBe("no-store");
+    }
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+it("publications.image-response-validation", async () => {
+  let responseFactory: () => Response;
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async () => responseFactory());
+  try {
+    const limit = 10 * 1024 * 1024;
+    let cancelled = false;
+    let streamed = 0;
+    const invalidResponses: Array<() => Response> = [
+      () =>
+        new Response("<svg/>", {
+          headers: { "Content-Type": "image/svg+xml" },
+        }),
+      () =>
+        new Response("<html/>", { headers: { "Content-Type": "text/html" } }),
+      () =>
+        new Response(new Uint8Array(0), {
+          headers: { "Content-Type": "image/png" },
+        }),
+      () => new Response("missing", { status: 404 }),
+      () =>
+        new Response(new Uint8Array([1]), {
+          headers: {
+            "Content-Type": "image/png",
+            "Content-Length": String(limit + 1),
+          },
+        }),
+      () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            pull(controller) {
+              streamed += 64 * 1024;
+              controller.enqueue(new Uint8Array(64 * 1024));
+            },
+            cancel() {
+              cancelled = true;
+            },
+          }),
+          { headers: { "Content-Type": "image/png" } },
+        ),
+    ];
+    for (const [index, makeResponse] of invalidResponses.entries()) {
+      const f = await fixture(`response-${index}`);
+      const img = await registerImage(
+        f,
+        `https://cdn.example/${marker}/response-${index}.png`,
+      );
+      responseFactory = makeResponse;
+      const response = await imageRead(img.hash);
+      expect(response.status).toBe(502);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(await platform.env.R2_PUBLICATIONS.head(img.key)).toBeNull();
+    }
+    expect(cancelled).toBe(true);
+    expect(streamed).toBeLessThanOrEqual(limit + 2 * 64 * 1024);
+    const f = await fixture("response-boundary");
+    const img = await registerImage(
+      f,
+      `https://cdn.example/${marker}/boundary.png`,
+    );
+    responseFactory = () =>
+      new Response(new Uint8Array(limit), {
+        headers: { "Content-Type": "image/png" },
+      });
+    const response = await imageRead(img.hash);
+    expect(response.status).toBe(200);
+    expect((await response.arrayBuffer()).byteLength).toBe(limit);
+    expect((await platform.env.R2_PUBLICATIONS.head(img.key))?.size).toBe(
+      limit,
+    );
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+it("publications.image-archive", async () => {
+  const f = await fixture("image-archive");
+  const img = await registerImage(
+    f,
+    `https://cdn.example/${marker}/archive.png`,
+  );
+  let succeed = false;
+  const bytes = new Uint8Array([137, 80, 78, 71]);
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation(async () =>
+      succeed
+        ? new Response(bytes, { headers: { "Content-Type": "image/png" } })
+        : new Response("unavailable", { status: 503 }),
+    );
+  try {
+    expect((await imageRead(img.hash)).status).toBe(502);
+    expect(await platform.env.R2_PUBLICATIONS.head(img.key)).toBeNull();
+    succeed = true;
+    const first = await imageRead(img.hash);
+    expect(first.status).toBe(200);
+    expect(new Uint8Array(await first.arrayBuffer())).toEqual(bytes);
+    expect(first.headers.get("cache-control")).not.toContain("immutable");
+    const head = await platform.env.R2_PUBLICATIONS.head(img.key);
+    expect(head).toMatchObject({
+      size: bytes.length,
+      httpMetadata: { contentType: "image/png" },
+    });
+    succeed = false;
+    const cached = await imageRead(img.hash);
+    expect(cached.status).toBe(200);
+    expect(new Uint8Array(await cached.arrayBuffer())).toEqual(bytes);
+    expect(cached.headers.get("etag")).toBe(`"${head?.etag}"`);
+    expect(
+      (
+        await imageRead(img.hash, {
+          "If-None-Match": cached.headers.get("etag")!,
+        })
+      ).status,
+    ).toBe(304);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  } finally {
+    fetchSpy.mockRestore();
+  }
 });
 
 it("publications.object-cache-revalidation", async () => {
