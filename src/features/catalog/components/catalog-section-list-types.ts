@@ -62,6 +62,7 @@ export type SectionListLabels = {
   sectionCode: string;
   semester: string;
   showing: string;
+  showingOne: string;
   subtitle: string;
   summary: {
     filters: string;

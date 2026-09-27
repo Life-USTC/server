@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-async function createProfile() {
+async function createProfile(count = 3) {
   const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
   return withE2ePrisma(async (db) => {
     const user = await db.user.create({
@@ -18,7 +18,7 @@ async function createProfile() {
     });
     const now = new Date();
     await db.comment.createMany({
-      data: Array.from({ length: 3 }, (_, index) => ({
+      data: Array.from({ length: count }, (_, index) => ({
         userId: user.id,
         sectionId: section.id,
         body: `Heatmap contribution ${suffix}/${index}`,
@@ -178,5 +178,56 @@ test("ui.contribution-heatmap-2", async ({ browser, baseURL }) => {
     }
   } finally {
     await deleteProfile(user.id);
+  }
+});
+
+test("ui.profile-count-copy", async ({ page, baseURL }, testInfo) => {
+  if (!baseURL) throw new Error("Missing Playwright baseURL");
+  for (const count of [1, 2]) {
+    const user = await createProfile(count);
+    try {
+      for (const locale of ["en-us", "zh-cn"]) {
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+        await page.setViewportSize({ width: 1280, height: 844 });
+        await gotoAndWaitForReady(page, `/community/users/${user.username}`);
+        const grid = page.getByRole("grid");
+        const populated = grid.locator(
+          `[data-date="${user.contributionDate}"]`,
+        );
+        const empty = grid.locator('[data-count="0"]').first();
+        const formatter = new Intl.DateTimeFormat(locale, {
+          timeZone: "Asia/Shanghai",
+          dateStyle: "medium",
+        });
+        for (const [cell, expectedCount] of [
+          [empty, 0],
+          [populated, count],
+        ] as const) {
+          const date = await cell.getAttribute("data-date");
+          if (!date) throw new Error("Expected a contribution date");
+          await cell.focus();
+          const dateLabel = formatter.format(new Date(date));
+          const label =
+            locale === "zh-cn"
+              ? `${dateLabel}：${expectedCount} 条记录`
+              : `${expectedCount} ${expectedCount === 1 ? "activity" : "activities"} on ${dateLabel}`;
+          const detail = page.locator("[data-profile-contribution-detail]");
+          if (locale === "en-us" && expectedCount === 1) {
+            await detail.screenshot({
+              path: testInfo.outputPath("profile-single-count.png"),
+            });
+          }
+          await expect
+            .soft(cell)
+            .toHaveAttribute("data-count", String(expectedCount));
+          await expect.soft(cell).toHaveAccessibleName(label);
+          await expect.soft(detail).toHaveText(label);
+        }
+      }
+    } finally {
+      await deleteProfile(user.id);
+    }
   }
 });

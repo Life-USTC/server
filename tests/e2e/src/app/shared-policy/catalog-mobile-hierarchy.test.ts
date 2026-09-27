@@ -671,3 +671,61 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
     await cleanupFixture(fixture);
   }
 });
+
+test("ui.catalog-count-copy", async ({ page, baseURL }, testInfo) => {
+  if (!baseURL) throw new Error("Missing Playwright baseURL");
+  const fixtures = [await createFixture(), await createFixture()];
+  try {
+    for (const [index, fixture] of fixtures.entries()) {
+      await withE2ePrisma(async (db) => {
+        await db.course.update({
+          where: { id: fixture.course.id },
+          data: { code: `COUNT-COURSE-${index}` },
+        });
+        await db.teacher.update({
+          where: { id: fixture.teacher.id },
+          data: { code: `COUNT-TEACHER-${index}` },
+        });
+        await db.section.update({
+          where: { id: fixture.section.id },
+          data: { code: `COUNT-SECTION-${index}` },
+        });
+      });
+    }
+    await page.setViewportSize({ width: 1280, height: 844 });
+    for (const locale of ["en-us", "zh-cn"]) {
+      await page
+        .context()
+        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+      for (const [route, code, singular, plural, chinese] of [
+        ["courses", "COURSE", "course", "courses", "门课程"],
+        ["teachers", "TEACHER", "teacher", "teachers", "位教师"],
+        ["sections", "SECTION", "section", "sections", "个班级"],
+      ] as const) {
+        for (const count of [0, 1, 2]) {
+          const query = `COUNT-${code}${count === 2 ? "" : count === 1 ? "-0" : "-MISSING"}`;
+          await gotoAndWaitForReady(page, `/catalog/${route}?search=${query}`);
+          const summary = page.locator('[data-slot="results-summary"]').first();
+          if (locale === "en-us" && count === 1) {
+            await summary.screenshot({
+              path: testInfo.outputPath(`${route}-single-count.png`),
+            });
+          }
+          await expect
+            .soft(summary.locator("p"))
+            .toHaveText(
+              locale === "en-us"
+                ? new RegExp(
+                    `^Showing ${count} of ${count} ${count === 1 ? singular : plural}(?:\\s|$)`,
+                  )
+                : new RegExp(
+                    `^显示 ${count} ${chinese}中的 ${count} ${chinese[0]}`,
+                  ),
+            );
+        }
+      }
+    }
+  } finally {
+    for (const fixture of fixtures.reverse()) await cleanupFixture(fixture);
+  }
+});

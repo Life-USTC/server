@@ -38,7 +38,7 @@ $: filters = data.filters as SectionListFilters;
 $: locale = $appPage.data.locale ?? "zh-cn";
 $: pagination = data.pagination as SectionListPagination;
 $: sectionSummaryBase = catalogShowingSummary(
-  sectionLabels.showing,
+  pagination.total === 1 ? sectionLabels.showingOne : sectionLabels.showing,
   data.data.length,
   pagination.total,
 );

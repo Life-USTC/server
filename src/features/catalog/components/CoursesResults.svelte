@@ -30,7 +30,7 @@ export let totalPages: number;
 
 $: locale = $appPage.data.locale ?? "zh-cn";
 $: courseSummaryBase = catalogShowingSummary(
-  courseLabels.showing,
+  data.pagination.total === 1 ? courseLabels.showingOne : courseLabels.showing,
   data.data.length,
   data.pagination.total,
 );

@@ -993,8 +993,32 @@ requirements:
 - id: ui.localized-count-copy-1
   category: presentation
   topic: localized-count-copy
-  rule: User-visible English count copy distinguishes singular from plural forms; Chinese may share one count
-    template when its grammar does not change.
+  rule: Outside catalog result summaries and profile contribution-day labels, user-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.
+  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Other user-visible counts retain this unbound obligation.
+- id: ui.catalog-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Course, teacher and section result summaries use singular English entity names when the total is one and plural names for zero or multiple results; Chinese summaries retain their natural classifiers.
+  acceptance:
+    given: Two isolated course, teacher and section fixtures can each be queried as zero, one or two matching results.
+    when: English and Chinese desktop browsers open all three result collections for each count.
+    then:
+    - The rendered summary reports the actual shown and total counts with correct singular, plural or Chinese classifier wording.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.catalog-count-copy
+- id: ui.profile-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Public profile contribution-day labels use activity for one English contribution and activities for zero or multiple contributions, while Chinese labels retain one natural count template.
+  acceptance:
+    given: Isolated profiles have one or two public attributed comments on one Shanghai date, with empty days elsewhere.
+    when: English and Chinese browsers focus empty and populated contribution days.
+    then:
+    - The accessible day name and visible live detail expose the database-backed count and the grammatical localized label for zero, one and two.
+    test:
+      file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
+      name: ui.profile-count-copy
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
