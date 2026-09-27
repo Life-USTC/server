@@ -57,7 +57,7 @@ export type CalendarTodoItem = {
 export type OverviewData = {
   calendarMode: "preview" | "semester";
   user: { id: string; name: string | null; username: string | null };
-  currentTermName: string;
+  currentTermName: string | null;
   hasAnySelection: boolean;
   hasCurrentTermSelection: boolean;
   todaySessions: ReturnType<typeof filterSessionsByDay>;

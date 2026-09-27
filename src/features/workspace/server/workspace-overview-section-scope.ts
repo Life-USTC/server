@@ -76,7 +76,7 @@ export async function resolveWorkspaceOverviewSectionScope(input: {
   return {
     calendarSemesterNavList,
     calendarSemesterPicker,
-    currentTermName: input.currentSemester?.nameCn ?? "—",
+    currentTermName: input.currentSemester?.nameCn ?? null,
     workspaceSections,
     hasAnySelection,
     hasCurrentTermSelection,

@@ -36,9 +36,11 @@ export let updatingCatalogLinkSlug: string | null;
   <OverviewTermSelectionCard
     {workspaceCopy}
     {workspaceTabHref}
-    description={signedData.overview?.hasAnySelection
-      ? workspaceCopy.termSelection.noCurrentTerm
-      : workspaceCopy.termSelection.noAnySelection}
+    description={signedData.overview?.currentTermName == null
+      ? workspaceCopy.termSelection.noCurrentSemester
+      : signedData.overview.hasAnySelection
+        ? workspaceCopy.termSelection.noCurrentTerm
+        : workspaceCopy.termSelection.noAnySelection}
     historyCalendarSemesterId={signedData.overview?.calendar?.calendarSemesterPicker?.at(-1)?.id ?? null}
     showHistoryActions={signedData.overview?.hasAnySelection === true}
   />

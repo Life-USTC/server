@@ -7,11 +7,30 @@ requirements:
   topic: no-current-semester
   rule: When no current semester is available, /workspace/overview labels the semester context as unavailable.
     Independently available todos, subscribed activities, and past-term learning records remain accessible.
+  acceptance:
+    given: An isolated user has a pending todo, a subscribed activity, and historical section homework; no semester date range covers the explicit 2030 snapshot.
+    when: The user opens the overview in Chinese and English and follows its todo and past-homework links, then opens activity subscriptions.
+    then:
+    - The overview explicitly reports that the current semester is unavailable without calling an inferred past or future term current.
+    - The todo, historical homework, and subscribed activity remain reachable in their real workspace pages and the activity API retains the subscription.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.no-current-semester-1
 - id: cases.semester.no-current-semester-2
   category: behavior
   topic: no-current-semester
   rule: The no-current-semester state links to catalog browsing and existing subscribed-section history. A
     code-import flow requires selection of an available semester when no current semester can supply its scope.
+  acceptance:
+    given: An isolated user retains a historical section subscription while every stored semester range has ended.
+    when: The user follows the no-current-semester recovery links and opens code import in Chinese and English.
+    then:
+    - Catalog course and section links remain available, and the history link opens the existing subscribed section.
+    - Code matching starts with no selected semester and stays disabled until an available semester is selected.
+    - Selecting the historical semester matches the actual section with its original code and semester label.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.no-current-semester-2
 - id: cases.semester.only-non-current-semester-subscriptions-1
   category: behavior
   topic: only-non-current-semester-subscriptions

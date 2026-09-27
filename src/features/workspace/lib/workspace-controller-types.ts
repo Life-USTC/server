@@ -167,6 +167,7 @@ export type WorkspaceCopy = WorkspaceRecord & {
     matchByCode: string;
     noAnySelection: string;
     noCurrentTerm: string;
+    noCurrentSemester: string;
     title: string;
     viewPastHomeworks: string;
     viewPastSchedule: string;
@@ -505,6 +506,7 @@ export type WorkspaceLinkPinSubmit = (
 ) => void;
 
 export type WorkspaceOverviewData = WorkspaceRecord & {
+  currentTermName: string | null;
   calendar?: WorkspaceCalendarData | WorkspaceCalendarPreviewData | null;
   dueToday: WorkspaceHomeworkItem[];
   hasAnySelection?: boolean;

@@ -51,6 +51,7 @@ function signedWorkspaceData(
       pendingTodosCount: 0,
     },
     overview: {
+      currentTermName: null,
       calendar: null,
       dueToday: [],
       hasCurrentTermSelection: false,

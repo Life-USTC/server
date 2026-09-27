@@ -386,7 +386,9 @@ $: calendarData = derivedState.calendarData;
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
 $: canMatchImportSections =
-  bulkImportText.trim().length > 0 && !isMatchingSections;
+  bulkImportSemesterId !== "" &&
+  bulkImportText.trim().length > 0 &&
+  !isMatchingSections;
 
 onMount(mount);
 </script>

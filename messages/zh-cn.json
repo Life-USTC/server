@@ -865,6 +865,7 @@
     "termSelection": {
       "title": "当前学期暂无教学班订阅",
       "noAnySelection": "先订阅教学班，才能在这里看到当前学期的任务。",
+      "noCurrentSemester": "暂无当前学期信息。待办事项、活动订阅及往期学习记录仍可查看。",
       "noCurrentTerm": "你目前只订阅了往期教学班。再订阅当前学期的教学班即可恢复工作区。",
       "historyAvailable": "往期班级、作业和课表仍然保留，你可以继续查看。",
       "viewPastHomeworks": "查看往期作业",
