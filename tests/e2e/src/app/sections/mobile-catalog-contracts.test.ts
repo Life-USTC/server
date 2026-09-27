@@ -170,7 +170,7 @@ test("teacher.mobile-detail-hierarchy", async ({ page }, testInfo) => {
           : teacherNames[language],
       );
       const department = page
-        .locator("#overview")
+        .locator("#main-content")
         .getByText(
           language === "zh-cn"
             ? fixture.departments[0].nameCn
@@ -179,7 +179,7 @@ test("teacher.mobile-detail-hierarchy", async ({ page }, testInfo) => {
         );
       await reachable(department);
       const title = page
-        .locator("#overview")
+        .locator("#main-content")
         .getByText(
           language === "zh-cn"
             ? fixture.titles[0].nameCn
@@ -221,14 +221,15 @@ test("section.mobile-detail-actions", async ({ page }, testInfo) => {
       expect(
         await code.evaluate((element) => getComputedStyle(element).fontFamily),
       ).toMatch(/mono/i);
-      for (const value of [
-        "3.5",
-        "12 / 40",
-        "32 / 32",
-        language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
-      ])
+      for (const value of ["3.5", "12 / 40", "32 / 32"])
         await reachable(overview.getByText(value, { exact: true }));
-      const teacher = overview
+      await reachable(
+        page.getByRole("definition").filter({
+          hasText: language === "zh-cn" ? "2026年秋季学期" : "Fall 2026",
+        }),
+      );
+      const teacher = page
+        .locator("#main-content")
         .locator(`a[href="/catalog/teachers/${fixture.teachers[0].id}"]`)
         .first();
       await reachable(teacher);
