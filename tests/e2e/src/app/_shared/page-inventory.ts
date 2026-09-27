@@ -1101,7 +1101,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "todo-crud",
         e2eSpec: E2E.workspaceTodos,
-        evidence: "可以创建、编辑和删除待办",
+        evidence: "todo.web-local-mutation-state",
       },
       {
         id: "exams-view",
