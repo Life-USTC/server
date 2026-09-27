@@ -17,6 +17,15 @@ requirements:
 - id: young-workspace.subscription
   category: behavior
   rule: Subscribing to an activity does not register attendance with the official activity system.
+  acceptance:
+    given: A real event source row exists and all outgoing HTTP is denied.
+    when: The actual subscription service subscribes and unsubscribes the owner.
+    then:
+    - Only the owner subscription row is created/deleted.
+    - The full official source record remains unchanged and no outgoing registration request occurs.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.subscription
 - id: young-workspace.ownership
   category: authorization
   rule: User identity for activity subscriptions and notifications comes only from the authenticated principal;
@@ -73,9 +82,17 @@ requirements:
 - id: young-workspace.event-calendar-membership
   category: behavior
   rule: Individual event subscriptions add known activity instants to personal calendars and ICS.
-- id: young-workspace.organizer-digest-only
-  category: behavior
-  rule: Organizer follows create new-event digests without automatically subscribing to their events.
+  acceptance:
+    given: An owner follows an organizer but has no event subscription.
+    when: The owner individually subscribes, the event changes, loses its timestamps, and is unsubscribed.
+    then:
+    - Organizer follow alone creates no ICS event.
+    - An individual subscription adds its known start/end to the actual personal calendar and ICS with
+      stable UID across source changes.
+    - Unknown timestamps never fabricate an event; unsubscribe removes the event.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.event-calendar-membership
 - id: young-workspace.private-response-cache
   category: authorization
   rule: Personal activity subscription and notification reads use private, no-store.
@@ -94,18 +111,70 @@ requirements:
 - id: young-workspace.reminder-start-window
   category: behavior
   rule: Event-start reminders become eligible one hour before the event starts.
+  acceptance:
+    given: An event has a known start and start reminders are enabled.
+    when: The actual reminder policy evaluates just before one hour, exactly one hour, just before start
+      and at start.
+    then:
+    - Eligibility begins exactly one hour before the event and expires at its start.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminder-start-window
 - id: young-workspace.reminder-settings
   category: behavior
   rule: Signup-opening, deadline and event-start reminders are independently configurable.
+  acceptance:
+    given: An event currently qualifies for signup opening, deadline and start reminders.
+    when: The actual service enables each reminder alone, lists notifications, then disables it.
+    then:
+    - Each setting is stored independently and produces only its own reminder kind.
+    - Disabling that setting removes its unread reminder.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-settings
 - id: young-workspace.reminder-generation
   category: behavior
   rule: Reminder generation runs every ten minutes and refreshes on notification listing.
+  acceptance:
+    given: Two real users subscribe to an upcoming event and have no notifications.
+    when: The actual Worker scheduled entrypoint receives the configured ten-minute cron twice using distinct
+      application/maintenance database bindings; a later notification listing runs after one owner's generated
+      row is removed.
+    then:
+    - The scheduled path discovers recipients through the maintenance role and creates each owner's reminder
+      through the runtime role.
+    - Repeated scheduled delivery preserves reminder IDs.
+    - Notification listing also recreates an eligible missing reminder without requiring a cron run.
+    test:
+      file: tests/integration/young-notification-cron-contract.test.ts
+      name: young-workspace.reminder-generation
 - id: young-workspace.reminder-expiry
   category: behavior
   rule: Expired reminders are excluded from notification results.
+  acceptance:
+    given: Stored owner reminders expire immediately before, exactly at, immediately after the reference
+      time, or never.
+    when: The actual list and unread-count services read notifications.
+    then:
+    - Before/exact-boundary reminders are excluded from results and totals.
+    - Future/permanent reminders remain visible and historical rows remain stored.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-expiry
 - id: young-workspace.reminder-source-change
   category: behavior
   rule: Material activity changes refresh the personal calendar export and remove superseded reminders.
+  acceptance:
+    given: An individually subscribed event already has reminders and a real personal calendar.
+    when: Its venue and then its start/end change, and actual notification listing refreshes source state.
+    then:
+    - Venue-only changes keep applicable reminder identities; rescheduling removes the superseded start
+      reminder.
+    - Each material change requests one owner calendar rebuild whose independent read contains committed
+      updated venue/time.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-source-change
 - id: young-workspace.calendar-transport-pagination
   category: behavior
   rule: Personal calendar REST and GraphQL results are paginated; MCP returns the complete unified event
@@ -327,3 +396,6 @@ capabilities:
         rest_equivalent: POST /api/workspace/young-notifications/[id]/read
     requirement_refs:
     - young-event.snapshot-authoritative
+rationale:
+- Organizer-only digest behavior and exclusion from individual event subscriptions are canonically owned
+  by young-workspace.digest; the removed organizer-digest-only rule was a strict duplicate.
