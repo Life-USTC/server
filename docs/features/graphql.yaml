@@ -32,12 +32,92 @@ requirements:
     test:
       file: tests/unit/lib/graphql/graphql-all-mutation-authority.test.ts
       name: graphql.scoped-mutations
-- id: graphql.batch-mutations
+- id: graphql.todo-batch-results
   category: behavior
-  rule: Todo, homework, and comment-delete batches preserve REST per-item results. Section subscriptions
-    reuse the shared transaction-aware service. Workspace pins validate all slugs, then preserve ordered
-    non-atomic execution and retry ambiguity. Every batch uses the stricter feature:batch-write budget;
-    ID-target batches reject duplicates before writing.
+  rule: Todo completion and deletion batches return ordered per-item results while preserving ownership
+    isolation.
+  acceptance:
+    given: An owner and another user have todos, plus a nonexistent target.
+    when: GraphQL performs completion and deletion batches.
+    then:
+    - Owned items change successfully; foreign and missing items return NOT_FOUND, and foreign data remains
+      unchanged.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.todo-batch-results
+- id: graphql.homework-batch-results
+  category: behavior
+  rule: Homework completion batches retain per-item success, DELETED and NOT_FOUND outcomes.
+  acceptance:
+    given: Active, deleted and missing homework targets.
+    when: GraphQL completes all targets in one batch.
+    then:
+    - Each result matches its input target and contains the correct completion state or error.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.homework-batch-results
+- id: graphql.subscription-batch-results
+  category: behavior
+  rule: GraphQL subscription import uses the shared owner-scoped add/remove service and preserves matched/unmatched
+    code results.
+  acceptance:
+    given: A signed user and known and unknown section codes.
+    when: GraphQL adds and removes subscriptions.
+    then:
+    - Results report matching codes and affected counts, and the database reflects only the requested
+      membership changes.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.subscription-batch-results
+- id: graphql.comment-batch-results
+  category: behavior
+  rule: Comment deletion batches return ordered success or ownership-failure results independently for
+    each target.
+  acceptance:
+    given: An owner and another user each have a comment.
+    when: GraphQL deletes both in one batch.
+    then:
+    - The owned comment succeeds and the foreign comment returns FORBIDDEN.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.comment-batch-results
+- id: graphql.pin-batch-order
+  category: behavior
+  rule: Workspace pin batches preserve input order, including repeated slugs.
+  acceptance:
+    given: A signed owner has no pinned mail link.
+    when: GraphQL pins then unpins mail in one batch.
+    then:
+    - The final pinned list is empty and the response reports the shared maximum pin count.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.pin-batch-order
+- id: graphql.pin-batch-failure
+  category: behavior
+  rule: Workspace pin batches validate every slug before writes, then execute sequentially without rollback
+    or automatic retry; a caller retry can repeat earlier successful operations.
+  acceptance:
+    given: The real GraphQL resolver and batch orchestrator use an instrumented primitive pin writer.
+    when: An invalid slug or a later write failure occurs, followed by a caller retry.
+    then:
+    - Invalid input produces zero primitive writes.
+    - A later failure leaves the earlier effect intact; retry invokes that earlier operation again in
+      order.
+    test:
+      file: tests/unit/lib/graphql/graphql-batch-contracts.test.ts
+      name: graphql.pin-batch-failure
+- id: graphql.batch-unique-ids
+  category: validation
+  rule: Todo completion/delete, homework completion and comment-delete batches reject duplicate normalized
+    target IDs before calling feature mutation services.
+  acceptance:
+    given: All four ID-target GraphQL resolvers receive repeated IDs with and without surrounding whitespace.
+    when: The authenticated resolvers pass their shared rate limit and validate inputs.
+    then:
+    - Every duplicate batch returns BAD_USER_INPUT before any feature mutation service is called.
+    test:
+      file: tests/unit/lib/graphql/graphql-batch-contracts.test.ts
+      name: graphql.batch-unique-ids
 - id: graphql.single-endpoint
   category: behavior
   rule: GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.

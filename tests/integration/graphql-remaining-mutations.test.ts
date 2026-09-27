@@ -275,7 +275,7 @@ afterAll(async () => {
 describe("remaining GraphQL and MCP mutation parity", {
   concurrent: false,
 }, () => {
-  it("preserves workspace ordering and comment per-item results over GraphQL", async () => {
+  it("graphql.pin-batch-order", async () => {
     const token = await signToken([
       restWriteScope("workspace.link-pin"),
       restWriteScope("community.comment"),
@@ -306,7 +306,10 @@ describe("remaining GraphQL and MCP mutation parity", {
       pinnedSlugs: [],
       maxPinnedLinks: 4,
     });
+  });
 
+  it("graphql.comment-batch-results", async () => {
+    const token = await signToken([restWriteScope("community.comment")]);
     const comments = await execute(
       {
         query: /* GraphQL */ `
