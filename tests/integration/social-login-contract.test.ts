@@ -217,7 +217,7 @@ it("user.oauth-callback-integrity", async () => {
   );
   expect(sessionResponse.status).toBe(200);
   const session = await sessionResponse.json();
-  expect(session.user).toMatchObject({ email, name: "Upstream profile" });
+  expect(session.user).toMatchObject({ email, name: "" });
   const account = await db.account.findFirstOrThrow({
     where: { userId: session.user.id, provider: "github" },
   });
@@ -305,11 +305,11 @@ it("user.welcome-oauth-refresh", async () => {
     expect(rejected.result?.status).toBe(400);
     expect(rejected.setCookies).toEqual([]);
   }
-  for (const mode of ["preserve", "fill"] as const) {
-    if (mode === "fill")
+  for (const mode of ["preserve", "empty-profile"] as const) {
+    if (mode === "empty-profile")
       await db.user.update({
         where: { id: user.id },
-        data: { name: "", image: null },
+        data: { name: "", username: null, image: null },
       });
     upstreamName = `Updated upstream ${mode}`;
     upstreamImage = `https://example.test/upstream-${mode}.png`;
@@ -340,13 +340,11 @@ it("user.welcome-oauth-refresh", async () => {
     ).toBe("1");
     await callback.text();
     const updated = await db.user.findUniqueOrThrow({ where: { id: user.id } });
-    expect(updated.name).toBe(
-      mode === "preserve" ? "User chosen name" : upstreamName,
-    );
+    expect(updated.name).toBe(mode === "preserve" ? "User chosen name" : "");
     expect(updated.image).toBe(
       mode === "preserve" ? customImage : upstreamImage,
     );
-    expect(updated.username).toBe("socialchosen");
+    expect(updated.username).toBe(mode === "preserve" ? "socialchosen" : null);
     expect(updated.profilePictures).toContain(upstreamImage);
     expect(
       await db.account.count({
@@ -448,7 +446,6 @@ it("user.sign-in-providers", async () => {
     provider,
     endpoint,
     callbackPath,
-    expectedName,
     expectedSubject,
     upstreamOrigin,
   ] of [
@@ -456,7 +453,6 @@ it("user.sign-in-providers", async () => {
       "github",
       "/sign-in/social",
       "/callback/github",
-      "Upstream profile",
       "1900260927",
       "https://github.com",
     ],
@@ -464,7 +460,6 @@ it("user.sign-in-providers", async () => {
       "google",
       "/sign-in/social",
       "/callback/google",
-      "Google profile",
       `google-${marker}`,
       "https://accounts.google.com",
     ],
@@ -472,7 +467,6 @@ it("user.sign-in-providers", async () => {
       "oidc",
       "/sign-in/social",
       "/callback/oidc",
-      "USTC profile",
       oidcSubject,
       "https://oidc.example.test",
     ],
@@ -506,9 +500,15 @@ it("user.sign-in-providers", async () => {
       `${origin}/api/auth/get-session?disableCookieCache=true`,
       { headers: { cookie: cookies(completed) } },
     );
+    expect(sessionResponse.status).toBe(200);
     const current = await sessionResponse.json();
-    expect(current.user.name).toBe(expectedName);
+    expect(current.user.name).toBe("");
     providerUsers.push(current.user.id);
+    const user = await db.user.findUniqueOrThrow({
+      where: { id: current.user.id },
+    });
+    expect(user.name).toBe("");
+    expect(user.username).toBeNull();
     const accounts = await db.account.findMany({
       where: { userId: current.user.id },
     });

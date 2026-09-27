@@ -23,13 +23,60 @@ async function fixture(page: Page, complete = false) {
   };
 }
 const nameInput = (page: Page) =>
-  page.getByRole("textbox", { name: /^(姓名|Name)\b/i });
+  page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i });
 const usernameInput = (page: Page) =>
-  page.getByRole("textbox", { name: /^(用户名|Username)\b/i });
+  page.getByRole("textbox", { name: /^ID\b/i });
 const skip = (page: Page) =>
   page.getByRole("link", { name: /暂时跳过|Skip for now/i });
 const finish = (page: Page) =>
   page.getByRole("link", { name: /进入工作区|Go to workspace/i });
+
+test("user.profile-field-labels", async ({ page, baseURL }) => {
+  if (!baseURL) throw new Error("Missing Playwright baseURL");
+  const f = await fixture(page);
+  try {
+    for (const [locale, nickname] of [
+      ["zh-cn", "昵称"],
+      ["en-us", "Nickname"],
+    ]) {
+      await page
+        .context()
+        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+      for (const complete of [false, true]) {
+        await withE2ePrisma((db) =>
+          db.user.update({
+            where: { id: f.user.id },
+            data: {
+              name: complete ? "Chosen nickname" : "",
+              username: complete ? f.username : null,
+            },
+          }),
+        );
+        await gotoAndWaitForReady(
+          page,
+          complete ? "/account/settings/profile" : "/account/welcome",
+        );
+        const nicknameField = page.getByRole("textbox", {
+          name: new RegExp(`^${nickname}\\s*\\*$`),
+        });
+        const idField = page.getByRole("textbox", {
+          name: complete ? /^ID$/ : /^ID\s*\*$/,
+        });
+        await expect(nicknameField).toBeVisible();
+        await expect(nicknameField).toHaveAttribute("name", "name");
+        await expect(nicknameField).toHaveAttribute("autocomplete", "nickname");
+        await expect(nicknameField).toHaveValue(
+          complete ? "Chosen nickname" : "",
+        );
+        await expect(idField).toBeVisible();
+        await expect(idField).toHaveAttribute("name", "username");
+        await expect(idField).toHaveValue(complete ? f.username : "");
+      }
+    }
+  } finally {
+    await f.cleanup();
+  }
+});
 
 async function expectStep(page: Page, step: 1 | 2 | 3) {
   await expect(

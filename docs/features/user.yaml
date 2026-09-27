@@ -50,14 +50,15 @@ requirements:
       name: user.shell-viewer
 - id: user.sign-in-providers
   category: behavior
-  rule: Configured USTC, GitHub and Google providers support OAuth sign-in, creating a session linked to the authenticated upstream identity.
-  rationale: Production password sign-in is separately prohibited and verified by user.debug-password-boundary.
+  rule: Configured USTC, GitHub and Google providers support OAuth sign-in, creating a session linked to the authenticated upstream identity. New accounts retain an empty nickname and unset ID even when the provider supplies a name; no nickname is generated from upstream identity.
+  rationale: Upstream authentication establishes the linked identity; nickname and ID remain user-controlled profile choices entered during welcome. Production password sign-in is separately prohibited and verified by user.debug-password-boundary.
   acceptance:
     given: All three providers are configured and their upstream token and profile endpoints return controlled identities.
     when: Each provider completes the actual HTTP authorization and callback flow with its issued state and cookie.
     then:
     - Authorization uses the expected provider origin and registered callback.
     - The callback returns to the requested workspace and creates a usable session for the upstream profile.
+    - The session and persisted new account retain an empty nickname, with no generated ID.
     - Exactly one account links the user to the expected provider subject, without a password credential.
     test:
       file: tests/integration/social-login-contract.test.ts
@@ -130,7 +131,8 @@ requirements:
       name: user.oauth-callback-integrity
 - id: user.welcome-flow-required
   category: behavior
-  rule: A signed-in user missing either name or username must complete profile entry before proceeding to ordinary pages or later welcome steps. Anonymous users must sign in first.
+  rule: A signed-in user missing either nickname (name) or ID (username) must complete profile entry before proceeding to ordinary pages or later welcome steps. Anonymous users must sign in first.
+  rationale: Initial OAuth account creation keeps these choices empty under user.sign-in-providers; profile field terminology is owned by user.profile-field-labels.
   acceptance:
     given: Anonymous visitors and isolated users missing name, username or both.
     when: They request an ordinary private page and try the subscriptions or finish welcome URL directly.
@@ -140,6 +142,18 @@ requirements:
     test:
       file: tests/e2e/src/app/welcome/contracts.test.ts
       name: user.welcome-flow-required
+- id: user.profile-field-labels
+  category: presentation
+  rule: Welcome and profile settings label the user-controlled name field 昵称 in Chinese and Nickname in English, and the username field ID in both languages. Required-field indicators may follow these labels; neither field is presented as a legal name.
+  acceptance:
+    given: An isolated user has an incomplete welcome profile and then a completed profile with a chosen nickname and ID.
+    when: A browser opens welcome and profile settings in Chinese and English.
+    then:
+    - The exact localized nickname and ID labels identify their corresponding editable fields, with the nickname autocomplete semantic.
+    - Welcome keeps the unset fields empty; settings displays the chosen values.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.profile-field-labels
 - id: user.welcome-staged-steps
   category: presentation
   rule: Welcome renders only the current profile, subscriptions or orientation step. Completing profile persists its fields and advances to skippable subscriptions; skipping advances to orientation. A completed profile revisiting the profile URL leaves welcome for its safe callback.
