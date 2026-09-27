@@ -40,12 +40,36 @@ requirements:
   category: behavior
   rule: Every exam belongs to a section; personal exam views include the section and semester context
     needed to distinguish the offering.
+  acceptance:
+    given: Two owner subscriptions share a course across distinct section codes and semesters.
+    when: The signed desktop and mobile exam lists display all exams and follow each offering link.
+    then:
+    - Both exam rows identify the course and section code and open the exact section detail.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.attached-to-section
 - id: exam.read-only
   category: authorization
   rule: Exams are read-only; no ordinary user edit entry point is provided.
+  acceptance:
+    given: An ordinary isolated user subscribes to two sections with exams.
+    when: The user browses signed desktop/mobile exam lists and the public section exam details.
+    then:
+    - Exam facts render without add, edit, delete, completion or text-edit controls; persisted exams remain unchanged.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.read-only
 - id: exam.semester-required
   category: presentation
   rule: Semesters must be explicitly displayed when browsing exams across semesters.
+  acceptance:
+    given: The same course has owned exam offerings in current and historical semesters.
+    when: The user reads all exams on desktop and mobile.
+    then:
+    - Every offering row explicitly displays its own semester alongside its section context.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.semester-required
 - id: exam.completion-time-zone
   category: consistency
   rule: Exam completion uses the Asia/Shanghai calendar date and local HHMM times. When no exam time is
@@ -64,6 +88,14 @@ requirements:
 - id: exam.mobile-toolbar-priority
   category: presentation
   rule: Mobile exam completion-status filters remain directly accessible.
+  acceptance:
+    given: The owner has one upcoming and one ended exam.
+    when: The mobile user directly selects Upcoming, Ended and All.
+    then:
+    - Every filter remains visible and selects exactly the corresponding exams.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.mobile-toolbar-priority
 - id: exam.owned-page-completeness
   category: consistency
   rule: The authenticated REST exam handler returns complete, stable paginated owner-subscription results
@@ -108,9 +140,25 @@ requirements:
 - id: exam.mobile-display-overflow
   category: presentation
   rule: Mobile exam card/list display selection is available in a keyboard-accessible overflow menu.
+  acceptance:
+    given: The signed mobile exam list contains both upcoming and ended exams.
+    when: The user opens the overflow menu and changes Card/List using only the keyboard.
+    then:
+    - Each selection changes the rendered display and returns focus to the trigger without horizontal document overflow.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.mobile-display-overflow
 - id: exam.mobile-toolbar-targets
   category: presentation
   rule: Mobile exam toolbar controls provide touch targets at least 44 by 44 CSS pixels.
+  acceptance:
+    given: The exam workspace renders at 320 and 390 CSS pixels wide.
+    when: The signed user inspects every direct filter and the display overflow control.
+    then:
+    - Every visible toolbar control is at least 44 by 44 CSS pixels.
+    test:
+      file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
+      name: exam.mobile-toolbar-targets
 - id: exam.rest-date-semester-filters
   category: validation
   rule: The REST exam handler filters inclusive Shanghai calendar-day bounds and semester before pagination/counting.

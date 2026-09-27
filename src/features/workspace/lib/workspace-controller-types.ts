@@ -27,6 +27,7 @@ export type WorkspaceCommonCopy = WorkspaceRecord & {
   previous: string;
   semesters: string;
   sections: string;
+  unknown: string;
   userNotFound: string;
 };
 

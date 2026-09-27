@@ -79,58 +79,6 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-empty-cleared");
   });
 
-  test("移动端考试工具栏直接筛选并保持卡片视图", async ({ page }, testInfo) => {
-    await page.addInitScript(() => {
-      localStorage.removeItem("life-ustc-workspace-view-mode");
-    });
-    await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/workspace/exams");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/exams", {
-      testInfo,
-      screenshotLabel: "exams-mobile-toolbar",
-    });
-
-    const upcoming = page
-      .getByRole("radio", {
-        name: /Upcoming|未结束|即将|待完成/i,
-      })
-      .first();
-    await expect(upcoming).toBeVisible();
-    await expect(page.getByTestId("workspace-exams-view-menu")).toHaveCount(0);
-
-    for (const control of [upcoming]) {
-      const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(box?.width).toBeGreaterThanOrEqual(44);
-    }
-
-    await gotoAndWaitForReady(page, "/workspace/exams?examView=list");
-    const all = page
-      .getByRole("group", { name: /考试|Exams/i })
-      .getByRole("radio", { name: /全部|All/i });
-    if ((await all.getAttribute("aria-checked")) !== "true") {
-      await all.click();
-    }
-    await expect(all).toHaveAttribute("aria-checked", "true");
-    await expect(page.getByTestId("workspace-exams-cards")).toBeVisible();
-    await expect(page.getByRole("table")).toBeHidden();
-    const examItem = page
-      .getByTestId("workspace-exams-cards")
-      .locator('[data-slot="item"]')
-      .first();
-    await expect(examItem).toBeVisible();
-    await expect(examItem.locator('[data-slot="item-content"]')).toBeVisible();
-    await expect(examItem.locator('[data-slot="item-actions"]')).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-
-    await captureStepScreenshot(page, testInfo, "exams/mobile-toolbar");
-  });
-
   test("考试列表显示必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/exams");
     await ensureSeedSectionSubscription(page);

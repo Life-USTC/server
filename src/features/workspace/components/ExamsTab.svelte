@@ -1,4 +1,6 @@
 <script lang="ts">
+import { cn } from "$lib/utils";
+import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
 import type {
   SignedWorkspaceData,
@@ -39,6 +41,8 @@ export let examRows: WorkspaceExamRow[];
 export let filteredExamRows: WorkspaceExamRow[];
 export let locale: string;
 
+let mobileView: WorkspaceCardView = "cards";
+
 $: ({ fmtExamDate } = createExamTabDisplayActions({
   locale,
   referenceNow: signedData.referenceNow,
@@ -63,12 +67,14 @@ function clearExamFilter() {
     <ExamsTabToolbar
       {workspaceCopy}
       {examFilter}
+      {mobileView}
+      onMobileViewChange={(value) => { mobileView = value; }}
       onExamFilterChange={(value) => {
         examFilter = value;
       }}
     />
 
-    <div class="md:hidden">
+    <div class={cn("md:hidden", mobileView !== "cards" && "hidden")}>
       <ExamsCardsView
         {locale}
         unknownSemesterLabel={signedData.copy.common.unknown}
@@ -85,7 +91,7 @@ function clearExamFilter() {
         {subscriptionsCopy}
       />
     </div>
-    <div class="hidden min-w-0 overflow-x-auto md:block">
+    <div class={cn("min-w-0 overflow-x-auto md:block", mobileView !== "list" && "hidden")}>
       <ExamsListView
         {locale}
         unknownSemesterLabel={signedData.copy.common.unknown}
