@@ -199,6 +199,7 @@ function changeType(value: string) {
             <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <PublicationTypeBadge type={item.publicationType} {copy} />
               <a class="min-w-0 hover:underline [overflow-wrap:anywhere]" href={publicationListHref({ source: [item.source.id] })}>{item.source.name}</a>
+              <span>{copy.organizationLevelLabels[item.source.organizationLevel]}</span>
               {#if item.revision.publishedAt}<span>{formatShanghaiDate(item.revision.publishedAt)}</span>{/if}
               {#if item.revision.updatedAtSource && (!item.revision.publishedAt || formatShanghaiDate(item.revision.updatedAtSource) !== formatShanghaiDate(item.revision.publishedAt))}
                 <span>{copy.updatedAt}: {formatShanghaiDate(item.revision.updatedAtSource)}</span>

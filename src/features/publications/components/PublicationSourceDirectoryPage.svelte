@@ -120,6 +120,7 @@ const levelIndex = $derived(data.directory.groups);
                         <a href={sourceHref(source.id)} {...props}>
                           <Item.Content>
                             <Item.Title>{source.name}</Item.Title>
+                            <Item.Description class="[overflow-wrap:anywhere]">{source.hosts.join(" · ")}</Item.Description>
                             <Item.Description>
                               {copy.sourceArticleCount}: {source.publicationCount}
                               · {copy.lastPublishedAt}:

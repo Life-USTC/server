@@ -541,9 +541,6 @@ capabilities:
           - route.descriptionPrimary
           secondary:
           - route.stops.name
-          - route.weekdayTripCount
-          - route.saturdayTripCount
-          - route.sundayTripCount
           tertiary:
           - route.id
         mcp-catalog-bus-route-search:
@@ -587,11 +584,9 @@ capabilities:
           primary:
           - trip.departureTime
           - trip.arrivalTime
-          - trip.minutesUntilDeparture
           secondary:
           - originCampus.name
           - destinationCampus.name
-          - trip.dayType
           - route.descriptionPrimary
           tertiary:
           - route.id
@@ -618,17 +613,19 @@ capabilities:
       views:
         web:
           primary:
-          - route.descriptionPrimary
-          - stop.name
-          secondary:
-          - campus.name
-          - trip.location
+          - campus.namePrimary
+          secondary: []
           tertiary:
           - route.id
           - trip.id
       items:
       - Route polylines, stop markers, current trips and interactive map controls.
 rationale:
+- The Web route-search view is the campus picker and matching timetable, not a separate route-count directory.
+  Day-type counts remain API/MCP fields. The mobile next-departure summary shows departure/arrival clocks and
+  campus context, without a countdown or repeated day-type label. The map labels campus nodes; route polylines
+  and vehicle positions are graphical facts, not visible route descriptions or textual trip locations.
+  Version topology supplies one campus name, so no secondary bilingual label is required.
 - The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
 - Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,
   catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next

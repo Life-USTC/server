@@ -275,9 +275,9 @@ capabilities:
           primary:
           - link.title
           - link.isPinned
-          secondary:
+          secondary: []
+          tertiary:
           - link.slug
-          tertiary: []
         mcp-workspace-link-pin-list:
           primary:
           - pinnedSlugs
@@ -293,4 +293,6 @@ capabilities:
       - Pin/unpin button
       - Pinned indicator
 rationale:
+- Link slugs identify navigation and pin requests but are not user-facing metadata. The Web pin action exposes
+  title and current pin state while retaining the slug only in its request binding.
 - Frequent links are a navigation capability, not a content feed.

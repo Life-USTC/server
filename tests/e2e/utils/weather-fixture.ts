@@ -10,6 +10,10 @@ import { gotoAndWaitForReady } from "./page-ready";
 export async function showWeatherFixture(
   page: Page,
   currentTemperature: number | null = 24,
+  observations: Pick<WeatherSnapshot, "alerts" | "extensions"> = {
+    alerts: [],
+    extensions: {},
+  },
 ) {
   const start = new Date(Date.now() + 3_600_000);
   start.setUTCMinutes(0, 0, 0);
@@ -53,8 +57,8 @@ export async function showWeatherFixture(
         temperatureLow: 20,
         condition: { text: "多云", icon: "wmo-2" },
       })),
-      alerts: [],
-      extensions: {},
+      alerts: observations.alerts,
+      extensions: observations.extensions,
     };
     return { locationKey: location.key, snapshot };
   });

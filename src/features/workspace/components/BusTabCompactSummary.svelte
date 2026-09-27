@@ -29,7 +29,7 @@ $: emptyMessage =
     <p class="text-muted-foreground text-sm">{busCopy.nextDeparture}</p>
     {#if nextDeparture}
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <p class="font-mono text-4xl tabular-nums tracking-tight sm:text-5xl">
+        <p class="font-medium font-mono text-4xl tabular-nums tracking-tight sm:text-5xl">
           {busStopTimeLabel(nextDeparture.trip.startTime)}
         </p>
         <div class="grid text-right text-muted-foreground text-xs">

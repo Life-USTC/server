@@ -127,6 +127,7 @@ const summary = $derived(
                           {#if event.isOnline === true}<Badge variant="outline">{youngCopy.online}</Badge>{/if}
                           {#if event.hours != null}<span>{youngCopy.hours}: {event.hours}</span>{/if}
                           {#if event.location}<span>{event.location}</span>{/if}
+                          {#if event.organizer}<span>{event.organizer}</span>{/if}
                           {#if event.applyEndAt && event.requiresSignup !== false}<span>{youngCopy.signupWindow}: {youngCopy.endsAt.replace("{value}", formatDateTime(event.applyEndAt))}</span>{/if}
                           {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
                         </Item.Footer>
@@ -159,6 +160,7 @@ const summary = $derived(
                         <div class="grid gap-1">
                           <span class="whitespace-normal break-words font-medium">{event.name}</span>
                           <span class="text-xs text-muted-foreground">{[event.category, event.module, event.activityLevel].filter(Boolean).join(" · ")}</span>
+                          {#if event.organizer}<span class="text-xs text-muted-foreground">{event.organizer}</span>{/if}
                           {#if event.location || event.isOnline === true}
                             <span class="text-xs text-muted-foreground">{[event.location, event.isOnline === true ? youngCopy.online : null].filter(Boolean).join(" · ")}</span>
                           {/if}

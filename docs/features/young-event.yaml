@@ -1,6 +1,8 @@
 kind: feature
 id: young-event
 name: Young Events
+rationale:
+- Young list organizer names help distinguish activities. Calendar occurrences show source withdrawal rather than signup status. Organizer directories expose active, upcoming, and history counts, not a fictional generic event count. Detail signup scope uses a readable hint; opaque scope and department identifiers remain hidden technical fields.
 areas:
 - catalog
 policy_refs:
@@ -531,7 +533,7 @@ capabilities:
           - event.location
           - event.category
           - event.module
-          - event.organizer.name
+          - event.organizer
           tertiary: []
         web-detail:
           primary:
@@ -571,8 +573,6 @@ capabilities:
           - event.requiresSignup
           - event.requiresSignupInfo
           - event.serviceHour
-          - event.signupDepartmentIds
-          - event.signupScopeCode
           - event.sponsor
           - event.sumHours
           - event.sumPersons
@@ -583,6 +583,8 @@ capabilities:
           - event.auditedAt
           - event.updatedAtUpstream
           - event.sourceMissing
+          - event.signupDepartmentIds
+          - event.signupScopeCode
         web-calendar:
           primary:
           - event.name
@@ -590,13 +592,15 @@ capabilities:
           - event.endAt
           secondary:
           - event.location
-          - event.status
+          - event.sourceMissing
           tertiary: []
         web-organizers:
           primary:
           - organizer.name
           secondary:
-          - organizer.eventCount
+          - organizer.activeCount
+          - organizer.upcomingCount
+          - organizer.historyCount
           tertiary:
           - organizer.id
         mcp-catalog-young-event-list:

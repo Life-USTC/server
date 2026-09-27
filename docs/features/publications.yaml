@@ -1,6 +1,8 @@
 kind: feature
 id: publications
 name: Publications / Public Read and Crawler Ingestion
+rationale:
+- Source directory organization levels are primary grouping headings; source hosts remain secondary identity context and must appear in both desktop and mobile rows.
 areas:
 - catalog
 - platform
@@ -681,8 +683,8 @@ capabilities:
         web:
           primary:
           - source.name
-          secondary:
           - source.organizationLevel
+          secondary:
           - source.allowedHosts
           - source.publicationCount
           - source.latestPublishedAt
