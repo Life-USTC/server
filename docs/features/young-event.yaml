@@ -32,6 +32,15 @@ requirements:
   category: privacy
   rule: Private event subscription and conflict APIs are requested with no-store only for signed-in viewers;
     an expired session restores sign-in state.
+  acceptance:
+    given: An isolated subscribed viewer and an anonymous visitor open event detail and calendar views.
+    when: The actual browser fetches personal overlays, then the private request reaches the real API without its session cookie.
+    then:
+    - Anonymous browsing makes no private overlay request; signed-in overlays use no-store.
+    - The real 401 response restores the sign-in control on both surfaces.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.private-client-overlays
 - id: young-event.public-no-signin
   category: authorization
   rule: Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn,
@@ -193,6 +202,15 @@ requirements:
 - id: young-event.read-only
   category: authorization
   rule: Events are imported facts; no transport exposes writes.
+  acceptance:
+    given: An isolated imported activity is available to a signed-in viewer and anonymous API clients.
+    when: The real REST catalog receives every write verb, GraphQL introspection and native MCP discovery enumerate capabilities, and the browser renders detail.
+    then:
+    - REST catalog writes return 405, GraphQL exposes only personal Young mutations, and MCP exposes only public catalog reads.
+    - The detail offers no activity-edit control and the persisted source name remains unchanged.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.read-only
 - id: young-event.structured-participation
   category: behavior
   rule: Source category/module/form/level, organization, tag and signup-scope codes remain opaque and
@@ -254,11 +272,30 @@ requirements:
   category: presentation
   rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
     poster, statistics and record metadata are expandable.
+  acceptance:
+    given: An isolated activity supplies time, venue, credited hours, signup deadline, a poster, statistics and record timestamps.
+    when: The actual detail page renders at desktop and mobile widths, then the visitor expands its optional sections.
+    then:
+    - The initial summary shows the decision facts before the collapsed poster and record sections.
+    - The official registration link opens externally; expansion reveals the poster, statistics and record facts.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.web-detail-priority
 - id: young-event.web-mobile-calendar
   category: presentation
   rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;
     earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify
     their current view and title the matching date range.
+  acceptance:
+    given: An anonymous mobile visitor opens a month agenda with a selected date late in the month.
+    when: The visitor expands earlier dates and switches among day, week and month.
+    then:
+    - The initial agenda starts on the selected day and ends on the last day of the month.
+    - Expansion includes earlier days but excludes adjacent-month padding.
+    - Every view identifies its current control and displays the exact matching day, week interval or month title.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.web-mobile-calendar
 - id: young-event.fixed-browse-filter-options
   category: presentation
   rule: Selectable Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
@@ -282,6 +319,15 @@ requirements:
   category: privacy
   rule: Event subscription/conflict controls reuse root viewer state without issuing a separate shell
     bootstrap request.
+  acceptance:
+    given: An isolated authenticated viewer has an activity subscription.
+    when: The actual event detail and calendar render their subscription and conflict controls.
+    then:
+    - Each surface makes exactly one root shell-bootstrap request and receives the authenticated viewer identity.
+    - Personal controls become ready without a second bootstrap request.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.overlay-shared-viewer-state
 - id: young-event.unknown-date-results
   category: consistency
   rule: Rows lacking the selected start time contribute to unknownDateCount and are available through
