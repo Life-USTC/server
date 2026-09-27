@@ -344,3 +344,71 @@ it("mcp.request-batch-limit", async () => {
     true,
   );
 });
+
+it("mcp.catalog-search-length", async () => {
+  for (const name of [
+    "catalog_course_search",
+    "catalog_section_search",
+    "catalog_teacher_search",
+  ]) {
+    for (const length of [1, 2, 200, 201]) {
+      const response = await post(
+        call(name, { search: "x".repeat(length), limit: 1 }),
+      );
+      expect(response.status).toBe(200);
+      const result = await payload(response);
+      if (length === 1 || length === 201) {
+        expect(result.result.isError, `${name}:${length}`).toBe(true);
+        expect(result.result.structuredContent).toBeUndefined();
+      } else {
+        expect(result.result.isError, `${name}:${length}`).not.toBe(true);
+        expect(result.result.structuredContent).toMatchObject({
+          success: true,
+          data: [],
+        });
+      }
+    }
+  }
+});
+
+it("mcp.catalog-pagination", async () => {
+  for (const name of [
+    "catalog_semester_list",
+    "catalog_course_search",
+    "catalog_section_search",
+    "catalog_teacher_search",
+  ]) {
+    for (const args of [
+      {},
+      { page: 1, limit: 1 },
+      { page: 100, limit: 100 },
+      { page: 0 },
+      { page: 101 },
+      { limit: 0 },
+      { limit: 101 },
+    ]) {
+      const response = await post(call(name, args));
+      expect(response.status).toBe(200);
+      const result = await payload(response);
+      const invalid =
+        args.page === 0 ||
+        args.page === 101 ||
+        args.limit === 0 ||
+        args.limit === 101;
+      if (invalid)
+        expect(result.result.isError, `${name}:${JSON.stringify(args)}`).toBe(
+          true,
+        );
+      else {
+        expect(result.result.isError, name).not.toBe(true);
+        expect(result.result.structuredContent.pagination).toMatchObject({
+          page: args.page ?? 1,
+          pageSize: args.limit ?? 20,
+        });
+        expect(result.result.structuredContent.data.length).toBeLessThanOrEqual(
+          args.limit ?? 20,
+        );
+      }
+    }
+  }
+});

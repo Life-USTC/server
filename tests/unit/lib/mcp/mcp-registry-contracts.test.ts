@@ -7,6 +7,7 @@ import {
   assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
 } from "@/lib/mcp/tool-descriptors";
+import { getMcpToolOutputSchema } from "@/lib/mcp/tool-output-schemas";
 import { getRequiredMcpScopes, isPublicMcpTool } from "@/lib/mcp/tool-scopes";
 import { readSpecification } from "../../../../scripts/specifications/yaml";
 
@@ -146,4 +147,29 @@ it("mcp.aggregate-before-fanout", () => {
   expect(
     tools.find((tool) => tool.name === "workspace_deadline_list")?.description,
   ).toMatch(/deadline/i);
+});
+
+it("mcp.error-classification-shape", () => {
+  let checked = 0;
+  for (const tool of tools) {
+    const properties = tool.outputSchema?.properties as
+      | Record<string, unknown>
+      | undefined;
+    if (!properties?.error) continue;
+    checked++;
+    expect(properties.error, tool.name).toEqual({ type: "string" });
+    const schema = getMcpToolOutputSchema(tool.name);
+    const failure = {
+      success: false,
+      error: "not_found",
+      message: "No matching record",
+    };
+    expect(schema.safeParse(failure).success, tool.name).toBe(true);
+    for (const error of [null, 1, false, {}, ["not_found"]]) {
+      expect(schema.safeParse({ ...failure, error }).success, tool.name).toBe(
+        false,
+      );
+    }
+  }
+  expect(checked).toBeGreaterThan(0);
 });

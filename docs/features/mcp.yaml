@@ -71,12 +71,35 @@ requirements:
   category: presentation
   rule: Default and full outputs preserve top-level collection and key types; full adds only fields permitted
     by the corresponding domain projection.
-- id: mcp.coverage
-  category: behavior
-  rule: The checked tool list below is the MCP contract surface; implementation parity is enforced through
-    integration tests and $life-ustc-implement. Public catalog list tools accept page and limit between
-    1 and 100, while course, section, and teacher search strings accept 2-200 characters, matching Web,
-    REST, and GraphQL.
+- id: mcp.catalog-search-length
+  category: validation
+  rule: Course, section and teacher MCP search strings accept2-200 characters after trimming.
+  rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
+    documented domain bounds.
+  acceptance:
+    given: Each of the three academic search tools receives1,2,200 and201 characters.
+    when: Anonymous callers use the real HTTP MCP endpoint.
+    then:
+    - 2/200-character searches execute;1/201-character inputs return a tool validation error without a
+      data payload.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.catalog-search-length
+- id: mcp.catalog-pagination
+  category: validation
+  rule: Academic semester, course, section and teacher MCP lists accept page/limit1-100 with defaults
+    page1 and limit20.
+  rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
+    documented domain bounds.
+  acceptance:
+    given: All four academic catalog tools receive omitted, boundary and out-of-range pagination inputs.
+    when: Anonymous clients invoke the real HTTP transport and read pagination metadata.
+    then:
+    - Default and1/100 values return the requested bounded page.
+    - 0/101 page or limit values reject before data results.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.catalog-pagination
 - id: mcp.aggregate-before-fanout
   category: presentation
   rule: Server instructions guide clients to workspace_snapshot_get or workspace_overview_get before narrower
@@ -303,9 +326,9 @@ requirements:
   category: consistency
   rule: Every known MCP output field has an explicit value schema; known fields must not silently become
     unconstrained unknown values.
-  rationale: The registry descriptor contract separately verifies closed top-level objects and boolean
-    success. Several current output fields still use z.unknown, including the shared error field; this
-    remains an implementation and acceptance-test gap.
+  rationale: The descriptor contract separately verifies closed top-level objects and boolean success.
+    Existing unconstrained domain fields remain an implementation and acceptance-test gap; shared error
+    classification is canonical in mcp.error-classification-shape.
 - id: mcp.tool-registry-completeness
   category: consistency
   rule: Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output
@@ -348,6 +371,20 @@ requirements:
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.http-methods
+- id: mcp.error-classification-shape
+  category: consistency
+  rule: A registered MCP result with a shared error classification uses a string code; null, numeric,
+    boolean, object and array error values are rejected by its output schema.
+  acceptance:
+    given: Every registered descriptor containing the shared error classification field.
+    when: Its raw advertised JSON Schema and actual Zod output validator are checked with string and nonstring
+      failures.
+    then:
+    - Descriptors declare error as a string.
+    - String-coded failures validate and all nonstring error variants reject.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.error-classification-shape
 capabilities:
   protocol-endpoint:
     title: Protocol Endpoint

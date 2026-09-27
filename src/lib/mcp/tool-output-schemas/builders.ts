@@ -48,7 +48,7 @@ export type McpToolOutputSchema = z.ZodType;
 export const COMMON_OUTPUT_SHAPE = {
   success: z.boolean(),
   found: z.boolean().optional(),
-  error: z.unknown().optional(),
+  error: z.string().optional(),
   message: z.string().nullable().optional(),
   reason: z.string().nullable().optional(),
   hint: z.string().optional(),
