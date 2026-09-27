@@ -33,11 +33,12 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: 'Collection pages use CollectionPage. It fills PageLayout, PageHeader, and one unframed
-    Panel: actions hold header buttons, before holds an optional note, toolbar holds FilterToolbar
-    and ActiveFilters, the body holds ResultsSummary and the results, and the footer holds
-    ListPagination links that preserve filters. Panel is that unframed stack, not a card. Pages
-    with several sections compose PageLayout and Panel directly.'
+  rule: 'Content pages use CollectionPage. List pages fill title, actions, before, toolbar,
+    body, and footer. That body is one unframed Panel: toolbar holds FilterToolbar and
+    ActiveFilters, the body holds ResultsSummary and the results, and the footer holds
+    ListPagination links that preserve filters. Pages with several sections set panel to false
+    and place each section in Panel. Detail pages set layout to detail and fill aside. Panel
+    is an unframed stack, not a card.'
 - id: ui.list-table-2
   category: presentation
   topic: list-table

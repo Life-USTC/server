@@ -8,9 +8,8 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
-import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -238,21 +237,17 @@ const places = $derived(
   {/if}
 {/snippet}
 
-<DetailPageLayout>
-  {#snippet header()}
-    <PageHeader title={event.name} description={event.category ?? youngCopy.description}>
-      {#snippet actions()}
+<CollectionPage description={event.category ?? youngCopy.description} layout="detail" title={event.name}>
+  {#snippet actions()}
         <Button href={returnHref} variant="outline">{returnLabel}</Button>
-      {/snippet}
-      {#snippet belowTitle()}
+  {/snippet}
+  {#snippet belowTitle()}
         <div class="mt-3 flex flex-wrap gap-2" data-testid="young-event-badges">
           <Badge variant={event.isActive ? "default" : "outline"}>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Badge>
           {#each badges as badge (badge)}
             <Badge variant="secondary">{badge}</Badge>
           {/each}
         </div>
-      {/snippet}
-    </PageHeader>
   {/snippet}
 
   {#if event.imageUrl}
@@ -376,4 +371,4 @@ const places = $derived(
       {#if event.sourceMissing} · {youngCopy.sourceMissing}{/if}
     </p>
   {/snippet}
-</DetailPageLayout>
+</CollectionPage>

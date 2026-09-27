@@ -39,8 +39,7 @@ import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
 import { page } from "$app/stores";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import SignedWorkspaceOverviewBranch from "./SignedWorkspaceOverviewBranch.svelte";
 import SignedWorkspacePublicTabs from "./SignedWorkspacePublicTabs.svelte";
@@ -395,15 +394,7 @@ onMount(mount);
   <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
-<PageLayout>
-  {#snippet header()}
-    {#if data.signedIn && data.mainContentLabel}
-      <PageHeader
-        density="compact"
-        title={data.mainContentLabel}
-      />
-    {/if}
-  {/snippet}
+<CollectionPage density="compact" panel={false} title={data.signedIn && data.mainContentLabel ? data.mainContentLabel : undefined}>
 
   {#if actionError}
     <Alert.Root variant="destructive">
@@ -569,4 +560,4 @@ onMount(mount);
       <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
     </Alert.Root>
   {/if}
-</PageLayout>
+</CollectionPage>

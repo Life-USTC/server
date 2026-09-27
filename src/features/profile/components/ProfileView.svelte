@@ -2,7 +2,7 @@
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ProfileContributionCard from "./ProfileContributionCard.svelte";
 import ProfileSummaryCard from "./ProfileSummaryCard.svelte";
 
@@ -51,7 +51,7 @@ $: stats = [
 ];
 </script>
 
-<PageLayout>
+<CollectionPage panel={false}>
 <section class="grid w-full gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
   <ProfileSummaryCard
     {copy}
@@ -71,4 +71,4 @@ $: stats = [
     weeks={profile.weeks}
   />
 </section>
-</PageLayout>
+</CollectionPage>

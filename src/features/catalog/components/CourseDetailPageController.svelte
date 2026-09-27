@@ -3,8 +3,7 @@ import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
-import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   catalogLocalizedDisplayName,
@@ -82,16 +81,9 @@ $: displayName =
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<DetailPageLayout>
-  {#snippet header()}
-    <PageHeader
-      title={displayName}
-      titleClass="text-2xl leading-tight sm:text-3xl"
-    >
-      {#snippet eyebrowContent()}
+<CollectionPage layout="detail" title={displayName} titleClass="text-2xl leading-tight sm:text-3xl">
+  {#snippet eyebrowContent()}
         <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
-      {/snippet}
-    </PageHeader>
   {/snippet}
 
         <section id="introduction" class="scroll-mt-4">
@@ -157,4 +149,4 @@ $: displayName =
           />
         </section>
   {/snippet}
-</DetailPageLayout>
+</CollectionPage>

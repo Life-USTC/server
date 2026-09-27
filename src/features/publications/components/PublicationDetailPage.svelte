@@ -7,9 +7,7 @@ import {
 } from "@/features/publications/lib/publication-page-navigation";
 import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { page } from "$app/stores";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Collapsible from "$lib/components/ui/collapsible";
@@ -52,15 +50,14 @@ const articleInformation = $derived(
 
 <svelte:head><title>{revision.title} - {copy.title}</title></svelte:head>
 
-<PageLayout width="reading">
-  {#snippet header()}
-    <div class="grid min-w-0 gap-3">
+<CollectionPage headerClass="min-w-0" title={revision.title} titleClass="[overflow-wrap:anywhere]" width="reading">
+  {#snippet lead()}
       <nav aria-label={copy.backToList}>
         <Button href={returnHref} variant="ghost" size="sm"><ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />{copy.backToList}</Button>
       </nav>
-      <PageHeader title={revision.title} class="min-w-0" titleClass="[overflow-wrap:anywhere]">
-        {#snippet eyebrowContent()}<PublicationTypeBadge type={publication.publicationType} {copy} />{/snippet}
-        {#snippet belowTitle()}
+  {/snippet}
+  {#snippet eyebrowContent()}<PublicationTypeBadge type={publication.publicationType} {copy} />{/snippet}
+  {#snippet belowTitle()}
           <div class="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground [overflow-wrap:anywhere]">
             <a class="min-w-0 hover:underline" href={`/news?source=${encodeURIComponent(publication.source.id)}`}>{publication.source.name}</a>
             {#if revision.publishedAt}<span>{copy.publishedAt}: {formatShanghaiDate(revision.publishedAt)}</span>{/if}
@@ -81,12 +78,8 @@ const articleInformation = $derived(
           {:else if summary}
             <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>
           {/if}
-        {/snippet}
-      </PageHeader>
-    </div>
   {/snippet}
 
-  <Panel>
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <RenderedMarkdown class="publication-body min-w-0 text-base" html={data.renderedBodyHtml} emptyLabel={copy.noBody} />
       {#if attachments.length > 0}
@@ -129,5 +122,4 @@ const articleInformation = $derived(
         </section>
       {/if}
     </div>
-  </Panel>
-</PageLayout>
+</CollectionPage>

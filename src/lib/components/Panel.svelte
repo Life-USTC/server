@@ -3,9 +3,8 @@ import type { Snippet } from "svelte";
 import { cn } from "$lib/utils.js";
 
 /**
- * Unframed page section. Collection pages should use CollectionPage, which
- * fills this section for them. Use Panel directly when one page has several
- * sections (a detail column, a source group, a weather location).
+ * Unframed page section. Content pages use CollectionPage. Put Panel inside
+ * that template when one page has several sections.
  */
 type Props = {
   children: Snippet;

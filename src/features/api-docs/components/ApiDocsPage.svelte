@@ -6,7 +6,7 @@ import { afterNavigate } from "$app/navigation";
 import { OPENAPI_SPEC_API_PATH } from "$lib/openapi/spec";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
-import PageHeader from "$lib/components/PageHeader.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sheet from "$lib/components/ui/sheet/index.js";
@@ -217,12 +217,10 @@ function scheduleReferenceRouteRestore() {
 
 <svelte:head><title>{data.copy.metadata.apiDocs} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5">
-  <PageHeader title={data.copy.apiDocs.title} description={data.copy.apiDocs.description}>
-    {#snippet actions()}
+<CollectionPage description={data.copy.apiDocs.description} panel={false} title={data.copy.apiDocs.title} width="full">
+  {#snippet actions()}
       <Button class="w-full sm:w-auto" href={specPath} variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
-    {/snippet}
-  </PageHeader>
+  {/snippet}
 
   <div class="api-docs-shell">
     <div class="api-docs-mobile-navigation">
@@ -287,4 +285,4 @@ function scheduleReferenceRouteRestore() {
       {/if}
     </div>
   </div>
-</section>
+</CollectionPage>

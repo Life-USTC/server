@@ -11,8 +11,7 @@ import {
 } from "@/features/workspace/lib/workspace-link-pin-client";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { invalidateAll } from "$app/navigation";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import * as Alert from "$lib/components/ui/alert";
 import { Button } from "$lib/components/ui/button";
 import { Skeleton } from "$lib/components/ui/skeleton";
@@ -121,13 +120,7 @@ onMount(() => {
   <title>{data.copy.workspace.nav.links.title} - Life@USTC</title>
 </svelte:head>
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader
-      description={data.copy.workspace.nav.links.description}
-      title={data.copy.workspace.nav.links.title}
-    />
-  {/snippet}
+<CollectionPage description={data.copy.workspace.nav.links.description} panel={false} title={data.copy.workspace.nav.links.title}>
 
   {#if viewerLoading}
     <Skeleton class="h-9 w-32" />
@@ -156,4 +149,4 @@ onMount(() => {
       bind:linkSearchQuery
     />
   {/if}
-</PageLayout>
+</CollectionPage>

@@ -7,10 +7,9 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
-import DetailPageLayout from "$lib/components/DetailPageLayout.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
@@ -51,15 +50,11 @@ function pageHref(page: number) {
       <ListPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
 {/snippet}
 
-<DetailPageLayout>
-  {#snippet header()}
-    <PageHeader title={organizer.name} description={youngCopy.organizersDescription}>
-      {#snippet actions()}
+<CollectionPage description={youngCopy.organizersDescription} layout="detail" title={organizer.name}>
+  {#snippet actions()}
         <Button href={`/catalog/young-events?organizerId=${encodeURIComponent(organizer.id)}`} variant="outline">
           {youngCopy.organizerEvents}
         </Button>
-      {/snippet}
-    </PageHeader>
   {/snippet}
       <Panel footer={events.pagination.totalPages > 1 ? paginationFooter : undefined}>
         {#snippet header()}
@@ -122,4 +117,4 @@ function pageHref(page: number) {
     />
     <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
   {/snippet}
-</DetailPageLayout>
+</CollectionPage>

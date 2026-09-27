@@ -10,7 +10,6 @@ import { toast } from "svelte-sonner";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
-import SettingsHeader from "@/features/settings/components/SettingsHeader.svelte";
 import SettingsPreferencesTab from "@/features/settings/components/SettingsPreferencesTab.svelte";
 import SettingsProfileTab from "@/features/settings/components/SettingsProfileTab.svelte";
 import SettingsSecurityTab from "@/features/settings/components/SettingsSecurityTab.svelte";
@@ -23,8 +22,8 @@ import {
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
 import type {
   SettingsAccount,
   SettingsCopy,
@@ -166,8 +165,7 @@ onMount(() => {
 
 <svelte:head><title>{copy.settings.title} - Life@USTC</title></svelte:head>
 
-<PageLayout width="content">
-  {#snippet header()}<SettingsHeader {copy} />{/snippet}
+<CollectionPage description={copy.settings.description} panel={false} title={copy.settings.title} width="content">
 
   <div class="grid gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-6">
     <DetailSectionNav
@@ -227,4 +225,4 @@ onMount(() => {
       {/if}
     </div>
   </div>
-</PageLayout>
+</CollectionPage>
