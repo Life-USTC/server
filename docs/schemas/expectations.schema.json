@@ -405,8 +405,56 @@
         },
         {
           "$ref": "#/$defs/state_visibility"
+        },
+        {
+          "$ref": "#/$defs/cache_freshness"
         }
       ]
+    },
+    "cache_freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "timestamp",
+        "max_age_seconds",
+        "expires_at_boundary",
+        "invalid_timestamps",
+        "future_timestamps",
+        "refresh_failure"
+      ],
+      "properties": {
+        "kind": {
+          "const": "cache_freshness"
+        },
+        "surface": {
+          "const": "service"
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "timestamp": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expires_at_boundary": {
+          "const": true
+        },
+        "invalid_timestamps": {
+          "const": "refresh"
+        },
+        "future_timestamps": {
+          "const": "refresh"
+        },
+        "refresh_failure": {
+          "const": "unavailable"
+        }
+      }
     }
   }
 }

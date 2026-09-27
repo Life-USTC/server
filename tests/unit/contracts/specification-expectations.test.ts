@@ -59,6 +59,36 @@ function numeric() {
 }
 
 describe("typed specification expectations", () => {
+  it("accepts finite cache freshness rules and rejects ambiguous or invalid expiry policies", async () => {
+    const validators = await loadSpecificationValidators();
+    const value = {
+      kind: "cache_freshness",
+      surface: "service",
+      operation: "getWeatherSnapshot",
+      timestamp: "fetchedAt",
+      max_age_seconds: 900,
+      expires_at_boundary: true,
+      invalid_timestamps: "refresh",
+      future_timestamps: "refresh",
+      refresh_failure: "unavailable",
+    };
+    expect(
+      validateSpecificationShapes([specification(value)], validators),
+    ).toEqual([]);
+    for (const invalid of [
+      { ...value, max_age_seconds: 0 },
+      { ...value, max_age_seconds: 0.5 },
+      { ...value, max_age_seconds: "900" },
+      { ...value, expires_at_boundary: false },
+      { ...value, invalid_timestamps: "serve" },
+      { ...value, future_timestamps: "serve" },
+      { ...value, refresh_failure: "pretend-fresh" },
+    ]) {
+      expect(
+        validateSpecificationShapes([specification(invalid)], validators),
+      ).not.toEqual([]);
+    }
+  });
   it("rejects the obsolete many-to-many acceptance shape", async () => {
     const validators = await loadSpecificationValidators();
     const file = specification(numeric());
