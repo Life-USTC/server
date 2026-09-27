@@ -226,3 +226,70 @@ test("rendering-and-cache.personal-overlays-5", async ({ browser }) => {
     await cleanup(users);
   }
 });
+
+test("rendering-and-cache.personal-overlays-7", async ({ page, context }) => {
+  const users = await createUsers();
+  try {
+    await context.addCookies([
+      await createSignedSessionCookie(users[0].id),
+      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+    ]);
+    await gotoAndWaitForReady(page, "/workspace/todos");
+    await expect(page.locator("#app-user-menu")).toContainText(users[0].name);
+    const localStorageBefore = await page.evaluate(() =>
+      JSON.stringify({ ...localStorage }),
+    );
+    expect(localStorageBefore).not.toContain(users[0].id);
+    expect(localStorageBefore).not.toContain(users[0].name);
+    await page.locator("#app-user-menu").click();
+    await page.getByRole("menuitem", { name: "Sign Out", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("#app-user-menu")).toHaveCount(0);
+    const anonymous = await page.request.get("/_internal/shell-bootstrap");
+    expect(await anonymous.json()).toEqual({ viewer: null, navigation: null });
+
+    await context.addCookies([await createSignedSessionCookie(users[1].id)]);
+    await gotoAndWaitForReady(page, "/catalog/courses");
+    await expect(page.locator("#app-user-menu")).toContainText(users[1].name);
+    await expect(page.locator("#app-user-menu")).not.toContainText(
+      users[0].name,
+    );
+    const second = await page.request.get("/_internal/shell-bootstrap");
+    expectPrivate(second);
+    const secondPayload = await second.json();
+    expect(secondPayload.navigation).toMatchObject({
+      userId: users[1].id,
+      pendingTodosCount: 0,
+      subscribedSectionCount: 0,
+    });
+    expect(JSON.stringify(secondPayload)).not.toContain(users[0].id);
+    await gotoAndWaitForReady(page, "/workspace/todos");
+    await expect(page.locator("#main-content")).not.toContainText("Shell task");
+
+    // A fresh authenticated navigation must also replace a previous signed-in projection.
+    await context.addCookies([await createSignedSessionCookie(users[0].id)]);
+    await page.reload();
+    await expect(page.locator("#app-user-menu")).toContainText(users[0].name);
+    await expect(page.locator("#app-user-menu")).not.toContainText(
+      users[1].name,
+    );
+    const first = await page.request.get("/_internal/shell-bootstrap");
+    const firstPayload = await first.json();
+    expect(firstPayload.navigation).toMatchObject({
+      userId: users[0].id,
+      pendingTodosCount: 2,
+      subscribedSectionCount: 1,
+    });
+    expect(JSON.stringify(firstPayload)).not.toContain(users[1].id);
+    const localStorageAfter = await page.evaluate(() =>
+      JSON.stringify({ ...localStorage }),
+    );
+    for (const user of users) {
+      expect(localStorageAfter).not.toContain(user.id);
+      expect(localStorageAfter).not.toContain(user.name);
+      expect(localStorageAfter).not.toContain(user.email);
+    }
+  } finally {
+    await cleanup(users);
+  }
+});

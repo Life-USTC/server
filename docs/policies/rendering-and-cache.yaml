@@ -213,6 +213,18 @@ requirements:
   topic: personal-overlays
   rule: Viewer shell state is not persisted in localStorage or a shared cache. Signing out or changing the
     authenticated viewer clears the previous viewer projection before another user can observe it.
+  acceptance:
+    given: Two isolated users have distinct identities, pending todo counts and subscription counts.
+    when: One browser signs out through the user menu, enters a second session, then reloads with the
+      first user's fresh session.
+    then:
+    - Sign-out produces an anonymous shell; each subsequent session shows only its matching viewer and
+      navigation, with no preceding user's tasks or identity.
+    - Private shell responses do not reuse another user's projection, and localStorage contains none
+      of either user's identity fields before or after those transitions.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-7
 - id: rendering-and-cache.personal-overlays-8
   category: privacy
   topic: personal-overlays
