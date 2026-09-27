@@ -252,6 +252,45 @@ requirements:
   topic: semantic-parity
   rule: Equivalent failures preserve the same domain error meaning and ownership-hiding behavior. HTTP status,
     GraphQL errors, and MCP error encoding follow their transport-specific contracts.
+- id: interface-hierarchy.private-delete-error-parity
+  category: authorization
+  topic: semantic-parity
+  rule: Deleting a missing todo or upload and deleting another owner's private todo or upload are indistinguishable on each transport. REST and GraphQL return 404, GraphQL uses NOT_FOUND, and MCP returns success=false with not_found. Denied requests do not alter the foreign record.
+  acceptance:
+    given: Two isolated owners have a private todo and upload; the caller has valid audience-bound write credentials and the rate-limit boundary admits requests.
+    when: Real REST, GraphQL and MCP requests attempt deletion of both foreign and nonexistent IDs.
+    then:
+    - Foreign and missing responses have equal public error payloads within each transport and reveal no foreign owner identity.
+    - The exact stored foreign rows remain unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.private-delete-error-parity
+- id: interface-hierarchy.shared-delete-error-parity
+  category: authorization
+  topic: semantic-parity
+  rule: Ordinary deletion of another author's visible comment or section homework returns a permission failure, while a missing target returns not_found. An author cannot delete a locked comment. REST and GraphQL encode permission failures as 403 (GraphQL FORBIDDEN); MCP distinguishes forbidden and locked. Rejections leave records unchanged.
+  acceptance:
+    given: An authenticated author, another author, visible shared content and an owned deleted comment exist; valid audience-bound tokens reach the actual services.
+    when: Real REST, GraphQL and MCP delete requests target foreign shared records, nonexistent records and the owned locked comment.
+    then:
+    - Missing records return 404/NOT_FOUND/not_found; foreign shared records return 403/FORBIDDEN/forbidden.
+    - The owned locked comment returns 403/FORBIDDEN/locked, and every rejected target remains unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.shared-delete-error-parity
+- id: interface-hierarchy.suspended-delete-error-parity
+  category: authorization
+  topic: semantic-parity
+  rule: An actively suspended owner cannot delete comments, section homework or uploads. REST and GraphQL return 403, GraphQL uses FORBIDDEN and MCP returns success=false with suspended. The original record remains committed unchanged.
+  acceptance:
+    given: An isolated owner has a comment, homework and upload, valid audience-bound write tokens and an active suspension; rate limiting admits the requests.
+    when: Real REST, GraphQL and MCP requests attempt each owned deletion.
+    then:
+    - Every transport rejects the currently suspended actor with its declared permission encoding.
+    - All three complete stored records remain unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.suspended-delete-error-parity
 - id: interface-hierarchy.semantic-parity-7
   category: consistency
   topic: semantic-parity
