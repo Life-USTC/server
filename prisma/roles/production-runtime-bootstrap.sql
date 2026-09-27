@@ -267,6 +267,7 @@ GRANT SELECT, DELETE ON TABLE
   "VerificationToken",
   "Session"
 TO life_ustc_function_owner;
+GRANT UPDATE ("id") ON TABLE "Comment" TO life_ustc_function_owner;
 GRANT UPDATE ("id") ON TABLE "User" TO life_ustc_function_owner;
 GRANT UPDATE ("id") ON TABLE "OAuthAccessToken" TO life_ustc_function_owner;
 GRANT UPDATE ("id") ON TABLE "OAuthRefreshToken" TO life_ustc_function_owner;
@@ -302,6 +303,8 @@ ALTER FUNCTION public.delete_own_account(
 ALTER FUNCTION public.remove_sign_in_method(text, text, text, jsonb)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.find_downloadable_upload(text)
+  OWNER TO life_ustc_function_owner;
+ALTER FUNCTION public.lock_comment_reply_parent(text)
   OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.comment_attachment_summaries(text[])
   OWNER TO life_ustc_function_owner;
@@ -358,6 +361,12 @@ CREATE POLICY "UserSectionSubscription_profile_reader" ON "UserSectionSubscripti
   FOR SELECT
   TO life_ustc_function_owner
   USING (true);
+
+DROP POLICY IF EXISTS "Comment_reply_parent_lock" ON "Comment";
+CREATE POLICY "Comment_reply_parent_lock" ON "Comment"
+  FOR UPDATE TO life_ustc_function_owner
+  USING (current_setting('app.comment_reply_lock', true) = 'on')
+  WITH CHECK (false);
 
 DROP POLICY IF EXISTS "UploadPending_cleanup_worker" ON "UploadPending";
 CREATE POLICY "UploadPending_cleanup_worker" ON "UploadPending"
@@ -418,6 +427,7 @@ CREATE POLICY "OAuthGrantUsageDaily_function_owner"
 GRANT EXECUTE ON FUNCTION public.remove_sign_in_method(text, text, text, jsonb)
   TO life_ustc_auth_runtime;
 GRANT EXECUTE ON FUNCTION
+  public.lock_comment_reply_parent(text),
   public.find_downloadable_upload(text),
   public.comment_attachment_summaries(text[]),
   public.get_public_profile_upload_stats(text, timestamp without time zone),

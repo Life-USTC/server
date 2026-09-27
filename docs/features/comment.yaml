@@ -59,14 +59,17 @@ requirements:
 - id: comment.visibility-modes
   category: authorization
   rule: Public active comments are readable anonymously; logged_in_only comments require an authenticated
-    viewer. A softbanned comment is readable only by its author or an administrator; hidden ancestors
+    viewer. A softbanned comment is readable by its author in ordinary surfaces or by an administrator
+    in a governance context. Ordinary reads do not expose administrator visibility overrides. Hidden ancestors
     may appear only as privacy-inert structural placeholders.
   acceptance:
-    given: Public, login-only, and differently owned softbanned roots coexist.
+    given: Public, login-only and differently owned softbanned roots coexist; the shared loader receives
+      ordinary viewers and an explicit governance administrator viewer.
     when: The production read model queries the restricted application database.
     then:
     - Anonymous reads exclude login-only and hidden root bodies.
-    - Signed-in owners see only their own softbanned comments; admins see all moderation states.
+    - Signed-in owners see only their own softbanned comments; the explicit governance administrator context
+      sees all moderation states.
     test:
       file: tests/integration/comment-read-model-pagination.test.ts
       name: comment.visibility-modes
@@ -74,6 +77,20 @@ requirements:
   category: authorization
   rule: Web, REST, and MCP comment reads use the same target resolution, visibility filtering, author
     masking, reactions, attachments, and viewer action projection.
+  acceptance:
+    given: A real target has public, login-only, anonymous, softbanned and deleted comments, nested replies,
+      an upload and a reaction.
+    when: Read as anonymous, author, another user and administrator through the Web read model, REST and
+      authenticated MCP full mode.
+    then:
+    - Web and REST match for every viewer; authenticated MCP matches the same nodes and metadata.
+    - All ordinary surfaces mask anonymous identities, enforce audience and owner visibility, and project
+      matching attachments and reactions.
+    - An ordinary administrator receives no governance visibility override; anonymous MCP is rejected
+      at its authentication boundary.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.shared-read-policy
 - id: comment.thread-pagination
   category: behavior
   rule: Root list pagination returns the exact viewer-visible root total independently of page size, including
@@ -92,6 +109,18 @@ requirements:
     editing and deletion additionally require ownership; replies and reactions do not confer ownership.
     Deleted or softbanned comments neither advertise nor accept ordinary edit, delete, reply, or reaction
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
+  acceptance:
+    given: Signed ordinary, foreign, administrator and suspended actors access active and locked comments.
+    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes.
+    then:
+    - Anonymous requests return 401 and suspended actors return 403 for ordinary mutations.
+    - Replies and reactions to another author's public active comment succeed without conferring edit/delete
+      ownership.
+    - Deleted and softbanned comments reject ordinary mutations.
+    - Only an unsuspended administrator can moderate through the governance route.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.interaction-gate
 - id: comment.web-markdown-hydration
   category: presentation
   rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
@@ -312,6 +341,15 @@ requirements:
   category: validation
   rule: Ordinary and moderation REST comment lists accept page and pageSize; the retired limit alias is
     not accepted.
+  acceptance:
+    given: Multiple real comments are available to ordinary and governance REST readers.
+    when: Read pages one and two with pageSize=1, then submit the retired limit parameter.
+    then:
+    - Both lists return distinct items with stable totals and correct page/pageSize.
+    - Both numeric and malformed limit values are rejected with 400.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.rest-pagination-parameters
 - id: comment.visibility-input
   category: validation
   rule: Comment create and update inputs accept only public or logged_in_only visibility. The independent
@@ -344,29 +382,100 @@ requirements:
   rule: Comment creation rejects uploads that are missing, owned by another user, or already attached
     to a comment. Editing rejects such uploads except those already attached to the comment being edited.
     REST returns 400 Invalid attachments.
+  acceptance:
+    given: Uploads include an unattached owned file, another user's file and an owned file already attached
+      elsewhere.
+    when: Create and edit through the actual REST routes using valid, missing, foreign and occupied uploads.
+    then:
+    - Invalid uploads return 400 Invalid attachments without changing content or links.
+    - Creation attaches an available owned upload; editing may retain its existing upload or replace it
+      with another available owned upload.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.attachment-ownership
 - id: comment.batch-delete-limit
   category: validation
   rule: Batch comment deletion accepts at most 50 unique comment IDs.
+  acceptance:
+    given: Fifty-one owned active comments exist.
+    when: Submit empty, oversized and normalized-duplicate batches, then fifty unique IDs to the real
+      REST endpoint.
+    then:
+    - Invalid batches return 400 without deletions.
+    - Exactly fifty unique IDs succeed and the fifty-first comment stays active.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.batch-delete-limit
 - id: comment.batch-delete-results
   category: behavior
   rule: Batch comment deletion returns stable per-item success, not_found, forbidden, or locked results
     and continues after an item failure.
+  acceptance:
+    given: A batch interleaves owned active, missing, foreign and locked comments.
+    when: Delete through the real REST batch endpoint.
+    then:
+    - Results retain input order and return success, not_found, forbidden and locked per item.
+    - A later eligible item succeeds after earlier item failures; ineligible rows remain unchanged.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.batch-delete-results
 - id: comment.batch-delete-shared-policy
   category: consistency
   rule: Every successful batch comment deletion uses the same ownership, suspension, interaction-lock,
     transaction, and audit path as single-comment deletion.
+  acceptance:
+    given: Single and batch deletes use real owned rows, foreign rows, locked rows and a suspended actor.
+    when: Inject an actual PostgreSQL audit failure through invalid JSON text, then retry normally and
+      compare rejected actors.
+    then:
+    - Both paths roll back deletion when the audit insert fails.
+    - Successful deletes each atomically produce one deletion timestamp and one matching audit record.
+    - Ownership, interaction locks and suspension produce the same domain errors in both paths.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.batch-delete-shared-policy
 - id: comment.focused-read-errors
   category: authorization
   rule: A missing or row-security-hidden focused comment returns 404. A database-visible comment excluded
     from the viewer-safe thread returns 403.
+  acceptance:
+    given: Focused IDs include a missing comment, another author's hidden row, an anonymous login-only
+      row and an owner-visible deleted leaf.
+    when: Call the real REST focused-read route under the corresponding viewer sessions.
+    then:
+    - Missing and row-security-hidden rows return 404.
+    - The database-visible deleted leaf excluded from its visible thread returns 403.
+    - Failures return no thread.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.focused-read-errors
 - id: comment.reply-read-errors
   category: authorization
   rule: REST reply continuation maps invalid or cross-thread cursors to 400, missing or row-security-hidden
     roots without visible descendants to 404, and database-visible inaccessible threads to 403.
+  acceptance:
+    given: Continuation roots include missing, row-security-hidden and database-visible inaccessible rows.
+    when: Call the real REST continuation route, then supply malformed and cross-root cursors for an accessible
+      root.
+    then:
+    - Missing or row-security-hidden roots return 404; the owner-visible deleted leaf returns 403.
+    - Malformed and cross-root cursors return 400 without a thread.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.reply-read-errors
 - id: comment.mcp-pagination-parameters
   category: behavior
   rule: The community_comment_list MCP tool accepts page and limit and returns the shared bounded root
     previews and continuation cursors.
+  acceptance:
+    given: A target has multiple roots and a root with thirteen replies.
+    when: Call the installed MCP list tool with page/limit and continue its preview cursor.
+    then:
+    - Pages contain distinct roots with stable totals and matching page sizes.
+    - The root preview contains ten replies; its cursor returns the remaining three once and then null.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.mcp-pagination-parameters
 - id: comment.mcp-write-audit-source
   category: consistency
   rule: Comment mutations through MCP record source=mcp in their audit metadata.
@@ -383,6 +492,15 @@ requirements:
   category: behavior
   rule: An omitted moderation comment status selects the active queue in both REST and the moderation
     page.
+  acceptance:
+    given: Active and softbanned comments coexist and the administrator has a real signed session.
+    when: Read the actual moderation REST route and page loader without a status filter.
+    then:
+    - The REST response equals explicit status=active.
+    - Both the page and REST response contain active comments exclusively.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: comment.moderation-default-status
 - id: comment.governance-anonymous-author-access
   category: authorization
   rule: Only an authenticated, currently unsuspended administrator may reveal anonymous comment identities
@@ -440,6 +558,25 @@ requirements:
     test:
       file: tests/integration/comment-target-contract.test.ts
       name: comment.section-teacher-target-lifecycle
+- id: comment.reply-moderation-lock
+  category: consistency
+  rule: Reply creation locks its visible parent for the duration of the transaction without requiring
+    ownership of the parent. If moderation commits first, the reply fails; if the reply commits first,
+    subsequent moderation may proceed. The lock helper accepts only an existing unsuspended actor and
+    an ordinarily readable row, and confers no public comment update authority.
+  acceptance:
+    given: Actual reply and administrator-moderation transactions contend on another author's public comment.
+    when: Hold each real audit write before commit in turn and observe the other production-role transaction
+      waiting on a PostgreSQL lock.
+    then:
+    - Moderation committed first prevents a reply; a reply committed first remains valid before subsequent
+      moderation.
+    - Empty, nonexistent, suspended and hidden-row actor contexts cannot obtain an unauthorized parent
+      lock.
+    - The ordinary caller still cannot update the other author's comment.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.reply-moderation-lock
 capabilities:
   object-comment-section:
     title: Object Comment Section

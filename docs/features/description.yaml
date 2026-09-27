@@ -219,6 +219,15 @@ requirements:
   category: validation
   rule: The REST description moderation list accepts page and pageSize; the retired limit alias is not
     accepted.
+  acceptance:
+    given: Two real descriptions match a unique governance search.
+    when: Read pages one and two with pageSize=1, then submit the retired limit parameter.
+    then:
+    - Both pages contain distinct descriptions and total=2.
+    - Both numeric and malformed limit values return 400.
+    test:
+      file: tests/integration/comment-read-contracts.test.ts
+      name: description.rest-pagination-parameters
 capabilities:
   object-description-section:
     title: Object Description Section

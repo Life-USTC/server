@@ -123,6 +123,12 @@ const expectedFunctions = [
   },
   {
     securityDefiner: true,
+    settings: ['search_path=""', "app.comment_reply_lock=on"],
+    signature: "public.lock_comment_reply_parent(p_comment_id text)",
+    volatility: "VOLATILE",
+  },
+  {
+    securityDefiner: true,
     settings: ['search_path=""'],
     signature:
       "public.maintain_audit_log_retention(p_now timestamp without time zone, p_batch_size integer)",
@@ -219,6 +225,7 @@ const expectedTablePrivileges = [
 ] as const;
 
 const expectedColumnPrivileges = [
+  "public.Comment:id:UPDATE",
   "public.DeviceCode:id:UPDATE",
   "public.OAuthAccessToken:id:UPDATE",
   "public.OAuthRefreshToken:id:UPDATE",
@@ -582,6 +589,17 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           schemaName: "public",
           tableName: "Comment",
           usingExpression: "true",
+        },
+        {
+          checkExpression: "false",
+          command: "UPDATE",
+          permissive: "PERMISSIVE",
+          policyName: "Comment_reply_parent_lock",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "Comment",
+          usingExpression:
+            "(current_setting('app.comment_reply_lock', true) = 'on')",
         },
         {
           checkExpression: null,

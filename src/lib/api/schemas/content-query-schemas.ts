@@ -55,10 +55,12 @@ const homeworkSectionIdsSchema = z
     },
   });
 
-export const commentsQuerySchema = commentTargetQueryInputSchema.extend({
-  page: integerStringSchema.optional(),
-  pageSize: paginationPageSizeParam(publicPageSizeSchema),
-});
+export const commentsQuerySchema = commentTargetQueryInputSchema
+  .extend({
+    page: integerStringSchema.optional(),
+    pageSize: paginationPageSizeParam(publicPageSizeSchema),
+  })
+  .strict();
 
 export const commentRepliesQuerySchema = z.object({
   cursor: z.string().trim().min(1).optional(),
