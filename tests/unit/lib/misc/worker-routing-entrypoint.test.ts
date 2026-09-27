@@ -178,7 +178,7 @@ describe("Worker routing entrypoint", () => {
     );
   });
 
-  it("keeps the original body request when no spoofable headers need cleanup", async () => {
+  it("forwards the edge request ID when the client supplies no correlation headers", async () => {
     const request = new Request(
       "https://life-ustc.test/api/workspace/subscriptions",
       {
@@ -194,7 +194,10 @@ describe("Worker routing entrypoint", () => {
       },
     );
     appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
-      expect(forwardedRequest).toBe(request);
+      expect(forwardedRequest.method).toBe("PATCH");
+      expect(forwardedRequest.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBe(
+        trustedContextRequestId,
+      );
       expect(trustedContextRequestId).toMatch(/^[0-9a-f-]{36}$/i);
       return new Response("unauthorized", { status: 401 });
     });
@@ -202,7 +205,9 @@ describe("Worker routing entrypoint", () => {
     const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
 
     expect(response.status).toBe(401);
-    expect(appFetchMock.mock.calls[0]?.[0]).toBe(request);
+    expect(
+      appFetchMock.mock.calls[0]?.[0].headers.get(INTERNAL_REQUEST_ID_HEADER),
+    ).toBe(response.headers.get("x-request-id"));
     expect(trustedContextRequestId).toBe(response.headers.get("x-request-id"));
     expect(logAppEventMock).toHaveBeenCalledWith(
       "info",
@@ -213,6 +218,27 @@ describe("Worker routing entrypoint", () => {
         status: 401,
       }),
     );
+  });
+
+  it("cancels an unread body after early rejection without creating a second stream branch", async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("unread body"));
+      },
+      cancel,
+    });
+    appFetchMock.mockResolvedValueOnce(
+      new Response("unauthorized", { status: 401 }),
+    );
+    const requestInit = { body, method: "PUT", duplex: "half" };
+    const request = new Request(
+      "https://life-ustc.test/api/workspace/uploads/object",
+      requestInit,
+    );
+    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+    expect(response.status).toBe(401);
+    expect(cancel).toHaveBeenCalledExactlyOnceWith("request body released");
   });
 
   it("records exactly one completion for a public SSR response", async () => {

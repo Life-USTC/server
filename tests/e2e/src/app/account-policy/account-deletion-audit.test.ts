@@ -113,6 +113,7 @@ test("audit.action-account-delete", async ({ page }) => {
     ).toBe(0);
     await expect.poll(async () => (await audits()).length).toBe(3);
     const rows = await audits();
+    expect(rows.map((row) => row.requestId)).toEqual(requestIds);
     expect(rows.map((row) => row.outcome)).toEqual([
       "denied",
       "failure",
