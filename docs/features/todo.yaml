@@ -23,6 +23,21 @@ requirements:
   rule: Anonymous callers cannot read or write personal todos. Authenticated users can only read and manage
     their own todos on every surface, including through OAuth-authorized clients. Administrator status
     never grants ordinary access to another user's todos.
+  acceptance:
+    given: An isolated regular user and administrator each own one private todo, and independent OAuth
+      clients receive todo read/write grants.
+    when: Anonymous, signed Web, REST, GraphQL and real HTTP MCP callers read lists, create/edit/delete
+      owned todos, and attempt individual or batch writes to the other owner’s todo.
+    then:
+    - Anonymous reads and writes never reveal or modify private todos.
+    - Each owner, including the administrator and OAuth clients, sees only their own list and can manage
+      their own records.
+    - Foreign IDs and caller-supplied user IDs cannot redirect ownership; mixed-owner batches mutate only
+      the owned item.
+    - The other owner’s complete stored record remains unchanged after every transport.
+    test:
+      file: tests/e2e/src/app/workspace/todos/ownership-contract.test.ts
+      name: todo.personal-ownership
 - id: todo.web-list-state
   category: presentation
   rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
