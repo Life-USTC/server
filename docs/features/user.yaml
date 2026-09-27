@@ -319,10 +319,41 @@ requirements:
       name: user.public-profile-id-addressability
 - id: user.account-deletion-retention
   category: consistency
-  rule: Settings account deletion requires an authoritative session created within the last 15 minutes.
-    Actor and subject relations are anonymized by their database foreign keys; the post-deletion success
-    event does not retain the deleted user ID. Deleting an admin account is allowed only when at least
-    one other admin remains.
+  rule: Account deletion removes the user and anonymizes retained actor/subject relations, user-target audit identifiers and suspension attribution. The successful deletion event must not retain the deleted user ID.
+  rationale: Session freshness and last-administrator protection are separate authorization requirements. Opaque audit correlation identifiers retain their existing retention policy and are not public identity labels.
+  acceptance:
+    given: An isolated account owns audit actor/subject/target references and has issued a suspension.
+    when: The actual deletion service commits using the restricted authentication runtime.
+    then:
+    - The user is deleted; audit and suspension records remain with the deleted account's relations anonymized.
+    - Exactly one successful deletion event is stored and contains no deleted user ID.
+    test:
+      file: tests/integration/collaborative-invariants.test.ts
+      name: user.account-deletion-retention
+- id: user.account-deletion-session-authority
+  category: authorization
+  rule: The database account-deletion boundary accepts only a live session owned by the subject with a creation age of at least zero and strictly less than 15 minutes. Stale, future-dated, expired, revoked and other-user sessions cannot delete the subject.
+  acceptance:
+    given: Isolated users have stale, future-dated, expired, revoked, other-user and fresh sessions.
+    when: The actual account deletion service invokes the production database function for each authority.
+    then:
+    - Every invalid authority is denied with the subject preserved.
+    - A fresh owned session deletes only its owner.
+    test:
+      file: tests/integration/account-deletion-contract.test.ts
+      name: user.account-deletion-session-authority
+- id: user.account-deletion-last-admin
+  category: authorization
+  rule: Self-service administrator deletion is allowed only while another administrator remains.
+  acceptance:
+    given: An isolated rollback transaction has exactly two administrators and switches to the production authentication role before deletion.
+    when: The actual database deletion function is called for both administrators in sequence.
+    then:
+    - The first deletion succeeds and deleting the last administrator is denied.
+    - One administrator remains, and rolling back restores the original administrator population.
+    test:
+      file: tests/integration/account-deletion-contract.test.ts
+      name: user.account-deletion-last-admin
 - id: user.sensitive-account-recent-auth
   category: authorization
   rule: Adding credentials or linked accounts, expanding OAuth grants, changing passwords or email, deleting

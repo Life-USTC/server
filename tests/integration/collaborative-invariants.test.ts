@@ -124,7 +124,7 @@ describe("协作数据不变量", () => {
     }
   });
 
-  it("删除账户并匿名化审计行与已发出的封禁", async () => {
+  it("user.account-deletion-retention", async () => {
     const prefix = marker("account-delete");
     const [remainingAdmin, deletingAdmin, suspendedUser] = await Promise.all([
       fixturePrisma.user.create({
@@ -204,6 +204,7 @@ describe("协作数据不变量", () => {
         deleteOwnAccount(deletingAdmin.id, {
           channel: "system",
           sessionId: deletionSession.id,
+          requestId: prefix,
         }),
       ).resolves.toEqual({ ok: true });
 
@@ -216,6 +217,20 @@ describe("协作数据不变量", () => {
           select: { subjectUserId: true, targetId: true, userId: true },
         }),
       ).resolves.toEqual({ subjectUserId: null, targetId: null, userId: null });
+      const success = await fixturePrisma.auditLog.findMany({
+        where: {
+          action: "account_delete",
+          outcome: "success",
+          requestId: prefix,
+        },
+      });
+      expect(success).toHaveLength(1);
+      expect(success[0]).toMatchObject({
+        userId: null,
+        subjectUserId: null,
+        targetId: null,
+      });
+      expect(JSON.stringify(success)).not.toContain(deletingAdmin.id);
       await expect(
         fixturePrisma.userSuspension.findUnique({
           where: { id: suspension.id },
@@ -232,7 +247,11 @@ describe("协作数据不变量", () => {
       });
       await fixturePrisma.auditLog.deleteMany({
         where: {
-          OR: [{ id: auditLog.id }, { targetId: otherUser.id }],
+          OR: [
+            { id: auditLog.id },
+            { targetId: otherUser.id },
+            { requestId: prefix },
+          ],
         },
       });
       await fixturePrisma.user.deleteMany({
