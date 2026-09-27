@@ -182,7 +182,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
             width === 1280
               ? row.locator(`a[href="${href}"]`).first()
               : row.locator('[data-slot="item-title"]');
-          const primary =
+          const primary: Record<string, PriorityField> =
             kind === "teacher"
               ? {
                   "teacher.namePrimary": field(identity, name(teacher, locale)),
@@ -204,7 +204,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
                       name(teacher, locale),
                     ),
                   };
-          const secondary =
+          const secondary: Record<string, PriorityField> =
             kind === "course"
               ? {
                   "course.nameSecondary": secondaryName(
@@ -308,7 +308,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
           await gotoAndWaitForReady(page, href);
           const heading = page.getByRole("heading", { level: 1 });
           const aside = main.locator("aside");
-          const detailPrimary =
+          const detailPrimary: Record<string, PriorityField> =
             kind === "teacher"
               ? { "teacher.namePrimary": field(heading, name(teacher, locale)) }
               : kind === "course"
@@ -325,7 +325,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
                       name(teacher, locale),
                     ),
                   };
-          const detailSecondary =
+          const detailSecondary: Record<string, PriorityField> =
             kind === "course"
               ? {
                   "course.nameSecondary": secondaryName(
