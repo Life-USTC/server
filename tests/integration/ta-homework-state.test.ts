@@ -3,6 +3,12 @@ import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/c
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { createFixturePrisma } from "../shared/prisma";
+import { homeworkExpectation } from "../shared/specifications/homework";
+
+const specification = homeworkExpectation(
+  "homework.teaching-assistant-completion",
+  "subscription_completion",
+);
 
 const db = createFixturePrisma();
 const users = [crypto.randomUUID(), crypto.randomUUID()];
@@ -35,7 +41,7 @@ beforeAll(async () => {
     data: users.map((userId, index) => ({
       userId,
       sectionId: section.id,
-      kind: index === 0 ? "teaching_assistant" : "regular",
+      kind: index === 0 ? specification.subscription_kind : "regular",
     })),
   });
   await db.homework.createMany({
@@ -70,7 +76,9 @@ it("derives TA pending membership before pagination and preserves actual complet
   expect(pending.pagination.total).toBe(2);
   expect(pending.data).toHaveLength(1);
   expect(pending.data[0].id).toBe(ids[1]);
-  expect(pending.data[0].completionRequired).toBe(false);
+  expect(pending.data[0].completionRequired).toBe(
+    specification.completion_required,
+  );
 
   expect(
     (await getIncompleteHomeworkCalendarItems(users[0], [section.id], now)).map(
@@ -81,7 +89,10 @@ it("derives TA pending membership before pagination and preserves actual complet
   const all = await read(users[0]);
   expect(all.pagination.total).toBe(4);
   expect(
-    all.data.every((homework) => homework.completionRequired === false),
+    all.data.every(
+      (homework) =>
+        homework.completionRequired === specification.completion_required,
+    ),
   ).toBe(true);
   expect(
     all.data.find((homework) => homework.id === ids[3])?.completion,
@@ -126,7 +137,7 @@ it("derives TA pending membership before pagination and preserves actual complet
   await updateSubscriptionKind({
     userId: users[0],
     sectionJwId: section.jwId,
-    kind: "teaching_assistant",
+    kind: specification.subscription_kind,
   });
   expect((await read(users[0], false)).pagination.total).toBe(2);
   expect(
@@ -134,5 +145,9 @@ it("derives TA pending membership before pagination and preserves actual complet
       where: { userId: users[0] },
       select: { homeworkId: true, completedAt: true },
     }),
-  ).toEqual([{ homeworkId: ids[3], completedAt: now }]);
+  ).toEqual(
+    specification.preserve_records
+      ? [{ homeworkId: ids[3], completedAt: now }]
+      : [],
+  );
 });
