@@ -5,6 +5,7 @@ import { createHomeworkForSection } from "@/features/homeworks/server/homework-c
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { assertHomeworkWriteTransportAuthorization } from "../shared/community-write-parity";
+import { assertHomeworkCompletionTransportOwnership } from "../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
@@ -137,6 +138,7 @@ it("homework.entity-and-completion-separated", async () => {
 });
 
 it("homework.completion-owner", async () => {
+  await assertHomeworkCompletionTransportOwnership();
   const homework = await create();
   expect(
     await setHomeworkCompletion({

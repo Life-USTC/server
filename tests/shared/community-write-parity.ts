@@ -25,12 +25,14 @@ function commentCreate(
   sectionJwId: number,
   body: string,
   parentId?: string,
+  attachmentIds?: string[],
 ): Operation {
   const input = {
     targetType: "section",
     sectionJwId,
     body,
     ...(parentId ? { parentId } : {}),
+    ...(attachmentIds ? { attachmentIds } : {}),
   };
   return {
     rest: { path: "/api/community/comments", method: "POST", body: input },
@@ -43,22 +45,27 @@ function commentCreate(
     mcp: { name: "community_comment_create", arguments: input },
   };
 }
-function commentUpdate(id: string, body: string): Operation {
+function commentUpdate(
+  id: string,
+  body: string,
+  attachmentIds?: string[],
+): Operation {
+  const input = { body, ...(attachmentIds ? { attachmentIds } : {}) };
   return {
     rest: {
       path: `/api/community/comments/${id}`,
       method: "PATCH",
-      body: { body },
+      body: input,
     },
     graphql: {
       field: "commentUpdate",
       query:
         "mutation($id: ID!, $input: UpdateCommentInput!) { commentUpdate(id:$id,input:$input) { id } }",
-      variables: { id, input: { body } },
+      variables: { id, input },
     },
     mcp: {
       name: "community_comment_update",
-      arguments: { commentId: id, body },
+      arguments: { commentId: id, ...input },
     },
   };
 }
@@ -459,5 +466,120 @@ export async function assertHomeworkWriteTransportAuthorization() {
         true,
       );
     expect(await h.snapshot()).toEqual(before);
+  });
+}
+
+export async function assertCommentAttachmentTransportOwnership() {
+  await withWriteParity("community.comment", async (h) => {
+    const upload = (userId: string) =>
+      h.db.upload.create({
+        data: {
+          userId,
+          key: crypto.randomUUID(),
+          filename: "attachment.txt",
+          size: 10,
+        },
+      });
+    const uploads = () =>
+      h.db.upload.findMany({
+        where: { userId: { in: h.actors.map((actor) => actor.id) } },
+        orderBy: { id: "asc" },
+      });
+    for (const transport of transports)
+      for (const actor of h.actors) {
+        const other = h.actors.find((other) => other.id !== actor.id);
+        if (!other) throw new Error("Missing second fixture owner");
+        const own = await upload(actor.id);
+        const replacement = await upload(actor.id);
+        const foreign = await upload(other.id);
+        const occupied = await upload(actor.id);
+        const occupiedComment = await h.db.comment.create({
+          data: {
+            sectionId: h.section.id,
+            userId: actor.id,
+            body: "occupied",
+            attachments: { create: { uploadId: occupied.id } },
+          },
+        });
+        const originalUploads = await uploads();
+        const beforeCreate = await h.snapshot();
+        for (const invalid of [
+          foreign.id,
+          occupied.id,
+          `${h.fixture.marker}-missing`,
+        ]) {
+          await h.call(
+            transport,
+            commentCreate(h.section.jwId, "rejected", undefined, [invalid]),
+            actor,
+            "invalid_attachments",
+          );
+          expect(await h.snapshot()).toEqual(beforeCreate);
+        }
+        await h.call(
+          transport,
+          commentCreate(h.section.jwId, "attached", undefined, [own.id]),
+          actor,
+        );
+        const created = await h.db.comment.findFirstOrThrow({
+          where: {
+            sectionId: h.section.id,
+            attachments: { some: { uploadId: own.id } },
+          },
+        });
+        await h.call(
+          transport,
+          commentUpdate(created.id, "retained", [own.id]),
+          actor,
+        );
+        const beforeUpdate = await h.snapshot();
+        for (const invalid of [
+          foreign.id,
+          occupied.id,
+          `${h.fixture.marker}-missing`,
+        ]) {
+          await h.call(
+            transport,
+            commentUpdate(created.id, "rejected", [invalid]),
+            actor,
+            "invalid_attachments",
+          );
+          expect(await h.snapshot()).toEqual(beforeUpdate);
+        }
+        await h.call(
+          transport,
+          commentUpdate(created.id, "replaced", [replacement.id]),
+          actor,
+        );
+        expect(
+          await h.db.comment.findUniqueOrThrow({ where: { id: created.id } }),
+        ).toMatchObject({
+          userId: actor.id,
+          body: "replaced",
+        });
+        expect(
+          await h.db.commentAttachment.findMany({
+            where: { commentId: created.id },
+            select: { uploadId: true },
+          }),
+        ).toEqual([{ uploadId: replacement.id }]);
+        expect(
+          await h.db.commentAttachment.findMany({
+            where: { commentId: occupiedComment.id },
+            select: { uploadId: true },
+          }),
+        ).toEqual([{ uploadId: occupied.id }]);
+        await h.call(
+          transport,
+          commentUpdate(created.id, "detached", []),
+          actor,
+        );
+        expect(
+          await h.db.commentAttachment.count({
+            where: { commentId: created.id },
+          }),
+        ).toBe(0);
+        expect(await uploads()).toEqual(originalUploads);
+      }
   });
 }

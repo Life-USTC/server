@@ -16,6 +16,7 @@ import * as audit from "@/lib/audit/write-audit-log";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
 import {
+  assertCommentAttachmentTransportOwnership,
   assertCommentWriteTransportAuthorization,
   assertDescriptionWriteTransportAuthorization,
 } from "../shared/community-write-parity";
@@ -111,6 +112,7 @@ async function upload(userId = owner) {
 }
 
 it("comment.attachment-ownership", async () => {
+  await assertCommentAttachmentTransportOwnership();
   const own = await upload();
   const otherUpload = await upload(other);
   const occupied = await upload();

@@ -14,6 +14,7 @@ import { deleteCommentReactionRoute } from "@/lib/api/routes/comment-reaction-de
 import { postCommentRoute } from "@/lib/api/routes/comments-create-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
 import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
+import { putHomeworkCompletionRoute } from "@/lib/api/routes/homework-completion";
 import {
   patchHomeworkRoute,
   postHomeworkRoute,
@@ -60,6 +61,7 @@ export type Outcome =
   | "not_found"
   | "target_not_found"
   | "parent_not_found"
+  | "invalid_attachments"
   | "invalid_slug"
   | "invalid_bus_preference"
   | "missing_notification"
@@ -128,6 +130,11 @@ export async function createWriteTransportHarness(features: string[]) {
                 young[2],
                 young[1] === "event-subscriptions" ? "events" : "organizers",
               );
+        const completion = path.match(
+          /^\/api\/workspace\/homeworks\/([^/]+)\/completion$/,
+        );
+        if (completion)
+          return putHomeworkCompletionRoute(request, { id: completion[1] });
         if (path === "/api/community/comments")
           return postCommentRoute(request);
         if (path === "/api/community/descriptions")
@@ -322,7 +329,9 @@ export async function createWriteTransportHarness(features: string[]) {
       return payload;
     }
     const invalid =
-      expected === "invalid_slug" || expected === "invalid_bus_preference";
+      expected === "invalid_slug" ||
+      expected === "invalid_bus_preference" ||
+      expected === "invalid_attachments";
     const missing = [
       "not_found",
       "target_not_found",

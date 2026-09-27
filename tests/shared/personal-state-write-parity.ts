@@ -328,3 +328,124 @@ export async function assertYoungWriteTransportAuthority() {
     await h.cleanup();
   }
 }
+
+function homeworkCompletion(homeworkId: string, completed: boolean): Operation {
+  return {
+    rest: {
+      path: `/api/workspace/homeworks/${homeworkId}/completion`,
+      method: "PUT",
+      body: { completed },
+    },
+    graphql: {
+      field: "homeworkCompletionSet",
+      query:
+        "mutation($id:ID!, $completed:Boolean!) { homeworkCompletionSet(homeworkId:$id,completed:$completed) { homeworkId completed completedAt } }",
+      variables: { id: homeworkId, completed },
+    },
+    mcp: {
+      name: "workspace_homework_completion_set",
+      arguments: { homeworkId, completed },
+    },
+  };
+}
+
+export async function assertHomeworkCompletionTransportOwnership() {
+  const h = await createWriteTransportHarness(["workspace.homework"]);
+  try {
+    const homework = await h.db.homework.create({
+      data: {
+        sectionId: h.section.id,
+        createdById: h.actors[0].id,
+        title: "Shared homework",
+      },
+    });
+    const deleted = await h.db.homework.create({
+      data: {
+        sectionId: h.section.id,
+        createdById: h.actors[0].id,
+        title: "Deleted homework",
+        deletedAt: new Date(),
+      },
+    });
+    for (const actor of h.actors)
+      await h.db.homeworkCompletion.create({
+        data: { homeworkId: homework.id, userId: actor.id },
+      });
+    const rows = () =>
+      h.db.homeworkCompletion.findMany({
+        where: { homeworkId: homework.id },
+        orderBy: { userId: "asc" },
+      });
+    for (const transport of transports)
+      for (const actor of h.actors) {
+        const foreignBefore = (await rows()).filter(
+          (row) => row.userId !== actor.id,
+        );
+        for (const completed of [false, true]) {
+          const result = await h.call(
+            transport,
+            homeworkCompletion(homework.id, completed),
+            actor,
+          );
+          const actual = transport === "mcp" ? result.completion : result;
+          expect(actual.completed).toBe(completed);
+          const own = (await rows()).find((row) => row.userId === actor.id);
+          expect(
+            actual.completedAt === null
+              ? null
+              : new Date(actual.completedAt).getTime(),
+          ).toBe(own?.completedAt.getTime() ?? null);
+          expect(
+            (await rows()).filter((row) => row.userId !== actor.id),
+          ).toEqual(foreignBefore);
+        }
+      }
+    const before = await h.snapshot();
+    for (const transport of transports) {
+      for (const outcome of ["anonymous", "read_scope"] as const)
+        await h.call(
+          transport,
+          homeworkCompletion(homework.id, false),
+          h.actors[0],
+          outcome,
+        );
+      for (const id of [deleted.id, `${h.fixture.marker}-missing`])
+        for (const completed of [true, false])
+          await h.call(
+            transport,
+            homeworkCompletion(id, completed),
+            h.actors[0],
+            "not_found",
+          );
+      expect(await h.snapshot()).toEqual(before);
+    }
+    await h.db.userSuspension.create({
+      data: { userId: h.actors[0].id, reason: h.fixture.marker },
+    });
+    const foreignBefore = (await rows()).filter(
+      (row) => row.userId !== h.actors[0].id,
+    );
+    for (const transport of transports)
+      for (const completed of [false, true]) {
+        await h.call(
+          transport,
+          homeworkCompletion(homework.id, completed),
+          h.actors[0],
+        );
+        expect(
+          (await rows()).some((row) => row.userId === h.actors[0].id),
+        ).toBe(completed);
+        expect(
+          (await rows()).filter((row) => row.userId !== h.actors[0].id),
+        ).toEqual(foreignBefore);
+      }
+    expect(
+      await h.db.homework.findUnique({ where: { id: homework.id } }),
+    ).toEqual(homework);
+    expect(
+      await h.db.homework.findUnique({ where: { id: deleted.id } }),
+    ).toEqual(deleted);
+  } finally {
+    await h.cleanup();
+  }
+}
