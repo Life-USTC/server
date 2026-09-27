@@ -62,6 +62,165 @@ async function cleanup(fixture: Awaited<ReturnType<typeof createFixture>>) {
   });
 }
 
+test("ui.global-search-results-2", async ({ page }) => {
+  const fixture = await createFixture();
+  let campusId: number | undefined;
+  let semesterId: number | undefined;
+  let extraTeacherId: number | undefined;
+  let extraSectionId: number | undefined;
+  try {
+    const { campus, teacherA, teacherB, noTeacher } = await withE2ePrisma(
+      async (db) => {
+        const campus = await db.campus.create({
+          data: {
+            jwId: fixture.course.jwId + 10,
+            nameCn: "身份测试校区",
+            nameEn: "Identity campus",
+          },
+        });
+        campusId = campus.id;
+        const semester = await db.semester.create({
+          data: {
+            jwId: fixture.course.jwId + 10,
+            code: fixture.course.code,
+            nameCn: "2015年秋季学期",
+          },
+        });
+        semesterId = semester.id;
+        const teacherA = await db.teacher.update({
+          where: { id: fixture.teacher.id },
+          data: {
+            nameCn: "A 教师",
+            nameEn: "Teacher A",
+          },
+        });
+        const teacherB = await db.teacher.create({
+          data: {
+            id: fixture.teacher.id + 10,
+            jwId: fixture.teacher.jwId + 10,
+            code: `${fixture.course.code}-B`,
+            nameCn: "B 教师",
+            nameEn: "Teacher B",
+          },
+        });
+        extraTeacherId = teacherB.id;
+        await db.section.update({
+          where: { id: fixture.section.id },
+          data: {
+            campusId: campus.id,
+            semesterId: semester.id,
+            teachers: { connect: { id: teacherB.id } },
+          },
+        });
+        const noTeacher = await db.section.create({
+          data: {
+            id: fixture.section.id + 10,
+            jwId: fixture.section.jwId + 10,
+            code: `${fixture.course.code}.02`,
+            courseId: fixture.course.id,
+          },
+        });
+        extraSectionId = noTeacher.id;
+        return { campus, teacherA, teacherB, noTeacher };
+      },
+    );
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      const courseName =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!courseName)
+        throw new Error("Course fixture must provide both localized names");
+      const teachers =
+        locale === "zh-cn"
+          ? `${teacherA.nameCn}、${teacherB.nameCn}`
+          : `${teacherA.nameEn}, ${teacherB.nameEn}`;
+      const campusName = locale === "zh-cn" ? campus.nameCn : campus.nameEn;
+      for (const [section, title, description] of [
+        [
+          fixture.section,
+          `${courseName} · ${teachers}`,
+          `${locale === "zh-cn" ? "2015年秋季学期" : "Fall 2015"} · ${campusName} · ${fixture.section.code}`,
+        ],
+        [
+          noTeacher,
+          `${courseName} · ${noTeacher.code}`,
+          `${locale === "zh-cn" ? "未知" : "Unknown"} · ${noTeacher.code}`,
+        ],
+      ] as const) {
+        await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
+        const result = page
+          .getByRole("option")
+          .filter({ has: page.getByText(title, { exact: true }) });
+        await expect(result).toHaveCount(1);
+        expect((await result.innerText()).trim()).toBe(
+          `${title}\n${description}`,
+        );
+        await result.click();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/sections/${section.jwId}$`),
+        );
+      }
+    }
+  } finally {
+    if (extraSectionId)
+      await withE2ePrisma((db) =>
+        db.section.delete({ where: { id: extraSectionId } }),
+      );
+    await cleanup(fixture);
+    if (extraTeacherId)
+      await withE2ePrisma((db) =>
+        db.teacher.delete({ where: { id: extraTeacherId } }),
+      );
+    if (campusId)
+      await withE2ePrisma((db) =>
+        db.campus.delete({ where: { id: campusId } }),
+      );
+    if (semesterId)
+      await withE2ePrisma((db) =>
+        db.semester.delete({ where: { id: semesterId } }),
+      );
+  }
+});
+
+test("ui.global-search-results-3", async ({ page }) => {
+  const fixture = await createFixture();
+  try {
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
+      const name =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!name)
+        throw new Error("Course fixture must provide both localized names");
+      const result = page
+        .getByRole("option")
+        .filter({ has: page.getByText(name, { exact: true }) });
+      await expect(result).toHaveCount(1);
+      expect((await result.innerText()).trim()).toBe(
+        `${name}\n${fixture.course.code}`,
+      );
+      await result.click();
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/courses/${fixture.course.jwId}$`),
+      );
+    }
+  } finally {
+    await cleanup(fixture);
+  }
+});
+
 test("ui.global-search-results-4", async ({ page }, testInfo) => {
   const fixture = await createFixture();
   const marker = crypto.randomUUID().slice(0, 8);
