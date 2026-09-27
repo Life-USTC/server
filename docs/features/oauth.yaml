@@ -50,16 +50,48 @@ requirements:
     DPoP-bound tokens is rejected because the exposed resource servers accept Bearer tokens only.
   rationale: DCR is a supported current client-registration protocol, not a fallback for obsolete registration
     paths.
+  acceptance:
+    given: The actual dynamic registration facade and installed provider with isolated production-role
+      database.
+    when: Register a valid native public client, then a DPoP-required client.
+    then:
+    - Valid registration returns 201 with provider-normalized metadata persisted under the returned client
+      ID.
+    - DPoP-only registration returns invalid_client_metadata and persists no client.
+    test:
+      file: tests/integration/oauth-registration-contracts.test.ts
+      name: oauth.dcr-via-provider
 - id: oauth.dcr-device-only-no-redirect
   category: validation
   rule: Dynamic client registration for a device-only client may omit redirect_uris; any provider-adapter
     placeholder redirect URI must not be persisted or returned as registered client metadata.
+  acceptance:
+    given: The real provider registration endpoint and empty or absent device-only redirect metadata.
+    when: Register device-code-only clients without redirect URIs.
+    then:
+    - Registration succeeds with only the device-code grant, no client secret, and an empty redirect list.
+    - Neither persisted nor returned metadata contains the temporary adapter callback.
+    test:
+      file: tests/integration/oauth-registration-contracts.test.ts
+      name: oauth.dcr-device-only-no-redirect
 - id: oauth.dcr-rules-from-provider
   category: consistency
   rule: Dynamic registration accepts explicitly allowlisted standard identity scopes and public feature:action
-    scopes. It cannot grant administrator governance. Public clients require PKCE, issued tokens are resource-bound,
-    and reuse of a rotated refresh token is rejected. Provider configuration is the shared source of registration
-    defaults and validation.
+    scopes. It cannot grant administrator governance or register client_credentials. Provider configuration
+    is the shared source of registration defaults and validation.
+  rationale: PKCE is owned by oauth.public-clients-pkce, resource binding by oauth.authorization-code-resource-binding,
+    and refresh-token reuse by oauth.rotated-refresh-replay. Registration metadata does not replace per-user
+    consent.
+  acceptance:
+    given: The installed provider with its configured public registration scope allowlist.
+    when: Register standard identity and public feature scopes, then administrator, fabricated client-activity
+      write, obsolete MCP, unknown scopes, and client_credentials.
+    then:
+    - Public requested scopes are accepted within the provider-advertised allowlist.
+    - Invalid scopes and unsupported service-account grants fail without persisting a client.
+    test:
+      file: tests/integration/oauth-registration-contracts.test.ts
+      name: oauth.dcr-rules-from-provider
 - id: oauth.llm-platform-oauth-compatibility
   category: consistency
   rule: Remote MCP clients may use discovery, CIMD, authorization code with PKCE, /api/mcp resource indicators,
@@ -75,9 +107,35 @@ requirements:
     no additional cached-client or implicit trust mechanism is promised.
 - id: oauth.public-clients-pkce
   category: authorization
-  rule: Public MCP / CLI / native clients use public + PKCE mode and token_endpoint_auth_method=none stores
-    or returns no client secret; the admin inventory must explicitly label trust and fixed authentication
-    type to reduce misconfiguration probability.
+  rule: Public MCP, CLI, and native clients use PKCE with token_endpoint_auth_method=none. Registration
+    stores and returns no client secret, and authorization requires S256 PKCE.
+  acceptance:
+    given: A public client created by the actual dynamic-registration endpoint.
+    when: Inspect returned/stored credentials and begin authorization with missing, plain, or S256 PKCE.
+    then:
+    - The fixed token authentication method is none and no client secret is returned or stored.
+    - Missing/plain PKCE fails; S256 proceeds to the real sign-in flow.
+    test:
+      file: tests/integration/oauth-registration-contracts.test.ts
+      name: oauth.public-clients-pkce
+- id: oauth.client-authentication-inventory
+  category: presentation
+  rule: The administrator OAuth client inventory explicitly labels client trust and the fixed client authentication
+    method, including public clients without a secret, to prevent authentication-mode misconfiguration.
+- id: oauth.rotated-refresh-replay
+  category: authorization
+  rule: Reusing a rotated refresh token outside the provider-configured bounded retry interval is rejected
+    and never issues new access or refresh credentials.
+  acceptance:
+    given: An authorization code exchanged by the actual token route and then a successfully rotated real
+      refresh token.
+    when: Move its recorded rotation outside the provider retry interval and replay the old token.
+    then:
+    - The initial rotation issues a distinct replacement refresh token.
+    - Replaying the old token returns invalid_grant and no access or refresh token.
+    test:
+      file: tests/integration/oauth-resource-binding.test.ts
+      name: oauth.rotated-refresh-replay
 - id: oauth.user-delegated-grants-only
   category: authorization
   rule: 'OAuth discovery metadata advertises only user-delegated grants: authorization_code, refresh_token,
@@ -206,11 +264,32 @@ requirements:
   rule: 'The MCP transport endpoint /api/mcp should also support browser-based clients and debugging tools
     using Bearer tokens: answer OPTIONS preflights, allow the MCP-specific request headers, and expose
     MCP-Session-Id and WWW-Authenticate on cross-origin transport responses.'
+  acceptance:
+    given: A real MCP HTTP handler with a valid resource-bound token and a trusted browser Origin.
+    when: Send a preflight and both unauthenticated and authenticated workspace tool requests.
+    then:
+    - The preflight allows the required Authorization/content/MCP/session/event headers.
+    - 'Both successful and authentication-error responses expose MCP-Session-Id and WWW-Authenticate with
+      the trusted origin and Vary: Origin.'
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: oauth.transport-cors
 - id: oauth.transport-origin-validation
   category: authorization
   rule: Per the MCP Streamable HTTP transport guidance, /api/mcp should reject requests carrying an Origin
     header unless that origin matches the app's trusted origin set (public/canonical origin, localhost
     dev aliases, and allowed preview hosts). Non-browser clients that omit Origin remain supported.
+  acceptance:
+    given: The actual MCP HTTP routes configured with a public origin and a distinct canonical origin.
+    when: Request POST, OPTIONS, GET, and DELETE from trusted public/canonical/local origins, without
+      Origin, and from malicious/null/malformed origins; configure a preview origin.
+    then:
+    - Trusted and origin-less requests follow the normal protocol status; a configured preview origin
+      is accepted.
+    - Untrusted origins return the standard invalid_origin 403 without permissive CORS.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: oauth.transport-origin-validation
 - id: oauth.authorization-management.oauth-usage-aggregation
   category: privacy
   rule: Successful and failed completed OAuth operations are coalesced within a Worker into bounded per-grant,

@@ -612,3 +612,116 @@ it("mcp.time-override", { timeout: 30_000 }, async () => {
     });
   }
 });
+
+it("oauth.transport-cors", async () => {
+  const preflight = await fetch(`${origin}/api/mcp`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: origin,
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers":
+        "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
+    },
+  });
+  expect(preflight.status).toBe(204);
+  expect(preflight.headers.get("access-control-allow-origin")).toBe(origin);
+  const allowed = preflight.headers
+    .get("access-control-allow-headers")!
+    .toLowerCase()
+    .split(/,\s*/);
+  expect(allowed).toEqual(
+    expect.arrayContaining([
+      "authorization",
+      "content-type",
+      "mcp-protocol-version",
+      "mcp-session-id",
+      "last-event-id",
+    ]),
+  );
+  for (const authorization of [undefined, `Bearer ${token}`]) {
+    const response = await fetch(`${origin}/api/mcp`, {
+      method: "POST",
+      headers: {
+        Origin: origin,
+        "content-type": "application/json",
+        Accept: "application/json, text/event-stream",
+        ...(authorization ? { Authorization: authorization } : {}),
+      },
+      body: JSON.stringify(call("workspace_todo_list")),
+    });
+    expect(response.status).toBe(authorization ? 200 : 401);
+    expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+    expect(response.headers.get("vary")).toContain("Origin");
+    expect(response.headers.get("access-control-expose-headers")).toContain(
+      "MCP-Session-Id",
+    );
+    expect(response.headers.get("access-control-expose-headers")).toContain(
+      "WWW-Authenticate",
+    );
+    if (!authorization)
+      expect(response.headers.get("www-authenticate")).toContain("Bearer");
+    await response.text();
+  }
+});
+
+it("oauth.transport-origin-validation", async () => {
+  const priorCanonical = process.env.APP_CANONICAL_ORIGIN;
+  const canonical = "https://canonical.example";
+  vi.stubEnv("APP_CANONICAL_ORIGIN", canonical);
+  try {
+    for (const requestOrigin of [
+      undefined,
+      canonical,
+      origin,
+      origin.replace("127.0.0.1", "localhost"),
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://evil.example",
+      "null",
+      "invalid-origin",
+    ]) {
+      const trusted =
+        requestOrigin === undefined ||
+        requestOrigin === canonical ||
+        requestOrigin.startsWith("http://localhost:") ||
+        requestOrigin.startsWith("http://127.0.0.1:");
+      for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
+        const response = await fetch(`${origin}/api/mcp`, {
+          method,
+          headers: {
+            ...(requestOrigin ? { Origin: requestOrigin } : {}),
+            "content-type": "application/json",
+            Accept: "application/json, text/event-stream",
+          },
+          ...(method === "POST"
+            ? { body: JSON.stringify(call("catalog_semester_list")) }
+            : {}),
+        });
+        expect(response.status, `${method}:${requestOrigin}`).toBe(
+          trusted
+            ? method === "OPTIONS"
+              ? 204
+              : method === "GET"
+                ? 405
+                : 200
+            : 403,
+        );
+        if (!trusted) {
+          expect(await response.json()).toEqual({ error: "invalid_origin" });
+          expect(
+            response.headers.get("access-control-allow-origin"),
+          ).toBeNull();
+        } else await response.text();
+      }
+    }
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview.example");
+    const preview = await fetch(`${origin}/api/mcp`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://preview.example" },
+    });
+    expect(preview.status).toBe(204);
+  } finally {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
+    vi.stubEnv("APP_CANONICAL_ORIGIN", priorCanonical);
+  }
+});

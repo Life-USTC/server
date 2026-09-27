@@ -276,3 +276,53 @@ it("oauth.refresh-confirmation-binding", { timeout: 30_000 }, async () => {
     }
   }
 });
+
+it("oauth.rotated-refresh-replay", async () => {
+  const mcp = getOAuthMcpResourceUrl();
+  const code = await authorize(mcp);
+  const issued = await token({
+    grant_type: "authorization_code",
+    code,
+    code_verifier: verifier,
+    redirect_uri: redirectUri,
+    resource: mcp,
+  });
+  const first = await issued.json();
+  expect(issued.status, JSON.stringify(first)).toBe(200);
+  expect(typeof first.refresh_token).toBe("string");
+  const rotated = await token({
+    grant_type: "refresh_token",
+    refresh_token: first.refresh_token,
+    resource: mcp,
+  });
+  const replacement = await rotated.json();
+  expect(rotated.status, JSON.stringify(replacement)).toBe(200);
+  expect(typeof replacement.refresh_token).toBe("string");
+  expect(replacement.refresh_token).not.toBe(first.refresh_token);
+  const oldTokenHash = await hashOAuthClientSecretForDbStorage(
+    first.refresh_token,
+  );
+  const old = await db.oAuthRefreshToken.findUniqueOrThrow({
+    where: { token: oldTokenHash },
+  });
+  expect(old.rotatedAt ?? old.revoked).not.toBeNull();
+  // The provider allows a bounded retry interval for a just-rotated token.
+  // Move that actual persisted rotation outside the interval without sleeping.
+  await db.oAuthRefreshToken.update({
+    where: { id: old.id },
+    data: {
+      ...(old.rotatedAt ? { rotatedAt: new Date(Date.now() - 60_000) } : {}),
+      ...(old.revoked ? { revoked: new Date(Date.now() - 60_000) } : {}),
+    },
+  });
+  const replay = await token({
+    grant_type: "refresh_token",
+    refresh_token: first.refresh_token,
+    resource: mcp,
+  });
+  expect(replay.status).toBe(400);
+  const failure = await replay.json();
+  expect(failure.error).toBe("invalid_grant");
+  expect(failure).not.toHaveProperty("access_token");
+  expect(failure).not.toHaveProperty("refresh_token");
+});
