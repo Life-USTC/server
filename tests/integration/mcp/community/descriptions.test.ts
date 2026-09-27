@@ -7,7 +7,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     name: "[integration-test] Descriptions",
   });
 
-  it("community_description_get 通过公开 JW id 返回种子班级描述", async () => {
+  it("description.mcp-markdown-projection", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -53,7 +53,9 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       isAuthenticated: true,
       userId: isolated.userId,
     });
+    expect(result.description?.renderedHtml).toContain("课程建议");
     for (const { mode, result: modeResult } of results) {
+      expect(modeResult.description?.content).toBe(result.description?.content);
       expect(Object.hasOwn(modeResult.description ?? {}, "renderedHtml")).toBe(
         mode === "full",
       );

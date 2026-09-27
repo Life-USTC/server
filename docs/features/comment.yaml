@@ -15,11 +15,28 @@ requirements:
 - id: comment.attached-to-object
   category: behavior
   rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
+  acceptance:
+    given: Real signed-session REST requests omit a target type or identifier.
+    when: Read and create comments without complete target context.
+    then:
+    - Every request returns 400 and no unattached comment is persisted.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.attached-to-object
 - id: comment.attached-object-types
   category: behavior
   rule: A comment target is exactly one course, section, teacher, homework, section-teacher relationship,
     or young event. Unsupported target types and nonexistent target entities cannot be used to create
     comments.
+  acceptance:
+    given: Existing course, section, teacher, homework, teaching relationship and young-event targets.
+    when: Create through the real REST route for all six types, unsupported types and missing entities.
+    then:
+    - Each supported create persists exactly its one target foreign key.
+    - Unsupported types return 400; nonexistent entities return 404 without persisting comments.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.attached-object-types
 - id: comment.rich-content
   category: presentation
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
@@ -83,6 +100,15 @@ requirements:
   category: presentation
   rule: MCP full mode retains the shared serialized comment body and renderedBody. Compact modes omit
     renderedBody while retaining source Markdown, including nested replies.
+  acceptance:
+    given: A seeded thread has source Markdown, server HTML and nested replies.
+    when: Call the installed MCP server in default and full modes.
+    then:
+    - Full mode retains renderedBody on root and nested replies.
+    - Default mode omits renderedBody while preserving the same source Markdown on both levels.
+    test:
+      file: tests/integration/mcp/community/comments.test.ts
+      name: comment.mcp-markdown-projection
 - id: comment.anonymous-author-privacy
   category: privacy
   rule: Author anonymity is independent of audience. Anonymous comments conceal author identifiers, names,
@@ -104,6 +130,15 @@ requirements:
   category: consistency
   rule: Comment reads do not create durable targets. An existing section-teacher relationship without
     a comment target loads as an empty thread.
+  acceptance:
+    given: A real teaching assignment has no durable section-teacher comment target.
+    when: Read it through MCP, REST and the shared Web read model under production database roles.
+    then:
+    - Every read succeeds with an empty thread.
+    - No durable target row is created.
+    test:
+      file: tests/integration/mcp/community/comments.test.ts
+      name: comment.read-target-nonmutation
 - id: comment.thread-ancestry-privacy
   category: privacy
   rule: Hidden or omitted ancestors preserve visible branches with one top-level entry per root. Their
@@ -252,10 +287,27 @@ requirements:
   rule: Comment reads and creates accept targetType with its canonical target identifier or documented
     public identifier (sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, youngId). Young-event
     targets require a validated public youngId and never resolve an arbitrary targetId.
+  acceptance:
+    given: All six supported targets have canonical IDs and documented public references.
+    when: Read and create comments through the actual REST routes using both forms.
+    then:
+    - Canonical and public identifiers return the same comment collection.
+    - Young events require youngId; targetId is rejected even alongside a valid youngId.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.target-identifiers
 - id: comment.target-not-found
   category: behavior
   rule: Comment target reads return not_found when the attached target entity does not exist; REST maps
     this result to 404.
+  acceptance:
+    given: Each supported comment target type names a nonexistent entity.
+    when: The real REST list handler resolves the public reference.
+    then:
+    - Every response returns 404 and no comment collection.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.target-not-found
 - id: comment.rest-pagination-parameters
   category: validation
   rule: Ordinary and moderation REST comment lists accept page and pageSize; the retired limit alias is
@@ -264,10 +316,29 @@ requirements:
   category: validation
   rule: Comment create and update inputs accept only public or logged_in_only visibility. The independent
     isAnonymous flag controls identity hiding.
+  acceptance:
+    given: An authenticated actor creates and updates comments under both audience modes and both anonymity
+      values.
+    when: Use supported visibility values, then submit unsupported strings, null and numeric values.
+    then:
+    - Public and login-only visibility persist independently from author anonymity.
+    - Invalid values return 400 without changing persisted content or privacy flags.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.visibility-input
 - id: comment.public-id-validation
   category: validation
   rule: Provided sectionJwId and courseJwId inputs must be positive integers; malformed values return
     400 even if targetId is supplied.
+  acceptance:
+    given: A valid course or section targetId is accompanied by an invalid public JW identifier.
+    when: Send zero, negative, fractional, empty, nonnumeric and unsafe-integer JW identifiers to the
+      real read and create routes.
+    then:
+    - Every malformed public identifier returns 400 despite the valid fallback targetId.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.public-id-validation
 - id: comment.attachment-ownership
   category: authorization
   rule: Comment creation rejects uploads that are missing, owned by another user, or already attached
@@ -299,6 +370,15 @@ requirements:
 - id: comment.mcp-write-audit-source
   category: consistency
   rule: Comment mutations through MCP record source=mcp in their audit metadata.
+  acceptance:
+    given: An authenticated MCP client creates its own comment.
+    when: Create, update, add and remove reactions, and delete using the installed MCP server.
+    then:
+    - Each successful mutation writes the expected audit operation with source=mcp.
+    - Content is not copied into audit metadata.
+    test:
+      file: tests/integration/mcp/community/comments.test.ts
+      name: comment.mcp-write-audit-source
 - id: comment.moderation-default-status
   category: behavior
   rule: An omitted moderation comment status selects the active queue in both REST and the moderation
@@ -343,6 +423,23 @@ requirements:
     test:
       file: tests/unit/features/admin/admin-moderation-list-pagination.test.ts
       name: comment.governance-anonymous-author-audit-failure
+- id: comment.section-teacher-target-lifecycle
+  category: consistency
+  rule: Comment creation materializes a durable section-teacher target only for a verified teaching assignment
+    and may reactivate that assignment's retired target. Removed assignments cannot reactivate targets.
+    The application database role may insert targets and update only lifecycle timestamps, not rewrite
+    or delete existing target identities.
+  acceptance:
+    given: An active teaching assignment has no durable comment target, then a retired target.
+    when: Create through the production REST route, reactivate it, and remove the underlying assignment.
+    then:
+    - A first comment materializes one target; a verified assignment permits reactivation under its existing
+      identity.
+    - A removed assignment cannot reactivate a target.
+    - The restricted application role cannot rewrite existing target identities or delete target rows.
+    test:
+      file: tests/integration/comment-target-contract.test.ts
+      name: comment.section-teacher-target-lifecycle
 capabilities:
   object-comment-section:
     title: Object Comment Section

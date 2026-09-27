@@ -151,6 +151,15 @@ requirements:
   category: presentation
   rule: MCP full mode retains the shared description payload including renderedHtml; compact modes omit
     renderedHtml while retaining source Markdown.
+  acceptance:
+    given: A real description has source Markdown, rendered HTML and history.
+    when: Call the installed MCP server in default and full modes.
+    then:
+    - Full mode retains renderedHtml.
+    - Default mode omits renderedHtml while preserving identical source content.
+    test:
+      file: tests/integration/mcp/community/descriptions.test.ts
+      name: description.mcp-markdown-projection
 - id: description.unchanged-write-history
   category: consistency
   rule: An unchanged description write returns updated=false and adds neither DescriptionEdit history

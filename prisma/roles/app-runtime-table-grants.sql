@@ -59,6 +59,11 @@ GRANT SELECT ON TABLE "OAuthGrantUsageDaily" TO life_ustc_runtime;
 GRANT SELECT, INSERT, DELETE ON TABLE "CommentReaction"
 TO life_ustc_runtime;
 
+-- Comment creation materializes the target for a verified teaching assignment.
+-- Existing identities remain immutable; only lifecycle timestamps can change.
+GRANT INSERT ON TABLE "SectionTeacher" TO life_ustc_runtime;
+GRANT UPDATE ("retiredAt", "updatedAt") ON TABLE "SectionTeacher" TO life_ustc_runtime;
+
 GRANT SELECT, INSERT, UPDATE ON TABLE "Comment" TO life_ustc_runtime;
 GRANT INSERT, DELETE ON TABLE "CommentAttachment" TO life_ustc_runtime;
 GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
