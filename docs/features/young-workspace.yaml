@@ -34,14 +34,42 @@ requirements:
       name: young-workspace.reminders
 - id: young-workspace.digest
   category: behavior
-  rule: Previous Shanghai day newly discovered future events, after follow time, grouped per organizer;
-    no retroactive flood and no automatic event subscriptions.
+  rule: Organizer digests include available-source events first discovered in the previous Shanghai calendar
+    day [00:00, next 00:00), strictly after the follow, whose startAt is at or after refresh time. Digests
+    group by organizer, deduplicate by owner/organizer/day, and never create event subscriptions.
+  acceptance:
+    given: The owner follows multiple organizers; events were discovered before/at/after the follow, at
+      previous-day midnight, during the previous day and today, with future, started and missing-source
+      variants.
+    when: The real notification refresh runs twice against the restricted application database connection.
+    then:
+    - One deduplicated digest per organizer contains only future available-source events first discovered
+      in the previous Shanghai day and strictly after the follow.
+    - The previous-day midnight is included for older follows; today, pre-follow, already-started and
+      missing-source events are excluded.
+    - No event subscriptions are created.
+    test:
+      file: tests/integration/young-organizer-digest-contract.test.ts
+      name: young-workspace.digest
 - id: young-workspace.calendar
   category: behavior
-  rule: Inclusive Shanghai date-only bounds; explicit-offset instants and Shanghai timezone-less datetime
-    bounds, maximum 366 days, paired bounds or default seven-day window. REST/GraphQL paginated; MCP complete
-    unified event list. GraphQL boundary strings share service validation. Unknown event start times are
-    not invented.
+  rule: The shared personal-calendar range parser accepts paired valid ordered bounds spanning at most
+    366 days. Date-only bounds include full Shanghai days; explicit-offset datetimes preserve instants
+    and timezone-less datetimes use Shanghai. Omitted bounds select seven days from the current Shanghai
+    day start; explicit datetime endpoints are inclusive.
+  acceptance:
+    given: Calendar bounds are omitted, date-only, explicit-offset, timezone-less, malformed, unpaired
+      or span the size boundary.
+    when: The shared personal calendar parser resolves its exact event window.
+    then:
+    - Date-only bounds include complete Shanghai days; timezone-less datetimes are Shanghai instants and
+      explicit offsets are preserved.
+    - Both bounds must be supplied together, must be valid and ordered, and may span no more than 366
+      days.
+    - Omitted bounds select a seven-day half-open window from Shanghai day start.
+    test:
+      file: tests/unit/features/young/personal-calendar-range.test.ts
+      name: young-workspace.calendar
 - id: young-workspace.event-calendar-membership
   category: behavior
   rule: Individual event subscriptions add known activity instants to personal calendars and ICS.
@@ -78,6 +106,10 @@ requirements:
 - id: young-workspace.reminder-source-change
   category: behavior
   rule: Material activity changes refresh the personal calendar export and remove superseded reminders.
+- id: young-workspace.calendar-transport-pagination
+  category: behavior
+  rule: Personal calendar REST and GraphQL results are paginated; MCP returns the complete unified event
+    list for the requested bounded window.
 capabilities:
   workspace-young-event-subscription-list:
     title: youngEventSubscriptions
