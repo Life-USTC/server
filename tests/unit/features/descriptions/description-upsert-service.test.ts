@@ -181,7 +181,7 @@ describe("upsertDescriptionContent", () => {
     expect(descriptionEditCreateMock).not.toHaveBeenCalled();
     expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
-  it("description.public-cache-retry", async () => {
+  it("purges only after commit and retries a failed purge on an unchanged write", async () => {
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
       content: "before",

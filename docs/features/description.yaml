@@ -96,18 +96,6 @@ requirements:
     test:
       file: tests/unit/features/descriptions/description-upsert-service.test.ts
       name: description.failed-write-invalidation
-- id: description.public-cache-retry
-  category: consistency
-  rule: An unchanged description write retries public cache invalidation after a previous purge failure
-    without creating another content edit.
-  acceptance:
-    given: The content transaction commits but the first purge fails.
-    when: The same content is submitted again.
-    then:
-    - The unchanged retry purges successfully without adding an edit.
-    test:
-      file: tests/unit/features/descriptions/description-upsert-service.test.ts
-      name: description.public-cache-retry
 - id: description.editor-permission-gate
   category: presentation
   rule: The description editor neither opens nor submits until current viewer permissions authorize editing.
@@ -306,3 +294,6 @@ capabilities:
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types
+
+rationale:
+- The former description.public-cache-retry is part of description.public-cache-invalidation, whose real database acceptance verifies post-commit invalidation and unchanged-content retry without duplicate edit history.

@@ -261,6 +261,8 @@ capabilities:
         after_uncertain_result: inspect_state_before_replay
       requirement_refs:
         - graphql.subscription-batch-results
+        - subscription.duplicate-input-semantics
+        - subscription.membership-atomicity
     notes:
       - For each import request, the selected subscription changes commit together; the feature contract defines
         rejected and unmatched inputs before the write.

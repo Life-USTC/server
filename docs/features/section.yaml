@@ -19,9 +19,6 @@ access:
   agent: Can read section information and manage personal section-related state through OAuth-authorized
     REST / MCP endpoints.
 requirements:
-- id: section.public-web-personal-overlay
-  category: consistency
-  rule: Section detail HTML and page-data contain only public facts and public description content.
 - id: section.source-planning-metadata
   category: consistency
   rule: Required teaching weeks and catalog admin-class localized names are preserved. Catalog names without
@@ -364,3 +361,5 @@ capabilities:
     - subscription.subscription-language
 rationale:
 - A section is a specific teaching class for a course in a given semester.
+
+- The former section.public-web-personal-overlay is owned by rendering-and-cache.web-rendering-and-cache-1 for public HTML and page-data and description.public-web-personal-overlay for public descriptions. Private Section projections and deep-link gates remain independent requirements.
