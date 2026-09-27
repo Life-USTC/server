@@ -75,14 +75,14 @@ requirements:
       name: user.explicit-provider-linking
 - id: user.passkey-server-boundary
   category: authorization
-  rule: The passkey plugin requires an explicit production origin, derives its RP ID from the canonical hostname and permits only explicitly configured HTTPS origins on that hostname or its subdomains. Local loopback configuration uses localhost as the RP and allowed browser origin; it does not authorize ceremonies from an IP-literal browser origin.
+  rule: The passkey plugin requires an explicit production origin. Canonical deployments and their configured subdomains use the canonical hostname as RP ID. An unrelated HTTPS public deployment uses its own hostname as RP ID and permits only its own origin; credentials cannot be reused across unrelated relying parties. Local loopback configuration uses localhost as the RP and allowed browser origin; it does not authorize ceremonies from an IP-literal browser origin.
   rationale: Credential mutation freshness is owned by user.sensitive-account-recent-auth; usable last-credential protection belongs to the account sign-in-method policy. The local RP behavior avoids defining IP addresses as independent relying parties.
   acceptance:
-    given: Production, explicit preview, unsafe unrelated origin and local loopback configurations.
+    given: Production, canonical-subdomain preview, unrelated HTTPS preview, unsafe protocol and local loopback configurations.
     when: The actual passkey plugin factory builds its options.
     then:
     - Production requires a configured origin and permits only compatible explicitly trusted origins.
-    - Insecure nonlocal or unrelated origins are rejected before plugin registration.
+    - Unrelated HTTPS previews use an isolated RP and their sole origin; insecure nonlocal and non-HTTP protocols are rejected before plugin registration.
     - Loopback configuration emits only localhost origins and requires a session for registration.
     test:
       file: tests/unit/lib/auth/better-auth-passkey-plugin.test.ts
