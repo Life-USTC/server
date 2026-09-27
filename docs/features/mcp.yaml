@@ -284,10 +284,36 @@ requirements:
   rule: Accepted MCP JSON request bodies are parsed once and the same parsed body is shared by scope enforcement,
     observability, rate limiting and SDK dispatch. Authentication and complete fixed-tool scope enforcement
     finish before restricted business execution.
+  acceptance:
+    given: The real request handler, body reader and fixed-tool mapping with mocked authentication, limiter
+      and SDK boundaries.
+    when: A duplicate-write JSON-RPC batch is accepted.
+    then:
+    - The request JSON is parsed exactly once without clone/json rereads.
+    - Observability and SDK receive the same parsed object; authentication sees the complete deduplicated
+      tool list.
+    - Both write entries consume their preflight checks before SDK dispatch.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.parsed-body-reuse
+  rationale: This establishes transport orchestration and object identity, not cryptographic authentication.
+    Actual authentication and complete-batch scope rejection are canonical in mcp.resource-bound-access-token
+    and mcp.complete-batch-scope-enforcement.
 - id: mcp.transport-observability
   category: privacy
   rule: MCP transport logging must never include bearer tokens, cookies, exception messages, or tool argument
     values.
+  acceptance:
+    given: The real transport handler, body summarizer, bookkeeping, app logger and verbose OAuth logger
+      with external execution and emission sinks replaced.
+    when: Successful and throwing SDK requests contain bearer/cookie/header/query/argument secrets and
+      an exception with a malicious name.
+    then:
+    - Both log channels retain method/path/counts/status and the safe TypeError classification.
+    - Neither channel emits secret values, argument keys or exception messages.
+    test:
+      file: tests/unit/lib/mcp/mcp-transport-privacy.test.ts
+      name: mcp.transport-observability
 - id: mcp.mutation-rate-limits
   category: validation
   rule: 'Ordinary MCP mutations are preflighted against the shared per-host, per-user feature-action Cloudflare
