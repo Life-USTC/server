@@ -62,6 +62,66 @@ async function cleanup(fixture: Awaited<ReturnType<typeof createFixture>>) {
   });
 }
 
+test("mobile catalog cards retain list and link semantics", async ({
+  page,
+}) => {
+  const fixture = await createFixture();
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      (
+        await page.request.post("/api/account/preferences", {
+          data: { locale: "zh-cn" },
+        })
+      ).status(),
+    ).toBe(200);
+    if (!fixture.teacher.code)
+      throw new Error("Teacher fixture must have a public code");
+    for (const [route, search, name, destination] of [
+      [
+        "courses",
+        fixture.course.code,
+        fixture.course.nameCn,
+        fixture.course.jwId,
+      ],
+      [
+        "sections",
+        fixture.course.code,
+        fixture.course.nameCn,
+        fixture.section.jwId,
+      ],
+      [
+        "teachers",
+        fixture.teacher.code,
+        fixture.teacher.nameCn,
+        fixture.teacher.id,
+      ],
+    ] as const) {
+      await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
+      const item = page
+        .getByRole("listitem")
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .filter({ visible: true });
+      await expect(item).toHaveCount(1);
+      const link = item.getByRole("link");
+      await expect(link).toHaveCount(1);
+      await expect(link).toHaveAccessibleName(new RegExp(name));
+      await expect(link).toHaveAttribute(
+        "href",
+        `/catalog/${route}/${destination}`,
+      );
+      await link.focus();
+      await expect(link).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/${route}/${destination}$`),
+      );
+    }
+  } finally {
+    await cleanup(fixture);
+  }
+});
+
 test("ui.global-search-results-2", async ({ page }) => {
   const fixture = await createFixture();
   let campusId: number | undefined;
@@ -401,8 +461,8 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
       ).toBe(true);
     }
     await touchPage
-      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
-      .filter({ visible: true })
+      .getByRole("link")
+      .filter({ has: touchPage.getByText(courseName, { exact: true }) })
       .tap();
     await expect(touchPage).toHaveURL(
       new RegExp(`/catalog/sections/${fixture.section.jwId}$`),

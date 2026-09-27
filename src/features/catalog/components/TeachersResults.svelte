@@ -68,28 +68,30 @@ $: pageLabel = teacherLabels.pageOf
       <Item.Group class="gap-0" role="list">
         {#each teachers as teacher, index}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root role="listitem" size="sm">
-            {#snippet child({ props })}
-              <a href={teacherHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{catalogLocalizedDisplayName(teacher, locale)}</Item.Title>
-                </Item.Content>
-                <Item.Actions>
-                  <span class="tabular-nums text-muted-foreground text-sm"
-                    >{teacher._count.sections}</span
-                  >
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
-                  {#if teacher.code}
-                    <span class="font-mono text-muted-foreground">{teacher.code}</span>
-                  {/if}
-                  <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
-                  <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
-                  <span>{teacher.email ?? "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={teacherHref} {...props}>
+                  <Item.Content>
+                    <Item.Title>{catalogLocalizedDisplayName(teacher, locale)}</Item.Title>
+                  </Item.Content>
+                  <Item.Actions>
+                    <span class="tabular-nums text-muted-foreground text-sm"
+                      >{teacher._count.sections}</span
+                    >
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
+                    {#if teacher.code}
+                      <span class="font-mono text-muted-foreground">{teacher.code}</span>
+                    {/if}
+                    <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
+                    <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
+                    <span>{teacher.email ?? "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+          </div>
           {#if index < teachers.length - 1}
             <Item.Separator aria-hidden="true" />
           {/if}

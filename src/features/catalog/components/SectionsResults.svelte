@@ -70,27 +70,29 @@ $: sectionSemesterSummary = selectedSemester
       <Item.Group class="gap-0" role="list">
         {#each data.data as section, index}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
-          <Item.Root role="listitem" size="sm">
-            {#snippet child({ props })}
-              <a href={sectionHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
-                  <Item.Description>
-                    {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                    · {catalogLocalizedNames(section.teachers, locale) || "-"}
-                  </Item.Description>
-                </Item.Content>
-                <Item.Actions>
-                  <TruncatedCode text={section.code} />
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start">
-                  <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
-                  <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
-                  <span>{section.campus ? primaryName(section.campus) : "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={sectionHref} {...props}>
+                  <Item.Content>
+                    <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
+                    <Item.Description>
+                      {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
+                      · {catalogLocalizedNames(section.teachers, locale) || "-"}
+                    </Item.Description>
+                  </Item.Content>
+                  <Item.Actions>
+                    <TruncatedCode text={section.code} />
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start">
+                    <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
+                    <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
+                    <span>{section.campus ? primaryName(section.campus) : "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+          </div>
           {#if index < data.data.length - 1}
             <Item.Separator aria-hidden="true" />
           {/if}
