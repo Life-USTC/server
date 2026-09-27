@@ -205,11 +205,23 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
       name: ui.data-table-cells-3
+- id: ui.catalog-table-column-alignment
+  category: presentation
+  topic: data-table-cells
+  rule: Course, teacher and section collection tables and course/teacher offering-history tables align each header with its cell content. Text and categorical columns use their left edge; section counts, credits and capacity values use their right edge.
+  acceptance:
+    given: Isolated catalog fixtures populate all text columns and numeric section-count, credit and capacity columns.
+    when: A desktop browser measures rendered text edges in all three collection tables and both offering-history tables.
+    then:
+    - Text headers and values share a left edge, and each numeric header and value shares a right edge.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.catalog-table-column-alignment
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
-  rule: Header labels and cell content share the same column edge; textual and categorical values align left,
-    while numeric measures and counts align right.
+  rule: In non-catalog application data tables, headers and cells use a consistent column alignment. Numeric measures and counts, including bytes, credits and capacity, align right. Text aligns left; status and action columns may center, and temporal columns use a consistent chosen alignment. Bus timetable stop columns preserve their positional left/center/right alignment.
+  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The remaining application tables retain this unbound obligation until their own rendered matrix is covered.
 - id: ui.data-table-cells-5
   category: presentation
   topic: data-table-cells

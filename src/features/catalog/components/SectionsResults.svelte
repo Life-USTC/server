@@ -109,7 +109,7 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Head>{sectionLabels.courseName}</Table.Head>
             <Table.Head class="w-36">{sectionLabels.sectionCode}</Table.Head>
             <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
-            <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
+            <Table.Head class="w-20 text-right">{sectionLabels.credits}</Table.Head>
             <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
             <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
           </Table.Row>

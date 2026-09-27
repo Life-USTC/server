@@ -107,7 +107,7 @@ $: pageLabel = teacherLabels.pageOf
             <Table.Head>{teacherLabels.department}</Table.Head>
             <Table.Head>{teacherLabels.title_label}</Table.Head>
             <Table.Head>{teacherLabels.email}</Table.Head>
-            <Table.Head>{teacherLabels.sections}</Table.Head>
+            <Table.Head class="text-right">{teacherLabels.sections}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>

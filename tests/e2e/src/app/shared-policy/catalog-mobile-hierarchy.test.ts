@@ -131,6 +131,152 @@ function required(value: string | null) {
   return value;
 }
 
+test("ui.catalog-table-column-alignment", async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  if (!baseURL) throw new Error("Missing Playwright baseURL");
+  const fixture = await createFixture();
+  try {
+    await withE2ePrisma(async (db) => {
+      await db.course.update({
+        where: { id: fixture.course.id },
+        data: { code: "ALIGN-COURSE" },
+      });
+      await db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: { code: "ALIGN-TEACHER", email: "alignment@example.test" },
+      });
+      await db.section.update({
+        where: { id: fixture.section.id },
+        data: {
+          code: "ALIGN-SECTION",
+          stdCount: 12,
+          limitCount: 48,
+          credits: 4,
+        },
+      });
+      await db.educationLevel.update({
+        where: { id: fixture.education.id },
+        data: { nameCn: "对齐验收本科", nameEn: "Alignment level" },
+      });
+      await db.courseCategory.update({
+        where: { id: fixture.category.id },
+        data: { nameCn: "对齐验收基础课程", nameEn: "Alignment category" },
+      });
+      await db.classType.update({
+        where: { id: fixture.classType.id },
+        data: { nameCn: "对齐验收必修", nameEn: "Alignment class type" },
+      });
+      await db.department.update({
+        where: { id: fixture.department.id },
+        data: { nameCn: "测试学院", nameEn: "Test department" },
+      });
+      await db.teacherTitle.update({
+        where: { id: fixture.title.id },
+        data: { nameCn: "对齐验收教授", nameEn: "Alignment professor" },
+      });
+      await db.campus.update({
+        where: { id: fixture.campus.id },
+        data: { nameCn: "测试校区", nameEn: "Test campus" },
+      });
+    });
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "en-us",
+        url: baseURL,
+      },
+    ]);
+    await page.setViewportSize({ width: 1280, height: 844 });
+    for (const item of [
+      {
+        name: "courses",
+        path: "/catalog/courses?search=ALIGN-COURSE",
+        selector: "table",
+        numeric: [],
+      },
+      {
+        name: "teachers",
+        path: "/catalog/teachers?search=ALIGN-TEACHER",
+        selector: "table",
+        numeric: [5],
+      },
+      {
+        name: "sections",
+        path: "/catalog/sections?courseCode=ALIGN-COURSE",
+        selector: "table",
+        numeric: [4, 5],
+      },
+      {
+        name: "course-history",
+        path: `/catalog/courses/${fixture.course.jwId}`,
+        selector: "#sections table",
+        numeric: [3],
+      },
+      {
+        name: "teacher-history",
+        path: `/catalog/teachers/${fixture.teacher.id}`,
+        selector: "#sections table",
+        numeric: [2],
+      },
+    ]) {
+      await gotoAndWaitForReady(page, item.path);
+      const table = page.locator(item.selector).filter({ visible: true });
+      await expect(table).toHaveCount(1);
+      await table.scrollIntoViewIfNeeded();
+      await table.screenshot({
+        path: testInfo.outputPath(`alignment-${item.name}.png`),
+      });
+      const columns = await table.evaluate((element) => {
+        const headers = Array.from(element.querySelectorAll("thead th"));
+        const cells = Array.from(
+          element.querySelectorAll("tbody tr:first-child td"),
+        );
+        function textEdges(node: Element) {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+          const boxes: DOMRect[] = [];
+          while (walker.nextNode()) {
+            const text = walker.currentNode.textContent ?? "";
+            const start = text.search(/\S/);
+            if (start < 0) continue;
+            const range = document.createRange();
+            range.setStart(walker.currentNode, start);
+            range.setEnd(walker.currentNode, text.trimEnd().length);
+            boxes.push(
+              ...Array.from(range.getClientRects()).filter(
+                (box) => box.width > 0 && box.height > 0,
+              ),
+            );
+          }
+          if (!boxes.length) throw new Error("Missing table text");
+          return {
+            left: Math.min(...boxes.map((box) => box.left)),
+            right: Math.max(...boxes.map((box) => box.right)),
+          };
+        }
+        return headers.map((header, index) => ({
+          label: header.textContent?.trim(),
+          header: textEdges(header),
+          cell: textEdges(cells[index]),
+        }));
+      });
+      expect(columns.length).toBeGreaterThan(0);
+      for (const [index, column] of columns.entries()) {
+        const edge = item.numeric.includes(index) ? "right" : "left";
+        expect
+          .soft(
+            Math.abs(column.header[edge] - column.cell[edge]),
+            `${item.name}: ${column.label} ${edge} edge`,
+          )
+          .toBeLessThanOrEqual(1);
+      }
+    }
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test("ui.detail-two-column-stream-1", async ({ page }) => {
   const fixture = await createFixture();
   try {
