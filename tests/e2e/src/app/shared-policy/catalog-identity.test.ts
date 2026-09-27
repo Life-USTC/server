@@ -123,6 +123,8 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
       await gotoAndWaitForReady(page, `/search?q=${marker}`);
       for (const teacher of [withDepartment, codeOnly, noContext]) {
         const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
+        if (!name)
+          throw new Error("Teacher fixture must provide both localized names");
         const context =
           teacher.id === withDepartment.id
             ? locale === "zh-cn"
@@ -145,6 +147,8 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
       }
       const name =
         locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
+      if (!name)
+        throw new Error("Teacher fixture must provide both localized names");
       await page
         .getByRole("option")
         .filter({ has: page.getByText(name, { exact: true }) })
@@ -162,6 +166,145 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
       await withE2ePrisma((db) =>
         db.department.delete({ where: { id: departmentId } }),
       );
+  }
+});
+
+test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
+  const fixture = await createFixture();
+  const courseName =
+    "Complete course title with extensive catalog context and a distinguishing final phrase";
+  const teacherName =
+    "Complete teacher name with extensive catalog context and a distinguishing final phrase";
+  const sectionCode = `${fixture.section.code}-COMPLETE-PUBLIC-SECTION-CODE-END`;
+  const values = [courseName, sectionCode, teacherName];
+  const path = `/catalog/sections?search=${fixture.course.code}`;
+  const touchContext = await browser.newContext({
+    baseURL,
+    hasTouch: true,
+    viewport: { width: 1280, height: 900 },
+  });
+  try {
+    await withE2ePrisma(async (db) => {
+      await db.course.update({
+        where: { id: fixture.course.id },
+        data: { nameCn: courseName, nameEn: courseName },
+      });
+      await db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: { nameCn: teacherName, nameEn: teacherName },
+      });
+      await db.section.update({
+        where: { id: fixture.section.id },
+        data: { code: sectionCode },
+      });
+    });
+    const touchPage = await touchContext.newPage();
+    for (const width of [1280, 390]) {
+      await touchPage.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(touchPage, path, {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+      });
+      expect(
+        await touchPage.evaluate(() => matchMedia("(hover: none)").matches),
+      ).toBe(true);
+      await touchPage.screenshot({
+        path: testInfo.outputPath(`truncation-touch-${width}.png`),
+        fullPage: true,
+      });
+      for (const value of values) {
+        const text = touchPage
+          .locator("#main-content")
+          .getByText(value, { exact: width !== 390 || value !== teacherName })
+          .filter({ visible: true });
+        await expect(text).toHaveCount(1);
+        const geometry = await text.evaluate((element) => ({
+          width: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          height: element.clientHeight,
+          scrollHeight: element.scrollHeight,
+        }));
+        expect(
+          geometry.scrollWidth,
+          `Touch value is horizontally clipped: ${value}`,
+        ).toBeLessThanOrEqual(geometry.width + 1);
+        expect(
+          geometry.scrollHeight,
+          `Touch value is vertically clipped: ${value}`,
+        ).toBeLessThanOrEqual(geometry.height + 1);
+      }
+      expect(
+        await touchPage.evaluate(
+          () =>
+            document.documentElement.scrollWidth <=
+            document.documentElement.clientWidth,
+        ),
+      ).toBe(true);
+    }
+    await touchPage
+      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+      .filter({ visible: true })
+      .tap();
+    await expect(touchPage).toHaveURL(
+      new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
+    );
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoAndWaitForReady(page, path, {
+      browserHealth: {},
+      expectMeaningfulContent: true,
+    });
+    for (const value of values) {
+      const text = page
+        .locator("#main-content")
+        .getByText(value, { exact: true })
+        .filter({ visible: true });
+      expect(
+        await text.evaluate(
+          (element) => element.scrollWidth > element.clientWidth,
+        ),
+      ).toBe(true);
+      await text.hover();
+      const tooltip = page.locator('[data-slot="tooltip-content"]:visible');
+      await expect(tooltip).toHaveText(value);
+      await page.keyboard.press("Escape");
+      await expect(tooltip).toHaveCount(0);
+    }
+    const link = page
+      .getByRole("link", { name: courseName, exact: true })
+      .filter({ visible: true });
+    await link.focus();
+    for (const value of values) {
+      const focused = page.locator(":focus");
+      await expect(focused).toContainText(value);
+      await expect(
+        page.locator('[data-slot="tooltip-content"]:visible'),
+      ).toHaveText(value);
+      expect(await focused.ariaSnapshot()).toContain(value);
+      await page.keyboard.press("Escape");
+      await expect(
+        page.locator('[data-slot="tooltip-content"]:visible'),
+      ).toHaveCount(0);
+      await page.keyboard.press("Tab");
+    }
+    const code = page
+      .locator("#main-content")
+      .getByText(sectionCode, { exact: true })
+      .filter({ visible: true });
+    await code.hover();
+    await expect(
+      page.locator('[data-slot="tooltip-content"]:visible'),
+    ).toHaveText(sectionCode);
+    await page.screenshot({
+      path: testInfo.outputPath("truncation-pointer.png"),
+      fullPage: true,
+    });
+  } finally {
+    try {
+      await touchContext.close();
+    } finally {
+      await cleanup(fixture);
+    }
   }
 });
 

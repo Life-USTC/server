@@ -129,6 +129,18 @@ requirements:
   topic: data-table-cells
   rule: A truncated text cell makes its complete value available to pointer, keyboard, and touch users. The
     accessible text retains the complete value.
+  acceptance:
+    given: An isolated teaching section has a long course title, public section code, and teacher name.
+    when: A browser opens the section list with a pointer and keyboard, then with touch input at tablet and
+      mobile widths.
+    then:
+    - Each desktop value is actually truncated and hovering exposes its complete tooltip text.
+    - Keyboard focus exposes each complete value and accessible text; Escape dismisses each tooltip.
+    - Touch layouts display the complete titles, codes, and teacher descriptions without clipping or horizontal
+      page overflow, and tapping the result navigates to its detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.data-table-cells-2
 - id: ui.data-table-cells-3
   category: presentation
   topic: data-table-cells
