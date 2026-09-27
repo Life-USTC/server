@@ -275,3 +275,179 @@ test("audit.action-admin-comment-moderate", async ({ page }) => {
     await f.cleanup();
   }
 });
+
+test("audit.action-admin-user-role-update", async ({ page }) => {
+  const f = await setup(page);
+  try {
+    const submit = () =>
+      page.request.patch(`/api/admin/users/${f.target.id}`, {
+        data: { isAdmin: true },
+      });
+    await f.rejectAudit("admin_user_role_update");
+    expect((await submit()).status()).toBe(500);
+    expect(
+      await withE2ePrisma((db) =>
+        db.user.findUnique({ where: { id: f.target.id } }),
+      ),
+    ).toEqual(f.target);
+    expect(await f.events("admin_user_role_update")).toHaveLength(0);
+    await f.restoreAudit();
+    expect((await submit()).status()).toBe(200);
+    expect(
+      await withE2ePrisma((db) =>
+        db.user.findUnique({
+          where: { id: f.target.id },
+          select: { isAdmin: true },
+        }),
+      ),
+    ).toEqual({ isAdmin: true });
+    const events = await f.events("admin_user_role_update");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      userId: f.admin.id,
+      subjectUserId: f.target.id,
+      targetId: f.target.id,
+      targetType: "user",
+      channel: "rest",
+      outcome: "success",
+    });
+    expect(events[0].metadata).toEqual({ changedFields: ["isAdmin"] });
+    f.assertSafe(events);
+    expect((await submit()).status()).toBe(200);
+    expect(await f.events("admin_user_role_update")).toEqual(events);
+    expect(await f.events("admin_user_profile_update")).toHaveLength(0);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("audit.action-admin-user-profile-update", async ({ page }) => {
+  const f = await setup(page);
+  try {
+    const name = "New private managed name";
+    const username = `new${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+    const submit = () =>
+      page.request.patch(`/api/admin/users/${f.target.id}`, {
+        data: { name, username },
+      });
+    await f.rejectAudit("admin_user_profile_update");
+    expect((await submit()).status()).toBe(500);
+    expect(
+      await withE2ePrisma((db) =>
+        db.user.findUnique({ where: { id: f.target.id } }),
+      ),
+    ).toEqual(f.target);
+    expect(await f.events("admin_user_profile_update")).toHaveLength(0);
+    await f.restoreAudit();
+    expect((await submit()).status()).toBe(200);
+    expect(
+      await withE2ePrisma((db) =>
+        db.user.findUnique({
+          where: { id: f.target.id },
+          select: { name: true, username: true, isAdmin: true },
+        }),
+      ),
+    ).toEqual({ name, username, isAdmin: false });
+    const events = await f.events("admin_user_profile_update");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      userId: f.admin.id,
+      subjectUserId: f.target.id,
+      targetId: f.target.id,
+      targetType: "user",
+      channel: "rest",
+      outcome: "success",
+    });
+    expect(events[0].metadata).toEqual({ changedFields: ["name", "username"] });
+    f.assertSafe(events);
+    for (const secret of [name, username, f.target.username])
+      expect(JSON.stringify(events)).not.toContain(secret);
+    expect((await submit()).status()).toBe(200);
+    expect(await f.events("admin_user_profile_update")).toEqual(events);
+    expect(await f.events("admin_user_role_update")).toHaveLength(0);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("audit.action-admin-description-moderate", async ({ page }) => {
+  const f = await setup(page);
+  let courseId: number | undefined;
+  try {
+    const course = await withE2ePrisma((db) =>
+      db.course.create({
+        data: {
+          jwId: 1_700_000_000 + Math.floor(Math.random() * 100_000_000),
+          code: `AUDIT-${crypto.randomUUID()}`,
+          nameCn: "审计课程",
+          nameEn: "Audit course",
+        },
+      }),
+    );
+    courseId = course.id;
+    const prior = await withE2ePrisma((db) =>
+      db.description.create({
+        data: {
+          courseId: course.id,
+          content: "Previous private description",
+          lastEditedById: f.target.id,
+        },
+      }),
+    );
+    const submit = () =>
+      page.request.patch(`/api/admin/descriptions/${prior.id}`, {
+        data: { content: f.content },
+      });
+    await f.rejectAudit("admin_description_moderate");
+    expect((await submit()).status()).toBe(500);
+    expect(
+      await withE2ePrisma((db) =>
+        db.description.findUnique({ where: { id: prior.id } }),
+      ),
+    ).toEqual(prior);
+    expect(
+      await withE2ePrisma((db) =>
+        db.descriptionEdit.count({ where: { descriptionId: prior.id } }),
+      ),
+    ).toBe(0);
+    expect(await f.events("admin_description_moderate")).toHaveLength(0);
+    await f.restoreAudit();
+    expect((await submit()).status()).toBe(200);
+    expect(
+      await withE2ePrisma((db) =>
+        db.description.findUnique({ where: { id: prior.id } }),
+      ),
+    ).toMatchObject({
+      content: f.content,
+      lastEditedById: f.admin.id,
+      lastEditedAt: expect.any(Date),
+    });
+    const edits = await withE2ePrisma((db) =>
+      db.descriptionEdit.findMany({ where: { descriptionId: prior.id } }),
+    );
+    expect(edits).toHaveLength(1);
+    expect(edits[0]).toMatchObject({
+      editorId: f.admin.id,
+      previousContent: prior.content,
+      nextContent: f.content,
+    });
+    const events = await f.events("admin_description_moderate");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      userId: f.admin.id,
+      targetId: prior.id,
+      targetType: "description",
+      channel: "rest",
+      outcome: "success",
+    });
+    expect(events[0].metadata).toEqual({ changedFields: ["content"] });
+    f.assertSafe(events);
+    expect(JSON.stringify(events)).not.toContain(prior.content);
+  } finally {
+    if (courseId)
+      await withE2ePrisma((db) =>
+        db.course.delete({ where: { id: courseId } }),
+      );
+    await f.cleanup();
+  }
+});

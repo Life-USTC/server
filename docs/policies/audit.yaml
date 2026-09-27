@@ -223,15 +223,51 @@ requirements:
   topic: actions
   rule: Admin updates description content from the moderation workflow. The description row, edit history,
     and audit row are committed together.
+  acceptance:
+    given: An administrator updates an isolated course description through the moderation REST endpoint.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed.
+    then:
+    - Audit failure preserves the previous description and editor and commits neither edit history nor audit.
+    - Success persists the new content and editor, creates one history record with the actual previous and next
+      content, and commits one event containing only changedFields=content metadata.
+    - The audit event excludes previous and next content, user profile values, and credentials.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-description-moderate
 - id: audit.action-admin-user-role-update
   category: privacy
   topic: actions
   rule: Admin changes administrator access. The user update and an audit row containing changedFields only
     are committed together.
+  acceptance:
+    given: An administrator grants administrator access to an isolated ordinary user through REST.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed and repeats the unchanged grant.
+    then:
+    - Audit failure preserves the complete previous user record and commits no event.
+    - Success changes administrator access and commits one event identifying actor and subject with exactly
+      changedFields=isAdmin metadata, excluding profile values and credentials.
+    - Repeating the unchanged grant adds no event and never creates a profile-update audit.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-user-role-update
 - id: audit.action-admin-user-profile-update
   category: privacy
   topic: actions
   rule: Admin changes managed profile fields. The audit row records field names, never previous or next values.
+  acceptance:
+    given: An administrator changes an isolated user's name and username through REST.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed and repeats the unchanged update.
+    then:
+    - Audit failure preserves the complete previous user record and commits no event.
+    - Success changes both profile fields and commits one actor-and-subject event containing exactly the name
+      and username field names, excluding all previous and next values and credentials.
+    - An unchanged retry adds no event and never creates a role-update audit.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-user-profile-update
 - id: audit.action-admin-oauth-client-create
   category: privacy
   topic: actions
