@@ -13,6 +13,11 @@ export type VisiblePriorityField = {
   /** Image and icon fields are checked through their rendered semantic attribute. */
   attribute?: "src" | "alt" | "aria-label" | "title";
 };
+export type LocaleHiddenPriorityField = {
+  absentInLocale: "zh-cn" | "en-us";
+  text: string;
+};
+export type PriorityField = VisiblePriorityField | LocaleHiddenPriorityField;
 export type InternalPriorityField = { value: string; locator?: Locator };
 export type PriorityViewCheck = {
   feature: string;
@@ -21,8 +26,8 @@ export type PriorityViewCheck = {
   /** The real title, card title, or first identifying table cell. */
   identity: Locator;
   scope: Locator;
-  primary: Record<string, VisiblePriorityField>;
-  secondary: Record<string, VisiblePriorityField>;
+  primary: Record<string, PriorityField>;
+  secondary: Record<string, PriorityField>;
   tertiary: Record<string, InternalPriorityField>;
 };
 type Fields = { primary: string[]; secondary: string[]; tertiary: string[] };
@@ -94,12 +99,27 @@ export async function assertPriorityView(check: PriorityViewCheck) {
       [...fields[group]].sort(),
     );
   await expect(check.identity).toBeVisible();
-  for (const field of Object.values(check.primary))
+  async function visible(field: PriorityField) {
+    if ("absentInLocale" in field) {
+      const language = await check.scope
+        .page()
+        .locator("html")
+        .getAttribute("lang");
+      expect(language?.toLowerCase().split("-")[0]).toBe(
+        field.absentInLocale.split("-")[0],
+      );
+      expect(await check.scope.innerText()).not.toContain(field.text);
+      return false;
+    }
     await assertVisibleField(field);
+    return true;
+  }
+  for (const field of Object.values(check.primary)) await visible(field);
   for (const field of Object.values(check.secondary)) {
-    await assertVisibleField(field);
-    if (!field.attribute)
-      await assertSecondaryStyle(field.locator, check.identity);
+    if (await visible(field)) {
+      if (!("absentInLocale" in field) && !field.attribute)
+        await assertSecondaryStyle(field.locator, check.identity);
+    }
   }
   for (const field of Object.values(check.tertiary)) {
     if (field.locator) {
