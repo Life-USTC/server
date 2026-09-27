@@ -317,6 +317,18 @@ requirements:
   topic: global-search-results
   rule: Teacher search results use the localized teacher name as title. Their secondary context uses department
     when present, otherwise the public teacher code; absent context does not expose a database row ID.
+  acceptance:
+    given: Three isolated teachers have a bilingual department, only a public code, or neither source of secondary
+      context.
+    when: An anonymous browser searches them in Chinese and English and opens a teacher result.
+    then:
+    - Each result leads with the localized teacher name and follows it with the localized department or public
+      teacher code when available.
+    - Missing secondary context adds no internal database or JW identifier.
+    - Opening the result reaches that teacher's canonical detail page.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-4
 - id: ui.shell-layout-1
   category: presentation
   topic: shell-layout

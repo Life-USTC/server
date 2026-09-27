@@ -62,6 +62,109 @@ async function cleanup(fixture: Awaited<ReturnType<typeof createFixture>>) {
   });
 }
 
+test("ui.global-search-results-4", async ({ page }, testInfo) => {
+  const fixture = await createFixture();
+  const marker = crypto.randomUUID().slice(0, 8);
+  const extras: number[] = [];
+  let departmentId: number | undefined;
+  try {
+    const department = await withE2ePrisma((db) =>
+      db.department.create({
+        data: {
+          code: `DEPT-${marker}`,
+          nameCn: `测试院系 ${marker}`,
+          nameEn: `Test department ${marker}`,
+        },
+      }),
+    );
+    departmentId = department.id;
+    const withDepartment = await withE2ePrisma((db) =>
+      db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: {
+          departmentId: department.id,
+          nameCn: `教师 ${marker} 甲`,
+          nameEn: `Teacher ${marker} A`,
+        },
+      }),
+    );
+    const codeOnly = await withE2ePrisma((db) =>
+      db.teacher.create({
+        data: {
+          id: fixture.teacher.id + 6,
+          jwId: fixture.teacher.jwId + 6,
+          code: `TC-${marker}`,
+          nameCn: `教师 ${marker} 乙`,
+          nameEn: `Teacher ${marker} B`,
+        },
+      }),
+    );
+    extras.push(codeOnly.id);
+    const noContext = await withE2ePrisma((db) =>
+      db.teacher.create({
+        data: {
+          id: fixture.teacher.id + 8,
+          jwId: fixture.teacher.jwId + 8,
+          code: "",
+          nameCn: `教师 ${marker} 丙`,
+          nameEn: `Teacher ${marker} C`,
+        },
+      }),
+    );
+    extras.push(noContext.id);
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      await gotoAndWaitForReady(page, `/search?q=${marker}`);
+      for (const teacher of [withDepartment, codeOnly, noContext]) {
+        const name = locale === "zh-cn" ? teacher.nameCn : teacher.nameEn;
+        const context =
+          teacher.id === withDepartment.id
+            ? locale === "zh-cn"
+              ? department.nameCn
+              : department.nameEn
+            : teacher.code;
+        const result = page
+          .getByRole("option")
+          .filter({ has: page.getByText(name, { exact: true }) });
+        if (locale === "en-us" && teacher.id === withDepartment.id)
+          await page.screenshot({
+            path: testInfo.outputPath("teacher-search-context.png"),
+            fullPage: true,
+          });
+        await expect(result).toHaveCount(1);
+        const visible = await result.innerText();
+        expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
+        expect(visible).not.toContain(String(teacher.id));
+        expect(visible).not.toContain(String(teacher.jwId));
+      }
+      const name =
+        locale === "zh-cn" ? withDepartment.nameCn : withDepartment.nameEn;
+      await page
+        .getByRole("option")
+        .filter({ has: page.getByText(name, { exact: true }) })
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/teachers/${withDepartment.id}$`),
+      );
+    }
+  } finally {
+    await withE2ePrisma((db) =>
+      db.teacher.deleteMany({ where: { id: { in: extras } } }),
+    );
+    await cleanup(fixture);
+    if (departmentId)
+      await withE2ePrisma((db) =>
+        db.department.delete({ where: { id: departmentId } }),
+      );
+  }
+});
+
 test("permission-ui.identity-4", async ({ page }) => {
   const fixture = await createFixture();
   const { course, teacher, section, user } = fixture;

@@ -111,8 +111,10 @@ async function searchCatalogGroups(
     courses: courses.map(toCourseItem),
     teachers: teachers.map((teacher) => ({
       id: `teacher:${teacher.id}`,
-      title: teacher.nameCn,
-      description: teacher.department?.nameCn ?? teacher.code,
+      title: catalogPrimaryName(teacher),
+      description: teacher.department
+        ? catalogPrimaryName(teacher.department) || teacher.code
+        : teacher.code,
       href: `/catalog/teachers/${teacher.id}`,
     })),
     sections: sections.map((section) =>
