@@ -46,7 +46,7 @@ const sampleTodo = {
 };
 
 describe("patchTodoBatchRoute", () => {
-  it("enforces specified PATCH collection boundaries", async () => {
+  it("todo.rest-batch-patch-bounds", async () => {
     const rule = await todoExpectation(
       "todo.rest-batch-patch-bounds",
       "collection_input",
@@ -253,7 +253,7 @@ describe("patchTodoBatchRoute", () => {
 });
 
 describe("deleteTodoBatchRoute", () => {
-  it("enforces specified DELETE collection boundaries", async () => {
+  it("todo.rest-batch-delete-bounds", async () => {
     const rule = await todoExpectation(
       "todo.rest-batch-delete-bounds",
       "collection_input",

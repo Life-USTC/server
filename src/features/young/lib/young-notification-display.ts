@@ -10,7 +10,11 @@ export function youngNotificationDescription(
   if (notification.kind === "organizer_digest") {
     return notification.body.replace(
       /^(\d+) 个新活动 \/ new events: /,
-      (_prefix, count: string) => copy.digestPrefix.replace("{count}", count),
+      (_prefix, count: string) =>
+        (Number(count) === 1
+          ? copy.digestPrefixOne
+          : copy.digestPrefix
+        ).replace("{count}", count),
     );
   }
   if (

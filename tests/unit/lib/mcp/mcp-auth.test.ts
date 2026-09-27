@@ -88,7 +88,7 @@ function rejectUpstream(challenge: string) {
 }
 
 describe("MCP Bearer challenge", () => {
-  it("escapes quoted-string values and rejects control characters", () => {
+  it("mcp.safe-auth-challenges", async () => {
     const challenge = buildBearerChallenge({
       description: "bad\\value",
       error: 'invalid"token',
@@ -104,6 +104,34 @@ describe("MCP Bearer challenge", () => {
         error: "invalid_token",
       }),
     ).toThrow(/control characters/);
+    for (const control of ["\r", "\n", "\u0000", "\u007f"]) {
+      expect(() =>
+        buildBearerChallenge({
+          error: "invalid_token",
+          description: "Invalid credential",
+          scopes: [`scope${control}value`],
+        }),
+      ).toThrow(/control characters/);
+    }
+    const { authorizeMcpToolScopes } = await import("@/lib/mcp/auth");
+    const injected = 'unregistered"tool\r\nX-Injected: secret';
+    const result = authorizeMcpToolScopes(
+      {
+        token: "opaque-placeholder",
+        clientId: "client",
+        scopes: [TODO_READ_SCOPE],
+        extra: { userId: "owner" },
+      },
+      ["workspace_todo_create", injected],
+    );
+    expect("response" in result).toBe(true);
+    if (!("response" in result))
+      throw new Error("Missing insufficient-scope response");
+    const header = result.response.headers.get("WWW-Authenticate");
+    expect(header).toContain(`scope="${TODO_READ_SCOPE} ${TODO_WRITE_SCOPE}"`);
+    expect(header).toContain('error="insufficient_scope"');
+    expect(header).not.toContain("unregistered");
+    expect(header).not.toContain("secret");
   });
 });
 

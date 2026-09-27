@@ -1,5 +1,6 @@
 export type GlobalSearchResultItem = {
   description: string | null;
+  code?: string;
   external?: boolean;
   href: string;
   id: string;

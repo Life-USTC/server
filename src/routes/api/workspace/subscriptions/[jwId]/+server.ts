@@ -12,6 +12,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.subscription:write
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchSubscriptionKindRoute(request, params.jwId))(

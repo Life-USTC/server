@@ -319,6 +319,53 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeChecked();
   });
 
+  test("ui.list-table-7", async ({ page }) => {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(
+        page,
+        `/news?source=${encodeURIComponent(fixture.sourceId)}`,
+      );
+      const list = page.getByRole("list", {
+        name: /校园新闻与通知|Campus News & Notices/i,
+      });
+      const rows = list.getByRole("listitem");
+      await expect(rows).toHaveCount(20);
+      await expect(
+        list
+          .getByRole("heading", { level: 2 })
+          .getByRole("link", { name: fixture.title, exact: true }),
+      ).toBeVisible();
+      const layout = await rows.evaluateAll((elements) =>
+        elements.map((row) => {
+          const heading = row.querySelector("h2");
+          const title = heading?.querySelector("a");
+          const metadata = heading?.nextElementSibling;
+          if (!heading || !title || !metadata)
+            throw new Error("News row lacks its title or metadata");
+          return {
+            firstTag: row.firstElementChild?.tagName,
+            title: title.textContent?.trim(),
+            destination: title.getAttribute("href"),
+            titleTop: heading.getBoundingClientRect().top,
+            metadataTop: metadata.getBoundingClientRect().top,
+            titleFont: Number.parseFloat(getComputedStyle(heading).fontSize),
+            metadataFont: Number.parseFloat(
+              getComputedStyle(metadata).fontSize,
+            ),
+          };
+        }),
+      );
+      for (const row of layout) {
+        expect(row.firstTag).toBe("H2");
+        expect(row.title).toBeTruthy();
+        expect(row.destination).toMatch(/^\/news\/[^?]+/);
+        expect(row.titleTop).toBeLessThan(row.metadataTop);
+        expect(row.titleFont).toBeGreaterThan(row.metadataFont);
+      }
+    }
+  });
+
   test("移动端默认首屏能看到文章且长摘要不撑宽页面", async ({
     page,
   }, testInfo) => {

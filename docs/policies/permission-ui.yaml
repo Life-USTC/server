@@ -2,34 +2,21 @@ kind: policy
 id: permission-ui
 title: Permission-aware presentation
 requirements:
-- id: permission-ui.identity-1
-  category: presentation
-  topic: identity
-  rule: 'Names remain the primary identity: they own h1 and list titles.'
-- id: permission-ui.identity-2
-  category: presentation
-  topic: identity
-  rule: A compact public course code may precede the mobile detail title for disambiguation, while the name
-    remains visually dominant; this does not authorize displaying jwId or database IDs.
-- id: permission-ui.identity-3
-  category: presentation
-  topic: identity
-  rule: Codes, semesters, and numbers primarily serve disambiguation and retrieval.
 - id: permission-ui.identity-4
   category: presentation
   topic: identity
-  rule: jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default.
-roles:
-- id: anon
-  description: Can only perform public browsing and pre-sign-in guidance actions.
-- id: user
-  description: Cannot modify authoritative schedule or exam records. Users can manage their personal completion
-    state and todos; shared-content writes follow each feature's authorization rules.
-- id: admin
-  description: Has governance entries but this does not change the information hierarchy logic on ordinary
-    detail pages.
-- id: agent
-  description: Can receive more structured fields but should not produce a second product model as a result.
+  rule: Ordinary page headings and metadata do not display database row IDs. Public JW IDs remain valid API
+    retrieval identifiers but do not replace localized names or public course/section codes in ordinary UI.
+  acceptance:
+    given: Isolated course, teacher, and section records have distinct large row IDs and JW IDs, bilingual names, public codes, and a signed-in profile with a private user ID.
+    when: The browser reads all three catalog detail pages in both locales and the user profile and settings pages, then retrieves the course and section APIs by JW ID.
+    then:
+    - Visible main content and document titles contain names and public course/section codes without exposing any internal row ID or substituting a JW ID for the name.
+    - Public course and section APIs still resolve their JW IDs to the correct records.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: permission-ui.identity-4
+
 applies_to:
 - id: list-page
   title: List Page
@@ -42,3 +29,8 @@ applies_to:
 topics:
 - id: identity
   title: Identity
+rationale:
+- Codes, semesters, and numbers primarily serve disambiguation and retrieval.
+- Roles and delegated clients are distinct dimensions defined by docs/product.yaml. Feature authorization matrices
+  govern schedule/exam authority, shared-content edits, suspension, and administration; presentation does not
+  grant permissions.

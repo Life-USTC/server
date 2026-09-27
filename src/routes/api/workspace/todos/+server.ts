@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response todosListResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.todo:read
  */
 export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
 /**
@@ -18,5 +19,6 @@ export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.todo:write
  */
 export const POST = svelteRequestHandler(observedApiRoute(postTodoRoute));

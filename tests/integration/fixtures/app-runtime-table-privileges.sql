@@ -115,6 +115,7 @@ FROM (
     ('public.Schedule:SELECT'),
     ('public.ScheduleGroup:SELECT'),
     ('public.Section:SELECT'),
+    ('public.SectionTeacher:INSERT'),
     ('public.SectionTeacher:SELECT'),
     ('public.Semester:SELECT'),
     ('public.StaticImportState:SELECT'),

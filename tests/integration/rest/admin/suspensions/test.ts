@@ -117,7 +117,7 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
     }
   });
 
-  test("管理员可为临时用户创建封禁", async ({ request }) => {
+  test("openapi.suspension-created-status", async ({ request }) => {
     const prefix = `e2e-sus-${Date.now()}`;
     const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 

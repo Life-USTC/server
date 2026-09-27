@@ -16,30 +16,234 @@ access:
 requirements:
 - id: young-workspace.subscription
   category: behavior
-  rule: Subscribing never registers attendance. Event subscriptions add activity instants to personal
-    calendars and ICS; organizer follows only create daily new-event digests.
+  rule: Subscribing to an activity does not register attendance with the official activity system.
+  acceptance:
+    given: A real event source row exists and all outgoing HTTP is denied.
+    when: The actual subscription service subscribes and unsubscribes the owner.
+    then:
+    - Only the owner subscription row is created/deleted.
+    - The full official source record remains unchanged and no outgoing registration request occurs.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.subscription
 - id: young-workspace.ownership
   category: authorization
-  rule: User identity comes from the authenticated principal; private tables enforce owner RLS. Reads
-    are private/no-store.
+  rule: User identity for activity subscriptions, organizer follows and notifications comes only from
+    the authenticated principal; only the owner may read or mutate personal state. Suspended owners
+    retain these private capabilities. Missing targets and foreign notifications retain the declared
+    domain error meaning across REST, GraphQL and native MCP.
+  acceptance:
+    given: Two authenticated owners have different activity subscriptions, organizer follows and unread
+      notifications; resource-bound OAuth credentials exercise restricted application database services.
+    when: Signed REST and GraphQL requests and registered MCP tools list state, then actual loopback
+      REST, GraphQL and native MCP HTTP requests mutate personal state, target foreign or missing
+      resources, omit write authority and repeat successful owner writes during suspension.
+    then:
+    - Every list contains only the authenticated owner's rows, even with a foreign userId query parameter;
+      a foreign userId in a REST mutation body is rejected.
+    - Each owner may subscribe/unsubscribe and follow/unfollow independently, including while suspended;
+      foreign subscription rows remain exactly unchanged and only owned notifications can be marked read.
+    - Foreign and missing notifications both return REST 404 or GraphQL/native MCP success false without
+      changing the notification; missing activity/organizer targets return REST 404, GraphQL NOT_FOUND
+      or a structured native MCP not_found error, retaining each protocol's HTTP status convention.
+    - Anonymous REST and MCP reads are rejected and GraphQL returns no workspace; anonymous and
+      read-scope writes across all three HTTP transports are rejected before changing stored state.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.ownership
+- id: young-workspace.list-transport-pagination
+  category: consistency
+  rule: REST, GraphQL and MCP return equivalent ordered pages of the authenticated owner's activity subscriptions,
+    organizer follows and unexpired notifications. Subscriptions/follows sort by creation descending then
+    source ID ascending; notifications sort by creation descending then ID descending. The unread filter
+    selects unread notices; omitted or false includes both read states.
+  acceptance:
+    given: Isolated owners have subscriptions, organizer follows and notifications with tied nonzero-millisecond creation times,
+      read/unread states and an expired notice; insertion order differs from display order.
+    when: Signed REST and GraphQL requests and registered native MCP tools read two-item pages through exhaustion,
+      with omitted, false and true notification unread filters.
+    then:
+    - All transports return the same exact IDs, positions, operational fields and stable page totals.
+    - Every matching row appears once; expired and foreign-owner notices never appear, and exhausted pages are empty.
+    - Timestamp ties follow the documented ID direction and unread filtering preserves that order.
+    - Differently formatted transport timestamps preserve the exact millisecond instant.
+    test:
+      file: tests/integration/mcp/workspace/young-list-contract.test.ts
+      name: young-workspace.list-transport-pagination
 - id: young-workspace.reminders
   category: behavior
-  rule: Signup opening after subscription, deadline 24h before, event start 1h before, each independently
-    configurable. Scheduled generation every 10 minutes and refresh on notification listing. Expired reminders
-    excluded; important activity changes refresh calendar export and remove superseded reminders.
+  rule: Signup-opening reminders apply only when registration opens after subscription.
+  acceptance:
+    given: The viewer subscribes after registration has opened.
+    when: Signup-opening reminder candidates are evaluated.
+    then:
+    - No retroactive signup-opening reminder is generated.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminders
 - id: young-workspace.digest
   category: behavior
-  rule: Previous Shanghai day newly discovered future events, after follow time, grouped per organizer;
-    no retroactive flood and no automatic event subscriptions.
+  rule: Organizer digests include available-source events first discovered in the previous Shanghai calendar
+    day [00:00, next 00:00), strictly after the follow, whose startAt is at or after refresh time. Digests
+    group by organizer, deduplicate by owner/organizer/day, and never create event subscriptions.
+  acceptance:
+    given: The owner follows multiple organizers; events were discovered before/at/after the follow, at
+      previous-day midnight, during the previous day and today, with future, started and missing-source
+      variants.
+    when: The real notification refresh runs twice against the restricted application database connection.
+    then:
+    - One deduplicated digest per organizer contains only future available-source events first discovered
+      in the previous Shanghai day and strictly after the follow.
+    - The previous-day midnight is included for older follows; today, pre-follow, already-started and
+      missing-source events are excluded.
+    - No event subscriptions are created.
+    test:
+      file: tests/integration/young-organizer-digest-contract.test.ts
+      name: young-workspace.digest
 - id: young-workspace.calendar
   category: behavior
-  rule: Inclusive Shanghai date-only bounds; explicit-offset instants and Shanghai timezone-less datetime
-    bounds, maximum 366 days, paired bounds or default seven-day window. REST/GraphQL paginated; MCP complete
-    unified event list. GraphQL boundary strings share service validation. Unknown event start times are
-    not invented.
-- id: young-workspace.history
+  rule: The shared personal-calendar range parser accepts paired valid ordered bounds spanning at most
+    366 days. Date-only bounds include full Shanghai days; explicit-offset datetimes preserve instants
+    and timezone-less datetimes use Shanghai. Omitted bounds select seven days from the current Shanghai
+    day start; explicit datetime endpoints are inclusive.
+  acceptance:
+    given: Calendar bounds are omitted, date-only, explicit-offset, timezone-less, malformed, unpaired
+      or span the size boundary.
+    when: The shared personal calendar parser resolves its exact event window.
+    then:
+    - Date-only bounds include complete Shanghai days; timezone-less datetimes are Shanghai instants and
+      explicit offsets are preserved.
+    - Both bounds must be supplied together, must be valid and ordered, and may span no more than 366
+      days.
+    - Omitted bounds select a seven-day half-open window from Shanghai day start.
+    test:
+      file: tests/unit/features/young/personal-calendar-range.test.ts
+      name: young-workspace.calendar
+- id: young-workspace.event-calendar-membership
   category: behavior
-  rule: Imported events and subscriptions survive source absence. Absence does not imply cancellation.
+  rule: Individual event subscriptions add known activity instants to personal calendars and ICS.
+  acceptance:
+    given: An owner follows an organizer but has no event subscription.
+    when: The owner individually subscribes, the event changes, loses its timestamps, and is unsubscribed.
+    then:
+    - Organizer follow alone creates no ICS event.
+    - An individual subscription adds its known start/end to the actual personal calendar and ICS with
+      stable UID across source changes.
+    - Unknown timestamps never fabricate an event; unsubscribe removes the event.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.event-calendar-membership
+- id: young-workspace.private-response-cache
+  category: authorization
+  rule: Personal activity subscription, organizer follow and notification REST reads use private, no-store.
+    GraphQL and MCP follow their shared transport cache policies.
+  acceptance:
+    given: Two authenticated owners have nonempty activity subscriptions, organizer follows and notification
+      lists.
+    when: Each owner reads actual REST lists and individual activity/organizer subscription state.
+    then:
+    - 'Every successful REST response uses Cache-Control: private, no-store.'
+    - Lists retain actual personal data and individual subscribed state remains correct.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.private-response-cache
+- id: young-workspace.reminder-deadline-window
+  category: behavior
+  rule: Deadline reminders become eligible 24 hours before the deadline.
+  acceptance:
+    given: A subscribed event has a known future signup deadline and deadline reminders enabled.
+    when: Reminder candidates are evaluated immediately before and at the 24-hour threshold.
+    then:
+    - The deadline reminder is absent before the threshold and eligible at the threshold.
+    - At the deadline the expired candidate is absent.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminder-deadline-window
+- id: young-workspace.reminder-start-window
+  category: behavior
+  rule: Event-start reminders become eligible one hour before the event starts.
+  acceptance:
+    given: An event has a known start and start reminders are enabled.
+    when: The actual reminder policy evaluates just before one hour, exactly one hour, just before start
+      and at start.
+    then:
+    - Eligibility begins exactly one hour before the event and expires at its start.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminder-start-window
+- id: young-workspace.reminder-settings
+  category: behavior
+  rule: Signup-opening, deadline and event-start reminders are independently configurable.
+  acceptance:
+    given: An event currently qualifies for signup opening, deadline and start reminders.
+    when: The actual service enables each reminder alone, lists notifications, then disables it.
+    then:
+    - Each setting is stored independently and produces only its own reminder kind.
+    - Disabling that setting removes its unread reminder.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-settings
+- id: young-workspace.reminder-generation
+  category: behavior
+  rule: Reminder generation runs every ten minutes and refreshes on notification listing.
+  acceptance:
+    given: Two real users subscribe to an upcoming event and have no notifications.
+    when: The actual Worker scheduled entrypoint receives the configured ten-minute cron twice using distinct
+      application/maintenance database bindings; a later notification listing runs after one owner's generated
+      row is removed.
+    then:
+    - The scheduled path discovers recipients through the maintenance role and creates each owner's reminder
+      through the runtime role.
+    - Repeated scheduled delivery preserves reminder IDs.
+    - Notification listing also recreates an eligible missing reminder without requiring a cron run.
+    test:
+      file: tests/integration/young-notification-cron-contract.test.ts
+      name: young-workspace.reminder-generation
+- id: young-workspace.reminder-expiry
+  category: behavior
+  rule: Expired reminders are excluded from notification results.
+  acceptance:
+    given: Stored owner reminders expire immediately before, exactly at, immediately after the reference
+      time, or never.
+    when: The actual list and unread-count services read notifications.
+    then:
+    - Before/exact-boundary reminders are excluded from results and totals.
+    - Future/permanent reminders remain visible and historical rows remain stored.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-expiry
+- id: young-workspace.reminder-source-change
+  category: behavior
+  rule: Material activity changes refresh the personal calendar export and remove superseded reminders.
+  acceptance:
+    given: An individually subscribed event already has reminders and a real personal calendar.
+    when: Its venue and then its start/end change, and actual notification listing refreshes source state.
+    then:
+    - Venue-only changes keep applicable reminder identities; rescheduling removes the superseded start
+      reminder.
+    - Each material change requests one owner calendar rebuild whose independent read contains committed
+      updated venue/time.
+    test:
+      file: tests/integration/young-workspace.test.ts
+      name: young-workspace.reminder-source-change
+- id: young-workspace.calendar-transport-pagination
+  category: behavior
+  rule: Personal calendar REST and GraphQL results are paginated; MCP returns the complete unified event
+    list for the requested bounded window.
+  acceptance:
+    given: An owner has seven same-day events spanning schedules, exams, homework, todos and three subscribed
+      Young activities; another owner subscribes only a fourth activity.
+    when: Signed REST and GraphQL requests traverse four pages of size two, and registered MCP reads the
+      same bounded day.
+    then:
+    - REST and GraphQL return identical chronological event identities, types and timestamps, with page
+      sizes 2/2/2/1, total 7 and no duplicate events.
+    - MCP returns all seven events in one bounded-window response, retaining the subscribed activity and
+      personal item identities.
+    - The other owner’s REST calendar contains only their subscribed activity.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.calendar-transport-pagination
 capabilities:
   workspace-young-event-subscription-list:
     title: youngEventSubscriptions
@@ -63,6 +267,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_list
         rest_equivalent: GET /api/workspace/young-event-subscriptions
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-event-subscription-get:
     title: youngEventSubscription
     auth: user
@@ -85,6 +291,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_get
         rest_equivalent: GET /api/workspace/young-event-subscriptions/[youngId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-list:
     title: youngOrganizerSubscriptions
     auth: user
@@ -107,6 +315,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_list
         rest_equivalent: GET /api/workspace/young-organizer-subscriptions
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-get:
     title: youngOrganizerSubscription
     auth: user
@@ -129,6 +339,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_get
         rest_equivalent: GET /api/workspace/young-organizer-subscriptions/[organizerId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-notification-list:
     title: youngNotifications
     auth: user
@@ -151,6 +363,8 @@ capabilities:
       tools:
       - name: workspace_young_notification_list
         rest_equivalent: GET /api/workspace/young-notifications
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-calendar-event-list:
     title: calendarEvents
     auth: user
@@ -173,6 +387,8 @@ capabilities:
       tools:
       - name: workspace_calendar_event_list
         rest_equivalent: GET /api/workspace/calendar/events
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-event-subscription-set:
     title: youngEventSubscriptionSet
     auth: user
@@ -195,6 +411,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_set
         rest_equivalent: PUT /api/workspace/young-event-subscriptions/[youngId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-set:
     title: youngOrganizerSubscriptionSet
     auth: user
@@ -217,6 +435,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_set
         rest_equivalent: PUT /api/workspace/young-organizer-subscriptions/[organizerId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-notification-read:
     title: youngNotificationRead
     auth: user
@@ -239,3 +459,8 @@ capabilities:
       tools:
       - name: workspace_young_notification_read
         rest_equivalent: POST /api/workspace/young-notifications/[id]/read
+    requirement_refs:
+    - young-event.snapshot-authoritative
+rationale:
+- Organizer-only digest behavior and exclusion from individual event subscriptions are canonically owned
+  by young-workspace.digest; the removed organizer-digest-only rule was a strict duplicate.

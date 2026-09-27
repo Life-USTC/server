@@ -15,51 +15,159 @@ access:
   agent: Can directly read teacher lists and details; also indirectly consumes teacher information in
     course and section results.
 requirements:
-- id: teacher.public-web-personal-overlay
-  category: consistency
-  rule: Teacher detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in
-    requests. Public description content remains in SSR; description permissions and comments are resolved
-    through private client requests.
 - id: teacher.identified-by-name
   category: presentation
-  rule: Teacher objects are naturally identified by name.
+  rule: Teacher names are the primary display labels. Teachers with equal names remain distinct records
+    and display available department/title context for disambiguation.
+  acceptance:
+    given: Two persisted Teachers have identical localized names and distinct departments and titles.
+    when: A browser displays their desktop rows and mobile cards.
+    then:
+    - Both remain independently linked records under their names.
+    - Each record displays its own available department and title context.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.identified-by-name
 - id: teacher.section-code-auxiliary
   category: presentation
   rule: Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching
     section list.
+  acceptance:
+    given: A Teacher has a persisted offering with a distinct course name and Section code.
+    when: A browser opens desktop and mobile Teacher detail.
+    then:
+    - The Teacher name remains the page heading.
+    - The teaching history displays the course name and a monospace auxiliary Section code.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.section-code-auxiliary
 - id: teacher.public-list-cache
   category: consistency
-  rule: 'Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and
-    locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use
-    shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime
-    caching. Localized HTML pages use their locale-partitioned SSR cache.'
+  rule: Public teacher list REST output depends on URL locale/filter/pagination values, not Cookie or
+    Accept-Language. Omitted locale uses zh-cn and locale=en-us selects English.
+  rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
+    topology is an architecture choice; revision freshness and locale separation remain required.
+  acceptance:
+    given: Two isolated teacher records have distinct Chinese and English names and supported filters.
+    when: Anonymous and signed-in HTTP callers vary URL locale, filters and pages while sending conflicting
+      Cookie and Accept-Language headers.
+    then:
+    - Omitted locale stays Chinese and explicit en-us selects English.
+    - Cookie and Accept-Language do not change the same URL response or its public cache policy.
+    - Different pages and supported filters return the correct isolated records and totals.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.public-list-cache
 - id: teacher.mobile-detail-hierarchy
   category: presentation
-  rule: Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab
-    rail on mobile.
+  rule: At mobile widths, teacher detail presents a readable localized name and directly reachable public
+    details without page-level horizontal overflow.
+  acceptance:
+    given: An isolated Teacher has long localized names, a department, a title and an offering.
+    when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
+    then:
+    - The localized name is a readable wrapping heading without horizontal overflow.
+    - Public department and title details are directly reachable by scrolling.
+    - The offering displays its course name and links to the exact Section.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: teacher.mobile-detail-hierarchy
 - id: teacher.detail-canonical-url
   category: behavior
-  rule: The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=`
-    deep links permanently redirect to the root; optional hash anchors scroll within the page.
+  rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content
+    within that page.
+  acceptance:
+    given: An isolated Teacher has a persisted database id.
+    when: A browser opens its entity URL with an extra query and hash.
+    then:
+    - The detail renders the Teacher name.
+    - The canonical URL uses the Teacher database id and omits the extra query and hash.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.detail-canonical-url
 - id: teacher.bounded-detail-history
   category: consistency
   rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
     Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated
     HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
     entity root.'
+  acceptance:
+    given: An isolated teacher has 23 equal-sort-value offerings including three retired offerings.
+    when: Desktop and mobile viewers navigate both history pages, reload page two and follow a retired
+      Section.
+    then:
+    - Pages contain 20 then 3 distinct offerings and the full count.
+    - 'Pagination uses sectionsPage and #sections; a page-two reload stays on page two with no-store.'
+    - Canonical URLs omit pagination and retired details remain reachable.
+    test:
+      file: tests/e2e/src/app/courses/history-pagination.test.ts
+      name: teacher.bounded-detail-history
 - id: teacher.history-page-validation
   category: validation
-  rule: sectionsPage defaults to 1 only when omitted. Supplied values must be positive decimal integers
-    without leading zeros, signs, fractions, exponent notation, or whitespace. Reject invalid values and
-    pages above 450359962737050 with 400 before database access, keeping the 20-row offset within Number.MAX_SAFE_INTEGER.
+  rule: Supplied sectionsPage values must be positive decimal integers without leading zeros, signs, fractions,
+    exponent notation or whitespace. Values above 450359962737050 are rejected before catalog or viewer
+    reads.
+  acceptance:
+    given: A teacher page is requested with malformed, nonpositive or unsafe history page input.
+    when: The real page loader validates the URL.
+    then:
+    - It returns 400 before catalog and viewer reads.
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: teacher.history-page-validation
 - id: teacher.public-detail-fields
   category: behavior
-  rule: Public teacher payloads explicitly select allowed fields; never source-only columns such as age,
-    postcode, QQ, or WeChat.
+  rule: Public Teacher detail payloads retain identity identifiers, original and localized names,
+    department and title identifiers and context, email, telephone, mobile, address, offering records and
+    the offering count. They exclude source-only age, postcode, QQ and WeChat fields.
+  rationale: Identity and affiliation distinguish teachers and connect their teaching records. The existing
+    public email, telephone and mobile fields support teaching-related contact; address provides the
+    corresponding contact location. Offering records and counts support teaching-history discovery.
+    These purposes preserve the current public detail boundary without exposing additional source fields.
+    Embedded course and section references retain their narrower, separately specified identity shapes.
+  acceptance:
+    given: A persisted Teacher has public identity, all four contact fields, department and title context,
+      an offering, and source-only age, postcode, QQ and WeChat values.
+    when: The restricted-role public Teacher detail reader serializes both locales.
+    then:
+    - The exact public Teacher field set retains identity, both original names, localized primary and
+      secondary names, all four contact values, department/title context and its offering with the count.
+    - Source-only age, postcode, QQ and WeChat never appear in the public payload.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: teacher.public-detail-fields
 - id: teacher.public-detail-cache
   category: consistency
-  rule: Anonymous REST, MCP, and single-entity GraphQL Teacher reads share a revision-, locale-, ID-,
-    and response-shape-scoped runtime cache. Missing entities are not cached.
+  rule: Public teacher detail reads never mix different entity IDs, locales, include shapes or imported
+    revisions. A missing entity is re-evaluated after an import.
+  rationale: A shared runtime cache is an implementation option; this requirement constrains observable
+    identity, shape and freshness.
+  acceptance:
+    given: Two persisted teacher records are read under multiple locales and API/page shapes with real
+      runtime caches.
+    when: The database commits updated source data and a new StaticImportState revision, also adding an
+      identity previously missing.
+    then:
+    - Entity identities, languages and requested shapes never mix in cached responses.
+    - Before the revision advances, the already cached immutable representation stays stable.
+    - The new committed revision refreshes API and page data and makes the previously missing identity
+      readable.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: teacher.public-detail-cache
+- id: teacher.history-page-default
+  category: behavior
+  rule: Omitting sectionsPage opens the first teacher-history page. Valid decimal pages through 450359962737050
+    are forwarded unchanged and keep row offsets within safe integer range.
+  acceptance:
+    given: History page input is omitted or is a supported positive decimal integer.
+    when: The real detail loader parses the history page.
+    then:
+    - Omitted input selects page one; supplied valid values reach the page reader unchanged.
+    - The maximum accepted page produces a safe row offset.
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: teacher.history-page-default
 capabilities:
   teacher-list:
     title: Teacher List & Filter
@@ -76,9 +184,8 @@ capabilities:
       routes:
       - path: /api/catalog/teachers
         notes:
-        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated
-          limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are
-          rejected instead of clamped.
+        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters. Out-of-range
+          values are rejected instead of clamped.
     graphql:
       queries:
       - name: teachers
@@ -95,13 +202,32 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items:
-      - teacher.namePrimary
-      - teacher.nameSecondary (locale-dependent)
-      - teacher.department.namePrimary
-      - teacher.teacherTitle.namePrimary
-      - teacher.email
-      - teacher._count.sections
+      kind: fields
+      views:
+        web:
+          primary:
+          - teacher.namePrimary
+          secondary:
+          - teacher.nameSecondary
+          - teacher.department.namePrimary
+          - teacher.teacherTitle.namePrimary
+          - teacher.email
+          - teacher._count.sections
+          - teacher.code
+          tertiary:
+          - teacher.id
+          - teacher.jwId
+          - teacher.personId
+        mcp-catalog-teacher-search:
+          primary:
+          - data.nameCn
+          secondary:
+          - data.nameEn
+          - data.department.nameCn
+          - data.teacherTitle.nameCn
+          - data.code
+          - data.id
+          tertiary: []
       filters:
       - search
       - departmentId
@@ -135,22 +261,41 @@ capabilities:
       - name: catalog_teacher_get
         rest_equivalent: GET /api/catalog/teachers/[id]
     presentation:
-      items:
-      - teacher.namePrimary (h1)
-      - teacher.nameSecondary (Locale subtitle)
-      - teacher.department.namePrimary
-      - teacher.teacherTitle.namePrimary
-      - teacher.email (if not null)
-      - teacher.telephone (if not null)
-      - teacher.mobile (if not null)
-      - teacher.address (if not null)
-      - section.semester.nameCn (Badge)
-      - section.course.namePrimary + nameSecondary
-      - section.code (Plain monospace text)
-      - section.credits (or empty)
-      - comment.id
-      - comment.author.name
-      - comment.author.image
-      - comment.body
-      - comment.createdAt
-      - description.content (Markdown-rendered via DescriptionLoader)
+      kind: fields
+      views:
+        web:
+          primary:
+          - teacher.namePrimary
+          secondary:
+          - teacher.nameSecondary
+          - teacher.department.namePrimary
+          - teacher.teacherTitle.namePrimary
+          - teacher.email
+          - teacher.telephone
+          - teacher.mobile
+          - teacher.address
+          tertiary:
+          - teacher.id
+          - teacher.jwId
+          - teacher.personId
+        web-history:
+          primary:
+          - section.course.namePrimary
+          secondary:
+          - section.semester.nameCn
+          - section.code
+          - section.credits
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-teacher-get:
+          primary:
+          - teacher.nameCn
+          secondary:
+          - teacher.nameEn
+          - teacher.department.nameCn
+          - teacher.teacherTitle.nameCn
+          - teacher.id
+          tertiary:
+          - teacher.email
+          - teacher.telephone

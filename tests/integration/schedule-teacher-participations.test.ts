@@ -12,7 +12,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("schedule teacher participation", () => {
-  it("retains legacy links with unknown facts and exposes different facts on one meeting", async () => {
+  it("schedule.teacher-participation", async () => {
     const rollback = new Error("ROLLBACK_SCHEDULE_PARTICIPATIONS");
     const marker = 2_129_000_000 + (Date.now() % 100_000);
     try {

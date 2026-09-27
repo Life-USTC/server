@@ -8,6 +8,7 @@ import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
+import FilesIcon from "@lucide/svelte/icons/files";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
@@ -296,6 +297,8 @@ function buildShellNavGroups(
     { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
     { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
     { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
+    { href: "/terms", icon: ScrollTextIcon, label: copy.footer.terms },
+    { href: "/privacy", icon: GavelIcon, label: copy.footer.privacy },
   ];
   if (!signedIn) {
     return [
@@ -364,6 +367,12 @@ function buildShellNavGroups(
           href: "/workspace/subscriptions",
           icon: RouteIcon,
           label: copy.nav.subscriptions,
+        },
+        {
+          ariaLabel: copy.nav.uploads,
+          href: "/workspace/uploads",
+          icon: FilesIcon,
+          label: copy.nav.uploads,
         },
       ],
     },
@@ -452,6 +461,12 @@ function buildMobileSecondaryNavGroups(
       href: "/workspace/subscriptions",
       icon: RouteIcon,
       label: copy.nav.subscriptions,
+    },
+    {
+      ariaLabel: copy.nav.uploads,
+      href: "/workspace/uploads",
+      icon: FilesIcon,
+      label: copy.nav.uploads,
     },
     {
       href: "/catalog/bus",
@@ -544,6 +559,8 @@ function buildMobileSecondaryNavGroups(
         { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
         { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
         { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
+        { href: "/terms", icon: ScrollTextIcon, label: copy.footer.terms },
+        { href: "/privacy", icon: GavelIcon, label: copy.footer.privacy },
       ],
     },
     ...(isAdmin
@@ -735,6 +752,7 @@ async function resolveClientShell() {
   const controller = new AbortController();
   shellBootstrapAbortController = controller;
   const generation = shellBootstrapGeneration;
+  if (!viewerUser) viewerLoading = true;
 
   try {
     const bootstrap = await getClientShellBootstrap(
@@ -820,6 +838,7 @@ onMount(() => {
 
 afterNavigate(({ from, to }) => {
   if (!from || !to) return;
+  void resolveClientShell();
   if (
     from.url.pathname === to.url.pathname &&
     from.url.search === to.url.search
@@ -997,18 +1016,17 @@ afterNavigate(({ from, to }) => {
         />
       {/if}
     {/if}
+    {#if GlobalSearchDialog}
+      <svelte:component
+        this={GlobalSearchDialog}
+        copy={data.copy.globalSearch}
+        locale={data.locale}
+        bind:open={globalSearchOpen}
+        signedIn={Boolean(viewerUser)}
+        on:openChange={(event) => {
+          globalSearchOpen = event.detail;
+        }}
+      />
+    {/if}
   </Sidebar.Provider>
-{/if}
-
-{#if GlobalSearchDialog && !focusedShell}
-  <svelte:component
-    this={GlobalSearchDialog}
-    copy={data.copy.globalSearch}
-    locale={data.locale}
-    bind:open={globalSearchOpen}
-    signedIn={Boolean(viewerUser)}
-    on:openChange={(event) => {
-      globalSearchOpen = event.detail;
-    }}
-  />
 {/if}

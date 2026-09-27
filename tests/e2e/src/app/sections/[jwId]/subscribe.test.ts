@@ -36,7 +36,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await expect(subscribeBtn).toBeVisible();
   });
 
-  test("已退役班级保留历史详情与日历但禁止新增关注", async ({ page }) => {
+  test("section.retired-detail-presentation", async ({ page }) => {
     test.setTimeout(60_000);
     const previous = await withE2ePrisma((prisma) =>
       prisma.section.findUniqueOrThrow({

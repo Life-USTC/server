@@ -19,87 +19,393 @@ access:
   agent: Can read section information and manage personal section-related state through OAuth-authorized
     REST / MCP endpoints.
 requirements:
-- id: section.public-web-personal-overlay
-  category: consistency
-  rule: Section detail HTML and page-data payloads contain public facts and description content only.
-    After hydration a session-only private no-store Web projection resolves subscription status, homework
-    completion and viewer permissions. The homeworkId and subscribe=1 deep links wait for that projection;
-    unresolved or failed personal state cannot expose writable subscription controls. This Web assembly
-    route adds no REST, GraphQL or MCP capability.
 - id: section.source-planning-metadata
   category: consistency
   rule: Required teaching weeks and catalog admin-class localized names are preserved. Catalog names without
     IDs remain catalogAdminClasses metadata, separate from authoritative AdminClass relations; no identities
     are invented or matched by name.
-- id: section.semester-offering
-  category: behavior
-  rule: A section is a specific teaching class for a course in a given semester.
+  acceptance:
+    given: A section source provides required weeks and a localized catalog class name without a class
+      identity.
+    when: The real section importer persists it and the public DTO serializer reads the result.
+    then:
+    - Required weeks and localized catalog names are retained.
+    - No authoritative AdminClass relation is invented.
+    test:
+      file: tests/integration/static-source-metadata.test.ts
+      name: section.source-planning-metadata
 - id: section.source-lifecycle
   category: consistency
-  rule: Before any database write, static sync rejects incomplete snapshots and generated_at values more
-    than 15 minutes in the future. It also rejects snapshots older than the last completed import and
-    two different files claiming the same generated_at. Once validation passes, Sections absent from the
-    current snapshot are marked inactive automatically and Sections that reappear are made active again.
-    The import and its generated_at/SHA-256 are committed together.
+  rule: Static sync rejects incomplete snapshots before any database writes.
+  acceptance:
+    given: A real schema-6 SQLite snapshot records an unsuccessful required lesson fetch.
+    when: The complete importer validates the snapshot.
+    then:
+    - The import rejects the incomplete source.
+    - No semester, course, Section or import revision is written.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-lifecycle
 - id: section.retirement-preserves-data
   category: consistency
-  rule: Marking a Section inactive never deletes the Section or its comments, description, homeworks,
-    subscriptions, schedules, exams, or audit history. Each change writes a Section-targeted audit row,
-    and the import report includes missing, before/after, deactivated, and reactivated counts. Semesters
-    with no source lessons are excluded from this step.
+  rule: Section retirement preserves the Section, comments, description, homework, subscriptions, schedules,
+    exams and audit history.
+  acceptance:
+    given: A section has a subscription, comments, description, homework, schedules, exams and audit history;
+      a second previously retired section reappears.
+    when: The actual presence reconciler retires and later reactivates rows in a real database transaction.
+    then:
+    - Retirement preserves the Section and all related user, academic and audit records.
+    - Reactivation restores active status without losing prior data.
+    test:
+      file: tests/integration/static-section-lifecycle.test.ts
+      name: section.retirement-preserves-data
 - id: section.retired-read-semantics
   category: consistency
-  rule: Public Section/search/match and public/current calendar collection queries exclude retired rows.
-    Direct Section detail and single-Section calendar access remain available for historical references;
-    the detail page labels the record historical and does not offer a new subscription. Course/Teacher
-    detail histories and the owner's subscribed Sections list also retain retired rows. New subscription
-    discovery/add operations reject retired rows, while an existing owner can still remove one.
-- id: section.subscription-not-enrollment
-  category: behavior
-  rule: Pages involving subscription actions must clearly state this is not official academic course enrollment.
+  rule: Public Section list/search/code-match and calendar collection services exclude retired rows. Direct
+    Section detail and single-Section calendar reads remain available. Course/Teacher detail histories
+    and the owner's subscribed Sections list retain retired rows.
+  acceptance:
+    given: A real course and teacher have active and retired Sections, both subscribed by one owner.
+    when: Actual public discovery, code matching, detail, calendar and history read services query the
+      database.
+    then:
+    - Public discovery, search, matching and current calendar collections return only active Sections.
+    - Direct Section detail and single-Section calendar retain retired Sections.
+    - Course/Teacher history and the owner subscription list retain both records.
+    test:
+      file: tests/integration/retired-section-contract.test.ts
+      name: section.retired-read-semantics
 - id: section.jwid-url-only
   category: behavior
-  rule: jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary
-    section UI.
+  rule: Opaque Section jwId values remain routing/API identifiers and are not displayed as ordinary student-facing
+    section labels.
+  acceptance:
+    given: An isolated Section has an opaque upstream jwId distinct from its visible name and code.
+    when: A browser opens desktop and mobile Section discovery and follows its detail link.
+    then:
+    - Links use the exact upstream jwId.
+    - Rendered list and detail text use course identity and Section code without displaying the opaque
+      jwId.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.jwid-url-only
 - id: section.student-identity-teachers
   category: presentation
   rule: Student-facing section identity is the course display name plus teachers. Section code is secondary
     (monospace in lists, search descriptions, and the Basic Info Card) and must not dominate search titles
     or the detail hero.
+  acceptance:
+    given: Isolated Sections share a course; one has a teacher and the other has none.
+    when: A browser opens desktop and mobile lists, global search and the Section detail.
+    then:
+    - Course display names and available teachers identify the offering.
+    - Section codes use monospace in lists, search descriptions and Basic Info, stay out of search titles,
+      and remain smaller than the detail heading.
+    test:
+      file: tests/e2e/src/app/sections/student-identity.test.ts
+      name: section.student-identity-teachers
 - id: section.public-list-cache
   category: consistency
-  rule: 'Public Section REST responses are deterministic by URL: omitted locale uses canonical zh-cn and
-    locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use
-    shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination/shape
-    runtime caching. Localized HTML pages use their locale-partitioned SSR cache.'
+  rule: Public section list REST output depends on URL locale/filter/pagination values, not Cookie or
+    Accept-Language. Omitted locale uses zh-cn and locale=en-us selects English.
+  rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
+    topology is an architecture choice; revision freshness and locale separation remain required.
+  acceptance:
+    given: Two isolated section records have distinct Chinese and English names and supported filters.
+    when: Anonymous and signed-in HTTP callers vary URL locale, filters and pages while sending conflicting
+      Cookie and Accept-Language headers.
+    then:
+    - Omitted locale stays Chinese and explicit en-us selects English.
+    - Cookie and Accept-Language do not change the same URL response or its public cache policy.
+    - Different pages and supported filters return the correct isolated records and totals.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.public-list-cache
 - id: section.mobile-detail-actions
   category: presentation
-  rule: Section detail pages present concise metadata and teachers with a responsive course title, use
-    the Detail Two-Column Stream (no context-tab rail), and keep the primary calendar and subscription
-    actions available in a bottom sticky action bar that stays above the signed-in shell navigation.
+  rule: Mobile section detail presents readable course identity, teachers and concise metadata.
+  acceptance:
+    given: An isolated Section has a long localized course name, a Teacher and populated semester, credit, capacity and period metadata.
+    when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
+    then:
+    - The course name remains a readable heading without horizontal overflow.
+    - The monospace Section code, localized semester and concise numeric metadata are directly reachable.
+    - The Teacher reference displays the localized name and links to the exact Teacher.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: section.mobile-detail-actions
 - id: section.detail-canonical-url
   category: behavior
-  rule: The canonical section detail URL is `/catalog/sections/[jwId]`. Legacy path segments and `?tab=`
-    deep links permanently redirect to the root; optional hash anchors scroll within the page.
+  rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional hash anchors identify content
+    within that page.
+  acceptance:
+    given: An isolated Section has a persisted upstream jwId.
+    when: A browser opens its entity URL with an extra query and hash.
+    then:
+    - The detail renders the course name.
+    - The canonical URL is the Section entity root while the optional page hash remains usable.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.detail-canonical-url
 - id: section.public-teacher-reference
   category: privacy
-  rule: Teachers embedded in Section list/detail payloads contain only public identity and localized names,
-    with department/title added only where the detail UI requests that context. TeacherAssignment links
-    by teacherId and does not duplicate the nested Teacher object. Contact and private source columns
-    are available only on the teacher's own public detail where explicitly permitted.
+  rule: Embedded Section teachers expose only public identity and localized names, plus department/title
+    where needed. Contact and source-private columns never appear in nested references.
+  acceptance:
+    given: A Section references a Teacher with department/title context, contact and source-private sentinels.
+    when: The restricted-role public Section detail reader serializes its nested teachers.
+    then:
+    - Public identity, localized names and the available department/title context remain.
+    - Contact, age, postcode, QQ and WeChat are excluded from the payload.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.public-teacher-reference
 - id: section.public-detail-cache
   category: consistency
-  rule: Anonymous REST, MCP, and single-entity GraphQL Section reads share revision-, locale-, ID-, and
-    include-shape-scoped runtime caching. Missing entities are not cached.
+  rule: Public section detail reads never mix different entity IDs, locales, include shapes or imported
+    revisions. A missing entity is re-evaluated after an import.
+  rationale: A shared runtime cache is an implementation option; this requirement constrains observable
+    identity, shape and freshness.
+  acceptance:
+    given: Two persisted section records are read under multiple locales and API/page shapes with real
+      runtime caches.
+    when: The database commits updated source data and a new StaticImportState revision, also adding an
+      identity previously missing.
+    then:
+    - Entity identities, languages and requested shapes never mix in cached responses.
+    - Before the revision advances, the already cached immutable representation stays stable.
+    - The new committed revision refreshes API and page data and makes the previously missing identity
+      readable.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.public-detail-cache
 - id: section.relational-course-filter
   category: validation
-  rule: Section courseJwId filtering is applied through the Course relation in the same paginated query.
-    When courseId and courseJwId are both present they are ANDed, so mismatches return no rows without
-    a separate Course lookup.
+  rule: When courseId and courseJwId are both supplied, Section discovery applies both filters; mismatched
+    identifiers return an empty page and total.
+  acceptance:
+    given: Two courses each own a persisted active Section.
+    when: The public Section service receives matching and mismatched courseId/courseJwId combinations.
+    then:
+    - Matching identifiers return the correct Section and total.
+    - Mismatched identifiers return an empty page with total zero.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.relational-course-filter
 - id: section.bounded-related-sections
   category: validation
-  rule: The Section detail page returns the 20 newest active offerings of the same Course and the complete
-    active related-Section count. The current Section is excluded.
+  rule: Section detail shows at most 20 newest active offerings of the same Course, excluding the current
+    Section, and reports the complete matching count. Equal sort values use a stable unique tie-breaker.
+  acceptance:
+    given: A course has 25 newer active offerings with equal semester/code values inserted in reverse
+      jwId order, one older active offering and two retired offerings.
+    when: The actual public Section page reader loads its related-offering preview.
+    then:
+    - The complete count is 26 but only the 20 newest active other offerings are returned.
+    - A unique jwId tie-breaker selects the same ordered preview independently of insertion order.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.bounded-related-sections
+- id: section.private-section-projection
+  category: consistency
+  rule: Public Section HTML and page data retain anonymous subscription, homework and permission state
+    even for session requests. After hydration, a session-only private, no-store projection supplies the
+    viewer's subscription, homework completion and permissions without exposing a new public API capability.
+  acceptance:
+    given: A session owner subscribes to a Section and completes one homework while an anonymous viewer
+      has neither state.
+    when: Anonymous and session requests read public HTML and decoded page data before a hydrated page
+      fetches its private projection; HTTP callers also attempt anonymous, session and Bearer reads.
+    then:
+    - Public HTML and page data never include the session owner or its subscription, completion and editing authority.
+    - The session projection supplies that owner’s subscription, completion and viewer permissions.
+    - Responses are private no-store; anonymous reads cannot select a user through query parameters and
+      Bearer is rejected.
+    - No viewer projection is published in OpenAPI.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.private-section-projection
+- id: section.personal-deep-link-gate
+  category: consistency
+  rule: homeworkId and subscribe=1 Web deep links wait for successful personal-state resolution; unresolved
+    or failed state never enables subscription writes.
+  acceptance:
+    given: A fully registered session opens subscribe=1 and homeworkId deep links.
+    when: The browser holds the actual personal projection pending, then permits success, then simulates
+      an unavailable projection.
+    then:
+    - Pending or failed personal state exposes no subscription dialog or write form and creates no subscription.
+    - Only successful personal-state resolution enables the subscription confirmation.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.personal-deep-link-gate
+- id: section.source-future-clock-bound
+  category: consistency
+  rule: Static sync rejects snapshot generated_at more than 15 minutes after the import reference time
+    before writes.
+  acceptance:
+    given: Snapshot generation time is at, just beyond or far beyond the 15-minute future-clock allowance.
+    when: The actual timestamp validator and importer process the snapshot.
+    then:
+    - The exact allowance is accepted and one millisecond beyond is rejected.
+    - A far-future snapshot is rejected before table reads or database transaction writes.
+    test:
+      file: tests/unit/static-loader/static-loader-future-snapshot.test.ts
+      name: section.source-future-clock-bound
+- id: section.source-monotonic-revision
+  category: consistency
+  rule: Static sync rejects a snapshot older than the last completed import or a different snapshot claiming
+    the same generated_at.
+  acceptance:
+    given: A real import state stores one completed timestamp and snapshot hash.
+    when: The actual import gate receives the same snapshot, an older timestamp, or changed content at
+      the same timestamp.
+    then:
+    - Older and same-time conflicting snapshots are rejected.
+    - The first snapshot can record its exact timestamp/hash and same snapshot respects transform revision.
+    test:
+      file: tests/integration/static-import-state.test.ts
+      name: section.source-monotonic-revision
+- id: section.source-section-presence
+  category: consistency
+  rule: After successful snapshot validation, missing Sections become inactive and reappearing Sections
+    become active.
+  acceptance:
+    given: A complete SQLite source contains a retired Section and omits an active Section in the covered
+      semester.
+    when: The full importer applies that snapshot, then a newer source includes the omitted upstream identity.
+    then:
+    - Missing Sections become retired and present Sections become active.
+    - A reappearing Section reuses its database identity and becomes active.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-section-presence
+- id: section.source-import-atomicity
+  category: consistency
+  rule: Imported data and its generated_at/SHA-256 revision commit together; a failed import does not
+    advance the stored revision.
+  acceptance:
+    given: An existing completed import is followed by changed course and Section data, while a real database
+      trigger rejects the final revision write.
+    when: The complete importer fails, then retries successfully after the fault is removed.
+    then:
+    - Failure rolls back all imported changes and leaves the old generated_at, SHA-256 and transform revision
+      unchanged.
+    - Success commits the changed data with the exact new generated_at, SHA-256 and transform revision.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-import-atomicity
+- id: section.retirement-audit
+  category: consistency
+  rule: Each activation or retirement change records a Section-targeted audit row.
+  acceptance:
+    given: A complete SQLite snapshot reactivates one Section and retires another.
+    when: The complete importer commits the snapshot and later repeats the same presence set.
+    then:
+    - Each actual state transition produces one Section-targeted audit row with the committed snapshot
+      hash and time.
+    - An unchanged presence set adds no duplicate lifecycle audit rows.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.retirement-audit
+- id: section.retirement-report
+  category: consistency
+  rule: Import reports include missing, before/after, deactivated and reactivated counts.
+  acceptance:
+    given: A covered semester contains one active missing Section and one retired present Section.
+    when: The complete importer returns its report and processes a newer identical presence set.
+    then:
+    - The report gives exact missing, deactivated, reactivated and before/after counts.
+    - A subsequent unchanged presence set reports zero transitions and preserves totals.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.retirement-report
+- id: section.empty-semester-retirement
+  category: consistency
+  rule: Section retirement uses explicit complete source coverage. An explicitly fetched complete empty
+    semester retires its missing Sections; unavailable or out-of-coverage semesters are excluded rather
+    than interpreted as empty.
+  acceptance:
+    given: Source coverage distinguishes unfetched semesters, fetched historical rows and an explicitly
+      fetched complete empty semester.
+    when: The actual importer writes into a real PostgreSQL transaction.
+    then:
+    - Uncovered historical data remains intact.
+    - The explicitly covered empty semester retires its missing Section.
+    - A failed source fetch rejects the import instead of treating it as empty.
+    test:
+      file: tests/integration/static-import-coverage.test.ts
+      name: section.empty-semester-retirement
+- id: section.mobile-sticky-actions
+  category: presentation
+  rule: Mobile calendar and subscription actions remain reachable in a bottom action bar above the signed-in
+    shell navigation.
+  acceptance:
+    given: A signed-in user opens an unsubscribed Section at mobile widths.
+    when: The user scrolls the detail to its end, opens the calendar dialog and subscribes then unsubscribes at 320 and 390 pixel widths.
+    then:
+    - The bottom action bar stays in the viewport above the signed-in shell navigation.
+    - Both actions remain enabled and receive pointer hits without an overlay or navigation obscuring them.
+    - The calendar dialog opens and the subscription actions persist and remove the exact membership.
+    test:
+      file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
+      name: section.mobile-sticky-actions
+- id: section.teacher-assignment-reference
+  category: privacy
+  rule: TeacherAssignment output links to teacherId without duplicating the nested Teacher payload.
+  acceptance:
+    given: A persisted Section has a teacher assignment and a related Teacher with private contact sentinels.
+    when: The actual restricted-role public detail service reads both locales.
+    then:
+    - The assignment exposes the exact teacherId and assignment facts without a nested Teacher.
+    - The shared teachers list resolves that identity and no private teacher contact appears.
+    test:
+      file: tests/integration/section-teacher-assignment-contract.test.ts
+      name: section.teacher-assignment-reference
+- id: section.retired-subscription-mutations
+  category: consistency
+  rule: New subscription add operations reject retired rows. Existing owners can remove retired subscriptions
+    through individual, batch and explicit subscribed=false operations.
+  acceptance:
+    given: An owner has an existing retired Section subscription beside an active subscription.
+    when: Actual individual, batch and explicit-state subscription services add and remove the retired
+      record.
+    then:
+    - All add paths reject the retired row without changing existing ownership.
+    - All remove paths delete the retired subscription while preserving the active subscription.
+    test:
+      file: tests/integration/retired-section-contract.test.ts
+      name: section.retired-subscription-mutations
+- id: section.retired-detail-presentation
+  category: presentation
+  rule: A retired Section detail page labels the record historical and does not offer a new subscription.
+  acceptance:
+    given: A persisted Section is retired.
+    when: An anonymous viewer opens its detail with the subscribe=1 deep link.
+    then:
+    - The page displays a historical label and retains calendar access.
+    - No new-subscription control or subscription dialog is offered.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/subscribe.test.ts
+      name: section.retired-detail-presentation
+- id: section.schedule-response-schema
+  category: consistency
+  rule: Section schedules and schedule groups publish named OpenAPI response schemas shared with runtime
+    validation. Generated clients retain typed nested schedule, group, teacher and participation fields
+    without changing the public response shape.
+  acceptance:
+    given: An isolated public Section has a persisted schedule group, schedule and teacher participation
+      with full public identity and private contact sentinels.
+    when: Anonymous HTTP callers retrieve OpenAPI and localized schedules and schedule groups.
+    then:
+    - OpenAPI references the shared named array schemas with typed nested fields.
+    - Both localized HTTP responses satisfy the exact runtime schemas and preserve schedule, group, teacher
+      identity and participation facts.
+    - Private teacher contact values never appear.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/schedule-schema.test.ts
+      name: section.schedule-response-schema
 capabilities:
   section-list:
     title: Section List & Filter
@@ -116,9 +422,8 @@ capabilities:
       routes:
       - path: /api/catalog/sections
         notes:
-        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated
-          limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are
-          rejected instead of clamped.
+        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters. Out-of-range
+          values are rejected instead of clamped.
         - Retired Sections are excluded.
     graphql:
       queries:
@@ -138,19 +443,40 @@ capabilities:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
         - Retired Sections are excluded.
     presentation:
-      items:
-      - section.course.namePrimary
-      - section.teachers[].namePrimary
-      - section.semester.nameCn
-      - section.campus.namePrimary
-      - section.code (secondary monospace)
-      - section.credits
-      - section.stdCount / section.limitCount (capacity)
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.course.nameSecondary
+          - section.semester.nameCn
+          - section.campus.namePrimary
+          - section.code
+          - section.credits
+          - section.stdCount
+          - section.limitCount
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-section-search:
+          primary:
+          - data.course.nameCn
+          - data.teachers.nameCn
+          secondary:
+          - data.code
+          - data.semester.nameCn
+          - data.campus.nameCn
+          - data.jwId
+          tertiary: []
       filters:
       - Semester selector
       - Generic search
-      - 'REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId,
-        semesterJwId, advanced search syntax'
+      - 'REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId, semesterJwId,
+        advanced search syntax'
+    requirement_refs:
+    - subscription.subscription-language
   section-detail:
     title: Section Detail
     auth: anon
@@ -183,34 +509,53 @@ capabilities:
       - name: catalog_section_get
         rest_equivalent: GET /api/catalog/sections/[jwId]
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.course.nameSecondary
+          - section.semester.nameCn
+          - section.campus.namePrimary
+          - section.code
+          - section.credits
+          - section.stdCount
+          - section.limitCount
+          - section.period
+          - section.actualPeriods
+          - section.examMode.namePrimary
+          - section.remark
+          - section.adminClasses.namePrimary
+          - section.timesPerWeek
+          - section.periodsPerWeek
+          - section.theoryPeriods
+          - section.practicePeriods
+          - section.experimentPeriods
+          - section.machinePeriods
+          - section.designPeriods
+          - section.testPeriods
+          - section.teachLanguage.namePrimary
+          - section.roomType.namePrimary
+          - section.graduateAndPostgraduate
+          tertiary:
+          - section.id
+          - section.jwId
+        mcp-catalog-section-get:
+          primary:
+          - section.course.nameCn
+          - section.teachers.nameCn
+          secondary:
+          - section.code
+          - section.semester.nameCn
+          - section.campus.nameCn
+          - section.jwId
+          tertiary: []
       items:
-      - section.course.namePrimary (h1)
-      - section.course.nameSecondary (Locale subtitle)
-      - section.teachers[] (hero + side linked list)
-      - section.semester.nameCn
-      - section.campus.namePrimary + nameSecondary
-      - section.code (Monospace secondary in side column)
-      - section.graduateAndPostgraduate (yes/no)
-      - section.credits
-      - section.period + actualPeriods (if different)
-      - section.examMode.namePrimary
-      - section.remark (Whitespace-preserved)
-      - section.adminClasses[] (Collapsible details)
-      - section.timesPerWeek
-      - section.periodsPerWeek
-      - section.theoryPeriods
-      - section.practicePeriods
-      - section.experimentPeriods
-      - section.machinePeriods
-      - section.designPeriods
-      - section.testPeriods
-      - section.teachLanguage.namePrimary
-      - section.roomType.namePrimary
-      - description.content (main stream)
-      - scheduleDateKeys / schedule.* (main stream calendar)
-      - examDateKeys / exam.* (main stream exams)
-      - homework.title, submissionDueAt, description, completionStatus
-      - comment.* (client-fetched main stream only)
+      - Continuous description, schedule, exam, homework and comment reading stream.
+    requirement_refs:
+    - subscription.subscription-language
   section-ical:
     title: Section iCal Export
     auth: anon
@@ -229,6 +574,28 @@ capabilities:
         notes:
         - Returns a single-section iCal link and usage instructions.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - calendar.url
+          secondary:
+          # The Web dialog explains feed scope; iCalendar format is a protocol obligation.
+          - calendar.description
+          tertiary: []
+        mcp-catalog-section-calendar-feed-get:
+          primary:
+          - section.course.nameCn
+          secondary:
+          - section.code
+          - section.jwId
+          tertiary: []
       items:
-      - iCalendar URL (copyable)
-      - Export format indicator
+      - Copy the displayed iCalendar URL.
+    requirement_refs:
+    - subscription.subscription-language
+rationale:
+- A section is a specific teaching class for a course in a given semester.
+
+- The former section.public-web-personal-overlay is owned by rendering-and-cache.web-rendering-and-cache-1 for public HTML and page-data and description.public-web-personal-overlay for public descriptions. Private Section projections and deep-link gates remain independent requirements.
+- The section iCalendar Web dialog explains the scope of the feed. Its description is user-facing context; the iCalendar format is separately enforced by protocol requirements.

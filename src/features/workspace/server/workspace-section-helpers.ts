@@ -48,6 +48,7 @@ export const buildSessions = (
         {
           id: `s-${section.id}-${schedule.id}`,
           sectionJwId: section.jwId,
+          sectionCode: section.code,
           badge: section.badge,
           courseName: section.course.namePrimary ?? "",
           date: schedule.date,

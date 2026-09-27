@@ -15,6 +15,7 @@ export let addDays: WorkspaceCalendarTabProps["addDays"];
 export let addMonths: WorkspaceCalendarTabProps["addMonths"];
 export let calendarData: WorkspaceCalendarTabProps["calendarData"];
 export let agendaWeekStart: string;
+export let calendarDay: WorkspaceCalendarTabProps["calendarDay"];
 export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
 export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
 export let calendarView: WorkspaceCalendarTabProps["calendarView"];
@@ -23,6 +24,7 @@ export let commonCopy: WorkspaceCalendarTabProps["commonCopy"];
 export let workspaceCopy: WorkspaceCalendarTabProps["workspaceCopy"];
 export let formatMessage: FormatMessage;
 export let sectionCopy: WorkspaceCalendarTabProps["sectionCopy"];
+export let setCalendarDay: WorkspaceCalendarTabProps["setCalendarDay"];
 export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
 export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
 export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
@@ -41,11 +43,12 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       value={calendarView}
       variant="outline"
       onValueChange={(value) => {
-        if (value === "semester" || value === "month" || value === "week") {
+        if (value === "semester" || value === "month" || value === "week" || value === "day") {
           setCalendarView(value);
         }
       }}
     >
+      <ToggleGroup.Item value="day">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
       <ToggleGroup.Item value="semester">
         {workspaceCopy.calendarViewSemester}
       </ToggleGroup.Item>
@@ -60,6 +63,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       {addDays}
       {addMonths}
       {calendarData}
+      {calendarDay}
       {calendarMonth}
       {calendarSemesterIndex}
       {calendarView}
@@ -68,6 +72,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       {workspaceCopy}
       {formatMessage}
       {sectionCopy}
+      {setCalendarDay}
       {setCalendarMonth}
       {setCalendarSemester}
       {setCalendarWeek}
@@ -90,15 +95,19 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 
 {#if calendarData}
   <div class="grid gap-2 md:hidden" data-testid="workspace-calendar-mobile-toolbar">
+    <ToggleGroup.Root aria-label={workspaceCopy.nav.calendar.title} type="single" value={calendarView === "day" ? "day" : "week"} variant="outline" onValueChange={(value) => { if (value === "day" || value === "week") setCalendarView(value); }}>
+      <ToggleGroup.Item value="day" class="h-11">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
+      <ToggleGroup.Item value="week" class="h-11">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
+    </ToggleGroup.Root>
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-1">
         <Button
-          aria-label={workspaceCopy.calendarWeek.prev}
+          aria-label={calendarView === "day" ? workspaceCopy.calendarDay.prev : workspaceCopy.calendarWeek.prev}
           class="size-11"
           size="icon"
           type="button"
           variant="outline"
-          onclick={() => setCalendarWeek(addDays(agendaWeekStart, -7))}
+          onclick={() => calendarView === "day" ? setCalendarDay(addDays(calendarDay, -1)) : setCalendarWeek(addDays(agendaWeekStart, -7))}
         >
           <ChevronLeft data-icon="inline-start" />
         </Button>
@@ -106,17 +115,17 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           class="h-11 px-3"
           type="button"
           variant="outline"
-          onclick={() => setCalendarWeek(weekStartFor(calendarData.todayDate))}
+          onclick={() => calendarView === "day" ? setCalendarDay(calendarData.todayDate) : setCalendarWeek(weekStartFor(calendarData.todayDate))}
         >
           {workspaceCopy.todayAction}
         </Button>
         <Button
-          aria-label={workspaceCopy.calendarWeek.next}
+          aria-label={calendarView === "day" ? workspaceCopy.calendarDay.next : workspaceCopy.calendarWeek.next}
           class="size-11"
           size="icon"
           type="button"
           variant="outline"
-          onclick={() => setCalendarWeek(addDays(agendaWeekStart, 7))}
+          onclick={() => calendarView === "day" ? setCalendarDay(addDays(calendarDay, 1)) : setCalendarWeek(addDays(agendaWeekStart, 7))}
         >
           <ChevronRight data-icon="inline-start" />
         </Button>
@@ -149,7 +158,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       {/if}
     </div>
     <p class="truncate text-sm text-muted-foreground">
-      {formatMessage(workspaceCopy.calendarWeek.current, {
+      {calendarView === "day" ? calendarDay : formatMessage(workspaceCopy.calendarWeek.current, {
         date: agendaWeekStart,
       })}
     </p>

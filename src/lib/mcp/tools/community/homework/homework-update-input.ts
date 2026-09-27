@@ -78,6 +78,7 @@ export function parseHomeworkUpdateDates({
 export function homeworkUpdateToolFailure(
   message: string,
   mode: ReturnType<typeof resolveMcpMode>,
+  error: string,
 ) {
-  return jsonToolResult({ success: false, message }, { mode });
+  return jsonToolResult({ success: false, error, message }, { mode });
 }

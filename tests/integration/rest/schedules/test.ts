@@ -58,7 +58,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
   test("按 sectionId 过滤返回 seed 排课", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
-      `/api/catalog/schedules?sectionId=${sectionId}&limit=20`,
+      `/api/catalog/schedules?sectionId=${sectionId}&pageSize=20`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -76,7 +76,7 @@ test.describe("GET /api/catalog/schedules - 排课列表", () => {
   test("排课包含嵌套关联", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
-      `/api/catalog/schedules?sectionId=${sectionId}&limit=5`,
+      `/api/catalog/schedules?sectionId=${sectionId}&pageSize=5`,
     );
     expect(response.status()).toBe(200);
 

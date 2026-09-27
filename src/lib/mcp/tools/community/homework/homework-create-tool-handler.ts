@@ -74,10 +74,12 @@ export async function createHomeworkOnSectionTool(
     }
     const payload: {
       message: string;
+      error: string;
       reason?: string | null;
       success: false;
     } = {
       success: false,
+      error: createResult.error,
       message: createResult.error === "suspended" ? "Suspended" : "Forbidden",
     };
     if (createResult.error === "suspended") {

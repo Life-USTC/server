@@ -54,13 +54,13 @@ export let updatingCatalogLinkSlug: string | null;
                 >
                   {linkIconLabel(link.icon)}
                 </span>
-                <TruncatedText text={link.title} />
+                <TruncatedText class="font-medium" text={link.title} />
               </span>
             </CatalogLinkTableCell>
           </Table.Cell>
           <Table.Cell class="p-0">
             <CatalogLinkTableCell {link}>
-              <TruncatedText text={link.description} />
+              <TruncatedText class="text-muted-foreground" text={link.description} />
             </CatalogLinkTableCell>
           </Table.Cell>
           <Table.Cell class="p-0">

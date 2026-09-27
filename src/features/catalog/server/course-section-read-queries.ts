@@ -24,6 +24,7 @@ import {
   type CourseSummaryRecord,
   toCourseDetailDto,
   toCourseDto,
+  toSectionCompactDto,
   toSectionPublicContextDto,
 } from "./academic-summary-dto-mappers";
 
@@ -399,10 +400,11 @@ export async function findSectionCompactByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getPrisma(locale).section.findUnique({
+  const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
     include: sectionCompactInclude,
   });
+  return section ? toSectionCompactDto(section, locale) : null;
 }
 
 export async function findSectionPublicContextByJwId(

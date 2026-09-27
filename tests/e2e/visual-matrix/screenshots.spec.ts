@@ -14,7 +14,7 @@ import {
   type VisualMatrixLocale,
 } from "./matrix-setup";
 
-const OVERVIEW_WEEK_START = "2026-04-26";
+const OVERVIEW_WEEK_START = "2026-04-27";
 
 type VisualScreen = {
   id: string;
@@ -70,7 +70,7 @@ const VISUAL_SCREENS: VisualScreen[] = [
   },
   {
     id: "workspace-overview",
-    path: `/workspace/overview?overviewWeek=${OVERVIEW_WEEK_START}`,
+    path: `/workspace/overview?overviewWeek=${OVERVIEW_WEEK_START}&snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`,
     prepare: async (page, locale) => {
       await page.clock.setFixedTime(
         new Date(DEV_SEED_ANCHOR.recommendedAtTime),

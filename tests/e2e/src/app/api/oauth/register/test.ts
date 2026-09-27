@@ -7,9 +7,9 @@
  * - Canonical well-known discovery endpoints:
  *   - /.well-known/oauth-authorization-server/api/auth → authorization server metadata
  *   - /api/auth/.well-known/openid-configuration → OpenID provider configuration
- *   - /.well-known/openid-configuration/api/auth → RFC 8414 compatibility form for OpenID metadata
+ *   - /.well-known/openid-configuration/api/auth → RFC 8414 path-aware OpenID metadata
  *   - /.well-known/oauth-protected-resource/api/mcp → protected resource metadata
- * - Legacy root aliases redirect to the canonical path-specific locations
+ * - Discovery paths are derived from the configured issuer/resource; extra root and MCP-relative aliases return 404
  * - Full PKCE authorization code flow:
  *   1. POST /api/auth/oauth2/register → dynamic client registration
  *   2. GET /api/auth/oauth2/authorize → redirect to consent page
@@ -53,119 +53,36 @@ const DCR_CLIENT_SCOPE = [
 ].join(" ");
 
 test.describe("OAuth 提供者", () => {
-  test("暴露标准 well-known 端点且旧别名重定向", async ({ request }) => {
-    const [
-      authServer,
-      openid,
-      openidCompatibility,
-      protectedResource,
-      protectedResourceHead,
-      authServerMcpCompatibility,
-      openidMcpCompatibility,
-      authServerMcpRelative,
-      openidMcpRelative,
-      openidOptions,
-      authServerAlias,
-      openidAlias,
-      protectedResourceAlias,
-    ] = await Promise.all([
-      request.get("/.well-known/oauth-authorization-server/api/auth"),
-      request.get("/api/auth/.well-known/openid-configuration"),
-      request.get("/.well-known/openid-configuration/api/auth"),
-      request.get("/.well-known/oauth-protected-resource/api/mcp"),
-      request.fetch("/.well-known/oauth-protected-resource/api/mcp", {
-        method: "HEAD",
-      }),
-      request.get("/.well-known/oauth-authorization-server/api/mcp", {
-        maxRedirects: 0,
-      }),
-      request.get("/.well-known/openid-configuration/api/mcp", {
-        maxRedirects: 0,
-      }),
-      request.get("/api/mcp/.well-known/oauth-authorization-server", {
-        maxRedirects: 0,
-      }),
-      request.get("/api/mcp/.well-known/openid-configuration", {
-        maxRedirects: 0,
-      }),
-      request.fetch("/api/auth/.well-known/openid-configuration", {
-        method: "OPTIONS",
-      }),
-      request.get("/.well-known/oauth-authorization-server", {
-        maxRedirects: 0,
-      }),
-      request.get("/.well-known/openid-configuration", { maxRedirects: 0 }),
-      request.get("/.well-known/oauth-protected-resource", {
-        maxRedirects: 0,
-      }),
-    ]);
-
-    expect(authServer.status()).toBe(200);
-    expect(openid.status()).toBe(200);
-    expect(openidCompatibility.status()).toBe(200);
-    expect(protectedResource.status()).toBe(200);
-    expect(protectedResourceHead.status()).toBe(200);
-    expect(await protectedResourceHead.body()).toHaveLength(0);
-    expect(authServerMcpCompatibility.status()).toBe(307);
-    expect(openidMcpCompatibility.status()).toBe(307);
-    expect(authServerMcpRelative.status()).toBe(307);
-    expect(openidMcpRelative.status()).toBe(307);
-    expect(openid.headers()["access-control-allow-origin"]).toBe("*");
-    expect(openidCompatibility.headers()["access-control-allow-origin"]).toBe(
-      "*",
-    );
-    expect(authServer.headers()["access-control-allow-origin"]).toBe("*");
-    expect(protectedResource.headers()["access-control-allow-origin"]).toBe(
-      "*",
-    );
-    expect(openidOptions.status()).toBe(204);
-    expect(openidOptions.headers()["access-control-allow-origin"]).toBe("*");
-
-    expect(authServerAlias.status()).toBe(307);
-    expect(new URL(authServerAlias.headers().location ?? "").pathname).toBe(
+  test("标准 issuer/resource 发现地址可读且额外别名不存在", async ({
+    request,
+  }) => {
+    for (const path of [
       "/.well-known/oauth-authorization-server/api/auth",
-    );
-    expect(authServerAlias.headers()["access-control-allow-origin"]).toBe("*");
-
-    expect(openidAlias.status()).toBe(307);
-    expect(new URL(openidAlias.headers().location ?? "").pathname).toBe(
       "/api/auth/.well-known/openid-configuration",
+      "/.well-known/openid-configuration/api/auth",
+      "/.well-known/oauth-protected-resource/api/mcp",
+      "/.well-known/oauth-protected-resource/api/graphql",
+    ]) {
+      const response = await request.get(path);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["access-control-allow-origin"]).toBe("*");
+    }
+    const head = await request.head(
+      "/.well-known/oauth-protected-resource/api/mcp",
     );
-    expect(openidAlias.headers()["access-control-allow-origin"]).toBe("*");
-
-    expect(protectedResourceAlias.status()).toBe(307);
-    expect(
-      new URL(protectedResourceAlias.headers().location ?? "").pathname,
-    ).toBe("/.well-known/oauth-protected-resource/api/mcp");
-    expect(
-      protectedResourceAlias.headers()["access-control-allow-origin"],
-    ).toBe("*");
-
-    const protectedResourceBody = (await protectedResource.json()) as {
-      scopes_supported?: string[];
-    };
-    expect(protectedResourceBody.scopes_supported).toContain(
-      "workspace.todo:read",
-    );
-    expect(protectedResourceBody.scopes_supported).toContain(
-      "workspace.todo:write",
-    );
-    expect(protectedResourceBody.scopes_supported).not.toContain("admin:read");
-    expect(protectedResourceBody.scopes_supported).not.toContain("admin:write");
-    expect(protectedResourceBody.scopes_supported).not.toContain("mcp:tools");
-
-    expect(
-      new URL(authServerMcpCompatibility.headers().location ?? "").pathname,
-    ).toBe("/.well-known/oauth-authorization-server/api/auth");
-    expect(
-      new URL(openidMcpCompatibility.headers().location ?? "").pathname,
-    ).toBe("/api/auth/.well-known/openid-configuration");
-    expect(
-      new URL(authServerMcpRelative.headers().location ?? "").pathname,
-    ).toBe("/.well-known/oauth-authorization-server/api/auth");
-    expect(new URL(openidMcpRelative.headers().location ?? "").pathname).toBe(
-      "/api/auth/.well-known/openid-configuration",
-    );
+    expect(head.status()).toBe(200);
+    expect(await head.body()).toHaveLength(0);
+    for (const path of [
+      "/.well-known/oauth-authorization-server",
+      "/.well-known/openid-configuration",
+      "/.well-known/oauth-protected-resource",
+      "/.well-known/oauth-authorization-server/api/mcp",
+      "/.well-known/openid-configuration/api/mcp",
+      "/api/mcp/.well-known/oauth-authorization-server",
+      "/api/mcp/.well-known/openid-configuration",
+    ]) {
+      expect((await request.get(path, { maxRedirects: 0 })).status()).toBe(404);
+    }
   });
 
   test("动态注册 + 授权同意 + 授权码交换 + userinfo", async ({
@@ -322,7 +239,7 @@ test.describe("OAuth 提供者", () => {
     });
   });
 
-  test("loopback 授权接受 127.0.0.1 DCR 客户端的 localhost 别名", async ({
+  test("loopback 授权拒绝替换已注册的 127.0.0.1 主机", async ({
     page,
     request,
   }) => {
@@ -370,6 +287,8 @@ test.describe("OAuth 提供者", () => {
     );
 
     expect(authorizeResponse.status()).toBe(302);
-    expect(authorizeResponse.headers().location).toContain("/oauth/authorize?");
+    expect(authorizeResponse.headers().location).toContain(
+      "error=invalid_redirect",
+    );
   });
 });

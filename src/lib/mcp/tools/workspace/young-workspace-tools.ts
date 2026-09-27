@@ -11,6 +11,7 @@ import {
   listYoungOrganizerSubscriptions,
   setYoungEventSubscription,
   setYoungOrganizerSubscription,
+  YoungSubscriptionNotFoundError,
 } from "@/features/young/server/young-subscription-service";
 import {
   getUserId,
@@ -18,6 +19,21 @@ import {
   mcpModeInputSchema,
   resolveMcpMode,
 } from "../_shared/helpers";
+
+async function youngSubscriptionToolResult(
+  action: () => Promise<unknown>,
+  mode: z.infer<typeof mcpModeInputSchema>,
+) {
+  try {
+    return jsonToolResult(await action(), { mode: resolveMcpMode(mode) });
+  } catch (error) {
+    if (!(error instanceof YoungSubscriptionNotFoundError)) throw error;
+    return jsonToolResult(
+      { success: false, error: "not_found", message: error.message },
+      { mode: resolveMcpMode(mode) },
+    );
+  }
+}
 
 const id = z.string().trim().min(1).max(200);
 const page = {
@@ -85,14 +101,15 @@ export function registerYoungWorkspaceTools(server: McpServer) {
       },
     },
     async ({ youngId, subscribed, mode, ...settings }, extra) =>
-      jsonToolResult(
-        await setYoungEventSubscription(
-          getUserId(extra.authInfo),
-          youngId,
-          subscribed,
-          settings,
-        ),
-        { mode: resolveMcpMode(mode) },
+      youngSubscriptionToolResult(
+        () =>
+          setYoungEventSubscription(
+            getUserId(extra.authInfo),
+            youngId,
+            subscribed,
+            settings,
+          ),
+        mode,
       ),
   );
   server.registerTool(
@@ -116,13 +133,14 @@ export function registerYoungWorkspaceTools(server: McpServer) {
       },
     },
     async (args, extra) =>
-      jsonToolResult(
-        await setYoungOrganizerSubscription(
-          getUserId(extra.authInfo),
-          args.organizerId,
-          args.subscribed,
-        ),
-        { mode: resolveMcpMode(args.mode) },
+      youngSubscriptionToolResult(
+        () =>
+          setYoungOrganizerSubscription(
+            getUserId(extra.authInfo),
+            args.organizerId,
+            args.subscribed,
+          ),
+        args.mode,
       ),
   );
   server.registerTool(

@@ -42,7 +42,7 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
 
   test("空请求体返回 400", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const listResponse = await request.get(`${BASE}?limit=1`);
+    const listResponse = await request.get(`${BASE}?pageSize=1`);
     expect(listResponse.status()).toBe(200);
     const commentId = (
       (await listResponse.json()) as {
@@ -61,7 +61,7 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     await signInAsDevAdminApi(request, "/admin");
 
     // Find an active comment to moderate.
-    const listResponse = await request.get(`${BASE}?status=active&limit=1`);
+    const listResponse = await request.get(`${BASE}?status=active&pageSize=1`);
     expect(listResponse.status()).toBe(200);
     const comment = (
       (await listResponse.json()) as {

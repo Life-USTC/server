@@ -30,10 +30,11 @@ export function buildApplicableBusTrips({
       const startTime = stopTimes[startIndex];
       const endTime = stopTimes[endIndex];
       const status =
-        startTime.displayMinutes == null ||
-        startTime.displayMinutes >= nowMinutes
-          ? "upcoming"
-          : "departed";
+        startTime.displayMinutes == null
+          ? null
+          : startTime.displayMinutes >= nowMinutes
+            ? "upcoming"
+            : "departed";
 
       return {
         trip,

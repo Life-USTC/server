@@ -31,6 +31,7 @@ import {
   identifyObservedUser,
   runWithObservability,
 } from "@/lib/db/observability-context";
+import { setPrivateCacheDefaults } from "@/lib/http-cache-control";
 import {
   recordObservedApiError,
   recordObservedApiResponse,
@@ -151,24 +152,7 @@ function setSecurityHeaders(headers: Headers) {
 function responseWithSecurityHeaders(response: Response) {
   const mutableResponse = responseWithMutableHeaders(response);
   setSecurityHeaders(mutableResponse.headers);
-  // Cover JSON, redirects and early errors as well as HTML. Public routes
-  // must opt in explicitly; an authenticated response must not be stored by
-  // a CDN even if a route supplied a separate CDN caching directive.
-  if (!mutableResponse.headers.has("Cache-Control")) {
-    mutableResponse.headers.set("Cache-Control", "private, no-store");
-  }
-  if (
-    /(?:^|,)\s*(?:private|no-store)(?:\s*(?:,|$)|=)/i.test(
-      mutableResponse.headers.get("Cache-Control") ?? "",
-    )
-  ) {
-    mutableResponse.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
-    if (
-      /\bprivate\b/i.test(mutableResponse.headers.get("Cache-Control") ?? "")
-    ) {
-      mutableResponse.headers.set("Cache-Control", "private, no-store");
-    }
-  }
+  setPrivateCacheDefaults(mutableResponse.headers);
   return mutableResponse;
 }
 

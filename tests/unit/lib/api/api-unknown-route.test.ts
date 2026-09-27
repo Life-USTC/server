@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { fallback } from "@/routes/api/[...path]/+server";
 
 describe("unknown API catch-all", () => {
-  test("returns the standard JSON not-found envelope", async () => {
+  test("openapi.unknown-api-json-errors", async () => {
     const response = await fallback({} as never);
 
     expect(response.status).toBe(404);

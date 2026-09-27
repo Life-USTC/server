@@ -1,4 +1,5 @@
 import { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-links";
+import type { Prisma } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
@@ -13,7 +14,7 @@ type WorkspaceLinkPinDelegate = {
   findMany: (input: {
     where: { userId: string };
     select: { slug: true };
-    orderBy?: { createdAt: "asc" };
+    orderBy: Prisma.WorkspaceLinkPinOrderByWithRelationInput[];
   }) => Promise<WorkspaceLinkPinRow[]>;
   upsert: (input: {
     where: { userId_slug: { userId: string; slug: string } };
@@ -142,7 +143,7 @@ async function pinWorkspaceLink(
   const pinnedRows = await prisma.workspaceLinkPin.findMany({
     where: { userId },
     select: { slug: true },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ createdAt: "asc" }, { slug: "asc" }],
   });
   const overflowRows = pinnedRows.slice(0, -MAX_PINNED_LINKS);
 
@@ -177,6 +178,7 @@ async function listWorkspaceLinkPins(
   const finalRows = await prisma.workspaceLinkPin.findMany({
     where: { userId },
     select: { slug: true },
+    orderBy: [{ createdAt: "asc" }, { slug: "asc" }],
   });
   return finalRows.map((row) => row.slug);
 }

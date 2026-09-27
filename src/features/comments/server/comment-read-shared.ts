@@ -18,6 +18,7 @@ export const commentThreadInclude = {
     select: {
       id: true,
       name: true,
+      username: true,
       image: true,
       isAdmin: true,
     },

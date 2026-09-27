@@ -206,7 +206,7 @@ async function resolveCreateCommentParentForWrite({
   }
 
   const lockedParent = await tx.$queryRaw<Array<{ id: string }>>`
-    SELECT "id" FROM "Comment" WHERE "id" = ${parentId} FOR UPDATE
+    SELECT "id" FROM public.lock_comment_reply_parent(${parentId})
   `;
   if (lockedParent.length === 0) {
     return { ok: false as const, error: "parent_not_found" as const };

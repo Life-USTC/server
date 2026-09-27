@@ -11,6 +11,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.subscription:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postCalendarSubscriptionBatchRoute),

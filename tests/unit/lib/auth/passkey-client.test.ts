@@ -11,6 +11,7 @@ describe("passkey client helpers", () => {
 
   it.each([
     ["SESSION_NOT_FRESH", "stale-session"],
+    ["FAILED_TO_UNLINK_LAST_ACCOUNT", "last-method"],
     ["ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED", "duplicate"],
     ["PREVIOUSLY_REGISTERED", "duplicate"],
     ["AUTH_CANCELLED", "cancelled"],

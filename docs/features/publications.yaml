@@ -1,6 +1,8 @@
 kind: feature
 id: publications
 name: Publications / Public Read and Crawler Ingestion
+rationale:
+- Source directory organization levels are primary grouping headings; source hosts remain secondary identity context and must appear in both desktop and mobile rows.
 areas:
 - catalog
 - platform
@@ -23,77 +25,284 @@ requirements:
 - id: publications.public-read
   category: authorization
   rule: Anonymous reads expose only non-deleted publications whose effective type is news or notice; detail
-    addresses are public by publication id. Deleted publications and other are never returned. The list
-    supports type=news|notice, query, page, pageSize, and the source and organizationLevel list filters.
-    A list filter accepts the documented comma-separated form (source=a,b) and the repeated form a checkbox
-    group submits; duplicates collapse, a single value is unchanged, at most 20 source ids, and the facets
-    intersect.
+    addresses are public by publication id. Deleted publications and other are never returned.
+  acceptance:
+    given: Real ingested news, notice, other, and deleted publications.
+    when: Read public list and detail endpoints over HTTP without credentials.
+    then:
+    - Only nondeleted news and notice appear in lists and return200 detail.
+    - Other, deleted, and nonexistent detail IDs return404.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-read
 - id: publications.reprint-folding
   category: presentation
-  rule: news.ustc.edu.cn republishes one article under multiple section canonical URLs, each a distinct
-    legitimate Publication row. The list accepts an opt-in fold=1 parameter that groups rows by (normalized
-    title, published date in Asia/Shanghai) and returns one representative per group, preferring a university
-    organizationLevel source, else the most recently seen copy, then the lowest id. Folding defaults to
-    off; making it the list default is an open product question.
+  rule: Publication lists default to unfolded rows. Explicit fold=1 groups matching normalized titles
+    on the same Asia/Shanghai published day and chooses a university source first, then the most recently
+    observed copy, then the lowest ID.
+  rationale: Title-and-day folding is a discovery heuristic, not proof that two sources published identical
+    content. Changing the default or equivalence criteria requires a product decision.
+  acceptance:
+    given: Eight real ingested rows spanning three reprint groups, a Shanghai-midnight boundary, and a
+      singleton.
+    when: Read default lists, explicitly folded lists, paginated folded lists, and a source-filtered folded
+      list.
+    then:
+    - Default lists return all rows without foldGroup.
+    - Folded representatives prefer university, then latest observation, then lowest ID; equal titles
+      on different Shanghai days remain separate.
+    - Totals and pages count groups, and source filtering happens before representative selection.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.reprint-folding
 - id: publications.reprint-fold-title-normalization
   category: consistency
-  rule: 'Fold grouping keys on a normalized title: NFKC normalization, invisible-character stripping,
-    whitespace collapsing and lowercasing, implemented by normalizePublicationTitle() in src/features/publications/lib/publication-title-normalization.ts
-    and mirrored by a Postgres generated column so grouping runs in SQL rather than in application memory.
-    The helper and the column must change together.'
+  rule: 'Reprint grouping uses the persisted Postgres-generated title key: NFKC normalization, configured
+    invisible-character removal, whitespace collapse, and lowercase conversion. All list grouping and
+    detail sibling lookups use this same stored key.'
+  rationale: The database is the sole producer of fold keys. No duplicate application normalization implementation
+    is maintained.
+  acceptance:
+    given: Eleven ingested titles covering full-width forms, whitespace, invisible characters, and distinct
+      CJK punctuation or suffixes.
+    when: Read the actual Postgres-generated normalizedTitle column.
+    then:
+    - Every stored fold key equals its independent expected NFKC, invisible-stripped, whitespace-collapsed
+      lowercase form.
+    - Distinct CJK punctuation styles and identifying suffixes remain distinct.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.reprint-fold-title-normalization
 - id: publications.reprint-sibling-exposure
   category: presentation
   rule: A folded row representing two or more members carries foldGroup.siblingCount; an unfolded request
     never includes foldGroup. Independent of fold, the detail response always includes alsoPublishedIn,
     the sibling reprints sharing the same normalized title and published date, so a detail page can cross-link
     the other sections.
+  acceptance:
+    given: Twenty-three ingested same-title/day reprints and one same-title publication on a different
+      day.
+    when: Read folded and unfolded lists and independent detail responses.
+    then:
+    - Only folded groups with multiple members expose siblingCount, excluding the representative itself.
+    - The detail includes all twenty-two other same-title/day siblings with source links and excludes
+      itself and the different-day publication; singleton detail has an empty array.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.reprint-sibling-exposure
 - id: publications.public-object-read
   category: authorization
-  rule: A private R2 object is readable only when its content-addressed key is tied to a linked or verified
-    object and an object link on a non-tombstone revision of a non-deleted news or notice publication.
-    The Worker checks this relationship before reading R2; missing objects return not found and metadata
-    reads do not fail ingestion.
+  rule: Object reads require a verified or linked object associated with the current non-tombstone revision
+    of a non-deleted news or notice publication. The server derives its content-addressed key, checks
+    that relationship, and returns not found when the permitted object or bytes are missing.
+  rationale: Public cache lifetime and removal freshness require a consistent delivery policy; historical
+    revision links do not independently authorize a fresh origin read.
+  acceptance:
+    given: A current public revision linked to a real uploaded object in local workerd R2.
+    when: Read anonymously, then vary object status/key, publication deletion/type/current revision, revision
+      tombstone/type, and stored byte presence/size/type.
+    then:
+    - Only verified or linked objects authorized by the current live public revision are readable.
+    - Ineligible relationships, noncanonical keys, missing bytes, or mismatched storage metadata return
+      404, including conditional requests.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.public-object-read
 - id: publications.publication-markdown
   category: presentation
   rule: Detail loads a verified body_markdown object from R2 and returns bodyMarkdown or null, never substituting
     bodyText. body_html remains archived. Publication holds discovery fields; content and provenance live
     on revisions. Lists select summaries and object links; detail adds images with local proxy URLs and
-    revision alt/title/caption. Web annotates sanitized Markdown with plain-text captions and metadata
-    and displays structured attribution and attachment names.
+    revision alt/title/caption.
+  acceptance:
+    given: A pending or linked Markdown manifest and actual local workerd R2 storage, with separate bodyText
+      and archived HTML.
+    when: Read production detail and list projections before/after upload, with missing/wrong-size/wrong-type
+      stored bytes, and with a later HTML-only revision.
+    then:
+    - Detail returns the actual verified Markdown bytes or null; it never substitutes bodyText or archived
+      HTML.
+    - Lists contain summaries and object links without bodyText/bodyMarkdown/rawMetadata. Detail adds
+      local image proxy URLs and revision image metadata.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.publication-markdown
+- id: publications.markdown-presentation
+  category: presentation
+  rule: The public Web detail annotates sanitized Markdown with plain-text image captions and revision
+    image metadata, preserves the source body order, and displays structured author/reporter/editor/original-publisher
+    attribution and attachment names. It never renders bodyText in place of unavailable bodyMarkdown.
+  acceptance:
+    given: Real publication revisions, Markdown and image objects in local R2, attribution fields, an attachment,
+      and a revision without Markdown.
+    when: Open both detail pages in desktop and mobile browsers.
+    then:
+    - Body blocks preserve source order; image metadata and captions render as plain text without active HTML.
+    - Structured attribution and the attachment name and object URL are visible.
+    - Missing Markdown never falls back to bodyText, and rendering raises no page errors.
+    test:
+      file: tests/e2e/src/app/news/presentation.test.ts
+      name: publications.markdown-presentation
 - id: publications.publication-images
   category: presentation
-  rule: Ingestion registers exact source URL SHA-256 hashes for current public revisions. Markdown uses
-    /api/publications/images/{hash}. Fetches and redirects allow the registered exact public hostname,
-    USTC and source allowed hosts; blocked hosts win. IP/local hosts, credentials, custom ports, non-HTTP(S),
-    non-raster and oversized responses are rejected. Successful images are archived in R2 with finite
-    response cache lifetimes; failures are not cached.
+  rule: Ingestion registers image identities as the SHA-256 of the exact source URL, and detail exposes
+    /api/publications/images/{hash}. Public image reads require a matching registry identity linked to
+    a current non-tombstone revision of a non-deleted news or notice publication; historical links alone
+    do not authorize archived bytes.
+  acceptance:
+    given: A registered exact mixed-case URL with query parameters and real archived image bytes in local
+      workerd R2.
+    when: Read the exact hash, attempt a hash of a normalized URL, ingest a mismatched URL/hash mapping,
+      then move the publication to a revision without that image.
+    then:
+    - The exact registered identity reads successfully; a changed URL identity does not.
+    - A mismatched registry mapping rejects without creating the wrong identity.
+    - Archived bytes become unreadable when only a historical revision links them, including conditional
+      requests.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.publication-images
+- id: publications.image-origin-policy
+  category: authorization
+  rule: Image origin fetches and every redirect allow the registered exact public hostname, USTC, or source
+    allowed hosts; blocked hosts win. IP/local hosts, credentials, custom ports, and non-HTTP(S) URLs
+    are rejected before an origin fetch.
+  acceptance:
+    given: Real source/image registrations and an observed controlled upstream fetch boundary.
+    when: Read images with forbidden initial origins, then follow redirects to exact registered hosts,
+      USTC/source subdomains, forbidden registered-host subdomains, blocked hosts, or loopback.
+    then:
+    - Forbidden initial origins make no fetch. Allowed redirect targets are fetched and returned; forbidden
+      targets are never fetched and failures are not cached.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-origin-policy
+- id: publications.image-response-validation
+  category: validation
+  rule: Origin responses must be nonempty raster images of at most 10 MiB. Non-raster, empty, unsuccessful,
+    or oversized responses are rejected; streaming overflow cancels the body and cannot archive bytes.
+  acceptance:
+    given: Real registered images and controlled upstream response bodies, backed by local workerd R2.
+    when: Read SVG, HTML, empty/error, declared-oversize and endless-stream responses, then an exactly
+      10 MiB raster response.
+    then:
+    - Invalid responses return 502 with no-store and leave R2 empty.
+    - Streaming overflow cancels after bounded over-read; exactly 10 MiB succeeds and is archived.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-response-validation
+- id: publications.image-archive
+  category: consistency
+  rule: Successful image origin responses are archived in R2 with finite response cache lifetimes. Later
+    authorized reads reuse the archive and provider ETag for conditional requests; origin failures are
+    not archived or cached.
+  acceptance:
+    given: A current public registered image with actual local workerd R2 and a controlled origin that
+      first fails and then succeeds.
+    when: Retry after origin failure, read the successful bytes, then read again while the origin fails
+      and make a conditional request.
+    then:
+    - Failure creates no archive; success stores exact bytes/type.
+    - Later reads and conditional 304 use the archived bytes and ETag without fetching the origin again
+      or advertising immutable caching.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.image-archive
 - id: publications.public-cache
   category: consistency
-  rule: Public list/detail responses are cacheable JSON. Object responses use their content-addressed
-    key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media
-    may render inline; all other object kinds use a generated safe attachment filename and never trust
-    crawler-provided filenames.
-- id: publications.rest-only
-  category: behavior
-  rule: Publication ingestion and object upload planning are exposed only under /api/ingestion/publications.
-    Do not add Web, GraphQL, or MCP transports for these writes, and do not treat the machine secret as
-    a user OAuth credential.
+  rule: Successful public list/detail responses are JSON with browser max-age=0, shared-cache max-age=120
+    and stale-while-revalidate=300 seconds. Missing records return404 with no-store and no success cache policy.
+  acceptance:
+    given: An actual ingested public record and a nonexistent record ID.
+    when: Anonymous HTTP clients read the list and both detail addresses.
+    then:
+    - Successful JSON reads expose the exact bounded browser/shared cache policy without setting a cookie.
+    - Missing detail returns404 and no-store.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-cache
+- id: publications.object-cache-revalidation
+  category: consistency
+  rule: Content-addressed object bytes may be stored by browsers but require origin revalidation before
+    reuse. CDN responses use no-store. ETag matches return304 only while the object remains eligible through
+    a current public revision; withdrawn objects return404/no-store even with a previously valid ETag.
+  rationale: Immutable bytes do not imply immutable public access. A year-long immutable HTTP response
+    would bypass the current-public-revision check after withdrawal; R2 still reuses the content-addressed bytes.
+  acceptance:
+    given: Real R2 bytes are linked to a public current revision and the first response supplies an ETag.
+    when: The client conditionally reads before and after publication withdrawal.
+    then:
+    - The first200 and conditional304 require browser revalidation and disable CDN storage.
+    - Withdrawal causes404/no-store instead of304 or cached bytes.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.object-cache-revalidation
+- id: publications.object-content-disposition
+  category: privacy
+  rule: Verified image/audio/video media objects may render inline. All other kinds and HTML media download
+    with a generated kind-and-hash filename, never a crawler-provided filename. Responses declare their
+    canonical Content-Type and nosniff.
+  acceptance:
+    given: Real stored media, HTML, Markdown, raw-page and PDF asset objects have hostile crawler filenames.
+    when: Public object routes read all eight kind/MIME cases.
+    then:
+    - Only supported media MIME families render inline; other cases receive generated safe attachment names.
+    - Content-Type and nosniff match the object and hostile filenames cannot add response headers.
+    - Returned bytes equal the verified stored fixture.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.object-content-disposition
 - id: publications.read-transport-boundary
   category: behavior
   rule: The current product needs a public website preview plus public REST for read/list/detail, the
     source directory, and controlled object delivery. GraphQL and MCP are intentionally not added for
     publications, including the source registry, until a separate client contract requires them; this
     is a transport boundary, not an implicit GraphQL/MCP capability.
+  rationale: The crawler write transport boundary is owned by openapi.crawler-ingestion-rest-only. Publication
+    read surfaces remain an intentional Web/REST-only exception.
+  acceptance:
+    given: A real ingested public publication, the production public REST and GraphQL handlers over HTTP,
+      and actual MCP SDK clients.
+    when: Read publication list/detail/source directory, query GraphQL publication fields, and discover/call
+      publication tools with anonymous and feature-scoped MCP contexts.
+    then:
+    - Public REST list/detail/source-directory reads succeed without credentials.
+    - The executable GraphQL schema has no publication types and rejects publication/source queries.
+    - MCP discovery contains no publication tools and rejects a publication-list tool name.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.read-transport-boundary
 - id: publications.service-auth
   category: authorization
   rule: Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker
     secret PUBLICATION_INGESTION_SECRET with a timing-safe comparison. Missing or invalid configuration
     returns the same generic 401 response, and the secret is never logged or returned.
+  acceptance:
+    given: The real Node HTTP adapter for ingestion, the production secret comparison, and a production-role
+      database.
+    when: Send absent/wrong/ordinary Bearer credentials, then valid credentials with absent and present
+      configuration.
+    then:
+    - Every unauthorized case returns the same401 Unauthorized body and creates no batch.
+    - The dedicated header succeeds when configured and the returned payload contains no secret.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.service-auth
 - id: publications.service-principal
   category: authorization
   rule: All crawler batches, runs, and object claims use the stable service:publication-crawler principal
     key. The service principal has no User row, OAuth grant, or administrator flag; this key scopes ownership
     and idempotency.
+  acceptance:
+    given: A real runtime-role ingestion service and an isolated batch with an object manifest.
+    when: Ingest the batch and inspect committed batch, run, object-claim, and user records.
+    then:
+    - The exact service:publication-crawler principal owns the batch and run; both principalId fields
+      are null.
+    - The object claim belongs to that batch and no User row represents the service key.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.service-principal
 - id: publications.source-registration
   category: behavior
   rule: Every batch carries source descriptors, either the full id/name/organizationLevel/allowedHosts/seedUrls
@@ -101,47 +310,128 @@ requirements:
     to the registry enum and reusing persisted host restrictions and the persisted level for minimal descriptors,
     then accepts an item only when its sourceId is in that batch, enabled and not discovery-only. Canonical
     URLs must match an allowed source host and no blocked host.
+  acceptance:
+    given: A full source descriptor with level and allow/block host lists, followed by a minimal descriptor.
+    when: Ingest full/minimal batches and then blocked-host, outside-host, disabled-source, and discovery-only
+      cases.
+    then:
+    - The minimal descriptor updates the name but retains persisted level and host restrictions.
+    - Permitted items commit; blocked/outside hosts and disabled/discovery-only sources reject.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.source-registration
 - id: publications.identity
   category: consistency
   rule: A publication is identified by (sourceId, canonicalUrl). A revision is identified by (publicationId,
     revisionHash), and each revision owns its object links. Reporter, editor and originalPublisher are
     distinct nullable revision fields. Per-revision image metadata (altText/title/caption) and attachment
     filename/sourceUrl are retained separately from shared URL/hash object identities and participate
-    in replay equality.
+    in replay equality, together with object order and revision-specific media metadata.
+  acceptance:
+    given: An ingested revision with structured attribution, attachment metadata, and exact URL-hash image
+      metadata.
+    when: Replay unchanged and modified same-hash revisions, then ingest a new revision and the same URL
+      under another source.
+    then:
+    - Same source/URL reuses the publication and same revision hash reuses immutable revision identity.
+    - Changes to attribution, image alt/title/caption, attachment filename/source URL/alt text, or object
+      sort order reject under the old hash without rewriting stored data.
+    - New revisions retain separate metadata while reusing the shared object and image identities; another
+      source produces another publication.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.identity
 - id: publications.revision-ordering
   category: consistency
   rule: observedAt is the source observation time. An older observation never overwrites the current revision;
     equal timestamps use the revision hash as a deterministic tie-breaker. A date-only or timezone-less
     crawler timestamp is interpreted as Asia/Shanghai local time before persistence.
+  acceptance:
+    given: A real publication with a date-only first observation.
+    when: Ingest newer, older, and equal-time revisions with larger and smaller hashes.
+    then:
+    - Date-only and timezone-less inputs persist as independently expected Shanghai-local instants.
+    - Older observations cannot replace the current revision; equal-time larger hash wins.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.revision-ordering
 - id: publications.tombstones
   category: consistency
   rule: 'Deletion is explicit: a tombstone item creates a tombstone revision for an existing publication
     and marks it deleted. Tombstoning an unknown publication is an idempotent no-op reported as unchanged
     with null publication and revision ids. A tombstone applied to an existing publication is reported
     as updated.'
+  acceptance:
+    given: A missing publication identity and a later created publication at that identity.
+    when: Ingest a tombstone before creation and another after creation.
+    then:
+    - Unknown deletion is unchanged with null publication/revision IDs and creates no publication.
+    - Existing deletion is updated, sets deletedAt, and installs a tombstone revision.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.tombstones
 - id: publications.batch-idempotency
   category: consistency
   rule: Batch identity is scoped by principalKey and batchId. Replaying the same canonical payload returns
     the stored result without reapplying writes; reusing the pair with another digest returns 409. clientRunId
     is likewise scoped by principalKey.
+  acceptance:
+    given: An isolated source and canonical publication batch submitted with the dedicated machine secret.
+    when: POST the payload over HTTP, replay it, then reuse the same batch identity with changed content.
+    then:
+    - Replay returns200 and exactly the stored result.
+    - Changed content returns409; only one batch, run, and revision exist.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.batch-idempotency
 - id: publications.batch-size
   category: validation
-  rule: A publication ingestion batch accepts 1-100 items and a body of at most 8 MiB. The item count
-    alone does not bound memory — one item may carry megabytes of bodyText — so the byte budget is what
-    keeps a batch inside the Worker isolate memory ceiling. Too many items is rejected by the request
-    schema with 400; too many bytes with 413 while the body is still streaming. An oversized batch is
-    refused whole, never partially ingested, and must be split by the crawler.
+  rule: A publication ingestion request body is at most 8 MiB. An oversized body returns 413 while streaming
+    and the batch is refused whole without ingestion writes.
+  rationale: The body-byte budget bounds memory independently of the per-batch item count; clients split
+    oversized batches.
+  acceptance:
+    given: The real ingestion HTTP route and valid machine credentials.
+    when: Post an exactly8MiB JSON body and an8MiB+1 body; separately feed an endless stream directly
+      to the Worker route.
+    then:
+    - The inclusive byte boundary succeeds; the oversized request returns413 without persisting its batch.
+    - The direct streaming route returns413 and cancels the stream after bounded over-read.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.batch-size
 - id: publications.partial-item-rejection
   category: consistency
   rule: A source or item validation error is returned as a per-item rejected result and does not roll
     back other valid items in the batch. Batch-level identity, manifest, and database failures remain
     errors.
+  acceptance:
+    given: A batch containing one permitted source URL and one URL outside its host restriction.
+    when: Ingest through the production service and query committed rows.
+    then:
+    - The valid item is created while the invalid item is rejected.
+    - Only the accepted publication and revision persist.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.partial-item-rejection
 - id: publications.objects
   category: consistency
-  rule: The server generates content-addressed keys; clients cannot choose keys or metadata. Manifests
-    are at most 32 MiB. Metadata ingestion may precede the R2 object. Planning verifies size, content
-    type, kind, SHA-256 metadata, and bytes (or a provider checksum), and immediately links an already-present
-    object. An uploaded object must be verified and linked through complete.
+  rule: The server generates content-addressed object keys from registered manifests. Metadata may arrive
+    before bytes. Planning permits only claims belonging to the accepted caller batch and distinguishes
+    already verified objects from objects requiring upload. An authenticated Worker PUT verifies the declared
+    size, content type and SHA-256 before linking the uploaded object; there is no separate completion
+    endpoint.
+  acceptance:
+    given: A real registered batch and local workerd R2 bucket with pending content-addressed manifests.
+    when: Plan and PUT actual fixture bytes through production routes, including foreign-batch claims,
+      missing batches, wrong lengths, and wrong SHA-256 bytes.
+    then:
+    - Keys are server-derived; absent bytes require upload and claims from another batch are rejected.
+    - Wrong sizes or hashes never link the object. Correct bytes persist with canonical metadata and status
+      linked; a repeated plan returns already_present.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.objects
 - id: publications.unchanged-objects
   category: consistency
   rule: An unchanged item still re-registers its object claims against the current batch so a redelivery
@@ -149,22 +439,72 @@ requirements:
     verified or linked), the item result carries objectsNeedingUpload entries ({ kind, sha256 }) and the
     client must plan and upload those objects against the new batchId; the field is absent when every
     claimed object is already verified.
+  acceptance:
+    given: A publication revision with a pending object claim and no bytes in local workerd R2.
+    when: Redeliver the same revision under a new batch ID, plan and upload through that batch, then redeliver
+      again.
+    then:
+    - Unchanged redelivery creates a new batch claim and reports objectsNeedingUpload while bytes are
+      unverified.
+    - The new batch can upload the bytes; verified redelivery omits objectsNeedingUpload without duplicating
+      the revision.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.unchanged-objects
 - id: publications.outbox
   category: consistency
   rule: Accepted revisions write a durable PublicationEventOutbox row in the same transaction. A future
     Queue consumer may derive work from this outbox; the ingestion path does not claim delivery until
     a real publisher exists.
+  acceptance:
+    given: An accepted revision and a fixture-specific database constraint that can reject its next outbox
+      event.
+    when: Verify the accepted event and replay, then fail the final outbox write during both new-publication
+      ingestion and existing-publication updates.
+    then:
+    - The event has the exact revision-bound identity and payload, starts unpublished with zero attempts,
+      and replay does not duplicate it.
+    - Outbox failure rolls back source/run/batch/publication/revision writes and leaves prior publication
+      and outbox state unchanged.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.outbox
 - id: publications.content-type
   category: validation
-  rule: Manifests require bare MIME types (for example text/html or image/png); parameters such as charset
-    are rejected. For each (kind, sha256), the first PublicationObject contentType is canonical. Later
-    manifests with the same kind, sha256, and size may use a MIME alias; r2Key and size stay strict. Batch
-    claims, upload plans, presigned PUTs, and completion checks use canonical contentType. Revision replay
-    compares object identity, size, role/order, and alt text, ignoring MIME aliases.
+  rule: The first accepted content type for an object kind and SHA-256 is canonical. Later equivalent
+    MIME labels cannot change its key, size, canonical delivery type, or revision identity. Plans, authenticated
+    PUT validation, and object reads use the canonical content type.
+  acceptance:
+    given: A registered object with an initial MIME type and size, backed by real production-role database
+      and local workerd R2.
+    when: Redeliver a same-size MIME alias, try the alias in PUT, and attempt conflicting sizes before
+      and after verification.
+    then:
+    - The first content type, key, size, and revision identity remain stable; plans and public delivery
+      use the first type.
+    - PUT requires the canonical type. Conflicting sizes reject without silently rewriting pending or
+      linked object metadata.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.content-type
 - id: publications.required-upload-headers
   category: validation
-  rule: An upload plan returns the exact required Content-Type, x-amz-meta-kind, and x-amz-meta-sha256
-    headers. Presigned URLs are short-lived and no R2 credentials are returned.
+  rule: An upload plan returns the authenticated on-site Worker PUT URL and its required Content-Type
+    header. The registered manifest determines object kind, SHA-256 and storage key; callers cannot override
+    them through metadata headers. Upload plans never return R2 credentials or presigned URLs.
+  acceptance:
+    given: A registered manifest and authenticated production object-plan route backed by local workerd
+      R2.
+    when: Inspect the exact plan and upload with missing, incorrect, or parameterized Content-Type, invalid
+      credentials, or forged metadata headers.
+    then:
+    - The plan returns only the onsite authenticated PUT URL and canonical Content-Type, with no storage
+      credentials.
+    - Invalid credentials or Content-Type cannot write bytes. Forged metadata headers cannot override
+      kind, SHA-256, or the generated storage key.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.required-upload-headers
 - id: publications.source-registry
   category: behavior
   rule: PublicationSource is the registry of who publishes. organizationLevel is a closed enum (university,
@@ -173,6 +513,73 @@ requirements:
     so ingestion normalizes an unrecognized or absent level to unknown instead of rejecting the batch.
     The directory lists enabled, non-discovery-only sources, including one that has published nothing
     yet.
+  acceptance:
+    given: Sources ingested with every known organization level plus an unrecognized or absent level,
+      including enabled sources with no publications.
+    when: Read the actual source directory and filter options after disabling one source and marking another
+      discovery-only.
+    then:
+    - Known levels normalize case and whitespace; unknown and absent levels persist as unknown.
+    - Only enabled non-discovery sources appear, including empty sources with zero counts and null lastPublishedAt.
+    - Groups follow the declared enum order and public projections omit crawler-private fields.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.source-registry
+- id: publications.object-size-limit
+  category: validation
+  rule: Each object manifest declares at most 32 MiB of object bytes. The bound is inclusive and is separate
+    from the ingestion JSON body limit.
+  acceptance:
+    given: An otherwise valid ingestion item has an object manifest.
+    when: The actual request schema parses a 32 MiB object size and one byte more.
+    then:
+    - Exactly 32 MiB is accepted.
+    - 32 MiB plus one byte is rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.object-size-limit
+- id: publications.batch-item-count
+  category: validation
+  rule: An ingestion batch contains 1 through 100 items; empty and larger batches are rejected by the
+    input schema.
+  acceptance:
+    given: An ingestion batch otherwise satisfies its source and item schema.
+    when: The declared request schema parses empty, 100-item and 101-item batches.
+    then:
+    - The empty batch is rejected.
+    - 100 items are accepted.
+    - 101 items are rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.batch-item-count
+- id: publications.manifest-content-type
+  category: validation
+  rule: Object manifests require a bare MIME type. MIME parameters such as charset are rejected.
+  acceptance:
+    given: A valid object manifest uses text/html.
+    when: The input parser receives the bare MIME value and text/html with a charset parameter.
+    then:
+    - The bare MIME value is accepted.
+    - The parameterized value is rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.manifest-content-type
+- id: publications.public-list-filters
+  category: behavior
+  rule: Public lists support type=news|notice, query, page, pageSize, and source/organizationLevel facets.
+    Comma-separated and repeated list forms select the same values; duplicates collapse before the20-unique-source
+    limit. Source and organization-level facets intersect.
+  acceptance:
+    given: Real news and notice publications in university and college sources.
+    when: Query the HTTP list with pagination, comma/repeated source values, duplicated values, intersecting
+      organization/type filters, and20/21 unique-source boundaries.
+    then:
+    - Both records appear once across paginated results; intersecting filters return only the matching
+      notice.
+    - 21 repetitions of one source remain valid;20 unique sources succeed and21 unique sources return400.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-list-filters
 capabilities:
   publication-read:
     title: Public publication list, detail, and verified object read
@@ -216,12 +623,40 @@ capabilities:
           ports, private/local hosts, non-raster responses, oversized bodies, and origin failures are
           rejected without caching.
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - revision.title
+          secondary:
+          - source.name
+          - source.organizationLevel
+          - publication.publicationType
+          - revision.summary
+          - revision.publishedAt
+          tertiary:
+          - publication.id
+          - revision.id
+        web-detail:
+          primary:
+          - revision.title
+          secondary:
+          - source.name
+          - revision.summary
+          - revision.publishedAt
+          - revision.author
+          - revision.reporter
+          - revision.editor
+          - revision.originalPublisher
+          - revision.sourcePageUrl
+          - revision.bodyMarkdown
+          - attachments.filename
+          tertiary:
+          - publication.id
+          - revision.id
+          - revision.rawMetadata
       items:
-      - source name and organization level
-      - news/notice type
-      - current revision title, summary, bodyText, and source URL
-      - current bodyMarkdown loaded from the body_markdown R2 object
-      - verified media and attachment links
+      - Verified Markdown content, sanitized media and attachment links.
   publication-source-directory:
     title: Public publication source directory
     auth: anon
@@ -240,15 +675,23 @@ capabilities:
           crawler tuning stay internal.
         - The registry is bounded (~80 sources), so the directory is returned whole rather than paginated,
           under the same cache headers as the list read.
-        - organizationLevel is published as a closed enum here only. The long-standing list and detail
-          responses keep it an open string, because narrowing a shipped response property to an enum hands
-          generated clients an exhaustive type that a later registry level would break.
+        - organizationLevel uses the same documented registry vocabulary in directory, list, and detail
+          responses; unknown upstream values normalize to unknown.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - source.name
+          - source.organizationLevel
+          secondary:
+          - source.allowedHosts
+          - source.publicationCount
+          - source.latestPublishedAt
+          tertiary:
+          - source.id
       items:
-      - organization level group with its source and publication counts
-      - source name, id, and allowed hosts
-      - per-source publication count and latest published date
-      - cross-link to the list filtered by that source or level
+      - Organization-level groups link to the filtered publication list.
   publication-ingestion:
     title: Crawler publication batch ingestion
     auth: internal
@@ -284,6 +727,7 @@ capabilities:
           R2 binding, and supplies the manifest SHA-256 to R2 for upload-time verification before linking
           it.
     presentation:
+      kind: protocol
       items:
       - source descriptor registration
       - publication and revision metadata

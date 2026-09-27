@@ -18,7 +18,9 @@ const item: PersonalCalendarItem = {
 afterEach(() => vi.unstubAllGlobals());
 describe("personal calendar client", () => {
   it("places an overnight activity on both Shanghai dates, excluding its end boundary", () => {
-    expect(personalItemsForDay([item], "2026-09-15")).toHaveLength(1);
+    expect(personalItemsForDay([item], "2026-09-15")).toMatchObject([
+      { title: "Night workshop", meta: "23:00–01:00", detail: "Lab" },
+    ]);
     expect(personalItemsForDay([item], "2026-09-16")).toHaveLength(1);
     expect(personalItemsForDay([item], "2026-09-17")).toHaveLength(0);
     expect(

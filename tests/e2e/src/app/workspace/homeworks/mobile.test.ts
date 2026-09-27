@@ -10,7 +10,7 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("移动端保留直接筛选和足够大的新建操作", async ({ page }, testInfo) => {
+  test("homework.mobile-toolbar-priority", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });

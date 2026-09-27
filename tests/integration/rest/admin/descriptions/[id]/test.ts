@@ -43,7 +43,7 @@ test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
   test("管理员可更新并恢复课程简介", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
 
-    const listResponse = await request.get(`${BASE}?limit=1`);
+    const listResponse = await request.get(`${BASE}?pageSize=1`);
     expect(listResponse.status()).toBe(200);
     const description = (
       (await listResponse.json()) as {
@@ -84,7 +84,7 @@ test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
   test("管理员 PATCH 拒绝过长的课程简介内容", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
 
-    const listResponse = await request.get(`${BASE}?limit=1`);
+    const listResponse = await request.get(`${BASE}?pageSize=1`);
     expect(listResponse.status()).toBe(200);
     const description = (
       (await listResponse.json()) as {

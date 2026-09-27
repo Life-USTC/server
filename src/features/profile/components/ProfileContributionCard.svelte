@@ -62,6 +62,7 @@ function heatmapClass(count: number) {
   <Card.Content class="grid gap-5">
     <ProfileContributionHeatmap
       cellLabel={copy.contribution.cell}
+      singleCellLabel={copy.contribution.cellOne}
       {dateFormatter}
       {heatmapClass}
       {monthLabels}

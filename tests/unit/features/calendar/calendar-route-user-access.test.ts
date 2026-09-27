@@ -38,7 +38,7 @@ describe("personal calendar access", () => {
     expect(resolveSessionUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a revoked token before any rendered cache can be read", async () => {
+  it("calendar.revoked-feed-access", async () => {
     getAccessRecordMock.mockResolvedValue({
       id: "user-1",
       calendarFeedToken: "replacement-token",

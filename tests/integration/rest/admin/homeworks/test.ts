@@ -6,7 +6,7 @@
  * - GET returns `{ data: [...], pagination }` with section/course and user summary includes
  * - Supports `status` filter: "all", "active", "deleted"
  * - Supports `search` parameter (title, section code, course code, course name)
- * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
+ * - Supports `page` and `pageSize` parameters; retired `limit` is rejected
  * - Homeworks are ordered by deletedAt desc, then createdAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */
@@ -156,7 +156,7 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
 
   test("无效 limit 参数返回 400", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const response = await request.get(`${BASE}?limit=not-a-number`);
+    const response = await request.get(`${BASE}?pageSize=not-a-number`);
     expect(response.status()).toBe(400);
   });
 });

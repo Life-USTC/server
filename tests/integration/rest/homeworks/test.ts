@@ -57,12 +57,12 @@ test("/api/community/section-homeworks GET 返回 summary，详情按需加载",
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    viewer?: { userId?: string | null };
+    meta?: { viewer?: { userId?: string | null } };
     data?: Array<Record<string, unknown>>;
     pagination?: { page?: number; pageSize?: number; total?: number };
   };
 
-  expect(body.viewer?.userId).toBeTruthy();
+  expect(body.meta?.viewer?.userId).toBeTruthy();
   expect(
     body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
   ).toBe(true);
@@ -185,9 +185,7 @@ test("/api/community/section-homeworks POST 未登录返回 401", async ({
   expect(response.status()).toBe(401);
 });
 
-test("/api/community/section-homeworks POST 登录后可创建作业并清理", async ({
-  request,
-}) => {
+test("openapi.homework-created-status", async ({ request }) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
 

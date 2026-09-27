@@ -1,4 +1,13 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { servePrometheusMetrics } from "@/features/admin/server/prometheus-metrics";
 import { readPrometheusMetrics } from "@/features/admin/server/prometheus-metrics-data";
 import { createDeferred } from "../shared/deferred";
 import { createFixturePrisma } from "../shared/prisma";
@@ -35,7 +44,7 @@ describe("Prometheus shared snapshot cache", () => {
   afterEach(clearCache);
   afterAll(() => fixture.$disconnect());
 
-  it("reuses a fresh snapshot and refreshes expired snapshots", async () => {
+  it("admin.prometheus-gauge-cache", async () => {
     const first = await readPrometheusMetrics();
     expect((await readPrometheusMetrics()).activityGeneratedAt).toEqual(
       first.activityGeneratedAt,
@@ -46,34 +55,38 @@ describe("Prometheus shared snapshot cache", () => {
       Date.parse(first.activityGeneratedAt),
     );
     expect(refreshed.summary).toEqual(first.summary);
-  });
-
-  it("serves the bounded stale snapshot while another request refreshes", async () => {
-    await readPrometheusMetrics();
     await expireCache(61);
     const [cached] = await fixture.$queryRaw<
       Array<{ generatedAt: Date }>
     >`SELECT "generatedAt" FROM public."PrometheusMetricsCache"`;
     await whileRefreshLocked(async () => {
-      const snapshot = await readPrometheusMetrics();
-      expect(snapshot.activityGeneratedAt).toBe(
+      expect((await readPrometheusMetrics()).activityGeneratedAt).toBe(
         cached.generatedAt.toISOString(),
       );
     });
-  });
-
-  it.each(["empty", "expired"] as const)(
-    "fails instead of blocking or serving an unusable %s snapshot",
-    async (state) => {
-      if (state === "expired") {
-        await readPrometheusMetrics();
-        await expireCache(121);
+    vi.stubEnv("METRICS_SECRET", "cache-contract-secret");
+    try {
+      for (const state of ["empty", "expired"]) {
+        await clearCache();
+        if (state === "expired") {
+          await readPrometheusMetrics();
+          await expireCache(121);
+        }
+        await whileRefreshLocked(async () => {
+          await expect(readPrometheusMetrics()).rejects.toThrow();
+          const response = await servePrometheusMetrics(
+            new Request("http://localhost:3000/metrics", {
+              headers: { authorization: "Bearer cache-contract-secret" },
+            }),
+          );
+          expect(response.status).toBe(503);
+          expect(await response.text()).toBe("Metrics unavailable\n");
+          expect(response.headers.get("retry-after")).toBe("60");
+        });
+        expect((await readPrometheusMetrics()).generatedAt).toBeTruthy();
       }
-      await whileRefreshLocked(async () => {
-        await expect(readPrometheusMetrics()).rejects.toThrow();
-      });
-      // Releasing the lock permits a healthy collection after the failed scrape.
-      expect((await readPrometheusMetrics()).generatedAt).toBeTruthy();
-    },
-  );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

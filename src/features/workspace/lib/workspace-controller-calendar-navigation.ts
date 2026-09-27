@@ -15,6 +15,7 @@ import type { workspaceTabHref } from "./workspace-nav";
 type WorkspaceTabHref = typeof workspaceTabHref;
 
 type CalendarStateValues = {
+  calendarDay: string;
   calendarMonth: string;
   calendarSemesterId: number | null;
   calendarView: CalendarView;
@@ -22,12 +23,14 @@ type CalendarStateValues = {
 };
 
 export function workspaceCalendarStateFromValues({
+  calendarDay,
   calendarMonth,
   calendarSemesterId,
   calendarView,
   calendarWeekStart,
 }: CalendarStateValues): WorkspaceCalendarState {
   return {
+    day: calendarDay,
     month: calendarMonth,
     semesterId: calendarSemesterId,
     view: calendarView,
@@ -53,10 +56,39 @@ export function workspaceCalendarHrefFromPatch({
 }
 
 export function workspaceCalendarUrlState(input: {
-  calendar: WorkspaceCalendarNavData | null;
+  calendar: CalendarData | null;
   url: URL;
 }) {
-  return workspaceCalendarStateFromUrl(input.url, input.calendar);
+  const { calendar, url } = input;
+  if (
+    calendar &&
+    url.searchParams.get("calendarSemester") ===
+      String(calendar.activeCalendarSemesterId)
+  ) {
+    const semesterDays = calendar.semesterWeeks.flat();
+    const referenceDay = calendar.todayDate;
+    if (
+      semesterDays.length &&
+      (!referenceDay || !semesterDays.includes(referenceDay))
+    ) {
+      const firstEventDay = [
+        ...calendar.allSessions,
+        ...calendar.allExams,
+        ...calendar.semesterHomeworks,
+      ]
+        .map((event) => event.dateKey)
+        .filter(
+          (key): key is string =>
+            typeof key === "string" && semesterDays.includes(key),
+        )
+        .sort()[0];
+      return workspaceCalendarStateFromUrl(url, {
+        ...calendar,
+        referenceDate: firstEventDay ?? semesterDays[0],
+      });
+    }
+  }
+  return workspaceCalendarStateFromUrl(url, calendar);
 }
 
 export function workspaceCalendarStateChange(input: {
@@ -83,6 +115,18 @@ export function workspaceCalendarViewChange(input: {
   return workspaceCalendarStateChange({
     currentState: input.currentState,
     patch: workspaceCalendarViewPatch(input.nextView, input.calendar),
+    tabHref: input.tabHref,
+  });
+}
+
+export function workspaceCalendarDayChange(input: {
+  currentState: WorkspaceCalendarState;
+  day: string;
+  tabHref: WorkspaceTabHref;
+}) {
+  return workspaceCalendarStateChange({
+    currentState: input.currentState,
+    patch: { day: input.day, semesterId: null, view: "day" },
     tabHref: input.tabHref,
   });
 }

@@ -294,13 +294,14 @@ jobs:
 
   specification-evidence:
     name: Specification execution evidence
-    needs: [test-unit, test-integration, test-rest, test-rls, test-e2e]
+    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-integration, test-rest, test-rls, test-e2e]
     if: ${{ always() }}
     permissions:
       contents: read
     uses: ./.github/workflows/bun-job.yml
     with:
       job-phase: ci:spec-evidence
+      specification-needs: ${{ toJSON(needs) }}
       upload-artifact-name: specification-coverage
       upload-artifact-path: spec-coverage.json
       upload-artifact-no-files-found: error

@@ -3,6 +3,9 @@ import { sharedAlias } from "./vitest.base";
 
 export default defineConfig({
   test: {
+    // Type-graph and compiler audits share the coverage runner with ordinary
+    // unit tests; bound CI concurrency to avoid CPU/heap contention.
+    maxWorkers: process.env.CI ? 2 : undefined,
     reporters: process.env.SPEC_EVIDENCE_DIR
       ? [
           "default",

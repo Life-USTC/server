@@ -71,6 +71,8 @@ export const persistedLocalizedLabelSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  namePrimary: z.string().optional(),
+  nameSecondary: z.string().nullable().optional(),
 });
 
 export const subscriptionFullCourseSchema = courseSchema.extend({
@@ -109,7 +111,7 @@ export const compactTodoSchema = todoItemSchema
     content: todoItemSchema.shape.content.optional(),
   })
   .partial()
-  .catchall(z.unknown());
+  .strict();
 
 export const compactWorkspaceHomeworkSchema = compactHomeworkSchema
   .omit({ createdBy: true, updatedBy: true, deletedBy: true })
@@ -215,7 +217,11 @@ export const compactWorkspaceExamSchema = compactExamSchema.extend({
 export function calendarFeedOutputSchema(subscriptionSchema: z.ZodType) {
   return z.union([
     exactSuccessOutput({ subscription: subscriptionSchema }),
-    z.strictObject({ success: z.literal(false), message: z.string() }),
+    z.strictObject({
+      success: z.literal(false),
+      error: z.string(),
+      message: z.string(),
+    }),
   ]);
 }
 
@@ -238,7 +244,11 @@ export function subscriptionImportOutputSchema(subscriptionSchema: z.ZodType) {
       alreadySubscribedCount: z.number().int().nonnegative(),
       subscription: subscriptionSchema.nullable(),
     }),
-    z.strictObject({ success: z.literal(false), message: z.string() }),
+    z.strictObject({
+      success: z.literal(false),
+      error: z.string(),
+      message: z.string(),
+    }),
   ]);
 }
 
@@ -249,9 +259,7 @@ export const subscribedScheduleEntryMcpSchema =
     }),
   });
 export const subscribedExamMcpSchema = subscribedExamSchema.extend({
-  section: subscribedExamSchema.shape.section.extend({
-    semester: compactSemesterSchema.nullable(),
-  }),
+  section: workspaceHomeworkFullSectionSchema,
 });
 export const todoListMcpSchema = objectOutputSchema({
   counts: todoCountsSchema,

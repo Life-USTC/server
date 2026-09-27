@@ -5,199 +5,1388 @@ requirements:
 - id: rendering-and-cache.web-rendering-and-cache-1
   category: consistency
   topic: web-rendering-and-cache
-  rule: Public content is independent of the viewer.
+  rule: Shared public course, section, and teacher HTML and page-data payloads contain only viewer-independent
+    public facts and anonymous viewer identity. Locale can select a separate public representation; authenticated
+    identity, permissions, and personal state cannot affect the shared payload.
+  acceptance:
+    given: Two isolated session viewers have distinct private identities, tasks and subscriptions; public
+      course, section and teacher lists and details are available in Chinese and English.
+    when: Anonymous and both authenticated clients request actual HTML and decoded SvelteKit page-data;
+      one viewer navigates from the workspace through a catalog list to a detail page.
+    then:
+    - Public HTML and page-data contain neither viewer's identity or private navigation state; description,
+      homework and section projections retain anonymous permissions and subscription state.
+    - Page-data explicitly resolves the viewer through the private client shell, and client navigation
+      preserves the current authenticated shell without embedding it in public data.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.web-rendering-and-cache-1
 - id: rendering-and-cache.web-rendering-and-cache-2
   category: consistency
   topic: web-rendering-and-cache
-  rule: Canonical public pages serve the same anonymous HTML representation to visitors with or without a session;
-    personal data is fetched after hydration through private endpoints.
+  rule: For the same catalog URL and locale admitted to shared public rendering for both anonymous and session
+    visitors, their HTML has equivalent public content and DOM relationships after excluding request nonce
+    and request ID. Generated accessibility IDs may be renamed bijectively with their references; other
+    text and attributes remain equivalent. Personal state is loaded separately through private endpoints.
+  acceptance:
+    given: Anonymous and two isolated session viewers request admitted academic catalog lists/details,
+      campus links, and second-classroom lists/details/calendar/organizers in each locale.
+    when: The real Worker renders their HTML and each session independently reads its private shell projection.
+    then:
+    - Public HTML content and DOM relationships agree across viewers; no private viewer identity occurs.
+    - Only nonce, request ID and bijectively mapped generated accessibility identifiers differ; changed
+      text or broken references remain observable.
+    - Private shell projections retain their matching authenticated viewer and no-store headers.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.web-rendering-and-cache-2
 - id: rendering-and-cache.cacheable-public-pages-1
   category: consistency
   topic: cacheable-public-pages
-  rule: Anonymous HTML cache admission includes course / section / teacher lists with canonical filters.
+  rule: Course, section, and teacher list HTML is admitted to the public cache only for the canonical query
+    forms declared by those list capabilities; invalid or unsupported filter forms do not share an admitted
+    cache entry.
+  acceptance:
+    given: Canonical course, section and teacher list URLs and a URL with an unsupported filter.
+    when: The public SSR admission resolver evaluates those requests.
+    then:
+    - Canonical lists are admitted and unsupported query forms are not.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-1
 - id: rendering-and-cache.cacheable-public-pages-2
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes catalog detail root paths (`/catalog/{courses|sections|teachers}/:id`).
+  acceptance:
+    given: Positive-ID public detail roots, a paginated offering query, and an invalid zero ID.
+    when: The public SSR admission resolver evaluates each route.
+    then:
+    - Only the canonical valid detail root is admitted as a page.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-2
 - id: rendering-and-cache.cacheable-public-pages-3
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes campus links.
+  acceptance:
+    given: The campus links route requested anonymously and with a session cookie.
+    when: The public SSR admission resolver evaluates both requests.
+    then:
+    - Both use the shared public page admission class.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-3
 - id: rendering-and-cache.cacheable-public-pages-4
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes second-classroom lists, details, calendars, and organizers
     without query parameters.
+  acceptance:
+    given: Young event list, detail, calendar and organizer URLs with and without query parameters.
+    when: The public SSR admission resolver evaluates those routes.
+    then:
+    - Query-free routes are admitted and filtered variants are dynamic.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-4
 - id: rendering-and-cache.cacheable-public-pages-5
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes usage guides, privacy, terms, Markdown guide, and API docs.
+  acceptance:
+    given: Each declared static guide, privacy, terms, Markdown guide and API documentation URL.
+    when: The public SSR admission resolver evaluates a document request.
+    then:
+    - The route is admitted as a public page.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-5
 - id: rendering-and-cache.cacheable-public-pages-6
   category: consistency
   topic: cacheable-public-pages
   rule: Anonymous HTML cache admission includes sign-in without query parameters, for anonymous visitors only.
+  acceptance:
+    given: Anonymous sign-in, sign-in with a callback query and sign-in with a session cookie.
+    when: The public SSR admission resolver evaluates the requests.
+    then:
+    - Only anonymous query-free sign-in is admitted.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-6
 - id: rendering-and-cache.cacheable-public-pages-7
   category: consistency
   topic: cacheable-public-pages
-  rule: Account, workspace, admin, OAuth, and Bearer requests use dynamic SSR.
-- id: rendering-and-cache.cacheable-public-pages-8
-  category: consistency
-  topic: cacheable-public-pages
-  rule: Sign-in with session cookies also remains dynamic so its redirect behavior is preserved.
+  rule: Workspace, admin, OAuth, and private account pages use dynamic SSR. Requests carrying Authorization
+    bypass shared HTML caching. Anonymous query-free sign-in is the explicit account-route exception.
+  acceptance:
+    given: Private workspace/account/admin/OAuth routes and otherwise public routes carrying an Authorization
+      header.
+    when: The public SSR admission resolver evaluates document requests.
+    then:
+    - All those requests bypass shared HTML admission.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-7
 - id: rendering-and-cache.cacheable-public-pages-9
   category: consistency
   topic: cacheable-public-pages
-  rule: SvelteKit `__data.json` navigations stay private; their public reads still reuse the shared data caches.
+  rule: SvelteKit __data.json navigations are excluded from shared HTML cache admission. Their underlying public-data
+    reads may reuse the separately scoped public data caches.
+  acceptance:
+    given: Public and private SvelteKit __data.json navigation URLs.
+    when: The public SSR admission resolver evaluates navigation requests.
+    then:
+    - No navigation response is admitted to the shared HTML cache.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-9
 - id: rendering-and-cache.cacheable-public-pages-10
   category: consistency
   topic: cacheable-public-pages
-  rule: Filtered second-classroom pages reuse the public data cache even when their HTML is dynamic.
+  rule: Filtered second-classroom event lists, calendar ranges and organizer histories reuse public event
+    data caches even when their HTML is dynamic. Different filters and import revisions use distinct cached facts.
+  acceptance:
+    given: Controlled database rows and an imported revision supply public event facts to the actual page loaders and process cache.
+    when: Filtered list, dated calendar and paginated organizer-history loaders repeat reads, change revision,
+      or change module filters; the production HTML admission resolver evaluates each URL.
+    then:
+    - Filtered HTML stays dynamic while repeated page loads reuse event rows and totals.
+    - New revisions and different filters cause distinct fact reads rather than reusing the old selection.
+    test:
+      file: tests/unit/features/young/young-event-service.test.ts
+      name: rendering-and-cache.cacheable-public-pages-10
 - id: rendering-and-cache.cacheable-public-pages-11
   category: consistency
   topic: cacheable-public-pages
-  rule: Bus pages remain dynamic because departures and map positions are sensitive to the request time.
+  rule: Bus pages use request-time SSR so next departures and map positions are computed for the request clock
+    rather than reused from the public HTML cache.
+  acceptance:
+    given: Bus timetable and map routes requested anonymously and with a session cookie.
+    when: The public SSR admission resolver evaluates them.
+    then:
+    - Both routes stay dynamic for either visitor.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-11
 - id: rendering-and-cache.cacheable-public-pages-12
   category: consistency
   topic: cacheable-public-pages
-  rule: Shared schedule/topology reads remain cached, and personal preferences are fetched separately.
+  rule: Shared bus topology and timetable cache entries contain only public data. Per-request preferences
+    are read separately and attached only after retrieving public facts; one viewer cannot populate another's preferences.
+  rationale: Private HTTP delivery is owned by bus.cache-boundaries and bus.preference-hydration-write-gate.
+    This requirement owns service/cache separation, including callers that read timetable facts directly.
+  acceptance:
+    given: Controlled database boundaries provide one timetable and distinct preferences for two users.
+    when: Actual timetable services and the process cache handle both owners, anonymous reads and a changed
+      preference while retaining the same imported timetable revision.
+    then:
+    - All calls share exactly the same cached public facts and load trips only once.
+    - Static results omit preferences; anonymous results have null preferences and owner calls receive only their fresh personal preference.
+    - Changing preferences neither changes nor reloads the cached public timetable.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: rendering-and-cache.cacheable-public-pages-12
 - id: rendering-and-cache.cacheable-public-pages-13
   category: consistency
   topic: cacheable-public-pages
   rule: News and global-search pages remain dynamic.
+  acceptance:
+    given: News, source-directory and global-search routes, including a search query.
+    when: The public SSR admission resolver evaluates them.
+    then:
+    - None is admitted to shared HTML caching.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cacheable-public-pages-13
 - id: rendering-and-cache.cacheable-public-pages-14
   category: consistency
   topic: cacheable-public-pages
-  rule: The homepage preserves its signed-in redirect to the workspace.
-- id: rendering-and-cache.personal-overlays-1
-  category: privacy
-  topic: personal-overlays
-  rule: Public SSR never includes subscription state, homework completion, edit permissions, link pins/visits,
-    or bus preferences.
-- id: rendering-and-cache.personal-overlays-2
-  category: privacy
-  topic: personal-overlays
-  rule: Feature components load that state from private APIs and wait for the result before enabling personal
-    writes.
-- id: rendering-and-cache.personal-overlays-3
-  category: privacy
-  topic: personal-overlays
-  rule: The publicly readable description remains in the HTML and structured data; its editing permissions
-    are resolved separately.
+  rule: A signed-in visitor to / continues to the canonical workspace or required onboarding flow; the public
+    landing cache never replaces this redirect.
+  acceptance:
+    given: An anonymous landing request and isolated session users with complete profiles, a missing name,
+      or a missing username.
+    when: Warm anonymous HTML, request the same root HTML and page-data URL with each session, follow each
+      redirect in a browser, and request anonymously again for Chinese and English.
+    then:
+    - Complete profiles receive a private no-store 303 to workspace overview; either incomplete profile
+      receives a private no-store 303 to welcome with the original root callback.
+    - Page-data preserves SvelteKit's JSON redirect shape with private browser/CDN no-store headers.
+    - Browser navigation reaches the intended page, and anonymous landing HTML remains successful without
+      any session user's identity.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.cacheable-public-pages-14
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
-  rule: The app shell uses the session-only `/_internal/shell-bootstrap` endpoint for the viewer and workspace
-    navigation counts.
+  rule: Pages without a workspace SSR projection hydrate viewer and navigation state through the same-origin,
+    session-cookie-only /_internal/shell-bootstrap endpoint. It returns only viewer id, name, username, image
+    and isAdmin plus matching navigation userId and calendar, pending homework, pending todo, upcoming exam, subscribed section,
+    and unread activity notification counts. Anonymous results have null viewer and navigation. Every response
+    uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and Vary Cookie. Bearer
+    authentication is rejected even alongside a session cookie.
+  acceptance:
+    given: Anonymous requests and two isolated session users with distinct navigation counts; each user
+      also authorizes a valid profile-reading OAuth bearer.
+    when: The real shell bootstrap endpoint is requested anonymously, with each session, with bearer only,
+      and with both session and bearer; public catalog and account settings pages hydrate their shell.
+    then:
+    - Anonymous responses contain null viewer/navigation; session responses contain only the matching
+      allowlisted viewer and navigation counts, without email or another user's identity.
+    - Valid bearer-only and combined bearer/session requests receive 401 instead of shell identity.
+    - Every response is private, no-store and varies on Cookie; hydrated pages obtain the identical
+      projection through a private client fetch.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-4
 - id: rendering-and-cache.personal-overlays-5
   category: privacy
   topic: personal-overlays
   rule: Workspace SSR seeds the same projection directly.
-- id: rendering-and-cache.personal-overlays-6
-  category: privacy
-  topic: personal-overlays
-  rule: Feature components use their own APIs rather than fetching the complete shell just to discover identity.
+  acceptance:
+    given: Two isolated users have distinct pending todo and section subscription counts.
+    when: Each user opens workspace todos first without JavaScript and then with hydration enabled,
+      and independently reads the private shell projection.
+    then:
+    - Server-rendered viewer identity and all workspace navigation badges match the private projection.
+    - Hydration preserves those values without requesting shell bootstrap.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-5
 - id: rendering-and-cache.personal-overlays-7
   category: privacy
   topic: personal-overlays
-  rule: Shell state lives only in the root layout's memory; it is not persisted in localStorage or a shared
-    cache.
+  rule: Viewer shell state is not persisted in localStorage or a shared cache. Signing out or changing the
+    authenticated viewer clears the previous viewer projection before another user can observe it.
+  acceptance:
+    given: Two isolated users have distinct identities, pending todo counts and subscription counts.
+    when: One browser signs out through the user menu, enters a second session, then reloads with the
+      first user's fresh session.
+    then:
+    - Sign-out produces an anonymous shell; each subsequent session shows only its matching viewer and
+      navigation, with no preceding user's tasks or identity.
+    - Private shell responses do not reuse another user's projection, and localStorage contains none
+      of either user's identity fields before or after those transitions.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-7
 - id: rendering-and-cache.personal-overlays-8
   category: privacy
   topic: personal-overlays
   rule: JSON responses default to `private, no-store`, including validation and auth errors.
+  acceptance:
+    given: The JSON response helpers receive success, creation, validation, authentication, authorization, not-found,
+      rate-limit, and server-error outcomes.
+    when: Each helper constructs its response, and the test reads its headers and JSON body.
+    then:
+    - JSON responses default to `private, no-store`, including validation and auth errors.
+    test:
+      file: tests/unit/lib/api/response-cache-policy.test.ts
+      name: rendering-and-cache.personal-overlays-8
 - id: rendering-and-cache.personal-overlays-9
   category: privacy
   topic: personal-overlays
   rule: Public APIs opt into caching explicitly and must remain independent of session/Bearer identity.
+  acceptance:
+    given: Two isolated users have different private profiles and todos, and only one subscribes to the seeded
+      section. Each user has a valid session and a resource-bound bearer token issued through approved device
+      authorization; the account-profile endpoint verifies all four identities.
+    when: Anonymous, session, and bearer requests read the same Chinese course, section, teacher, schedule,
+      semester, metadata, links, Young-event, organizer, and bus-route API representations.
+    then:
+    - Every response opts into public browser and CDN caching explicitly.
+    - All authenticated bodies and cache headers equal the anonymous representation, no response sets a session
+      cookie, and none includes either viewer's private identity or todo content.
+    test:
+      file: tests/e2e/src/app/cache-policy/test.ts
+      name: rendering-and-cache.personal-overlays-9
 - id: rendering-and-cache.personal-overlays-10
   category: privacy
   topic: personal-overlays
   rule: The HTTP boundary also sets CDN `no-store` for private responses.
+  acceptance:
+    given: Signed-in account, workspace, community, and shell-bootstrap requests resolve to responses with status
+      200, 400, 401, 403, 404, or 500 and conflicting positive browser and CDN lifetimes.
+    when: The production HTTP hook finalizes each response and the test reads both delivered cache headers.
+    then:
+    - The HTTP boundary also sets CDN `no-store` for private responses.
+    test:
+      file: tests/unit/lib/hooks/hooks-cache-control.test.ts
+      name: rendering-and-cache.personal-overlays-10
 - id: rendering-and-cache.personal-overlays-11
   category: privacy
   topic: personal-overlays
   rule: '`/_internal` endpoints stay outside public cache admission.'
+  acceptance:
+    given: The shell-bootstrap route and another internal route, including a query-bearing form.
+    when: The public SSR admission resolver evaluates document requests.
+    then:
+    - Every internal route bypasses shared HTML caching.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.personal-overlays-11
 - id: rendering-and-cache.cache-layers-and-invalidation-1
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: 'Final HTML responses sent to the browser and zone CDN are `private, no-store`: a new nonce and request
-    ID are applied on every request.'
+  rule: Final HTML delivered to the browser and zone CDN uses private, no-store; shared storage applies only
+    to the internal anonymous entrypoint representation.
+  acceptance:
+    given: The same Chinese course-list HTML URL is requested once anonymously and once with a signed-in session
+      cookie.
+    when: The production Worker dispatches each request through the public SSR entrypoint and finalizes its
+      delivered response.
+    then:
+    - Final HTML delivered to the browser and zone CDN uses private, no-store; shared storage applies only
+      to the internal anonymous entrypoint representation.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-1
 - id: rendering-and-cache.cache-layers-and-invalidation-2
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: The stored entrypoint representation uses `max-age=0` plus a shared `s-maxage`.
+  rule: The stored anonymous entrypoint representation uses max-age=0 and a positive shared s-maxage. These
+    are internal storage headers; final delivered-response privacy is governed separately.
+  acceptance:
+    given: An ordinary admitted public course-detail representation.
+    when: The cache header builder produces stored-entrypoint headers.
+    then:
+    - The internal representation uses max-age=0 and a positive shared s-maxage.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-2
 - id: rendering-and-cache.cache-layers-and-invalidation-3
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: Most public HTML has a 24-hour shared lifetime.
+  rule: Ordinary admitted public HTML has a 86400-second shared fresh lifetime. Young event and calendar pages
+    use their explicitly shorter freshness limits; fresh lifetime does not remove required write-triggered
+    invalidation.
+  acceptance:
+    given: Ordinary public course, teacher and privacy pages.
+    when: The cache header builder classifies their freshness.
+    then:
+    - The stored public representation has a 86400-second shared fresh lifetime.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-3
 - id: rendering-and-cache.cache-layers-and-invalidation-4
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: Second-classroom HTML has at most 60 seconds; calendar seeds expire at the next Shanghai midnight without
+  rule: Young event list, detail, organizer, and calendar HTML has a shared lifetime of at most 60 seconds.
+    Calendar entries also expire at the next Asia/Shanghai midnight, whichever boundary occurs first, without
     stale-while-revalidate.
+  acceptance:
+    given: Young pages at midday, ten seconds before Shanghai midnight, and a render crossing midnight.
+    when: The cache header builder calculates freshness and stale policy.
+    then:
+    - Midday freshness is 60 seconds.
+    - Before midnight freshness is bounded to 10 seconds with no stale-while-revalidate.
+    - A render crossing midnight is private and no-store.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-4
 - id: rendering-and-cache.cache-layers-and-invalidation-5
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A committed static import purges both the zone and Workers entrypoint layers.
+  acceptance:
+    given: A static import has committed and both the zone and Workers entrypoint purge endpoints are configured.
+    when: The production post-import invalidator receives the committed report and both endpoints accept their
+      purge requests.
+    then:
+    - A committed static import purges both the zone and Workers entrypoint layers.
+    test:
+      file: tests/unit/static-loader/post-import-cache-purge.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-5
 - id: rendering-and-cache.cache-layers-and-invalidation-6
   category: consistency
   topic: cache-layers-and-invalidation
   rule: A failed purge fails the sync; rerunning the same already-committed snapshot retries the purge.
+  acceptance:
+    given: The CLI imports a snapshot successfully, but both configured purge endpoints reject invalidation
+      with HTTP 503.
+    when: The CLI completes, then runs again with the same snapshot hash and an unchanged import report after
+      both purge endpoints recover.
+    then:
+    - A failed purge fails the sync; rerunning the same already-committed snapshot retries the purge.
+    test:
+      file: tests/unit/static-loader/cache-purge-cli-policy.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-6
 - id: rendering-and-cache.cache-layers-and-invalidation-7
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: The current revision is memoized only within a request, so an old isolate revision cannot refill freshly
-    purged HTML for another 24 hours.
-- id: rendering-and-cache.cache-layers-and-invalidation-8
-  category: consistency
-  topic: cache-layers-and-invalidation
-  rule: Description edits and moderation invalidate the HTML after the database commit, including retries that
-    submit the same description content.
+  rule: After a committed revision change and successful purge, a reused isolate cannot repopulate the public
+    HTML cache using a previous revision. Revision memoization does not cross request boundaries.
+  acceptance:
+    given: A reused runtime data cache contains a value under the previous committed snapshot revision.
+    when: A new request reads a changed committed revision and asks the same cache instance for the same catalog-list
+      key.
+    then:
+    - After a committed revision change and successful purge, a reused isolate cannot repopulate the public
+      HTML cache using a previous revision. Revision memoization does not cross request boundaries.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-revision.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-7
 - id: rendering-and-cache.cache-layers-and-invalidation-9
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: '`cache.cross_version_cache` stays off, so deployments start with fresh HTML.'
+  rule: Deployments do not reuse HTML cached by a previous Worker version; cache.cross_version_cache remains
+    disabled.
+  acceptance:
+    given: The production and local Worker deployment configurations declare cached entrypoints.
+    when: Their JSONC configuration is parsed and each cache-enabled entrypoint is inspected.
+    then:
+    - PublicSsr enables caching with cross_version_cache explicitly false in both configurations.
+    - No cache-enabled entrypoint opts into reuse across Worker versions.
+    test:
+      file: tests/unit/lib/cloudflare/wrangler-rate-limit-config.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-9
 - id: rendering-and-cache.cache-layers-and-invalidation-10
   category: consistency
   topic: cache-layers-and-invalidation
   rule: Catalog public data keys include revision, locale where applicable, entity kind, ID or canonical filters,
     and payload shape.
+  acceptance:
+    given: The same catalog-list query with separately varied revision, locale, kind, filter values and shape,
+      plus equivalent reordered filters.
+    when: Production cache key builders construct keys.
+    then:
+    - Every meaningful variation has a distinct key.
+    - Equivalent canonical filter sets share one key.
+    test:
+      file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-10
 - id: rendering-and-cache.cache-layers-and-invalidation-11
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: Invalid/null detail results are not retained; data-cache failures fall through to the origin.
+  rule: Null public catalog detail results and results rejected by the configured domain validator are not
+    retained in isolate memory, the colo Cache API or KV. A later valid result can populate those caches.
+  acceptance:
+    given: The actual detail-cache wrapper and course/teacher validators, real isolate memory, and controlled
+      colo/KV storage boundaries with observed writes.
+    when: Read null and private-field-contaminated results twice, then replace the loader result with a valid core.
+    then:
+    - Both rejected-result reads invoke the loader and write neither colo nor KV; no rejected result survives
+      in isolate memory.
+    - The valid successor populates both persistent boundaries and serves the next read from isolate memory.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-11
+- id: rendering-and-cache.cache-origin-recovery
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: A public cache read failure still executes the original loader. Loader failures propagate unchanged,
+    are not cached, and can be retried; cache recovery cannot turn a loader rejection into successful data.
+  acceptance:
+    given: The production detail-cache wrapper with both colo and KV reads failing and a loader rejecting
+      with a specific error object.
+    when: Read twice, then allow the same loader to return a valid domain core.
+    then:
+    - Every failed attempt calls the original loader and propagates its exact rejection without cache writes.
+    - A subsequent valid result succeeds and is cached normally.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
+      name: rendering-and-cache.cache-origin-recovery
 - id: rendering-and-cache.contributor-notes-1
   category: consistency
   topic: contributor-notes
-  rule: Keep public data and viewer projections separate in feature services.
-- id: rendering-and-cache.contributor-notes-2
+  rule: Shared academic, Young, bus and campus-link public fact reader interfaces exclude viewer identity,
+    authentication context and saved preferences. Separate private projection or composition functions take
+    explicit user identity; public readers do not directly call those private readers.
+  rationale: This is an architectural interface constraint. Runtime privacy, cache eligibility and server
+    authorization remain independently verified by the feature-specific public/private boundary requirements.
+    Page loaders may receive a framework request context; the shared fact reader beneath them must not.
+  acceptance:
+    given: The actual TypeScript public fact readers for academic lists/details, semesters, Young events and
+      organizers, static bus timetables and campus links, plus their owner-aware composition functions.
+    when: The TypeScript compiler resolves each exported reader's parameter types and call expressions.
+    then:
+    - Public reader parameters expose no userId, viewer, authentication, session or preference fields and are not untyped.
+    - Public function bodies do not directly invoke the private projection or identity readers.
+    - Private Section, link, bus and Young compositions require an explicit userId parameter or field.
+    test:
+      file: tests/unit/policies/public-reader-boundaries.test.ts
+      name: rendering-and-cache.contributor-notes-1
+- id: rendering-and-cache.global-search-freshness
   category: consistency
-  topic: contributor-notes
-  rule: Never add a new page to cache admission before its personal overlay works.
-- id: rendering-and-cache.contributor-notes-3
+  topic: cache-layers-and-invalidation
+  rule: Global search shares only public catalog groups, keyed by imported revision, locale, normalized query
+    and limit. Every runtime tier expires those groups at five minutes; private todos and subscribed homework
+    are read on every request for the current owner and are never serialized into shared caches. Public REST
+    responses separately allow 120 seconds fresh and 300 seconds stale-while-revalidate with the catalog tag.
+  acceptance:
+    given: Restricted-role search services use a real isolated catalog, two owners with distinct todos and
+      subscribed homework, the production cache machinery and controlled external colo/KV stores.
+    when: Reads reuse memory, colo and KV, committed public/private rows change, the clock reaches five minutes,
+      and a subsequent static import revision changes.
+    then:
+    - Public groups retain their original values through 299999 milliseconds in every tier, then refresh at
+      300000 milliseconds even with unchanged revision; a changed revision refreshes immediately.
+    - Locale and limit select separate results; anonymous reads omit private groups and owner reads reflect
+      changed todo/homework content and removed subscriptions immediately without leaking private IDs into KV.
+    - The actual public REST route omits private groups and declares its exact independent browser/CDN lifetime
+      and catalog purge tag.
+    test:
+      file: tests/integration/public-discovery-cache-contract.test.ts
+      name: rendering-and-cache.global-search-freshness
+- id: rendering-and-cache.sitemap-freshness
   category: consistency
-  topic: contributor-notes
-  rule: Public mutable content needs a write-triggered invalidation path; time-derived content needs an explicit
-    time boundary rather than only a static revision.
+  topic: cache-layers-and-invalidation
+  rule: Sitemap generation caches current public catalog URLs in revision-scoped memory, colo and KV for
+    twenty-four hours. A new imported revision regenerates URLs and ETag; retired sections and inactive Young
+    events are excluded. Browser responses require revalidation; CDN freshness is 3600 seconds with 21600
+    seconds of stale-while-revalidate and the catalog purge tag.
+  acceptance:
+    given: The actual sitemap route reads an isolated PostgreSQL catalog through restricted roles and uses
+      production memory/colo/KV caching with controlled external stores and clock.
+    when: Source records become retired/inactive, the same revision is read from each tier, a weak ETag is sent,
+      the imported revision changes, and the unchanged-revision cache reaches its twenty-four-hour boundary.
+    then:
+    - Same-revision tiers reuse XML and a matching weak ETag returns empty 304; exact browser/CDN headers and
+      catalog tag are preserved.
+    - Revision changes remove retired/inactive URLs and change ETag; exactly twenty-four hours later newly
+      committed course URLs appear without requiring another import revision.
+    test:
+      file: tests/integration/public-discovery-cache-contract.test.ts
+      name: rendering-and-cache.sitemap-freshness
+- id: rendering-and-cache.static-location-freshness
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: Room-map manifests, building image rules and location coordinates loaded from mutable static JSON
+    URLs expire in the serving process at five minutes independently of the imported database revision.
+    This origin loader lifetime is separate from any downstream HTTP response lifetime.
+  acceptance:
+    given: The actual room-map and geographic services fetch controlled external manifests, image rules and
+      coordinates at a fixed clock.
+    when: The external files change and the same serving process reads just before and exactly at five minutes.
+    then:
+    - Highlighted room maps, building overviews and coordinates retain their first values through 299999
+      milliseconds with one fetch each, then return the changed values with a second fetch at 300000 milliseconds.
+    test:
+      file: tests/unit/features/rooms/static-location-freshness.test.ts
+      name: rendering-and-cache.static-location-freshness
 - id: rendering-and-cache.contributor-notes-4
   category: consistency
   topic: contributor-notes
-  rule: Client navigation warms route code on hover; data preload waits for tap/click (`src/app.html`, `src/lib/components/AGENTS.md`).
-- id: rendering-and-cache.contributor-notes-5
-  category: consistency
-  topic: contributor-notes
-  rule: Regression tests must cover auth/no-auth responses, mutation and subsequent reads, failed purge retries,
-    and a fresh request after revision changes.
-cache_layers:
-- layer: Workers entrypoint (PublicSsr)
-  content: Anonymous HTML before nonce rewriting
-  invalidation: RPC into PublicSsr calls cache.purge()
-- layer: Zone/CDN and Cache API
-  content: Eligible public API responses / public data
-  invalidation: Zone purge by catalog tag; revision-scoped data keys
-- layer: Isolate L1 / KV
-  content: Public catalog data
-  invalidation: Revision-scoped keys
+  rule: Application navigation configures route-code preload on hover and data preload on tap/click. Application
+    links do not opt back into hover-triggered data preload.
+  acceptance:
+    given: The application HTML template and every Svelte/HTML component under src.
+    when: The Svelte compiler parses their element and attribute syntax trees.
+    then:
+    - The application body declares code preload on hover and data preload on tap.
+    - Every data preload override is tap or off; no component or element re-enables hover data preload.
+    test:
+      file: tests/unit/lib/navigation/navigation-preload-policy.test.ts
+      name: rendering-and-cache.contributor-notes-4
+cache_contracts:
+- id: public-html
+  representations:
+    [
+      academic_list_and_course_teacher_html,
+      campus_links_html,
+      static_guides_html,
+      sign_in_html,
+      young_html,
+      young_calendar_html,
+      section_detail_html
+    ]
+  layers:
+  - kind: workers_entrypoint
+    representations: [academic_list_and_course_teacher_html, campus_links_html, static_guides_html, sign_in_html]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 300, stale_use: while_revalidate, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries: []
+  - kind: workers_entrypoint
+    representations: [young_html, young_calendar_html]
+    freshness: {kind: ttl, fresh_seconds: 60, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+    - {kind: render_crosses_midnight, effect: no_store, timezone: Asia/Shanghai}
+  - kind: workers_entrypoint
+    representations: [section_detail_html]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+    - {kind: render_crosses_midnight, effect: no_store, timezone: Asia/Shanghai}
+  - kind: browser
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: purge
+    layers: [workers_entrypoint, zone_cdn]
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+  - trigger: description_commit
+    effect: purge
+    layers: [workers_entrypoint]
+    representations: [academic_list_and_course_teacher_html, section_detail_html]
+  - trigger: description_moderation
+    effect: purge
+    layers: [workers_entrypoint]
+    representations: [academic_list_and_course_teacher_html, section_detail_html]
+  - trigger: deployment
+    effect: key_change
+    layers: [workers_entrypoint]
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+  requirement_refs:
+    [
+      rendering-and-cache.cache-layers-and-invalidation-1,
+      rendering-and-cache.cache-layers-and-invalidation-3,
+      rendering-and-cache.cache-layers-and-invalidation-4,
+      rendering-and-cache.cache-layers-and-invalidation-5,
+      rendering-and-cache.cache-layers-and-invalidation-6,
+      rendering-and-cache.cache-layers-and-invalidation-9,
+      description.public-cache-invalidation
+    ]
+  rationale: Only admitted routes and query forms share HTML; delivered responses remain private. Build is the entrypoint deployment
+    partition, not a client query parameter.
+- id: imported-public-facts
+  representations:
+    [
+      academic_list_facts,
+      academic_detail_cores,
+      schedule_facts,
+      young_event_facts,
+      young_organizer_facts,
+      bus_timetable_facts,
+      young_clock_projection
+    ]
+  layers:
+  - kind: isolate_memory
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape]
+    clock_boundaries: []
+  - kind: request_projection
+    representations: [young_clock_projection]
+    freshness: {kind: request}
+    key_dimensions: [entity, filters]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [academic_list_facts, academic_detail_cores, schedule_facts, young_event_facts, young_organizer_facts, bus_timetable_facts]
+  requirement_refs:
+    [
+      course.public-detail-cache,
+      section.public-detail-cache,
+      teacher.public-detail-cache,
+      course.public-list-cache,
+      section.public-list-cache,
+      teacher.public-list-cache,
+      course.history-cache-page-isolation,
+      rendering-and-cache.cache-layers-and-invalidation-7,
+      rendering-and-cache.cache-layers-and-invalidation-10,
+      rendering-and-cache.cache-layers-and-invalidation-11,
+      rendering-and-cache.cache-origin-recovery,
+      young-event.shared-public-cache,
+      bus.route-search-public-cache
+    ]
+  rationale: Key dimensions are the applicable union across list/detail/directory readers within a representation family. Young facts are
+    locale-neutral; viewer identity is excluded from all shared values.
+- id: public-catalog-http
+  representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
+  layers:
+  - kind: browser
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [bus_route_search_json]
+    freshness: {kind: ttl, fresh_seconds: 3600, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale, accept_language, cookie]
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
+  requirement_refs:
+    [
+      rendering-and-cache.personal-overlays-9,
+      rendering-and-cache.cache-layers-and-invalidation-5,
+      bus.route-search-public-cache,
+      schedule.public-rest-locale-cache
+    ]
+  rationale: A cached Young JSON response retains its origin-time projection. Current-clock evaluation in the service does not imply an
+    uncached REST response. Catalog HTTP entries carry the catalog purge tag.
+- id: public-description-and-community
+  representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+  layers:
+  - kind: request_database
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: request}
+    key_dimensions: [entity, viewer, filters, page]
+    clock_boundaries: []
+  - kind: browser
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: description_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions, description_history]
+  - trigger: description_moderation
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions]
+  - trigger: community_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+  - trigger: account_delete
+    effect: next_request
+    layers: [request_database]
+    representations: [public_contributions]
+  requirement_refs:
+    [
+      description.public-cache-invalidation,
+      description.editor-authorization,
+      comment.interaction-gate,
+      homework.active-collaborator-write,
+      user.public-comment-contribution-privacy,
+      user.public-upload-contribution-privacy,
+      rendering-and-cache.personal-overlays-10
+    ]
+  rationale: Mutable descriptions are excluded from academic detail cores. Their embedded HTML policy is indexed separately by public-html;
+    these request reads enforce current visibility and authorization.
+- id: global-search
+  representations: [public_search_groups, private_todo_search, private_subscribed_homework_search]
+  layers:
+  - kind: isolate_memory
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape]
+    clock_boundaries: []
+  - kind: browser
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 120, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: request_database
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: request}
+    key_dimensions: [owner, normalized_query, limit]
+    clock_boundaries: []
+  - kind: browser
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [public_search_groups]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [public_search_groups]
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [private_todo_search, private_subscribed_homework_search]
+  - trigger: community_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [private_subscribed_homework_search]
+  requirement_refs: [rendering-and-cache.global-search-freshness, rendering-and-cache.cacheable-public-pages-13]
+- id: sitemap
+  representations: [sitemap_xml]
+  layers:
+  - kind: isolate_memory
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape]
+    clock_boundaries: []
+  - kind: browser
+    representations: [sitemap_xml]
+    freshness: {kind: must_revalidate}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 3600, stale_seconds: 21600, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [sitemap_xml]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [sitemap_xml]
+  requirement_refs: [rendering-and-cache.sitemap-freshness, rendering-and-cache.cache-layers-and-invalidation-5]
+  rationale: The ETag identifies XML content; matching conditional requests return an empty 304. Retired sections and inactive Young events
+    are excluded on regeneration.
+- id: current-semester
+  representations: [current_semester]
+  layers:
+  - kind: isolate_memory
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: colo_cache_api
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: catalog_kv
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: browser
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [current_semester]
+    freshness: {kind: until_clock_boundary}
+    key_dimensions: [url]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [current_semester]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [current_semester]
+  requirement_refs: [semester.current-semester-cache-invalidation]
+  rationale: A null selection is cacheable.
+- id: bus-clock-projections
+  representations: [next_departures, timetable_date_projection, bus_page_departures]
+  layers:
+  - kind: request_projection
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: request}
+    key_dimensions: [owner, filters, service_date]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  - kind: browser
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: next_request
+    layers: [request_projection]
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_projection]
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+  requirement_refs:
+    [
+      bus.next-departures-uncached,
+      bus.cache-boundaries,
+      rendering-and-cache.cacheable-public-pages-11,
+      rendering-and-cache.cacheable-public-pages-12
+    ]
+  rationale: The projection reads separately cached timetable facts and composes current owner preferences.
+- id: external-location-assets
+  representations: [room_map_manifest, building_image_rules, location_coordinates, room_map_json]
+  layers:
+  - kind: serving_process
+    representations: [room_map_manifest, building_image_rules, location_coordinates]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [asset_url]
+    clock_boundaries: []
+  - kind: browser
+    representations: [room_map_json]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, room_code]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [room_map_json]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, room_code]
+    clock_boundaries: []
+  invalidators:
+  - trigger: external_asset_update
+    effect: refetch_after_expiry
+    layers: [serving_process]
+    representations: [room_map_manifest, building_image_rules, location_coordinates]
+  requirement_refs: [rendering-and-cache.static-location-freshness, room-map.public]
+  rationale: Provider files are mutable stable URLs. HTTP room-map age can add to loader age; these lifetimes are not an end-to-end freshness
+    guarantee.
+- id: weather
+  representations: [weather_snapshot, weather_hourly_projection]
+  layers:
+  - kind: weather_kv
+    representations: [weather_snapshot]
+    freshness: {kind: ttl, fresh_seconds: 900, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [location, shape]
+    clock_boundaries:
+    - {kind: storage_expiry, seconds: 3600}
+  - kind: request_projection
+    representations: [weather_snapshot]
+    freshness: {kind: ttl, fresh_seconds: 900, stale_seconds: 0, stale_use: none, age_from: snapshot_fetched_at, expires_when: gte}
+    key_dimensions: [location]
+    clock_boundaries:
+    - {kind: invalid_timestamp, effect: refresh}
+    - {kind: future_timestamp, effect: refresh}
+  - kind: request_projection
+    representations: [weather_hourly_projection]
+    freshness: {kind: request}
+    key_dimensions: [location]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  invalidators:
+  - trigger: weather_refresh
+    effect: replace_value
+    layers: [weather_kv]
+    representations: [weather_snapshot]
+  requirement_refs: [weather.cache-and-history, weather.hourly-forecast-expiry]
+  rationale: Expired, invalid or future-dated snapshots trigger provider refresh. A failed refresh cannot revive an expired snapshot. Hourly
+    output uses the current request window.
+- id: publication-metadata
+  representations: [publication_list_json, publication_detail_json]
+  layers:
+  - kind: browser
+    representations: [publication_list_json, publication_detail_json]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_list_json, publication_detail_json]
+    freshness: {kind: ttl, fresh_seconds: 120, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  invalidators:
+  - trigger: publication_ingest
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [publication_list_json, publication_detail_json]
+  - trigger: publication_withdrawal
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [publication_list_json, publication_detail_json]
+  requirement_refs: [publications.public-cache, publications.tombstones]
+  rationale: Missing and error responses use no-store; success lifetimes do not apply to them.
+- id: publication-objects-and-media
+  representations: [publication_object, publication_image]
+  layers:
+  - kind: object_storage
+    representations: [publication_object, publication_image]
+    freshness: {kind: retained}
+    key_dimensions: [object_key]
+    clock_boundaries: []
+  - kind: request_database
+    representations: [publication_object]
+    freshness: {kind: request}
+    key_dimensions: [publication, revision, object_key]
+    clock_boundaries: []
+  - kind: browser
+    representations: [publication_object]
+    freshness: {kind: must_revalidate}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_object]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: browser
+    representations: [publication_image]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 604800, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, media_url_hash]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_image]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 604800, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, media_url_hash]
+    clock_boundaries: []
+  invalidators:
+  - trigger: publication_withdrawal
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [publication_object]
+  - trigger: media_url_change
+    effect: key_change
+    layers: [object_storage, browser, zone_cdn]
+    representations: [publication_image]
+  requirement_refs: [publications.object-cache-revalidation, publications.image-archive]
+  rationale: Stored bytes do not grant public access. Object eligibility is checked before ETag/304 handling. Image archives retain validated
+    bytes under URL-hash identities.
+- id: public-profile-and-avatar
+  representations: [public_profile, profile_contributions, avatar_bytes]
+  layers:
+  - kind: request_database
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: request}
+    key_dimensions: [owner, entity]
+    clock_boundaries: []
+  - kind: object_storage
+    representations: [avatar_bytes]
+    freshness: {kind: retained}
+    key_dimensions: [owner, avatar_id]
+    clock_boundaries: []
+  - kind: browser
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: profile_update
+    effect: next_request
+    layers: [request_database]
+    representations: [public_profile, profile_contributions, avatar_bytes]
+  - trigger: avatar_reference_removal
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [avatar_bytes]
+  - trigger: account_delete
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [public_profile, profile_contributions, avatar_bytes]
+  requirement_refs:
+    [
+      user.avatar-current-reference,
+      user.public-profile-id-addressability,
+      user.public-comment-contribution-privacy,
+      user.public-upload-contribution-privacy
+    ]
+  rationale: Avatar delivery checks the current image or available-picture reference before reading object bytes.
+- id: young-posters
+  representations: [young_poster_redirect, young_poster_bytes]
+  layers:
+  - kind: request_projection
+    representations: [young_poster_redirect]
+    freshness: {kind: request}
+    key_dimensions: [entity]
+    clock_boundaries: []
+  - kind: browser
+    representations: [young_poster_redirect]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [young_poster_redirect]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: object_storage
+    representations: [young_poster_bytes]
+    freshness: {kind: retained}
+    key_dimensions: [poster_path]
+    clock_boundaries: []
+  - kind: browser
+    representations: [young_poster_bytes]
+    freshness: {kind: immutable, fresh_seconds: 31536000}
+    key_dimensions: [url, poster_path]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [young_poster_bytes]
+    freshness: {kind: immutable, fresh_seconds: 31536000}
+    key_dimensions: [url, poster_path]
+    clock_boundaries: []
+  invalidators:
+  - trigger: poster_path_change
+    effect: key_change
+    layers: [request_projection, object_storage, browser, zone_cdn]
+    representations: [young_poster_redirect, young_poster_bytes]
+  requirement_refs: [young-event.image-proxy-cached]
+  rationale: Immutable representation URLs identify poster bytes; the mutable event image route redirects without caching. Missing-image and
+    origin-error responses have separate finite policies.
+- id: private-workspace
+  representations: [owner_workspace, shell_identity_counts, graphql_entities]
+  layers:
+  - kind: request_database
+    representations: [owner_workspace, shell_identity_counts]
+    freshness: {kind: request}
+    key_dimensions: [owner, entity, filters, page]
+    clock_boundaries: []
+  - kind: graphql_dataloader
+    representations: [graphql_entities]
+    freshness: {kind: request}
+    key_dimensions: [request, entity]
+    clock_boundaries: []
+  - kind: browser
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_database, graphql_dataloader]
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+  requirement_refs:
+    [
+      graphql.request-cache,
+      rendering-and-cache.personal-overlays-8,
+      rendering-and-cache.personal-overlays-10,
+      young-workspace.private-response-cache,
+      bus.preference-owner-state,
+      catalog-link.pin-owner-state
+    ]
+  rationale: Identity and current authorization are resolved per request. Each GraphQL request receives new DataLoaders.
+- id: personal-calendar
+  representations: [personal_ics]
+  layers:
+  - kind: isolate_memory
+    representations: [personal_ics]
+    freshness: {kind: ttl, fresh_seconds: 1800, stale_seconds: 84600, stale_use: async_rebuild, age_from: export_generated_at, expires_when: gt}
+    key_dimensions: [owner, shape]
+    clock_boundaries:
+    - {kind: periodic_revalidation, seconds: 60}
+    - {kind: refresh_coalescing, seconds: 60}
+  - kind: calendar_kv
+    representations: [personal_ics]
+    freshness: {kind: ttl, fresh_seconds: 1800, stale_seconds: 84600, stale_use: async_rebuild, age_from: export_generated_at, expires_when: gt}
+    key_dimensions: [owner, shape]
+    clock_boundaries:
+    - {kind: periodic_revalidation, seconds: 60}
+    - {kind: storage_expiry, seconds: 86400}
+  - kind: request_authorization
+    representations: [personal_ics]
+    freshness: {kind: request}
+    key_dimensions: [owner, feed_credential]
+    clock_boundaries: []
+  - kind: browser
+    representations: [personal_ics]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [personal_ics]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: calendar_source_commit
+    effect: enqueue_rebuild
+    layers: [isolate_memory, calendar_kv]
+    representations: [personal_ics]
+  - trigger: feed_credential_rotation
+    effect: deny_before_cache
+    layers: [request_authorization]
+    representations: [personal_ics]
+  requirement_refs:
+    [
+      calendar.feed-cache-refresh,
+      calendar.feed-refresh-visible,
+      calendar.feed-refresh-coalescing,
+      calendar.feed-enqueue-retry,
+      calendar.feed-write-rebuild-independent,
+      calendar.feed-auth-before-cache,
+      ical.committed-write-rebuilds
+    ]
+  rationale: Total allowed export age is fresh_seconds plus stale_seconds. Credential authorization precedes internal cache and ETag reads
+    despite no-store HTTP delivery. A failed enqueue remains retryable; committed source writes bypass stale-read coalescing.
+- id: operational-and-build-representations
+  representations: [prometheus_gauges, openapi_document, campus_link_definitions, static_guide_content]
+  layers:
+  - kind: database_metric_cache
+    representations: [prometheus_gauges]
+    freshness: {kind: ttl, fresh_seconds: 60, stale_seconds: 60, stale_use: refresh_contention, age_from: metric_collected_at, expires_when: gt}
+    key_dimensions: [metric_snapshot]
+    clock_boundaries: []
+  - kind: browser
+    representations: [openapi_document]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [openapi_document]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: application_build
+    representations: [openapi_document, campus_link_definitions, static_guide_content]
+    freshness: {kind: build}
+    key_dimensions: [build]
+    clock_boundaries: []
+  invalidators:
+  - trigger: metric_refresh
+    effect: replace_value
+    layers: [database_metric_cache]
+    representations: [prometheus_gauges]
+  - trigger: deployment
+    effect: key_change
+    layers: [application_build]
+    representations: [openapi_document, campus_link_definitions, static_guide_content]
+  - trigger: deployment
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [openapi_document]
+  requirement_refs: [admin.prometheus-gauge-cache, openapi.openapi-document-cache, rendering-and-cache.cache-layers-and-invalidation-9]
+  rationale: Empty or over-age metric snapshots fail promptly during refresh contention. HTTP document lifetime is separate from build identity.
 policy_refs:
 - interface-hierarchy
 topics:
@@ -207,7 +1396,81 @@ topics:
   title: Cacheable public pages
 - id: personal-overlays
   title: Personal overlays
+  requirement_refs:
+  - comment.public-permission-recovery
+  - comment.interaction-gate
+  - description.editor-authorization
+  - section.personal-deep-link-gate
+  - subscription.user-scoped
+  - homework.completion-owner
+  - catalog-link.pin-write-gate
+  - catalog-link.pin-owner-state
+  - bus.preference-hydration-write-gate
+  - bus.preference-owner-state
+  - young-event.subscription-write-gate
+  - young-workspace.ownership
+  - user.shell-viewer
+  - section.private-section-projection
+  - description.public-web-personal-overlay
+  - catalog-link.public-web-personal-overlay
+  - bus.public-web-personal-overlay
 - id: cache-layers-and-invalidation
   title: Cache layers and invalidation
 - id: contributor-notes
   title: Contributor notes
+rationale:
+- The former contributor-notes-3 is the finite cache_contracts inventory above. Mutable imported facts,
+  community text, search, discovery XML, external location files, publications, profiles, private overlays
+  and exports have distinct invalidators; clock projections have independent expiry. Each entry indexes
+  existing behavioral owners, not a second test that merely checks whether bindings exist. Global search,
+  sitemap and external location freshness have their own newly exercised atomic contracts.
+- Lifetime values describe each stated layer. A CDN response may be filled from an already aged origin
+  cache; independent layer lifetimes are not an end-to-end freshness guarantee. Immutable media identifiers
+  describe bytes, while mutable access or mapping rules retain their own current-read requirements.
+- Separating public facts from private overlays is a prerequisite for sharing an anonymous representation safely.
+- Authentication variants, write/read invalidation, purge failure recovery, and revision changes are separate
+  sources of cache regressions; their acceptance evidence belongs to the corresponding behavioral requirements.
+- Description commit ordering, moderation and failed-purge retry are owned by description.public-cache-invalidation.
+- The former course.public-web-personal-overlay and teacher.public-web-personal-overlay are owned by
+  rendering-and-cache.web-rendering-and-cache-1 for shared HTML and page-data privacy,
+  rendering-and-cache.web-rendering-and-cache-2 for equivalent anonymous and signed-in HTML,
+  description.public-web-personal-overlay for description SSR and private permissions, and
+  ui.detail-two-column-stream-6 for privately loaded comments. These remain separate acceptance obligations.
+- The former rendering-and-cache.personal-overlays-3 duplicates description.public-web-personal-overlay,
+  which retains public description text and structured data in SSR and privately resolves editing permissions.
+- The former overview.workspace-shell-navigation.internal-endpoint and
+  overview.workspace-shell-navigation.private-cache-boundary are owned by rendering-and-cache.personal-overlays-4.
+  Its explicit projection includes the unread activity notification count required by ui.navigation-landmarks-6
+  alongside the five workspace counts; email and other user fields remain excluded.
+- The former overview.workspace-shell-navigation.ssr-csr-hydration is owned by
+  rendering-and-cache.personal-overlays-5 for direct workspace SSR seeding and
+  rendering-and-cache.personal-overlays-4 for client hydration and anonymous results. user.shell-viewer
+  independently owns reuse of that state without duplicate identity requests.
+- rendering-and-cache.web-rendering-and-cache-2 concerns catalog URLs admitted for both anonymous and
+  session visitors. The signed-in landing-page redirect remains owned by rendering-and-cache.cacheable-public-pages-14, and
+  anonymous-only sign-in cache admission remains owned by rendering-and-cache.cacheable-public-pages-6.
+- Viewer-independent HTML means equivalent content and DOM relationships, not byte-identical generated
+  accessibility identifiers. A one-to-one rename preserves every ID/reference relationship; text, ordinary
+  attributes and user-bearing data cannot be removed or ignored when comparing those representations.
+- Cache-result eligibility and loader-error propagation are separate from transport and domain authority.
+  The original cache-11 authorization clause is owned by openapi.session-and-bearer,
+  graphql.scoped-query-auth, graphql.session-query-authority, mcp.public-catalog-access and
+  mcp.privacy-safe-default. Their real transport/database tests retain credential and ownership checks;
+  cache-origin-recovery only proves that the cache does not replace the loader or swallow its rejection.
+- The former rendering-and-cache.personal-overlays-6 repeats user.shell-viewer. Its canonical acceptance now
+  exercises all current feature-specific viewer consumers and retained-root navigation; sidebar badge counts
+  retain their additional browser regression without a duplicate requirement.
+- The former personal-overlays-1 is an index of four concrete public/private boundaries. Section subscription
+  and homework completion are owned by section.private-section-projection, whose acceptance now reads public
+  HTML and decoded page data before private hydration. Description editing authority is owned by
+  description.public-web-personal-overlay across course, teacher and section; link pins and visits by
+  catalog-link.public-web-personal-overlay; saved bus preferences by bus.public-web-personal-overlay.
+  Each owner retains its actual session and anonymous HTTP/browser assertions; these references add no execution evidence.
+- The former personal-overlays-2 repeats concrete permission-loading and server-write contracts. Catalog
+  comment recovery is owned by comment.public-permission-recovery and server interaction-gate; description
+  recovery by public-web-personal-overlay and editor-authorization; section deep-link and ordinary projection
+  by personal-deep-link-gate and private-section-projection, with subscription.user-scoped and
+  homework.completion-owner enforcing writes. Campus links, bus preferences and Young follow/subscription
+  controls each retain their explicit loading gates and independent real transport owner-state tests.
+  Private workspace pages begin with an authenticated SSR projection under personal-overlays-5;
+  topic references do not stand in for the canonical tests or their runtime evidence.

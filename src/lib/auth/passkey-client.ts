@@ -9,6 +9,7 @@ export type PasskeyClientErrorKind =
   | "cancelled"
   | "duplicate"
   | "generic"
+  | "last-method"
   | "stale-session";
 
 function errorCode(error: unknown): string | null {
@@ -20,6 +21,7 @@ function errorCode(error: unknown): string | null {
 
 export function passkeyClientErrorKind(error: unknown): PasskeyClientErrorKind {
   const code = errorCode(error);
+  if (code === "FAILED_TO_UNLINK_LAST_ACCOUNT") return "last-method";
   if (code === "SESSION_NOT_FRESH") return "stale-session";
   if (
     code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED" ||

@@ -9,6 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * List the current user's pinned campus links.
  * @response workspaceLinkPinResponseSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.link-pin:read
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getWorkspaceLinkPinsRoute),
@@ -24,6 +25,7 @@ export const GET = svelteRequestHandler(
  * @response 429:openApiErrorSchema
  * @response 500:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.link-pin:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postWorkspaceLinkPinRoute),

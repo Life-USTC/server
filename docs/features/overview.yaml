@@ -22,87 +22,217 @@ access:
 requirements:
 - id: overview.decision-page
   category: presentation
-  rule: The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized
-    workspace data; the authenticated /workspace overview is the personal decision page for 'what to do
-    next'.
-- id: overview.semantic-route-compatibility
-  category: behavior
-  rule: Known legacy /?tab= inputs permanently redirect to semantic public or workspace paths while preserving
-    unrelated query parameters.
+  rule: The anonymous home page prioritizes public course, section and teacher discovery.
+  acceptance:
+    given: An anonymous visitor opens the homepage at desktop and mobile widths.
+    when: The visitor reads the public discovery entries and follows course, section and teacher links.
+    then:
+    - The first three discovery entries are courses, sections and teachers, and each opens its working public search page.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.decision-page
 - id: overview.now-next-first
   category: presentation
-  rule: The authenticated overview begins with the current or next actionable schedule, homework, exam,
-    or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain
-    secondary and appear after planning content.
+  rule: 'The overview focus is selected from today and the next six Shanghai calendar days: first the
+    current incomplete timed event, then an overdue incomplete homework/todo from today, then the next
+    incomplete item in timeline order. If none is actionable, no focus item is selected.'
+  acceptance:
+    given: The seven-day agenda includes an ongoing event, overdue homework, completed todo, next session
+      and tomorrow exam.
+    when: The real overview agenda builder and focus selector choose the next action.
+    then:
+    - Current events precede today overdue tasks; those precede the next incomplete item.
+    - Later days are eligible within the seven Shanghai calendar-day agenda, and an all-completed agenda
+      returns no action.
+    test:
+      file: tests/unit/features/workspace/workspace-agenda.test.ts
+      name: overview.now-next-first
 - id: overview.current-semester-priority
   category: presentation
-  rule: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical
-    semester content or complete directory information.
+  rule: The overview prioritizes actionable events from every subscribed Section within its rolling
+    date window, including still-relevant events from past terms, personal todos and independently subscribed
+    activities. Current-semester context and history links follow actionable content; no current-term
+    subscriptions must not replace the overview. The semester calendar remains scoped to its selected term.
+  acceptance:
+    given: An isolated owner has a historical Section with a current makeup class and deadline, a personal
+      todo and an independently subscribed activity, with and without an additional current-term subscription.
+    when: Chinese and English overview pages render at class, deadline, todo and activity times on desktop
+      and mobile.
+    then:
+    - The historical class, homework and activity remain eligible for the focus card, and the personal todo
+      remains visible in summaries.
+    - With only historical subscriptions, the term context and history links follow the focus instead of
+      replacing it.
+    test:
+      file: tests/e2e/src/app/workspace/overview/term-priority.test.ts
+      name: overview.current-semester-priority
 - id: overview.homework-todo-layered
   category: presentation
-  rule: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due
-    date does not participate in upcoming due date sorting.
+  rule: 'Homework and todo deadline groups use Shanghai calendar days: due today, due in the next three
+    days excluding today, and all pending. The first two groups are disjoint. Undated pending items remain
+    in all-pending only; completed items are excluded from every pending group.'
+  acceptance:
+    given: Homework and todos cover the preceding day, both today boundaries, next three days, fourth
+      day, no deadline and completed state.
+    when: The real homework and todo bucket functions run under UTC, Shanghai and Los Angeles process
+      time zones.
+    then:
+    - Today and upcoming-three-day buckets are disjoint and use Shanghai dates.
+    - The upcoming bucket begins tomorrow at 00:00 and ends before the fourth day at 00:00.
+    - Undated pending items appear only in all-pending; completed items appear in none of the pending
+      buckets.
+    test:
+      file: tests/unit/features/workspace/overview-deadline-buckets.test.ts
+      name: overview.homework-todo-layered
 - id: overview.upcoming-exam-counts
   category: behavior
   rule: Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview.
     They include known-date exams that have not ended or start later today, and exclude date-unknown exam
     records that cannot be placed in the upcoming timeline.
-- id: overview.non-current-not-disguised
-  category: presentation
-  rule: Non-current-semester subscribed sections must not be disguised as current learning tasks.
-- id: overview.aggregate-first-for-assistants
-  category: presentation
-  rule: Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into
-    multiple narrower tool calls.
-- id: overview.assistant-tool-hierarchy
-  category: presentation
-  rule: Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my
-    next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when
-    lighter counts and samples suffice.
+  acceptance:
+    given: An isolated subscriber has ended, date-unknown, all-day, ongoing, later-today and tomorrow exams.
+    when: Real session shell navigation, REST, GraphQL and OAuth HTTP MCP overview reads run at the same
+      reference time.
+    then:
+    - All four surfaces report the same four upcoming exams.
+    - REST and MCP samples contain exactly the known-date all-day, ongoing, later-today and tomorrow records.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.upcoming-exam-counts
 - id: overview.historical-subscriptions-remain-discoverable
   category: presentation
   rule: A zero current-semester subscription count must not be presented as no course history when total
     subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework,
     schedules, and exams.
+  acceptance:
+    given: An isolated owner has a historical section with homework, a schedule and an exam, and no current-term subscriptions.
+    when: Desktop and mobile users follow the actual overview history links, then an OAuth MCP client reads the snapshot, subscriptions and semester-filtered personal lists.
+    then:
+    - Every web history link displays the owner's historical record, including the mobile calendar agenda.
+    - The MCP snapshot reports one total and zero current-term subscriptions; the subscription list preserves the past semester.
+    - Personal homework, schedule and exam tools return the historical section for its semester and no records for the current semester.
+    test:
+      file: tests/e2e/src/app/workspace/overview/history-contract.test.ts
+      name: overview.historical-subscriptions-remain-discoverable
 - id: overview.focused-extracts-share-window
   category: consistency
-  rule: Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon
-    window as the broader workspace snapshot.
-- id: overview.private-shell-overlay
-  category: privacy
-  rule: Public HTML remains viewer-independent. Authenticated browsers hydrate workspace navigation counts
-    through a session-only, private no-store Web bootstrap; workspace SSR seeds the same in-memory projection
-    without a duplicate browser request.
+  rule: With the same atTime and default inputs, the workspace snapshot, next-class and deadline tools
+    use the same seven-day horizon. Explicit supported horizon arguments override only the requested tool's
+    window.
+  acceptance:
+    given: An isolated subscriber has a next class and deadlines immediately before, at and within the
+      default seven-day range, exactly at its exclusive end and one day later.
+    when: Actual OAuth HTTP MCP snapshot, next-class and deadline tools run in default and full modes
+      with a fixed atTime, then the deadline tool receives explicit one- and nine-day windows.
+    then:
+    - Snapshot and next-class agree; a class beyond seven days is absent from both.
+    - Default full deadline lists match the snapshot, include the start and exclude the seven-day end.
+    - Explicit deadline windows change only that call and leave the snapshot unchanged.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.focused-extracts-share-window
 - id: overview.workspace-card-priority
   category: presentation
-  rule: Workspace cards prioritize the actionable object title, timing/status, and direct destination
-    over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary
-    context such as course, section, campus, or priority badge remains visible for disambiguation without
-    crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards
-    and MCP default output.
-- id: overview.workspace-shell-navigation.internal-endpoint
-  category: behavior
-  rule: /_internal/shell-bootstrap is a same-origin session-cookie-only Web transport and returns the
-    allowlisted viewer plus five workspace navigation counts.
-  applies_to:
-  - workspace-shell-navigation
-- id: overview.workspace-shell-navigation.private-cache-boundary
+  rule: Workspace cards present the actionable title, time/status and direct destination before secondary
+    details.
+  acceptance:
+    given: An isolated subscriber has a current class and an upcoming homework deadline.
+    when: Desktop and mobile overview focus cards render at class and homework times.
+    then:
+    - The actionable title, time and direct link are visible before secondary metadata, and the link opens the precise destination.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.workspace-card-priority
+- id: overview.public-html-viewer-independent
   category: privacy
-  rule: Every response uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and
-    Vary Cookie; Bearer authentication is rejected.
+  rule: Public homepage HTML and page data contain no viewer identity, personal counts or private workspace
+    state. Authenticated homepage requests redirect to their workspace instead of embedding private state in public discovery.
+  acceptance:
+    given: Two isolated session owners have different task and subscription state.
+    when: Their homepage requests are followed by anonymous Chinese and English HTML and decoded page-data requests with no browser JavaScript.
+    then:
+    - Signed-in requests redirect without including viewer identity in the response body.
+    - Anonymous homepage HTML and page-data expose neither owner's identity or task titles and contain no personal navigation projection.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: overview.public-html-viewer-independent
+- id: overview.personal-next-action-page
+  category: presentation
+  rule: The authenticated workspace overview prioritizes the next personal learning action rather than
+    a complete catalog directory.
+  acceptance:
+    given: An isolated subscriber has an ongoing class and personal learning tasks.
+    when: The signed overview renders on desktop and mobile.
+    then:
+    - The current class focus precedes today, week, task summaries and frequent links; a full catalog directory does not replace the personal action.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.personal-next-action-page
+- id: overview.workspace-card-disambiguation
+  category: presentation
+  rule: Course, section, campus and relevant priority context remain available to distinguish similarly
+    named objects without crowding the title.
+  acceptance:
+    given: Two subscribed sections share one course title but have different codes and campus rooms, and two same-title todos have different priorities.
+    when: Desktop and mobile overviews render each class as current.
+    then:
+    - Focus and today rows retain the exact section code and campus while keeping the course title separate.
+    - Both same-title todos retain their individual high/low priority labels.
+    test:
+      file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
+      name: overview.workspace-card-disambiguation
+- id: overview.compact-operational-fields
+  category: presentation
+  rule: Compact workspace cards and default MCP output omit platform audit timestamps and repeated parent
+    objects.
+  acceptance:
+    given: An isolated owner has a dated todo, homework and exam.
+    when: The actual OAuth HTTP MCP default overview and signed desktop/mobile cards render.
+    then:
+    - MCP samples retain operational IDs, titles, times and offering context but omit audit timestamps and repeated nested child collections.
+    - Visible cards omit audit labels and timestamps.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.compact-operational-fields
+- id: overview.activity-owner-transition
+  category: privacy
+  rule: Activity reads and rendered activity state are keyed by the authenticated owner as well as locale
+    and dates. Changing owner clears the previous owner’s activities, cancels pending requests and rejects
+    late results. An unresolved activity read shows loading rather than claiming the agenda is empty.
+  acceptance:
+    given: Two isolated owners have different ongoing subscribed activities, and the first owner’s response
+      is either already displayed or held after the real server has answered.
+    when: Session cookies change and same-document workspace navigation loads the second owner at the same
+      locale and date range, then the first owner’s held response is released.
+    then:
+    - The second owner triggers a fresh read and displays only their own activity; a DOM observer detects
+      no frame combining the second owner’s workspace with the first owner’s activity.
+    - Pending activity reads display loading and suppress the empty-agenda claim.
+    test:
+      file: tests/e2e/src/app/workspace/overview/activity-owner.test.ts
+      name: overview.activity-owner-transition
+- id: overview.card-order
+  category: presentation
   applies_to:
-  - workspace-shell-navigation
-- id: overview.workspace-shell-navigation.ssr-csr-hydration
-  category: consistency
-  rule: Workspace SSR seeds the in-memory projection directly; other authenticated pages request it after
-    hydration; explicit anonymous results contain null viewer and navigation values.
-  applies_to:
-  - workspace-shell-navigation
-- id: overview.anonymous-overview.static-loader
-  category: consistency
-  rule: The loader returns localized static copy only and performs no business-data queries.
-  applies_to:
-  - anonymous-overview
+  - authenticated-overview
+  expectation:
+    kind: ordered_items
+    surface: web
+    target: workspace-overview-sections
+    items:
+    - workspace-overview-focus
+    - workspace-overview-today-overdue
+    - workspace-overview-week
+    - workspace-overview-summaries
+    - workspace-overview-links
+  acceptance:
+    given: An authenticated viewer opens the overview on desktop or mobile.
+    when: The real overview renders its focus, urgency, week, summary and links sections.
+    then:
+    - The rendered document and vertical position follow the declared section order.
+    test:
+      file: tests/e2e/src/app/workspace/overview-order.test.ts
+      name: overview.card-order
 capabilities:
   authenticated-overview:
     title: Authenticated Workspace Overview
@@ -156,25 +286,59 @@ capabilities:
           Asia/Shanghai day.
         - Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact
           overview read operation.
-        - The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and
-          upcomingExams[] structure returned by default; use workspace_snapshot_get for a richer single-call
-          assistant snapshot.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - focus.title
+          - focus.label
+          - focus.status
+          secondary:
+          - focus.dateLabel
+          - focus.weekdayLabel
+          - focus.meta
+          - todaySessions.startTime
+          - todaySessions.section.course.namePrimary
+          - dueTodayHomeworks.title
+          - dueTodayTodos.title
+          - days.label
+          - days.events.title
+          - pendingHomeworks.title
+          - pendingHomeworks.submissionDueAt
+          - pendingTodos.title
+          - pendingTodos.dueAt
+          - upcomingExams.section.course.namePrimary
+          - upcomingExams.examDate
+          tertiary:
+          - focus.key
+        # Each horizontally scrollable week card identifies its business object;
+        # time/type and extra context stay subordinate to that title.
+        web-week-strip:
+          primary:
+          - days.events.title
+          secondary:
+          - days.events.time
+          - days.events.meta
+          tertiary: []
+        mcp-workspace-overview-get:
+          primary:
+          - overview.pendingHomeworksCount
+          - overview.pendingTodosCount
+          - overview.upcomingExamsCount
+          - overview.todaySchedulesCount
+          secondary:
+          - samples.dueTodos
+          - samples.dueHomeworks
+          - samples.upcomingExams
+          tertiary: []
       items:
-      - pendingHomeworksCount
-      - upcomingExamsCount
-      - pendingTodosCount
-      - todaySchedulesCount
-      - Current or next actionable item
-      - Today highlight
-      - 7-day week grid
-      - Schedule events per day
-      - Pending homeworks (sorted by submissionDueAt)
-      - Tomorrow schedule section
-      - homework due today/due soon/all badges
-      - todo due today/due soon/all badges
-      - Pending todos
-      - Tab icons and counts
+      - Focus action, today and overdue lists, seven-day strip, then homework/todo/exam summaries.
+    requirement_refs:
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
+    - overview.historical-subscriptions-remain-discoverable
   workspace-shell-navigation:
     title: Workspace Shell Navigation Summary
     description: Private Web-only projection used to hydrate viewer identity and workspace sidebar counts
@@ -202,12 +366,19 @@ capabilities:
     graphql: unavailable
     mcp: unavailable
     presentation:
-      items:
-      - Calendar item count
-      - Pending homework count
-      - Pending todo count
-      - Upcoming exam count
-      - Subscribed section count
+      kind: fields
+      views:
+        web:
+          primary:
+          - navigation.title
+          secondary:
+          - navigation.count
+          tertiary: []
+    requirement_refs:
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
+    - overview.historical-subscriptions-remain-discoverable
   workspace-snapshot:
     title: Assistant Workspace Snapshot & Focused Extracts
     auth: user
@@ -232,8 +403,6 @@ capabilities:
           filters on workspace_homework_list, workspace_schedule_list, and workspace_exam_list.
         - Default mode should stay assistant-compact; request full mode when the caller explicitly needs
           full nested schedule, room, teacher, or homework payloads.
-        - The deprecated summary input is an alias for default and must preserve the same top-level workspace
-          collections rather than introducing alternate wrapper shapes.
       - name: workspace_schedule_next
         notes:
         - Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader
@@ -247,13 +416,36 @@ capabilities:
         - Merges homework_due, exam, and todo_due entries into one ordered list.
         - Accepts optional atTime to anchor the deadline window instead of using the server clock.
     presentation:
-      items:
-      - currentSemester
-      - subscriptions.currentSemesterCount
-      - nextClass
-      - upcomingDeadlines
-      - todos.incompleteCount
-      - bus.nextDeparture
+      kind: fields
+      views:
+        mcp-workspace-snapshot-get:
+          primary:
+          - nextClass
+          secondary:
+          - currentSemester
+          - subscriptions
+          - upcomingDeadlines
+          - todos
+          - bus
+          tertiary: []
+        mcp-workspace-schedule-next:
+          primary:
+          - nextClass
+          secondary: []
+          tertiary: []
+        mcp-workspace-deadline-list:
+          primary:
+          - deadlines.at
+          - deadlines.type
+          secondary:
+          - deadlines.payload
+          - total
+          tertiary: []
+    requirement_refs:
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
+    - overview.historical-subscriptions-remain-discoverable
   anonymous-overview:
     title: Anonymous Homepage
     auth: anon
@@ -261,8 +453,26 @@ capabilities:
       pages:
       - /
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - catalog.title
+          secondary:
+          - catalog.description
+          tertiary: []
       items:
-      - Public catalog introduction
-      - Course discovery
-      - Section discovery
-      - Teacher discovery
+      - Public introduction links to course, section and teacher discovery.
+    requirement_refs:
+    - rendering-and-cache.personal-overlays-4
+    - rendering-and-cache.personal-overlays-5
+    - user.shell-viewer
+    - overview.historical-subscriptions-remain-discoverable
+rationale:
+- Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple
+  narrower tool calls.
+- Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next
+  class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter
+  counts and samples suffice.
+- The loader returns localized static copy only and performs no business-data queries.
+- The overview week strip uses each business title as its identity on desktop and mobile; time and additional context stay subordinate within that individual card. Event-type labels are included for academic/task cards; subscribed activity cards identify their specific title and location.

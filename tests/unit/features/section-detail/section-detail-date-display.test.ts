@@ -19,7 +19,7 @@ describe("课程详情日期展示", () => {
     expect(formatDate(boundary, "n/a")).toBe("2026-03-02");
   });
 
-  it("基于共享的周日周策略构建课程月份网格键", () => {
+  it("基于共享的周一周策略构建课程月份网格键", () => {
     const monthStart = findCalendarBaseMonth([
       {
         badges: [],
@@ -43,10 +43,10 @@ describe("课程详情日期展示", () => {
 
     expect(days).toHaveLength(42);
     expect(dateKey(monthStart)).toBe("2026-03-01");
-    expect(dateKey(firstDay)).toBe("2026-03-01");
-    expect(dateKey(days[1])).toBe("2026-03-02");
-    expect(dateKey(lastDay)).toBe("2026-04-11");
-    expect(isSameMonth(firstDay, monthStart)).toBe(true);
+    expect(dateKey(firstDay)).toBe("2026-02-23");
+    expect(dateKey(days[7])).toBe("2026-03-02");
+    expect(dateKey(lastDay)).toBe("2026-04-05");
+    expect(isSameMonth(firstDay, monthStart)).toBe(false);
     expect(isSameMonth(lastDay, monthStart)).toBe(false);
   });
 

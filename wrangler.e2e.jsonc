@@ -14,7 +14,8 @@
       // `POST /_internal/edge-cache/purge`, which hops into this entrypoint —
       // a zone purge cannot reach Workers Caching content.
       "cache": {
-        "enabled": true
+        "enabled": true,
+        "cross_version_cache": false
       }
     }
   },

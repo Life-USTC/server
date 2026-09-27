@@ -4,6 +4,7 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
@@ -20,6 +21,8 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let locale: string;
+export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
 export let onClearFilter: () => void;
@@ -75,10 +78,11 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
           >
             {homework.section?.courseName ?? homeworkCopy.section}
           </a>
+          <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
         </Table.Cell>
         <Table.Cell>
           <button
-            class="block min-h-11 min-w-0 max-w-full text-left hover:underline"
+            class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
             type="button"
             onclick={() => {
               selectedHomework = homework;

@@ -2,17 +2,13 @@ import type { RequestHandler } from "@sveltejs/kit";
 import {
   createDiscoveryJsonResponse,
   createDiscoveryMetadataRoute,
-  createDiscoveryRedirectRoute,
   getAuthServerMetadataResponse,
   getMcpProtectedResourceMetadataResponse,
   getOpenIdMetadataResponse,
 } from "@/lib/oauth/discovery-metadata";
 import {
   getGraphqlServerUrl,
-  getOAuthAuthorizationServerMetadataUrl,
   getOAuthIssuerUrl,
-  getOAuthOpenIdConfigurationUrl,
-  getOAuthProtectedResourceMetadataUrl,
 } from "@/lib/oauth/metadata-urls";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 
@@ -43,31 +39,15 @@ function getProtectedResourceMetadataResponse({
 
 const DISCOVERY_TARGETS = {
   authServerMetadata: {
-    type: "metadata",
     getResponse: getAuthServerMetadataResponse,
   },
-  authServerAlias: {
-    type: "redirect",
-    resolveUrl: getOAuthAuthorizationServerMetadataUrl,
-  },
   openIdMetadata: {
-    type: "metadata",
     getResponse: getOpenIdMetadataResponse,
   },
-  openIdAlias: {
-    type: "redirect",
-    resolveUrl: getOAuthOpenIdConfigurationUrl,
-  },
   protectedResourceMetadata: {
-    type: "metadata",
     getResponse: getMcpProtectedResourceMetadataResponse,
   },
-  protectedResourceAlias: {
-    type: "redirect",
-    resolveUrl: getOAuthProtectedResourceMetadataUrl,
-  },
   graphqlProtectedResourceMetadata: {
-    type: "metadata",
     getResponse: () =>
       getProtectedResourceMetadataResponse({
         resource: getGraphqlServerUrl(),
@@ -89,14 +69,7 @@ function adaptDiscoveryRouteHandlers(handlers: RequestDiscoveryHandlers): {
 }
 
 export function createOAuthDiscoveryRoute(target: DiscoveryRouteTarget) {
-  const route = DISCOVERY_TARGETS[target];
-  if (route.type === "metadata") {
-    return adaptDiscoveryRouteHandlers(
-      createDiscoveryMetadataRoute(route.getResponse),
-    );
-  }
-
   return adaptDiscoveryRouteHandlers(
-    createDiscoveryRedirectRoute(route.resolveUrl),
+    createDiscoveryMetadataRoute(DISCOVERY_TARGETS[target].getResponse),
   );
 }

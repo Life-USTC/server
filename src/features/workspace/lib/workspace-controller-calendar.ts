@@ -1,4 +1,5 @@
 export {
+  workspaceCalendarDayChange,
   workspaceCalendarHrefFromPatch,
   workspaceCalendarMonthChange,
   workspaceCalendarSemesterChange,

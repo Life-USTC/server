@@ -94,6 +94,7 @@ function buildHomeworkListWhere(input: HomeworkListWhereInput) {
 const SUBSCRIBED_HOMEWORK_ORDER_BY = [
   { submissionDueAt: "asc" },
   { createdAt: "desc" },
+  { id: "asc" },
 ] satisfies Prisma.HomeworkOrderByWithRelationInput[];
 
 export function orderHomeworksById<T extends { id: string }>(

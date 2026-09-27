@@ -29,6 +29,7 @@ export async function setMyHomeworkCompletionTool(
   if (!result.success) {
     return jsonToolResult({
       success: false,
+      error: result.error.code === "deleted" ? "not_found" : result.error.code,
       message:
         result.error.code === "deleted"
           ? "Homework not found"

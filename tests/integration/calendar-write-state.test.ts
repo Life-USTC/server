@@ -55,7 +55,7 @@ afterAll(async () => {
 });
 
 describe("calendar write state", () => {
-  it("rebuilds homework descriptions only after the committed content is visible", async () => {
+  it("description.homework-calendar-invalidation", async () => {
     const reads: Promise<string | undefined>[] = [];
     const messages: unknown[] = [];
     setCalendarExportRebuildSenderForTest(async (message) => {
@@ -91,8 +91,8 @@ describe("calendar write state", () => {
     }
   });
 
-  for (const mode of ["single", "batch"] as const) {
-    it(`${mode} completion retries preserve the timestamp until reopened`, async () => {
+  it("homework.completion-set-idempotency", async () => {
+    for (const mode of ["single", "batch"] as const) {
       setCalendarExportRebuildSenderForTest(async () => {});
       const homeworkId = homeworkIds[mode === "single" ? 0 : 1];
       const set = async (completed: boolean) => {
@@ -137,6 +137,6 @@ describe("calendar write state", () => {
       } finally {
         setCalendarExportRebuildSenderForTest();
       }
-    });
-  }
+    }
+  });
 });

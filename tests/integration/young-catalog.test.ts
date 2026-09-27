@@ -54,7 +54,7 @@ describe("Young public date filters and bounded organizer summaries", () => {
     await fixture.youngOrganizer.delete({ where: { id: organizerId } });
     await fixture.$disconnect();
   });
-  it("includes overnight and point events, excludes an event ending at day start", async () => {
+  it("young-event.date-range-overlap", async () => {
     const page = await listYoungEvents({
       organizerId,
       dateFrom: "2035-09-15",
@@ -64,8 +64,17 @@ describe("Young public date filters and bounded organizer summaries", () => {
       [id("overnight"), id("point")].sort(),
     );
     expect(page.unknownDateCount).toBe(1);
+    const registration = await listYoungEvents({
+      organizerId,
+      dateFrom: "2035-09-15",
+      dateTo: "2035-09-15",
+      timeBasis: "registration",
+    });
+    expect(registration.data.map((row) => row.youngId)).toEqual([
+      id("registration"),
+    ]);
   });
-  it("uses registration dates independently, paginating missing start times", async () => {
+  it("young-event.unknown-date-results", async () => {
     const page = await listYoungEvents({
       organizerId,
       dateFrom: "2035-09-15",
@@ -88,6 +97,28 @@ describe("Young public date filters and bounded organizer summaries", () => {
       totalPages: 2,
     });
     expect(unknown.data).toHaveLength(2);
+    const first = await listYoungEvents({
+      organizerId,
+      timeBasis: "registration",
+      dateUnknown: true,
+      pageSize: 2,
+      page: 1,
+    });
+    expect(first.pagination.total).toBe(4);
+    const all = [...first.data, ...unknown.data];
+    expect(new Set(all.map((event) => event.youngId)).size).toBe(4);
+    expect(all.every((event) => event.applyStartAt === null)).toBe(true);
+    expect(all.map((event) => event.youngId).sort()).toEqual(
+      ["overnight", "midnight-end", "point", "unknown"].map(id).sort(),
+    );
+    const activityUnknown = await listYoungEvents({
+      organizerId,
+      dateUnknown: true,
+    });
+    expect(activityUnknown.data.map((event) => event.youngId)).toEqual([
+      id("unknown"),
+    ]);
+    expect(activityUnknown.pagination.total).toBe(1);
   });
   it("returns counts without embedding the full history", async () => {
     const organizer = await getYoungOrganizer(organizerId);

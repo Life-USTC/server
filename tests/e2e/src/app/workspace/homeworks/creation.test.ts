@@ -86,7 +86,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 
-  test("新建作业保留英文输入提示并隐藏填写规范", async ({ page }, testInfo) => {
+  test("homework.workspace-style-guide-omitted", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     const localeResponse = await page.request.post("/api/account/preferences", {

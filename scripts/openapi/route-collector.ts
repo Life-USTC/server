@@ -6,6 +6,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import type { ZodType } from "zod";
+import { isFeatureScope } from "../../src/lib/oauth/scope-registry";
 import type { SchemaCollector } from "./schema-collector";
 
 const METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"] as const;
@@ -82,35 +83,18 @@ const REDIRECT_DESCRIPTIONS: Record<
 // Pre-computed operationIds that mirror the checked-in spec for existing routes.
 // New routes fall back to a deterministic path-derived id.
 const OPERATION_ID_OVERRIDES: Record<string, string> = {
-  "GET /.well-known/oauth-authorization-server": "listOauthAuthorizationServer",
-  "OPTIONS /.well-known/oauth-authorization-server":
-    "options-.well-known-oauth-authorization-server",
   "GET /.well-known/oauth-authorization-server/api/auth":
     "get-.well-known-oauth-authorization-server-api-auth",
   "OPTIONS /.well-known/oauth-authorization-server/api/auth":
     "options-.well-known-oauth-authorization-server-api-auth",
-  "GET /.well-known/oauth-authorization-server/api/mcp":
-    "get-.well-known-oauth-authorization-server-api-mcp",
-  "OPTIONS /.well-known/oauth-authorization-server/api/mcp":
-    "options-.well-known-oauth-authorization-server-api-mcp",
-  "GET /.well-known/oauth-protected-resource": "listOauthProtectedResource",
-  "OPTIONS /.well-known/oauth-protected-resource":
-    "options-.well-known-oauth-protected-resource",
   "GET /.well-known/oauth-protected-resource/api/mcp":
     "get-.well-known-oauth-protected-resource-api-mcp",
   "OPTIONS /.well-known/oauth-protected-resource/api/mcp":
     "options-.well-known-oauth-protected-resource-api-mcp",
-  "GET /.well-known/openid-configuration": "listOpenidConfiguration",
-  "OPTIONS /.well-known/openid-configuration":
-    "options-.well-known-openid-configuration",
   "GET /.well-known/openid-configuration/api/auth":
     "get-.well-known-openid-configuration-api-auth",
   "OPTIONS /.well-known/openid-configuration/api/auth":
     "options-.well-known-openid-configuration-api-auth",
-  "GET /.well-known/openid-configuration/api/mcp":
-    "get-.well-known-openid-configuration-api-mcp",
-  "OPTIONS /.well-known/openid-configuration/api/mcp":
-    "options-.well-known-openid-configuration-api-mcp",
   "GET /api/admin/comments": "listAdminComments",
   "PATCH /api/admin/comments/{id}": "moderateAdminComment",
   "GET /api/admin/descriptions": "listAdminDescriptions",
@@ -166,14 +150,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "POST /api/account/preferences": "setLocale",
   "GET /api/mcp": "listMcp",
   "POST /api/mcp": "createMcp",
-  "GET /api/mcp/.well-known/oauth-authorization-server":
-    "get-api-mcp-.well-known-oauth-authorization-server",
-  "OPTIONS /api/mcp/.well-known/oauth-authorization-server":
-    "options-api-mcp-.well-known-oauth-authorization-server",
-  "GET /api/mcp/.well-known/openid-configuration":
-    "get-api-mcp-.well-known-openid-configuration",
-  "OPTIONS /api/mcp/.well-known/openid-configuration":
-    "options-api-mcp-.well-known-openid-configuration",
   "GET /api/account/profile": "account_profile_get",
   "GET /api/account/client-activity": "account_client_activity_list",
   "GET /api/community/users/{identifier}": "community_user_get",
@@ -360,10 +336,18 @@ function buildOperation(
         );
         break;
       }
-      case "oauthScope": {
-        const scopes =
-          (operation["x-oauth-scopes"] as string[] | undefined) ?? [];
-        operation["x-oauth-scopes"] = [...scopes, docTag.text];
+      case "oauthScope":
+      case "oauthOptionalScope": {
+        if (!isFeatureScope(docTag.text))
+          throw new Error(
+            `Invalid OAuth scope for ${method.toUpperCase()} ${routePath}: ${docTag.text}`,
+          );
+        const key =
+          docTag.name === "oauthScope"
+            ? "x-oauth-scopes"
+            : "x-oauth-optional-scopes";
+        const scopes = (operation[key] as string[] | undefined) ?? [];
+        operation[key] = [...scopes, docTag.text];
         break;
       }
       case "ingestionSecret": {
@@ -383,7 +367,13 @@ function buildOperation(
     operation.responses = responses;
   }
 
-  const security = buildSecurity(routePath, method, has401, hasIngestionSecret);
+  const security = buildSecurity(
+    routePath,
+    method,
+    has401,
+    hasIngestionSecret,
+    Array.isArray(operation["x-oauth-scopes"]),
+  );
   if (security) {
     operation.security = security;
   }
@@ -583,6 +573,7 @@ function buildSecurity(
   method: string,
   has401: boolean,
   hasIngestionSecret: boolean,
+  hasBearerScope: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
 
@@ -599,7 +590,7 @@ function buildSecurity(
   }
 
   if (routePath === "/api/mcp" && method !== "options") {
-    return [{ mcpBearerAuth: [] }];
+    return [{}, { mcpBearerAuth: [] }];
   }
 
   if (routePath === "/api/account/client-activity") {
@@ -607,12 +598,10 @@ function buildSecurity(
   }
 
   if (routePath.startsWith("/api/calendar-feeds/")) {
-    return [
-      { bearerAuth: [] },
-      { sessionCookie: [] },
-      { calendarFeedToken: [] },
-    ];
+    return [{ sessionCookie: [] }, { calendarFeedToken: [] }];
   }
 
-  return [{ bearerAuth: [] }, { sessionCookie: [] }];
+  return hasBearerScope
+    ? [{ bearerAuth: [] }, { sessionCookie: [] }]
+    : [{ sessionCookie: [] }];
 }

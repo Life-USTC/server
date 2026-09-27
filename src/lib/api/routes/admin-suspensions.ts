@@ -17,10 +17,15 @@ import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminSuspensionsRoute(request: Request) {
-  return withAdminApiRoute(request, "Failed to fetch suspensions", async () => {
-    const suspensions = await listAdminSuspensions();
-    return jsonResponse({ data: suspensions });
-  });
+  return withAdminApiRoute(
+    request,
+    "Failed to fetch suspensions",
+    async () => {
+      const suspensions = await listAdminSuspensions();
+      return jsonResponse({ data: suspensions });
+    },
+    { allowSuspended: true },
+  );
 }
 
 export async function postAdminSuspensionRoute(request: Request) {

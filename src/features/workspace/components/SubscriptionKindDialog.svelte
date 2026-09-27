@@ -41,7 +41,7 @@ async function save() {
   <Dialog.Content>
     <Dialog.Header>
       <Dialog.Title>{copy.title}</Dialog.Title>
-      <Dialog.Description>{section.course.namePrimary}</Dialog.Description>
+      <Dialog.Description>{section.course.namePrimary} · {section.code}</Dialog.Description>
     </Dialog.Header>
     <form onsubmit={(event) => { event.preventDefault(); void save(); }}>
       <Field.FieldGroup>

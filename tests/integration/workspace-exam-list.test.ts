@@ -1,24 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { listSubscribedExamPage } from "@/features/subscriptions/server/subscription-read-model";
 import { getSubscribedExamsRoute } from "@/lib/api/routes/subscribed-exam-routes";
 import { getMyCompactOverviewRoute } from "@/lib/api/routes/workspace-overview-route";
-import {
-  subscribedExamDtoSchema,
-  subscribedExamsQuerySchema,
-  subscribedExamsResponseSchema,
-} from "@/lib/api/schemas/subscribed-exams-schemas";
+import { subscribedExamsResponseSchema } from "@/lib/api/schemas/subscribed-exams-schemas";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import {
   getOAuthGraphqlResourceUrl,
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
-import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
-const users = [crypto.randomUUID(), crypto.randomUUID()];
+const users: string[] = [crypto.randomUUID(), crypto.randomUUID()];
 const sectionIds: number[] = [];
 const semesterIds: number[] = [];
 const examIds: number[] = [];
@@ -126,23 +120,22 @@ async function signedRequest(
 }
 
 async function read(userId: string, input: Record<string, string> = {}) {
-  const { page, pageSize, locale, ...filters } =
-    subscribedExamsQuerySchema.parse(input);
-  const result = await listSubscribedExamPage(userId, {
-    ...filters,
-    locale,
-    pagination: { page, pageSize },
-  });
-  return subscribedExamsResponseSchema.parse({
-    ...result,
-    data: result.data.map((exam) =>
-      subscribedExamDtoSchema.parse(serializeDatesDeep(exam)),
-    ),
-  });
+  const signed = await signedRequest(
+    users.indexOf(userId),
+    "workspace.exam:read",
+  );
+  const url = new URL(signed.url);
+  url.search = new URLSearchParams(input).toString();
+  const response = await getSubscribedExamsRoute(
+    new Request(url, { headers: signed.headers }),
+  );
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  return subscribedExamsResponseSchema.parse(await response.json());
 }
 
 describe("complete subscribed exam pages", () => {
-  it("excludes retired sections while preserving the owner's subscription relationship", async () => {
+  it("exam.retired-exam-exclusion", async () => {
     expect(
       await db.userSectionSubscription.findUnique({
         where: {
@@ -169,7 +162,7 @@ describe("complete subscribed exam pages", () => {
     }
   });
 
-  it("rejects an active, correctly signed overview-only token without returning exam data", async () => {
+  it("exam.rest-read-scope", async () => {
     const request = await signedRequest(0, "workspace.overview:read");
     // The same JWT succeeds on its authorized feature, proving the denial is
     // the exam scope boundary rather than a broken signer or consent fixture.
@@ -199,7 +192,7 @@ describe("complete subscribed exam pages", () => {
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
 
-  it("returns four owned exams across real pages with semester context and unknown dates", async () => {
+  it("exam.owned-page-completeness", async () => {
     const first = await read(users[0], { pageSize: "2" });
     const second = await read(users[0], { page: "2", pageSize: "2" });
     expect(first.pagination).toEqual({
@@ -226,13 +219,14 @@ describe("complete subscribed exam pages", () => {
       [],
     );
   });
-  it("filters normalized Shanghai dates and semester before counting and paging", async () => {
+  it("exam.rest-date-semester-filters", async () => {
     const filtered = await read(users[0], {
       dateFrom: "2026-09-14T20:00:00Z",
       dateTo: "2026-09-15",
       includeDateUnknown: "false",
     });
     expect(filtered.data.map((exam) => exam.id)).toEqual([examIds[1]]);
+    expect(filtered.pagination.total).toBe(1);
     const unknownIncluded = await read(users[0], {
       dateFrom: "2026-09-15",
       dateTo: "2026-09-15",
@@ -241,11 +235,37 @@ describe("complete subscribed exam pages", () => {
       examIds[1],
       examIds[3],
     ]);
+    expect(unknownIncluded.pagination.total).toBe(2);
     const semester = await read(users[0], {
       semesterId: String(semesterIds[1]),
       pageSize: "1",
     });
     expect(semester.pagination.total).toBe(2);
     expect(semester.data[0].id).toBe(examIds[2]);
+    const otherPage = await read(users[0], {
+      semesterId: String(semesterIds[1]),
+      page: "2",
+      pageSize: "1",
+    });
+    expect(otherPage.pagination.total).toBe(2);
+    expect(otherPage.data.map((exam) => exam.id)).toEqual([examIds[3]]);
+    const invalidInputs: Record<string, string>[] = [
+      { dateFrom: "invalid" },
+      { dateFrom: "2026-09-16", dateTo: "2026-09-15" },
+      { includeDateUnknown: "invalid" },
+      { pageSize: "101" },
+    ];
+    for (const input of invalidInputs) {
+      const request = await signedRequest(0, "workspace.exam:read");
+      const url = new URL(request.url);
+      url.search = new URLSearchParams(input).toString();
+      expect(
+        (
+          await getSubscribedExamsRoute(
+            new Request(url, { headers: request.headers }),
+          )
+        ).status,
+      ).toBe(400);
+    }
   });
 });

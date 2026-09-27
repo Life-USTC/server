@@ -41,7 +41,7 @@ test.describe("PATCH /api/admin/users/[id] 用户更新", () => {
 
   test("无效用户名格式返回 400", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const listResponse = await request.get(`${BASE}?limit=1`);
+    const listResponse = await request.get(`${BASE}?pageSize=1`);
     expect(listResponse.status()).toBe(200);
     const userId = (
       (await listResponse.json()) as {

@@ -2,35 +2,103 @@ kind: policy
 id: cases.account
 title: 'Cross-feature scenarios: account'
 requirements:
-- id: cases.account.username-change-1
-  category: behavior
-  topic: username-change
-  rule: The new profile page should be accessible.
 - id: cases.account.username-change-2
   category: behavior
   topic: username-change
-  rule: The old username must not continue to represent the user.
-- id: cases.account.oauth-connection-error-1
-  category: behavior
-  topic: oauth-connection-error
-  rule: Duplicate OAuth connection should give a clear error response.
+  rule: After a successful username change, resolving the old username does not return the renamed user. The
+    new username resolves to that user immediately; no old-name compatibility redirect is created.
+  acceptance:
+    given: An authenticated user has an existing username and a public profile at that username.
+    when: The user saves a different valid username in profile settings, then requests both the old and new
+      public profile URLs and APIs.
+    then:
+    - After a successful username change, resolving the old username does not return the renamed user. The
+      new username resolves to that user immediately; no old-name compatibility redirect is created.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.username-change-2
 - id: cases.account.oauth-connection-error-2
   category: behavior
   topic: oauth-connection-error
-  rule: Disconnecting the last sign-in account must be blocked with a clear error; it is not an ordinary failure-retry
-    scenario.
+  rule: Removing a linked sign-in provider must not leave the account with no usable sign-in method. The server
+    evaluates the remaining permitted providers and passkeys at mutation time; the settings UI displays an
+    explicit refusal when removal would leave none.
+  acceptance:
+    given: A signed-in user has a linked GitHub account and an unavailable provider, but no passkey.
+    when: The user views account settings and attempts direct unlinking, then registers a passkey with a
+      browser authenticator, unlinks GitHub through settings, signs out, and signs in with that passkey.
+    then:
+    - The initial disconnect control is disabled with an explanation, and direct unlinking is rejected without
+      deleting the account.
+    - After passkey registration, settings allows unlinking; the retained passkey successfully authenticates
+      the same user, and its removal as the sole usable method is rejected.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.oauth-connection-error-2
+- id: cases.account.sign-in-method-removal-atomic
+  category: authorization
+  topic: oauth-connection-error
+  rule: Settings provider removal, direct authentication unlinking, and passkey removal share an atomic
+    last-usable-method guard. Concurrent provider and passkey removals cannot leave an account without a
+    permitted provider, enabled password credential, or passkey.
+  acceptance:
+    given: Isolated users have an enabled GitHub provider, a disabled Google provider, a password credential,
+      or a stored passkey in combinations that exercise the last usable method.
+    when: Settings and direct authentication endpoints remove methods, and concurrent provider/passkey
+      removals target the same user.
+    then:
+    - Disabled providers do not permit removing the last usable method; an enabled provider or passkey does.
+    - A password without the required local issuer and user subject does not count; after correction the
+      retained password credential successfully authenticates the same user.
+    - Direct unlinking recognizes a remaining passkey, and deleting the sole passkey is rejected.
+    - Each concurrent pair permits exactly one removal and leaves exactly one usable method persisted.
+    test:
+      file: tests/integration/sign-in-method-removal.test.ts
+      name: cases.account.sign-in-method-removal-atomic
 - id: cases.account.account-deletion-1
   category: behavior
   topic: account-deletion
-  rule: Account deletion requires entering the fixed confirmation word DELETE.
+  rule: The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
+    it submits the deletion request.
+  acceptance:
+    given: An authenticated user has opened the deletion confirmation dialog in danger settings.
+    when: The user enters empty text, DEL, lowercase delete, and DELETE with leading or trailing spaces, presses
+      Enter, then enters exact DELETE and cancels.
+    then:
+    - The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
+      it submits the deletion request.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.account-deletion-1
 - id: cases.account.account-deletion-2
   category: behavior
   topic: account-deletion
-  rule: After successful deletion, the current session should be terminated and the settings page exited.
-- id: cases.account.scenario-guidance-1
-  category: behavior
-  topic: scenario-guidance
-  rule: After a username change, the new address should immediately become the canonical entry.
+  rule: After successful account deletion, the browser clears its authenticated viewer state and leaves settings
+    for a public page.
+  acceptance:
+    given: An authenticated user has opened danger settings and still exists in the database.
+    when: The user opens deletion confirmation, enters exact DELETE, and submits the deletion.
+    then:
+    - After successful account deletion, the browser clears its authenticated viewer state and leaves settings
+      for a public page.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.account-deletion-2
+- id: cases.account.deleted-session-revocation
+  category: authorization
+  topic: account-deletion
+  rule: Successful account deletion revokes the deleted user’s active sessions; a previously valid session
+    cannot authorize subsequent account or workspace requests.
+  acceptance:
+    given: One account has two valid persisted sessions, one in the browser and one in a separate request context.
+    when: The browser deletes the account; the second context replays its original cookie against session lookup,
+      the todos API, and a workspace page.
+    then:
+    - Successful account deletion revokes the deleted user’s active sessions; a previously valid session cannot
+      authorize subsequent account or workspace requests.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.deleted-session-revocation
 refs:
 - feature: user
   capability: settings
@@ -41,7 +109,12 @@ topics:
   title: Username change
 - id: oauth-connection-error
   title: Oauth connection error
+  requirement_refs:
+  - user.explicit-provider-linking
+  - user.welcome-oauth-refresh
+
 - id: account-deletion
   title: Account deletion
-- id: scenario-guidance
-  title: Scenario guidance
+rationale:
+- Canonical profile URLs after a username change are owned by user.public-profile-canonical-route. The account
+  scenario retains the independent old-name invalidation contract in cases.account.username-change-2.

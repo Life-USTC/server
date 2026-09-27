@@ -16,101 +16,378 @@ access:
   admin: Can maintain bus data.
   agent: Can read bus timetable capabilities and manage own bus preferences.
 requirements:
+- id: bus.preference-owner-state
+  category: authorization
+  rule: Bus preferences belong to the authenticated owner. REST, GraphQL and native MCP require the
+    declared write authority and reject unknown non-null campus IDs without changing stored preferences.
+    A suspended owner may continue saving and resetting these private preferences.
+  acceptance:
+    given: Two isolated owners have independent preference rows and resource-bound OAuth credentials;
+      the real services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests save null-campus preferences and
+      toggle the departed-trip setting, attempt anonymous or read-scope writes and unknown origin or
+      destination IDs, then repeat successful writes during an active suspension.
+    then:
+    - Successful writes change only the authenticated owner's row, including during suspension; the returned preference contains exactly origin, destination and showDepartedTrips with their committed values.
+    - Anonymous and insufficient-scope writes are rejected before persistence.
+    - Unknown campuses retain both owners' exact rows and produce REST 400, GraphQL BAD_USER_INPUT
+      or native MCP invalid_bus_preference according to the declared transport error shape.
+    test:
+      file: tests/integration/personal-setting-authority.test.ts
+      name: bus.preference-owner-state
 - id: bus.public-web-personal-overlay
   category: privacy
-  rule: The Web timetable renders public timetable data without user preferences, then fetches the private
-    bus-preferences endpoint after hydration. Preference writes are disabled until this request resolves;
-    authentication and read failures do not silently overwrite stored preferences. Request-time timetable
-    and map SSR remain dynamic.
+  rule: Public bus HTML contains public timetable data without saved user preferences.
+  acceptance:
+    given: Two isolated users have different saved destinations and departed-trip preferences; a third caller is anonymous.
+    when: Chinese and English browsers disable JavaScript and request public bus HTML and page-data, while each owner also reads the private preferences endpoint.
+    then:
+    - Public HTML has no saved preference fields; page-data contains routes/trips with null preferences and the server-rendered planner uses the public default destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/bus-public-projection.test.ts
+      name: bus.public-web-personal-overlay
 - id: bus.public-no-signin
   category: authorization
   rule: Bus is public campus life information; sign-in should not be a prerequisite.
+  acceptance:
+    given: An anonymous browser has no session.
+    when: It visits the public bus planner.
+    then:
+    - The response is 200 with a visible planner heading and canonical public URL.
+    test:
+      file: tests/e2e/src/app/bus/test.ts
+      name: bus.public-no-signin
 - id: bus.weekday-by-shanghai-time
   category: consistency
   rule: The workspace bus page determines weekday, Saturday, or Sunday by Shanghai time by default and
     allows manual switching.
+  acceptance:
+    given: A timetable is read immediately before and after Shanghai midnight at weekday, Saturday and Sunday boundaries.
+    when: The actual planner initializes from each read time and its day-type action selects each manual option.
+    then:
+    - The default day type follows Shanghai calendar boundaries, and manual selections update the applicable trip list.
+    test:
+      file: tests/unit/features/bus/bus-tab-state.test.ts
+      name: bus.weekday-by-shanghai-time
 - id: bus.shanghai-time-interpretation
   category: consistency
   rule: When calculating 'how long until departure', whether a trip has departed, and route ordering,
     the workspace client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing
     with the browser's timezone.
+  acceptance:
+    given: Two routes depart at different Shanghai HH:mm times under UTC, Shanghai and Los Angeles host
+      timezones.
+    when: The actual client planner computes departures at one fixed absolute instant.
+    then:
+    - Route order, upcoming/departed classification and positive/negative wait minutes stay identical
+      across host zones.
+    test:
+      file: tests/unit/features/bus/bus-client.test.ts
+      name: bus.shanghai-time-interpretation
 - id: bus.core-filters-only
   category: presentation
-  rule: The workspace bus page provides only core filters for departure stop, arrival stop, direction
-    reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable
-    vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.
+  rule: The bus planner exposes departure campus, arrival campus, direction reversal, day type and show-departed
+    controls. On mobile, route controls may use progressive disclosure while the next departure remains
+    directly visible.
+  acceptance:
+    given: An anonymous viewer opens the planner on desktop and mobile.
+    when: The browser changes departure and arrival, reverses direction, selects every day type and toggles departed trips.
+    then:
+    - All required controls are available and change the selected route or visible timetable as requested.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.core-filters-only
 - id: bus.visual-priority
   category: presentation
-  rule: The workspace visual structure should prioritize 'quick scanning of the next trip and route differences';
-    selected stop, direction, next departure time, and route grouping must be more prominent than decorative
-    cards.
+  rule: The bus planner presents the next boardable departure together with the selected origin, destination
+    and route before secondary route details and decorative content.
+  acceptance:
+    given: A fixed weekday reference time has a known next departure on the selected route.
+    when: Desktop and mobile planners render their primary departure presentation.
+    then:
+    - Mobile leads with a large next-departure time and origin/destination/route before the full timetable.
+    - Desktop highlights the first boardable trip in the first applicable route beside the selected stop controls.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.visual-priority
 - id: bus.public-responsive-planner
   category: presentation
-  rule: The public /catalog/bus page restores the complete two-column route planner and grouped timetable
-    at desktop widths. On mobile it leads with the next boardable departure and up to two following departures,
-    keeps route controls behind progressive disclosure, and shows the complete grouped timetable by default
-    with an option to collapse it. A valid recent local route is reused when no signed-in preference is
-    available.
-- id: bus.semantic-public-route
-  category: behavior
-  rule: Anonymous /?tab=bus requests permanently redirect to /catalog/bus; signed-in compatibility requests
-    redirect to /catalog/bus.
+  rule: Desktop bus planning presents route controls alongside a complete grouped timetable.
+  acceptance:
+    given: A public timetable has available routes.
+    when: The desktop bus planner renders.
+    then:
+    - Origin/destination controls and day/departed/reverse controls are visible beside a populated timetable.
+    test:
+      file: tests/e2e/src/app/bus/test.ts
+      name: bus.public-responsive-planner
 - id: bus.sort-by-next-boardable
   category: presentation
-  rule: Routes are currently sorted by 'the next boardable time from the selected departure stop'; if
-    a stop has no exact time in the original timetable, the average of adjacent known stop times in the
-    same trip is used as an estimate.
+  rule: Routes are sorted by the next known or explicitly estimated boardable time from the selected departure
+    stop. Unknown times never imply a boardable departure.
+  rationale: An estimate is identified by the ~ marker and an explanation, and is permitted only under
+    bus.stop-time-estimate-bounds.
+  acceptance:
+    given: Three routes serve a selected intermediate stop with a known time, an earlier bounded estimate, and an unknown time after their first-stop departures.
+    when: The actual planner reads before, between and after the boardable times, with departed trips shown and hidden.
+    then:
+    - The estimated and known departures sort by the selected stop's boarding time and carry their correct estimate flags and wait minutes.
+    - Unknown times never produce next departures; passed boarding times disappear from the next-departure list.
+    test:
+      file: tests/unit/features/bus/bus-client.test.ts
+      name: bus.sort-by-next-boardable
 - id: bus.merged-table-grouped-by-route
   category: presentation
   rule: The signed-in workspace and the public /catalog/bus default timetable use a single merged large
     table to display all applicable routes, grouped into table sections by route; each section shows the
     visible trips for that route.
+  acceptance:
+    given: The default stop pair has multiple applicable routes for anonymous and isolated signed-in viewers.
+    when: Actual desktop and mobile planners render the complete timetable.
+    then:
+    - One visible table contains all applicable route groups, each with its own route heading, stop columns and visible trip rows.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.merged-table-grouped-by-route
 - id: bus.raw-data-returned
   category: behavior
-  rule: /api/catalog/bus and catalog_bus_timetable_get return raw route/stop/trip data within the selected
-    timetable version; the preferences field is null for anonymous callers and returns the authenticated
-    caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.
+  rule: GET /api/catalog/bus and full mode of catalog_bus_timetable_get return the selected version's
+    route, stop and trip dataset without client-side route filtering or ordering. Anonymous output has
+    null preferences; authenticated preferences belong only to the caller. GraphQL per-route timetable pages preserve the same ordered day-specific trips and complete totals.
+  acceptance:
+    given: An isolated historical version has two routes, three campuses and four trips, while two owners have different saved route preferences.
+    when: Anonymous REST, full HTTP MCP, each owner's authenticated REST request and one-row GraphQL day pages read that selected version.
+    then:
+    - All responses retain the same complete route, stop and trip arrays independent of viewer preferences.
+    - Anonymous preferences are null; each authenticated REST response contains only its caller's saved preference.
+    - GraphQL weekday, Saturday and Sunday pages preserve stop order, trip positions, totals and exhausted-page emptiness against the complete REST/MCP dataset.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.raw-data-returned
 - id: bus.version-topology-self-contained
   category: consistency
   rule: When versionKey selects a historical timetable version, routes, stops, campuses, and trips are
     derived from that same imported schedule version rather than the latest global route topology.
+  acceptance:
+    given: An old imported version has two campuses while global latest topology has a third campus.
+    when: The actual timetable service reads the explicitly selected historical version.
+    then:
+    - Returned campuses, route stop order, trip stop identities and times all use the historical snapshot.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: bus.version-topology-self-contained
 - id: bus.version-key-boundary
   category: consistency
   rule: REST, GraphQL, and MCP normalize surrounding whitespace in versionKey and then require 1-120 ASCII
     characters matching ^[A-Za-z0-9][A-Za-z0-9._-]*$.
+  acceptance:
+    given: An isolated version has a valid 120-character key containing letters, digits, dot, underscore and hyphen.
+    when: Actual REST, GraphQL and OAuth HTTP MCP requests use its exact and whitespace-padded key, then empty, punctuation-leading, internal-whitespace, non-ASCII and 121-character inputs.
+    then:
+    - Exact and trimmed keys resolve the same historical version on all three transports.
+    - Every invalid input is rejected before querying timetable data.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.version-key-boundary
 - id: bus.current-version-only
   category: consistency
   rule: catalog_bus_route_list only lists routes actually present in the current active timetable version;
-    it does not expose historical route IDs outside the current version.
-- id: bus.workspace-vs-map
-  category: behavior
-  rule: The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
+    it does not expose historical route IDs outside the current version. GraphQL route pages preserve that same discovery order and total.
+  acceptance:
+    given: An isolated disabled historical version adds two route records beside the existing active timetable.
+    when: Actual OAuth HTTP MCP route discovery and explicit historical timetable reads execute alongside the current REST timetable.
+    then:
+    - REST and MCP route discovery IDs have the same order, omit both historical-only IDs, and equal the concatenated two-row GraphQL pages with stable totals and an empty exhausted page.
+    - Explicit version selection still retrieves both historical routes.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.current-version-only
 - id: bus.public-version-metadata-omitted
   category: presentation
-  rule: Public bus workspace pages omit timetable version metadata rather than showing an unlabeled or
-    unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.
+  rule: Public bus pages do not display opaque imported version keys or unlocalized version titles as
+    user-facing labels.
+  acceptance:
+    given: The imported timetable carries an opaque key and source title.
+    when: Public and signed-in pages render in Chinese and English.
+    then:
+    - Neither the opaque imported key nor the unlocalized source title is displayed.
+    test:
+      file: tests/e2e/src/app/bus/test.ts
+      name: bus.public-version-metadata-omitted
 - id: bus.responsive-route-surfaces
   category: presentation
-  rule: Bus planner and transit-map pages keep document content within narrow viewports, provide at least
-    44 CSS pixels of height for primary route actions, wrap stop sequences only between complete arrow-and-stop
-    tokens, and keep campus labels legible over route strokes.
-- id: bus.task-oriented-tool-hierarchy
-  category: presentation
-  rule: Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,
-    catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next
-    for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for
-    personal defaults.
+  rule: Bus planner and transit-map content fit narrow viewports without page-level horizontal overflow.
+  acceptance:
+    given: The planner and transit map render at 280, 320, 390 and 1280 CSS pixels.
+    when: The viewer opens route controls and visits the actual map.
+    then:
+    - Neither route surface introduces page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.responsive-route-surfaces
 - id: bus.canonical-compact-mode
   category: presentation
-  rule: catalog_bus_timetable_get default mode returns compact counts, route/campus summaries, and relevant
-    departures rather than the full trip dataset; the deprecated summary input is an alias for this same
-    shape.
+  rule: The default catalog_bus_timetable_get response contains counts, route/campus summaries and relevant
+    next departures. Full mode returns the complete timetable dataset.
+  acceptance:
+    given: An isolated version contains two routes, three campuses and four trips across weekday and Saturday.
+    when: Actual OAuth HTTP MCP calls read the timetable in default and full modes.
+    then:
+    - Default output has exact counts and route/campus summaries without the full trip array.
+    - With no selected journey, departures are empty and the response directs the caller to the departure tool.
+    - Full output retains matching counts and all route stops and trips.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.canonical-compact-mode
 - id: bus.cache-boundaries
   category: consistency
-  rule: Raw timetable REST responses remain private because they may contain viewer preferences; route-search
-    REST responses may use revision-purged public edge caching, while all next-departure responses remain
-    private and uncached. The bus map dynamically renders request-time active trips while reusing revision-scoped
-    static schedule and topology data.
+  rule: Timetable REST responses containing optional viewer preferences use private caching.
+  acceptance:
+    given: Anonymous and authenticated timetable reads may carry caller preferences.
+    when: The actual REST handler serializes both responses.
+    then:
+    - Responses succeed and use private, no-store plus CDN no-store.
+    test:
+      file: tests/unit/features/bus/bus-route-cache.test.ts
+      name: bus.cache-boundaries
+- id: bus.preference-hydration-write-gate
+  category: privacy
+  rule: Web preference writes remain disabled until the private preference read succeeds. Authentication
+    or read failures never overwrite stored preferences.
+  acceptance:
+    given: An isolated owner has saved preferences, and its real private read is held or replaced with a 401 or 503 response.
+    when: The browser changes the planner and advances beyond the autosave debounce before hydration, after errors and after successful hydration.
+    then:
+    - Pending or failed reads produce no preference writes and leave persisted preferences unchanged.
+    - A successful read preserves the in-progress route choice; only a subsequent explicit edit writes the new preference.
+    test:
+      file: tests/e2e/src/app/bus/preferences-contract.test.ts
+      name: bus.preference-hydration-write-gate
+- id: bus.request-time-planning
+  category: consistency
+  rule: Bus planner and map results reflect their request reference time rather than a previously rendered
+    page's departure state.
+  acceptance:
+    given: One cached imported timetable contains an 08:00–08:20 trip.
+    when: Actual map and departure services are read before, during and after the trip using distinct
+      request instants.
+    then:
+    - The map reports en-route only during the trip.
+    - Departure waits and availability reflect each request instant while the static data remains cached.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: bus.request-time-planning
+- id: bus.mobile-next-departures
+  category: presentation
+  rule: On mobile, the bus planner leads with the next boardable departure and at most two following departures.
+  acceptance:
+    given: A weekday route has at least four upcoming departures.
+    when: Actual 280px and 390px planners render the next-departure summary.
+    then:
+    - The primary departure and exactly two following departures appear with route context; the fourth is omitted from the summary.
+    - The summary appears before route controls.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.mobile-next-departures
+- id: bus.mobile-full-timetable
+  category: presentation
+  rule: On mobile, route controls use progressive disclosure and the complete grouped timetable is initially
+    visible with a collapse action.
+  acceptance:
+    given: A mobile anonymous viewer opens the planner.
+    when: The viewer expands route controls, changes destination, reloads and collapses/expands the timetable.
+    then:
+    - The full timetable starts visible with a working collapse action.
+    - Route controls use disclosure and the compact summary reflects the selected route.
+    test:
+      file: tests/e2e/src/app/bus/test.ts
+      name: bus.mobile-full-timetable
+- id: bus.recent-route-precedence
+  category: presentation
+  rule: A valid recently selected local route is reused when no signed-in route preference is available;
+    signed-in preferences take precedence.
+  acceptance:
+    given: Local storage has a valid recent route while an isolated owner has a different saved preference.
+    when: Anonymous and authenticated browsers load the planner, followed by an invalid local route.
+    then:
+    - The anonymous planner restores the valid recent route; the signed-in preference takes precedence without overwriting local storage.
+    - Invalid local route IDs are ignored and the valid default route is selected.
+    test:
+      file: tests/e2e/src/app/bus/preferences-contract.test.ts
+      name: bus.recent-route-precedence
+- id: bus.primary-route-action-size
+  category: presentation
+  rule: Primary bus route actions are at least 44 CSS pixels high.
+  acceptance:
+    given: The bus planner renders at 280 and 320 CSS-pixel widths.
+    when: The viewer opens route controls and inspects every primary action.
+    then:
+    - Change route, full timetable, reverse, map and origin-campus controls are each at least 44 CSS pixels
+      tall.
+    test:
+      file: tests/e2e/src/app/bus/test.ts
+      name: bus.primary-route-action-size
+- id: bus.stop-label-wrapping
+  category: presentation
+  rule: Route stop sequences wrap only between complete arrow-and-stop tokens.
+  acceptance:
+    given: Actual route descriptions render in narrow 280px and 390px planners.
+    when: The browser examines each visible route token.
+    then:
+    - Every stop after the first shares one non-wrapping token with its arrow, and each token occupies one client rectangle.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.stop-label-wrapping
+- id: bus.map-label-legibility
+  category: presentation
+  rule: Campus map labels remain legible where they intersect route strokes.
+  acceptance:
+    given: The actual transit map renders on mobile and desktop.
+    when: The browser inspects the rendered campus labels and their computed paint styles.
+    then:
+    - Every label has visible geometry, a contrasting background-colored stroke and stroke-before-fill paint order that separates text from route lines.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.map-label-legibility
+- id: bus.next-departures-uncached
+  category: consistency
+  rule: Time-sensitive next-departure responses are private and uncached.
+  acceptance:
+    given: A next-departure result depends on its request time.
+    when: The actual REST next-departure handler returns it.
+    then:
+    - The successful response uses private, no-store and CDN no-store.
+    test:
+      file: tests/unit/features/bus/bus-route-cache.test.ts
+      name: bus.next-departures-uncached
+- id: bus.route-search-public-cache
+  category: consistency
+  rule: Viewer-independent route-search responses may be publicly cached only while their imported revision
+    remains current.
+  acceptance:
+    given: Controlled database and import-revision boundaries supply bus topology to the actual route handler, service and process cache.
+    when: The public REST handler reads a warm revision and then the controlled revision boundary changes alongside the topology.
+    then:
+    - Responses declare public CDN caching and the catalog cache tag without reading viewer preferences; this test does not execute a CDN or commit an import.
+    - The warm revision reuses its topology; a changed revision immediately reads the updated topology.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: bus.route-search-public-cache
+- id: bus.stop-time-estimate-bounds
+  category: consistency
+  rule: Exact timetable stop times remain exact. A missing stop time is estimated by averaging the nearest
+    known times on each side only when both exist in nondecreasing same-day order. Single-sided, wholly
+    unknown or midnight-crossing gaps remain unknown and do not produce an upcoming departure.
+  acceptance:
+    given: Trip stop times are exact, bounded gaps, equal bounds, one-sided gaps, wholly missing or cross
+      midnight.
+    when: The actual stop-time computation and route planner process the missing middle stop.
+    then:
+    - Only valid two-sided nondecreasing times produce a marked estimate; exact times remain exact.
+    - Invalid gaps remain null and cannot become an upcoming boardable trip.
+    test:
+      file: tests/unit/features/bus/bus-client.test.ts
+      name: bus.stop-time-estimate-bounds
 capabilities:
   bus-timetable:
     title: Bus Timetable
@@ -158,9 +435,8 @@ capabilities:
       - name: catalog_bus_timetable_get
         rest_equivalent: GET /api/catalog/bus
         notes:
-        - default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes,
-          and relevant nextDepartures instead of the full trip dataset; deprecated summary is an alias
-          for default.
+        - 'default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes,
+          and relevant nextDepartures instead of the full trip dataset; '
         - Request full mode for the raw campuses/routes/trips dataset.
       - name: catalog_bus_route_list
         rest_equivalent: GET /api/catalog/bus
@@ -172,25 +448,72 @@ capabilities:
         - Single-route raw timetable tool; use catalog_bus_departure_next when the caller only needs the
           next few departures.
       - name: workspace_bus_preferences_get
+        auth: user
         rest_equivalent: GET /api/workspace/bus-preferences
         notes:
         - Returns the authenticated caller's saved bus preferences or the default null-campus preference.
       - name: workspace_bus_preferences_set
+        auth: user
         rest_equivalent: POST /api/workspace/bus-preferences
         notes:
         - preferredOriginCampusId and preferredDestinationCampusId may be null to reset saved campuses.
         - Unknown non-null preferred origin or destination campus IDs return a serialized validation result
           with success=false and do not write preferences.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - route.descriptionPrimary
+          - trip.departureTime
+          secondary:
+          - route.stops.name
+          - trip.stopTimes
+          tertiary:
+          - version.key
+          - version.importedAt
+          - route.id
+        mcp-catalog-bus-timetable-get:
+          primary:
+          - routes.descriptionPrimary
+          secondary:
+          - campuses.namePrimary
+          - counts
+          - notice
+          tertiary: []
+        mcp-catalog-bus-route-list:
+          primary:
+          - routes.descriptionPrimary
+          secondary:
+          - routes.id
+          - routes.stops
+          tertiary: []
+        mcp-catalog-bus-route-get:
+          primary:
+          - route.descriptionPrimary
+          secondary:
+          - route.id
+          - route.stops
+          - weekday
+          - saturday
+          - sunday
+          tertiary: []
+        mcp-workspace-bus-preferences-get:
+          primary:
+          - preference.preferredOriginCampusId
+          - preference.preferredDestinationCampusId
+          secondary:
+          - preference.showDepartedTrips
+          tertiary: []
+        mcp-workspace-bus-preferences-set:
+          primary:
+          - preference.preferredOriginCampusId
+          - preference.preferredDestinationCampusId
+          secondary:
+          - preference.showDepartedTrips
+          tertiary: []
       items:
-      - route.descriptionPrimary
-      - next departure times
-      - campus stop columns
-      - route schedules
-      - day type control
-      - departure/arrival campus controls
-      - reverse direction control
-      - show-departed toggle
+      - Day type and departure/arrival campus controls, reverse direction and show-departed toggle.
   bus-route-search:
     title: Bus Route Search
     auth: anon
@@ -209,12 +532,25 @@ capabilities:
         - Filtered discovery helper for origin/destination prompts.
         - Use catalog_bus_route_list when the caller needs the entire current route catalog.
     presentation:
-      items:
-      - originCampus
-      - destinationCampus
-      - filtered route list
-      - route stop order
-      - weekday/Saturday/Sunday trip counts
+      kind: fields
+      views:
+        web:
+          primary:
+          - originCampus.name
+          - destinationCampus.name
+          - route.descriptionPrimary
+          secondary:
+          - route.stops.name
+          tertiary:
+          - route.id
+        mcp-catalog-bus-route-search:
+          primary:
+          - routes.descriptionPrimary
+          secondary:
+          - originCampus.nameCn
+          - destinationCampus.nameCn
+          - routes.id
+          tertiary: []
   bus-next-departures:
     title: Bus Next Departures
     auth: anon
@@ -239,17 +575,31 @@ capabilities:
           bounds 1-50.'
         - When a route exists but no remaining departures are available for the requested window, return
           guidance describing the situation and, when possible, the next available service time.
-        - Default and the deprecated summary alias avoid repeating the same originCampus/destinationCampus
-          object inside every departure item when they already appear at the top level.
+        - Default mode avoid repeating the same originCampus/destinationCampus object inside every departure
+          item when they already appear at the top level.
     presentation:
-      items:
-      - originCampus
-      - destinationCampus
-      - dayType
-      - departureTime
-      - arrivalTime
-      - minutesUntilDeparture
-      - route description
+      kind: fields
+      views:
+        web:
+          primary:
+          - trip.departureTime
+          - trip.arrivalTime
+          secondary:
+          - originCampus.name
+          - destinationCampus.name
+          - route.descriptionPrimary
+          tertiary:
+          - route.id
+        mcp-catalog-bus-departure-next:
+          primary:
+          - departures.departureTime
+          - departures.arrivalTime
+          secondary:
+          - departures.minutesUntilDeparture
+          - departures.route.descriptionPrimary
+          - originCampus.nameCn
+          - destinationCampus.nameCn
+          tertiary: []
   bus-map:
     title: Bus Route Map
     auth: anon
@@ -259,9 +609,25 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - campus.namePrimary
+          secondary: []
+          tertiary:
+          - route.id
+          - trip.id
       items:
-      - Bus routes (polylines on map)
-      - Bus stops/stations (markers)
-      - Active trips derived from timetable times
-      - Campus locations reference
-      - Interactive map controls
+      - Route polylines, stop markers, current trips and interactive map controls.
+rationale:
+- The Web route-search view is the campus picker and matching timetable, not a separate route-count directory.
+  Day-type counts remain API/MCP fields. The mobile next-departure summary shows departure/arrival clocks and
+  campus context, without a countdown or repeated day-type label. The map labels campus nodes; route polylines
+  and vehicle positions are graphical facts, not visible route descriptions or textual trip locations.
+  Version topology supplies one campus name, so no secondary bilingual label is required.
+- The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
+- Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,
+  catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next
+  for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for
+  personal defaults.

@@ -11,7 +11,7 @@ import type {
 } from "./comment-component-types";
 
 type CommentsComposerSectionProps = {
-  appliedInitialData: boolean;
+  viewerResolved: boolean;
   body: string;
   commentCopy: CommentsCopy;
   /** When set, renders page-style h2 + primary action; collapsed trigger moves into that row. */
@@ -37,7 +37,7 @@ type CommentsComposerSectionProps = {
 };
 
 let {
-  appliedInitialData,
+  viewerResolved,
   body = $bindable(),
   commentCopy,
   heading = null,
@@ -72,13 +72,18 @@ function openComposer() {
 }
 </script>
 
-{#if loading && !appliedInitialData}
+{#if loading && !viewerResolved}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
     </div>
   {/if}
   <CommentsPanelLoadingComposer />
+{:else if !viewerResolved}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
+    <Button type="button" variant="outline" disabled>{commentCopy.postAction}</Button>
+  </div>
 {:else}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">

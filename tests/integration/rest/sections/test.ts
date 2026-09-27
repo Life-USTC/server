@@ -8,7 +8,7 @@ test("/api/catalog/sections", async ({ request }) => {
 
 test("班级列表项包含所有必需的 SectionSummary 字段", async ({ request }) => {
   const response = await request.get(
-    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -40,7 +40,7 @@ test("班级列表项包含所有必需的 SectionSummary 字段", async ({ requ
 
 test("班级列表项包含教师数组", async ({ request }) => {
   const response = await request.get(
-    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&pageSize=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -68,7 +68,7 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({
   request,
 }) => {
   const teacherResponse = await request.get(
-    `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,
+    `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&pageSize=5`,
   );
   expect(teacherResponse.status()).toBe(200);
   const teacherBody = (await teacherResponse.json()) as {
@@ -78,7 +78,7 @@ test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({
   expect(teacherId).toBeDefined();
 
   const response = await request.get(
-    `/api/catalog/sections?teacherId=${teacherId}&limit=20`,
+    `/api/catalog/sections?teacherId=${teacherId}&pageSize=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -93,7 +93,7 @@ test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", async
   request,
 }) => {
   const response = await request.get(
-    `/api/catalog/sections?search=${encodeURIComponent(`teacher:${DEV_SEED.teacher.nameCn}`)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(`teacher:${DEV_SEED.teacher.nameCn}`)}&pageSize=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {

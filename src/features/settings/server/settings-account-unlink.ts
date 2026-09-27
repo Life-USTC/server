@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/prisma/client";
+import { removeSignInMethod } from "@/lib/auth/sign-in-methods";
 import { authPrisma } from "@/lib/db/auth-prisma";
 
 export type SettingsAccountUnlinkResult =
@@ -10,15 +10,5 @@ export async function unlinkSettingsAccount(
   userId: string,
   provider: string,
 ): Promise<SettingsAccountUnlinkResult> {
-  const [result] = await authPrisma.$queryRaw<{ status: string }[]>(Prisma.sql`
-    SELECT public.unlink_settings_account(${userId}, ${provider}) AS status
-  `);
-
-  if (
-    !result ||
-    !["last_account", "not_linked", "unlinked"].includes(result.status)
-  ) {
-    throw new Error("Unexpected settings account unlink result");
-  }
-  return result.status as SettingsAccountUnlinkResult;
+  return removeSignInMethod(authPrisma, userId, "provider", provider);
 }

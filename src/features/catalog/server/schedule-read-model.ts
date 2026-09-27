@@ -353,7 +353,7 @@ export async function listPublicSchedules(input: {
             skip,
             take,
             include: publicScheduleInclude,
-            orderBy: [{ date: "asc" }, { startTime: "asc" }],
+            orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
           }),
         () => prisma.schedule.count({ where }),
         input.page,
@@ -389,7 +389,7 @@ export async function getSectionSchedulesByJwId(input: {
         include: input.includeSection
           ? sectionScheduleListInclude
           : sectionScheduleInclude,
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
         ...(input.limit !== undefined && { take: input.limit }),
       },
     },

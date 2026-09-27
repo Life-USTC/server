@@ -249,14 +249,10 @@ async function assertSpecifiedOwnership(
   }
 }
 
-test("enforces specified PATCH ownership through the real REST endpoint", async ({
-  playwright,
-}) => {
+test("todo.rest-patch-ownership", async ({ playwright }) => {
   await assertSpecifiedOwnership(playwright, "todo.rest-patch-ownership");
 });
 
-test("enforces specified DELETE ownership through the real REST endpoint", async ({
-  playwright,
-}) => {
+test("todo.rest-delete-ownership", async ({ playwright }) => {
   await assertSpecifiedOwnership(playwright, "todo.rest-delete-ownership");
 });

@@ -25,6 +25,11 @@ export const commentReactionRequestSchema = z.object({
   type: commentReactionTypeSchema,
 });
 
-export const commentBatchDeleteRequestSchema = z.object({
-  ids: z.array(z.string().trim().min(1)).min(1).max(50),
-});
+export const commentBatchDeleteRequestSchema = z
+  .object({
+    ids: z.array(z.string().trim().min(1)).min(1).max(50),
+  })
+  .refine((input) => new Set(input.ids).size === input.ids.length, {
+    path: ["ids"],
+    message: "Batch must not contain duplicate targets",
+  });

@@ -60,6 +60,7 @@ export type PublicationPageCopy = {
   applyFilters: string;
   clearFilters: string;
   resultsCount: string;
+  resultsCountOne: string;
   emptyTitle: string;
   emptyDescription: string;
   author: string;
@@ -87,6 +88,7 @@ export type PublicationPageCopy = {
   objectLabels: Record<string, string>;
   foldToggle: string;
   foldSiblingCount: string;
+  foldSiblingCountOne: string;
   alsoPublishedIn: string;
   sourcesTitle: string;
   sourcesPageTitle: string;
@@ -95,6 +97,10 @@ export type PublicationPageCopy = {
   sourcesEmptyTitle: string;
   sourcesEmptyDescription: string;
   sourcesGroupSummary: string;
+  sourceCountOne: string;
+  sourceCountOther: string;
+  publicationCountOne: string;
+  publicationCountOther: string;
   sourceArticleCount: string;
   lastPublishedAt: string;
   neverPublished: string;

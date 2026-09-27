@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey";
 import { getOptionalTrimmedEnv, isAppProductionBuildPhase } from "@/app-env";
 import { getPasskeyAllowedOrigins } from "@/lib/auth/auth-origins";
-import { getCanonicalOrigin } from "@/lib/site-url";
+import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
 
 const PASSKEY_RP_NAME = "Life@USTC";
 const LOCAL_PASSKEY_HOSTS = new Set(["localhost"]);
@@ -57,27 +57,22 @@ function validatePasskeyOrigin(origin: string) {
   return url.origin;
 }
 
-function validateOriginForRpId(origin: string, rpID: string) {
-  const normalizedOrigin = validatePasskeyOrigin(origin);
-  const hostname = new URL(normalizedOrigin).hostname;
-  const matchesRpId =
-    hostname === rpID ||
-    (!LOCAL_PASSKEY_HOSTS.has(rpID) && hostname.endsWith(`.${rpID}`));
-  if (!matchesRpId) {
-    throw new Error(
-      `Passkey origin ${normalizedOrigin} is not compatible with RP ID ${rpID}`,
-    );
-  }
-  return normalizedOrigin;
-}
-
 export function buildBetterAuthPasskeyPlugin() {
   requireConfiguredProductionOrigin();
   const canonicalOrigin = validatePasskeyOrigin(getCanonicalOrigin());
-  const rpID = new URL(canonicalOrigin).hostname;
-  const allowedOrigins = getPasskeyAllowedOrigins().map((origin) =>
-    validateOriginForRpId(origin, rpID),
-  );
+  const publicOrigin = validatePasskeyOrigin(getPublicOrigin());
+  const canonicalHostname = new URL(canonicalOrigin).hostname;
+  const publicHostname = new URL(publicOrigin).hostname;
+  const sharesCanonicalRp =
+    publicHostname === canonicalHostname ||
+    (!LOCAL_PASSKEY_HOSTS.has(canonicalHostname) &&
+      publicHostname.endsWith(`.${canonicalHostname}`));
+  // OAuth proxy callbacks may return to an unrelated preview deployment.
+  // Its passkeys remain bound to that deployment, never the canonical RP.
+  const rpID = sharesCanonicalRp ? canonicalHostname : publicHostname;
+  const allowedOrigins = sharesCanonicalRp
+    ? getPasskeyAllowedOrigins().map(validatePasskeyOrigin)
+    : [publicOrigin];
 
   return passkey({
     rpID,

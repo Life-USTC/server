@@ -26,6 +26,7 @@ export type WorkspaceCommonCopy = WorkspaceRecord & {
   previous: string;
   semesters: string;
   sections: string;
+  unknown: string;
   userNotFound: string;
 };
 
@@ -131,6 +132,9 @@ export type WorkspaceCopy = WorkspaceRecord & {
   calendarAgendaEmpty: string;
   calendarAgendaLabel: string;
   calendarMoreActions: string;
+  calendarViewDay: string;
+  calendarDay: { prev: string; next: string; label: string };
+  calendarDayAgendaLabel: string;
   calendarViewMonth: string;
   calendarViewSemester: string;
   calendarViewWeek: string;
@@ -167,6 +171,7 @@ export type WorkspaceCopy = WorkspaceRecord & {
     matchByCode: string;
     noAnySelection: string;
     noCurrentTerm: string;
+    noCurrentSemester: string;
     title: string;
     viewPastHomeworks: string;
     viewPastSchedule: string;
@@ -243,6 +248,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     cancel: string;
     checkFormat: string;
     confirmTitle: string;
+    confirmTitleOne: string;
     descriptionPrefix: string;
     undergraduateSystem: string;
     descriptionConjunction: string;
@@ -262,6 +268,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     semesterLabel: string;
     semesterPlaceholder: string;
     subscribeSelected: string;
+    subscribeSelectedOne: string;
     successDescription: string;
     title: string;
     unmatchedCodes: string;
@@ -276,6 +283,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;
+    resultsLabelOne: string;
     searchButton: string;
     searching: string;
     selectSection: string;
@@ -467,6 +475,7 @@ export type WorkspaceSessionItem = WorkspaceRecord & {
   id: number | string;
   location: string;
   sectionJwId: number | null;
+  sectionCode: string | null;
   startTime: number;
   teacherDisplay?: string | null;
 };
@@ -505,6 +514,7 @@ export type WorkspaceLinkPinSubmit = (
 ) => void;
 
 export type WorkspaceOverviewData = WorkspaceRecord & {
+  currentTermName: string | null;
   calendar?: WorkspaceCalendarData | WorkspaceCalendarPreviewData | null;
   dueToday: WorkspaceHomeworkItem[];
   hasAnySelection?: boolean;
@@ -584,6 +594,7 @@ export type CatalogLinksData = WorkspaceRecord & {
 };
 
 export type WorkspaceNavStats = WorkspaceRecord & {
+  user: { id: string };
   calendarItemsCount: number;
   examsCount: number;
   pendingHomeworksCount: number;

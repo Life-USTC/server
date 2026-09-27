@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { AppLocale } from "@/i18n/config";
 import * as Item from "$lib/components/ui/item/index.js";
 import SettingsAccountRow from "./SettingsAccountRow.svelte";
 import SettingsDisconnectAccountDialog from "./SettingsDisconnectAccountDialog.svelte";
@@ -8,18 +9,17 @@ import type {
   SettingsAccountAction,
   SettingsCopy,
   SettingsPendingAccountAction,
-  SettingsUser,
 } from "./settings-component-types";
 
 export let accountAction: SettingsAccountAction;
 export let accounts: SettingsAccount[];
 export let copy: SettingsCopy;
+export let locale: AppLocale;
 export let hasPendingAccountAction: boolean;
 export let isMounted: boolean;
 export let pendingAccountAction: SettingsPendingAccountAction;
 export let unlinkAccount: SettingsAccount | null;
 export let unlinkAccountId: string | null;
-export let user: SettingsUser;
 </script>
 
 <section
@@ -36,13 +36,12 @@ export let user: SettingsUser;
         {isMounted}
         {pendingAccountAction}
         bind:unlinkAccountId
-        {user}
       />
     {/each}
   </Item.Group>
 </section>
 
-<SettingsPasskeysCard {copy} />
+<SettingsPasskeysCard {copy} {locale} />
 
 <SettingsDisconnectAccountDialog
   {accountAction}

@@ -18,6 +18,7 @@ has `kind`, `id`, and a `name` (feature) or `title`; its schema is in `docs/sche
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
+bun run specs:check --complete
 rg '^model |^enum ' prisma/schema.prisma
 ```
 
@@ -40,28 +41,56 @@ presentation. Keep background and tradeoffs in optional `rationale`. Remove the
 replaced normative text from `access`, `notes` and `presentation`; use
 `requirement_refs` to reference the canonical requirement instead.
 
-Typed requirements must declare `applies_to` capabilities and acceptance scenarios
-with tests. Transport-specific expectations bind to actual REST method/path,
-GraphQL `Parent.field` or mutation name, or MCP tool name. Preserve intentional
-transport differences such as defaults and duplicate-input handling.
+Each atomic requirement has one canonical acceptance test. `acceptance` is an
+object with `given`, `when`, `then`, and a single `test: {file, name}`. The literal
+test name must equal the requirement ID. A test cannot be the acceptance test
+for two requirements. The checker also rejects orphan canonical tests, duplicate
+names across files, disabled tests, and parameterized name templates. Split
+independent behaviors into requirements before assigning tests; a named test may
+exercise multiple inputs for one rule. Additional regression tests remain useful
+and do not need their own specification IDs.
+Register canonical tests unconditionally at module level or in an ordinary suite.
+Loops and parameterized suites belong inside the test body, so one requirement
+still produces exactly one runtime test.
 
-Acceptance scenarios use `id`, `given`, `when`, and a `then` list. Every typed
-scenario requires `tests` entries with a repository-relative `file` and exact
-literal `name` passed to an enabled `it` or `test` declaration. Read the expectation
-in those tests and compare it with an observation from the real implementation.
-Use a stable, individually named test for each binding. A parameterized name
-template from `it.each`/`test.for` is not a runtime test identity; put the input
-matrix inside a named acceptance test or give cases explicit unique test names.
-Do not compare two values both generated from the specification. Service tests
-with mocks do not establish HTTP authentication, database isolation or browser
-behavior; bind tests at the layer that exercises the requirement.
+Policy topics may use `requirement_refs` to index the actual owners of cross-feature contracts.
+A topic reference does not create another requirement or count as execution evidence; avoid
+duplicating an umbrella requirement when every obligation already has a specific owner.
 
-`specs:check` validates structure, consistency and test declarations. It does not
-execute tests. `specs:coverage` reports per-requirement gaps. CI separately joins
-native test results from the same workflow run to the declared test references,
-and requires every typed requirement's linked tests to run successfully. A prose
-requirement without tests remains a visible gap. Passing linked tests is evidence
-for their assertions, not proof of complete business or visual correctness.
+Feature test files stay in the appropriate runner's directory, grouped by domain.
+A browser test, a database test, and a unit test have different execution needs;
+the atomic requirement ID is the correspondence across these layers. Choose the
+lowest layer that actually observes the entire requirement. A mocked permission
+helper does not prove HTTP authentication, database isolation, or rendered UI.
+Source assertions establish architecture constraints, not user-visible behavior.
+
+Typed requirements additionally declare `applies_to` capabilities and bind
+transport expectations to an actual REST method/path, GraphQL field/mutation, or
+MCP tool. Read the expected values from YAML and observe the real implementation;
+never compare two values both generated from the specification. Preserve intended
+transport differences such as pagination defaults and duplicate-input handling.
+
+`specs:check` validates shapes, consistency, and both directions of existing test
+bindings. It explicitly reports requirements that still lack tests;
+`specs:check --complete` rejects any such gap. Neither command executes tests.
+`specs:coverage --enforce` requires every requirement's canonical test to pass in
+native execution evidence from the same CI run. Prose and typed requirements have
+the same completeness gate. A passing linked test only proves its actual
+assertions, so reviewers must check that the assertion covers the entire rule.
+
+CI evidence must include every required unit, integration, REST, role-isolation
+and browser partition from the same commit, run and attempt. The gate also checks
+the independent CI job results, including build and setup failures that produced
+no test report. After a failure, use **Re-run all jobs**; a partial rerun cannot
+borrow successful reports from an older attempt.
+
+Review the requirement itself before implementing its test: identify the user
+need, scope and actors; resolve conflicting rules; separate independent outcomes;
+and specify observable boundaries. Existing behavior is evidence, not the product
+authority. Record explanatory tradeoffs in `rationale`. Advisory writing guidance
+uses `enforcement: advisory`, `requirements: []`, and `guidance`; it is not a
+mandatory behavior disguised as a requirement. Do not move real obligations into
+rationale merely because they are difficult to test.
 
 ## Change a requirement
 

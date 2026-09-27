@@ -5,6 +5,7 @@ import {
 } from "@/lib/adapters/cloudflare-runtime";
 
 const {
+  calendarRebuildMock,
   auditLogCreateMock,
   descriptionCreateMock,
   descriptionEditCreateMock,
@@ -15,6 +16,7 @@ const {
   prismaMock,
   sectionFindUniqueMock,
 } = vi.hoisted(() => ({
+  calendarRebuildMock: vi.fn(),
   auditLogCreateMock: vi.fn(),
   descriptionCreateMock: vi.fn(),
   descriptionEditCreateMock: vi.fn(),
@@ -35,11 +37,16 @@ const {
     descriptionEdit: {
       create: vi.fn(),
     },
+    homework: { findUnique: vi.fn() },
     section: {
       findUnique: vi.fn(),
     },
   },
   sectionFindUniqueMock: vi.fn(),
+}));
+
+vi.mock("@/features/calendar/server/calendar-export-invalidation", () => ({
+  scheduleInvalidateCalendarExportsForSection: calendarRebuildMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -56,6 +63,12 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 
 describe("upsertDescriptionContent", () => {
   beforeEach(() => {
+    calendarRebuildMock.mockReset();
+    prismaMock.homework.findUnique.mockReset();
+    prismaMock.homework.findUnique.mockResolvedValue({
+      id: "homework-1",
+      sectionId: 1,
+    });
     auditLogCreateMock.mockReset();
     descriptionCreateMock.mockReset();
     descriptionEditCreateMock.mockReset();
@@ -144,7 +157,7 @@ describe("upsertDescriptionContent", () => {
     });
   });
 
-  it("幂等内容不写入编辑历史或审计记录", async () => {
+  it("description.unchanged-write-history", async () => {
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
       content: "same content",
@@ -216,7 +229,7 @@ describe("upsertDescriptionContent", () => {
     expect(descriptionEditCreateMock).toHaveBeenCalledOnce();
   });
 
-  it("does not purge when the description transaction rolls back", async () => {
+  it("description.failed-write-invalidation", async () => {
     prismaMock.$transaction.mockRejectedValue(new Error("rollback"));
     const purge = vi.fn();
     const { upsertDescriptionContent } = await import(
@@ -224,15 +237,20 @@ describe("upsertDescriptionContent", () => {
     );
     await runWithCloudflareRuntimeEnv({}, async () => {
       setCloudflareCatalogInvalidator(purge);
-      await expect(
-        upsertDescriptionContent({
-          content: "after",
-          targetId: 1,
-          targetType: "section",
-          userId: "user-1",
-        }),
-      ).rejects.toThrow("rollback");
+      for (const target of [
+        { targetId: 1, targetType: "section" as const },
+        { targetId: "homework-1", targetType: "homework" as const },
+      ]) {
+        await expect(
+          upsertDescriptionContent({
+            content: "after",
+            ...target,
+            userId: "user-1",
+          }),
+        ).rejects.toThrow("rollback");
+      }
     });
     expect(purge).not.toHaveBeenCalled();
+    expect(calendarRebuildMock).not.toHaveBeenCalled();
   });
 });

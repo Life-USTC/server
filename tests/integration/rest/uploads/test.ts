@@ -54,7 +54,7 @@ test("/api/workspace/uploads GET 返回上传列表与配额元数据", async ({
   expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
 });
 
-test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({
+test("/api/workspace/uploads GET 使用 pageSize 返回稳定的第二页", async ({
   request,
 }) => {
   await signInAsDebugUserApi(request, "/");
@@ -90,7 +90,7 @@ test("/api/workspace/uploads GET 支持稳定的第二页与废弃 limit 别名"
       "/api/workspace/uploads?page=1&pageSize=1",
     );
     const secondResponse = await request.get(
-      "/api/workspace/uploads?page=2&limit=1",
+      "/api/workspace/uploads?page=2&pageSize=1",
     );
     expect(firstResponse.status()).toBe(200);
     expect(secondResponse.status()).toBe(200);

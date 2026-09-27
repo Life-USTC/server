@@ -241,132 +241,6 @@
     }
   ],
   "paths": {
-    "/.well-known/oauth-authorization-server": {
-      "get": {
-        "operationId": "listOauthAuthorizationServer",
-        "summary": "Compatibility alias for legacy clients that probe the root well-known path",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-oauth-authorization-server",
-        "summary": "Compatibility alias for legacy clients that probe the root well-known path",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/.well-known/oauth-protected-resource": {
-      "get": {
-        "operationId": "listOauthProtectedResource",
-        "summary": "Compatibility alias for clients that probe the resource-origin root path",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-oauth-protected-resource",
-        "summary": "Compatibility alias for clients that probe the resource-origin root path",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/.well-known/openid-configuration": {
-      "get": {
-        "operationId": "listOpenidConfiguration",
-        "summary": "Compatibility alias for clients that look up root OpenID discovery directly",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-openid-configuration",
-        "summary": "Compatibility alias for clients that look up root OpenID discovery directly",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/health": {
       "get": {
         "operationId": "listHealth",
@@ -425,6 +299,7 @@
           "Api"
         ],
         "security": [
+          {},
           {
             "mcpBearerAuth": []
           }
@@ -503,6 +378,7 @@
           "Api"
         ],
         "security": [
+          {},
           {
             "mcpBearerAuth": []
           }
@@ -908,18 +784,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1021,18 +885,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1120,18 +972,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1365,18 +1205,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1421,9 +1249,6 @@
           "workspace.calendar"
         ],
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           },
@@ -1614,18 +1439,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1828,18 +1641,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1993,18 +1794,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2059,18 +1848,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2154,18 +1931,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2281,14 +2046,14 @@
             "in": "query",
             "name": "active",
             "schema": {
-              "description": "Filter by signup-open (active) events.",
+              "description": "Filter by source-active list membership, independently of the current signup window.",
               "type": "string",
               "enum": [
                 "true",
                 "false"
               ]
             },
-            "description": "Filter by signup-open (active) events."
+            "description": "Filter by source-active list membership, independently of the current signup window."
           },
           {
             "in": "query",
@@ -2398,18 +2163,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2473,18 +2226,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2563,7 +2304,8 @@
             "name": "sectionJwId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             }
           },
           {
@@ -2571,7 +2313,8 @@
             "name": "courseJwId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             }
           },
           {
@@ -2616,18 +2359,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2668,6 +2399,9 @@
         "summary": "Create one comment",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -2889,6 +2623,9 @@
         "tags": [
           "community.descriptions"
         ],
+        "x-oauth-scopes": [
+          "community.description:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3103,6 +2840,9 @@
         "tags": [
           "community.section-homework"
         ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3302,6 +3042,9 @@
         "tags": [
           "workspace.bus-preferences"
         ],
+        "x-oauth-scopes": [
+          "workspace.bus-preferences:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3338,6 +3081,9 @@
         "summary": "Update bus preferences",
         "tags": [
           "workspace.bus-preferences"
+        ],
+        "x-oauth-scopes": [
+          "workspace.bus-preferences:write"
         ],
         "security": [
           {
@@ -3435,6 +3181,9 @@
         "summary": "List exams across the current user's subscribed sections and semesters",
         "tags": [
           "workspace.exam"
+        ],
+        "x-oauth-scopes": [
+          "workspace.exam:read"
         ],
         "security": [
           {
@@ -3566,6 +3315,9 @@
         "tags": [
           "workspace.homework"
         ],
+        "x-oauth-scopes": [
+          "workspace.homework:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3638,6 +3390,9 @@
         "tags": [
           "workspace.link-pin"
         ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3674,6 +3429,9 @@
         "summary": "Set one campus link pin",
         "tags": [
           "workspace.link-pin"
+        ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:write"
         ],
         "security": [
           {
@@ -3793,6 +3551,9 @@
         "tags": [
           "workspace.overview"
         ],
+        "x-oauth-scopes": [
+          "workspace.overview:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3883,6 +3644,9 @@
         "summary": "List schedules across the current user's subscribed sections",
         "tags": [
           "workspace.schedule"
+        ],
+        "x-oauth-scopes": [
+          "workspace.schedule:read"
         ],
         "security": [
           {
@@ -3983,6 +3747,9 @@
         "summary": "Append section subscriptions",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -4088,6 +3855,9 @@
         "summary": "Remove section subscriptions",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -4196,6 +3966,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4296,6 +4069,9 @@
         "summary": "Create a todo",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -4402,6 +4178,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4429,18 +4208,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -4481,6 +4248,9 @@
         "summary": "Create a signed upload URL",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -4599,6 +4369,9 @@
         "tags": [
           "workspace.young-event-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4681,6 +4454,9 @@
         "tags": [
           "workspace.young-notifications"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-notification:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4762,6 +4538,9 @@
         "summary": "List personal young-organizer-subscriptions",
         "tags": [
           "workspace.young-organizer-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
         ],
         "security": [
           {
@@ -4864,48 +4643,6 @@
         }
       }
     },
-    "/.well-known/oauth-authorization-server/api/mcp": {
-      "get": {
-        "operationId": "get-.well-known-oauth-authorization-server-api-mcp",
-        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-oauth-authorization-server-api-mcp",
-        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/.well-known/oauth-protected-resource/api/graphql": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource-api-graphql",
@@ -4980,48 +4717,6 @@
         "responses": {
           "200": {
             "description": "Response 200"
-          }
-        }
-      }
-    },
-    "/.well-known/openid-configuration/api/mcp": {
-      "get": {
-        "operationId": "get-.well-known-openid-configuration-api-mcp",
-        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-openid-configuration-api-mcp",
-        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
           }
         }
       }
@@ -6526,6 +6221,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6652,6 +6350,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6759,6 +6460,9 @@
         "summary": "Delete multiple comments owned by the current user",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -6917,6 +6621,9 @@
         "tags": [
           "community.section-homework"
         ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7042,6 +6749,9 @@
         "summary": "Soft delete a shared section homework as its unsuspended creator",
         "tags": [
           "community.section-homework"
+        ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
         ],
         "security": [
           {
@@ -7367,90 +7077,6 @@
         }
       }
     },
-    "/api/mcp/.well-known/oauth-authorization-server": {
-      "get": {
-        "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
-        "summary": "MCP resource-relative authorization server metadata compatibility alias",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-api-mcp-.well-known-oauth-authorization-server",
-        "summary": "MCP resource-relative authorization server metadata compatibility alias",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/.well-known/openid-configuration": {
-      "get": {
-        "operationId": "get-api-mcp-.well-known-openid-configuration",
-        "summary": "MCP resource-relative OpenID discovery compatibility alias",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-api-mcp-.well-known-openid-configuration",
-        "summary": "MCP resource-relative OpenID discovery compatibility alias",
-        "tags": [
-          "Api"
-        ],
-        "responses": {
-          "307": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
-                "schema": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/publications/images/{hash}": {
       "get": {
         "operationId": "get-api-publications-images-hash",
@@ -7543,6 +7169,9 @@
         "tags": [
           "workspace.calendar"
         ],
+        "x-oauth-scopes": [
+          "workspace.calendar:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7631,6 +7260,9 @@
         "summary": "Update homework completions in a batch",
         "tags": [
           "workspace.homework"
+        ],
+        "x-oauth-scopes": [
+          "workspace.homework:write"
         ],
         "security": [
           {
@@ -7728,6 +7360,9 @@
         "summary": "Set multiple campus link pins",
         "tags": [
           "workspace.link-pin"
+        ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:write"
         ],
         "security": [
           {
@@ -7835,6 +7470,9 @@
         "summary": "Update an existing subscription's personal kind",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -7954,6 +7592,9 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8062,7 +7703,9 @@
           "workspace.subscription"
         ],
         "x-oauth-scopes": [
-          "workspace.subscription:read",
+          "workspace.subscription:read"
+        ],
+        "x-oauth-optional-scopes": [
           "workspace.calendar-feed:read"
         ],
         "security": [
@@ -8103,6 +7746,9 @@
         "summary": "Import section subscriptions by section codes",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -8211,6 +7857,9 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8279,6 +7928,9 @@
         "summary": "Update one todo",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -8406,6 +8058,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8514,6 +8169,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8608,6 +8266,9 @@
         "summary": "Delete multiple todos by id",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -8705,6 +8366,9 @@
         "summary": "Rename one upload",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -8832,6 +8496,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8950,6 +8617,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9056,6 +8726,9 @@
         "summary": "Write upload object",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -9186,6 +8859,9 @@
         "tags": [
           "workspace.young-event-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9235,6 +8911,9 @@
         "summary": "Set personal events subscription state. This does not register attendance",
         "tags": [
           "workspace.young-event-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:write"
         ],
         "security": [
           {
@@ -9356,6 +9035,9 @@
         "tags": [
           "workspace.young-organizer-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9405,6 +9087,9 @@
         "summary": "Set personal organizers subscription state. This does not register attendance",
         "tags": [
           "workspace.young-organizer-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:write"
         ],
         "security": [
           {
@@ -9635,14 +9320,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Array response",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
+                  "$ref": "#/components/schemas/scheduleGroupsResponseSchema"
                 }
               }
             }
@@ -9720,14 +9402,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Array response",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
+                  "$ref": "#/components/schemas/sectionSchedulesResponseSchema"
                 }
               }
             }
@@ -9758,7 +9437,7 @@
     "/api/catalog/young-events/{youngId}/image": {
       "get": {
         "operationId": "get-api-catalog-young-events-youngId-image",
-        "summary": "Serve the cached poster image for a second-classroom (Young) signup event",
+        "summary": "Redirect to the current immutable poster representation",
         "tags": [
           "catalog.young-events"
         ],
@@ -9776,19 +9455,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Binary response",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "304": {
-            "description": "Response 304"
+          "302": {
+            "description": "Response 302"
           },
           "400": {
             "description": "Error response",
@@ -9802,35 +9470,6 @@
           },
           "404": {
             "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -9925,6 +9564,9 @@
         "summary": "Add one reaction to a comment",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -10051,6 +9693,9 @@
         "summary": "Remove one reaction from a comment",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -10453,6 +10098,9 @@
         "tags": [
           "workspace.homework"
         ],
+        "x-oauth-scopes": [
+          "workspace.homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -10571,6 +10219,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -10631,6 +10282,9 @@
         "summary": "Mark a personal activity notification read",
         "tags": [
           "workspace.young-notifications"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-notification:write"
         ],
         "security": [
           {
@@ -10857,6 +10511,102 @@
   "components": {
     "schemas": {
       "__schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema0"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema0"
+            }
+          }
+        ]
+      },
+      "__schema1": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema1"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema1"
+            }
+          }
+        ]
+      },
+      "__schema2": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema2"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema2"
+            }
+          }
+        ]
+      },
+      "__schema3": {
         "type": "object",
         "properties": {
           "id": {
@@ -10936,7 +10686,7 @@
           "replies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema0"
+              "$ref": "#/components/schemas/__schema3"
             }
           },
           "repliesNextCursor": {
@@ -11048,6 +10798,38 @@
           "canModerate"
         ]
       },
+      "__schema4": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema4"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema4"
+            }
+          }
+        ]
+      },
       "semesterSchema": {
         "type": "object",
         "properties": {
@@ -11134,7 +10916,103 @@
         ],
         "additionalProperties": false
       },
-      "__schema1": {
+      "__schema5": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema5"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema5"
+            }
+          }
+        ]
+      },
+      "__schema6": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema6"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema6"
+            }
+          }
+        ]
+      },
+      "__schema7": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema7"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema7"
+            }
+          }
+        ]
+      },
+      "__schema8": {
         "type": "object",
         "properties": {
           "id": {
@@ -11215,7 +11093,7 @@
           "replies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema8"
             }
           },
           "repliesNextCursor": {
@@ -11329,6 +11207,38 @@
           "canModerate"
         ],
         "additionalProperties": false
+      },
+      "__schema9": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema9"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema9"
+            }
+          }
+        ]
       },
       "openApiErrorSchema": {
         "type": "object",
@@ -14880,7 +14790,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -14915,14 +14829,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -15850,6 +15774,7 @@
             "type": "object",
             "properties": {
               "temperature": {
+                "nullable": true,
                 "type": "number"
               },
               "feelsLike": {
@@ -16004,8 +15929,20 @@
           "extensions": {
             "type": "object",
             "properties": {
-              "amap": {},
-              "openMeteo": {}
+              "amap": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/__schema6"
+                  }
+                ]
+              },
+              "openMeteo": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/__schema7"
+                  }
+                ]
+              }
             },
             "additionalProperties": false
           }
@@ -16407,32 +16344,42 @@
             ],
             "additionalProperties": false
           },
-          "unknownDateCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "source": {
+          "meta": {
             "type": "object",
             "properties": {
-              "status": {
-                "type": "string",
-                "enum": [
-                  "fresh",
-                  "stale",
-                  "unknown"
-                ]
+              "unknownDateCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               },
-              "lastSyncedAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              "source": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "fresh",
+                      "stale",
+                      "unknown"
+                    ]
+                  },
+                  "lastSyncedAt": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "status",
+                  "lastSyncedAt"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
-              "status",
-              "lastSyncedAt"
+              "unknownDateCount",
+              "source"
             ],
             "additionalProperties": false
           }
@@ -16440,8 +16387,7 @@
         "required": [
           "data",
           "pagination",
-          "unknownDateCount",
-          "source"
+          "meta"
         ],
         "additionalProperties": false
       },
@@ -16499,7 +16445,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema8"
             }
           },
           "pagination": {
@@ -16928,6 +16874,7 @@
                 "type": "string"
               },
               "updatedAt": {
+                "nullable": true,
                 "type": "string",
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
@@ -17389,50 +17336,59 @@
             ],
             "additionalProperties": false
           },
-          "viewer": {
+          "meta": {
             "type": "object",
             "properties": {
-              "userId": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "image": {
-                "nullable": true,
-                "type": "string"
-              },
-              "isAdmin": {
-                "type": "boolean"
-              },
-              "isAuthenticated": {
-                "type": "boolean"
-              },
-              "isSuspended": {
-                "type": "boolean"
-              },
-              "suspensionReason": {
-                "nullable": true,
-                "type": "string"
-              },
-              "suspensionExpiresAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              "viewer": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "image": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "isAdmin": {
+                    "type": "boolean"
+                  },
+                  "isAuthenticated": {
+                    "type": "boolean"
+                  },
+                  "isSuspended": {
+                    "type": "boolean"
+                  },
+                  "suspensionReason": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "suspensionExpiresAt": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "name",
+                  "image",
+                  "isAdmin",
+                  "isAuthenticated",
+                  "isSuspended",
+                  "suspensionReason",
+                  "suspensionExpiresAt"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
-              "userId",
-              "name",
-              "image",
-              "isAdmin",
-              "isAuthenticated",
-              "isSuspended",
-              "suspensionReason",
-              "suspensionExpiresAt"
+              "viewer"
             ],
             "additionalProperties": false
           }
@@ -17440,7 +17396,7 @@
         "required": [
           "data",
           "pagination",
-          "viewer"
+          "meta"
         ],
         "additionalProperties": false
       },
@@ -17795,7 +17751,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -17830,14 +17790,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema5"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -18999,7 +18969,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -19034,14 +19008,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -19465,7 +19449,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -19500,14 +19488,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -20737,7 +20735,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -20772,14 +20774,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema5"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -21380,7 +21392,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -21415,14 +21431,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema5"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -22093,7 +22119,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -22128,14 +22158,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema5"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -23110,7 +23150,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -23145,14 +23189,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -23556,7 +23610,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -23591,14 +23649,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -24309,7 +24377,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -24344,14 +24416,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -27669,7 +27751,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -27704,14 +27790,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -28055,7 +28151,11 @@
             "type": "string"
           },
           "dateTimePlacePersonText": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "actualPeriods": {
             "nullable": true,
@@ -28090,14 +28190,24 @@
             "type": "string"
           },
           "suggestScheduleWeeks": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
           },
           "suggestScheduleWeekInfo": {
             "nullable": true,
             "type": "string"
           },
           "scheduleJsonParams": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema5"
+            }
           },
           "selectedStdCount": {
             "nullable": true,
@@ -29604,7 +29714,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -29639,14 +29753,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -30462,7 +30586,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -30497,14 +30625,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -31233,7 +31371,9 @@
             "nullable": true,
             "type": "string"
           },
-          "rawJson": {}
+          "rawJson": {
+            "$ref": "#/components/schemas/__schema9"
+          }
         },
         "required": [
           "youngId",
@@ -31304,7 +31444,7 @@
           "thread": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema8"
             }
           },
           "focusId": {
@@ -31556,7 +31696,7 @@
             "type": "boolean"
           },
           "comment": {
-            "$ref": "#/components/schemas/__schema1"
+            "$ref": "#/components/schemas/__schema8"
           }
         },
         "required": [
@@ -31829,7 +31969,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -31864,14 +32008,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema5"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -32584,7 +32738,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -32619,14 +32777,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema5"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -33156,18 +33324,12 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
-                  },
-                  "subscribedSections": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
                   "comments",
                   "uploads",
-                  "homeworksCreated",
-                  "subscribedSections"
+                  "homeworksCreated"
                 ],
                 "additionalProperties": false
               }
@@ -33181,11 +33343,6 @@
               "_count"
             ],
             "additionalProperties": false
-          },
-          "sectionCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
           },
           "weeks": {
             "type": "array",
@@ -33220,7 +33377,6 @@
         },
         "required": [
           "user",
-          "sectionCount",
           "weeks",
           "totalContributions"
         ],
@@ -34210,7 +34366,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -34245,14 +34405,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -34931,7 +35101,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -34966,14 +35140,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -35666,7 +35850,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -35701,14 +35889,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -36440,7 +36638,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -36475,14 +36677,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -37132,7 +37344,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -37167,14 +37383,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -37824,7 +38050,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -37859,14 +38089,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -38518,7 +38758,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -38553,14 +38797,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema5"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -39340,7 +39594,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -39375,14 +39633,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema5"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -40582,6 +40850,752 @@
         ],
         "additionalProperties": false
       },
+      "scheduleGroupsResponseSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "jwId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "no": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "limitCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "stdCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "actualPeriods": {
+              "type": "number"
+            },
+            "isDefault": {
+              "type": "boolean"
+            },
+            "sectionId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "schedules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "periods": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "weekday": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "startTime": {
+                    "type": "string"
+                  },
+                  "endTime": {
+                    "type": "string"
+                  },
+                  "experiment": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "customPlace": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "lessonType": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "weekIndex": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "exerciseClass": {
+                    "nullable": true,
+                    "type": "boolean"
+                  },
+                  "startUnit": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "endUnit": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "roomId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "sectionId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "scheduleGroupId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "id",
+                  "periods",
+                  "date",
+                  "weekday",
+                  "startTime",
+                  "endTime",
+                  "experiment",
+                  "customPlace",
+                  "lessonType",
+                  "weekIndex",
+                  "exerciseClass",
+                  "startUnit",
+                  "endUnit",
+                  "roomId",
+                  "sectionId",
+                  "scheduleGroupId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "id",
+            "jwId",
+            "no",
+            "limitCount",
+            "stdCount",
+            "actualPeriods",
+            "isDefault",
+            "sectionId",
+            "schedules"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "sectionSchedulesResponseSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "periods": {
+              "type": "number"
+            },
+            "date": {
+              "nullable": true,
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "weekday": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "startTime": {
+              "type": "string"
+            },
+            "endTime": {
+              "type": "string"
+            },
+            "experiment": {
+              "nullable": true,
+              "type": "string"
+            },
+            "customPlace": {
+              "nullable": true,
+              "type": "string"
+            },
+            "lessonType": {
+              "nullable": true,
+              "type": "string"
+            },
+            "weekIndex": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "exerciseClass": {
+              "nullable": true,
+              "type": "boolean"
+            },
+            "startUnit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "endUnit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "roomId": {
+              "nullable": true,
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "sectionId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "scheduleGroupId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "room": {
+              "nullable": true,
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "nameCn": {
+                  "type": "string"
+                },
+                "nameEn": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "floor": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "virtual": {
+                  "type": "boolean"
+                },
+                "seatsForSection": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "remark": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "seats": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "buildingId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "roomTypeId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "building": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "campusId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "campus": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "code": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "jwId",
+                        "nameCn",
+                        "nameEn",
+                        "code",
+                        "namePrimary",
+                        "nameSecondary"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "campusId",
+                    "namePrimary",
+                    "nameSecondary",
+                    "campus"
+                  ],
+                  "additionalProperties": false
+                },
+                "roomType": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "nameCn",
+                "nameEn",
+                "code",
+                "floor",
+                "virtual",
+                "seatsForSection",
+                "remark",
+                "seats",
+                "buildingId",
+                "roomTypeId",
+                "namePrimary",
+                "nameSecondary",
+                "building",
+                "roomType"
+              ],
+              "additionalProperties": false
+            },
+            "teachers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "jwId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "personId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "code": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "nameCn": {
+                    "type": "string"
+                  },
+                  "nameEn": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "department": {
+                    "nullable": true,
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "isCollege": {
+                        "nullable": true,
+                        "type": "boolean"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "nameCn",
+                      "nameEn",
+                      "isCollege",
+                      "namePrimary",
+                      "nameSecondary"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "jwId",
+                  "personId",
+                  "code",
+                  "nameCn",
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary",
+                  "department"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "teacherParticipations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "teacher": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "personId": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "code": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "department": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "isCollege": {
+                            "nullable": true,
+                            "type": "boolean"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "isCollege",
+                          "namePrimary",
+                          "nameSecondary"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "jwId",
+                      "personId",
+                      "code",
+                      "nameCn",
+                      "nameEn",
+                      "namePrimary",
+                      "nameSecondary",
+                      "department"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "periods": {
+                    "nullable": true,
+                    "type": "number"
+                  },
+                  "exerciseClass": {
+                    "nullable": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "teacher",
+                  "periods",
+                  "exerciseClass"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "scheduleGroup": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "no": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "limitCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "stdCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "actualPeriods": {
+                  "type": "number"
+                },
+                "isDefault": {
+                  "type": "boolean"
+                },
+                "sectionId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "no",
+                "limitCount",
+                "stdCount",
+                "actualPeriods",
+                "isDefault",
+                "sectionId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "periods",
+            "date",
+            "weekday",
+            "startTime",
+            "endTime",
+            "experiment",
+            "customPlace",
+            "lessonType",
+            "weekIndex",
+            "exerciseClass",
+            "startUnit",
+            "endUnit",
+            "roomId",
+            "sectionId",
+            "scheduleGroupId",
+            "room",
+            "teachers",
+            "teacherParticipations",
+            "scheduleGroup"
+          ],
+          "additionalProperties": false
+        }
+      },
       "commentReactionRequestSchema": {
         "type": "object",
         "properties": {
@@ -40613,7 +41627,7 @@
           "thread": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema8"
             }
           },
           "nextCursor": {
@@ -40891,7 +41905,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies."
+        "description": "OAuth bearer token with the MCP resource audience, active user grant and required tool scopes. Public catalog and discovery calls allow anonymous access; protected tool calls require this credential. Session cookies do not authorize protected MCP tools. A supplied invalid bearer is rejected even for public calls."
       },
       "calendarFeedToken": {
         "type": "apiKey",

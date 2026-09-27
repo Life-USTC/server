@@ -48,52 +48,44 @@ function subscriptions(
   };
 }
 
-describe.each(["UTC", "Asia/Shanghai"])(
-  "考试时刻在 %s 主机时区下保持上海时间",
-  (timezone) => {
-    afterEach(() => vi.unstubAllEnvs());
+afterEach(() => vi.unstubAllEnvs());
 
-    it("从日期字符串和 Date 对象构造 HHMM 结束时刻", () => {
-      vi.stubEnv("TZ", timezone);
-      const dateObject = new Date("2026-05-21T16:00:00.000Z");
-
-      expect(formatDateOnly("2026-05-22", "TBD")).toBe("2026-05-22");
-      expect(formatDateOnly(dateObject, "TBD")).toBe("2026-05-22");
-      expect(examDateTime("2026-05-22", 930)?.toISOString()).toBe(
-        "2026-05-22T01:30:00.000Z",
-      );
-      expect(examDateTime(dateObject, 930)?.toISOString()).toBe(
-        "2026-05-22T01:30:00.000Z",
-      );
-    });
-
-    it("没有时间时使用上海当天的最后一毫秒", () => {
-      vi.stubEnv("TZ", timezone);
-
-      expect(examDateTime("2026-05-22", null)?.toISOString()).toBe(
-        "2026-05-22T15:59:59.999Z",
-      );
-    });
-
-    it("在结束瞬间将考试标为已完成", () => {
-      vi.stubEnv("TZ", timezone);
-
-      const atEnd = flattenExamRows(
-        subscriptions(exam()),
-        "2026-05-22T09:00:00+08:00",
-        options,
-      );
-      const beforeEnd = flattenExamRows(
-        subscriptions(exam()),
-        "2026-05-22T08:59:59+08:00",
-        options,
-      );
-
-      expect(atEnd[0]?.completed).toBe(true);
-      expect(beforeEnd[0]?.completed).toBe(false);
-    });
-  },
-);
+it("exam.completion-time-zone", () => {
+  for (const timezone of ["UTC", "Asia/Shanghai", "America/Los_Angeles"]) {
+    vi.stubEnv("TZ", timezone);
+    const dateObject = new Date("2026-05-21T16:00:00.000Z");
+    expect(formatDateOnly("2026-05-22", "TBD")).toBe("2026-05-22");
+    expect(formatDateOnly(dateObject, "TBD")).toBe("2026-05-22");
+    expect(examDateTime("2026-05-22", 930)?.toISOString()).toBe(
+      "2026-05-22T01:30:00.000Z",
+    );
+    expect(examDateTime(dateObject, 930)?.toISOString()).toBe(
+      "2026-05-22T01:30:00.000Z",
+    );
+    expect(examDateTime("2026-05-22", null)?.toISOString()).toBe(
+      "2026-05-22T15:59:59.999Z",
+    );
+    for (const [item, end] of [
+      [exam(), new Date("2026-05-22T09:00:00+08:00")],
+      [
+        exam({ startTime: null, endTime: null }),
+        new Date("2026-05-22T23:59:59.999+08:00"),
+      ],
+    ] as const) {
+      expect(
+        flattenExamRows(subscriptions(item), end.toISOString(), options)[0]
+          ?.completed,
+      ).toBe(true);
+      expect(
+        flattenExamRows(
+          subscriptions(item),
+          new Date(end.getTime() - 1).toISOString(),
+          options,
+        )[0]?.completed,
+      ).toBe(false);
+    }
+  }
+});
 
 describe("考试日期输入边界", () => {
   it("拒绝无效日期并保持参考时间的上海解析", () => {

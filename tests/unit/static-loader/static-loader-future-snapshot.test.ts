@@ -1,6 +1,7 @@
 /// <reference path="../../../src/static-loader/bun-sqlite.d.ts" />
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseSnapshotGeneratedAt } from "@/static-loader/validation";
 
 const { closeMock, queryAllMock, transactionMock } = vi.hoisted(() => ({
   closeMock: vi.fn(),
@@ -34,7 +35,14 @@ afterEach(() => {
 });
 
 describe("static loader snapshot time gate", () => {
-  it("rejects a far-future snapshot before writes", async () => {
+  it("section.source-future-clock-bound", async () => {
+    const now = new Date("2026-07-18T03:00:00.000Z");
+    expect(parseSnapshotGeneratedAt("2026-07-18T03:15:00.000Z", now)).toEqual(
+      new Date("2026-07-18T03:15:00.000Z"),
+    );
+    expect(() =>
+      parseSnapshotGeneratedAt("2026-07-18T03:15:00.001Z", now),
+    ).toThrow("15 minutes");
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-18T03:00:00.000Z"));
     const { runImport } = await import("@/static-loader/import");

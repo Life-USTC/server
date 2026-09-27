@@ -64,6 +64,24 @@
       },
       "minItems": 1,
       "uniqueItems": true
+    },
+    "clients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "defs.schema.json#/$defs/localId"
+          },
+          "description": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "required": ["id", "description"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
     }
   },
   "required": [

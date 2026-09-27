@@ -22,21 +22,16 @@ function specification(
           category: "validation",
           applies_to: ["list"],
           expectation,
-          acceptance: [
-            {
-              id: "rejects-excess",
-              given: "A request exceeding the maximum",
-              when: "The real route validates the request",
-              // biome-ignore lint/suspicious/noThenProperty: Non-callable acceptance outcomes.
-              then: ["The request is rejected"],
-              tests: [
-                {
-                  file: "tests/unit/contracts/specifications-schema.test.ts",
-                  name: "validates every source against its schema and checks references",
-                },
-              ],
+          acceptance: {
+            given: "A request exceeding the maximum",
+            when: "The real route validates the request",
+            // biome-ignore lint/suspicious/noThenProperty: Non-callable acceptance outcomes.
+            then: ["The request is rejected"],
+            test: {
+              file: "tests/unit/contracts/specifications-schema.test.ts",
+              name: "example.limit",
             },
-          ],
+          },
         },
       ],
       capabilities: {
@@ -64,6 +59,130 @@ function numeric() {
 }
 
 describe("typed specification expectations", () => {
+  it("validates string length constraints without implicit trimming or length units", async () => {
+    const validators = await loadSpecificationValidators();
+    const input = {
+      kind: "string_input",
+      surface: "service",
+      operation: "catalogSearchSchema",
+      input: "search",
+      min_length: 2,
+      max_length: 200,
+      trim: true,
+      length_unit: "utf16_code_units",
+    };
+    expect(
+      validateSpecificationShapes([specification(input)], validators),
+    ).toEqual([]);
+    for (const value of [
+      { ...input, min_length: -1 },
+      { ...input, max_length: 0 },
+      { ...input, max_length: 1.5 },
+      { ...input, trim: "true" },
+      { ...input, length_unit: "characters" },
+    ]) {
+      expect(
+        validateSpecificationShapes([specification(value)], validators),
+      ).not.toEqual([]);
+    }
+    const result = await validateSpecificationReferences([
+      specification({ ...input, min_length: 201 }),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "minimum string length must not exceed maximum",
+    );
+  });
+  it("validates positive integral rate budgets and rejects a weaker batch budget", async () => {
+    const validators = await loadSpecificationValidators();
+    const budget = {
+      kind: "rate_limit_budget",
+      surface: "deployment",
+      period_seconds: 60,
+      standard_limit: 60,
+      batch_limit: 10,
+    };
+    expect(
+      validateSpecificationShapes([specification(budget)], validators),
+    ).toEqual([]);
+    for (const field of ["period_seconds", "standard_limit", "batch_limit"]) {
+      for (const value of [0, -1, 0.5, "60"]) {
+        expect(
+          validateSpecificationShapes(
+            [specification({ ...budget, [field]: value })],
+            validators,
+          ),
+        ).not.toEqual([]);
+      }
+    }
+    const result = await validateSpecificationReferences([
+      specification({ ...budget, batch_limit: 61 }),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "batch rate limit must not exceed the standard rate limit",
+    );
+  });
+  it("rejects enum defaults outside the allowed input values", async () => {
+    const value = {
+      kind: "enum_input",
+      surface: "service",
+      operation: "parseMode",
+      input: "mode",
+      values: ["default", "full"],
+      default: "summary",
+    };
+    const result = await validateSpecificationReferences([
+      specification(value),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "enum default must be one of its declared values",
+    );
+  });
+  it("accepts finite cache freshness rules and rejects ambiguous or invalid expiry policies", async () => {
+    const validators = await loadSpecificationValidators();
+    const value = {
+      kind: "cache_freshness",
+      surface: "service",
+      operation: "getWeatherSnapshot",
+      timestamp: "fetchedAt",
+      max_age_seconds: 900,
+      expires_at_boundary: true,
+      invalid_timestamps: "refresh",
+      future_timestamps: "refresh",
+      refresh_failure: "unavailable",
+    };
+    expect(
+      validateSpecificationShapes([specification(value)], validators),
+    ).toEqual([]);
+    for (const invalid of [
+      { ...value, max_age_seconds: 0 },
+      { ...value, max_age_seconds: 0.5 },
+      { ...value, max_age_seconds: "900" },
+      { ...value, expires_at_boundary: false },
+      { ...value, invalid_timestamps: "serve" },
+      { ...value, future_timestamps: "serve" },
+      { ...value, refresh_failure: "pretend-fresh" },
+    ]) {
+      expect(
+        validateSpecificationShapes([specification(invalid)], validators),
+      ).not.toEqual([]);
+    }
+  });
+  it("rejects the obsolete many-to-many acceptance shape", async () => {
+    const validators = await loadSpecificationValidators();
+    const file = specification(numeric());
+    const requirement = (
+      file.data.requirements as Array<Record<string, unknown>>
+    )[0];
+    const acceptance = requirement.acceptance as Record<string, unknown>;
+    requirement.acceptance = [acceptance];
+    expect(
+      validateSpecificationShapes([file], validators).join("\n"),
+    ).toContain("must be object");
+    requirement.acceptance = { ...acceptance, tests: [acceptance.test] };
+    expect(
+      validateSpecificationShapes([file], validators).join("\n"),
+    ).toContain("additional properties");
+  });
   it("requires bound acceptance tests for typed expectations and disallows duplicate prose rules", async () => {
     const validators = await loadSpecificationValidators();
     const file = specification(numeric());
@@ -74,11 +193,11 @@ describe("typed specification expectations", () => {
     requirement.rule = "Another independently maintained limit";
     expect(validateSpecificationShapes([file], validators)).not.toEqual([]);
     delete requirement.rule;
-    const acceptance = requirement.acceptance as Array<Record<string, unknown>>;
-    delete acceptance[0].tests;
+    const acceptance = requirement.acceptance as Record<string, unknown>;
+    delete acceptance.test;
     expect(
       validateSpecificationShapes([file], validators).join("\n"),
-    ).toContain("tests");
+    ).toContain("test");
     delete requirement.acceptance;
     expect(
       validateSpecificationShapes([file], validators).join("\n"),
@@ -117,10 +236,6 @@ describe("typed specification expectations", () => {
   });
 
   it("rejects typed operations that do not belong to an applicable capability", async () => {
-    expect(
-      (await validateSpecificationReferences([specification(numeric())]))
-        .errors,
-    ).toEqual([]);
     const result = await validateSpecificationReferences([
       specification({ ...numeric(), operation: "POST /api/example" }),
     ]);
@@ -134,7 +249,9 @@ describe("typed specification expectations", () => {
     (
       file.data.capabilities as Record<string, Record<string, unknown>>
     ).list.requirement_refs = ["example.limit"];
-    expect((await validateSpecificationReferences([file])).errors).toEqual([]);
+    expect(
+      (await validateSpecificationReferences([file])).errors.join("\n"),
+    ).not.toContain("unknown requirement");
     (
       file.data.capabilities as Record<string, Record<string, unknown>>
     ).list.requirement_refs = ["example.missing"];

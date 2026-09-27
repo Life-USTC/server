@@ -4,6 +4,7 @@ import {
   loadCommentThread,
   loadFocusedCommentThread,
 } from "@/features/comments/server/comment-read-model";
+import { encodeCommentReplyCursor } from "@/features/comments/server/comment-reply-pagination";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import {
@@ -125,7 +126,7 @@ describe("comment root pagination read model", () => {
     ]);
   });
 
-  it("returns one exact total with a paged root scan and visible-child roots", async () => {
+  it("comment.thread-pagination", async () => {
     const result = await loadCommentThread({
       pagination: { pageSize: 1, skip: 0 },
       target: {
@@ -156,7 +157,7 @@ describe("comment root pagination read model", () => {
     expect(result.comments[0]?.replies).toHaveLength(0);
   });
 
-  it("preserves anonymous, owner, and admin visibility boundaries", async () => {
+  it("comment.visibility-modes", async () => {
     const baseTarget = {
       empty: false,
       homeworkId: null,
@@ -246,7 +247,7 @@ describe("comment root pagination read model", () => {
     );
   });
 
-  it("keeps visible branches when an ancestor is hidden and emits one root entry", async () => {
+  it("comment.thread-ancestry-privacy", async () => {
     const visibilityMarker = `${marker}-hidden-ancestor`;
     const hiddenRoot = await testPrisma.comment.create({
       data: {
@@ -344,6 +345,17 @@ describe("comment root pagination read model", () => {
         body: "",
         id: hiddenRoot.id,
         isAncestryPlaceholder: true,
+        renderedBody: "",
+        author: null,
+        authorHidden: true,
+        isAuthor: false,
+        attachments: [],
+        reactions: [],
+        canEdit: false,
+        canDelete: false,
+        canReply: false,
+        canReact: false,
+        canModerate: false,
         status: "active",
         visibility: "public",
       });
@@ -357,6 +369,23 @@ describe("comment root pagination read model", () => {
       expect(focused.thread).toHaveLength(1);
       expect(findCommentNode(focused.thread, visibleRoot.id)).toBeDefined();
       expect(findCommentNode(focused.thread, visibleChild.id)).toBeDefined();
+      expect(findCommentNode(focused.thread, hiddenParent.id)).toMatchObject({
+        body: "",
+        renderedBody: "",
+        author: null,
+        authorHidden: true,
+        attachments: [],
+        reactions: [],
+        isAncestryPlaceholder: true,
+        canEdit: false,
+        canDelete: false,
+        canReply: false,
+        canReact: false,
+        canModerate: false,
+        status: "active",
+        visibility: "public",
+      });
+      expectNestedParentIds(focused.thread);
     } finally {
       await testPrisma.comment.deleteMany({
         where: { body: { startsWith: visibilityMarker } },
@@ -364,7 +393,7 @@ describe("comment root pagination read model", () => {
     }
   });
 
-  it("orders hidden roots by their earliest visible descendant across pages", async () => {
+  it("comment.thread-root-order", async () => {
     const orderingMarker = `${marker}-hidden-root-ordering`;
     const hiddenRoot = await testPrisma.comment.create({
       data: {
@@ -471,7 +500,7 @@ describe("comment root pagination read model", () => {
     }
   });
 
-  it("bounds reply payloads and continues from the preview cursor", async () => {
+  it("comment.thread-preview-bound", async () => {
     const previewMarker = `${marker}-reply-window`;
     const root = await testPrisma.comment.create({
       data: {
@@ -542,32 +571,6 @@ describe("comment root pagination read model", () => {
         `${previewMarker}-reply-11`,
       );
       expect(JSON.stringify(rootPreview).length).toBeLessThan(20_000);
-
-      const continuation = await loadCommentReplies({
-        commentId: root.id,
-        cursor: rootPreview?.repliesNextCursor,
-        pageSize: 20,
-        viewerUserId: null,
-      });
-      expect(continuation.ok).toBe(true);
-      if (!continuation.ok) return;
-      expect(continuation.nextCursor).toBeNull();
-      expect(continuation.thread[0]?.replies).toHaveLength(11);
-      expect(
-        continuation.thread[0]?.replies.map((reply) => reply.body),
-      ).toEqual(
-        Array.from(
-          { length: 11 },
-          (_, index) => `${previewMarker}-reply-${index + 11}`,
-        ),
-      );
-      expect(
-        continuation.thread[0]?.replies.map((reply) => reply.id),
-      ).not.toEqual(
-        expect.arrayContaining(
-          rootPreview?.replies.map((reply) => reply.id) ?? [],
-        ),
-      );
     } finally {
       await testPrisma.comment.deleteMany({
         where: { body: { startsWith: previewMarker } },
@@ -575,7 +578,159 @@ describe("comment root pagination read model", () => {
     }
   });
 
-  it("does not spend the reply preview budget on deleted leaves", async () => {
+  it("comment.thread-continuation-bound", async () => {
+    const previewMarker = `${marker}-reply-continuation`;
+    const root = await testPrisma.comment.create({
+      data: {
+        body: `${previewMarker}-root`,
+        sectionId,
+        status: "active",
+        visibility: "public",
+      },
+      select: { id: true },
+    });
+    await testPrisma.comment.update({
+      where: { id: root.id },
+      data: { rootId: root.id },
+    });
+    await testPrisma.comment.createMany({
+      data: Array.from({ length: 45 }, (_, index) => ({
+        body: `${previewMarker}-reply-${index + 1}`,
+        createdAt: new Date(Date.now() + (index + 1) * 1_000),
+        parentId: root.id,
+        rootId: root.id,
+        sectionId,
+        status: "active" as const,
+        visibility: "public" as const,
+      })),
+    });
+
+    try {
+      const firstPage = await loadCommentThread({
+        pagination: { pageSize: 100, skip: 0 },
+        target: {
+          empty: false,
+          homeworkId: null,
+          sectionId: null,
+          sectionTeacherId: null,
+          targetId: sectionId,
+          teacherId: null,
+          verified: true,
+          whereTarget: { sectionId },
+        },
+        viewer: {
+          image: null,
+          isAdmin: false,
+          isAuthenticated: false,
+          isSuspended: false,
+          name: null,
+          suspensionExpiresAt: null,
+          suspensionReason: null,
+          userId: null,
+        },
+        viewerUserId: null,
+      });
+      const rootPreview = firstPage.comments.find(
+        (comment) => comment.id === root.id,
+      );
+
+      expect(rootPreview?.replies).toHaveLength(10);
+      expect(rootPreview?.replies.map((reply) => reply.body)).toEqual(
+        Array.from(
+          { length: 10 },
+          (_, index) => `${previewMarker}-reply-${index + 1}`,
+        ),
+      );
+      expect(rootPreview?.replies.some((reply) => reply.id === root.id)).toBe(
+        false,
+      );
+      expect(rootPreview?.repliesNextCursor).toEqual(expect.any(String));
+      expect(JSON.stringify(rootPreview)).not.toContain(
+        `${previewMarker}-reply-11`,
+      );
+      expect(JSON.stringify(rootPreview).length).toBeLessThan(20_000);
+
+      const continuation = await loadCommentReplies({
+        commentId: root.id,
+        cursor: rootPreview?.repliesNextCursor,
+        pageSize: 1_000,
+        viewerUserId: null,
+      });
+      expect(continuation.ok).toBe(true);
+      if (!continuation.ok) throw new Error(continuation.error);
+      expect(continuation.thread[0]?.replies).toHaveLength(20);
+      expect(
+        continuation.thread[0]?.replies.map((reply) => reply.body),
+      ).toEqual(
+        Array.from(
+          { length: 20 },
+          (_, index) => `${previewMarker}-reply-${index + 11}`,
+        ),
+      );
+      expect(continuation.nextCursor).toEqual(expect.any(String));
+      const last = await loadCommentReplies({
+        commentId: root.id,
+        cursor: continuation.nextCursor,
+        pageSize: 1_000,
+        viewerUserId: null,
+      });
+      expect(last.ok).toBe(true);
+      if (!last.ok) throw new Error(last.error);
+      expect(last.thread[0]?.replies.map((reply) => reply.body)).toEqual(
+        Array.from(
+          { length: 15 },
+          (_, index) => `${previewMarker}-reply-${index + 31}`,
+        ),
+      );
+      expect(last.nextCursor).toBeNull();
+      const ids = [rootPreview, continuation.thread[0], last.thread[0]].flatMap(
+        (node) => node?.replies.map((reply) => reply.id) ?? [],
+      );
+      expect(ids).toHaveLength(45);
+      expect(new Set(ids).size).toBe(45);
+    } finally {
+      await testPrisma.comment.deleteMany({
+        where: { body: { startsWith: previewMarker } },
+      });
+    }
+  });
+
+  it("comment.reply-cursor-validation", async () => {
+    const cursorMarker = `${marker}-cursor-validation`;
+    const roots = await Promise.all(
+      [1, 2].map((index) =>
+        testPrisma.comment.create({
+          data: {
+            body: `${cursorMarker}-${index}`,
+            sectionId,
+            visibility: "public",
+          },
+        }),
+      ),
+    );
+    try {
+      const foreignCursor = encodeCommentReplyCursor({
+        rootId: roots[1].id,
+        id: roots[1].id,
+        createdAt: roots[1].createdAt.toISOString(),
+      });
+      for (const cursor of ["malformed-cursor", foreignCursor]) {
+        expect(
+          await loadCommentReplies({
+            commentId: roots[0].id,
+            cursor,
+            viewerUserId: null,
+          }),
+        ).toEqual({ ok: false, error: "invalid_cursor" });
+      }
+    } finally {
+      await testPrisma.comment.deleteMany({
+        where: { id: { in: roots.map((root) => root.id) } },
+      });
+    }
+  });
+
+  it("comment.thread-deleted-leaves", async () => {
     const previewMarker = `${marker}-deleted-replies`;
     const root = await testPrisma.comment.create({
       data: {
@@ -706,7 +861,7 @@ describe("comment root pagination read model", () => {
     }
   });
 
-  it("keeps the focused reply's bounded ancestry outside the preview", async () => {
+  it("comment.thread-focused-ancestry", async () => {
     const focusMarker = `${marker}-focused-ancestry`;
     const root = await testPrisma.comment.create({
       data: {

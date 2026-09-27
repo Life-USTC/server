@@ -58,6 +58,7 @@ import {
 } from "./lib/cloudflare/public-ssr-gateway";
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
+import { setPrivateCacheDefaults } from "./lib/http-cache-control";
 import { elapsedMs, monotonicNowMs } from "./lib/log/observability-clock";
 import {
   INTERNAL_REQUEST_ID_HEADER,
@@ -183,19 +184,8 @@ function personalizeCachedResponse(response, requestId) {
 }
 
 function directRequest(request, requestId) {
-  if (
-    !request.headers.has(PUBLIC_SSR_HEADER) &&
-    !request.headers.has(PUBLIC_SSR_LOCALE_HEADER) &&
-    !request.headers.has(PUBLIC_SSR_MODE_HEADER) &&
-    !request.headers.has(INTERNAL_REQUEST_ID_HEADER) &&
-    !request.headers.has("x-request-id")
-  ) {
-    return {
-      cancel: async () => {},
-      request,
-    };
-  }
-
+  // The generated SvelteKit worker owns a separate runtime context. Forward the
+  // edge-generated ID explicitly even when the incoming headers need no cleanup.
   const headers = new Headers(request.headers);
   removePublicSsrHeaders(headers);
   setTrustedRequestIdHeader(headers, requestId);
@@ -206,54 +196,20 @@ function directRequest(request, requestId) {
     };
   }
 
-  // Request cloning tees the incoming body. If the app returns early (for
-  // example on an unauthenticated mutation), the unconsumed tee branch can
-  // restart the Worker while the response is being returned. Transfer the
-  // stream through one reader instead, and release it after app.fetch settles.
-  const reader = request.body.getReader();
-  let released = false;
-  const transferredBody = new ReadableStream({
-    async pull(controller) {
-      try {
-        const chunk = await reader.read();
-        if (released) return;
-        if (chunk.done) {
-          released = true;
-          controller.close();
-          return;
-        }
-        controller.enqueue(chunk.value);
-      } catch (error) {
-        released = true;
-        controller.error(error);
-      }
-    },
-    async cancel(reason) {
-      if (released) return;
-      released = true;
-      await reader.cancel(reason);
-    },
-  });
-  const requestInit = {
-    body: transferredBody,
+  // Supplying the original body explicitly avoids teeing it and preserves the
+  // runtime's known-length stream, which R2 requires for streamed uploads.
+  const forwardedRequest = new Request(request, {
+    body: request.body,
     duplex: "half",
     headers,
-  };
-  let reconstructedRequest;
-  try {
-    reconstructedRequest = new Request(request, requestInit);
-  } catch (error) {
-    released = true;
-    void reader.cancel("request reconstruction failed").catch(() => undefined);
-    throw error;
-  }
+  });
   return {
     cancel: async () => {
-      if (released) return;
-      released = true;
-      await reader.cancel("request body released");
+      if (forwardedRequest.body && !forwardedRequest.body.locked) {
+        await forwardedRequest.body.cancel("request body released");
+      }
     },
-    request: reconstructedRequest,
+    request: forwardedRequest,
   };
 }
 
@@ -527,6 +483,10 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
         await forwardedRequest.cancel().catch(() => undefined);
       }
     }
+    // SvelteKit can create early redirect/error responses after the request hook
+    // exits. Apply the private default at the outer boundary as well.
+    response = new Response(response.body, response);
+    setPrivateCacheDefaults(response.headers);
     return finish(response, "dynamic", route, "dynamic");
   }
 
@@ -688,6 +648,11 @@ export default {
                     maintainOAuthGrantUsageRetention(maintenancePrisma),
                     maintainObservabilityRetention(maintenancePrisma),
                   ]);
+                if (!auditLog.auditRetentionComplete) {
+                  throw new Error(
+                    "Audit retention did not finish within its batch limit",
+                  );
+                }
                 logScheduledTaskFinish(
                   task,
                   {

@@ -3,6 +3,7 @@ import { onMount } from "svelte";
 import type { AppLocale } from "@/i18n/config";
 import {
   loadStoredThemeMode,
+  SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
@@ -33,7 +34,13 @@ function selectLocale(value: string) {
 }
 
 onMount(() => {
-  themeMode = loadStoredThemeMode(themeMode);
+  const syncThemeMode = () => {
+    themeMode = loadStoredThemeMode(themeMode);
+  };
+  syncThemeMode();
+  window.addEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
+  return () =>
+    window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
 });
 </script>
 

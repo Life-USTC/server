@@ -15,7 +15,6 @@ export const publicProfileFullUserSchema = compactUserSchema.extend({
   _count: z.strictObject({
     comments: z.number().int().nonnegative(),
     homeworksCreated: z.number().int().nonnegative(),
-    subscribedSections: z.number().int().nonnegative(),
     uploads: z.number().int().nonnegative(),
   }),
 });
@@ -86,6 +85,7 @@ export const compactSectionHomeworkItemSchema = compactHomeworkSchema.omit({
 
 export const sectionHomeworkNotFoundSchema = z.strictObject({
   success: z.literal(false),
+  error: z.string(),
   found: z.literal(false),
   message: z.string(),
   hint: z.string(),
@@ -112,9 +112,14 @@ export const sectionHomeworkListFullSchema = z.union([
 ]);
 
 export const homeworkMutationFailureSchema = z.union([
-  z.strictObject({ success: z.literal(false), message: z.string() }),
   z.strictObject({
     success: z.literal(false),
+    error: z.string(),
+    message: z.string(),
+  }),
+  z.strictObject({
+    success: z.literal(false),
+    error: z.string(),
     message: z.string(),
     reason: z.string().nullable(),
   }),
@@ -143,7 +148,6 @@ export function publicProfileOutputSchema(userSchema: z.ZodType) {
     exactSuccessOutput({
       found: z.literal(true),
       user: userSchema,
-      sectionCount: z.number().int().nonnegative(),
       weeks: contributionWeeksSchema,
       totalContributions: z.number().int().nonnegative(),
     }),

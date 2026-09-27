@@ -21,7 +21,7 @@ import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 export async function patchTodoBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "workspace.todo", action: "write" },
-    rateLimit: { action: "todo:batch-write", tier: "batch" },
+    rateLimit: { action: "workspace.todo:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 
@@ -46,7 +46,7 @@ export async function patchTodoBatchRoute(request: Request) {
 export async function deleteTodoBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "workspace.todo", action: "write" },
-    rateLimit: { action: "todo:batch-write", tier: "batch" },
+    rateLimit: { action: "workspace.todo:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 

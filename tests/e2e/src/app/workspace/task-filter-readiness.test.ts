@@ -3,10 +3,8 @@ import { signInAsDebugUser } from "../../../utils/auth";
 import { waitForUiSettled } from "../../../utils/page-ready";
 import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
-for (const tab of ["homeworks", "todos", "exams"] as const) {
-  test(`${tab} filters wait for client readiness and respond on the first click`, async ({
-    page,
-  }) => {
+test("ui.workspace-filters-and-empty-states-2", async ({ page }) => {
+  for (const tab of ["homeworks", "todos", "exams"] as const) {
     await signInAsDebugUser(page, `/workspace/${tab}`);
     if (tab !== "todos") await ensureSeedSectionSubscription(page);
 
@@ -32,6 +30,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
 
       releaseScripts();
       await waitForUiSettled(page);
+      await page.context().setOffline(true);
       for (const value of ["all", "completed", "incomplete"]) {
         const option = group.locator(`[data-value="${value}"]`);
         await expect(option).toBeEnabled();
@@ -43,7 +42,8 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
       }
     } finally {
       releaseScripts();
+      await page.context().setOffline(false);
       await page.unrouteAll({ behavior: "wait" });
     }
-  });
-}
+  }
+});

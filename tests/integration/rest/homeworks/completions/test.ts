@@ -130,9 +130,7 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
   }
 });
 
-test("REST completion batches enforce specified bounds and duplicate policy over HTTP", async ({
-  request,
-}) => {
+test("homework.rest-completion-batch-input", async ({ request }) => {
   await signInAsDebugUserApi(request, "/");
   const specification = homeworkExpectation(
     "homework.rest-completion-batch-input",

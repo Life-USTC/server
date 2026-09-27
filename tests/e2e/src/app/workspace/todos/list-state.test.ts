@@ -7,7 +7,7 @@ for (const viewport of [
   { width: 1280, height: 800 },
   { width: 390, height: 844 },
 ]) {
-  test(`待办筛选、就近排序和删除即时更新 ${viewport.width}`, async ({
+  test(`待办筛选、截止时间排序和删除即时更新 ${viewport.width}`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(90_000);
@@ -46,10 +46,10 @@ for (const viewport of [
           : page.getByTestId("workspace-todos-cards");
       const titles = list.getByRole("button").filter({ hasText: prefix });
       await expect(titles).toHaveText([
-        `${prefix}-undated`,
+        `${prefix}-old`,
         `${prefix}-near`,
         `${prefix}-tomorrow`,
-        `${prefix}-old`,
+        `${prefix}-undated`,
       ]);
       const incomplete = page.getByRole("radio", {
         name: /^(未完成|Incomplete)$/i,
@@ -124,9 +124,9 @@ for (const viewport of [
         ).toHaveCount(0);
       }
       await expect(titles).toHaveText([
-        `${prefix}-undated`,
-        `${prefix}-tomorrow`,
         `${prefix}-old`,
+        `${prefix}-tomorrow`,
+        `${prefix}-undated`,
       ]);
       expect(
         await page.evaluate(

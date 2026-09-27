@@ -28,7 +28,7 @@ const SECURITY_SCHEMES = {
     scheme: "bearer",
     bearerFormat: "JWT",
     description:
-      "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
+      "OAuth bearer token with the MCP resource audience, active user grant and required tool scopes. Public catalog and discovery calls allow anonymous access; protected tool calls require this credential. Session cookies do not authorize protected MCP tools. A supplied invalid bearer is rejected even for public calls.",
   },
   calendarFeedToken: {
     type: "apiKey" as const,

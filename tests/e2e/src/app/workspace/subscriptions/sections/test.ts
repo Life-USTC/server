@@ -750,10 +750,8 @@ test.describe("仪表盘教学班订阅", () => {
     ).toBeVisible();
   });
 
-  for (const width of [1280, 390]) {
-    test(`添加订阅仅在单个未订阅结果时自动勾选 ${width}`, async ({
-      page,
-    }, testInfo) => {
+  test("subscription.web-quick-add-selection", async ({ page }, testInfo) => {
+    for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 844 });
       await signInAsDebugUser(page, "/workspace/subscriptions");
       const matches = await resolveSeedSectionMatches(page);
@@ -857,8 +855,8 @@ test.describe("仪表盘教学班订阅", () => {
       } finally {
         await ensureSeedSectionSubscription(page);
       }
-    });
-  }
+    }
+  });
 
   test("单个添加弹窗在 320×568 视口保持关闭控件和操作区可达", async ({
     page,

@@ -29,6 +29,7 @@ export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
   bulkImport: {
     cancel: string;
     confirmTitle: string;
+    confirmTitleOne: string;
     descriptionPrefix: string;
     undergraduateSystem: string;
     descriptionConjunction: string;
@@ -43,6 +44,7 @@ export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
     semesterLabel: string;
     semesterPlaceholder: string;
     subscribeSelected: string;
+    subscribeSelectedOne: string;
     title: string;
   };
   quickAdd: {
@@ -55,6 +57,7 @@ export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;
+    resultsLabelOne: string;
     searchButton: string;
     searching: string;
     selectSection: string;

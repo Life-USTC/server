@@ -173,7 +173,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         arguments: {
           limit: 2,
           locale: "zh-cn",
-          mode: "summary",
+          mode: "default",
         },
       });
       const overviewSummaryPayload = parseTextContent(
@@ -240,7 +240,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         name: "workspace_snapshot_get",
         arguments: {
           locale: "zh-cn",
-          mode: "summary",
+          mode: "default",
         },
       });
       const workspaceSummaryPayload = parseTextContent(
@@ -332,7 +332,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         arguments: {
           locale: "zh-cn",
           atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
-          mode: "summary",
+          mode: "default",
         },
       });
       const timelineSummaryPayload = parseTextContent(
@@ -363,7 +363,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
           dateTo: "2026-05-10T23:59:59+08:00",
           locale: "zh-cn",
-          mode: "summary",
+          mode: "default",
         },
       });
       const calendarEventsSummaryPayload = parseTextContent(
@@ -455,7 +455,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         name: "workspace_calendar_feed_get",
         arguments: {
           locale: "zh-cn",
-          mode: "summary",
+          mode: "default",
         },
       });
       const calendarSubscriptionSummaryPayload = parseTextContent(

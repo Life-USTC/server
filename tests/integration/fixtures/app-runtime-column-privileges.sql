@@ -8,6 +8,8 @@ SELECT string_agg(
 )
 FROM (
   VALUES
+    ('public.SectionTeacher.retiredAt:UPDATE'),
+    ('public.SectionTeacher.updatedAt:UPDATE'),
     ('public.User.calendarFeedToken:UPDATE'),
     ('public.User.isAdmin:UPDATE'),
     ('public.User.name:UPDATE'),

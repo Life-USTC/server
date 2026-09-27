@@ -15,7 +15,7 @@ function toStructuredContent(value: unknown): Record<string, unknown> {
 
 export function jsonToolResult(
   value: unknown,
-  options?: { mode?: "summary" | "default" | "full" },
+  options?: { mode?: "default" | "full" },
 ) {
   const mode = resolveMcpMode(options?.mode);
   const payload = mode === "full" ? value : compactMcpPayload(value);

@@ -2,6 +2,16 @@ import { deviceAuthJsonError } from "@/lib/api/routes/auth-device-authorization-
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
 export async function parseDeviceAuthorizationForm(request: Request) {
+  if (request.headers.has("DPoP")) {
+    return {
+      response: deviceAuthJsonError(
+        400,
+        "invalid_dpop_proof",
+        "DPoP proofs are not supported by device authorization",
+      ),
+    };
+  }
+
   let formData: FormData;
   try {
     formData = await request.formData();

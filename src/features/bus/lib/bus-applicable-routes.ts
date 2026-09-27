@@ -94,7 +94,9 @@ export function buildApplicableBusRoutes(input: {
           route,
           startStop,
           endStop,
-          visibleTrips: showDepartedTrips ? allTrips : upcomingTrips,
+          visibleTrips: showDepartedTrips
+            ? allTrips
+            : allTrips.filter((trip) => trip.status !== "departed"),
           upcomingTrips,
         },
       ];

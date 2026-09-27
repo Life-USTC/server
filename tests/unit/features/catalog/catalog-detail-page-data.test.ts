@@ -250,7 +250,7 @@ describe("catalog detail page data", () => {
     );
   });
 
-  it("keeps history pages separate in the cache and counts the whole relation", async () => {
+  it("course.history-cache-page-isolation", async () => {
     const firstCourse = coursePage({
       sections: [coursePageSection()],
       _count: { sections: 23 },

@@ -21,7 +21,7 @@
  * - Requires session authentication (unauthenticated → 401 JSON or 303 redirect)
  *
  * ## Edge Cases
- * - Unknown slug returns 200 with empty pinnedSlugs (not an error)
+ * - Unknown slug returns 400 invalid_slug without changing existing pins
  * - Maximum 4 pinned links enforced; oldest pins are evicted on overflow
  * - Pinning an already-pinned link is a no-op
  */
@@ -108,18 +108,27 @@ test.describe("POST /api/workspace/link-pins 接口", () => {
     }
   });
 
-  test("未知 slug 在 JSON 模式下返回 200 且 pinnedSlugs 为空", async ({
+  test("未知 slug 在 JSON 模式下返回 400 且保留已有置顶", async ({
     request,
   }) => {
     await signInAsDebugUserApi(request, "/");
-
+    const before = await request.get(BASE);
+    expect(before.status()).toBe(200);
+    const { pinnedSlugs } = (await before.json()) as PinResponse;
     const response = await request.post(BASE, {
       form: { slug: "nonexistent-slug-e2e", action: "pin", returnTo: "/" },
       headers: JSON_HEADERS,
     });
-    expect(response.status()).toBe(200);
+    expect(response.status()).toBe(400);
     const body = (await response.json()) as PinResponse;
+    expect(body.error).toBe("invalid_slug");
+    expect(body.pinnedSlugs).toEqual(pinnedSlugs);
     expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
+    const after = await request.get(BASE);
+    expect(after.status()).toBe(200);
+    expect(((await after.json()) as PinResponse).pinnedSlugs).toEqual(
+      pinnedSlugs,
+    );
   });
 
   test("重定向模式下登录用户返回 303", async ({ request }) => {

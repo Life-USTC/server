@@ -38,9 +38,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
-  test("已完成作业在列表卡片和详情中按规格显示状态", async ({
-    page,
-  }, testInfo) => {
+  test("homework.completed-deadline-display", async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     const specification = homeworkExpectation(
       "homework.completed-deadline-display",

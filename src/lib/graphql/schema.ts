@@ -48,6 +48,7 @@ import {
   validateGraphqlVersionKey,
   validateGraphqlWeatherLocationKey,
   validateGraphqlYoungDate,
+  validateGraphqlYoungText,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
 import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
@@ -407,7 +408,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   type WeatherCurrent {
-    temperature: Float!
+    temperature: Float
     feelsLike: Float
     humidity: Float
     windDirection: String
@@ -801,10 +802,16 @@ export const graphqlSchema = createSchema<
             return await listYoungEvents({
               active: args.filter?.active ?? undefined,
               dateUnknown: args.filter?.dateUnknown ?? undefined,
-              category: validateGraphqlSearch(args.filter?.category),
-              module: validateGraphqlSearch(args.filter?.module),
-              activityLevel: validateGraphqlSearch(args.filter?.activityLevel),
-              search: validateGraphqlSearch(args.filter?.search),
+              category: validateGraphqlYoungText(
+                args.filter?.category,
+                "category",
+              ),
+              module: validateGraphqlYoungText(args.filter?.module, "module"),
+              activityLevel: validateGraphqlYoungText(
+                args.filter?.activityLevel,
+                "activityLevel",
+              ),
+              search: validateGraphqlYoungText(args.filter?.search, "search"),
               organizerId: args.filter?.organizerId
                 ? requireGraphqlYoungOrganizerId(args.filter.organizerId)
                 : undefined,
@@ -832,7 +839,7 @@ export const graphqlSchema = createSchema<
         ) {
           const pagination = normalizeGraphqlPage(args.page);
           return listYoungOrganizers({
-            search: validateGraphqlSearch(args.search),
+            search: validateGraphqlYoungText(args.search, "search"),
             page: pagination.page,
             pageSize: pagination.pageSize,
           });

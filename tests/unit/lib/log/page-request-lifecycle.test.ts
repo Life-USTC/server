@@ -1,5 +1,11 @@
 import { type Handle, redirect } from "@sveltejs/kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createWaitUntil } from "../../../shared/wait-until";
+
+const backgroundTasks = createWaitUntil();
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("@/app-env", () => ({
   getOptionalTrimmedEnv: (name: string) =>
@@ -60,21 +66,24 @@ function handleInput(
       requestId: "",
     },
     params: {},
-    platform: input.spanNames
-      ? {
-          context: {
-            tracing: {
-              enterSpan: (
-                name: string,
-                callback: (span: { setAttribute: () => void }) => unknown,
-              ) => {
-                input.spanNames?.push(name);
-                return callback({ setAttribute: () => {} });
+    platform: {
+      context: {
+        waitUntil: backgroundTasks.waitUntil,
+        ...(input.spanNames
+          ? {
+              tracing: {
+                enterSpan: (
+                  name: string,
+                  callback: (span: { setAttribute: () => void }) => unknown,
+                ) => {
+                  input.spanNames?.push(name);
+                  return callback({ setAttribute: () => {} });
+                },
               },
-            },
-          },
-        }
-      : undefined,
+            }
+          : {}),
+      },
+    },
     request: new Request(url, {
       headers: input.headers,
       method: input.method ?? "GET",
@@ -119,8 +128,12 @@ function apiEvents(calls: ReadonlyArray<ReadonlyArray<unknown>>) {
 }
 
 describe("SvelteKit page request lifecycle", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  afterEach(async () => {
+    try {
+      await backgroundTasks.drain();
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it("records JSON responses and propagates the server request id", async () => {

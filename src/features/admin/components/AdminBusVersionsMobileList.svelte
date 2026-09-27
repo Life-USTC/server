@@ -46,7 +46,7 @@ export let versions: AdminBusVersion[];
           <dl class="grid grid-cols-2 gap-2 text-sm">
             <div>
               <dt class="text-muted-foreground text-xs">{copy.colTrips}</dt>
-              <dd class="font-medium tabular-nums">{version.tripCount}</dd>
+              <dd class="text-muted-foreground tabular-nums">{version.tripCount}</dd>
             </div>
             <div>
               <dt class="text-muted-foreground text-xs">{copy.colImported}</dt>

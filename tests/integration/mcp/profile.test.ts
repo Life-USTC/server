@@ -107,11 +107,9 @@ describe("community_user_get", () => {
         _count?: {
           comments?: number;
           homeworksCreated?: number;
-          subscribedSections?: number;
           uploads?: number;
         };
       };
-      sectionCount?: number;
       totalContributions?: number;
       weeks?: Array<Array<{ date?: string; count?: number }>>;
     }>("community_user_get", {
@@ -123,14 +121,14 @@ describe("community_user_get", () => {
     expect(profile.user?.id).toBe(context.devUserId);
     expect(profile.user?.name).toBe(fixtures.DEV_SEED.debugName);
     expect(profile.user?.username).toBe(fixtures.DEV_SEED.debugUsername);
-    expect(typeof profile.sectionCount).toBe("number");
+    expect(profile).not.toHaveProperty("sectionCount");
     expect(typeof profile.totalContributions).toBe("number");
     expect((profile.weeks?.length ?? 0) > 0).toBe(true);
     expect(profile.weeks?.[0]?.[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(typeof profile.user?._count?.comments).toBe("number");
     expect(typeof profile.user?._count?.uploads).toBe("number");
     expect(typeof profile.user?._count?.homeworksCreated).toBe("number");
-    expect(typeof profile.user?._count?.subscribedSections).toBe("number");
+    expect(profile.user?._count).not.toHaveProperty("subscribedSections");
   });
 
   it("缺失用户返回 not_found", async () => {

@@ -51,6 +51,22 @@ describe("authoritative recent session", () => {
     });
   });
 
+  it("allows an old valid authoritative session without treating it as recent", async () => {
+    sessionFindUniqueMock.mockResolvedValue({
+      createdAt: new Date("2026-08-14T12:00:00.000Z"),
+      expires: new Date("2026-08-15T13:00:00.000Z"),
+      userId: "user-1",
+    });
+    const { resolveAuthoritativeSession, resolveAuthoritativeRecentSession } =
+      await import("@/lib/auth/recent-session");
+    await expect(
+      resolveAuthoritativeSession(new Headers(), { now }),
+    ).resolves.toMatchObject({ ok: true, userId: "user-1" });
+    await expect(
+      resolveAuthoritativeRecentSession(new Headers(), { now }),
+    ).resolves.toMatchObject({ ok: false, reason: "session_not_fresh" });
+  });
+
   it("rejects the exact age boundary as stale", async () => {
     sessionFindUniqueMock.mockResolvedValue({
       createdAt: new Date("2026-08-15T11:45:00.000Z"),

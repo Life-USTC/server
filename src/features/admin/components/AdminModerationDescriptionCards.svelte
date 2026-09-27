@@ -29,12 +29,10 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     {#each descriptions as description, index (description.id)}
       <Item.Root class="items-start px-1 py-3">
       <Item.Content class="min-w-0 gap-2">
-        <Item.Title class="line-clamp-none" title={targetLabel(description)}>{targetLabel(description)}</Item.Title>
+        <Item.Title class="line-clamp-4 whitespace-pre-wrap">{description.content || copy.emptyDescription}</Item.Title>
+        <Item.Description>{targetLabel(description)}</Item.Description>
         <Item.Description>
           {formatDate(adminModerationDescriptionEditedAt(description))}
-        </Item.Description>
-        <Item.Description class="line-clamp-4 whitespace-pre-wrap">
-          {description.content || copy.emptyDescription}
         </Item.Description>
         <Item.Description>
           {formatMessage(copy.lastEditor, {

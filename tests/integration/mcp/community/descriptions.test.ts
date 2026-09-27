@@ -7,7 +7,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     name: "[integration-test] Descriptions",
   });
 
-  it("community_description_get 通过公开 JW id 返回种子班级描述", async () => {
+  it("description.mcp-markdown-projection", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -26,7 +26,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       viewer?: { isAuthenticated?: boolean; userId?: string | null };
     };
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await isolated.client.call<Result>(
           "community_description_get",
@@ -53,7 +53,9 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       isAuthenticated: true,
       userId: isolated.userId,
     });
+    expect(result.description?.renderedHtml).toContain("课程建议");
     for (const { mode, result: modeResult } of results) {
+      expect(modeResult.description?.content).toBe(result.description?.content);
       expect(Object.hasOwn(modeResult.description ?? {}, "renderedHtml")).toBe(
         mode === "full",
       );
@@ -102,10 +104,10 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
         target?: { targetId?: number; type?: string };
       };
       const results: Array<{
-        mode: "default" | "summary" | "full";
+        mode: "default" | "full";
         result: Result;
       }> = [];
-      for (const mode of ["default", "summary", "full"] as const) {
+      for (const mode of ["default", "full"] as const) {
         results.push({
           mode,
           result: await isolated.client.call<Result>(
@@ -148,7 +150,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
         targetType: "teacher",
       });
 
-      const idempotent = results[2]?.result ?? {};
+      const idempotent = results[1]?.result ?? {};
 
       expect(idempotent.success).toBe(true);
       expect(idempotent.id).toBe(descriptionId);

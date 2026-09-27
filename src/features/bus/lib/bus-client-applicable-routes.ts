@@ -59,7 +59,9 @@ export function getApplicableBusRoutes(input: {
           endStop,
           nextTrip: upcomingTrips[0] ?? null,
           upcomingTrips,
-          visibleTrips: showDepartedTrips ? allTrips : upcomingTrips,
+          visibleTrips: showDepartedTrips
+            ? allTrips
+            : allTrips.filter((trip) => trip.status !== "departed"),
           allTrips,
           totalTrips: allTrips.length,
         },

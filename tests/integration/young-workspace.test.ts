@@ -1,9 +1,19 @@
 import { createYoga } from "graphql-yoga";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
+import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import { listPersonalCalendarPage } from "@/features/calendar/server/personal-calendar-page";
 import {
+  countUnreadYoungNotifications,
   listYoungNotifications,
   readYoungNotification,
   refreshYoungNotifications,
@@ -54,6 +64,8 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
   beforeEach(async () => {
+    vi.unstubAllGlobals();
+    setCalendarExportRebuildSenderForTest(async () => {});
     await fixture.youngNotification.deleteMany({
       where: { userId: { in: [userId, otherId] } },
     });
@@ -78,10 +90,107 @@ describe("Young workspace owner subscriptions and reminders", () => {
     });
   });
   afterAll(async () => {
+    vi.unstubAllGlobals();
+    setCalendarExportRebuildSenderForTest();
     await fixture.user.deleteMany({ where: { id: { in: [userId, otherId] } } });
     await fixture.youngEvent.deleteMany({ where: { youngId } });
     await fixture.youngOrganizer.deleteMany({ where: { id: organizerId } });
     await fixture.$disconnect();
+  });
+
+  it("young-workspace.subscription", async () => {
+    const original = await fixture.youngEvent.findUniqueOrThrow({
+      where: { youngId },
+    });
+    const fetch = vi.fn(async () => {
+      throw new Error("No official registration request is authorized");
+    });
+    vi.stubGlobal("fetch", fetch);
+    try {
+      expect(
+        await setYoungEventSubscription(userId, youngId, true),
+      ).toMatchObject({ youngId, subscribed: true });
+      expect(
+        await fixture.userYoungEventSubscription.count({
+          where: { userId, youngId },
+        }),
+      ).toBe(1);
+      expect(
+        await setYoungEventSubscription(userId, youngId, false),
+      ).toMatchObject({ youngId, subscribed: false });
+      expect(
+        await fixture.userYoungEventSubscription.count({
+          where: { userId, youngId },
+        }),
+      ).toBe(0);
+      expect(
+        await fixture.youngEvent.findUniqueOrThrow({ where: { youngId } }),
+      ).toEqual(original);
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("young-workspace.reminder-settings", async () => {
+    for (const [setting, kind] of [
+      ["remindSignup", "signup_open"],
+      ["remindDeadline", "signup_deadline"],
+      ["remindStart", "event_start"],
+    ] as const) {
+      await setYoungEventSubscription(userId, youngId, false);
+      await setYoungEventSubscription(userId, youngId, true, {
+        remindSignup: false,
+        remindDeadline: false,
+        remindStart: false,
+        [setting]: true,
+      });
+      const settings = await getYoungEventSubscription(userId, youngId);
+      expect(settings).toMatchObject({
+        remindSignup: false,
+        remindDeadline: false,
+        remindStart: false,
+        [setting]: true,
+      });
+      const result = await listYoungNotifications(userId, {}, now);
+      expect(result.data.map((row) => row.kind)).toEqual([kind]);
+      await setYoungEventSubscription(userId, youngId, true, {
+        [setting]: false,
+      });
+      expect((await listYoungNotifications(userId, {}, now)).data).toEqual([]);
+    }
+  });
+
+  it("young-workspace.reminder-expiry", async () => {
+    const rows = [
+      { id: crypto.randomUUID(), expiresAt: new Date(now.getTime() - 1) },
+      { id: crypto.randomUUID(), expiresAt: now },
+      { id: crypto.randomUUID(), expiresAt: new Date(now.getTime() + 1) },
+      { id: crypto.randomUUID(), expiresAt: null },
+    ];
+    await fixture.youngNotification.createMany({
+      data: rows.map((row) => ({
+        ...row,
+        userId,
+        youngId,
+        kind: "event_start",
+        title: "Reminder",
+        body: "Expiry",
+        dedupeKey: row.id,
+      })),
+    });
+    const result = await listYoungNotifications(userId, {}, now);
+    expect(result.pagination.total).toBe(2);
+    expect(result.data.map((row) => row.id).sort()).toEqual(
+      rows
+        .slice(2)
+        .map((row) => row.id)
+        .sort(),
+    );
+    expect(await countUnreadYoungNotifications(userId, now)).toBe(2);
+    expect(await fixture.youngNotification.count({ where: { userId } })).toBe(
+      4,
+    );
   });
 
   it("serializes repeated subscriptions and keeps owner rows invisible outside their context", async () => {
@@ -142,15 +251,32 @@ describe("Young workspace owner subscriptions and reminders", () => {
     ).not.toContain(id);
   });
 
-  it("retains existing reminder IDs for a venue change but removes the old start reminder after rescheduling", async () => {
+  it("young-workspace.reminder-source-change", async () => {
     await setYoungEventSubscription(userId, youngId, true);
     const initial = await listYoungNotifications(userId, {}, now);
     const start = initial.data.find((row) => row.kind === "event_start");
+    expect(start).toBeDefined();
+    const queued: Promise<string>[] = [];
+    setCalendarExportRebuildSenderForTest(async (message) => {
+      expect(message).toEqual({ type: "user", userId });
+      queued.push(
+        (async () => {
+          const record = await getUserCalendarRecord(userId);
+          if (!record) throw new Error("Expected calendar owner");
+          return (await buildUserCalendarExport(record, userId)).text.replace(
+            /\r?\n[ \t]/g,
+            "",
+          );
+        })(),
+      );
+    });
     await fixture.youngEvent.update({
       where: { youngId },
       data: { location: "West" },
     });
     const venue = await listYoungNotifications(userId, {}, now);
+    expect(queued).toHaveLength(1);
+    expect(await queued[0]).toContain("LOCATION:West");
     expect(venue.data.find((row) => row.kind === "event_start")?.id).toBe(
       start?.id,
     );
@@ -165,6 +291,10 @@ describe("Young workspace owner subscriptions and reminders", () => {
       },
     });
     const moved = await listYoungNotifications(userId, {}, now);
+    expect(queued).toHaveLength(2);
+    expect(await queued[1]).toContain(
+      "DTSTART;TZID=Asia/Shanghai:20300916T103000",
+    );
     expect(moved.data.some((row) => row.kind === "event_start")).toBe(false);
     const calendar = await listPersonalCalendarPage(userId, {
       dateFrom: "2030-09-16",
@@ -258,7 +388,7 @@ describe("Young workspace owner subscriptions and reminders", () => {
     }
   });
 
-  it("exports only individually subscribed events with stable ICS identity across changes", async () => {
+  it("young-workspace.event-calendar-membership", async () => {
     await setYoungOrganizerSubscription(userId, organizerId, true);
     const exportText = async () => {
       const user = await getUserCalendarRecord(userId);
@@ -273,6 +403,17 @@ describe("Young workspace owner subscriptions and reminders", () => {
     const initial = await exportText();
     expect(initial).toContain(`UID:young-${youngId}@life-ustc`);
     expect(initial).toContain("LOCATION:East");
+    const calendar = await listPersonalCalendarPage(userId, {
+      dateFrom: "2030-09-15",
+      dateTo: "2030-09-15",
+    });
+    expect(calendar.data).toHaveLength(1);
+    expect(calendar.data[0]).toMatchObject({
+      youngId,
+      at: "2030-09-15T10:30:00+08:00",
+    });
+    expect(initial).toContain("DTSTART;TZID=Asia/Shanghai:20300915T103000");
+    expect(initial).toContain("DTEND;TZID=Asia/Shanghai:20300915T120000");
     await fixture.youngEvent.update({
       where: { youngId },
       data: { location: "West", sourceMissing: true },
@@ -280,6 +421,19 @@ describe("Young workspace owner subscriptions and reminders", () => {
     const changed = await exportText();
     expect(changed).toContain(`UID:young-${youngId}@life-ustc`);
     expect(changed).toContain("LOCATION:West");
+    await fixture.youngEvent.update({
+      where: { youngId },
+      data: { startAt: null, endAt: null },
+    });
+    expect(await exportText()).not.toContain(`UID:young-${youngId}@life-ustc`);
+    expect(
+      (
+        await listPersonalCalendarPage(userId, {
+          dateFrom: "2030-09-15",
+          dateTo: "2030-09-15",
+        })
+      ).data,
+    ).toEqual([]);
     await setYoungEventSubscription(userId, youngId, false);
     expect(await exportText()).not.toContain(`UID:young-${youngId}@life-ustc`);
   });

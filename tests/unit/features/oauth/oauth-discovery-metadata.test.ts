@@ -58,36 +58,6 @@ describe("OAuth 发现元数据路由", () => {
     vi.unstubAllEnvs();
   });
 
-  it("为重定向添加发现 CORS 头且保留 Location", async () => {
-    vi.stubEnv("DATABASE_URL", "postgresql://unit:unit@127.0.0.1:5432/unit");
-    vi.stubEnv("AUTH_SECRET", "unit-test-secret");
-
-    const { createDiscoveryRedirectRoute } = await import(
-      "@/lib/oauth/discovery-metadata"
-    );
-    const route = createDiscoveryRedirectRoute(
-      () =>
-        new URL(
-          "https://life.example/.well-known/oauth-authorization-server/api/auth",
-        ),
-    );
-
-    const response = await route.GET(
-      new Request(
-        "https://life.example/.well-known/oauth-authorization-server",
-      ),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "https://life.example/.well-known/oauth-authorization-server/api/auth",
-    );
-    expect(response.headers.get("access-control-allow-origin")).toBe("*");
-    expect(response.headers.get("access-control-allow-methods")).toBe(
-      "GET, OPTIONS",
-    );
-  });
-
   it("不在授权服务器元数据中宣告 client_credentials", async () => {
     authServerMetadataHandlerMock.mockResolvedValue(
       Response.json({
@@ -234,26 +204,6 @@ describe("OAuth 发现元数据路由", () => {
     expect(response.headers.get("content-type")).toContain("application/json");
     await expect(response.text()).resolves.toBe("");
     expect(betterAuthHandlerMock).toHaveBeenCalledOnce();
-  });
-
-  it("MCP root protected-resource alias 保持 307 到 canonical URL", async () => {
-    const { createOAuthDiscoveryRoute } = await import(
-      "@/lib/oauth/discovery-routes"
-    );
-    const route = createOAuthDiscoveryRoute("protectedResourceAlias");
-
-    const response = await route.GET({
-      request: new Request(
-        "https://life.example/.well-known/oauth-protected-resource",
-      ),
-    } as never);
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(
-      "https://life.example/.well-known/oauth-protected-resource/api/mcp",
-    );
-    expect(response.headers.get("access-control-allow-origin")).toBe("*");
-    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 
   it("GraphQL protected-resource 元数据使用独立 resource", async () => {

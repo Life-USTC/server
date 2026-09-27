@@ -9,6 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response uploadsListResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.upload:read
  */
 export const GET = svelteRequestHandler(observedApiRoute(getUploadsRoute));
 /**
@@ -21,5 +22,6 @@ export const GET = svelteRequestHandler(observedApiRoute(getUploadsRoute));
  * @response 413:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.upload:write
  */
 export const POST = svelteRequestHandler(observedApiRoute(postUploadRoute));

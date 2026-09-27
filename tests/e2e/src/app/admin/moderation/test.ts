@@ -500,10 +500,9 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     ).toBeVisible();
 
     const reason = `e2e-reason-${Date.now()}`;
-    const reasonInput = dialog.getByPlaceholder(/封禁原因|reason/i).first();
-    if ((await reasonInput.count()) > 0) {
-      await reasonInput.fill(reason);
-    }
+    const reasonInput = dialog.getByRole("textbox", { name: /原因|Reason/i });
+    await expect(reasonInput).toBeVisible();
+    await reasonInput.fill(reason);
 
     const suspendResponse = page.waitForResponse(
       (response) =>
@@ -549,8 +548,19 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
 
 // ── Description governance ──────────────────────────────────────────────────
 
-test("/admin/moderation 课程简介治理表格可见", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+test("admin.moderation-centralized", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/moderation");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    /Moderation|内容审核/,
+  );
+  await expect(
+    page
+      .locator("tbody tr:visible")
+      .first()
+      .getByRole("button", { name: /管理评论|Manage Comment/i }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: /课程简介|Descriptions/i }).click();
+  await expect(page).toHaveURL(/\/admin\/moderation\?tab=descriptions/);
 
   await expect(
     page.getByRole("link", { name: /课程简介|Descriptions/i }),
@@ -587,7 +597,7 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
   await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
 
   const listResponse = await page.request.get(
-    "/api/admin/descriptions?limit=1",
+    "/api/admin/descriptions?pageSize=1",
   );
   expect(listResponse.status()).toBe(200);
   const description = (
@@ -683,4 +693,112 @@ test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
 
 test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/admin/moderation", testInfo });
+});
+
+test("admin.high-risk-feedback", async ({ page }, testInfo) => {
+  const marker = `governance-feedback-${crypto.randomUUID()}`;
+  const fixture = await withE2ePrisma(async (prisma) => {
+    const user = await prisma.user.create({
+      data: { name: marker, email: `${marker}@example.test` },
+    });
+    const section = await prisma.section.findFirstOrThrow();
+    const homework = await prisma.homework.create({
+      data: { title: marker, sectionId: section.id, createdById: user.id },
+    });
+    const comment = await prisma.comment.create({
+      data: { body: marker, userId: user.id, homeworkId: homework.id },
+    });
+    return { user, homework, comment };
+  });
+  try {
+    await signInAsDevAdmin(
+      page,
+      `/admin/moderation?search=${encodeURIComponent(marker)}`,
+    );
+    const dialog = await openModerationCommentDialog(page, marker);
+    await dialog.getByRole("radio", { name: /仅自己可见|Private/i }).click();
+    await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
+    await expect(dialog).toBeHidden();
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /评论已更新|Comment updated/i }),
+    ).toBeVisible();
+    expect(
+      (
+        await withE2ePrisma((prisma) =>
+          prisma.comment.findUniqueOrThrow({
+            where: { id: fixture.comment.id },
+          }),
+        )
+      ).status,
+    ).toBe("softbanned");
+    await captureStepScreenshot(page, testInfo, "admin-feedback-hidden");
+    await gotoAndWaitForReady(
+      page,
+      `/admin/moderation?search=${encodeURIComponent(marker)}&status=softbanned`,
+    );
+    const reopened = await openModerationCommentDialog(page, marker);
+    await reopened.getByRole("textbox", { name: /原因|Reason/i }).fill(marker);
+    await reopened.getByRole("button", { name: /^(封禁|Suspend)$/i }).click();
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /封禁成功|Suspended successfully/i }),
+    ).toBeVisible();
+    expect(
+      await withE2ePrisma((prisma) =>
+        prisma.userSuspension.count({
+          where: { userId: fixture.user.id, liftedAt: null, reason: marker },
+        }),
+      ),
+    ).toBe(1);
+    await captureStepScreenshot(page, testInfo, "admin-feedback-suspended");
+    await page.keyboard.press("Escape");
+    await gotoAndWaitForReady(
+      page,
+      `/admin/moderation?tab=homeworks&search=${encodeURIComponent(marker)}`,
+    );
+    const row = moderationTableRow(page, marker);
+    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+    const confirmation = page.getByRole("alertdialog", {
+      name: /删除作业|Delete Homework/i,
+    });
+    await expect(confirmation).toContainText(marker);
+    await confirmation.getByRole("button", { name: /取消|Cancel/i }).click();
+    expect(
+      (
+        await withE2ePrisma((prisma) =>
+          prisma.homework.findUniqueOrThrow({
+            where: { id: fixture.homework.id },
+          }),
+        )
+      ).deletedAt,
+    ).toBeNull();
+    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+    await confirmation
+      .getByRole("button", { name: /^(删除|Delete)$/i })
+      .click();
+    await expect(confirmation).toBeHidden();
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /作业已删除|Homework deleted/i }),
+    ).toBeVisible();
+    expect(
+      (
+        await withE2ePrisma((prisma) =>
+          prisma.homework.findUniqueOrThrow({
+            where: { id: fixture.homework.id },
+          }),
+        )
+      ).deletedAt,
+    ).not.toBeNull();
+    await captureStepScreenshot(page, testInfo, "admin-feedback-deleted");
+  } finally {
+    await withE2ePrisma(async (prisma) => {
+      await prisma.homework.deleteMany({ where: { id: fixture.homework.id } });
+      await prisma.user.deleteMany({ where: { id: fixture.user.id } });
+    });
+  }
 });

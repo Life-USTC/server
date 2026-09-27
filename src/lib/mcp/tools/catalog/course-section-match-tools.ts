@@ -31,6 +31,7 @@ export function registerCourseSectionMatchTools(server: McpServer) {
       if (!matches) {
         return jsonToolResult({
           success: false,
+          error: "not_found",
           message: "No semester found",
         });
       }

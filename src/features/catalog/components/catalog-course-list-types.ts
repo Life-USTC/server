@@ -26,6 +26,7 @@ export type CourseListLabels = {
   searchFor: string;
   searchPlaceholder: string;
   showing: string;
+  showingOne: string;
   subtitle: string;
   summary: {
     filters: string;

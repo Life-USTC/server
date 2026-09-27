@@ -119,7 +119,71 @@ describe("MCP mutation rate limits", () => {
     authenticateMcpRequestMock.mockResolvedValue(authenticatedUser());
   });
 
-  it("counts duplicate mutation entries and rejects the whole batch before tools run", async () => {
+  it("mcp.parsed-body-reuse", async () => {
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    const body = JSON.stringify([
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "workspace_todo_create", arguments: { title: "A" } },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "workspace_todo_create", arguments: { title: "B" } },
+      },
+    ]);
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
+    const clone = vi.spyOn(request, "clone");
+    const json = vi.spyOn(request, "json");
+    const parse = vi.spyOn(JSON, "parse");
+    checkUserMutationRateLimitMock.mockResolvedValue({ allowed: true });
+    try {
+      expect((await handleMcpRequest(request)).status).toBe(200);
+      const bodyParses = parse.mock.calls.flatMap((args, index) =>
+        args[0] === body ? [parse.mock.results[index]?.value] : [],
+      );
+      expect(bodyParses).toHaveLength(1);
+      const parsedBody = bodyParses[0];
+      expect(summarizeMcpJsonRpcRequestMock).toHaveBeenCalledOnce();
+      expect(summarizeMcpJsonRpcRequestMock.mock.calls[0]?.[0]).toBe(
+        parsedBody,
+      );
+      expect(handleTransportRequestMock.mock.calls[0]?.[1].parsedBody).toBe(
+        parsedBody,
+      );
+      expect(authenticateMcpRequestMock).toHaveBeenCalledWith(request, [
+        "workspace_todo_create",
+      ]);
+      expect(checkUserMutationRateLimitMock).toHaveBeenCalledTimes(2);
+      expect(
+        authenticateMcpRequestMock.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        checkUserMutationRateLimitMock.mock.invocationCallOrder[0] ?? 0,
+      );
+      expect(
+        checkUserMutationRateLimitMock.mock.invocationCallOrder[1],
+      ).toBeLessThan(
+        handleTransportRequestMock.mock.invocationCallOrder[0] ?? 0,
+      );
+      expect(clone).not.toHaveBeenCalled();
+      expect(json).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+      clone.mockRestore();
+      json.mockRestore();
+    }
+  });
+
+  it("mcp.mutation-rate-limits", async () => {
     checkUserMutationRateLimitMock
       .mockResolvedValueOnce({ allowed: true })
       .mockResolvedValueOnce({ allowed: false, reason: "limited" });
@@ -185,9 +249,59 @@ describe("MCP mutation rate limits", () => {
         status: 429,
       }),
     );
+
+    for (const reason of ["limited", "unavailable"] as const) {
+      checkUserMutationRateLimitMock
+        .mockReset()
+        .mockResolvedValue({ allowed: false, reason });
+      const importRequest = new Request("https://life.example/api/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "workspace_subscription_import",
+            arguments: { semester: "2026" },
+          },
+        }),
+      });
+      const importResponse = await handleMcpRequest(importRequest);
+      expect(importResponse.status).toBe(reason === "limited" ? 429 : 503);
+      expect(importResponse.headers.get("retry-after")).toBe("60");
+      expect(checkUserMutationRateLimitMock).toHaveBeenCalledExactlyOnceWith({
+        action: "workspace.subscription:batch-write",
+        host: "life.example",
+        tier: "batch",
+        userId: "user-1",
+      });
+      expect(handleTransportRequestMock).not.toHaveBeenCalled();
+    }
+    // Exact selected GraphQL mutation fields own their resolver budgets.
+    checkUserMutationRateLimitMock.mockClear();
+    const graphqlRequest = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: "graphql_operation_run",
+          arguments: {
+            operationId: "workspace.todo.create.v1",
+            confirmed: true,
+          },
+        },
+      }),
+    });
+    expect((await handleMcpRequest(graphqlRequest)).status).toBe(200);
+    expect(checkUserMutationRateLimitMock).not.toHaveBeenCalled();
+    expect(handleTransportRequestMock).toHaveBeenCalledOnce();
   });
 
-  it("does not consume mutation budgets for read-only tools", async () => {
+  it("mcp.rate-limit-accuracy-boundary", async () => {
     summarizeMcpJsonRpcRequestMock.mockReturnValue({
       argumentKeys: [],
       bodyKind: "jsonrpc-single",
@@ -214,6 +328,14 @@ describe("MCP mutation rate limits", () => {
 
     expect(response.status).toBe(200);
     expect(checkUserMutationRateLimitMock).not.toHaveBeenCalled();
+    for (const header of [
+      "ratelimit-remaining",
+      "ratelimit-reset",
+      "x-ratelimit-remaining",
+      "x-ratelimit-reset",
+    ])
+      expect(response.headers.has(header)).toBe(false);
+
     expect(transportConstructorMock).toHaveBeenCalledOnce();
     expect(connectMock).toHaveBeenCalledOnce();
     expect(handleTransportRequestMock).toHaveBeenCalledOnce();

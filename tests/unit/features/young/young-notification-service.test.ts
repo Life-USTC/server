@@ -163,6 +163,7 @@ describe("Young notification refresh and inbox", () => {
     expect(mocks.tx.youngEvent.count).toHaveBeenLastCalledWith({
       where: expect.objectContaining({
         createdAt: {
+          gte: new Date("2035-09-14T00:00:00+08:00"),
           gt: new Date("2035-09-14T12:00:00+08:00"),
           lt: new Date("2035-09-15T00:00:00+08:00"),
         },

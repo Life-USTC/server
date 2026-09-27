@@ -99,7 +99,8 @@ export async function refreshYoungNotifications(
         organizerId: follow.organizerId,
         sourceMissing: false,
         createdAt: {
-          gt: follow.createdAt > dayStart ? follow.createdAt : dayStart,
+          gte: dayStart,
+          gt: follow.createdAt,
           lt: dayEnd,
         },
         startAt: { gte: now },

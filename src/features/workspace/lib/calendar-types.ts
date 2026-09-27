@@ -1,4 +1,4 @@
-export type CalendarView = "semester" | "month" | "week";
+export type CalendarView = "semester" | "month" | "week" | "day";
 
 export type DateKeyed = {
   dateKey?: string | null;

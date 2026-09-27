@@ -7,7 +7,7 @@
  * - Supports `targetType` filter: "all", "section", "course", "teacher", "homework"
  * - Supports `hasContent` filter: "all", "withContent", "empty"
  * - Supports `search` parameter (content, course/section/teacher/homework names)
- * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
+ * - Supports `page` and `pageSize` parameters; retired `limit` is rejected
  * - Descriptions are ordered by lastEditedAt desc, then updatedAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */
@@ -156,7 +156,7 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
 
   test("无效 limit 参数返回 400", async ({ request }) => {
     await signInAsDevAdminApi(request, "/admin");
-    const response = await request.get(`${BASE}?limit=not-a-number`);
+    const response = await request.get(`${BASE}?pageSize=not-a-number`);
     expect(response.status()).toBe(400);
   });
 });

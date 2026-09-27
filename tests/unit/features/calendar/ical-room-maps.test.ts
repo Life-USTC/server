@@ -34,8 +34,22 @@ function exam(rooms: string[]) {
 function unfolded(calendar: ICalCalendar) {
   return calendar.toString().replace(/\r\n[ \t]/g, "");
 }
+function schedule(code: string) {
+  return {
+    id: 7,
+    date: new Date("2026-09-11T00:00:00Z"),
+    startTime: 800,
+    endTime: 945,
+    room: {
+      code,
+      nameCn: code,
+      building: { nameCn: "三教", campus: { nameCn: "西区" } },
+    },
+    teacherParticipations: [],
+  } as unknown as Parameters<typeof createScheduleEvent>[0];
+}
 describe("iCalendar room maps", () => {
-  it("attaches each distinct exam map and keeps labeled links in DESCRIPTION", () => {
+  it("room-map.exam-map-attachments", () => {
     const calendar = new ICalCalendar();
     createExamEvent(
       exam(["3A204", "3A205", "3A204", "UNKNOWN"]),
@@ -53,7 +67,7 @@ describe("iCalendar room maps", () => {
     expect(output).toContain("Room map: 3A204: https://");
     expect(output).toContain("Room map: 3A205: https://");
   });
-  it("retains events with unknown or free-text locations and deduplicates overview images", () => {
+  it("room-map.unmapped-calendar-events", () => {
     const calendar = new ICalCalendar();
     createExamEvent(
       exam(["UNKNOWN", "地点待定"]),
@@ -65,6 +79,16 @@ describe("iCalendar room maps", () => {
     );
     expect(calendar.events()).toHaveLength(1);
     expect(unfolded(calendar)).not.toContain("ATTACH:");
+    createScheduleEvent(
+      schedule("UNKNOWN"),
+      section,
+      calendar,
+      geo,
+      assets,
+      "zh-cn",
+    );
+    expect(calendar.events()).toHaveLength(2);
+    expect(unfolded(calendar)).not.toContain("ATTACH:");
     createExamEvent(
       exam(["3B201", "3B202"]),
       section,
@@ -75,7 +99,7 @@ describe("iCalendar room maps", () => {
     );
     expect(unfolded(calendar).match(/^ATTACH[^\r\n]+/gm)).toHaveLength(1);
   });
-  it("attaches the highlighted course room and preserves event identity", () => {
+  it("room-map.calendar", () => {
     const calendar = new ICalCalendar();
     const schedule = {
       id: 7,
@@ -96,5 +120,38 @@ describe("iCalendar room maps", () => {
     );
     expect(output).toContain("教室地图：3A204: https://");
     expect(output).toContain("/schedule/7");
+    createExamEvent(exam(["3A204"]), section, calendar, geo, assets, "zh-cn");
+    expect(unfolded(calendar).match(/^ATTACH[^\r\n]+/gm)).toEqual([
+      "ATTACH:https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+      "ATTACH:https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+    ]);
+  });
+  it("room-map.calendar-map-descriptions", () => {
+    for (const locale of ["zh-cn", "en-us"] as const) {
+      const calendar = new ICalCalendar();
+      createScheduleEvent(
+        schedule("3A204"),
+        section,
+        calendar,
+        geo,
+        assets,
+        locale,
+      );
+      createExamEvent(
+        exam(["3A204", "3A205"]),
+        section,
+        calendar,
+        geo,
+        assets,
+        locale,
+      );
+      const descriptions = unfolded(calendar)
+        .split("\r\n")
+        .filter((line) => line.startsWith("DESCRIPTION:"));
+      expect(descriptions).toHaveLength(2);
+      expect(descriptions[0]).toContain("3A204: https://");
+      expect(descriptions[1]).toContain("3A204: https://");
+      expect(descriptions[1]).toContain("3A205: https://");
+    }
   });
 });

@@ -38,7 +38,6 @@ export async function getSubscribedHomeworksRoute(request: Request) {
       pagination: {
         defaultPageSize: HOMEWORK_LIST_DEFAULT_PAGE_SIZE,
         maxPageSize: HOMEWORK_LIST_MAX_PAGE_SIZE,
-        pageSizeAliasParam: "pageSize",
       },
     },
   );

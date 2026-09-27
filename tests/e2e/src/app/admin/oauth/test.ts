@@ -112,9 +112,7 @@ test("/admin/oauth 普通用户访问返回 403", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "admin-oauth-403");
 });
 
-test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", async ({
-  page,
-}, testInfo) => {
+test("oauth.client-authentication-inventory", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   const prefix = `e2e-oauth-pattern-${Date.now()}`;
   const names = CLIENT_PATTERNS.map(({ suffix }) => `${prefix}-${suffix}`);

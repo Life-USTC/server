@@ -15,126 +15,495 @@ access:
   agent: Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP
     capabilities only with explicit feature:action scopes such as workspace.todo:read and workspace.todo:write.
 requirements:
-- id: openapi.workspace-exam-pagination
-  category: behavior
-  rule: GET /api/workspace/exams is an owner-scoped, private/no-store paginated exam list requiring workspace.exam:read.
-    It supports semester and inclusive Shanghai calendar-date filters and includes unknown-date exams
-    by default; clients needing a complete list must exhaust pagination rather than use overview samples.
-- id: openapi.response-cache-policy
-  category: consistency
-  rule: REST JSON responses, including authentication and validation errors, default to private, no-store.
-    Only explicitly viewer-independent public responses may opt into HTTP caching. The HTTP boundary also
-    disables CDN storage for private responses; cookies or bearer identity must never personalize a publicly
-    cacheable payload.
-- id: openapi.aligned-with-web
-  category: consistency
-  rule: The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional
-    product layer.
-- id: openapi.no-developer-model
-  category: behavior
-  rule: Public documentation helps callers understand the existing product capability boundaries, not
-    to introduce a separate developer-specific business model.
 - id: openapi.session-and-bearer
   category: authorization
-  rule: Current user-side business REST endpoints support both in-site session from the request cookie
-    and OAuth bearer tokens; bearer-token access requires a REST audience plus matching feature:read/feature:write
-    scopes.
-- id: openapi.rest-mcp-consistent
-  category: consistency
-  rule: The same abstract endpoint currently maintains the same core fields, state information, and action
-    results in both REST and MCP; differences mainly appear in interaction form and serialization level.
+  rule: Ordinary user business REST capabilities explicitly declare session-cookie and resource-bound
+    OAuth bearer alternatives. Bearer access also requires the matching feature scope and owner permission.
+    Administrator governance and sensitive account management are session-only; current OAuth-client activity
+    is bearer-only; ingestion uses its dedicated service credential.
+  acceptance:
+    given: Three isolated owners including an administrator, real signed sessions, actual signed resource-bound
+      OAuth grants, and production database roles behind REST HTTP handlers.
+    when: Read and update owned todos with each mechanism; present mixed credentials, wrong scopes/resources,
+      expired and revoked grants, and attempt governance, client activity, credential mutation and ingestion.
+    then:
+    - Valid session and bearer requests read only their own data; bearer identity takes precedence over cookies.
+    - Invalid bearers cannot fall back to a valid cookie, and foreign writes remain hidden even from admins.
+    - Read-only scopes cannot write; governance and credential mutation reject bearer-only requests; client
+      activity rejects cookies and ingestion rejects both end-user credentials.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.session-and-bearer
 - id: openapi.crawler-ingestion-rest-only
   category: behavior
   rule: 'Crawler publication ingestion is an explicit REST-only exception: its machine-secret-authenticated
     write routes are documented in the publications contract and must not be mirrored into Web, GraphQL,
     or MCP.'
+  acceptance:
+    given: The generated OpenAPI document, actual route modules, executable GraphQL schema and MCP tool registry.
+    when: Inspect the ingestion operations and their transport dependencies, GraphQL mutations and MCP discovery.
+    then:
+    - Exactly the three documented ingestion REST operations own crawler writes.
+    - No Web, GraphQL or MCP transport imports the ingestion services or exposes crawler operations.
+    test:
+      file: tests/unit/lib/openapi/openapi-transport-boundary.test.ts
+      name: openapi.crawler-ingestion-rest-only
 - id: openapi.security-schemes
   category: authorization
-  rule: 'Generated OpenAPI derives operation security from contract route auth: user REST operations use
-    scoped bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only
-    auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also
-    allows feed tokens.'
-- id: openapi.generated-client-required
-  category: consistency
-  rule: CLI and Bot business calls must use generated OpenAPI clients and generated request/response types
-    whenever the server OpenAPI covers the endpoint. Allowed exceptions are explicit raw request escape
-    hatches, presigned upload object PUTs, OAuth protocol plumbing, external school/QQ/NapCat APIs, and
-    documented non-OpenAPI endpoints such as OAuth userinfo fallback.
+  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, optional-bearer MCP transport with protected tool scope checks, bearer-only client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
+  acceptance:
+    given: Current business, admin, MCP, ingestion and calendar-feed routes declare their authentication.
+    when: The real generator builds the complete document.
+    then:
+    - Every authenticated operation advertises the mechanism appropriate to its route.
+    - Each ordinary bearer operation supplies nonempty registered feature scopes.
+    - Current subscriptions distinguish the optional calendar-feed scope from the required subscription scope.
+    test:
+      file: tests/unit/lib/openapi/openapi-generator.test.ts
+      name: openapi.security-schemes
+- id: openapi.rest-batch-unique-targets
+  category: validation
+  rule: REST todo completion/deletion, homework completion and comment-deletion batches reject duplicate normalized target IDs before any domain write. Distinct targets retain the feature's per-item outcome semantics.
+  acceptance:
+    given: A real authenticated owner, unchanged persisted todo, and the mounted REST batch handlers.
+    when: Send repeated IDs, whitespace-equivalent IDs, then distinct nonexistent targets to each batch route.
+    then:
+    - Repeated normalized targets return 400 and leave the stored record exactly unchanged.
+    - Distinct targets reach the domain service and return the ordered per-item failures.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.rest-batch-unique-targets
 - id: openapi.openapi-drift-gate
   category: consistency
-  rule: After server OpenAPI changes, regenerate public/openapi.generated.json and sync api/openapi.json
-    plus generated Go clients in CLI and Bot before publishing. Cross-repo CI should fail if copied OpenAPI
-    files drift from the server-generated contract.
+  rule: The committed server OpenAPI document exactly matches regeneration from the current route declarations and schemas.
+  acceptance:
+    given: The committed server artifact and current route/schema sources are available.
+    when: The real generator creates an OpenAPI document.
+    then:
+    - The generated document equals the entire committed artifact.
+    test:
+      file: tests/unit/lib/openapi/openapi-generator.test.ts
+      name: openapi.openapi-drift-gate
 - id: openapi.openapi-document-cache
   category: consistency
-  rule: GET /api/openapi serves one build-time serialized document per Worker isolate and allows public
-    clients and edge caches to reuse it for five minutes.
+  rule: GET /api/openapi serves the generated build artifact as JSON and permits public HTTP caching for 300 seconds.
+  acceptance:
+    given: The static asset binding supplies the generated OpenAPI JSON.
+    when: The actual OpenAPI route handles a GET request.
+    then:
+    - It reads openapi.generated.json and returns the artifact as JSON with public max-age=300.
+    test:
+      file: tests/unit/lib/openapi/openapi-route.test.ts
+      name: openapi.openapi-document-cache
 - id: openapi.rest-observability
   category: privacy
   rule: REST logging must never include bodies, credentials, query strings, exception messages, client-supplied
     correlation IDs, or resource IDs.
+  acceptance:
+    given: A request contains distinct private markers in its body, bearer, cookie, query, resource ID and correlation header.
+    when: The real REST observation wrapper records a successful response and a thrown error.
+    then:
+    - Neither console output nor analytics contains any private marker or exception message.
+    - The request body remains unread by observation.
+    test:
+      file: tests/unit/lib/api/api-observability.test.ts
+      name: openapi.rest-observability
 - id: openapi.authenticated-mutation-rate-limits
+  category: authorization
+  rule: Every authenticated end-user and admin REST mutation checks the shared mutation rate limit after authentication and before its write. REST and MCP use the same canonical feature action for equivalent operations.
+  acceptance:
+    given: Every declared business write and admin mutation, a real signed session, a resource-bound OAuth grant and rejecting limiter bindings.
+    when: Each actual REST entry point receives anonymous and authorized requests, using both session and bearer alternatives where supported.
+    then:
+    - Anonymous requests return 401 without consuming a budget.
+    - Authorized requests return 429 with Retry-After 60 before consuming the write body.
+    - Exactly one appropriate standard or batch binding receives the canonical feature action, deployment host and authenticated user ID.
+    test:
+      file: tests/integration/rest-mutation-rate-limit.test.ts
+      name: openapi.authenticated-mutation-rate-limits
+- id: openapi.rate-limit-production-budgets
   category: validation
-  rule: 'Authenticated end-user and admin REST mutations use Cloudflare rate-limit bindings keyed by deployment
-    host, user, and canonical feature action. Standard writes allow 60 checks per minute; batch writes
-    allow 10. REST and MCP share the same feature-action keys. The gate runs after authentication and
-    before mutation. Exceeded budgets return 429; missing or failing Cloudflare bindings fail closed with
-    503. Both responses include Retry-After: 60. Host-native development bypasses the gate explicitly.'
-- id: openapi.workspace-rate-limit-fallbacks
+  applies_to:
+  - business-rest-routes
+  expectation:
+    kind: rate_limit_budget
+    surface: deployment
+    period_seconds: 60
+    standard_limit: 60
+    batch_limit: 10
+  acceptance:
+    given: The production Worker deployment configuration declares mutation limiter bindings.
+    when: The configured periods and standard/batch limits are read.
+    then:
+    - Both bindings match the structured budget and use distinct namespaces.
+    test:
+      file: tests/unit/lib/cloudflare/wrangler-rate-limit-config.test.ts
+      name: openapi.rate-limit-production-budgets
+- id: openapi.rate-limit-key
+  category: consistency
+  rule: The mutation limiter keys its budget by normalized deployment host, authenticated user ID, and canonical feature action.
+  acceptance:
+    given: A mutation uses an uppercase deployment host and an authenticated user ID.
+    when: The real limiter adapter submits its budget check.
+    then:
+    - The key contains the lowercased host, user ID and exact feature action as separate fields.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-key
+- id: openapi.rate-limit-batch-binding
   category: validation
-  rule: 'For the workspace pin HTML form, rate-limit rejection skips the write and redirects with an error
-    marker; JSON/API callers receive 429 or 503 directly. Catalog link visits are best-effort analytics
-    writes: rejection skips click recording but preserves the target redirect.'
+  rule: A batch-tier mutation consumes the batch limiter and never the standard-write limiter.
+  acceptance:
+    given: Independent standard and batch bindings are available.
+    when: The limiter checks a batch-tier action.
+    then:
+    - Exactly one batch check occurs and the standard binding remains unused.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-batch-binding
+- id: openapi.rate-limit-host-native-bypass
+  category: behavior
+  rule: Host-native development without a Cloudflare runtime bypasses the mutation budget.
+  acceptance:
+    given: No Cloudflare runtime is installed in the current execution context.
+    when: The production limiter checks a mutation.
+    then:
+    - The mutation is allowed.
+    test:
+      file: tests/unit/lib/adapters/user-mutation-rate-limit.test.ts
+      name: openapi.rate-limit-host-native-bypass
+- id: openapi.rate-limit-rejection
+  category: validation
+  rule: After successful authentication, an exhausted REST mutation budget returns status 429, the standard error envelope and Retry-After of 60 seconds.
+  acceptance:
+    given: A verified active write principal and a rejecting limiter binding.
+    when: The REST authorization boundary checks the mutation budget.
+    then:
+    - It returns 429 with the rate-limit error envelope and Retry-After 60 instead of an authorized principal.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.rate-limit-rejection
+- id: openapi.rate-limit-unavailable
+  category: validation
+  rule: Once a Cloudflare runtime exists, a missing or throwing limiter fails closed with status 503, the standard error envelope and Retry-After of 60 seconds.
+  acceptance:
+    given: An authenticated write request and a runtime with a missing or throwing binding.
+    when: The REST authorization boundary checks the mutation budget in each failure mode.
+    then:
+    - It returns 503 with the unavailable error envelope and Retry-After 60 instead of an authorized principal.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.rate-limit-unavailable
+- id: openapi.read-rate-limit-exclusion
+  category: behavior
+  rule: An authorized REST read does not consume the authenticated mutation budget.
+  acceptance:
+    given: A verified active read-only principal and an exhausted mutation binding.
+    when: The REST authorization boundary processes a read.
+    then:
+    - It returns the authenticated user without invoking the mutation limiter.
+    test:
+      file: tests/unit/lib/auth/auth-helpers.test.ts
+      name: openapi.read-rate-limit-exclusion
+- id: openapi.pin-form-rate-limit-fallback
+  category: behavior
+  rule: When pinning is denied by exhausted or unavailable mutation budgets, an HTML form receives a redirect with the error marker and no pin write occurs.
+  acceptance:
+    given: The authorization boundary returns 429 or 503 for a pin form submission.
+    when: The actual pin route handles the response for an HTML client.
+    then:
+    - It redirects with workspaceLinkPinError=1 without calling the write service.
+    test:
+      file: tests/unit/features/catalog-links/workspace-link-pin-route.test.ts
+      name: openapi.pin-form-rate-limit-fallback
+- id: openapi.pin-json-rate-limit-response
+  category: consistency
+  rule: JSON pin clients receive the original rate-limit 429 or 503 response including Retry-After, and no pin write occurs.
+  acceptance:
+    given: The authorization boundary returns 429 or 503 for a pin request accepting JSON.
+    when: The actual pin route handles the response.
+    then:
+    - It preserves the exact response and Retry-After header without calling the write service.
+    test:
+      file: tests/unit/features/catalog-links/workspace-link-pin-route.test.ts
+      name: openapi.pin-json-rate-limit-response
+- id: openapi.link-visit-rate-limit-fallback
+  category: behavior
+  rule: Catalog link visits still redirect to the public destination when the click-recording mutation budget is exhausted or unavailable; the rejected click is not recorded.
+  acceptance:
+    given: A session principal visits a valid catalog link while the limiter rejects, throws or is missing from the runtime.
+    when: The actual link route checks the click budget.
+    then:
+    - Every failure mode preserves the destination redirect and skips click recording.
+    test:
+      file: tests/unit/features/catalog-links/catalog-link-visit-route.test.ts
+      name: openapi.link-visit-rate-limit-fallback
 - id: openapi.rate-limit-accuracy-boundary
   category: consistency
   rule: 'Mutation throttles are abuse controls, not exact accounting: Cloudflare counters are per-location,
     permissive, and eventually consistent. Contracts do not promise a global exact quota, remaining count,
     or reset timestamp. OAuth/provider endpoints retain Better Auth''s separate limiter, and anonymous/read-only
     POST utilities are outside the authenticated mutation budget.'
+  acceptance:
+    given: A real session and REST server with rejecting or throwing mutation budget bindings.
+    when: Submit a todo mutation, anonymous utility POSTs, a scoped read-only subscription query and a provider
+      session read under both failure modes.
+    then:
+    - Mutation failures contain only the standard error and retry delay, without quota/remaining/reset promises.
+    - Utility and provider requests succeed without consuming the authenticated mutation budget.
+    - Better Auth keeps its independently enabled provider limiter.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.rate-limit-accuracy-boundary
 - id: openapi.unknown-api-json-errors
   category: validation
   rule: Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of
     falling through to the HTML application error page.
+  acceptance:
+    given: An unknown API path reaches the API catch-all handler.
+    when: The real handler returns its response.
+    then:
+    - Status is 404.
+    - Content type is application/json; charset=utf-8.
+    - 'The exact body is { error: Not found }.'
+    test:
+      file: tests/unit/lib/api/api-unknown-route.test.ts
+      name: openapi.unknown-api-json-errors
 - id: openapi.pagination-query-parameter
   category: validation
-  rule: Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit
-    alias remains accepted during migration, and pageSize takes precedence when both are supplied. Public
-    catalog list routes accept page between 1 and 100, bounding the largest allowed offset to 9900 rows.
-- id: openapi.public-catalog-query-boundaries
+  rule: The shared REST page parser uses page and pageSize; an undeclared limit query parameter has no
+    pagination alias semantics. Endpoints with a native limit input keep their separately declared contract.
+  acceptance:
+    given: Page requests contain pageSize, an undeclared limit parameter, both, or neither.
+    when: The production route query parser resolves pagination.
+    then:
+    - pageSize alone selects the requested size; the former alias does not affect the default or override
+      pageSize.
+    test:
+      file: tests/unit/lib/api/api-route-query-validation.test.ts
+      name: openapi.pagination-query-parameter
+- id: openapi.public-catalog-search-boundaries
   category: validation
-  rule: Public catalog REST search strings accept 2-200 characters. Omitted locale deterministically means
-    zh-cn; locale=en-us selects English. Runtime cache keys are derived from canonical locale, response
-    shape, parsed filters, and pagination, so transport field order and ignored raw query parameters cannot
-    create distinct entries.
+  applies_to:
+  - business-rest-routes
+  expectation:
+    kind: string_input
+    surface: service
+    operation: catalogSearchSchema
+    input: search
+    min_length: 2
+    max_length: 200
+    trim: true
+    length_unit: utf16_code_units
+  rationale: The three catalog REST query schemas share this bounded search input. The technical length bound follows JavaScript string length after trimming, including supplementary Unicode characters.
+  acceptance:
+    given: Course, section and teacher query schemas receive omitted, boundary, overlong, whitespace and supplementary-Unicode search strings.
+    when: Each production schema validates the query.
+    then:
+    - Omission is accepted; provided strings are trimmed and validated against the structured length bounds.
+    - Valid values are preserved after trimming; invalid values are rejected.
+    test:
+      file: tests/unit/lib/api/public-catalog-search-specification.test.ts
+      name: openapi.public-catalog-search-boundaries
+- id: openapi.public-catalog-locale
+  category: consistency
+  rule: Omitted public catalog REST locale deterministically selects zh-cn. An explicit en-us or zh-cn selects that variant; cookies and Accept-Language cannot personalize it.
+  acceptance:
+    given: Requests omit locale or explicitly select either supported locale while carrying conflicting locale cookies and headers.
+    when: The actual public catalog locale resolver handles each request.
+    then:
+    - Omission selects zh-cn; explicit input selects the corresponding public variant regardless of cookies or headers.
+    test:
+      file: tests/unit/lib/api/public-catalog-locale.test.ts
+      name: openapi.public-catalog-locale
+- id: openapi.public-catalog-query-canonicalization
+  category: consistency
+  rule: Public course, section and teacher REST list queries canonicalize equivalent IDs and retain the first repeated parameter; query ordering and undeclared parameters do not change the parsed read request.
+  acceptance:
+    given: Equivalent list queries vary field order, numeric zero padding, repeated values and undeclared parameters.
+    when: Each actual REST handler parses the queries.
+    then:
+    - Each response succeeds and the shared read model receives identical canonical inputs with bounded default pagination.
+    test:
+      file: tests/unit/features/catalog/catalog-api-list-canonicalization.test.ts
+      name: openapi.public-catalog-query-canonicalization
+- id: openapi.public-catalog-cache-key
+  category: consistency
+  rule: Catalog list cache identities include entity kind, locale, response shape, parsed filters, page and page size; filter key order and set-valued ID order do not create distinct entries.
+  acceptance:
+    given: Equivalent filter maps and variants changing kind, locale, shape, a filter, page or page size.
+    when: The production cache key and namespace functions serialize them.
+    then:
+    - The canonical key has sorted fields and IDs; every semantic variation has a different identity.
+    test:
+      file: tests/unit/features/catalog/catalog-runtime-cache.test.ts
+      name: openapi.public-catalog-cache-key
 - id: openapi.paginated-list-envelope
   category: consistency
-  rule: Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages.
-    Resource-specific list metadata is nested under meta instead of introducing alternate collection keys;
-    REST and equivalent MCP list tools share this core envelope.
-- id: openapi.created-resource-status
+  rule: Paginated REST list endpoints return data and pagination with page, pageSize, total and totalPages. Resource-specific list metadata is nested under meta. Empty collections have total zero and one addressable empty page; out-of-range pages return empty data while retaining the total.
+  rationale: MCP projections are declared per tool and are not all REST-shaped lists; their own feature contracts own those envelopes.
+  acceptance:
+    given: The live OpenAPI document identifies every paginated REST GET operation and an authenticated admin fixture can read all list scopes.
+    when: Actual Worker requests retrieve pages one and two with pageSize one for every declared paginated list.
+    then:
+    - Every response uses the core envelope with only optional meta alongside it.
+    - Pagination fields, total-page calculation, data length and page-to-page totals are consistent for populated and empty collections.
+    test:
+      file: tests/integration/rest/openapi/list-contracts.test.ts
+      name: openapi.paginated-list-envelope
+- id: openapi.todo-created-status
   category: consistency
-  rule: POST /api/workspace/todos, /api/community/comments, /api/community/section-homeworks, and /api/admin/suspensions
-    return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting
-    operations continue to return 200.
+  rule: Creating a Todo through POST /api/workspace/todos returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new Todo request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/workspace/todos.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/todos/test.ts
+      name: openapi.todo-created-status
+- id: openapi.homework-created-status
+  category: consistency
+  rule: Creating a section homework through POST /api/community/section-homeworks returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new section homework request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/community/section-homeworks.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/homeworks/test.ts
+      name: openapi.homework-created-status
+- id: openapi.comment-created-status
+  category: consistency
+  rule: Creating a comment through POST /api/community/comments returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new comment request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/community/comments.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/comments/test.ts
+      name: openapi.comment-created-status
+- id: openapi.suspension-created-status
+  category: consistency
+  rule: Creating a suspension through POST /api/admin/suspensions returns 201 Created and a relative Location header naming the new resource.
+  acceptance:
+    given: An authorized client and a valid new suspension request.
+    when: The actual Worker accepts the POST and persists the resource.
+    then:
+    - Status is 201 and Location contains the returned new resource ID under /api/admin/suspensions.
+    - The response and subsequent reads identify the created resource.
+    test:
+      file: tests/integration/rest/admin/suspensions/test.ts
+      name: openapi.suspension-created-status
+- id: openapi.state-setting-status
+  category: consistency
+  rule: Successful idempotent upserts and state-setting REST operations return 200 rather than advertising creation of a distinct resource with 201.
+  acceptance:
+    given: Isolated user, section, homework, comment, event, organizer, todo and notification fixtures
+      behind the actual REST modules and production database roles.
+    when: Repeat sixteen description, preference, pin, subscription, reaction, completion, and read-state
+      operations through HTTP.
+    then:
+    - Both the initial and repeated successful request return200, matching OpenAPI and never claiming201.
+    - Each requested state persists exactly once under its intended owner and target.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.state-setting-status
 - id: openapi.schema-query-parsing
   category: validation
   rule: Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are
     validated and converted once by their declared Zod schemas. Route handlers consume those typed results
     and return validation responses without re-wrapping them; pagination and comma-separated ID lists
     keep their dedicated normalizers.
-- id: openapi.api-docs-responsive-navigation
+  acceptance:
+    given: The production REST handlers, declared Zod schemas and query parsers, with domain reads observed
+      at their boundary.
+    when: Supply valid date, integer and boolean query values and invalid variants to bus, schedule,
+      subscribed schedule, overview, todo and homework reads.
+    then:
+    - Each request runs its declared schema exactly once and forwards converted values to the domain read.
+    - Invalid input returns the parser's original400 Response without calling the domain read.
+    - Dedicated pagination and homework ID-list normalization remain separate from scalar conversion.
+    test:
+      file: tests/unit/lib/api/query-consumption-contract.test.ts
+      name: openapi.schema-query-parsing
+- id: openapi.api-docs-mobile-navigation
   category: presentation
-  rule: At 390x844, the selected API reference begins within the first viewport while the complete route-based
-    navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete
-    sticky sidebar remains visible beside the reference.
+  rule: At 390x844, the selected API reference begins within the first viewport while the complete route navigation remains available in a labeled, closable mobile sheet. Following a sheet link changes the route and closes the sheet.
+  acceptance:
+    given: The API reference is loaded at a 390x844 viewport.
+    when: A reader opens and dismisses the navigation sheet, then follows a listed operation.
+    then:
+    - The reference begins inside the first viewport without horizontal overflow.
+    - The labeled sheet contains all desktop navigation destinations; Escape closes it and restores focus.
+    - Choosing an operation changes the path, closes the sheet and presents the selected reference in the first viewport.
+    test:
+      file: tests/e2e/src/app/api/docs/test.ts
+      name: openapi.api-docs-mobile-navigation
+- id: openapi.api-docs-desktop-navigation
+  category: presentation
+  rule: At desktop widths the complete API reference navigation remains visible in a sticky sidebar beside the selected reference.
+  acceptance:
+    given: The API reference is loaded at a 1280x800 viewport.
+    when: The actual sidebar and reference layout are inspected.
+    then:
+    - The sidebar is visible to the left of the reference, uses sticky positioning and marks the selected group.
+    - The mobile sheet trigger is hidden.
+    test:
+      file: tests/e2e/src/app/api/docs/test.ts
+      name: openapi.api-docs-desktop-navigation
 - id: openapi.room-maps
-  category: behavior
-  rule: GET /api/catalog/rooms/{code}/map (catalog_rooms_map) returns a public room map object; invalid
-    code syntax returns 400.
+  category: validation
+  rule: The REST room-map route rejects invalid room-code syntax with 400; equivalent GraphQL and MCP boundaries also reject it instead of looking up a different room.
+  rationale: Public data availability and cross-transport room-map projection are canonically owned by room-map.public.
+  acceptance:
+    given: A room code contains invalid path syntax.
+    when: The actual REST, Yoga and MCP room-map boundaries receive the input.
+    then:
+    - REST returns 400, GraphQL BAD_USER_INPUT and MCP an unsuccessful tool result.
+    test:
+      file: tests/integration/mcp/catalog/room-maps.test.ts
+      name: openapi.room-maps
 - id: openapi.subscription-kind
   category: behavior
   rule: PATCH /api/workspace/subscriptions/{jwId} updates the current user subscription kind; returns
     404 for missing subscriptions. Personal subscription read objects include kind.
+  acceptance:
+    given: An isolated owner has one subscription and a second user has none.
+    when: Actual HTTP adapters update all three supported kinds and read the owner's current subscriptions.
+    then:
+    - Each owner update returns200 with sectionJwId and kind, and the read object contains that kind.
+    - The second user receives404 without creating a subscription or modifying the owner's row.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: openapi.subscription-kind
+- id: openapi.build-generation
+  category: consistency
+  rule: Production builds regenerate the server OpenAPI artifact, and the repository check rejects a changed artifact.
+  acceptance:
+    given: The production build and OpenAPI check commands are configured in package.json.
+    when: Their actual command definitions are inspected.
+    then:
+    - The build regenerates OpenAPI before building the application.
+    - The OpenAPI check regenerates then rejects a diff in the committed artifact.
+    test:
+      file: tests/unit/lib/openapi/openapi-workflow-contract.test.ts
+      name: openapi.build-generation
+- id: openapi.public-catalog-pagination-bounds
+  category: validation
+  rule: Public catalog list page and pageSize inputs are integers from 1 through 100.
+  acceptance:
+    given: Each catalog list receives page or pageSize at valid boundaries or invalid numeric forms.
+    when: The production REST schemas validate the query.
+    then:
+    - 1 and 100 pass; zero, negative, fractional, excessive, non-finite and empty input fail.
+    test:
+      file: tests/unit/lib/api/api-schemas.test.ts
+      name: openapi.public-catalog-pagination-bounds
 capabilities:
   api-docs-page:
     title: API Docs Page
@@ -143,6 +512,7 @@ capabilities:
       pages:
       - /api/docs/tag/catalog-section
     presentation:
+      kind: interaction
       items:
       - REST endpoints generated by annotations
       - Grouped route navigation
@@ -162,6 +532,7 @@ capabilities:
       routes:
       - path: /api/openapi
     presentation:
+      kind: protocol
       items:
       - OpenAPI 3.x JSON
       - Annotated routes with schemas
@@ -173,6 +544,7 @@ capabilities:
     web: stable
     rest: stable
     presentation:
+      kind: protocol
       items:
       - REST routes for business logic
       - Each with path, method, request/response types where annotated
@@ -221,9 +593,19 @@ capabilities:
         notes:
         - Plain liveness endpoint with no dependency checks.
     presentation:
+      kind: protocol
       items:
       - Metadata endpoint
       - Locale endpoint
       - Health endpoint
       - OAuth/provider catch-all endpoints
       - Webhook endpoint via Better Auth catch-all
+rationale:
+- The workspace exam REST contract is owned by exam.owned-page-completeness, exam.rest-read-scope and exam.rest-date-semester-filters; client pagination completeness is verified in the CLI and Bot repositories.
+- The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional
+  product layer.
+- Public documentation helps callers understand the existing product capability boundaries, not to introduce
+  a separate developer-specific business model.
+- REST private response defaults, CDN no-store and opt-in viewer-independent caching are owned by rendering-and-cache.personal-overlays-8, rendering-and-cache.personal-overlays-9 and rendering-and-cache.personal-overlays-10.
+- Cross-surface conformance is decomposed into the atomic ownership, identifier, pagination, time, mutation, error and freshness requirements in interface-hierarchy; it is not duplicated as a catch-all OpenAPI acceptance item.
+- Generated business-client usage is owned by openapi.cli-generated-business-client in the CLI repository and openapi.bot-generated-business-client in the Bot repository. Each has its own native AST plus HTTP acceptance in internal/cmd/root/generated_contract_test.go and internal/life/generated_contract_test.go respectively. Server schema drift alone cannot establish either client contract.

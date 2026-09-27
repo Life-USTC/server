@@ -19,7 +19,6 @@ export type SectionListLabels = {
   courseName: string;
   courseCode: string;
   credits: string;
-  creditValue: string;
   department: string;
   educationLevel: string;
   filterDescription: string;
@@ -62,6 +61,7 @@ export type SectionListLabels = {
   sectionCode: string;
   semester: string;
   showing: string;
+  showingOne: string;
   subtitle: string;
   summary: {
     filters: string;

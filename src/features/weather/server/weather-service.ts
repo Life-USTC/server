@@ -5,12 +5,17 @@ import { writeWeatherHistory } from "./weather-history";
 import { mergeWeatherSnapshots } from "./weather-merge";
 import { getWeatherLocation, type WeatherSnapshot } from "./weather-types";
 
+const SNAPSHOT_FRESHNESS_MS = 15 * 60 * 1000;
+
 export async function getWeatherSnapshot(
   locationKey: string,
 ): Promise<WeatherSnapshot | null> {
+  const cached = await readWeatherCache(locationKey);
+  const cacheAge = cached ? Date.now() - Date.parse(cached.fetchedAt) : NaN;
   const snapshot =
-    (await readWeatherCache(locationKey)) ??
-    (await refreshWeatherSnapshot(locationKey));
+    cached && cacheAge >= 0 && cacheAge < SNAPSHOT_FRESHNESS_MS
+      ? cached
+      : await refreshWeatherSnapshot(locationKey);
   if (!snapshot) return null;
 
   // Select on every read: the cached provider series also covers tomorrow

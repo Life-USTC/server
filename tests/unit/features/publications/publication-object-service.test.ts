@@ -95,6 +95,7 @@ describe("publication object upload", () => {
     const stream = body("abc");
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: stream,
         principal,
         payload: {
@@ -130,6 +131,7 @@ describe("publication object upload", () => {
   it("rejects a request size that differs from the batch manifest", async () => {
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -153,6 +155,7 @@ describe("publication object upload", () => {
 
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -215,6 +218,7 @@ describe("publication object upload", () => {
 
     await expect(
       uploadPublicationObject({
+        contentType: canonicalContentType,
         body: body("abc"),
         principal,
         payload: {
@@ -508,6 +512,7 @@ describe("publication object upload", () => {
     mocks.bucket.put.mockRejectedValueOnce(new Error("R2 unavailable"));
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -534,6 +539,7 @@ describe("publication object upload", () => {
 
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -556,6 +562,7 @@ describe("publication object upload", () => {
     mocks.bucket.get.mockResolvedValueOnce({ body: body("bad") });
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -586,6 +593,7 @@ describe("publication object upload", () => {
     });
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -605,6 +613,7 @@ describe("publication object upload", () => {
     mocks.bucket.get.mockResolvedValueOnce(null);
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -652,6 +661,7 @@ describe("publication object upload", () => {
     mocks.batchFindUnique.mockResolvedValueOnce({ id: "batch-1" });
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -670,6 +680,7 @@ describe("publication object upload", () => {
     mocks.batchFindUnique.mockResolvedValueOnce(null);
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -699,6 +710,7 @@ describe("publication object upload", () => {
     mocks.batchObjectFindFirst.mockResolvedValueOnce(badClaim);
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {
@@ -723,6 +735,7 @@ describe("publication object upload", () => {
 
     await expect(
       uploadPublicationObject({
+        contentType: "text/plain",
         body: body("abc"),
         principal,
         payload: {

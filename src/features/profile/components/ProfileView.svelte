@@ -21,10 +21,8 @@ type Profile = {
       comments: number;
       uploads: number;
       homeworksCreated: number;
-      subscribedSections: number;
     };
   };
-  sectionCount: number;
   copy: ProfileCopy;
   locale: AppLocale;
   weeks: ContributionCell[][];
@@ -38,12 +36,11 @@ $: copy = profile.copy.publicProfile;
 $: dateFormatter = createShanghaiDateTimeFormatter(profile.locale, {
   dateStyle: "medium",
 });
-$: displayName = user.name ?? user.username ?? copy.idLabel;
+$: displayName = user.name?.trim() || user.username?.trim() || copy.idLabel;
 $: initials = displayName.slice(0, 1).toUpperCase();
 $: joinedDate = dateFormatter.format(new Date(user.createdAt));
 
 $: stats = [
-  { label: copy.stats.sections, value: profile.sectionCount },
   { label: copy.stats.comments, value: user._count.comments },
   { label: copy.stats.uploads, value: user._count.uploads },
   { label: copy.stats.homeworks, value: user._count.homeworksCreated },

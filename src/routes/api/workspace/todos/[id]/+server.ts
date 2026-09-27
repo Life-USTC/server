@@ -13,6 +13,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.todo:write
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchTodoRoute(request, { id: params.id }))(request);
@@ -26,6 +27,7 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.todo:write
  */
 export const DELETE: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => deleteTodoRoute(request, { id: params.id }))(request);

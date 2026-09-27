@@ -41,6 +41,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
                     orderBy: [
                       { semester: { jwId: "desc" as const } },
                       { code: "asc" as const },
+                      { jwId: "asc" as const },
                     ],
                     take: SECTION_RELATED_PREVIEW_LIMIT,
                     select: sectionPageRelatedSectionSelect,

@@ -15,6 +15,7 @@ import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseListLabels,
@@ -30,7 +31,7 @@ export let totalPages: number;
 
 $: locale = $appPage.data.locale ?? "zh-cn";
 $: courseSummaryBase = catalogShowingSummary(
-  courseLabels.showing,
+  data.pagination.total === 1 ? courseLabels.showingOne : courseLabels.showing,
   data.data.length,
   data.pagination.total,
 );
@@ -59,7 +60,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
               {#snippet child({ props })}
                 <a href={courseHref} {...props}>
                   <Item.Content>
-                    <Item.Title>{catalogLocalizedDisplayName(course, locale)}</Item.Title>
+                    <Item.Title><CatalogEntityName item={course} {locale} /></Item.Title>
                   </Item.Content>
                   <Item.Actions>
                     <TruncatedCode text={course.code} />
@@ -95,10 +96,12 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
             {@const courseHref = `/catalog/courses/${course.jwId}`}
             <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
-                <CatalogTableLink href={courseHref}>
-                  <TruncatedText
+                <CatalogTableLink class="font-medium" href={courseHref}>
+                  <TruncatedText class="font-medium"
                     text={catalogLocalizedDisplayName(course, locale)}
-                  />
+                  >
+                    {#snippet children()}<CatalogEntityName item={course} {locale} />{/snippet}
+                  </TruncatedText>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell>

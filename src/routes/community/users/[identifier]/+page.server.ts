@@ -18,7 +18,9 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
   if (!profile) error(404, copy.common.userNotFound);
   const layoutData = await layoutDataPromise;
   const displayName =
-    profile.user.name || profile.user.username || copy.publicProfile.idLabel;
+    profile.user.name?.trim() ||
+    profile.user.username?.trim() ||
+    copy.publicProfile.idLabel;
   const description =
     locals.locale === "zh-cn"
       ? `${displayName} 的 Life@USTC 公开主页`
@@ -28,9 +30,15 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
     ...profile,
     copy,
     locale: locals.locale,
-    socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      description,
-      title: `${displayName} - Life@USTC`,
-    }),
+    socialMetadata: {
+      ...updateSocialMetadata(layoutData.socialMetadata, {
+        description,
+        title: `${displayName} - Life@USTC`,
+      }),
+      canonicalUrl: new URL(
+        `/community/users/${encodeURIComponent(profile.user.username || profile.user.id)}`,
+        layoutData.socialMetadata.canonicalUrl,
+      ).href,
+    },
   };
 };

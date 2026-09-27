@@ -824,7 +824,7 @@ describe("publication ingestion transaction", () => {
     });
   });
 
-  it("self-heals a stale object manifest that has no verified bytes", async () => {
+  it("rejects a conflicting object manifest before bytes are verified", async () => {
     const sha256 =
       "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
     const stale = {
@@ -844,41 +844,24 @@ describe("publication ingestion transaction", () => {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     };
 
-    const response = await ingestPublicationBatch({
-      payload: payloadFor(
-        {
-          revisionHash:
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          observedAt: "2026-09-02",
-          objects: [healed],
-        },
-        "batch-size-heal-updated",
-      ),
-      principal,
-    });
-
-    expect(response.results[0].status).toBe("updated");
-    expect(fake.state.objects.size).toBe(1);
-    expect([...fake.state.objects.values()][0]).toMatchObject({
-      size: healed.size,
-      contentType: healed.contentType,
-      status: "pending",
-    });
-    expect([...fake.state.claims.values()][1]).toMatchObject({
-      expectedSha256: sha256,
-      expectedSize: healed.size,
-      expectedContentType: healed.contentType,
-    });
-    expect(logAppEventMock).toHaveBeenCalledWith(
-      "warn",
-      "Self-healing stale publication object manifest",
-      expect.objectContaining({
-        kind: stale.kind,
-        sha256,
-        previousSize: stale.size,
-        size: healed.size,
+    await expect(
+      ingestPublicationBatch({
+        payload: payloadFor(
+          {
+            revisionHash:
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            observedAt: "2026-09-02",
+            objects: [healed],
+          },
+          "batch-size-heal-updated",
+        ),
+        principal,
       }),
-    );
+    ).rejects.toBeInstanceOf(PublicationIngestionBadRequestError);
+
+    expect(fake.state.objects.size).toBe(1);
+    expect([...fake.state.objects.values()][0]).toMatchObject(stale);
+    expect(fake.state.claims.size).toBe(1);
   });
 
   it("accepts a same-revision replay with a MIME alias", async () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "./comment-component-types";
@@ -7,6 +8,7 @@ export let close: () => void;
 export let commentCopy: CommentsCopy;
 export let deleteComment: () => void;
 export let deleting: boolean;
+export let error: string;
 export let open: boolean;
 </script>
 
@@ -25,6 +27,9 @@ export let open: boolean;
         <AlertDialog.Title id="delete-comment-title">{commentCopy.deleteConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>{commentCopy.deleteConfirmDescription}</AlertDialog.Description>
       </AlertDialog.Header>
+      {#if error}
+        <Alert.Root variant="destructive"><Alert.Description>{error}</Alert.Description></Alert.Root>
+      {/if}
       <AlertDialog.Footer>
         <AlertDialog.Cancel disabled={deleting} type="button" variant="outline">
           {commentCopy.cancelAction}

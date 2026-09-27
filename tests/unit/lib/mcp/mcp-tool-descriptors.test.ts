@@ -577,7 +577,7 @@ describe("MCP tool descriptors", () => {
     ).toBe(true);
   });
 
-  it("validates canonical collection output schemas across compatibility modes", async () => {
+  it("validates canonical collection output schemas in default mode", async () => {
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
     const mcpServer = new McpServer({
@@ -624,14 +624,6 @@ describe("MCP tool descriptors", () => {
       async () => jsonToolResult(todoPayload, { mode: "default" }),
     );
     mcpServer.registerTool(
-      "return_todos_summary",
-      {
-        description: "Return summary todo payload through the shared helper.",
-        outputSchema: getMcpToolOutputSchema("workspace_todo_list"),
-      },
-      async () => jsonToolResult(todoPayload, { mode: "summary" }),
-    );
-    mcpServer.registerTool(
       "return_next_buses_default",
       {
         description: "Return default next-bus payload with a nullable message.",
@@ -652,10 +644,6 @@ describe("MCP tool descriptors", () => {
         name: "return_todos_default",
         arguments: {},
       });
-      const summaryResult = await client.callTool({
-        name: "return_todos_summary",
-        arguments: {},
-      });
       const busResult = await client.callTool({
         name: "return_next_buses_default",
         arguments: {},
@@ -663,11 +651,6 @@ describe("MCP tool descriptors", () => {
 
       expect(defaultResult.structuredContent).toMatchObject({
         counts: todoPayload.counts,
-        todos: [expect.objectContaining({ id: "todo-1" })],
-      });
-      expect(summaryResult.structuredContent).toMatchObject({
-        counts: todoPayload.counts,
-        success: true,
         todos: [expect.objectContaining({ id: "todo-1" })],
       });
       expect(busResult.structuredContent).toMatchObject({
@@ -681,6 +664,16 @@ describe("MCP tool descriptors", () => {
   });
 
   it("keeps compact and full Markdown output schemas mutually strict", () => {
+    const viewer = {
+      userId: "viewer-1",
+      name: null,
+      image: null,
+      isAdmin: false,
+      isAuthenticated: true,
+      isSuspended: false,
+      suspensionReason: null,
+      suspensionExpiresAt: null,
+    };
     const fullComment = {
       id: "comment-1",
       body: "Source Markdown",
@@ -735,7 +728,7 @@ describe("MCP tool descriptors", () => {
           rootId: "comment-1",
           thread: [compactComment],
           nextCursor: null,
-          viewer: {},
+          viewer,
         },
         full: {
           success: true,
@@ -743,7 +736,7 @@ describe("MCP tool descriptors", () => {
           rootId: "comment-1",
           thread: [fullComment],
           nextCursor: null,
-          viewer: {},
+          viewer,
         },
       },
       {
@@ -1328,6 +1321,90 @@ describe("MCP tool descriptors", () => {
     } finally {
       await client.close();
       await mcpServer.close();
+    }
+  });
+
+  it("mcp.tool-result-envelope", async () => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const server = new McpServer({ name: "envelope-contract", version: "1" });
+    installMcpToolDescriptorDefaults(server);
+    let response: unknown = jsonToolResult({ success: true });
+    server.registerTool(
+      "envelope_probe",
+      {},
+      async () => response as ReturnType<typeof jsonToolResult>,
+    );
+    const client = new Client({
+      name: "envelope-contract-client",
+      version: "1",
+    });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    try {
+      for (const payload of [
+        { success: true },
+        { success: false, error: "not_found", message: "Missing" },
+        [1, 2],
+        "scalar",
+        null,
+      ]) {
+        response = jsonToolResult(payload, { mode: "full" });
+        const result = await client.callTool({
+          name: "envelope_probe",
+          arguments: {},
+        });
+        expect(result.isError).not.toBe(true);
+        expect(result.structuredContent).toEqual(
+          payload !== null &&
+            typeof payload === "object" &&
+            !Array.isArray(payload)
+            ? payload
+            : { success: true, result: payload },
+        );
+        expect(
+          JSON.parse((result.content as Array<{ text: string }>)[0].text),
+        ).toEqual(result.structuredContent);
+      }
+      for (const malformed of [
+        { content: [{ type: "text", text: "{}" }] },
+        {
+          structuredContent: { success: "yes" },
+          content: [{ type: "text", text: '{"success":"yes"}' }],
+        },
+        { structuredContent: { success: true }, content: [] },
+        {
+          structuredContent: { success: true },
+          content: [{ type: "text", text: "invalid-json" }],
+        },
+        {
+          structuredContent: { success: true },
+          content: [{ type: "text", text: '{"success":false}' }],
+        },
+      ]) {
+        response = malformed;
+        const result = await client.callTool({
+          name: "envelope_probe",
+          arguments: {},
+        });
+        expect(result.isError).toBe(true);
+        expect(result.structuredContent).toBeUndefined();
+        expect((result.content as Array<{ text: string }>)[0].text).toMatch(
+          /^MCP tool result/,
+        );
+      }
+      const missing = await client.callTool({
+        name: "unregistered_tool",
+        arguments: {},
+      });
+      expect(missing.isError).toBe(true);
+      expect(missing.structuredContent).toBeUndefined();
+      expect((missing.content as Array<{ text: string }>)[0].text).toContain(
+        "not found",
+      );
+    } finally {
+      await client.close();
+      await server.close();
     }
   });
 

@@ -2,7 +2,15 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-test("global search shortcut returns catalog results", async ({ page }) => {
+test.beforeEach(async ({ page }) => {
+  page.on("pageerror", (error) => {
+    throw error;
+  });
+});
+
+test("global search shortcut returns catalog results", async ({
+  page,
+}, testInfo) => {
   await gotoAndWaitForReady(page, "/");
 
   await page.keyboard.press("Control+k");
@@ -27,6 +35,9 @@ test("global search shortcut returns catalog results", async ({ page }) => {
       .getByRole("option", { name: /Advanced Linear Algebra|MATH2001/ })
       .first(),
   ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("global-search-results.png"),
+  });
 });
 
 test("global search returns Chinese catalog matches", async ({ page }) => {

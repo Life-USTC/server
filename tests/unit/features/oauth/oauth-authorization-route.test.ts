@@ -61,7 +61,15 @@ async function signedOAuthQuery(overrides: Record<string, string> = {}) {
     exp: String(Math.floor(Date.now() / 1000) + 600),
     ...overrides,
   });
-  query.set("sig", await makeSignature(query.toString(), AUTH_SECRET));
+  for (const name of [...new Set([...query.keys(), "ba_param"])].sort()) {
+    query.append("ba_param", name);
+  }
+  const canonical = new URLSearchParams(
+    [...query.entries()].sort(([ak, av], [bk, bv]) =>
+      ak < bk ? -1 : ak > bk ? 1 : av < bv ? -1 : av > bv ? 1 : 0,
+    ),
+  );
+  query.set("sig", await makeSignature(canonical.toString(), AUTH_SECRET));
   return query.toString();
 }
 

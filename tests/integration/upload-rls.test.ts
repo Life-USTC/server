@@ -312,7 +312,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             ${new Date("2026-01-01T00:00:00.000Z")}
           )
         `),
-      ).resolves.toEqual([{ createdAt, totalUploads: 1n }]);
+      ).resolves.toEqual([{ createdAt: null, totalUploads: 0n }]);
     });
   },
 );

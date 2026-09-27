@@ -2,289 +2,551 @@ kind: policy
 id: interface-hierarchy
 title: Canonical capabilities and surface parity
 requirements:
-- id: interface-hierarchy.interface-hierarchy-1
-  category: consistency
-  topic: interface-hierarchy
-  rule: This document defines the canonical information architecture shared by the Life@USTC web app, REST
-    API, GraphQL API, MCP server, Bot, and CLI.
-- id: interface-hierarchy.interface-hierarchy-2
-  category: consistency
-  topic: interface-hierarchy
-  rule: The same business capability keeps consistent domain naming, data scope, ownership, effects and
-    error semantics wherever it is exposed. Anonymous availability and OAuth grants are declared per
-    surface; intentional authentication differences must be explicit in the feature specification.
-- id: interface-hierarchy.interface-hierarchy-3
-  category: consistency
-  topic: interface-hierarchy
-  rule: Each transport may use its native syntax.
-- id: interface-hierarchy.interface-hierarchy-4
-  category: consistency
-  topic: interface-hierarchy
-  rule: The server repository is the source of truth for Web, REST, GraphQL, and MCP.
-- id: interface-hierarchy.interface-hierarchy-5
-  category: consistency
-  topic: interface-hierarchy
-  rule: Bot and CLI entries are integration contracts verified in their repositories.
-- id: interface-hierarchy.canonical-tree-1
-  category: consistency
-  topic: canonical-tree
-  rule: '`me`, `viewer`, `my`, `own`, and `dashboard` are not formal hierarchy names.'
 - id: interface-hierarchy.canonical-tree-2
   category: consistency
   topic: canonical-tree
-  rule: They may appear in explanatory prose, but not in canonical routes, GraphQL fields, MCP tools, capability
-    IDs, or CLI command paths.
+  rule: Canonical product Web and business REST route segments, capability IDs, GraphQL business fields and MCP tools do not use me, viewer, my, own, or dashboard as hierarchy names. This rule does not rename
+    third-party protocol fields, private internal hydration routes or internal helper variables. CLI command naming is verified in its own repository.
+  acceptance:
+    given: The complete product route tree, executable GraphQL business fields, MCP scope registry and persisted-operation registry.
+    when: Inspect published hierarchy segments and operation identifiers.
+    then:
+    - No published product hierarchy uses me, viewer, my, own or dashboard as a segment.
+    - Dynamic parameters and internal-only hydration paths remain implementation details.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-tree-2
 - id: interface-hierarchy.surface-mapping-1
   category: consistency
   topic: surface-mapping
-  rule: GraphQL queries use real object hierarchy rather than underscore-encoded RPC names.
+  rule: GraphQL business queries are organized below Query.catalog, Query.workspace, Query.community, and Query.account
+    rather than underscore-encoded RPC query fields.
+  acceptance:
+    given: The executable GraphQL schema and the canonical business scopes declared by this policy.
+    when: The test enumerates Query fields and the fields exposed by each scope object.
+    then:
+    - Query contains exactly account, catalog, community, and workspace objects.
+    - Each scope exposes business fields without underscore-encoded RPC names.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-1
 - id: interface-hierarchy.surface-mapping-2
   category: consistency
   topic: surface-mapping
-  rule: Mutation fields remain at the root because GraphQL only guarantees serial execution for root mutation
-    fields.
+  rule: Business mutation fields are defined directly on GraphQL Mutation, not beneath nested query or mutation
+    objects.
+  acceptance:
+    given: The executable GraphQL schema and every compiled registered mutation document.
+    when: The test compares every mutation document root with Mutation fields and traverses every Query-reachable object type.
+    then:
+    - Every business mutation is selected directly below Mutation and has a matching executable root field.
+    - No Query-reachable object exposes a Mutation root field or nests the Mutation object.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-2
 - id: interface-hierarchy.surface-mapping-3
   category: consistency
   topic: surface-mapping
   rule: A mutation's capability ID still contains its full scope.
-- id: interface-hierarchy.surface-mapping-4
-  category: consistency
-  topic: surface-mapping
-  surfaces: [graphql]
-  rule: 'GraphQL catalog and public community query fields are available anonymously; native MCP tools
-    retain their declared authorization scopes.'
-- id: interface-hierarchy.surface-mapping-5
-  category: consistency
-  topic: surface-mapping
-  surfaces: [graphql]
-  rule: 'GraphQL Query.workspace and Query.account return null when there is no authenticated principal.
-    This does not define the HTTP status of protected REST endpoints.'
-- id: interface-hierarchy.surface-mapping-6
-  category: consistency
-  topic: surface-mapping
-  rule: '`admin` is not exposed through GraphQL or MCP unless a concrete governance client and threat model
-    are approved.'
+  acceptance:
+    given: The mutation capability document, executable persisted operations and MCP scope registry.
+    when: Resolve every mutation binding to its compiled operation and native or registered MCP entry.
+    then:
+    - Each mutation capability and its registered operation retain the same canonical scope.
+    - A generic GraphQL runner points to a scoped registered operation rather than defining an unscoped business capability.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-3
 - id: interface-hierarchy.canonical-actions-1
   category: consistency
   topic: canonical-actions
-  rule: Service identifiers do not use `view`, `query`, or `by_id`.
-- id: interface-hierarchy.canonical-actions-2
-  category: consistency
-  topic: canonical-actions
-  rule: 'Human interfaces may adapt actions without changing semantics: CLI `complete` / `reopen` and Bot “完成”
-    / “恢复” map to the capability action `completion_set`.'
+  rule: Published capability action names do not use view, query, or by_id. Internal implementation helper
+    names are outside this naming rule.
+  acceptance:
+    given: The actual MCP tool scope and GraphQL operation registries.
+    when: Inspect the published action component of every identifier.
+    then:
+    - Published actions do not end in view, query or by_id.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-actions-1
 - id: interface-hierarchy.canonical-actions-3
   category: consistency
   topic: canonical-actions
-  rule: 'Plural capability domains are reserved for genuinely batch operations: `workspace_todo_delete` is
-    single-item and `workspace_todos_delete` is batch.'
+  rule: 'Todo and comment record-deletion capabilities distinguish singular domains for single-item deletion from plural domains for batch deletion. Batch results and registered-runner support are explicit; collective state domains such as bus preferences do not imply batch semantics.'
+  acceptance:
+    given: Single and batch todo/comment deletion capabilities and compiled operation variable types.
+    when: Compare domain names, cardinality, result semantics and MCP transport mode.
+    then:
+    - Singular record deletion accepts a single identifier; plural deletion accepts a collection and per-item results.
+    - Native single-item calls and registered batch execution remain explicitly distinguished.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-actions-3
 - id: interface-hierarchy.canonical-actions-4
   category: consistency
   topic: canonical-actions
-  rule: Inputs, payloads, partial-success behavior, and retry guidance must make the distinction explicit.
-- id: interface-hierarchy.representative-cross-surface-contract-1
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: The first column is the capability ID (also the MCP name where exposed), not a promise that Bot exposes
-    that tool.
-- id: interface-hierarchy.representative-cross-surface-contract-2
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: The bus map is Web-only.
-- id: interface-hierarchy.representative-cross-surface-contract-3
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: A dash in a client column means there is no dedicated command.
+  rule: Each batch capability declares structured per-surface identifier types, raw input limits and duplicate handling, separately from result shape, transaction atomicity and safe retry behavior. The canonical mutation contract references the owning feature requirements.
+  acceptance:
+    given: The complete canonical mutation document, strict schema, executable operation registry and requirement IDs.
+    when: Validate each batch contract and try removing typed contract fields or substituting an undefined duplicate policy.
+    then:
+    - Every batch declares identifiers, limits and duplicate handling for its supported batch surfaces.
+    - Result shape, accepted-write atomicity and uncertain-result retry behavior are independent fields.
+    - References resolve to actual requirements; missing or free-form substitutes fail schema validation.
+    test:
+      file: tests/unit/policies/batch-specification-contract.test.ts
+      name: interface-hierarchy.canonical-actions-4
 - id: interface-hierarchy.representative-cross-surface-contract-4
   category: consistency
   topic: representative-cross-surface-contract
-  rule: '`workspace_calendar_feed_get` returns credential-free subscription information; the Bot and CLI feed
-    commands use REST with `workspace.subscription:read` to retrieve subscription information, plus `workspace.calendar-feed:read`
-    to include a private URL.'
-- id: interface-hierarchy.representative-cross-surface-contract-5
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: The MCP tool requires `workspace.subscription:read` and never includes that URL.
+  rule: GET /api/workspace/subscriptions/current permits a signed-in session or REST-audience OAuth with workspace.subscription:read. Only OAuth additionally granted workspace.calendar-feed:read receives the credential-bearing calendar URL; ordinary session reads and subscription-only tokens receive null URLs. The ICS retrieval endpoint is a separate capability.
+  acceptance:
+    given: Separate real session users and resource-bound OAuth tokens with different subscription and feed grants.
+    when: Real HTTP requests read current subscriptions using sessions, missing scopes, complete scopes and the wrong resource audience.
+    then:
+    - Session and subscription-read callers see only their own memberships.
+    - Only the token with both scopes at the REST audience receives the stored calendar credential and its separate feed URL.
+    - Missing subscription scope, anonymous requests and a wrong audience return 401 without membership or credential data.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.representative-cross-surface-contract-4
 - id: interface-hierarchy.representative-cross-surface-contract-6
   category: consistency
   topic: representative-cross-surface-contract
-  rule: Complete personal calendar clients use `GET /api/workspace/calendar/events`, `workspace.calendarEvents`,
-    or `workspace_calendar_event_list` and the same Shanghai date bounds.
-- id: interface-hierarchy.representative-cross-surface-contract-7
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: REST and GraphQL clients exhaust pagination instead of using the bounded overview as a calendar dataset.
-- id: interface-hierarchy.representative-cross-surface-contract-8
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: Individual Young event subscriptions add activities to this calendar and ICS; organizer follows only
-    produce daily new-event digests.
-- id: interface-hierarchy.representative-cross-surface-contract-9
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: See `docs/features/young-workspace.yaml` for the owner-scoped subscription and notification interfaces.
-- id: interface-hierarchy.representative-cross-surface-contract-10
-  category: consistency
-  topic: representative-cross-surface-contract
-  rule: Feature specifications in docs/features define product behavior, authorization, presentation and
-    supported interface bindings. Exact REST wire shapes come from public/openapi.generated.json and
-    GraphQL types from docs/graphql/schema.graphql.
-- id: interface-hierarchy.transport-specific-exceptions-1
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Authentication redirects, OAuth endpoints, cookie writes, and raw upload bytes are transport operations,
-    not business capabilities.
-- id: interface-hierarchy.transport-specific-exceptions-2
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: They do not need GraphQL or MCP equivalents.
+  rule: The complete personal calendar is available through the calendar-events capability. Its paginated results
+    cover all eligible events within the requested Shanghai date bounds; the bounded overview is not an exhaustive
+    calendar dataset.
+  acceptance:
+    given: An isolated subscriber has all five calendar event types plus enough todos to span eight pages, with out-of-range, undated and foreign-owner records.
+    when: Real REST and GraphQL requests read every page of an explicit Shanghai date range, and an OAuth MCP client reads the same range in default and full modes.
+    then:
+    - All 130 eligible events appear exactly once in chronological order across all three transports.
+    - Every page reports the full total and exact continuation state, while native MCP returns the complete range without sample truncation.
+    - Out-of-range and undated tasks are excluded; a different owner sees only that owner's eligible events.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/transport-completeness.test.ts
+      name: interface-hierarchy.representative-cross-surface-contract-6
 - id: interface-hierarchy.transport-specific-exceptions-3
   category: consistency
   topic: transport-specific-exceptions
-  rule: Public resource pages use /catalog/*, with explicit public landing, news, search, guide, policy and
-    API-documentation routes outside that prefix.
+  rule: Public academic and campus resource pages use /catalog/*. Public landing, community, news, search, guides, usage, policy and API-documentation pages keep their explicit public routes; account sign-in, OAuth and error pages retain their protocol roles. The public page inventory records these exceptions.
+  acceptance:
+    given: The actual page route tree, public page inventory and academic/campus feature Web bindings.
+    when: Compare every catalog binding with a real route and check public exception and obsolete root inventories.
+    then:
+    - Academic and campus pages use /catalog; public utility and protocol pages retain their explicit roots, and obsolete unscoped catalog pages do not exist.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-3
 - id: interface-hierarchy.transport-specific-exceptions-4
   category: consistency
   topic: transport-specific-exceptions
-  rule: Signed-in work uses /workspace/{overview,calendar,homeworks,todos,exams,subscriptions} and nested workspace
-    paths.
-- id: interface-hierarchy.transport-specific-exceptions-5
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Tree entries such as workspace/schedules and workspace/uploads are API/MCP/CLI capabilities and do
-    not imply a matching Web page.
-- id: interface-hierarchy.transport-specific-exceptions-6
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Bot exposes deterministic commands for frequent, short interactions.
-- id: interface-hierarchy.transport-specific-exceptions-7
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Its AI mode also discovers all tools published by the configured server MCP session through `search_campus_tools`
-    / `call_campus_tool`, using per-user MCP OAuth.
-- id: interface-hierarchy.transport-specific-exceptions-8
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: 'There is no client tool-name allowlist: schemas and read/write annotations come from the server.'
-- id: interface-hierarchy.transport-specific-exceptions-9
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Private MCP mutations use Bot's durable confirmation and execution records; interrupted writes with
-    an uncertain result are not automatically replayed.
-- id: interface-hierarchy.transport-specific-exceptions-10
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Server scopes and ownership checks still apply.
+  rule: Personal campus-work pages use /workspace/*; account settings use /account/settings/* and governance
+    pages use /admin/*. A capability without a Web binding does not create a corresponding page route.
+  acceptance:
+    given: The real page routes, workspace and settings navigation constants, governance inventory and feature Web bindings.
+    when: Resolve every workspace/settings link and every declared protected Web binding against the actual route tree.
+    then:
+    - Workspace, account-settings and governance routes retain their correct namespaces; Web uploads exist while API-only schedules do not create a page.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-4
 - id: interface-hierarchy.transport-specific-exceptions-11
   category: consistency
   topic: transport-specific-exceptions
-  rule: MCP resource and prompt readers supply the GraphQL schema and operation planning context.
-- id: interface-hierarchy.transport-specific-exceptions-12
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Shared conversations retain public host commands and do not expose MCP tools, resources, or prompts.
-- id: interface-hierarchy.transport-specific-exceptions-13
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: CLI-local configuration and Bot-local AI/tool settings are client state and remain outside the server
-    capability tree.
-- id: interface-hierarchy.transport-specific-exceptions-14
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Administration remains Web, REST, and CLI only by default.
-- id: interface-hierarchy.transport-specific-exceptions-15
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Surface symmetry is not permission to expose governance through GraphQL, MCP, or Bot.
-- id: interface-hierarchy.semantic-parity-1
+  rule: MCP schema resources expose the exact current canonical GraphQL SDL and the registered-operation manifest without executable operation documents, user identifiers or credentials. Planning prompt guidance is owned by graphql.graphql-operation-prompt.
+  acceptance:
+    given: A real authenticated MCP client, canonical SDL snapshot and compiled public operation manifest.
+    when: List and read the registered schema and operation resources.
+    then:
+    - Resource payloads exactly equal the canonical SDL and complete public manifest.
+    - The manifest omits executable documents and both resources omit the authenticated user identifier.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-11
+- id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on ownership and required permission or OAuth scope.
-- id: interface-hierarchy.semantic-parity-2
+  rule: Course, section and teacher discovery through REST, GraphQL and MCP selects the same ordered
+    identities and total for equivalent explicit common filters and page bounds. REST pageSize, GraphQL
+    PageInput.pageSize and MCP limit express the same requested page size. Course/section detail keys
+    are upstream JW IDs; teacher detail keys are database IDs. Only declared shared filters and ordering
+    controls participate in this equivalence; transport-specific inputs and defaults remain explicit.
+  acceptance:
+    given: The same isolated catalog contains distinct row/JW IDs, multiple courses, sections, teachers and filter relationships.
+    when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
+    then:
+    - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
+    - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
+    test:
+      file: tests/integration/catalog-semantic-parity.test.ts
+      name: interface-hierarchy.catalog-explicit-read-parity
+- id: interface-hierarchy.workspace-explicit-read-parity
   category: consistency
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on identifiers and accepted filters.
-- id: interface-hierarchy.semantic-parity-3
+  rule: Workspace todo, homework, schedule and exam reads select the same ordered identities for
+    the same owner and equivalent supported filters across REST, GraphQL and native MCP. Paginated
+    bindings return the corresponding slice and total; prefix-limited bindings return that prefix.
+    Shared homework retains each owner's own completion state. Unsupported filters and pagination
+    controls do not become implicit transport capabilities.
+  rationale: Todo REST and MCP and schedule REST and MCP use prefix limits; homework and exam REST
+    and all four GraphQL collections use pages. Native MCP collections use prefix limits. Todo
+    priority and due bounds are shared only by REST and GraphQL; homework completion and semester
+    filters and schedule semester filters are shared only by GraphQL and MCP. The native todo MCP
+    includeCompleted flag maps to all versus incomplete records, not a completed-only filter.
+  acceptance:
+    given: Three isolated owners, resource-bound OAuth credentials, a restricted database role,
+      overlapping and distinct subscriptions, differing homework completion and an empty workspace.
+    when: Real loopback REST, GraphQL and MCP HTTP requests read each collection with supported
+      common filters, two-item pages or limits and a limit large enough for the complete fixture.
+    then:
+    - Ordered identities equal the independently arranged fixture for each owner and filter, including reverse-inserted rows with tied primary sort keys.
+    - Paginated bindings report exact totals and an empty page after the end; prefix bindings return the requested prefix.
+    - Shared homework completion remains owner-specific and the empty owner receives no records.
+    test:
+      file: tests/integration/workspace-semantic-parity.test.ts
+      name: interface-hierarchy.workspace-explicit-read-parity
+- id: interface-hierarchy.public-schedule-read-parity
   category: consistency
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on pagination bounds and default ordering.
+  rule: Public REST and native MCP schedule discovery interpret shared section, teacher, room, weekday
+    and date filters identically and return the same date/start-time/row-ID ordered pages and totals.
+    Section-specific schedule reads use the external section JW ID and return the same requested prefix.
+  rationale: Numeric database IDs and public JW IDs remain distinct inputs; simultaneous selectors constrain
+    the same record. Section-specific reads expose a limit rather than paginated metadata.
+  acceptance:
+    given: An isolated catalog has separate row/JW IDs, teachers, rooms and schedules inserted in reverse
+      row-ID order with tied dates/start times, accessed through the restricted application database role.
+    when: Real anonymous loopback REST and MCP HTTP requests combine shared filters, exhaust two-item
+      pages, submit conflicting selectors and read section-JW-specific date ranges with explicit limits.
+    then:
+    - Both transports select exactly the expected ordered rows and totals, including empty/exhausted pages.
+    - Conflicting identifiers and row/JW substitutions select no rows; tied sort keys use ascending row IDs.
+    - Section-specific results retain the selected section JW identity and requested ordered prefix.
+    test:
+      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      name: interface-hierarchy.public-schedule-read-parity
+- id: interface-hierarchy.subscription-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST current-subscription and native MCP subscription-list reads return the complete owning user's
+    cross-semester section membership, including retired sections and each membership kind. GraphQL
+    subscribedSections pages select slices of that same sequence ordered by descending semester JW ID,
+    ascending section code and ascending unique section JW ID.
+  rationale: REST and MCP expose the complete set without page inputs; GraphQL declares page bounds and totals.
+    Current in the REST route names the user's current membership, not only the current semester.
+  acceptance:
+    given: Three isolated owners have distinct or empty membership, multiple semesters, retired records and
+      reverse-inserted sections with tied semester/code values, plus audience-bound OAuth credentials.
+    when: Real loopback REST, GraphQL and MCP HTTP reads use the restricted application database role;
+      REST also receives a forged userId selector and GraphQL exhausts two-item pages.
+    then:
+    - Every owner receives exactly their ordered section IDs, JW IDs and membership kinds across transports.
+    - GraphQL totals and exhausted pages match the complete REST/MCP sequence, including same-key boundaries.
+    - The empty owner receives no records and forged query identity cannot select another user's membership.
+    test:
+      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      name: interface-hierarchy.subscription-read-parity
+- id: interface-hierarchy.comment-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST and MCP comments use the same target meaning, stable root order, root pagination and
+    continuation cursors. Ten-reply previews and twenty-reply continuation batches retain required ancestors;
+    focus and permissions are viewer-specific. Internal targetId is distinct from sectionJwId.
+  acceptance:
+    given: Two isolated viewers read six equal-time roots and 36 equal-time replies inserted in reverse
+      order, with nested descendants, private roots and distinct row/JW identifiers.
+    when: Real loopback REST session and native MCP resource-bound bearer requests exhaust root pages,
+      exchange continuation cursors, focus nested replies and attempt malformed, foreign-root and missing keys.
+    then:
+    - Exact ordered root pages and totals, ten-reply previews and subsequent batches agree across both transports.
+    - Nested focus and reply-as-anchor retain required ancestors and root identity; complete DTOs and action authority match for each viewer.
+    - Anonymous REST hides logged-in-only roots; malformed cursors and missing targets retain declared HTTP and MCP error meanings.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.comment-read-parity
+- id: interface-hierarchy.public-homework-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public section homework reads retain the same target, stable due-date/creation/ID order and
+    owner-specific completion across REST and MCP. REST supports bounded pages and local/JW section
+    selectors; MCP takes one section JW ID and returns its full list without pagination. No GraphQL
+    public-homework collection is declared.
+  acceptance:
+    given: Two owners have different completions for shared homework with tied dates, unknown deadlines,
+      deleted rows and distinct local versus JW section IDs.
+    when: Real loopback REST session requests and native MCP resource-bound bearer requests read the
+      same sections; REST additionally exercises local-ID selectors, unions and pagination bounds.
+    then:
+    - Every REST page equals the corresponding slice of the independently ordered MCP full list, with complete totals and empty exhaustion.
+    - Owner completion differs correctly, anonymous REST completion is null, selector unions deduplicate, and invalid or missing targets preserve declared errors.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.public-homework-read-parity
+- id: interface-hierarchy.description-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Course, section, teacher and homework descriptions resolve the same declared public-reference
+    and internal target-ID forms through REST and MCP. Both return at most the latest 20 history entries
+    ordered by creation time descending then ID descending; an existing target without a description
+    returns an empty payload with a null updatedAt. Neither surface exposes caller-selected history pagination.
+  acceptance:
+    given: Four isolated target kinds have 25 history rows including 24 tied timestamps inserted against
+      expected order; additional targets have no description.
+    when: Real loopback REST session and native MCP resource-bound bearer requests resolve every supported
+      public-reference and internal target-ID form, mismatched identifiers and empty descriptions.
+    then:
+    - Full description and viewer payloads match after removing declared protocol envelopes, including the exact latest 20 history IDs.
+    - Wrong identifier forms are not silently reinterpreted, empty descriptions remain valid and reads do not mutate history.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.description-read-parity
+- id: interface-hierarchy.public-profile-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public profile identifiers resolve a case-insensitive username or exact user ID after trimming.
+    REST and full MCP expose the same public profile and contribution hierarchy; GraphQL intentionally
+    exposes only public identity. No projection exposes email or admin status.
+  acceptance:
+    given: An isolated administrator has a distinct public username, UUID, avatar and millisecond creation timestamp.
+    when: REST and Yoga handlers and the registered native MCP tool resolve username, uppercase username,
+      surrounding whitespace, exact ID and a missing identifier against the same database.
+    then:
+    - Found profiles share exact public identity and creation instant; REST and full MCP payloads match including zero contributions and the heatmap.
+    - GraphQL returns only its five declared identity fields, private fields are absent, and missing identities retain each transport's not-found representation.
+    test:
+      file: tests/integration/profile-link-read-parity.test.ts
+      name: interface-hierarchy.public-profile-read-parity
+- id: interface-hierarchy.link-pin-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST and MCP link-pin lists and the Web read model return only the current owner's pins in
+    creation-time ascending order with slug ascending for ties. Mutation results and oldest-pin overflow
+    use that same order. GraphQL has no link-pin collection read.
+  acceptance:
+    given: Three isolated owners include reverse-inserted pins with equal timestamps, distinct pins and no pins.
+    when: Real session-authenticated REST reads, registered MCP tools with synthetic scoped AuthInfo,
+      and bilingual Web read models load each owner's pins, then pin and unpin change the first owner's collection.
+    then:
+    - All readers preserve the exact independent order and empty state, ignore a foreign userId query and report the four-pin bound.
+    - The Web overview starts with that owner's ordered pins and overflow removes the deterministically oldest pin.
+    test:
+      file: tests/integration/profile-link-read-parity.test.ts
+      name: interface-hierarchy.link-pin-read-parity
+- id: interface-hierarchy.overview-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: All overview transports preserve authenticated-owner counts for the same explicit instant and
+    default seven-day lookahead. GraphQL is counts-only and accepts only atTime. REST and MCP additionally
+    preserve ordered samples and complete counts across supported limit and window inputs; compact and
+    full projections retain the same identifiers and operational facts.
+  acceptance:
+    given: Three isolated owners include an empty workspace, tied deadlines, completed and deleted work,
+      multiple schedules and exams, and records exactly on millisecond window boundaries.
+    when: Signed REST and GraphQL handlers and registered native MCP tools read the same anchor instant,
+      then REST and MCP vary sample limits, lookahead windows and projections.
+    then:
+    - All three return the exact owner counts and default seven-day window; GraphQL preserves anchor milliseconds.
+    - REST and MCP return the independently expected ordered samples and equal full sample DTOs without truncating counts.
+    - One-millisecond boundary shifts, empty owners and a foreign userId query preserve the declared inclusion and ownership rules.
+    test:
+      file: tests/integration/mcp/workspace/overview-transport-contract.test.ts
+      name: interface-hierarchy.overview-read-parity
+- id: interface-hierarchy.young-public-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public Young event and organizer REST, GraphQL and native MCP reads select equivalent ordered
+    identities and complete page totals for the same supported filters. Event filters distinguish source-active
+    membership from signup-open state and preserve activity versus registration date semantics, including unknown dates.
+  rationale: Events use active/start-date/unique-ID ordering by default and ascending selected time/ID for
+    date ranges. Organizer APIs use name/ID ordering; Web active-first grouping is a separate declared presentation.
+  acceptance:
+    given: An isolated database has events and organizers inserted in reverse order under tied sort keys,
+      independent source-active flags, both time bases and missing dates, accessed by the restricted app role.
+    when: Real REST handlers, the actual Yoga request handler and native MCP JSON-RPC handlers combine
+      category, module, level, search, organizer, date and unknown-date filters and exhaust two-item pages.
+    then:
+    - Single-character taxonomy values select the same rows on all surfaces; combinations and mismatched IDs retain exact meaning.
+    - Ordered IDs, complete totals, unknownDateCount and exhausted empty pages match the independently arranged fixture.
+    - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
+    test:
+      file: tests/integration/young-public-semantic-parity.test.ts
+      name: interface-hierarchy.young-public-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on Asia/Shanghai date boundaries and output timezone.
-- id: interface-hierarchy.semantic-parity-5
+  rule: REST, GraphQL and native MCP personal-calendar ranges interpret date-only and timezone-less bounds
+    in Asia/Shanghai and explicit-offset bounds as their represented instants. Equivalent bounds include the
+    same events at both inclusive endpoints and exclude events one millisecond outside. Timestamp strings
+    include an offset and represent equal instants; their literal offset spelling need not be identical.
+  rationale: This requirement owns cross-transport calendar boundary equivalence across all five event kinds.
+    Domain-specific time rules remain owned by semester.current-semester-by-rules, exam.completion-time-zone,
+    exam.rest-date-semester-filters, graphql.calendar-date-filter-normalization, young-event.shanghai-local-times,
+    young-event.date-range-overlap, bus.shanghai-time-interpretation, bus.weekday-by-shanghai-time,
+    weather.location-provider-mapping and ical.rfc5545-dtstamp-utc. UTC and +08:00 are equivalent timestamp
+    encodings, so enforcing the same textual offset across every protocol would add no user-visible correctness.
+  acceptance:
+    given: An isolated owner has schedule, exam, homework, todo and activity events plus todos exactly at and one millisecond outside the Shanghai window boundaries.
+    when: Real REST, GraphQL and MCP default/full requests read equivalent date-only, Shanghai-local, explicit +08:00 and UTC windows.
+    then:
+    - All transports return the same seven events and exact start/end instants with explicit timestamp offsets.
+    - Both endpoints are inclusive and the two outside records are absent.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/time-boundaries.test.ts
+      name: interface-hierarchy.semantic-parity-4
+- id: interface-hierarchy.public-detail-not-found-parity
   category: consistency
+  topic: domain-errors
+  rule: Missing public course, section, teacher, activity, organizer and user detail records return REST
+    404, a nullable GraphQL field and native MCP not_found without inventing a record. Missing bus-route
+    detail likewise returns GraphQL null and native MCP not_found; REST exposes a complete timetable
+    rather than a per-route detail counterpart. Native public-user reads retain their declared bearer gate.
+  acceptance:
+    given: Isolated public catalog, activity, organizer and user records have known existing and missing
+      identifiers; real services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests read each existing and missing
+      detail, with a resource-bound community.user read bearer for native profiles, then request an unknown bus route.
+    then:
+    - Existing detail controls succeed on all supported transports.
+    - Missing details return REST 404 and a not-found error, GraphQL 200 with null and no errors, or
+      native MCP 200 with success false and not_found; optional native found flags are false.
+    - Unknown bus-route detail is null in GraphQL and not_found with hasData false in native MCP.
+    - The reads leave the fixture's shared domain rows, completions, reactions, attachments and audit state unchanged.
+    test:
+      file: tests/integration/public-detail-error-parity.test.ts
+      name: interface-hierarchy.public-detail-not-found-parity
+- id: interface-hierarchy.private-delete-error-parity
+  category: authorization
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on mutation atomicity, partial-success shape, and
-    idempotency.
-- id: interface-hierarchy.semantic-parity-6
-  category: consistency
+  rule: Deleting a missing todo or upload and deleting another owner's private todo or upload are indistinguishable on each transport. REST and GraphQL return 404, GraphQL uses NOT_FOUND, and MCP returns success=false with not_found. Denied requests do not alter the foreign record.
+  acceptance:
+    given: Two isolated owners have a private todo and upload; the caller has valid audience-bound write credentials and the rate-limit boundary admits requests.
+    when: Real REST, GraphQL and MCP requests attempt deletion of both foreign and nonexistent IDs.
+    then:
+    - Foreign and missing responses have equal public error payloads within each transport and reveal no foreign owner identity.
+    - The exact stored foreign rows remain unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.private-delete-error-parity
+- id: interface-hierarchy.shared-delete-error-parity
+  category: authorization
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on stable error class and not-found behavior.
-- id: interface-hierarchy.semantic-parity-7
-  category: consistency
+  rule: Ordinary deletion of another author's visible comment or section homework returns a permission failure, while a missing target returns not_found. An author cannot delete a locked comment. REST and GraphQL encode permission failures as 403 (GraphQL FORBIDDEN); MCP distinguishes forbidden and locked. Rejections leave records unchanged.
+  acceptance:
+    given: An authenticated author, another author, visible shared content and an owned deleted comment exist; valid audience-bound tokens reach the actual services.
+    when: Real REST, GraphQL and MCP delete requests target foreign shared records, nonexistent records and the owned locked comment.
+    then:
+    - Missing records return 404/NOT_FOUND/not_found; foreign shared records return 403/FORBIDDEN/forbidden.
+    - The owned locked comment returns 403/FORBIDDEN/locked, and every rejected target remains unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.shared-delete-error-parity
+- id: interface-hierarchy.suspended-delete-error-parity
+  category: authorization
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on response freshness and mutation return snapshot.
-- id: interface-hierarchy.semantic-parity-8
-  category: consistency
-  topic: semantic-parity
-  rule: Every supported surface of a capability must agree on confirmation and retry guidance for destructive
-    or timeout-ambiguous writes.
+  rule: An actively suspended owner cannot delete comments, section homework or uploads. REST and GraphQL return 403, GraphQL uses FORBIDDEN and MCP returns success=false with suspended. The original record remains committed unchanged.
+  acceptance:
+    given: An isolated owner has a comment, homework and upload, valid audience-bound write tokens and an active suspension; rate limiting admits the requests.
+    when: Real REST, GraphQL and MCP requests attempt each owned deletion.
+    then:
+    - Every transport rejects the currently suspended actor with its declared permission encoding.
+    - All three complete stored records remain unchanged.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: interface-hierarchy.suspended-delete-error-parity
 - id: interface-hierarchy.semantic-parity-9
   category: consistency
   topic: semantic-parity
   rule: OAuth feature scopes use the complete canonical feature name, for example `community.comment:write`,
     `workspace.subscription:write`, and `workspace.upload:write`.
-- id: interface-hierarchy.semantic-parity-10
-  category: consistency
-  topic: semantic-parity
-  rule: Short forms such as `comment:write` are not accepted.
-- id: interface-hierarchy.semantic-parity-11
-  category: consistency
-  topic: semantic-parity
-  rule: Contract `required_scopes` are checked against the OAuth registry and native MCP equivalents by `graphql-contract-parity.test.ts`.
+  acceptance:
+    given: The canonical OAuth feature registry, compiled operations and complete MCP scope bindings.
+    when: Inspect every declared business scope.
+    then:
+    - Business scopes use the complete catalog, workspace, community or account feature name and a read/write action.
+    - GraphQL and MCP bindings reference registered scopes and never expose reserved admin scopes.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.semantic-parity-9
 - id: interface-hierarchy.semantic-parity-12
   category: consistency
   topic: semantic-parity
   rule: Public course/section lookups and subscription-kind updates use `jwId` at external boundaries.
+  acceptance:
+    given: Two isolated courses and sections have crossed row IDs and public JW IDs, and one user subscribes to both sections.
+    when: Real REST, GraphQL and native MCP read each record and update one subscription kind using the public ID.
+    then:
+    - Each lookup returns the record whose JW ID matches, even when another record has that numeric row ID.
+    - Each kind update changes only the section selected by its public JW ID.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.semantic-parity-12
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
   topic: semantic-parity
-  rule: CLI subscription `add`, `remove`, and `preview` still interpret numeric references as database section
-    IDs, as does their REST batch payload's `sectionIds`.
-- id: interface-hierarchy.semantic-parity-14
-  category: consistency
-  topic: semantic-parity
-  rule: Use section/course codes for these CLI commands to avoid confusing those IDs with the JW IDs used by
-    `subscription kind` and catalog detail commands.
+  rule: Subscription bindings declare every numeric identifier input in identifier_inputs using its exact
+    model field, including section row IDs, section JW IDs and semester row IDs. Nested GraphQL inputs use dotted paths.
+  acceptance:
+    given: The subscription specification, generated REST schemas, executable GraphQL schema and real MCP tool registry.
+    when: Inspect the numeric identifier inputs of every supported subscription operation.
+    then:
+    - Every input has one unambiguous structured model-field declaration matching its actual wire name.
+    - REST row-ID collection operations remain distinct from JW-ID single-section operations; semester selectors use Semester.id.
+    test:
+      file: tests/unit/contracts/subscription-identifier-bindings.test.ts
+      name: interface-hierarchy.semantic-parity-13
 - id: interface-hierarchy.semantic-parity-15
   category: consistency
   topic: semantic-parity
-  rule: GraphQL and native MCP subscription add/remove use JW IDs; Bot add/remove use section codes.
+  rule: GraphQL and native MCP single-section subscription add/remove resolve only public section JW IDs.
+    An equal-valued internal row ID of another section cannot redirect the membership change.
+  acceptance:
+    given: Two isolated sections have crossed internal row IDs and public JW IDs; the owner already subscribes to the witness section.
+    when: Actual GraphQL HTTP and native MCP add then remove the target using its JW ID.
+    then:
+    - Only the target membership changes; the complete witness membership, including its kind and timestamps, stays unchanged.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.semantic-parity-15
 - id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency
   topic: locale-caching-and-seo
-  rule: Canonical product URLs have no locale prefix or locale query segment.
-- id: interface-hierarchy.locale-caching-and-seo-2
-  category: consistency
-  topic: locale-caching-and-seo
-  rule: Locale is a presentation preference, not content identity.
+  rule: Canonical product Web URLs have no locale prefix or locale query segment. Explicit REST locale parameters are request inputs, not separate Web document identities.
+  acceptance:
+    given: The actual Web page route tree, complete concrete page inventory and production social metadata builder.
+    when: Inspect locale route segments and generate canonical metadata for each page in every supported locale with locale and tracking queries.
+    then:
+    - All locales retain the same path identity and canonical metadata strips locale, tracking and fragment state.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-1
 - id: interface-hierarchy.locale-caching-and-seo-3
   category: consistency
   topic: locale-caching-and-seo
-  rule: Chinese is the canonical indexable representation for shared public URLs.
-- id: interface-hierarchy.locale-caching-and-seo-4
-  category: consistency
-  topic: locale-caching-and-seo
-  rule: English is an adaptive experience on the same URL, not a separately indexed document.
+  rule: Shared public URLs use Chinese as their canonical indexable representation; English adapts presentation
+    on the same URL without creating a second locale-prefixed document identity.
+  acceptance:
+    given: Anonymous real course, section and teacher collection pages without a locale preference.
+    when: Read their default SSR HTML, then switch to Chinese and English and compare full raw social metadata on the same URLs.
+    then:
+    - Default HTML is Chinese and indexable; translated presentation retains the identical canonical URL without locale-prefixed alternatives.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-3
 - id: interface-hierarchy.locale-caching-and-seo-5
   category: consistency
   topic: locale-caching-and-seo
-  rule: Localized responses are private or vary on a safe locale cache key.
-- id: interface-hierarchy.locale-caching-and-seo-6
-  category: consistency
-  topic: locale-caching-and-seo
-  rule: Domain records prefer locale-neutral values with presentation localized at the edge.
+  rule: The internal shared public HTML entrypoint includes the resolved locale in its cache identity. Equivalent locale choices share a key regardless of preference source; Chinese and English representations never share one key.
+  acceptance:
+    given: Real Worker requests target public catalog list, detail and activity pages with default, language-header and cookie locale preferences.
+    when: The Worker dispatches them to its cached public HTML entrypoint.
+    then:
+    - Each forwarded cache key contains the resolved locale and representation mode.
+    - Equivalent cookie and language-header choices share a key while different locales use disjoint keys.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-5
 scopes:
 - id: catalog
   owns: Public academic and transit facts
@@ -474,7 +736,7 @@ surface_mappings:
   cli: workspace subscription kind <jwId> <kind>
 - capability: workspace_calendar_feed_get
   web: /workspace/subscriptions
-  rest: GET /api/calendar-feeds/:credential.ics
+  rest: GET /api/workspace/subscriptions/current
   graphql: —
   bot: 订阅 链接
   cli: workspace calendar feed
@@ -607,7 +869,7 @@ hierarchy:
 - path: account.sign-in
 - path: account.sign-out
 - path: account.preferences
-  description: locale only today
+  description: server-supported account preferences; browser theme is local presentation state
 - path: account.client-activity
 - path: account.authorizations
 - path: admin
@@ -635,6 +897,9 @@ graphql_roots:
   - busPreferences
   - linkPin
   - upload
+  - youngEventSubscription
+  - youngOrganizerSubscription
+  - youngNotification
 policy_refs:
 - permission-ui
 - rendering-and-cache
@@ -653,5 +918,304 @@ topics:
   title: Transport-Specific Exceptions
 - id: semantic-parity
   title: Semantic Parity
+  requirement_refs:
+  - interface-hierarchy.catalog-explicit-read-parity
+  - interface-hierarchy.workspace-explicit-read-parity
+  - interface-hierarchy.public-schedule-read-parity
+  - interface-hierarchy.subscription-read-parity
+  - interface-hierarchy.public-profile-read-parity
+  - interface-hierarchy.link-pin-read-parity
+  - interface-hierarchy.overview-read-parity
+  - interface-hierarchy.young-public-read-parity
+  - interface-hierarchy.public-homework-read-parity
+  - interface-hierarchy.description-read-parity
+  - interface-hierarchy.comment-read-parity
+  - semester.list-order-pagination
+  - catalog-link.transport-list-search-parity
+  - young-workspace.list-transport-pagination
+  - young-workspace.calendar-transport-pagination
+  - user.oauth-client-activity-isolation
+  - upload.paginated-upload-list
+  - comment.target-identifiers
+  - comment.rest-pagination-parameters
+  - comment.mcp-pagination-parameters
+  - publications.public-list-filters
+  - publications.read-transport-boundary
+  - admin.paginated-moderation-lists
+  - exam.owned-page-completeness
+  - exam.graphql-page-completeness
+  - exam.rest-date-semester-filters
+  - room-map.public
+  - weather.location-key-boundary
+  - bus.version-key-boundary
+  - bus.raw-data-returned
+  - bus.current-version-only
+- id: ownership-and-permissions
+  title: Ownership, suspension and per-surface authorization
+  requirement_refs:
+  - graphql.anonymous-roots
+  - graphql.session-query-authority
+  - graphql.scoped-query-auth
+  - graphql.workspace-ownership
+  - graphql.scoped-mutations
+  - oauth.rest-bearer-scopes
+  - oauth.authorization-management.active-user-grant-enforcement
+  - mcp.public-catalog-access
+  - mcp.invalid-credentials-no-downgrade
+  - mcp.resource-bound-access-token
+  - mcp.complete-batch-scope-enforcement
+  - mcp.graphql-authorization
+  - openapi.session-and-bearer
+  - todo.personal-ownership
+  - subscription.user-scoped
+  - subscription.kind-owner-existing-only
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - young-workspace.ownership
+  - homework.completion-owner
+  - homework.active-collaborator-write
+  - homework.oauth-write-gates
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - description.editor-authorization
+  - upload.write-auth-unsuspended
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - user.oauth-client-activity-isolation
+  - user.account-profile-oauth-projection
+  - user.public-comment-contribution-privacy
+  - user.public-upload-contribution-privacy
+  - user.private-workspace-profile-exclusion
+  - user.session-revocation-ownership
+  - user.account-deletion-session-authority
+  - user.sensitive-account-recent-auth
+  - oauth.authorization-reduction-ownership
+  - calendar.revoked-feed-access
+  - calendar.feed-auth-before-cache
+  - admin.admin-rest-session-only
+  - admin.suspended-admin-write-gate
+  - graphql.registered-operation-coverage
+  - mcp.personal-workspace-focus
+  - publications.public-read
+  - publications.public-object-read
+  - publications.service-auth
+- id: domain-errors
+  title: Domain failures and transport-specific error encoding
+  requirement_refs:
+  - interface-hierarchy.public-detail-not-found-parity
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - interface-hierarchy.comment-read-parity
+  - interface-hierarchy.public-homework-read-parity
+  - interface-hierarchy.description-read-parity
+  - todo.personal-ownership
+  - todo.single-delete-replay
+  - subscription.kind-owner-existing-only
+  - young-workspace.ownership
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - catalog-link.pin-error-clear
+  - homework.completion-owner
+  - homework.active-collaborator-write
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - comment.focused-read-errors
+  - comment.reply-read-errors
+  - description.editor-authorization
+  - upload.write-auth-unsuspended
+  - upload.storage-delete-retry
+  - graphql.safe-errors
+  - mcp.actionable-errors
+  - mcp.error-classification-shape
+  - room-map.public
+  - weather.location-key-boundary
+  - bus.version-key-boundary
+  - admin.admin-mutation-not-found
+  - openapi.unknown-api-json-errors
+  - openapi.rate-limit-rejection
+  - openapi.rate-limit-unavailable
+  - graphql.todo-batch-results
+  - graphql.homework-batch-results
+  - graphql.comment-batch-results
+  - graphql.subscription-batch-results
+  - graphql.pin-batch-failure
+- id: read-freshness
+  title: Read freshness and independently expiring clocks
+  requirement_refs:
+  - rendering-and-cache.global-search-freshness
+  - rendering-and-cache.sitemap-freshness
+  - rendering-and-cache.static-location-freshness
+  - rendering-and-cache.cache-layers-and-invalidation-4
+  - rendering-and-cache.cache-layers-and-invalidation-7
+  - course.public-detail-cache
+  - section.public-detail-cache
+  - teacher.public-detail-cache
+  - description.public-cache-invalidation
+  - young-event.shared-public-cache
+  - semester.current-semester-cache-invalidation
+  - bus.next-departures-uncached
+  - weather.cache-and-history
+  - weather.hourly-forecast-expiry
+  - publications.public-cache
+  - publications.object-cache-revalidation
+  - user.avatar-current-reference
+  - graphql.request-cache
+  - calendar.feed-cache-refresh
+  - calendar.feed-refresh-visible
+  - calendar.feed-auth-before-cache
+  - ical.committed-write-rebuilds
+  - admin.prometheus-gauge-cache
+  - openapi.openapi-document-cache
+- id: committed-mutation-results
+  title: Successful mutation results and committed owner state
+  requirement_refs:
+  - todo.personal-ownership
+  - subscription.user-scoped
+  - subscription.kind-owner-existing-only
+  - young-workspace.ownership
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - catalog-link.pin-limit
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - description.editor-authorization
+  - homework.active-collaborator-write
+  - homework.completion-owner
+  - upload.completion-retry
+  - upload.write-auth-unsuspended
+- id: destructive-effects-and-intent
+  title: Destructive effects, safe retries and confirmation authority
+  requirement_refs:
+  - todo.single-delete-replay
+  - comment.single-delete-replay
+  - homework.single-delete-replay
+  - upload.storage-delete-retry
+  - todo.batch-result-replay
+  - comment.batch-delete-results
+  - comment.batch-delete-shared-policy
+  - graphql.homework-batch-results
+  - subscription.duplicate-input-semantics
+  - homework.completion-set-idempotency
+  - young-workspace.ownership
+  - catalog-link.pin-owner-state
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - graphql.mutation-timeout-ambiguity
+  - graphql.graphql-operation-prompt
+  - graphql.mcp-mutation-confirmation
+  - cases.content-security.deletion-confirmation
+  - cases.content-security.destructive-actions-1
+  - upload.web-delete-feedback
+  - user.account-deletion-retention
+  - user.account-deletion-session-authority
+  - user.account-deletion-last-admin
+  - cases.account.deleted-session-revocation
+- id: mutation-result-contracts
+  title: Mutation atomicity, ordered results and retries
+  requirement_refs:
+  - interface-hierarchy.canonical-actions-3
+  - interface-hierarchy.canonical-actions-4
+  - todo.batch-result-replay
+  - graphql.todo-batch-results
+  - graphql.homework-batch-results
+  - homework.completion-set-idempotency
+  - graphql.subscription-batch-results
+  - subscription.duplicate-input-semantics
+  - subscription.membership-atomicity
+  - interface-hierarchy.semantic-parity-15
+  - graphql.pin-batch-order
+  - graphql.pin-batch-failure
+  - graphql.comment-batch-results
+  - comment.batch-delete-results
+  - comment.batch-delete-shared-policy
+  - openapi.rest-batch-unique-targets
+  - graphql.mutation-timeout-ambiguity
 - id: locale-caching-and-seo
   title: Locale, Caching, and SEO
+rationale:
+- The former semantic-parity-7 is indexed by read-freshness and committed-mutation-results, with ordered
+  batch results in mutation-result-contracts. The rendering-and-cache cache_contracts inventory records
+  each representation's actual layer, write invalidators and independent clock boundary. Mutation results
+  describe the committed write, while a subsequent read still follows its own cache contract; identity-only
+  or success-only response shapes do not promise a complete entity snapshot.
+- The former semantic-parity-8 is indexed by destructive-effects-and-intent and the finite effects/retry
+  contracts in mutation-capabilities. Permanent todo deletion, comment tombstones, replayable homework
+  tombstones and storage-first upload deletion retain distinct results. Replacing subscription, follow,
+  completion or pin state uses its existing set/batch owner. Uncertain timed-out mutations may still commit;
+  clients inspect current state before retrying. Web account/comment/upload dialogs and MCP GraphQL intent
+  confirmation are their actual declared flows, not a universal confirmation parameter for native writes.
+  Account/security/governance operations remain in their own session-authority contracts; Bot and CLI
+  confirmation/recovery implementations remain owned by their repositories.
+- This document defines the canonical information architecture shared by the Life@USTC web app, REST API, GraphQL
+  API, MCP server, Bot, and CLI.
+- Each transport may use its native syntax.
+- The server repository is the source of truth for Web, REST, GraphQL, and MCP.
+- Bot and CLI entries are integration contracts verified in their repositories.
+- 'Human interfaces may adapt actions without changing semantics: CLI `complete` / `reopen` and Bot “完成” /
+  “恢复” map to the capability action `completion_set`.'
+- The first column is the capability ID (also the MCP name where exposed), not a promise that Bot exposes that
+  tool.
+- A dash in a client column means there is no dedicated command.
+- REST and GraphQL clients exhaust pagination instead of using the bounded overview as a calendar dataset.
+- See `docs/features/young-workspace.yaml` for the owner-scoped subscription and notification interfaces.
+- Feature specifications in docs/features define product behavior, authorization, presentation and supported
+  interface bindings. Exact REST wire shapes come from public/openapi.generated.json and GraphQL types from
+  docs/graphql/schema.graphql.
+- Authentication redirects, OAuth endpoints, cookie writes, and raw upload bytes are transport operations,
+  not business capabilities.
+- A tree entry alone does not imply a Web page. Workspace schedules have no dedicated page; owned upload management has the explicit /workspace/uploads binding.
+- Bot exposes deterministic commands for frequent, short interactions.
+- CLI-local configuration and Bot-local AI/tool settings are client state and remain outside the server capability
+  tree.
+- Contract `required_scopes` are checked against the OAuth registry and native MCP equivalents by `graphql-contract-parity.test.ts`.
+- Locale is a presentation preference, not content identity.
+- Domain records prefer locale-neutral values with presentation localized at the edge.
+- Bot discovery, client annotation display, durable mutation confirmation, uncertain-write recovery and shared-conversation
+  isolation are client-owned contracts. Their implementation and native acceptance evidence belong in the Bot
+  repository; server token audience, feature scopes and ownership remain enforced here.
+
+- Anonymous GraphQL root access has one canonical obligation, graphql.anonymous-roots; its real HTTP acceptance covers null account/workspace roots and readable catalog/community roots.
+- Governance exclusion is owned by graphql.registered-operation-coverage for the executable GraphQL schema and mcp.personal-workspace-focus for the complete MCP tool inventory.
+- Cross-surface conformance is split into the atomic semantic-parity requirements below this policy; the former umbrella statement did not define an independent testable obligation.
+- Anonymous GraphQL catalog/community access is owned by graphql.anonymous-roots. MCP public access and authorization are owned by mcp.public-catalog-access, mcp.resource-bound-access-token and mcp.complete-batch-scope-enforcement; these transports intentionally have separate authentication contracts.
+- Administration uses declared Web and session-only REST bindings (admin.admin-rest-session-only and openapi.session-and-bearer). GraphQL and MCP governance exclusion belong to graphql.registered-operation-coverage and mcp.personal-workspace-focus. CLI does not expose session-only governance commands; cli.admin-session-boundary is verified in the CLI repository.
+
+- Locale-varying public data cache identity is owned by rendering-and-cache.cache-layers-and-invalidation-10. Delivered HTML privacy is owned by rendering-and-cache.cache-layers-and-invalidation-1; private HTTP CDN enforcement and public API opt-in are owned by rendering-and-cache.personal-overlays-10 and rendering-and-cache.personal-overlays-9. These are separate from the internal HTML locale-key contract.
+- Code-based subscription matching is canonically owned by cases.mcp-assistant-workflows.preview-before-write-1; preview and import resolve within the selected semester, with the current semester as the documented omitted-input default.
+
+- The former semantic-parity-5 combined independent batch transaction, result ordering and retry obligations.
+  Their canonical owners are the structured mutation-result-contracts topic and the per-capability batch_contract
+  entries in mutation-capabilities. Native single-item calls retain single-item effects; registered GraphQL batch
+  calls retain the selected batch contract. A successful prefix and a lost response never imply whole-batch rollback.
+- The former semantic-parity-2 and semantic-parity-3 duplicate the indexed domain read contracts.
+  Common-filter, target-identifier, stable-order and explicit-page equivalence is verified separately for
+  academic catalog, public schedules, owner workspace, subscriptions, overview, public profile, pins,
+  public/private Young data, public homework, descriptions, comments, semesters, campus links and uploads.
+  Each binding retains its actual pagination or prefix-list behavior; GraphQL overview remains counts-only,
+  MCP public homework has no pagination, and description history is a fixed latest-20 window.
+- Single-surface and intentionally different bindings retain their own feature requirements for publications,
+  metadata directories, admin collections, ancillary academic collections and Web collection layouts do not
+  acquire fictional GraphQL/MCP equivalents. These topic references neither change supported inputs and
+  defaults nor count as behavioral evidence; their existing canonical tests remain the acceptance owners.
+
+- The former semantic-parity-1 and semantic-parity-6 are indexed by ownership-and-permissions and
+  domain-errors. Their finite owners cover private todos, section and activity subscriptions, follows,
+  notifications, bus preferences, pins, homework completion, shared comments and attachments,
+  descriptions, shared homework, uploads, selected-field reads, public detail absence and protocol errors.
+  Private state remains owner-managed during suspension; collaborative and upload writes retain their
+  explicit suspension gates. Different authentication requirements never imply different business ownership.
+- The complete native MCP inventory has an HTTP anonymous-authorization boundary test. A public tool
+  reaching SDK parameter validation is evidence of passing that boundary, not evidence of a successful
+  domain read; each domain's own canonical covers successful data. Community public profiles, comments,
+  descriptions and homework retain authenticated native MCP access even where REST reads are anonymous.
+- Public nullable GraphQL details preserve absence as null, while equivalent REST and native MCP use
+  their declared not-found envelopes. Private foreign IDs retain ownership-hiding errors; visible shared
+  foreign records may report forbidden. Known domain failures are distinct from SDK input errors and
+  masked unexpected server faults. An in-memory tool test is not HTTP token or scope evidence.
+- Account credentials, sessions, grant management, calendar feed credentials, raw upload bytes, publication
+  ingestion and governance keep their explicit transport and threat-model boundaries. Their cited feature
+  owners remain authoritative; no missing GraphQL or native MCP equivalent is implied. Bot and CLI
+  command authorization and presentation remain verified in their own repositories.

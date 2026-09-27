@@ -15,7 +15,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
     const mcpClient = session.client;
     try {
       const metadataResponse = await request.get(
-        "/.well-known/oauth-authorization-server",
+        "/.well-known/oauth-authorization-server/api/auth",
       );
       expect(metadataResponse.status()).toBe(200);
 

@@ -47,7 +47,7 @@ describe("todo calendar export invalidation", () => {
     return { callbackFinished, commit, pending };
   }
 
-  it("does not enqueue a rebuild until the update transaction commits", async () => {
+  it("todo.update-calendar-after-commit", async () => {
     const { callbackFinished, commit, pending } = holdUpdateCommit();
     await callbackFinished.promise;
     const callsBeforeCommit = invalidateMock.mock.calls.length;
@@ -57,7 +57,7 @@ describe("todo calendar export invalidation", () => {
     expect(invalidateMock).toHaveBeenCalledExactlyOnceWith("user-1");
   });
 
-  it("does not enqueue a rebuild when the update transaction rolls back", async () => {
+  it("todo.update-calendar-rollback", async () => {
     const { callbackFinished, commit, pending } = holdUpdateCommit();
     const rejected = expect(pending).rejects.toThrow("commit failed");
     await callbackFinished.promise;

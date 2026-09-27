@@ -26,7 +26,7 @@ describe("Todo specification input behavior", () => {
     requireAuth.mockResolvedValue({ userId: "spec-owner" });
   });
 
-  it("enforces rest todo list limits and default", async () => {
+  it("todo.rest-list-limit", async () => {
     const rule = await todoExpectation("todo.rest-list-limit", "numeric_input");
     expect(rule.surface).toBe("rest");
     expect(rule.operation).toBe("GET /api/workspace/todos");
@@ -57,7 +57,7 @@ describe("Todo specification input behavior", () => {
     expect(queryRaw).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
   });
 
-  it("enforces mcp todo list limits and default", async () => {
+  it("todo.mcp-list-limit", async () => {
     const rule = await todoExpectation("todo.mcp-list-limit", "numeric_input");
     expect(rule.surface).toBe("mcp");
     const { listMyTodosInputSchema } = await import(

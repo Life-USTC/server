@@ -45,6 +45,7 @@ export function getAuthTrustedOrigins(): string[] {
   const localSiblingOrigin = getLocalSiblingOrigin(publicOrigin);
   return uniqueOrigins([
     publicOrigin,
+    getCanonicalOrigin(),
     ...(localSiblingOrigin ? [localSiblingOrigin] : []),
     ...getLocalOriginAlternates(publicOrigin),
     ...DEFAULT_LOCAL_AUTH_ORIGINS,

@@ -1,6 +1,5 @@
 import {
   buildUserProfileContributions,
-  loadPublicProfileSectionSubscriptionCount,
   loadPublicProfileUploadCount,
 } from "@/features/profile/server/user-profile-contributions";
 import type { Prisma } from "@/generated/prisma/client";
@@ -24,8 +23,15 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
       ...publicUserIdentitySelect,
       _count: {
         select: {
-          comments: true,
-          homeworksCreated: true,
+          comments: {
+            where: {
+              status: "active",
+              visibility: "public",
+              isAnonymous: false,
+              deletedAt: null,
+            },
+          },
+          homeworksCreated: { where: { deletedAt: null } },
         },
       },
     },
@@ -37,12 +43,10 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
     .subtract(364, "day")
     .startOf("day")
     .toDate();
-  const [{ totalContributions, weeks }, totalUploads, sectionCount] =
-    await Promise.all([
-      buildUserProfileContributions(prisma, user.id),
-      loadPublicProfileUploadCount(prisma, user.id, profileSince),
-      loadPublicProfileSectionSubscriptionCount(prisma, user.id),
-    ]);
+  const [{ totalContributions, weeks }, totalUploads] = await Promise.all([
+    buildUserProfileContributions(prisma, user.id),
+    loadPublicProfileUploadCount(prisma, user.id, profileSince),
+  ]);
 
   return toLoadData({
     user: {
@@ -50,11 +54,9 @@ async function getUserProfileData(where: Prisma.UserWhereUniqueInput) {
       _count: {
         comments: user._count.comments,
         homeworksCreated: user._count.homeworksCreated,
-        subscribedSections: sectionCount,
         uploads: totalUploads,
       },
     },
-    sectionCount,
     weeks,
     totalContributions,
   });

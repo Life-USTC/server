@@ -24,6 +24,7 @@ export function buildSettingsAccountProviders(
     return {
       ...provider,
       linked: Boolean(account),
+      canUnlink: false,
       accountId: account?.id ?? null,
       providerAccountId: account?.providerAccountId ?? null,
       ustcIdentities: provider.id === "oidc" && account ? ustcIdentities : null,

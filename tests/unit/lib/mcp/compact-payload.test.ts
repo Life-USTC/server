@@ -3,6 +3,143 @@ import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
 import { compactSchedule } from "@/lib/mcp/compact-entities";
 
 describe("compactMcpPayload MCP 载荷压缩", () => {
+  it("preserves task fields across nested compact entity branches", () => {
+    const course = {
+      id: 1,
+      jwId: 101,
+      code: "CS101",
+      nameCn: "计算机",
+      nameEn: "Computing",
+      credit: 4,
+      rawJson: { source: "omit" },
+    };
+    const teacher = {
+      id: 2,
+      jwId: 102,
+      personId: 202,
+      nameCn: "老师",
+      mobile: "omit",
+      department: { id: 3, nameCn: "学院", code: "omit" },
+    };
+    const section = {
+      id: 4,
+      jwId: 104,
+      code: "CS101.01",
+      course,
+      teachers: [teacher],
+      audit: "omit",
+    };
+    const payload = {
+      course,
+      teacher,
+      schedules: [
+        {
+          id: 5,
+          date: "2026-09-21",
+          weekday: 1,
+          startTime: "08:00",
+          endTime: "09:35",
+          customPlace: "101",
+          section,
+          rawJson: "omit",
+        },
+      ],
+      homeworks: [
+        {
+          id: "hw",
+          sectionId: 4,
+          title: "练习",
+          isMajor: false,
+          requiresTeam: true,
+          submissionDueAt: "2026-09-25T18:00:00+08:00",
+          section,
+          description: {
+            id: "desc",
+            content: "Markdown",
+            renderedHtml: "<p>omit</p>",
+          },
+          audit: "omit",
+        },
+      ],
+      todos: [
+        {
+          id: "todo",
+          title: "待办",
+          priority: "high",
+          completed: false,
+          content: "行动详情",
+          dueAt: "2026-09-25T18:00:00+08:00",
+          userId: "omit",
+        },
+        {
+          id: "done",
+          title: "已完成",
+          priority: "low",
+          completed: true,
+          content: "omit",
+        },
+      ],
+    };
+    const compactCourse = {
+      id: 1,
+      jwId: 101,
+      code: "CS101",
+      nameCn: "计算机",
+      nameEn: "Computing",
+    };
+    const compactTeacher = {
+      id: 2,
+      jwId: 102,
+      personId: 202,
+      nameCn: "老师",
+      department: { id: 3, nameCn: "学院" },
+    };
+    const compactSection = {
+      id: 4,
+      jwId: 104,
+      code: "CS101.01",
+      course: compactCourse,
+      teachers: [compactTeacher],
+    };
+    expect(compactMcpPayload(payload)).toEqual({
+      course: compactCourse,
+      teacher: compactTeacher,
+      schedules: [
+        {
+          id: 5,
+          date: "2026-09-21",
+          weekday: 1,
+          startTime: "08:00",
+          endTime: "09:35",
+          customPlace: "101",
+          section: compactSection,
+        },
+      ],
+      homeworks: [
+        {
+          id: "hw",
+          sectionId: 4,
+          title: "练习",
+          isMajor: false,
+          requiresTeam: true,
+          submissionDueAt: "2026-09-25T18:00:00+08:00",
+          section: compactSection,
+          description: { id: "desc", content: "Markdown" },
+        },
+      ],
+      todos: [
+        {
+          id: "todo",
+          title: "待办",
+          priority: "high",
+          completed: false,
+          content: "行动详情",
+          dueAt: "2026-09-25T18:00:00+08:00",
+        },
+        { id: "done", title: "已完成", priority: "low", completed: true },
+      ],
+    });
+  });
   it("preserves individual teacher facts while compacting teacher identity", () => {
     const participation = {
       teacher: { id: 1, jwId: 1001, nameCn: "教师", mobile: "private-contact" },

@@ -33,7 +33,7 @@ describe("欢迎页重定向策略", () => {
     expect(shouldRedirect("/sitemap.xml")).toBe(false);
   });
 
-  it("按协议形态允许 OAuth 回调继续，而非测试路径", () => {
+  it("user.auth-callback-not-intercepted", () => {
     expect(
       shouldRedirect(
         "/e2e/oauth/callback",
@@ -46,9 +46,6 @@ describe("欢迎页重定向策略", () => {
         "http://localhost:3000/custom/callback?error=access_denied&state=xyz",
       ),
     ).toBe(false);
-  });
-
-  it("不将仅含 state 的任意 URL 视为 OAuth 回调", () => {
     expect(shouldRedirect("/", "http://localhost:3000/?state=xyz")).toBe(true);
   });
 });

@@ -15,6 +15,10 @@ export async function updateSubscriptionKindTool(
   return jsonToolResult(
     result
       ? { success: true, ...result }
-      : { success: false, message: "Subscription not found" },
+      : {
+          success: false,
+          error: "not_found",
+          message: "Subscription not found",
+        },
   );
 }

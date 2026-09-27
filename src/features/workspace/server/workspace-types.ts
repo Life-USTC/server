@@ -8,6 +8,7 @@ export type SessionItem = {
   badge?: string;
   id: string;
   sectionJwId: number | null;
+  sectionCode: string | null;
   courseName: string;
   date: Date;
   startTime: number;

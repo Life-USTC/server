@@ -17,7 +17,11 @@ export function buildAuthorSummary(comment: RawComment) {
 
   return {
     id: user?.id,
-    name: user?.name ?? comment.authorName ?? null,
+    name:
+      user?.name?.trim() ||
+      user?.username?.trim() ||
+      comment.authorName?.trim() ||
+      null,
     image: user?.image ?? null,
     isUstcVerified,
     isAdmin: Boolean(user?.isAdmin),
@@ -85,10 +89,6 @@ export function shouldHideComment(
   );
 }
 
-export function shouldHideAuthor(
-  comment: RawComment,
-  viewer: ViewerInfo,
-  isAuthor: boolean,
-) {
-  return Boolean(comment.isAnonymous) && !viewer.isAdmin && !isAuthor;
+export function shouldHideAuthor(comment: RawComment) {
+  return Boolean(comment.isAnonymous);
 }

@@ -22,7 +22,7 @@ const settings = {
   remindStart: true,
 };
 describe("Young reminders", () => {
-  it("opens the deadline reminder window exactly 24 hours before the deadline", () => {
+  it("young-workspace.reminder-deadline-window", () => {
     expect(
       youngReminderCandidates(
         event,
@@ -41,7 +41,21 @@ describe("Young reminders", () => {
       [],
     );
   });
-  it("does not notify about registration opening before the user subscribed", () => {
+  it("young-workspace.reminder-start-window", () => {
+    for (const [at, expected] of [
+      ["2026-09-17T08:59:59+08:00", false],
+      ["2026-09-17T09:00:00+08:00", true],
+      ["2026-09-17T09:59:59+08:00", true],
+      ["2026-09-17T10:00:00+08:00", false],
+    ] as const) {
+      expect(
+        youngReminderCandidates(event, settings, new Date(at)).some(
+          (item) => item.kind === "event_start",
+        ),
+      ).toBe(expected);
+    }
+  });
+  it("young-workspace.reminders", () => {
     expect(
       youngReminderCandidates(
         event,

@@ -29,6 +29,7 @@ export const GET: RequestHandler = ({ request, params }) =>
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.section-homework:write
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchHomeworkRoute(request, { id: params.id }))(
@@ -45,6 +46,7 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.section-homework:write
  */
 export const DELETE: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => deleteHomeworkRoute(request, { id: params.id }))(

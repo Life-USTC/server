@@ -92,6 +92,7 @@ export const workspaceGraphqlOperationDefinitions = [
               updatedAt
               completed
               completedAt
+              completionRequired
               commentCount
               section {
                 id

@@ -11,7 +11,7 @@ const other = createIsolatedMcpToolTestContext({
 });
 
 describe("subscription kind transport", () => {
-  it("edits existing memberships and returns kind in both list modes", async () => {
+  it("mcp.subscription-kind-projection", async () => {
     const jwId = DEV_SEED.section.jwId;
     await owner.client.call("workspace_subscription_add", { jwId });
     expect(
@@ -27,32 +27,6 @@ describe("subscription kind transport", () => {
       }),
     ).toMatchObject({ success: false });
     await owner.client.call("workspace_subscription_add", { jwId });
-    const graphql = await owner.client.call<{
-      success: boolean;
-      data: { subscriptionKindUpdate: { kind: string } };
-    }>("graphql_operation_run", {
-      operationId: "workspace.subscription.kind.update.v1",
-      variables: { jwId, kind: "auditor" },
-      confirmed: true,
-    });
-    expect(graphql.success).toBe(true);
-    expect(graphql.data.subscriptionKindUpdate.kind).toBe("auditor");
-    const memberships = await owner.client.call<{
-      data: {
-        workspace: {
-          subscribedSections: {
-            items: Array<{ kind: string; section: { jwId: number } }>;
-          };
-        };
-      };
-    }>("graphql_operation_run", {
-      operationId: "workspace.subscription.list.v1",
-      variables: { page: { pageSize: 10 } },
-    });
-    expect(memberships.data.workspace.subscribedSections.items).toMatchObject([
-      { kind: "auditor", section: { jwId } },
-    ]);
-
     for (const mode of ["default", "full"]) {
       const list = await owner.client.call<{
         sections: Array<{ jwId: number; kind: string }>;

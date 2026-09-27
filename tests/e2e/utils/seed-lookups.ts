@@ -90,7 +90,7 @@ export async function resolveSeedSectionMatches(
     const matchedCodeSet = new Set(sections.map((section) => section.code));
     for (const code of seedCodes.filter((item) => !matchedCodeSet.has(item))) {
       const fallbackResponse = await request.get(
-        `/api/catalog/sections?search=${encodeURIComponent(code)}&limit=10`,
+        `/api/catalog/sections?search=${encodeURIComponent(code)}&pageSize=10`,
       );
       expect(fallbackResponse.status()).toBe(200);
       const fallbackBody = (await fallbackResponse.json()) as {
@@ -136,7 +136,7 @@ export async function resolveSeedTeacherId(
 ): Promise<number> {
   seedTeacherIdPromise ??= (async () => {
     const response = await getRequestContext(source).get(
-      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=10`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=10`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

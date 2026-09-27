@@ -37,6 +37,7 @@ export type SectionWithRelations = {
   badge?: string;
   id: number;
   jwId: number | null;
+  code: string | null;
   course: { namePrimary: string | null };
   semester: { id: number } | null;
   schedules: Array<{

@@ -339,7 +339,7 @@ describe("认证辅助函数", () => {
     expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("在认证成功后拒绝超过 REST 写入预算的请求", async () => {
+  it("openapi.rate-limit-rejection", async () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
@@ -373,7 +373,7 @@ describe("认证辅助函数", () => {
     });
   });
 
-  it("不为 REST 读取消耗写入预算", async () => {
+  it("openapi.read-rate-limit-exclusion", async () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
@@ -394,26 +394,36 @@ describe("认证辅助函数", () => {
     expect(limit).not.toHaveBeenCalled();
   });
 
-  it("Cloudflare 写入限流绑定缺失时返回 503", async () => {
-    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint: vi.fn() } });
+  it("openapi.rate-limit-unavailable", async () => {
+    const { requireAuth } = await import("@/lib/auth/api-auth");
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-id",
       scope: expandScopeClaim(ALL_PUBLIC_WRITE_SCOPES),
       sub: "user-from-token",
     });
-    const { requireAuth } = await import("@/lib/auth/api-auth");
-
-    const result = await requireAuth(
-      new Request("https://life.example/api/workspace/todos", {
-        method: "POST",
-        headers: { authorization: "Bearer write-token" },
-      }),
-      { bearerScope: { feature: "workspace.todo", action: "write" } },
-    );
-
-    expect(result).toBeInstanceOf(Response);
-    expect((result as Response).status).toBe(503);
-    expect((result as Response).headers.get("Retry-After")).toBe("60");
+    for (const env of [
+      {},
+      {
+        USER_WRITE_RATE_LIMITER: {
+          limit: vi.fn().mockRejectedValue(new Error("binding failure")),
+        },
+      },
+    ]) {
+      setCloudflareRuntimeEnv(env);
+      const result = await requireAuth(
+        new Request("https://life.example/api/workspace/todos", {
+          method: "POST",
+          headers: { authorization: "Bearer write-token" },
+        }),
+        { bearerScope: { feature: "workspace.todo", action: "write" } },
+      );
+      expect(result).toBeInstanceOf(Response);
+      expect((result as Response).status).toBe(503);
+      expect((result as Response).headers.get("Retry-After")).toBe("60");
+      await expect((result as Response).json()).resolves.toEqual({
+        error: "Rate limiting unavailable",
+      });
+    }
   });
 
   it("上传写入在用户与暂停检查后应用统一预算", async () => {

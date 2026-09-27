@@ -65,7 +65,9 @@ describe("catalog_section_schedule_list — 日期范围筛选", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("yesterday");
+    expect(result.message).not.toContain("yesterday");
+    expect(result.message).toContain("Invalid dateFrom");
+    expect(result.message).toContain("YYYY-MM-DD");
   });
 });
 
@@ -104,6 +106,8 @@ describe("catalog_schedule_list — 灵活日期筛选", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("yesterday");
+    expect(result.message).not.toContain("yesterday");
+    expect(result.message).toContain("Invalid dateFrom");
+    expect(result.message).toContain("YYYY-MM-DD");
   });
 });

@@ -253,9 +253,10 @@ export const PUBLICATION_READ_CACHE_HEADERS = {
 } as const;
 
 const PUBLICATION_OBJECT_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=31536000, immutable, no-transform",
-  "Cloudflare-CDN-Cache-Control":
-    "public, max-age=31536000, immutable, no-transform",
+  // Bytes are immutable, but public eligibility belongs to the current revision.
+  // Revalidate in the Worker before returning bytes or an ETag-only response.
+  "Cache-Control": "public, no-cache, no-transform",
+  "Cloudflare-CDN-Cache-Control": "no-store",
 } as const;
 
 function normalizePublicationPagination(input: PaginationInput = {}) {
@@ -472,7 +473,13 @@ async function readBodyMarkdown(revision: PublicPublicationRevision) {
 
   const bucket = requirePublicationsBucket();
   const stored = await bucket.get(object.r2Key);
-  if (!stored?.body || stored.size !== object.size) return null;
+  if (
+    !stored?.body ||
+    stored.size !== object.size ||
+    (stored.httpMetadata?.contentType !== undefined &&
+      stored.httpMetadata.contentType !== object.contentType)
+  )
+    return null;
 
   const reader = stored.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -637,7 +644,6 @@ async function findAlsoPublishedIn(record: {
       source: { select: { id: true, name: true, organizationLevel: true } },
     },
     orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
-    take: 20,
   });
 
   return siblings.map(

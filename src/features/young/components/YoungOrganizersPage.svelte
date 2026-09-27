@@ -59,7 +59,10 @@ function formatSourceDate(value: string | null) {
 }
 
 const summary = $derived(
-  youngCopy.organizersShowing
+  (pagination.total === 1
+    ? youngCopy.organizersShowingOne
+    : youngCopy.organizersShowing
+  )
     .replace("{count}", String(data.length))
     .replace("{total}", String(pagination.total)),
 );
@@ -153,9 +156,9 @@ const summary = $derived(
               <Table.Header>
                 <Table.Row>
                   <Table.Head>{youngCopy.organizer}</Table.Head>
-                  <Table.Head>{youngCopy.activeEvents}</Table.Head>
-                  <Table.Head>{youngCopy.upcomingEvents}</Table.Head>
-                  <Table.Head>{youngCopy.historyEvents}</Table.Head>
+                  <Table.Head class="text-right">{youngCopy.activeEvents}</Table.Head>
+                  <Table.Head class="text-right">{youngCopy.upcomingEvents}</Table.Head>
+                  <Table.Head class="text-right">{youngCopy.historyEvents}</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -166,11 +169,11 @@ const summary = $derived(
                         {organizer.name}
                       </a>
                     </Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell class="text-right tabular-nums">
                       <a class="underline underline-offset-4" href={eventsHref(organizer.id)}>{organizer.activeCount}</a>
                     </Table.Cell>
-                    <Table.Cell>{organizer.upcomingCount}</Table.Cell>
-                    <Table.Cell>{organizer.historyCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums">{organizer.upcomingCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums">{organizer.historyCount}</Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>

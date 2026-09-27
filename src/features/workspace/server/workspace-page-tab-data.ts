@@ -183,6 +183,7 @@ export async function loadSignedWorkspaceTabData(input: {
               ? input.context.user.calendarFeedToken
               : undefined,
             includeExams: input.tab === "exams",
+            referenceNow: input.referenceNow,
             sectionIds: input.context.sectionIds,
           }),
         )

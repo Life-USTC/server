@@ -70,26 +70,29 @@ describe("webhook login hardening", () => {
     expect(isWebhookLoginEnabled()).toBe(false);
   });
 
-  it("rejects invalid secrets with 403", async () => {
-    envMap({ WEBHOOK_SECRET: "expected-secret" });
-
-    const response = (await handleWebhookLogin({
-      body: { secret: "wrong-secret", email: "user@example.com" },
-      context: {
-        internalAdapter: {
-          createSession: createSessionMock,
-          findUserById: findUserByIdMock,
+  it("webhook-login.shared-secret", async () => {
+    for (const secret of [undefined, "wrong-secret", "expected-secreu", ""]) {
+      envMap({ WEBHOOK_SECRET: "expected-secret" });
+      const response = (await handleWebhookLogin({
+        body: { secret, email: "user@example.com" },
+        context: {
+          internalAdapter: {
+            createSession: createSessionMock,
+            findUserById: findUserByIdMock,
+          },
         },
-      },
-      json: vi.fn(),
-      request: new Request("https://example.test/api/auth/webhook/login"),
-    })) as Response;
-
-    expect(response.status).toBe(403);
-    expect(createSessionMock).not.toHaveBeenCalled();
+        json: vi.fn(),
+        request: new Request("https://example.test/api/auth/webhook/login"),
+      })) as Response;
+      expect(response.status).toBe(403);
+      expect(findFirstMock).not.toHaveBeenCalled();
+      expect(findUserByIdMock).not.toHaveBeenCalled();
+      expect(createSessionMock).not.toHaveBeenCalled();
+      expect(setSessionCookieMock).not.toHaveBeenCalled();
+    }
   });
 
-  it("sets a session cookie and omits sessionToken from the body", async () => {
+  it("webhook-login.no-session-in-body", async () => {
     envMap({ WEBHOOK_SECRET: "expected-secret" });
     findFirstMock.mockResolvedValue({
       id: "user-1",

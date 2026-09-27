@@ -13,6 +13,7 @@ import type {
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/messages.server";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -22,7 +23,7 @@ import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
-/** Catalog search is shared across users; short L1 TTL keeps results fresh enough. */
+/** Catalog search is shared across users; a five-minute lifetime bounds every cache layer. */
 const SEARCH_CATALOG_CACHE_TTL_MS = 300_000;
 
 function catalogPrimaryName(item: {
@@ -66,6 +67,7 @@ function toSectionItem(
     }>;
   },
   locale: AppLocale,
+  unknownSemester: string,
 ): GlobalSearchResultItem {
   const courseName = catalogPrimaryName(section.course);
   const teacherNames = section.teachers
@@ -75,16 +77,17 @@ function toSectionItem(
   const title =
     teacherNames.length > 0
       ? `${courseName} · ${teacherNames.join(teacherSeparator)}`
-      : `${courseName} · ${section.code}`;
+      : courseName;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
-    : null;
+    : unknownSemester;
   const campusName = section.campus ? catalogPrimaryName(section.campus) : null;
-  const description = [semesterName, campusName || null, section.code]
+  const description = [semesterName, campusName || null]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
   return {
     id: `section:${section.jwId}`,
+    code: section.code,
     title,
     description: description || null,
     href: `/catalog/sections/${section.jwId}`,
@@ -96,10 +99,11 @@ async function searchCatalogGroups(
   locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
-  const [courses, teachers, sections] = await Promise.all([
+  const [courses, teachers, sections, messages] = await Promise.all([
     searchCoursesForGlobal(query, locale, limit),
     searchTeachersForGlobal(query, locale, limit),
     searchSectionsForGlobal(query, locale, limit),
+    getMessages(locale),
   ]);
 
   const groupItems: Partial<
@@ -108,11 +112,15 @@ async function searchCatalogGroups(
     courses: courses.map(toCourseItem),
     teachers: teachers.map((teacher) => ({
       id: `teacher:${teacher.id}`,
-      title: teacher.nameCn,
-      description: teacher.department?.nameCn ?? teacher.code,
+      title: catalogPrimaryName(teacher),
+      description: teacher.department
+        ? catalogPrimaryName(teacher.department) || teacher.code
+        : teacher.code,
       href: `/catalog/teachers/${teacher.id}`,
     })),
-    sections: sections.map((section) => toSectionItem(section, locale)),
+    sections: sections.map((section) =>
+      toSectionItem(section, locale, messages.common.unknown),
+    ),
   };
 
   return GLOBAL_SEARCH_GROUP_ORDER.flatMap((type) => {
@@ -165,7 +173,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v4:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v5:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),

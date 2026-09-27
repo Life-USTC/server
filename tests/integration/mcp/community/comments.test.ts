@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { loadCommentThread } from "@/features/comments/server/comment-read-model";
+import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
+import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
 import * as fixtures from "../_harness";
 import { createMcpHarness } from "../_harness";
@@ -6,7 +9,7 @@ import { createMcpHarness } from "../_harness";
 const context = fixtures.createMcpToolTestContext();
 
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
-  it("community_comment_list 返回带查看者/操作字段的班级串帖评论", async () => {
+  it("comment.mcp-markdown-projection", async () => {
     type Result = {
       found?: boolean;
       data?: Array<{
@@ -37,7 +40,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     };
 
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await context.client.call<Result>("community_comment_list", {
           targetType: "section",
@@ -89,6 +92,14 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
       );
       expect(modeRoot).toBeDefined();
+      expect(modeRoot?.body).toBe(root.body);
+      expect(modeRoot?.replies?.[0]?.body).toBe(root.replies?.[0]?.body);
+      if (mode === "full") {
+        expect(modeRoot?.renderedBody).toContain(
+          fixtures.DEV_SEED.comments.sectionRootBody,
+        );
+        expect(modeRoot?.replies?.[0]?.renderedBody).toBeTruthy();
+      }
       expect(Object.hasOwn(modeRoot ?? {}, "renderedBody")).toBe(
         mode === "full",
       );
@@ -122,7 +133,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       };
     };
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await context.client.call<Result>("community_comment_get", {
           commentId: seedComment?.id,
@@ -210,7 +221,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
     }
   });
 
-  it("community_comment_list 读取时不创建班级-教师目标", async () => {
+  it("comment.read-target-nonmutation", async () => {
     const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
     const sectionJwId = 2_100_000_000 + (Date.now() % 10_000_000);
     let sectionId: number | null = null;
@@ -291,6 +302,31 @@ describe("评论读取工具 — 隔离目录夹具", () => {
       expect(result.meta?.target?.sectionId).toBe(sectionId);
       expect(result.meta?.target?.teacherId).toBe(teacherId);
       expect(result.meta?.target?.sectionTeacherId).toBeNull();
+      const response = await getCommentsRoute(
+        new Request(
+          `http://localhost:3000/api/community/comments?targetType=section-teacher&sectionJwId=${sectionJwId}&teacherId=${teacherId}`,
+        ),
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        data: [],
+        pagination: { total: 0 },
+      });
+      const resolved = await resolveCommentTargetReference({
+        targetType: "section-teacher",
+        sectionJwId,
+        teacherId,
+        verifyExistence: true,
+        includeTargetMetadata: true,
+      });
+      if (!resolved.ok) throw new Error("Expected existing relationship");
+      const web = await loadCommentThread({
+        target: resolved.target,
+        viewerUserId: isolated.userId,
+        pagination: { pageSize: 20, skip: 0 },
+      });
+      expect(web.comments).toEqual([]);
+      expect(web.total).toBe(0);
 
       const after = await fixtures.prisma.sectionTeacher.findUnique({
         where: {
@@ -457,7 +493,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     name: "[integration-test] Comment Writes",
   });
 
-  it("评论写入的创建/更新/删除及反应调用序列化成功与审计来源", async () => {
+  it("comment.mcp-write-audit-source", async () => {
     const marker = `[integration-test] mcp-comment-write-${Date.now()}`;
     let commentId: string | undefined;
 

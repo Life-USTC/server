@@ -2,6 +2,10 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { z } from "zod";
 import {
+  MANDATORY_EVIDENCE_ARTIFACTS,
+  validateMandatoryJobResults,
+} from "./evidence-ci";
+import {
   readSpecifications,
   type SpecificationFile,
   type TestReference,
@@ -10,7 +14,6 @@ import { checkSpecifications, collectRequirements } from "./validate";
 import { repositoryRoot } from "./yaml";
 
 export type EvidenceStatus =
-  | "missing-scenarios"
   | "missing-tests"
   | "not-run"
   | "skipped"
@@ -212,7 +215,6 @@ export function parseNativeReport(
 }
 
 const precedence: EvidenceStatus[] = [
-  "missing-scenarios",
   "missing-tests",
   "failed",
   "skipped",
@@ -269,7 +271,8 @@ function residualTextLocations(
     );
   if (!value || typeof value !== "object") return [];
   return Object.entries(value).flatMap(([key, item]) =>
-    key === "requirement_refs"
+    key === "requirement_refs" ||
+    (path.endsWith("/presentation") && ["kind", "views"].includes(key))
       ? []
       : residualTextLocations(
           item,
@@ -286,26 +289,14 @@ export function buildEvidenceReport(
 ) {
   const requirements = files.flatMap(({ path, data }) =>
     collectRequirements(data).map((requirement) => {
-      const scenarios = (requirement.acceptance ?? []).map((scenario) => {
-        const tests = (scenario.tests ?? []).map((test) =>
-          matchTest(test, observations),
-        );
-        return {
-          id: scenario.id,
-          status: tests.length
-            ? combinedStatus(tests.map((test) => test.status))
-            : ("missing-tests" as EvidenceStatus),
-          tests,
-        };
-      });
+      const test = requirement.acceptance?.test;
+      const result = test ? matchTest(test, observations) : undefined;
       return {
         document: path,
         id: requirement.id,
         structured: "expectation" in requirement,
-        status: scenarios.length
-          ? combinedStatus(scenarios.map((scenario) => scenario.status))
-          : ("missing-scenarios" as EvidenceStatus),
-        scenarios,
+        status: result?.status ?? ("missing-tests" as EvidenceStatus),
+        test: result,
       };
     }),
   );
@@ -325,6 +316,10 @@ export function buildEvidenceReport(
   const executionFailures = executions.filter(
     (execution) => execution.outcome !== "success",
   );
+  const missingArtifacts = [...MANDATORY_EVIDENCE_ARTIFACTS.keys()].filter(
+    (artifact) =>
+      !executions.some((execution) => execution.artifact === artifact),
+  );
   const counts = Object.fromEntries(
     precedence.map((status) => [
       status,
@@ -343,22 +338,24 @@ export function buildEvidenceReport(
     provenance,
     executions,
     executionFailures,
+    missingArtifacts,
     unstructuredTextCandidates,
     requirements,
     summary: {
       total: requirements.length,
       unsuccessfulExecutions: executionFailures.length,
+      missingArtifacts: missingArtifacts.length,
       unstructuredTextCandidates: unstructuredTextCandidates.length,
       structured: structured.length,
       unstructured: requirements.length - structured.length,
       ...counts,
     },
-    // No typed requirements is not an evidence pass. Legacy prose gaps remain
-    // visible without pretending that their conversion has already happened.
+    // Completeness applies to every requirement, regardless of its representation.
     gatePassed:
       executionFailures.length === 0 &&
-      structured.length > 0 &&
-      structured.every((requirement) => requirement.status === "passed"),
+      missingArtifacts.length === 0 &&
+      requirements.length > 0 &&
+      requirements.every((requirement) => requirement.status === "passed"),
   };
 }
 
@@ -387,13 +384,11 @@ export function validateEvidenceManifest(
   expected: z.infer<typeof runIdentity>,
 ) {
   const manifest = manifestSchema.parse(value);
-  for (const field of ["sha", "run"] as const)
+  for (const field of ["sha", "run", "attempt"] as const)
     if (manifest[field] !== expected[field])
       throw new Error(
         `Evidence ${field} does not match this workflow execution`,
       );
-  if (BigInt(manifest.attempt) > BigInt(expected.attempt))
-    throw new Error("Evidence attempt is newer than this workflow execution");
   if (!isAbsolute(manifest.root))
     throw new Error("Evidence repository root must be absolute");
   if (
@@ -442,6 +437,11 @@ export async function loadEvidence(
   if (!artifacts.length)
     throw new Error("No workflow evidence artifacts downloaded");
   for (const artifact of artifacts) {
+    const expectedRunner = MANDATORY_EVIDENCE_ARTIFACTS.get(artifact.name);
+    if (!expectedRunner)
+      throw new Error(
+        `Unexpected workflow evidence artifact: ${artifact.name}`,
+      );
     const base = join(directory, artifact.name);
     const manifest = validateEvidenceManifest(
       JSON.parse(await readFile(join(base, "manifest.json"), "utf8")),
@@ -455,19 +455,40 @@ export async function loadEvidence(
       outcome: manifest.outcome,
     };
     executions.push(execution);
-    for (const report of manifest.reports)
+    let executedTests = 0;
+    for (const report of manifest.reports) {
+      if (report.runner !== expectedRunner)
+        throw new Error(
+          `Wrong native runner for ${artifact.name}: ${report.runner}`,
+        );
+      const parsed = parseNativeReport(
+        JSON.parse(await readFile(join(base, report.file), "utf8")),
+        report.runner,
+        manifest.root,
+      );
+      executedTests += parsed.filter(
+        (test) => test.status === "passed" || test.status === "failed",
+      ).length;
+      if (
+        manifest.outcome === "success" &&
+        parsed.some((test) => test.status === "failed")
+      )
+        throw new Error(
+          `Successful artifact contains failed native tests: ${artifact.name}`,
+        );
       observations.push(
-        ...parseNativeReport(
-          JSON.parse(await readFile(join(base, report.file), "utf8")),
-          report.runner,
-          manifest.root,
-        ).map((observation) => ({
+        ...parsed.map((observation) => ({
           ...observation,
           source: {
             ...execution,
             report: report.file,
           },
         })),
+      );
+    }
+    if (manifest.outcome === "success" && executedTests === 0)
+      throw new Error(
+        `Successful artifact has no executed native tests: ${artifact.name}`,
       );
   }
   return { observations, executions };
@@ -492,6 +513,10 @@ export async function runEvidenceCoverage(
     } else throw new Error(`Unknown evidence option: ${arg}`);
   }
   await checkSpecifications(root);
+  if (enforce)
+    validateMandatoryJobResults(
+      JSON.parse(process.env.SPEC_EVIDENCE_NEEDS ?? "null"),
+    );
   const evidence = results
     ? await loadEvidence(results)
     : { observations: [], executions: [] };
@@ -508,7 +533,7 @@ export async function runEvidenceCoverage(
   } else process.stdout.write(json);
   if (enforce && !report.gatePassed)
     throw new Error(
-      "Specification evidence gate failed; inspect executionFailures and requirement/scenario statuses in the report",
+      "Specification evidence gate failed; inspect missingArtifacts, executionFailures and requirement statuses in the report",
     );
   return report;
 }

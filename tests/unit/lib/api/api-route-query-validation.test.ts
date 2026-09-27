@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import { parseRouteQuery } from "@/lib/api/route-query-parsing";
 import { getCoursesRoute } from "@/lib/api/routes/academic-course-routes";
 import { getSchedulesRoute } from "@/lib/api/routes/academic-schedule-routes";
 import { getBusNextDeparturesRoute } from "@/lib/api/routes/bus";
@@ -14,7 +16,34 @@ async function expectInvalidQueryResponse(
 }
 
 describe("API 路由查询校验", () => {
-  it("在查询前拒绝过大的 pageSize 与 limit 别名", async () => {
+  it("openapi.pagination-query-parameter", () => {
+    const schema = z.object({
+      page: z.coerce.number().optional(),
+      pageSize: z.coerce.number().optional(),
+    });
+    for (const [query, size] of [
+      ["page=2&pageSize=7", 7],
+      ["page=2&limit=7", 20],
+      ["page=2&pageSize=9&limit=7", 9],
+      ["page=2", 20],
+    ] as const) {
+      const parsed = parseRouteQuery(
+        new URLSearchParams(query),
+        schema,
+        "Invalid query",
+      );
+      expect(parsed).not.toBeInstanceOf(Response);
+      if (parsed instanceof Response)
+        throw new Error("Valid canonical request was rejected");
+      expect(parsed.pagination).toEqual({
+        page: 2,
+        pageSize: size,
+        skip: size,
+      });
+      expect(parsed.query).not.toHaveProperty("limit");
+    }
+  });
+  it("在查询前拒绝过大的 pageSize", async () => {
     await expectInvalidQueryResponse(
       getCoursesRoute(
         new Request("https://example.test/api/catalog/courses?pageSize=101"),
@@ -24,7 +53,7 @@ describe("API 路由查询校验", () => {
 
     await expectInvalidQueryResponse(
       getSchedulesRoute(
-        new Request("https://example.test/api/catalog/schedules?limit=101"),
+        new Request("https://example.test/api/catalog/schedules?pageSize=101"),
       ),
       "Invalid schedule query",
     );
@@ -72,4 +101,23 @@ describe("API 路由查询校验", () => {
       parseTodosQuery(new Request("https://example.test/api/workspace/todos")),
     ).toMatchObject({ limit: 100 });
   });
+});
+
+it("preserves unknown query fields for a strict declared schema to reject", async () => {
+  const schema = z.strictObject({ pageSize: z.string().optional() });
+  for (const query of ["limit=1", "pageSize=2&limit=1"]) {
+    const result = parseRouteQuery(
+      new URLSearchParams(query),
+      schema,
+      "Invalid query",
+    );
+    expect(result).toBeInstanceOf(Response);
+    await expectInvalidQueryResponse(result as Response, "Invalid query");
+  }
+  const accepted = parseRouteQuery(
+    new URLSearchParams("pageSize=2"),
+    schema,
+    "Invalid query",
+  );
+  expect(accepted).not.toBeInstanceOf(Response);
 });

@@ -459,6 +459,7 @@ describe("loadCommentThread pagination", () => {
               image: true,
               isAdmin: true,
               name: true,
+              username: true,
             },
           },
         }),

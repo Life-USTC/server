@@ -1,5 +1,6 @@
 <script lang="ts">
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
+import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type {
   SignedWorkspaceData,
   WorkspaceCopy,
@@ -7,6 +8,7 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import { cn } from "$lib/utils";
 import ExamsCardsView from "./ExamsCardsView.svelte";
 import ExamsListView from "./ExamsListView.svelte";
 import ExamsTabToolbar from "./ExamsTabToolbar.svelte";
@@ -39,6 +41,8 @@ export let examRows: WorkspaceExamRow[];
 export let filteredExamRows: WorkspaceExamRow[];
 export let locale: string;
 
+let mobileView: WorkspaceCardView = "cards";
+
 $: ({ fmtExamDate } = createExamTabDisplayActions({
   locale,
   referenceNow: signedData.referenceNow,
@@ -63,13 +67,17 @@ function clearExamFilter() {
     <ExamsTabToolbar
       {workspaceCopy}
       {examFilter}
+      {mobileView}
+      onMobileViewChange={(value) => { mobileView = value; }}
       onExamFilterChange={(value) => {
         examFilter = value;
       }}
     />
 
-    <div class="md:hidden">
+    <div class={cn("md:hidden", mobileView !== "cards" && "hidden")}>
       <ExamsCardsView
+        {locale}
+        unknownSemesterLabel={signedData.copy.common.unknown}
         {workspaceCopy}
         {workspaceTabHref}
         {examMetadataLabels}
@@ -83,8 +91,12 @@ function clearExamFilter() {
         {subscriptionsCopy}
       />
     </div>
-    <div class="hidden min-w-0 overflow-x-auto md:block">
+    <div class={cn("min-w-0 overflow-x-auto md:block", mobileView !== "list" && "hidden")}>
       <ExamsListView
+        {examMetadataLabels}
+        {locale}
+        unknownSemesterLabel={signedData.copy.common.unknown}
+        {namePrimary}
         {workspaceCopy}
         {workspaceTabHref}
         {examTimeLabel}

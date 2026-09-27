@@ -331,7 +331,9 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("not-a-date");
+    expect(result.message).not.toContain("not-a-date");
+    expect(result.message).toContain("Invalid dateFrom");
+    expect(result.message).toContain("YYYY-MM-DD");
     expect(result.message?.toLowerCase()).toContain("invalid");
   });
 });

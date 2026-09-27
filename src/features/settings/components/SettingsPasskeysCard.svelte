@@ -2,6 +2,8 @@
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
+import type { AppLocale } from "@/i18n/config";
+import { invalidateAll } from "$app/navigation";
 import {
   isPasskeySupported,
   passkeyAuthClient,
@@ -24,6 +26,7 @@ type Status = {
 };
 
 export let copy: SettingsCopy;
+export let locale: AppLocale;
 
 const getPasskeysStore = passkeyAuthClient.useListPasskeys;
 const passkeyQuery = getPasskeysStore();
@@ -64,6 +67,7 @@ async function addPasskey() {
     status = null;
     toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
+    await invalidateAll();
   } catch {
     status = {
       kind: "error",
@@ -174,6 +178,7 @@ async function addPasskey() {
         {#each passkeys as passkey (passkey.id)}
           <SettingsPasskeyRow
             {copy}
+            {locale}
             {passkey}
             reportStatus={(nextStatus) => {
               status = nextStatus;

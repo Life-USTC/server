@@ -45,7 +45,7 @@ $: showOverdueViewAll =
 $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
 </script>
 
-<div class="grid items-start gap-8 lg:grid-cols-2">
+<div class="grid items-start gap-8 lg:grid-cols-2" data-testid="workspace-overview-today-overdue">
   <OverviewTodayCard
     {copy}
     {workspaceCopy}

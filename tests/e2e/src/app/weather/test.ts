@@ -11,10 +11,7 @@ import {
   formatShanghaiDate,
   formatShanghaiTime,
 } from "@/lib/time/shanghai-format";
-import {
-  gotoAndWaitForReady,
-  waitForUiSettled,
-} from "../../../utils/page-ready";
+import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -26,35 +23,29 @@ test.describe("/catalog/weather", () => {
     });
   });
 
-  test("渲染两个校区位置面板", async ({ page }, testInfo) => {
-    // 本部与高新校区两个位置面板
-    await gotoAndWaitForReady(page, "/catalog/weather", {
-      testInfo,
-      screenshotLabel: "weather",
-    });
-    await waitForUiSettled(page);
-
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.locator("h1")).toBeVisible();
-
-    const headings = page.locator("h2");
-    await expect(headings).toHaveCount(2);
-    await expect(headings.filter({ hasText: /本部|Main campus/ })).toHaveCount(
-      1,
-    );
-    await expect(
-      headings.filter({ hasText: /高新校区|Gaoxin campus/ }),
-    ).toHaveCount(1);
-
-    const panels = page.locator(
-      '[data-testid="weather-location"], [data-testid="weather-unavailable"]',
-    );
-    await expect(panels.first()).toBeVisible();
-    expect(await panels.count()).toBe(2);
-
-    await expect(page.getByTestId("weather-hourly-scroll-region")).toHaveCount(
-      0,
-    );
+  test("weather.two-locations-only", async ({ page }) => {
+    for (const locale of ["zh-cn", "en-us"] as const) {
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+        ]);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await showWeatherFixture(page);
+        const headings = page.locator("#main-content h2");
+        await expect(headings).toHaveText(
+          locale === "zh-cn"
+            ? ["本部", "高新校区"]
+            : ["Main campus", "Gaoxin campus"],
+        );
+        await expect(page.getByTestId("weather-location")).toHaveCount(2);
+        await expect(page.getByTestId("weather-hourly-chart")).toHaveCount(2);
+        await expect(
+          page.getByTestId("weather-hourly-scroll-region"),
+        ).toHaveCount(0);
+      }
+    }
   });
 });
 
@@ -115,3 +106,12 @@ for (const width of [1280, 390]) {
     }
   });
 }
+
+test("weather.missing-current-display", async ({ page }, testInfo) => {
+  await showWeatherFixture(page, null);
+  await page.screenshot({
+    path: testInfo.outputPath("weather-missing-current.png"),
+    fullPage: true,
+  });
+  await expect(page.getByTestId("weather-temperature").first()).toHaveText("—");
+});

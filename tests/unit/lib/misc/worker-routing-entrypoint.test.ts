@@ -1,7 +1,25 @@
+import { readFileSync } from "node:fs";
+import { parse } from "jsonc-parser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createWaitUntil } from "../../../shared/wait-until";
+
+const backgroundTasks = createWaitUntil();
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: vi.fn().mockResolvedValue(undefined),
+}));
+
+afterEach(async () => {
+  try {
+    await backgroundTasks.drain();
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
 
 const {
   appFetchMock,
+  maintainAuditLogRetentionMock,
+  cleanupExpiredAuthRecordsMock,
   handleAuditLogWriteBatchMock,
   handleCalendarExportRebuildBatchMock,
   logAppEventMock,
@@ -9,6 +27,8 @@ const {
   setCloudflareRequestContextMock,
 } = vi.hoisted(() => ({
   appFetchMock: vi.fn(),
+  maintainAuditLogRetentionMock: vi.fn(),
+  cleanupExpiredAuthRecordsMock: vi.fn(),
   handleAuditLogWriteBatchMock: vi.fn(),
   handleCalendarExportRebuildBatchMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -18,6 +38,26 @@ const {
   setCloudflareRequestContextMock: vi.fn(),
 }));
 
+vi.mock("@/features/weather/server/weather-cache", () => ({
+  readWeatherCache: vi.fn(),
+  writeWeatherCache: vi.fn(async () => undefined),
+}));
+vi.mock("@/features/weather/server/weather-history", () => ({
+  writeWeatherHistory: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/features/admin/server/audit-retention", () => ({
+  maintainAuditLogRetention: maintainAuditLogRetentionMock,
+  maintainOAuthGrantUsageRetention: vi.fn(async () => ({
+    oauthRetentionComplete: true,
+  })),
+  maintainObservabilityRetention: vi.fn(async () => ({
+    observabilityRetentionComplete: true,
+  })),
+}));
+vi.mock("@/features/auth/server/auth-record-cleanup", () => ({
+  cleanupExpiredAuthRecords: cleanupExpiredAuthRecordsMock,
+}));
 vi.mock("cloudflare:workers", () => ({
   WorkerEntrypoint: class {},
 }));
@@ -70,10 +110,14 @@ async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   try {
     return await callback();
   } finally {
-    if (previousHtmlRewriter === undefined) {
-      delete globalScope.HTMLRewriter;
-    } else {
-      globalScope.HTMLRewriter = previousHtmlRewriter;
+    try {
+      await backgroundTasks.drain();
+    } finally {
+      if (previousHtmlRewriter === undefined) {
+        delete globalScope.HTMLRewriter;
+      } else {
+        globalScope.HTMLRewriter = previousHtmlRewriter;
+      }
     }
   }
 }
@@ -108,8 +152,54 @@ describe("Worker routing entrypoint", () => {
     appFetchMock.mockResolvedValue(new Response("dynamic", { status: 200 }));
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("defaults early dynamic redirects to private caching without changing their payload or cookies", async () => {
+    for (const [status, body, contentType, location] of [
+      [303, null, null, "/account/welcome?callbackUrl=%2F"],
+      [
+        200,
+        JSON.stringify({ type: "redirect", location: "/account/welcome" }),
+        "application/json",
+        null,
+      ],
+    ] as const) {
+      for (const policy of ["missing", "private", "public"]) {
+        const headers = new Headers({
+          "Set-Cookie": "session=renewed; Path=/; HttpOnly",
+        });
+        if (contentType) headers.set("Content-Type", contentType);
+        if (location) headers.set("Location", location);
+        if (policy !== "missing") {
+          headers.set(
+            "Cache-Control",
+            policy === "public" ? "public, max-age=120" : "private, no-store",
+          );
+          headers.set("Cloudflare-CDN-Cache-Control", "public, max-age=240");
+        }
+        appFetchMock.mockResolvedValueOnce(
+          new Response(body, { status, headers }),
+        );
+        const response = await worker.fetch(
+          new Request("https://life-ustc.test/__data.json", {
+            headers: { cookie: "better-auth.session_token=session" },
+          }),
+          {},
+          { waitUntil: backgroundTasks.waitUntil },
+        );
+        expect(response.status).toBe(status);
+        expect(response.headers.get("Location")).toBe(location);
+        expect(response.headers.get("Set-Cookie")).toBe(
+          headers.get("Set-Cookie"),
+        );
+        expect(response.headers.get("Content-Type")).toBe(contentType);
+        expect(response.headers.get("Cache-Control")).toBe(
+          policy === "public" ? "public, max-age=120" : "private, no-store",
+        );
+        expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+          policy === "public" ? "public, max-age=240" : "no-store",
+        );
+        expect(await response.text()).toBe(body ?? "");
+      }
+    }
   });
 
   it("correlates and sanitizes dynamic sign-in requests without changing method or body", async () => {
@@ -136,7 +226,7 @@ describe("Worker routing entrypoint", () => {
         },
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(200);
@@ -178,7 +268,7 @@ describe("Worker routing entrypoint", () => {
     );
   });
 
-  it("keeps the original body request when no spoofable headers need cleanup", async () => {
+  it("forwards the edge request ID when the client supplies no correlation headers", async () => {
     const request = new Request(
       "https://life-ustc.test/api/workspace/subscriptions",
       {
@@ -194,15 +284,24 @@ describe("Worker routing entrypoint", () => {
       },
     );
     appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {
-      expect(forwardedRequest).toBe(request);
+      expect(forwardedRequest.method).toBe("PATCH");
+      expect(forwardedRequest.headers.get(INTERNAL_REQUEST_ID_HEADER)).toBe(
+        trustedContextRequestId,
+      );
       expect(trustedContextRequestId).toMatch(/^[0-9a-f-]{36}$/i);
       return new Response("unauthorized", { status: 401 });
     });
 
-    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+    const response = await worker.fetch(
+      request,
+      {},
+      { waitUntil: backgroundTasks.waitUntil },
+    );
 
     expect(response.status).toBe(401);
-    expect(appFetchMock.mock.calls[0]?.[0]).toBe(request);
+    expect(
+      appFetchMock.mock.calls[0]?.[0].headers.get(INTERNAL_REQUEST_ID_HEADER),
+    ).toBe(response.headers.get("x-request-id"));
     expect(trustedContextRequestId).toBe(response.headers.get("x-request-id"));
     expect(logAppEventMock).toHaveBeenCalledWith(
       "info",
@@ -213,6 +312,104 @@ describe("Worker routing entrypoint", () => {
         status: 401,
       }),
     );
+  });
+
+  it("cancels an unread body after early rejection without creating a second stream branch", async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("unread body"));
+      },
+      cancel,
+    });
+    appFetchMock.mockResolvedValueOnce(
+      new Response("unauthorized", { status: 401 }),
+    );
+    const requestInit = { body, method: "PUT", duplex: "half" };
+    const request = new Request(
+      "https://life-ustc.test/api/workspace/uploads/object",
+      requestInit,
+    );
+    const response = await worker.fetch(
+      request,
+      {},
+      { waitUntil: backgroundTasks.waitUntil },
+    );
+    expect(response.status).toBe(401);
+    expect(cancel).toHaveBeenCalledExactlyOnceWith("request body released");
+  });
+
+  it("interface-hierarchy.locale-caching-and-seo-5", async () => {
+    const dispatches: Array<{ key: string; locale: string | null }> = [];
+    const publicSsrFetch = vi.fn(
+      async (request: Request, options: { cf: { cacheKey: string } }) => {
+        dispatches.push({
+          key: options.cf.cacheKey,
+          locale: request.headers.get("x-life-public-ssr-locale"),
+        });
+        return new Response("public", {
+          headers: { "content-type": "text/html" },
+        });
+      },
+    );
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetch })),
+      },
+      waitUntil: backgroundTasks.waitUntil,
+    };
+    for (const path of [
+      "/catalog/courses",
+      "/catalog/sections/159446",
+      "/catalog/young-events",
+    ]) {
+      const keys = new Map<string, string>();
+      const scenarios: Array<{
+        headers: Record<string, string>;
+        locale: string;
+      }> = [
+        { headers: {}, locale: "zh-cn" },
+        { headers: { "accept-language": "en-GB,en;q=0.9" }, locale: "en-us" },
+        {
+          headers: {
+            cookie: "NEXT_LOCALE=zh-cn; better-auth.session_token=private",
+            "accept-language": "en-US",
+          },
+          locale: "zh-cn",
+        },
+        {
+          headers: {
+            cookie: "NEXT_LOCALE=en-us; better-auth.session_token=other",
+            "accept-language": "zh-CN",
+          },
+          locale: "en-us",
+        },
+      ];
+      for (const scenario of scenarios) {
+        const headers = new Headers(scenario.headers);
+        headers.set("accept", "text/html");
+        const response = await withHtmlRewriter(() =>
+          worker.fetch(
+            new Request(`https://life-ustc.test${path}`, { headers }),
+            {},
+            context,
+          ),
+        );
+        expect(response.status).toBe(200);
+        const dispatched = dispatches.at(-1);
+        expect(dispatched?.locale).toBe(scenario.locale);
+        expect(dispatched?.key).toBe(
+          `${path}?__life_locale=${scenario.locale}&__life_mode=page`,
+        );
+        const prior = keys.get(scenario.locale);
+        if (prior) expect(dispatched?.key).toBe(prior);
+        keys.set(scenario.locale, dispatched?.key ?? "");
+      }
+      expect(keys.size).toBe(2);
+      expect(new Set(keys.values()).size).toBe(2);
+    }
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(publicSsrFetch).toHaveBeenCalledTimes(12);
   });
 
   it("records exactly one completion for a public SSR response", async () => {
@@ -238,7 +435,7 @@ describe("Worker routing entrypoint", () => {
               fetch: publicSsrFetchMock,
             })),
           },
-          waitUntil: vi.fn(),
+          waitUntil: backgroundTasks.waitUntil,
         },
       ),
     );
@@ -286,7 +483,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/catalog/courses/123?token=private-value",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(200);
@@ -304,7 +501,7 @@ describe("Worker routing entrypoint", () => {
     expect(JSON.stringify(completion)).not.toContain("private-value");
   });
 
-  it("uses the same credential-free cache request for anonymous and signed-in catalog visitors", async () => {
+  it("rendering-and-cache.cache-layers-and-invalidation-1", async () => {
     const publicSsrFetchMock = vi.fn().mockImplementation(
       () =>
         new Response(null, {
@@ -315,7 +512,7 @@ describe("Worker routing entrypoint", () => {
       exports: {
         PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
       },
-      waitUntil: vi.fn(),
+      waitUntil: backgroundTasks.waitUntil,
     };
     for (const cookie of [
       "NEXT_LOCALE=zh-cn",
@@ -402,7 +599,7 @@ describe("Worker routing entrypoint", () => {
     const exports = {
       PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
     };
-    const context = { exports, waitUntil: vi.fn() };
+    const context = { exports, waitUntil: backgroundTasks.waitUntil };
 
     const first = await withHtmlRewriter(() =>
       worker.fetch(
@@ -467,7 +664,7 @@ describe("Worker routing entrypoint", () => {
           },
         ),
         {},
-        { waitUntil: vi.fn() },
+        { waitUntil: backgroundTasks.waitUntil },
       ),
     ).rejects.toBe(error);
 
@@ -505,7 +702,7 @@ describe("Worker routing entrypoint", () => {
     const response = await worker.fetch(
       new Request("https://life-ustc.test/sections/159446"),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(301);
@@ -533,7 +730,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/signin?callbackUrl=%2Fworkspace%2Foverview",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(308);
@@ -559,7 +756,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/users/user-1:feed-token/calendar.ics",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(308);
@@ -584,7 +781,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/calendar-subscriptions/sub-1/calendar.ics",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(410);
@@ -619,7 +816,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     expect(response.status).toBe(200);
@@ -645,7 +845,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     // The bare `PublicSsr()` this replaces threw before the RPC was ever
@@ -671,7 +874,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     expect(response.status).toBe(401);
@@ -754,7 +960,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-calendar-export-rebuild-dlq",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(handleCalendarExportRebuildBatchMock).not.toHaveBeenCalled();
@@ -798,7 +1004,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-audit-log-write-dlq",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(handleAuditLogWriteBatchMock).not.toHaveBeenCalled();
@@ -829,7 +1035,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-audit-log-write",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     const queueFinishes = logAppEventMock.mock.calls.filter(
@@ -859,7 +1065,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-calendar-export-rebuild",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     const queueFinishes = logAppEventMock.mock.calls.filter(
@@ -877,4 +1083,166 @@ describe("Worker routing entrypoint", () => {
       }),
     ]);
   });
+});
+
+it("audit.retention-maintenance-cadence", async () => {
+  const config = parse(
+    readFileSync(
+      new URL("../../../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    ),
+  );
+  expect(config.triggers.crons).toContain("23 */6 * * *");
+  const controller = { cron: "23 */6 * * *" };
+  const context = { waitUntil: backgroundTasks.waitUntil };
+  cleanupExpiredAuthRecordsMock.mockResolvedValue({
+    sessions: 0,
+    verificationTokens: 0,
+    oauthAccessTokens: 0,
+    oauthRefreshTokens: 0,
+    deviceCodes: 0,
+  });
+  const report = {
+    auditRetentionBatches: 1,
+    auditRetentionComplete: true,
+    attributionAnonymized: 2,
+    networkAnonymized: 3,
+    rowsDeleted: 4,
+  };
+  maintainAuditLogRetentionMock.mockResolvedValue(report);
+  logAppEventMock.mockClear();
+  await worker.scheduled(controller, {}, context);
+  expect(maintainAuditLogRetentionMock).toHaveBeenCalledTimes(1);
+  expect(logAppEventMock.mock.calls).toContainEqual([
+    "info",
+    "scheduled.task.finish",
+    expect.objectContaining({
+      ...report,
+      task: "auth-and-audit-retention",
+      outcome: "success",
+    }),
+  ]);
+  for (const mode of ["incomplete", "failed"]) {
+    logAppEventMock.mockClear();
+    if (mode === "incomplete")
+      maintainAuditLogRetentionMock.mockResolvedValue({
+        ...report,
+        auditRetentionBatches: 20,
+        auditRetentionComplete: false,
+      });
+    else
+      maintainAuditLogRetentionMock.mockRejectedValue(
+        new Error("private database failure"),
+      );
+    await expect(worker.scheduled(controller, {}, context)).rejects.toThrow(
+      mode === "incomplete"
+        ? "Audit retention did not finish"
+        : "private database failure",
+    );
+    expect(
+      logAppEventMock.mock.calls.filter(
+        (call) => call[1] === "scheduled.task.finish",
+      ),
+    ).toEqual([]);
+    expect(logAppEventMock.mock.calls).toContainEqual([
+      "error",
+      "scheduled.task.error",
+      expect.objectContaining({
+        task: "auth-and-audit-retention",
+        outcome: "error",
+      }),
+      expect.any(Error),
+    ]);
+  }
+});
+
+it("weather.weather-refresh-budget", async () => {
+  const { writeWeatherCache, readWeatherCache } = await import(
+    "@/features/weather/server/weather-cache"
+  );
+  const { writeWeatherHistory } = await import(
+    "@/features/weather/server/weather-history"
+  );
+  const config = parse(readFileSync("wrangler.jsonc", "utf8"));
+  const calls: URL[] = [];
+  vi.stubEnv("AMAP_API_KEY", "test-provider-key");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      calls.push(url);
+      return Response.json(
+        url.hostname === "restapi.amap.com"
+          ? { lives: [{ temperature: "22", weather: "晴" }], forecasts: [] }
+          : { current: { temperature_2m: 21, weather_code: 0 } },
+      );
+    }),
+  );
+  vi.mocked(writeWeatherCache).mockClear();
+  vi.mocked(writeWeatherHistory).mockClear();
+  vi.mocked(readWeatherCache).mockClear();
+  const ticks: Record<string, number> = { "ustc-main": 0, "ustc-gaoxin": 0 };
+  try {
+    for (const [cron, interval, key, adcode] of [
+      ["*/20 * * * *", 20, "ustc-main", "340100"],
+      ["*/30 * * * *", 30, "ustc-gaoxin", "340104"],
+    ] as const) {
+      expect(config.triggers.crons).toContain(cron);
+      for (let minute = 0; minute < 1440; minute += interval) {
+        const start = calls.length;
+        await worker.scheduled(
+          { cron },
+          {},
+          { waitUntil: backgroundTasks.waitUntil },
+        );
+        ticks[key]++;
+        const tick = calls.slice(start);
+        expect(tick).toHaveLength(3);
+        expect(
+          tick
+            .filter((url) => url.hostname === "restapi.amap.com")
+            .map((url) => [
+              url.searchParams.get("city"),
+              url.searchParams.get("extensions"),
+            ]),
+        ).toEqual([
+          [adcode, "base"],
+          [adcode, "all"],
+        ]);
+        expect(
+          tick.filter((url) => url.hostname === "api.open-meteo.com"),
+        ).toHaveLength(1);
+        expect(vi.mocked(writeWeatherCache).mock.calls.at(-1)?.[0]).toBe(key);
+      }
+    }
+    expect(ticks).toEqual({ "ustc-main": 72, "ustc-gaoxin": 48 });
+    expect(
+      calls.filter((url) => url.hostname === "restapi.amap.com"),
+    ).toHaveLength(240);
+    expect(
+      calls.filter((url) => url.hostname === "api.open-meteo.com"),
+    ).toHaveLength(120);
+    expect(writeWeatherHistory).toHaveBeenCalledTimes(120);
+    expect(readWeatherCache).not.toHaveBeenCalled();
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      calls.push(new URL(String(input)));
+      return new Response(null, { status: 503 });
+    });
+    const start = calls.length;
+    await worker.scheduled(
+      { cron: "*/20 * * * *" },
+      {},
+      { waitUntil: backgroundTasks.waitUntil },
+    );
+    expect(calls.length - start).toBe(3);
+    expect(writeWeatherCache).toHaveBeenCalledTimes(120);
+    expect(writeWeatherHistory).toHaveBeenCalledTimes(120);
+  } finally {
+    try {
+      await backgroundTasks.drain();
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  }
 });

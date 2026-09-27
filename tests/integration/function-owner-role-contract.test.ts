@@ -111,13 +111,6 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.get_public_profile_section_subscription_count(p_user_id text)",
-    volatility: "STABLE",
-  },
-  {
-    securityDefiner: true,
-    settings: ['search_path=""'],
-    signature:
       "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
     volatility: "STABLE",
   },
@@ -127,6 +120,12 @@ const expectedFunctions = [
     signature:
       "public.list_young_notification_recipients(after_id text, batch_size integer)",
     volatility: "STABLE",
+  },
+  {
+    securityDefiner: true,
+    settings: ['search_path=""', "app.comment_reply_lock=on"],
+    signature: "public.lock_comment_reply_parent(p_comment_id text)",
+    volatility: "VOLATILE",
   },
   {
     securityDefiner: true,
@@ -166,7 +165,7 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.unlink_settings_account(p_user_id text, p_provider text)",
+      "public.remove_sign_in_method(p_user_id text, p_kind text, p_key text, p_enabled_providers jsonb)",
     volatility: "VOLATILE",
   },
 ] as const;
@@ -195,6 +194,8 @@ const expectedTablePrivileges = [
   "public.OAuthGrantUsageDaily:UPDATE",
   "public.OAuthRefreshToken:DELETE",
   "public.OAuthRefreshToken:SELECT",
+  "public.Passkey:DELETE",
+  "public.Passkey:SELECT",
   "public.PrometheusCounter:INSERT",
   "public.PrometheusCounter:SELECT",
   "public.PrometheusCounter:UPDATE",
@@ -224,6 +225,7 @@ const expectedTablePrivileges = [
 ] as const;
 
 const expectedColumnPrivileges = [
+  "public.Comment:id:UPDATE",
   "public.DeviceCode:id:UPDATE",
   "public.OAuthAccessToken:id:UPDATE",
   "public.OAuthRefreshToken:id:UPDATE",
@@ -587,6 +589,17 @@ describe.skipIf(process.env.FUNCTION_OWNER_ROLE_TEST_ENABLED !== "true")(
           schemaName: "public",
           tableName: "Comment",
           usingExpression: "true",
+        },
+        {
+          checkExpression: "false",
+          command: "UPDATE",
+          permissive: "PERMISSIVE",
+          policyName: "Comment_reply_parent_lock",
+          roles: [functionOwnerRole],
+          schemaName: "public",
+          tableName: "Comment",
+          usingExpression:
+            "(current_setting('app.comment_reply_lock', true) = 'on')",
         },
         {
           checkExpression: null,

@@ -45,12 +45,14 @@ function signedWorkspaceData(
     links: { catalogLinks },
     locale: "zh-cn",
     navStats: {
+      user: { id: "workspace-test-owner" },
       calendarItemsCount: 0,
       examsCount: 0,
       pendingHomeworksCount: 0,
       pendingTodosCount: 0,
     },
     overview: {
+      currentTermName: null,
       calendar: null,
       dueToday: [],
       hasCurrentTermSelection: false,
@@ -116,6 +118,7 @@ describe("仪表盘控制器派生状态", () => {
         sections: [],
       },
       navStats: {
+        user: { id: "workspace-test-owner" },
         calendarItemsCount: 0,
         examsCount: 0,
         pendingHomeworksCount: 2,
@@ -143,6 +146,7 @@ describe("仪表盘控制器派生状态", () => {
         { id: "todo-2", completed: true },
       ],
       navStats: {
+        user: { id: "workspace-test-owner" },
         calendarItemsCount: 0,
         examsCount: 0,
         pendingHomeworksCount: 0,

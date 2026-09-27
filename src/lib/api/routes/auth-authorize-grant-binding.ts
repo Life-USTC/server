@@ -1,17 +1,11 @@
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
-import { getOAuthClientRedirectUris } from "@/features/oauth/server/oauth-client-redirect-uris.server";
 import { verifyOAuthProviderSignedQuery } from "@/features/oauth/server/signed-oauth-query.server";
 import { logAppEvent } from "@/lib/log/app-logger";
-import {
-  logOAuthDebug,
-  summarizeOAuthForwardingHeaders,
-  summarizeOAuthRedirectUri,
-} from "@/lib/log/oauth-debug";
+import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { resolveActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
-import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 
 function recordOAuthRouteFailure(input: {
@@ -42,50 +36,6 @@ function recordOAuthRouteFailure(input: {
     phase: input.phase,
     status: 500,
   });
-}
-
-export async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
-  request: Request,
-): Promise<Request> {
-  const url = new URL(request.url);
-  if (!url.pathname.endsWith("/oauth2/authorize")) {
-    return request;
-  }
-
-  const clientId = url.searchParams.get("client_id");
-  const redirectUri = url.searchParams.get("redirect_uri");
-  if (!clientId || !redirectUri) {
-    return request;
-  }
-
-  logOAuthDebug("oauth.authorize.request-observed", request, {
-    path: url.pathname,
-    clientIdPrefix: clientId.slice(0, 16),
-    ...summarizeOAuthRedirectUri(redirectUri),
-    ...summarizeOAuthForwardingHeaders(request, url),
-  });
-
-  const redirectUris = await getOAuthClientRedirectUris(clientId);
-  if (!redirectUris) {
-    return request;
-  }
-
-  const normalizedRedirectUri = resolveEquivalentLoopbackRedirectUri(
-    redirectUris,
-    redirectUri,
-  );
-  if (!normalizedRedirectUri || normalizedRedirectUri === redirectUri) {
-    return request;
-  }
-
-  url.searchParams.set("redirect_uri", normalizedRedirectUri);
-  logOAuthDebug("oauth.loopback-redirect-normalized", request, {
-    path: url.pathname,
-    clientIdPrefix: clientId.slice(0, 16),
-    fromRedirect: summarizeOAuthRedirectUri(redirectUri),
-    toRedirect: summarizeOAuthRedirectUri(normalizedRedirectUri),
-  });
-  return new Request(url, request);
 }
 
 export function maybeNormalizeAuthorizeResourceRequest(

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { cn } from "$lib/utils.js";
+import TruncatedText from "./TruncatedText.svelte";
 
 export let text: string | number | null | undefined;
 
@@ -11,13 +12,11 @@ $: displayText = text == null ? "" : String(text);
 </script>
 
 <span
-  aria-label={displayText || undefined}
   class={cn(
-    "block min-w-0 max-w-full truncate font-mono text-sm tabular-nums",
+    "block min-w-0 max-w-full font-mono text-sm tabular-nums",
     className,
   )}
   data-slot="catalog-code"
-  title={displayText || undefined}
 >
-  {displayText}
+  <TruncatedText text={displayText} />
 </span>

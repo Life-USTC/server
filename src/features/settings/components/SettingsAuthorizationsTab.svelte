@@ -128,9 +128,9 @@ function revokeAction(consentId: string): SubmitFunction {
                   {copy.settings.authorizations.recentUsage}
                 </h3>
                 <dl class="grid w-full gap-3 text-xs sm:grid-cols-3">
-                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.readCount}</dd></div>
-                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.writeCount}</dd></div>
-                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{authorization.usage.errorCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.reads}</dt><dd class="mt-1 text-sm tabular-nums">{authorization.usage.readCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.writes}</dt><dd class="mt-1 text-sm tabular-nums">{authorization.usage.writeCount}</dd></div>
+                  <div><dt class="text-muted-foreground">{copy.settings.authorizations.errors}</dt><dd class="mt-1 text-sm tabular-nums">{authorization.usage.errorCount}</dd></div>
                 </dl>
               </div>
               <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
