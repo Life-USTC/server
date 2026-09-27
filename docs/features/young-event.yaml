@@ -19,6 +19,15 @@ requirements:
   rule: Public event facts, sanitized detail, categories and organizer identity remain viewer-independent
     and reflect the current imported revision. Moving source-freshness and upcoming/history counts use
     the current reference clock.
+  acceptance:
+    given: Controlled database results and an imported-revision boundary supply event, sanitized detail, category and organizer facts.
+    when: The actual public services read cold/warm revisions and the clock crosses source-freshness and activity-time boundaries.
+    then:
+    - A warm revision reuses public facts; changing the revision refreshes every fact surface and sanitizes the new detail.
+    - Source freshness and upcoming/history counts advance with the current clock while underlying facts remain cached.
+    test:
+      file: tests/unit/features/young/young-event-service.test.ts
+      name: young-event.shared-public-cache
 - id: young-event.private-client-overlays
   category: privacy
   rule: Private event subscription and conflict APIs are requested with no-store only for signed-in viewers;
