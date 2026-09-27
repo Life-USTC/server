@@ -17,12 +17,6 @@ requirements:
     test:
       file: tests/e2e/src/app/account-policy/test.ts
       name: cases.account.username-change-2
-- id: cases.account.oauth-connection-error-1
-  category: behavior
-  topic: oauth-connection-error
-  rule: Linking a provider identity already associated with another user returns an explicit conflict without
-    exposing the other user. Reauthorization of a provider already linked to the current user follows the profile-refresh
-    capability rather than being treated as a duplicate-account conflict.
 - id: cases.account.oauth-connection-error-2
   category: behavior
   topic: oauth-connection-error
@@ -115,6 +109,10 @@ topics:
   title: Username change
 - id: oauth-connection-error
   title: Oauth connection error
+  requirement_refs:
+  - user.explicit-provider-linking
+  - user.welcome-oauth-refresh
+
 - id: account-deletion
   title: Account deletion
 rationale:

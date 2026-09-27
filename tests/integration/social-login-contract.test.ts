@@ -404,13 +404,13 @@ it("user.explicit-provider-linking", async () => {
         redirect: "manual",
       },
     );
-    await callback.text();
     return callback;
   };
   const authorized = await link(await sessionFor(owner.id));
   expect(authorized.headers.get("location")).toBe(
     `${origin}/account/settings/linked-accounts`,
   );
+  await authorized.text();
   expect(
     await db.account.count({ where: { userId: owner.id, provider: "github" } }),
   ).toBe(1);
@@ -419,9 +419,19 @@ it("user.explicit-provider-linking", async () => {
   });
   try {
     const blocked = await link(await sessionFor(other.id));
-    expect(blocked.headers.get("location")).toContain(
+    expect(blocked.status).toBe(302);
+    const location = blocked.headers.get("location") ?? "";
+    expect(new URL(location, origin).searchParams.get("error")).toBe(
       "account_already_linked_to_different_user",
     );
+    const body = await blocked.text();
+    for (const privateValue of [owner.id, owner.name, owner.email]) {
+      if (!privateValue)
+        throw new Error("Expected an identifiable fixture owner");
+      expect(location).not.toContain(privateValue);
+      expect(location).not.toContain(encodeURIComponent(privateValue));
+      expect(body).not.toContain(privateValue);
+    }
     expect(await db.account.count({ where: { userId: other.id } })).toBe(0);
     expect(
       await db.account.count({
