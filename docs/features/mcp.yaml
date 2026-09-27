@@ -316,22 +316,60 @@ requirements:
       name: mcp.transport-observability
 - id: mcp.mutation-rate-limits
   category: validation
-  rule: 'Ordinary MCP mutations are preflighted against the shared per-host, per-user feature-action Cloudflare
-    budgets: 60 writes or 10 batch writes per minute. Registered GraphQL mutations instead use the shared
-    resolver guard with the same feature:write key, avoiding duplicate consumption. Fixed-tool batches
-    fail before side effects on limit or unavailable bindings; responses use 429 or 503 with Retry-After:
-    60.'
+  rule: Native MCP mutations preflight every batch entry against the shared per-host/user/feature-action
+    guard before SDK dispatch. Subscription import uses the batch tier. Exhaustion or unavailable bindings
+    reject the entire dispatch with429/503 and Retry-After60. GraphQL operations delegate budget consumption
+    to selected resolver guards.
+  acceptance:
+    given: The real MCP handler and fixed-tool action/tier mapping with controlled authentication, Cloudflare
+      limiter outcomes and SDK dispatch.
+    when: Duplicate native writes or a subscription import exhaust or cannot access their mutation budget;
+      a registered GraphQL operation is dispatched.
+    then:
+    - Every native batch entry is preflighted before SDK execution.
+    - Ordinary writes use workspace.todo:write and import uses workspace.subscription:batch-write with
+      the batch tier.
+    - Exhausted/unavailable limits produce429/503 and Retry-After60.
+    - GraphQL dispatch consumes no native-tool budget; selected resolver fields own its checks.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.mutation-rate-limits
+  rationale: The shared Cloudflare60-write/10-batch-write configuration is canonical in openapi.authenticated-mutation-rate-limits;
+    this requirement owns the MCP transport mapping and preflight boundary.
 - id: mcp.rate-limit-accuracy-boundary
   category: consistency
-  rule: MCP mutation throttles are per-Cloudflare-location, permissive, eventually consistent abuse controls
-    rather than global exact quotas. The protocol does not promise remaining/reset counters, and read-only
-    tools do not consume mutation budgets.
+  rule: Read-only MCP tools consume no mutation budgets. MCP responses expose no remaining/reset quota
+    counters.
+  acceptance:
+    given: A read-only MCP tool request with a controlled SDK response.
+    when: The real handler dispatches it.
+    then:
+    - No mutation budget is consumed.
+    - The transport adds no remaining/reset quota counters.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.rate-limit-accuracy-boundary
+  rationale: The shared limiter is a per-Cloudflare-location, permissive and eventually consistent abuse
+    control, not an exact global quota; its deployment contract is canonical in openapi.rate-limit-accuracy-boundary.
 - id: mcp.flexible-date-inputs
   category: validation
-  rule: Date and datetime parameters on MCP tools accept ISO 8601 with timezone offset (2026-05-01T08:00:00+08:00),
-    bare date strings (2026-05-01, treated as UTC midnight for @db.Date columns), or timezone-less datetimes
-    (2026-05-01T08:00:00, interpreted as Asia/Shanghai). Invalid strings produce a descriptive error response
-    rather than a validation rejection.
+  rule: The shared MCP date schema accepts ISO8601 with an explicit offset, bare YYYY-MM-DD interpreted
+    as UTC midnight, and timezone-less datetimes interpreted as Asia/Shanghai. Product day-window parsers
+    explicitly interpret bare dates as Shanghai midnight. Invalid nonempty date strings return a descriptive
+    unsuccessful tool result; empty/non-string inputs fail schema validation.
+  acceptance:
+    given: The shared flexible schema/parser and a real MCP SDK client backed by an isolated production-role
+      database.
+    when: Todo create/update receive date-only, timezone-less and positive/negative-offset date strings;
+      malformed strings attempt writes.
+    then:
+    - Every accepted format persists the exact independently specified UTC instant.
+    - Invalid nonempty date strings produce a readable unsuccessful tool result and no row; empty/non-string
+      values fail input validation.
+    - The explicit Shanghai-day parser option maps a bare date to Shanghai midnight.
+    test:
+      file: tests/integration/mcp/workspace/flexible-dates.test.ts
+      name: mcp.flexible-date-inputs
 - id: mcp.time-override
   category: consistency
   rule: workspace_snapshot_get, workspace_schedule_next, workspace_calendar_timeline_get, workspace_deadline_list,
