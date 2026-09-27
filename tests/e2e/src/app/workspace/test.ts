@@ -145,9 +145,7 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-navigate-homeworks");
   });
 
-  test("登录用户直接打开公共页面后补全工作台导航数字", async ({
-    page,
-  }, testInfo) => {
+  test("user.shell-viewer", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     let bootstrapRequestCount = 0;
     page.on("request", (request) => {
@@ -203,6 +201,22 @@ test.describe("仪表盘", () => {
         await expect(badge).toHaveCount(0);
       }
     }
+    expect(bootstrapResponse.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "no-store",
+    );
+    await page
+      .locator(
+        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+      )
+      .first()
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}$`),
+    );
+    await expect(page.locator("#app-user-menu")).toContainText(
+      DEV_SEED.debugName,
+    );
+    expect(bootstrapRequestCount).toBe(1);
   });
 
   test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {

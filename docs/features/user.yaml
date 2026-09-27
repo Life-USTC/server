@@ -35,11 +35,16 @@ requirements:
       name: user.public-contribution-window
 - id: user.shell-viewer
   category: behavior
-  rule: The root layout owns the client viewer state and issues at most one shell bootstrap request per
-    mount. Public page controls reuse that in-memory state instead of issuing duplicate identity requests.
-    Navigation-summary failures preserve the authenticated viewer and return null navigation; identity
-    failures remain distinguishable from an anonymous viewer. Neither response nor viewer state is stored
-    in a shared cache.
+  rule: "The root layout owns client viewer state and issues at most one shell bootstrap request per mount. Public controls and navigation reuse that state rather than issuing duplicate identity requests."
+  acceptance:
+    given: "A real signed-in user enters a public catalog page from the workspace."
+    when: "The browser loads the shell, reads navigation badges and follows a public course detail link."
+    then:
+    - "Exactly one private bootstrap request supplies the viewer and navigation."
+    - "Badges match the returned counts and client navigation does not issue another bootstrap."
+    test:
+      file: tests/e2e/src/app/workspace/test.ts
+      name: user.shell-viewer
 - id: user.sign-in-providers
   category: behavior
   rule: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered
@@ -52,10 +57,16 @@ requirements:
     relying parties.
 - id: user.passkey-user-flow
   category: presentation
-  rule: The sign-in page offers a WebAuthn passkey ceremony when supported. Signed-in users list, add,
-    rename, and delete their own passkeys in linked-account settings through the Better Auth client plugin.
-    Unsupported browsers, cancelled ceremonies, stale registration sessions, empty lists, and request
-    failures have explicit user-visible states.
+  rule: "Supported browsers offer passkey sign-in. Linked-account settings let users register, list, rename and delete their own passkeys, with an explicit empty state after deleting the last passkey when another usable sign-in method remains."
+  acceptance:
+    given: "A signed-in user has a browser virtual authenticator and another usable sign-in method."
+    when: "The browser registers and renames a key, signs out, signs in with that key and deletes it."
+    then:
+    - "The registered credential works for the same account and the renamed key persists."
+    - "Deletion confirms the action and restores the empty list."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-user-flow
 - id: user.debug-password-boundary
   category: authorization
   rule: Email/password authentication is enabled only for local development or the explicit non-production
@@ -91,18 +102,30 @@ requirements:
     to that page; otherwise completion returns home.
 - id: user.auth-callback-not-intercepted
   category: behavior
-  rule: Authorization callback continuation requests carrying OAuth code/error and state must be allowed
-    to complete the protocol redirect; the welcome page interceptor must not break the authorization result
-    redirect.
+  rule: "Authorization continuation URLs carrying OAuth code/error and state bypass the incomplete-profile welcome redirect; a state-only ordinary URL does not."
+  acceptance:
+    given: "An incomplete-profile user visits arbitrary callback paths with code or error plus state, or a normal URL with only state."
+    when: "The actual welcome redirect policy checks each URL."
+    then:
+    - "Code/error continuation is allowed, while a state-only URL remains subject to profile completion."
+    test:
+      file: tests/unit/features/welcome/welcome-redirect.test.ts
+      name: user.auth-callback-not-intercepted
 - id: user.post-login-redirect
   category: behavior
   rule: After successful login, the user should be redirected back to the originally requested app-relative
     page whenever possible; unsafe external callbacks fall back to the home page.
 - id: user.oauth-login-resume
   category: behavior
-  rule: If an OAuth authorization request lands on /account/sign-in with raw authorization query parameters
-    instead of callbackUrl, the sign-in flow should resume that exact authorization request after login
-    rather than falling back to /.
+  rule: "Raw OAuth authorization parameters on the sign-in page reconstruct the exact app-relative authorization continuation, preserving PKCE, state, resource and signed-query fields."
+  acceptance:
+    given: "A sign-in request contains raw authorization parameters without callbackUrl."
+    when: "The actual callback resolver builds the continuation."
+    then:
+    - "The app-relative authorization URL preserves all supplied protocol fields and their encoding."
+    test:
+      file: tests/unit/lib/auth/signin-callback-url.test.ts
+      name: user.oauth-login-resume
 - id: user.oauth-consent-loopback-continuation
   category: behavior
   rule: The OAuth consent step must continue working for loopback public clients even when the client
@@ -277,6 +300,117 @@ requirements:
     test:
       file: tests/integration/account-authority-reduction.test.ts
       name: user.session-revocation-authoritative
+- id: user.passkey-unsupported
+  category: presentation
+  rule: "When WebAuthn is unavailable, passkey sign-in is disabled and explains the unsupported state in the selected locale."
+  acceptance:
+    given: "PublicKeyCredential is unavailable."
+    when: "The sign-in page renders in Chinese and English."
+    then:
+    - "The passkey control is disabled and the corresponding localized explanation is visible."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-unsupported
+- id: user.passkey-cancelled
+  category: presentation
+  rule: "Cancelling the browser passkey ceremony keeps the sign-in page available and shows a recoverable cancellation message."
+  acceptance:
+    given: "A browser credential request rejects with NotAllowedError."
+    when: "The user attempts passkey sign-in."
+    then:
+    - "The sign-in page remains visible with the cancellation explanation."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-cancelled
+- id: user.passkey-sign-in-failure
+  category: presentation
+  rule: "A failed passkey authentication request preserves the sign-in page and shows a generic failure message."
+  acceptance:
+    given: "The authentication-options endpoint responds with an internal failure."
+    when: "The user attempts passkey sign-in."
+    then:
+    - "The page shows the generic failure message without exposing the internal error."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-sign-in-failure
+- id: user.passkey-stale-session-guidance
+  category: presentation
+  rule: "A stale-session registration response displays explicit instructions to sign out and sign in again."
+  acceptance:
+    given: "The registration-options endpoint returns SESSION_NOT_FRESH."
+    when: "The signed-in user attempts to add a passkey."
+    then:
+    - "The settings card displays recent-sign-in guidance."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-stale-session-guidance
+- id: user.passkey-list-retry
+  category: presentation
+  rule: "When the passkey list fails to load, settings presents the failure and a usable retry control."
+  acceptance:
+    given: "The list endpoint initially fails, then becomes available."
+    when: "The user opens linked accounts and retries the list."
+    then:
+    - "The failure and retry control are visible."
+    - "Retry reloads the real list and clears the failure."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-list-retry
+- id: user.passkey-mobile-controls
+  category: presentation
+  rule: "At 390x844, passkey settings remain within the viewport and the Add passkey control has a touch target of at least 44 by 44 CSS pixels."
+  acceptance:
+    given: "Linked-account settings are loaded on a mobile viewport."
+    when: "The browser inspects the passkey form."
+    then:
+    - "The input and Add control are visible, the target meets the minimum size and the page has no horizontal overflow."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-mobile-controls
+- id: user.shell-navigation-failure
+  category: behavior
+  rule: "A shell navigation-summary failure preserves the authenticated viewer and returns null navigation without serializing the internal error."
+  acceptance:
+    given: "The navigation data dependency throws while the route has an authenticated viewer."
+    when: "The actual shell route builds its response."
+    then:
+    - "The viewer remains present, navigation is null and the response is private/no-store."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-route.test.ts
+      name: user.shell-navigation-failure
+- id: user.shell-identity-failure
+  category: behavior
+  rule: "A failed shell identity request remains distinguishable from a successful anonymous result."
+  acceptance:
+    given: "The bootstrap endpoint returns 503."
+    when: "The actual client loader processes the response."
+    then:
+    - "It rejects with a bootstrap failure instead of returning an anonymous viewer."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-identity-failure
+- id: user.shell-private-fetch
+  category: privacy
+  rule: "Client shell bootstrap fetches use same-origin credentials and no-store caching."
+  acceptance:
+    given: "A bootstrap fetch returns a valid viewer and navigation payload."
+    when: "The actual client loader sends the request."
+    then:
+    - "It uses the internal same-origin endpoint, same-origin credentials and cache=no-store."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-private-fetch
+- id: user.shell-navigation-owner
+  category: privacy
+  rule: "The shell rejects malformed navigation counts and navigation belonging to a different viewer."
+  acceptance:
+    given: "Payloads carry another user ID or negative counts."
+    when: "The actual client payload parser handles them."
+    then:
+    - "Both payloads are rejected."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-navigation-owner
 capabilities:
   sign-in:
     title: Sign In

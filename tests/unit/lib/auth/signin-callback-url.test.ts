@@ -42,7 +42,7 @@ describe("resolveSignInCallbackUrl", () => {
     expect(sanitizeAuthCallbackUrl("/%5cattacker.example")).toBe("/");
   });
 
-  it("根据原始登录参数重建 OAuth 授权继续请求", () => {
+  it("user.oauth-login-resume", () => {
     expect(
       resolveSignInCallbackUrl({
         response_type: OAUTH_CODE_RESPONSE_TYPE,
