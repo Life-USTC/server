@@ -26,7 +26,7 @@ export let targetLabel: AdminModerationCommentFormatter;
   <Table.Cell>
     <div class="grid min-w-0 gap-1">
       <TruncatedText
-        class="text-sm"
+        class="text-sm font-medium"
         lines={2}
         preserveWhitespace
         text={comment.body}

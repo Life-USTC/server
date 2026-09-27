@@ -541,6 +541,26 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-7
+- id: ui.model-property-priority-admin-views
+  category: presentation
+  topic: model-property-priority
+  rule: Administrative bus, moderation, OAuth-client and user views preserve every declared identifying,
+    secondary and internal field priority in both responsive layouts.
+  acceptance:
+    given: Isolated administrative records include distinct content, target, author, status and timestamps,
+      including descriptions with an explicit edit time and a missing edit time.
+    when: English and Chinese browsers inspect all eight administrative presentation views at mobile and
+      desktop widths against the feature declarations.
+    then:
+    - Each view places its identifying content in the title or first identifying table cell and exposes
+      every declared primary field.
+    - Every declared secondary field remains visible with subordinate computed typography or color;
+      homework governance includes its creator for accountability.
+    - Internal identifiers and raw update timestamps are absent from ordinary record text, and the
+      derived description edit display uses lastEditedAt or updatedAt only when lastEditedAt is absent.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-admin.test.ts
+      name: ui.model-property-priority-admin-views
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority

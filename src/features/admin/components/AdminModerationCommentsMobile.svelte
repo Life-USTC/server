@@ -24,12 +24,10 @@ export let targetLabel: AdminModerationCommentFormatter;
     {#each comments as comment, index (comment.id)}
       <Item.Root class="items-start px-1 py-3">
         <Item.Content class="min-w-0">
-          <Item.Title>{targetLabel(comment)}</Item.Title>
+          <Item.Title class="line-clamp-3 whitespace-pre-wrap">{comment.body}</Item.Title>
+          <Item.Description>{targetLabel(comment)}</Item.Description>
           <Item.Description>
             {commentAuthorLabel(comment)} · {formatDate(comment.createdAt)}
-          </Item.Description>
-          <Item.Description class="line-clamp-3 whitespace-pre-wrap">
-            {comment.body}
           </Item.Description>
         </Item.Content>
         <Item.Actions class="shrink-0 flex-wrap self-start">

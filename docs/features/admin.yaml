@@ -369,10 +369,10 @@ capabilities:
           secondary:
           - description.target
           - description.lastEditedBy.name
-          - description.lastEditedAt
-          - description.updatedAt
+          - display.editedAt
           tertiary:
           - description.id
+          - description.updatedAt
       items:
       - Separate comments and descriptions views with detail dialogs.
   user-management:
@@ -463,4 +463,6 @@ capabilities:
       items:
       - Import, activate and delete actions.
 rationale:
+- >-
+  In description governance, display.editedAt is the rendered edit timestamp returned by adminModerationDescriptionEditedAt: lastEditedAt when present, otherwise updatedAt for a record without an explicit edit timestamp. It is a derived presentation value, not a Description record property; the raw updatedAt timestamp is reconstruction metadata.
 - Suspension history and nullified deleted-admin actor references are canonically owned and verified by user.account-deletion-retention.

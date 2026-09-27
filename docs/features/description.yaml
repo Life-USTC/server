@@ -384,13 +384,16 @@ capabilities:
           secondary:
           - description.target
           - description.lastEditedBy.name
-          - description.updatedAt
+          - display.editedAt
           tertiary:
           - description.id
+          - description.updatedAt
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types
     - description.editor-authorization
 
 rationale:
+- >-
+  Governance display.editedAt is the rendered edit timestamp returned by adminModerationDescriptionEditedAt: lastEditedAt when present, otherwise updatedAt for a record without an explicit edit timestamp. It is a derived presentation value, not a Description record property; the raw updatedAt timestamp is reconstruction metadata.
 - The former description.public-cache-retry is part of description.public-cache-invalidation, whose real database acceptance verifies post-commit invalidation and unchanged-content retry without duplicate edit history.
