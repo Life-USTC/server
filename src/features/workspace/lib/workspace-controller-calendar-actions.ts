@@ -1,6 +1,7 @@
 import type { CalendarView } from "./calendar";
 import {
   workspaceCalendarSemesterHref as buildWorkspaceCalendarSemesterHref,
+  workspaceCalendarDayChange,
   workspaceCalendarMonthChange,
   workspaceCalendarSemesterChange,
   workspaceCalendarStateFromValues,
@@ -15,12 +16,14 @@ type WorkspaceTabHref = typeof workspaceTabHref;
 
 export function createWorkspaceCalendarActions(input: {
   getCalendarData: () => CalendarData | null;
+  getCalendarDay: () => string;
   getCalendarMonth: () => string;
   getCalendarSemesterId: () => number | null;
   getCalendarView: () => CalendarView;
   getCalendarWeekStart: () => string;
   navigateUrl: (href: string) => void | Promise<void>;
   replaceUrl: (href: string) => void;
+  setCalendarDay: (value: string) => void;
   setCalendarMonth: (value: string) => void;
   setCalendarSemesterId: (value: number | null) => void;
   setCalendarView: (value: CalendarView) => void;
@@ -29,6 +32,7 @@ export function createWorkspaceCalendarActions(input: {
 }) {
   function calendarState() {
     return workspaceCalendarStateFromValues({
+      calendarDay: input.getCalendarDay(),
       calendarMonth: input.getCalendarMonth(),
       calendarSemesterId: input.getCalendarSemesterId(),
       calendarView: input.getCalendarView(),
@@ -38,6 +42,7 @@ export function createWorkspaceCalendarActions(input: {
 
   function applyCalendarState(state: ReturnType<typeof calendarState>) {
     input.setCalendarView(state.view);
+    input.setCalendarDay(state.day);
     input.setCalendarMonth(state.month);
     input.setCalendarWeekStart(state.weekStart);
     input.setCalendarSemesterId(state.semesterId);
@@ -52,6 +57,16 @@ export function createWorkspaceCalendarActions(input: {
       calendar: input.getCalendarData(),
       currentState: calendarState(),
       nextView,
+      tabHref: input.tabHref,
+    });
+    applyCalendarState(next.state);
+    input.replaceUrl(next.href);
+  }
+
+  function setCalendarDay(day: string) {
+    const next = workspaceCalendarDayChange({
+      currentState: calendarState(),
+      day,
       tabHref: input.tabHref,
     });
     applyCalendarState(next.state);
@@ -99,6 +114,7 @@ export function createWorkspaceCalendarActions(input: {
 
   return {
     calendarSemesterHref,
+    setCalendarDay,
     setCalendarMonth,
     setCalendarSemester,
     setCalendarView,

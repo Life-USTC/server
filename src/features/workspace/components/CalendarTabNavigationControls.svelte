@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import type { WorkspaceCalendarControlsProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";
@@ -7,6 +8,7 @@ import type { FormatMessage } from "./workspace-component-types";
 export let addDays: WorkspaceCalendarControlsProps["addDays"];
 export let addMonths: WorkspaceCalendarControlsProps["addMonths"];
 export let calendarData: WorkspaceCalendarControlsProps["calendarData"];
+export let calendarDay: WorkspaceCalendarControlsProps["calendarDay"];
 export let calendarMonth: WorkspaceCalendarControlsProps["calendarMonth"];
 export let calendarSemesterIndex: WorkspaceCalendarControlsProps["calendarSemesterIndex"];
 export let calendarView: WorkspaceCalendarControlsProps["calendarView"];
@@ -15,13 +17,21 @@ export let commonCopy: WorkspaceCalendarControlsProps["commonCopy"];
 export let workspaceCopy: WorkspaceCalendarControlsProps["workspaceCopy"];
 export let formatMessage: FormatMessage;
 export let sectionCopy: WorkspaceCalendarControlsProps["sectionCopy"];
+export let setCalendarDay: WorkspaceCalendarControlsProps["setCalendarDay"];
 export let setCalendarMonth: WorkspaceCalendarControlsProps["setCalendarMonth"];
 export let setCalendarSemester: WorkspaceCalendarControlsProps["setCalendarSemester"];
 export let setCalendarWeek: WorkspaceCalendarControlsProps["setCalendarWeek"];
 </script>
 
 {#if calendarData}
-  {#if calendarView === "month"}
+  {#if calendarView === "day"}
+    <ButtonGroup.Root>
+      <Button aria-label={workspaceCopy.calendarDay.prev} type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, -1))}>{commonCopy.previous}</Button>
+      <Button type="button" variant="outline" onclick={() => setCalendarDay(calendarData.todayDate)}>{workspaceCopy.todayAction}</Button>
+      <Button aria-label={workspaceCopy.calendarDay.next} type="button" variant="outline" onclick={() => setCalendarDay(addDays(calendarDay, 1))}>{commonCopy.next}</Button>
+    </ButtonGroup.Root>
+    <Input aria-label={workspaceCopy.calendarDay.label} type="date" value={calendarDay} class="w-auto" onchange={(event) => { if (event.currentTarget.value) setCalendarDay(event.currentTarget.value); }} />
+  {:else if calendarView === "month"}
     <ButtonGroup.Root>
       <Button aria-label={sectionCopy.previousMonth} type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, -1))}>
         {commonCopy.previous}

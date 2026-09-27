@@ -29,35 +29,39 @@ requirements:
       name: calendar.personal-feed-http-cache
 - id: calendar.views
   category: presentation
-  rule: Course-subscribed workspaces provide semester, month, and week views with subscribed activities
-    overlaid. Activity-only workspaces provide day, week, and month views without requiring course subscriptions.
-  rationale: 'Product decision required: Changing navigation modes when a user adds their first course
-    subscription creates surprising loss of day view; define a unified personal calendar hierarchy or
-    justify academic semester context.'
+  rule: Personal calendars provide day, week, and month views with individually subscribed activities.
+    Course subscriptions add a semester view while preserving day access on desktop and mobile.
+  rationale: Day, week, and month remain useful with or without courses; semester adds the academic planning
+    range without removing a shorter view. A day agenda preserves course context and subscription badges.
   acceptance:
     given: One isolated owner has a course and an activity subscription; another has only the same activity
       subscription.
-    when: The actual desktop calendar renders academic semester/month/week views and activity-only day/week/month
-      views.
+    when: The actual desktop academic semester/month/week grids, desktop/mobile day agendas, and activity-only
+      day/week/month views render; users navigate days and reload the selected day URL.
     then:
-    - Every academic mode includes both course events and the individually subscribed activity.
+    - Academic grids include course events and subscribed activities; day agendas include only events
+      on the selected day.
+    - Previous day, next day, and today select the expected campus date; reloading preserves the selected
+      day and its events.
     - Every activity-only mode displays the activity without requiring or leaking course subscriptions.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
       name: calendar.views
 - id: calendar.mobile-agenda-first
   category: presentation
-  rule: At mobile widths, the personal calendar presents the selected week as a vertically readable agenda
-    with time, title, type, and available location context. Previous week, today, next week, and iCal
-    actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable
-    grid views.
+  rule: At mobile widths, the personal academic calendar offers day and week as vertically readable agendas
+    with time, title, type, and available location context. Previous day/week, today, next day/week, and
+    iCal actions remain directly accessible without page-level horizontal scrolling; desktop also offers
+    month and semester grids.
   acceptance:
-    given: A signed-in subscriber opens a selected week on a 390px screen.
-    when: The browser reads the agenda, uses its iCal action and navigates to the next week.
+    given: An isolated signed-in course subscriber opens a selected week on a 390px screen.
+    when: The browser reads the agenda, uses its iCal action, navigates weeks, and switches between day
+      and week.
     then:
-    - Seven vertical day groups and real events are visible.
-    - Week/today/actions controls have at least 44px touch bounds and copied iCal links are usable.
-    - Week navigation preserves the agenda without page-level horizontal overflow.
+    - Week mode shows seven vertical day groups and real event context; day mode shows one day group.
+    - Day/week navigation and today/actions controls have at least 44px touch bounds and copied iCal links
+      are usable.
+    - Navigation preserves the agenda without page-level horizontal overflow.
     test:
       file: tests/e2e/src/app/workspace/calendar/test.ts
       name: calendar.mobile-agenda-first
@@ -69,21 +73,25 @@ requirements:
     subscriptions, matching the campus workweek.
   acceptance:
     given: Two isolated owners open academic and activity-only personal calendars in English.
-    when: The real academic semester/month/week grids and activity week/month grids render.
+    when: The real academic semester/month/week grids and activity week/month grids render, followed by
+      the anonymous public Section lecture table.
     then:
     - Academic and activity grids order weekday headers Monday through Sunday.
     - Date cells and their actual course events align with the matching weekday column.
+    - The public Section lecture table retains the correct date, teaching week, time and location cells;
+      it does not present a weekday grid.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
       name: calendar.week-starts-monday
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
-    grids and mobile agendas. Regular subscriptions show no badge. Web course titles and public calendar
-    content remain unchanged.
+    grids and desktop/mobile day or week agendas. Regular subscriptions show no badge. Web course titles
+    and public calendar content remain unchanged.
   acceptance:
     given: A subscribed course cycles through regular, teaching assistant and auditor in Chinese and English.
-    when: The actual personal calendar is rendered at desktop and mobile widths after each update.
+    when: The actual personal calendar is rendered in week and day modes at desktop and mobile widths
+      after each update.
     then:
     - Only non-regular roles render the correct localized badge on course cards.
     - Course titles remain identical to regular-role titles and badges stay within card bounds.

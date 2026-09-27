@@ -36,6 +36,7 @@ export let formatMessage: FormatMessage;
 export let sessionHref: WorkspaceCalendarTabProps["sessionHref"];
 
 export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
+export let setCalendarDay: WorkspaceCalendarTabProps["setCalendarDay"];
 export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
 export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
 export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
@@ -54,6 +55,7 @@ export let calendarTodoChipFields: WorkspaceCalendarTabProps["calendarTodoChipFi
 export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
 
 export let calendarView: WorkspaceCalendarTabProps["calendarView"];
+export let calendarDay: WorkspaceCalendarTabProps["calendarDay"];
 export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
 export let calendarWeekStart: WorkspaceCalendarTabProps["calendarWeekStart"];
 export let calendarSemesterId: WorkspaceCalendarTabProps["calendarSemesterId"];
@@ -73,11 +75,12 @@ $: baseAgendaDays =
         calendar: calendarData,
         eventsForDay: calendarEventsForDay,
         locale: signedData.locale,
-        startKey: agendaWeekStart,
+        startKey: calendarView === "day" ? calendarDay : agendaWeekStart,
+        dayCount: calendarView === "day" ? 1 : 7,
         timelineItemsForDay: calendarTimelineItemsForDay,
       })
     : [];
-$: baseCalendarGridWeeks = calendarData
+$: baseCalendarGridWeeks = calendarData && calendarView !== "day"
   ? buildWorkspaceCalendarGridWeeks({
       addDays,
       calendar: calendarData,
@@ -158,6 +161,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
       {addDays}
       {addMonths}
       {calendarData}
+      {calendarDay}
       {calendarMonth}
       {calendarSemesterIndex}
       {calendarView}
@@ -167,6 +171,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
       {workspaceCopy}
       {formatMessage}
       {sectionCopy}
+      {setCalendarDay}
       {setCalendarMonth}
       {setCalendarSemester}
       {setCalendarView}
@@ -176,15 +181,16 @@ $: agendaDays = baseAgendaDays.map((day) => ({
     />
 
     {#if calendarData && calendarData.semesterWeeks.length > 0}
-      {#key `${calendarView}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
-        <div class="md:hidden">
+      {#key `${calendarView}-${calendarDay}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
+        <div class={calendarView === "day" ? "" : "md:hidden"}>
           <CalendarAgenda
             days={agendaDays}
             emptyLabel={workspaceCopy.calendarAgendaEmpty}
-            label={workspaceCopy.calendarAgendaLabel}
+            label={calendarView === "day" ? workspaceCopy.calendarDayAgendaLabel : workspaceCopy.calendarAgendaLabel}
             todayLabel={workspaceCopy.todayAction}
           />
         </div>
+        {#if calendarView !== "day"}
         <div class="hidden md:block" data-testid="workspace-calendar-grid">
           <CalendarGrid
             weeks={calendarGridWeeks}
@@ -200,6 +206,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
               })}
           />
         </div>
+        {/if}
       {/key}
     {:else}
       <Empty.Root class="items-start text-left">

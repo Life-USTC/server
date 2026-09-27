@@ -61,6 +61,7 @@ let {
   bulkImportSemesterId,
   bulkImportText,
   calendarData,
+  calendarDay,
   calendarMonth,
   calendarSemesterId,
   calendarView,
@@ -177,6 +178,7 @@ const {
   resetBulkImport,
   searchQuickAddSections,
   sessionHref,
+  setCalendarDay,
   setCalendarMonth,
   setCalendarSemester,
   setCalendarView,
@@ -192,6 +194,7 @@ const {
   getBulkImportSemesterId: () => bulkImportSemesterId,
   getBulkImportText: () => bulkImportText,
   getCalendarData: () => calendarData,
+  getCalendarDay: () => calendarDay,
   getCalendarMonth: () => calendarMonth,
   getCalendarSemesterId: () => calendarSemesterId,
   getCalendarView: () => calendarView,
@@ -227,6 +230,7 @@ const {
   setBulkImportText: (v) => {
     bulkImportText = v;
   },
+  setCalendarDay: (v) => { calendarDay = v; },
   setCalendarMonth: (v) => {
     calendarMonth = v;
   },
@@ -536,6 +540,7 @@ onMount(mount);
       {formatMessage}
       {sessionHref}
       {setCalendarView}
+      {setCalendarDay}
       {setCalendarMonth}
       {setCalendarWeek}
       {setCalendarSemester}
@@ -553,6 +558,7 @@ onMount(mount);
       {calendarTodoChipFields}
       {calendarSemesterIndex}
       {calendarView}
+      {calendarDay}
       {calendarMonth}
       {calendarWeekStart}
       {calendarSemesterId}

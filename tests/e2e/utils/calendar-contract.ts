@@ -119,7 +119,7 @@ export async function createCalendarContractFixture() {
     date,
     activityDate,
     academicUrl: (view = "week") =>
-      `/workspace/calendar?calendarView=${view}&calendarWeek=${date}&calendarMonth=2026-04&calendarSemester=${created.section.semesterId}&snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`,
+      `/workspace/calendar?calendarView=${view}&calendarDay=${date}&calendarWeek=${date}&calendarMonth=2026-04&calendarSemester=${created.section.semesterId}&snapshotAt=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}`,
     cleanup: async () => {
       await cleanupHomeworksForE2e([created.homework.id]);
       await withE2ePrisma(async (db) => {

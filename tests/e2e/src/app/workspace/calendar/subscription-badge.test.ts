@@ -13,7 +13,6 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
       .context()
       .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
     for (const locale of ["zh-CN", "en-US"]) {
-      const url = fixture.academicUrl();
       await page.context().addCookies([
         {
           name: "NEXT_LOCALE",
@@ -22,7 +21,7 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
         },
       ]);
       const endpoint = `/api/workspace/subscriptions/${fixture.section.jwId}`;
-      const originalTitles = new Map<boolean, string>();
+      const originalTitles = new Map<string, string>();
       try {
         for (const [kind, label] of [
           ["regular", undefined],
@@ -33,15 +32,23 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
             data: { kind },
           });
           expect(response.status()).toBe(200);
-          for (const mobile of [false, true]) {
+          for (const [mobile, view] of [
+            [false, "week"],
+            [true, "week"],
+            [false, "day"],
+            [true, "day"],
+          ] as const) {
+            const key = `${mobile}-${view}`;
             await page.setViewportSize(
               mobile
                 ? { width: 390, height: 844 }
                 : { width: 1280, height: 900 },
             );
-            await gotoAndWaitForReady(page, url);
+            await gotoAndWaitForReady(page, fixture.academicUrl(view));
             const calendar = page.getByTestId(
-              mobile ? "calendar-agenda" : "workspace-calendar-grid",
+              mobile || view === "day"
+                ? "calendar-agenda"
+                : "workspace-calendar-grid",
             );
             const course = calendar
               .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
@@ -51,8 +58,8 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
               .locator('[data-slot="item-title"]')
               .innerText();
             expect(title.trim()).not.toBe("");
-            if (kind === "regular") originalTitles.set(mobile, title);
-            else expect(title).toBe(originalTitles.get(mobile));
+            if (kind === "regular") originalTitles.set(key, title);
+            else expect(title).toBe(originalTitles.get(key));
             const badge = course.getByTestId("calendar-subscription-badge");
             if (label) {
               await expect(badge).toBeVisible();
@@ -79,7 +86,7 @@ test("calendar.subscription-badges", async ({ page }, testInfo) => {
               await captureStepScreenshot(
                 page,
                 testInfo,
-                `calendar/badge-${mobile ? "mobile" : "desktop"}`,
+                `calendar/badge-${view}-${mobile ? "mobile" : "desktop"}`,
               );
             }
           }

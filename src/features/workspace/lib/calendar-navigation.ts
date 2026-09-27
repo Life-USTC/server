@@ -14,6 +14,7 @@ export type WorkspaceCalendarNavData = {
 };
 
 export type WorkspaceCalendarState = {
+  day: string;
   month: string;
   semesterId: number | null;
   view: CalendarView;
@@ -21,6 +22,7 @@ export type WorkspaceCalendarState = {
 };
 
 export type WorkspaceCalendarStatePatch = {
+  day?: string;
   month?: string;
   semesterId?: number | null;
   view?: CalendarView;
@@ -36,6 +38,8 @@ export function workspaceCalendarStateFromUrl(
 
   const referenceDate =
     toCampusDateKey(calendar?.referenceDate) ?? toDateKey(new Date());
+  const requestedDay = url.searchParams.get("calendarDay");
+  const day = isDateKey(requestedDay) ? requestedDay : referenceDate;
   const requestedMonth = url.searchParams.get("calendarMonth");
   const month = isMonthKey(requestedMonth)
     ? requestedMonth
@@ -45,6 +49,7 @@ export function workspaceCalendarStateFromUrl(
   const week = isDateKey(requestedWeek) ? requestedWeek : referenceDate;
 
   return {
+    day,
     month,
     semesterId: calendar?.activeCalendarSemesterId ?? null,
     view,
@@ -57,6 +62,7 @@ export function workspaceCalendarStateFromPatch(
   patch: WorkspaceCalendarStatePatch,
 ): WorkspaceCalendarState {
   return {
+    day: patch.day ?? current.day,
     month: patch.month ?? current.month,
     semesterId: patch.semesterId ?? current.semesterId,
     view: patch.view ?? current.view,
@@ -68,6 +74,7 @@ export function workspaceCalendarParams(
   state: WorkspaceCalendarState,
 ): Record<string, string | number | null | undefined> {
   const params: Record<string, string | number | null | undefined> = {};
+  if (state.view === "day") params.calendarDay = state.day;
   if (state.view !== "semester") params.calendarView = state.view;
   if (state.view === "month" && state.month) params.calendarMonth = state.month;
   if (state.view === "week" && state.weekStart)
@@ -82,6 +89,9 @@ export function workspaceCalendarViewPatch(
 ): WorkspaceCalendarStatePatch {
   const referenceKey =
     toCampusDateKey(calendar?.referenceDate) ?? toDateKey(new Date());
+  if (nextView === "day") {
+    return { day: referenceKey, semesterId: null, view: "day" };
+  }
   if (nextView === "month") {
     return {
       month: referenceKey.slice(0, 7),

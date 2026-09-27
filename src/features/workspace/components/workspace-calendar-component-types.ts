@@ -63,6 +63,7 @@ export type WorkspaceCalendarControlsProps = {
   addDays: WorkspaceCalendarDateShift;
   addMonths: WorkspaceCalendarDateShift;
   calendarData: WorkspaceCalendarData | null;
+  calendarDay: string;
   calendarMonth: string;
   calendarSemesterIndex: (calendar: WorkspaceCalendarData) => number;
   calendarView: CalendarView;
@@ -70,6 +71,7 @@ export type WorkspaceCalendarControlsProps = {
   commonCopy: WorkspaceCommonCopy;
   workspaceCopy: WorkspaceCopy;
   sectionCopy: WorkspaceSectionCopy;
+  setCalendarDay: (day: string) => void;
   setCalendarMonth: (month: string) => void;
   setCalendarSemester: (semesterId: number | null) => void;
   setCalendarView: (view: CalendarView) => void;

@@ -716,6 +716,13 @@
     "descriptionV2": "Hi, {name}",
     "fallbackName": "Guest",
     "calendarViewSemester": "This semester",
+    "calendarViewDay": "Day",
+    "calendarDay": {
+      "prev": "Previous day",
+      "next": "Next day",
+      "label": "Date"
+    },
+    "calendarDayAgendaLabel": "Daily agenda",
     "calendarViewMonth": "This month",
     "calendarViewWeek": "This week",
     "calendarSemesterPrev": "Previous semester",

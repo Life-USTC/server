@@ -40,6 +40,7 @@ describe("仪表盘日历日期键", () => {
     );
 
     expect(state).toEqual({
+      day: "2026-03-02",
       month: "2026-03",
       semesterId: 42,
       view: "week",

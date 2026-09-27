@@ -20,6 +20,7 @@ export let calendarTimelineItemsForDay: WorkspaceCalendarTabProps["calendarTimel
 export let calendarExamChipFields: WorkspaceCalendarTabProps["calendarExamChipFields"];
 export let calendarHomeworkChipFields: WorkspaceCalendarTabProps["calendarHomeworkChipFields"];
 export let calendarHomeworkHref: WorkspaceCalendarTabProps["calendarHomeworkHref"];
+export let calendarDay: WorkspaceCalendarTabProps["calendarDay"];
 export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
 export let calendarSemesterId: WorkspaceCalendarTabProps["calendarSemesterId"];
 export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
@@ -41,6 +42,7 @@ export let linkSearchQuery: string;
 export let monthWeeks: WorkspaceCalendarTabProps["monthWeeks"];
 export let sectionCopy: WorkspaceCalendarTabProps["sectionCopy"];
 export let sessionHref: WorkspaceCalendarTabProps["sessionHref"];
+export let setCalendarDay: WorkspaceCalendarTabProps["setCalendarDay"];
 export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
 export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
 export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
@@ -81,6 +83,7 @@ export let updatingCatalogLinkSlug: string | null;
     {formatMessage}
     {sessionHref}
     {setCalendarView}
+    {setCalendarDay}
     {setCalendarMonth}
     {setCalendarWeek}
     {setCalendarSemester}
@@ -98,6 +101,7 @@ export let updatingCatalogLinkSlug: string | null;
     {calendarTodoChipFields}
     {calendarSemesterIndex}
     {calendarView}
+    {calendarDay}
     {calendarMonth}
     {calendarWeekStart}
     {calendarSemesterId}

@@ -18,6 +18,7 @@ const legacyHomeTabIdSet = new Set<string>([
   "links",
 ]);
 const homeWorkspaceQueryKeys = new Set([
+  "calendarDay",
   "calendarMonth",
   "calendarSemester",
   "calendarView",

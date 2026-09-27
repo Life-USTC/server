@@ -15,6 +15,7 @@ import type { workspaceTabHref } from "./workspace-nav";
 type WorkspaceTabHref = typeof workspaceTabHref;
 
 type CalendarStateValues = {
+  calendarDay: string;
   calendarMonth: string;
   calendarSemesterId: number | null;
   calendarView: CalendarView;
@@ -22,12 +23,14 @@ type CalendarStateValues = {
 };
 
 export function workspaceCalendarStateFromValues({
+  calendarDay,
   calendarMonth,
   calendarSemesterId,
   calendarView,
   calendarWeekStart,
 }: CalendarStateValues): WorkspaceCalendarState {
   return {
+    day: calendarDay,
     month: calendarMonth,
     semesterId: calendarSemesterId,
     view: calendarView,
@@ -83,6 +86,18 @@ export function workspaceCalendarViewChange(input: {
   return workspaceCalendarStateChange({
     currentState: input.currentState,
     patch: workspaceCalendarViewPatch(input.nextView, input.calendar),
+    tabHref: input.tabHref,
+  });
+}
+
+export function workspaceCalendarDayChange(input: {
+  currentState: WorkspaceCalendarState;
+  day: string;
+  tabHref: WorkspaceTabHref;
+}) {
+  return workspaceCalendarStateChange({
+    currentState: input.currentState,
+    patch: { day: input.day, semesterId: null, view: "day" },
     tabHref: input.tabHref,
   });
 }

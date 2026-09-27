@@ -28,7 +28,7 @@ async function activityCalendar(page: Page) {
   await page.locator("#personal-activity-date").press("Tab");
 }
 
-test("calendar.views", async ({ page }) => {
+test("calendar.views", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await owner(page, 0);
   for (const [view, label] of [
@@ -51,6 +51,85 @@ test("calendar.views", async ({ page }) => {
         .first(),
     ).toBeVisible();
   }
+  for (const locale of ["en-us", "zh-cn"]) {
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+      ]);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, fixture.academicUrl());
+      await page.getByRole("radio", { name: /^(Day|日)$/ }).click();
+      await expect(page).toHaveURL(/calendarView=day/);
+      const agenda = page
+        .getByTestId("calendar-agenda")
+        .filter({ visible: true });
+      await expect(agenda.locator("section")).toHaveCount(1);
+      await expect(agenda.locator(`#agenda-${fixture.date}`)).toBeVisible();
+      await expect(
+        agenda.locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`),
+      ).toContainText("09:00");
+      await expect(agenda.locator('a[href="/workspace/exams"]')).toContainText(
+        "13:00",
+      );
+      await expect(
+        agenda.getByRole("link", { name: new RegExp(fixture.homework.title) }),
+      ).toContainText("12:00");
+      await expect(
+        agenda.getByRole("link", { name: new RegExp(fixture.todo.title) }),
+      ).toBeVisible();
+      await expect(
+        agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+      ).toHaveCount(0);
+      await page.screenshot({
+        path: testInfo.outputPath(`academic-day-${locale}-${width}.png`),
+        fullPage: true,
+      });
+      await page.getByRole("button", { name: /^(Next day|后一天)$/ }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`calendarDay=${fixture.activityDate}`),
+      );
+      await expect(agenda.locator("section")).toHaveCount(1);
+      await expect(
+        agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+      ).toContainText("16:00");
+      await expect(
+        agenda.locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`),
+      ).toHaveCount(0);
+      await page.reload();
+      await expect(
+        page.getByRole("radio", { name: /^(Day|日)$/ }),
+      ).toBeChecked();
+      await expect(
+        agenda.locator(`#agenda-${fixture.activityDate}`),
+      ).toBeVisible();
+      await expect(
+        agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: /^(Previous day|前一天)$/ })
+        .click();
+      await expect(agenda.locator(`#agenda-${fixture.date}`)).toBeVisible();
+      await page.getByRole("button", { name: /^(Next day|后一天)$/ }).click();
+      await page.getByRole("button", { name: /^(Today|今天)$/ }).click();
+      await expect(agenda.locator("section")).toHaveCount(1);
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      await expect(page).toHaveURL(new RegExp(`calendarDay=${today}`));
+      await expect(agenda.locator(`#agenda-${today}`)).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
   await activityCalendar(page);
   for (const [view, label] of [
     ["day", /^(Day|日)$/],
@@ -128,6 +207,23 @@ test("calendar.week-starts-monday", async ({ page }, testInfo) => {
       "Sunday",
     ]);
   }
+  await page.context().clearCookies();
+  await page
+    .context()
+    .addCookies([
+      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+    ]);
+  await gotoAndWaitForReady(
+    page,
+    `/catalog/sections/${fixture.section.jwId}/calendar`,
+  );
+  const lectureTable = page.getByTestId("section-calendar-table");
+  const lecture = lectureTable.getByRole("row").filter({ hasText: "09:00" });
+  const cells = lecture.getByRole("cell");
+  await expect(cells.nth(1)).toHaveText(fixture.date);
+  await expect(cells.nth(2)).toContainText("8");
+  await expect(cells.nth(3)).toContainText("09:00");
+  await expect(cells.nth(4)).toContainText("Calendar teaching room");
 });
 
 test("calendar.event-card-types", async ({ page }) => {

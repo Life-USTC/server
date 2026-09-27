@@ -24,6 +24,7 @@ export function createWorkspaceControllerDefaultState() {
     bulkImportSemesterId: "",
     bulkImportText: "",
     calendarData: null as CalendarData | null,
+    calendarDay: "",
     calendarMonth: "",
     calendarSemesterId: null as number | null,
     calendarView: "semester" as CalendarView,
