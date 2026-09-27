@@ -214,6 +214,9 @@ test("ui.other-collection-order", async ({ page, baseURL }) => {
 });
 
 test("ui.other-browse-responsive-lists", async ({ page, baseURL }) => {
+  // This layout contract loads 13 collections at each of two widths. Retain
+  // per-navigation deadlines; the complete matrix is not a 30-second SLA.
+  test.setTimeout(90_000);
   for (const width of [320, 390]) {
     await prepare(page, baseURL, width);
     for (const item of cases()) {
