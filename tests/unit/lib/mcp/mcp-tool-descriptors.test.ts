@@ -327,7 +327,8 @@ describe("MCP tool descriptors", () => {
         Object.keys(
           (
             tool.outputSchema as
-              { properties?: Record<string, unknown> } | undefined
+              | { properties?: Record<string, unknown> }
+              | undefined
           )?.properties ?? {},
         ),
       ).not.toHaveLength(0);

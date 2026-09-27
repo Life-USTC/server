@@ -1,6 +1,6 @@
 <script lang="ts">
-import TruncatedText from "./TruncatedText.svelte";
 import { cn } from "$lib/utils.js";
+import TruncatedText from "./TruncatedText.svelte";
 
 export let text: string | number | null | undefined;
 

@@ -80,28 +80,29 @@ $: baseAgendaDays =
         timelineItemsForDay: calendarTimelineItemsForDay,
       })
     : [];
-$: baseCalendarGridWeeks = calendarData && calendarView !== "day"
-  ? buildWorkspaceCalendarGridWeeks({
-      addDays,
-      calendar: calendarData,
-      calendarEventParts,
-      calendarEventsForDay,
-      calendarExamChipFields,
-      calendarHomeworkChipFields,
-      calendarHomeworkHref,
-      calendarSessionChipFields,
-      calendarTodoChipFields,
-      calendarWeekLabel,
-      workspaceTabHref,
-      examLabel: copy.CalendarEventCard.exam,
-      month: calendarMonth,
-      monthWeeks,
-      sectionWeekLabel: sectionCopy.weekLabel,
-      sessionHref,
-      view: calendarView,
-      weekStart: calendarWeekStart,
-    })
-  : [];
+$: baseCalendarGridWeeks =
+  calendarData && calendarView !== "day"
+    ? buildWorkspaceCalendarGridWeeks({
+        addDays,
+        calendar: calendarData,
+        calendarEventParts,
+        calendarEventsForDay,
+        calendarExamChipFields,
+        calendarHomeworkChipFields,
+        calendarHomeworkHref,
+        calendarSessionChipFields,
+        calendarTodoChipFields,
+        calendarWeekLabel,
+        workspaceTabHref,
+        examLabel: copy.CalendarEventCard.exam,
+        month: calendarMonth,
+        monthWeeks,
+        sectionWeekLabel: sectionCopy.weekLabel,
+        sessionHref,
+        view: calendarView,
+        weekStart: calendarWeekStart,
+      })
+    : [];
 let youngItems: PersonalCalendarItem[] = [];
 let youngFailed = false;
 let youngController: AbortController | undefined;

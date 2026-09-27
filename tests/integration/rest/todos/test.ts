@@ -142,9 +142,7 @@ test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("openapi.todo-created-status", async ({
-  request,
-}) => {
+test("openapi.todo-created-status", async ({ request }) => {
   await signInAsDebugUserApi(request, "/");
 
   const title = `e2e-api-todo-${Date.now()}`;

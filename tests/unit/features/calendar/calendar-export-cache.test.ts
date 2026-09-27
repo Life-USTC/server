@@ -54,12 +54,10 @@ describe("用户 iCal 导出缓存", () => {
       ANALYTICS: { writeDataPoint },
       CALENDAR_EXPORTS: namespace,
     });
-    const buildExport = vi
-      .fn()
-      .mockResolvedValue({
-        ...calendarExport,
-        text: "BEGIN:VCALENDAR\nDESCRIPTION:https://example.test/api/calendar-feeds/feed-credential-secret.ics\nEND:VCALENDAR",
-      });
+    const buildExport = vi.fn().mockResolvedValue({
+      ...calendarExport,
+      text: "BEGIN:VCALENDAR\nDESCRIPTION:https://example.test/api/calendar-feeds/feed-credential-secret.ics\nEND:VCALENDAR",
+    });
 
     const first = await getCachedUserCalendarExport("user-1", buildExport);
     resetUserCalendarExportCacheForTest();

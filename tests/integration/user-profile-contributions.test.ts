@@ -395,16 +395,27 @@ describe("public profile contribution aggregation", {
   it("user.public-contribution-window", async () => {
     const tomorrow = await fixturePrisma.comment.create({
       data: {
-        userId, sectionId, status: "active", visibility: "public",
+        userId,
+        sectionId,
+        status: "active",
+        visibility: "public",
         body: "Future day within final padded week",
         createdAt: new Date("2026-03-02T16:00:00.000Z"),
       },
     });
     try {
-      const result = await buildUserProfileContributions(runtimePrisma, userId, referenceNow);
-      const cells = new Map(result.weeks.flat().map((cell) => [cell.date, cell.count]));
+      const result = await buildUserProfileContributions(
+        runtimePrisma,
+        userId,
+        referenceNow,
+      );
+      const cells = new Map(
+        result.weeks.flat().map((cell) => [cell.date, cell.count]),
+      );
       expect(result.totalContributions).toBe(23);
-      expect(result.totalContributions).toBe(result.weeks.flat().reduce((sum, cell) => sum + cell.count, 0));
+      expect(result.totalContributions).toBe(
+        result.weeks.flat().reduce((sum, cell) => sum + cell.count, 0),
+      );
       expect(result.weeks.every((week) => week.length === 7)).toBe(true);
       expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
       expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");

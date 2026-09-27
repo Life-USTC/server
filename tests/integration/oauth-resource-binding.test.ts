@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
 import { decodeJwt } from "jose";
-import { createAcceptedOAuthAuthorization } from "@/features/oauth/server/oauth-consent-action";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
+import { createAcceptedOAuthAuthorization } from "@/features/oauth/server/oauth-consent-action";
 import { issueResourceBoundRefreshAccessToken } from "@/features/oauth/server/refresh-token-resources.server";
-import { maybeBindOAuthRefreshResourceRequest } from "@/lib/api/routes/auth-token-refresh-resource-binding";
 import { tokenPostRoute } from "@/lib/api/routes/auth-token";
+import { maybeBindOAuthRefreshResourceRequest } from "@/lib/api/routes/auth-token-refresh-resource-binding";
 import {
   getOAuthGraphqlResourceUrl,
   getOAuthMcpResourceUrl,
@@ -91,41 +91,39 @@ async function token(params: Record<string, string>) {
     }),
   );
 }
-it(
-  "oauth.authorization-code-resource-binding",
-  { timeout: 30_000 },
-  async () => {
-    const mcp = getOAuthMcpResourceUrl();
-    const graphql = getOAuthGraphqlResourceUrl();
-    for (const requestedResource of [mcp, graphql]) {
-      const code = await authorize(mcp);
-      const row = await db.verificationToken.findFirstOrThrow({
-        where: { identifier: await hashOAuthClientSecretForDbStorage(code) },
-      });
-      expect(JSON.parse(row.token).query.resource).toBe(mcp);
-      const response = await token({
-        grant_type: "authorization_code",
-        code,
-        code_verifier: verifier,
-        redirect_uri: redirectUri,
-        resource: requestedResource,
-      });
-      const result = await response.json();
-      if (requestedResource === mcp) {
-        expect(response.status, JSON.stringify(result)).toBe(200);
-        expect(decodeJwt(result.access_token).aud).toEqual([
-          mcp,
-          new URL("/api/auth/oauth2/userinfo", mcp).toString(),
-        ]);
-        expect(typeof result.refresh_token).toBe("string");
-      } else {
-        expect(response.status, JSON.stringify(result)).toBe(400);
-        expect(result.error).toBe("invalid_target");
-        expect(result.access_token).toBeUndefined();
-      }
+it("oauth.authorization-code-resource-binding", {
+  timeout: 30_000,
+}, async () => {
+  const mcp = getOAuthMcpResourceUrl();
+  const graphql = getOAuthGraphqlResourceUrl();
+  for (const requestedResource of [mcp, graphql]) {
+    const code = await authorize(mcp);
+    const row = await db.verificationToken.findFirstOrThrow({
+      where: { identifier: await hashOAuthClientSecretForDbStorage(code) },
+    });
+    expect(JSON.parse(row.token).query.resource).toBe(mcp);
+    const response = await token({
+      grant_type: "authorization_code",
+      code,
+      code_verifier: verifier,
+      redirect_uri: redirectUri,
+      resource: requestedResource,
+    });
+    const result = await response.json();
+    if (requestedResource === mcp) {
+      expect(response.status, JSON.stringify(result)).toBe(200);
+      expect(decodeJwt(result.access_token).aud).toEqual([
+        mcp,
+        new URL("/api/auth/oauth2/userinfo", mcp).toString(),
+      ]);
+      expect(typeof result.refresh_token).toBe("string");
+    } else {
+      expect(response.status, JSON.stringify(result)).toBe(400);
+      expect(result.error).toBe("invalid_target");
+      expect(result.access_token).toBeUndefined();
     }
-  },
-);
+  }
+});
 
 async function refreshFixture(input: {
   resources: string[];

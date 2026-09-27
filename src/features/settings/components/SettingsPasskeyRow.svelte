@@ -1,6 +1,6 @@
 <script lang="ts">
-import { invalidateAll } from "$app/navigation";
 import type { Passkey } from "@better-auth/passkey";
+import { invalidateAll } from "$app/navigation";
 import {
   passkeyAuthClient,
   passkeyClientErrorKind,

@@ -4,14 +4,14 @@ import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { postPublicationIngestionBatchRoute } from "@/lib/api/routes/publication-ingestion-routes";
 import {
-  getPublicationsRoute,
   getPublicationSourcesRoute,
+  getPublicationsRoute,
   getPublicPublicationRoute,
 } from "@/lib/api/routes/publication-public-routes";
-import { createFixturePrisma } from "../shared/prisma";
+import { graphqlSchema } from "@/lib/graphql/schema";
 
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { graphqlSchema } from "@/lib/graphql/schema";
+import { createFixturePrisma } from "../shared/prisma";
 import {
   createAnonymousMcpHarness,
   createMcpHarness,

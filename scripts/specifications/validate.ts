@@ -290,12 +290,11 @@ export function declaredTestNames(text: string): Set<string> {
           : parts[0] === "test" && parts[1] === "describe"
             ? parts.slice(2)
             : undefined;
-      disabled ||=
-        !suiteParts?.every((part) =>
-          ["only", "concurrent", "sequential", "serial", "parallel"].includes(
-            part,
-          ),
-        );
+      disabled ||= !suiteParts?.every((part) =>
+        ["only", "concurrent", "sequential", "serial", "parallel"].includes(
+          part,
+        ),
+      );
     }
     if (ts.isCallExpression(node)) {
       const parts = callParts(node.expression);

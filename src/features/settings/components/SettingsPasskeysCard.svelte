@@ -1,8 +1,8 @@
 <script lang="ts">
-import { invalidateAll } from "$app/navigation";
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
+import { invalidateAll } from "$app/navigation";
 import {
   isPasskeySupported,
   passkeyAuthClient,

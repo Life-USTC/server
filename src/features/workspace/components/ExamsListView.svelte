@@ -9,8 +9,8 @@ import * as Table from "$lib/components/ui/table/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamsCopyProps,
-  NamePrimary,
   ExamTimeLabel,
+  NamePrimary,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";

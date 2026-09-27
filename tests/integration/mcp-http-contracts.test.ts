@@ -9,8 +9,8 @@ import {
   mcpPostRoute,
 } from "@/lib/api/routes/mcp";
 import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
-import { createFixturePrisma } from "../shared/prisma";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
+import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
 const marker = crypto.randomUUID();

@@ -98,7 +98,9 @@ test("user.account-security-activity", async ({ page }) => {
     await expect(region.getByRole("listitem")).toHaveCount(1);
     await expect(region.getByText("203.0.20.*", { exact: true })).toBeVisible();
     await assertPrivacy();
-    await region.getByRole("link", { name: /返回最新活动|Back to latest/i }).click();
+    await region
+      .getByRole("link", { name: /返回最新活动|Back to latest/i })
+      .click();
     await expect(page).toHaveURL(/\/account\/settings\/security$/);
     const token = await authorizeDeviceBearer(
       page.request,

@@ -11,7 +11,12 @@ import { Input } from "$lib/components/ui/input";
 import { Spinner } from "$lib/components/ui/spinner";
 import type { getUploadPageCopy } from "../server/upload-page-copy";
 
-let { upload, action, copy, close }: {
+let {
+  upload,
+  action,
+  copy,
+  close,
+}: {
   upload: { id: string; filename: string };
   action: "rename" | "delete";
   copy: ReturnType<typeof getUploadPageCopy>["uploads"];
@@ -26,18 +31,28 @@ async function submit(event: Event) {
   pending = true;
   failed = false;
   try {
-    const response = await fetch(`/api/workspace/uploads/${encodeURIComponent(upload.id)}`, {
-      method: action === "rename" ? "PATCH" : "DELETE",
-      ...(action === "rename" ? {
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: filename.trim() }),
-      } : {}),
-    });
+    const response = await fetch(
+      `/api/workspace/uploads/${encodeURIComponent(upload.id)}`,
+      {
+        method: action === "rename" ? "PATCH" : "DELETE",
+        ...(action === "rename"
+          ? {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filename: filename.trim() }),
+            }
+          : {}),
+      },
+    );
     if (!response.ok) throw new Error();
     await invalidateAll();
-    toast.success(action === "rename" ? copy.toastRenameSuccessTitle : copy.toastDeleteSuccessTitle, {
-      description: upload.filename,
-    });
+    toast.success(
+      action === "rename"
+        ? copy.toastRenameSuccessTitle
+        : copy.toastDeleteSuccessTitle,
+      {
+        description: upload.filename,
+      },
+    );
     close();
   } catch {
     failed = true;

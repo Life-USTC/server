@@ -345,9 +345,7 @@ test("/account/welcome 可选择已上传头像并保存", async ({ page }) => {
   }
 });
 
-test("user.welcome-subscription-guidance", async ({
-  page,
-}, testInfo) => {
+test("user.welcome-subscription-guidance", async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
 

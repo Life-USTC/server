@@ -13,8 +13,8 @@ import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
-import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { isRegisteredOAuthRedirectUri } from "@/lib/oauth/redirect-uri";
+import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
 const OAUTH_CODE_LENGTH = 32;

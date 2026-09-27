@@ -69,8 +69,9 @@ describe("OAuth 发现元数据路由", () => {
         ],
       }),
     );
-    const { getAuthServerMetadataResponse } =
-      await import("@/lib/oauth/discovery-metadata");
+    const { getAuthServerMetadataResponse } = await import(
+      "@/lib/oauth/discovery-metadata"
+    );
 
     const response = await getAuthServerMetadataResponse(
       new Request(
@@ -104,8 +105,9 @@ describe("OAuth 发现元数据路由", () => {
         ],
       }),
     );
-    const { getOpenIdMetadataResponse } =
-      await import("@/lib/oauth/discovery-metadata");
+    const { getOpenIdMetadataResponse } = await import(
+      "@/lib/oauth/discovery-metadata"
+    );
 
     const response = await getOpenIdMetadataResponse(
       new Request(
@@ -135,8 +137,9 @@ describe("OAuth 发现元数据路由", () => {
         dpop_signing_alg_values_supported: ["ES256", "RS256"],
       }),
     );
-    const { createOAuthDiscoveryRoute } =
-      await import("@/lib/oauth/discovery-routes");
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
     const route = createOAuthDiscoveryRoute("protectedResourceMetadata");
     const request = new Request(
       "https://life.example/.well-known/oauth-protected-resource/api/mcp",
@@ -184,8 +187,9 @@ describe("OAuth 发现元数据路由", () => {
         dpop_signing_alg_values_supported: ["ES256"],
       });
     });
-    const { createOAuthDiscoveryRoute } =
-      await import("@/lib/oauth/discovery-routes");
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
     const route = createOAuthDiscoveryRoute("protectedResourceMetadata");
 
     const response = await route.GET({
@@ -203,8 +207,9 @@ describe("OAuth 发现元数据路由", () => {
   });
 
   it("GraphQL protected-resource 元数据使用独立 resource", async () => {
-    const { createOAuthDiscoveryRoute } =
-      await import("@/lib/oauth/discovery-routes");
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
     const route = createOAuthDiscoveryRoute("graphqlProtectedResourceMetadata");
 
     const response = await route.GET({

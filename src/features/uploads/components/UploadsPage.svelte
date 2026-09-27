@@ -1,4 +1,5 @@
 <script lang="ts">
+import { formatBytes } from "@/shared/lib/format-bytes";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
@@ -10,15 +11,21 @@ import { Button } from "$lib/components/ui/button";
 import * as Item from "$lib/components/ui/item";
 import * as Table from "$lib/components/ui/table";
 import { createShanghaiDateTimeFormatter } from "$lib/time/shanghai-format";
-import { formatBytes } from "@/shared/lib/format-bytes";
 import type { PageData } from "../../../routes/workspace/uploads/$types";
 import UploadManageDialog from "./UploadManageDialog.svelte";
 
 let { data }: { data: PageData } = $props();
 const copy = $derived(data.copy.uploads);
-const formatter = $derived(createShanghaiDateTimeFormatter(data.locale, {dateStyle: "medium", timeStyle: "short"}));
+const formatter = $derived(
+  createShanghaiDateTimeFormatter(data.locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }),
+);
 type Upload = PageData["uploads"][number];
-let selected = $state<{upload: Upload; action: "rename" | "delete"} | null>(null);
+let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
+  null,
+);
 </script>
 
 <svelte:head><title>{copy.title}</title></svelte:head>

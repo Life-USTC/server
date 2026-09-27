@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 import type { WorkspaceCalendarControlsProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";
 

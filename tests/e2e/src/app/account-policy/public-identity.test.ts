@@ -39,15 +39,13 @@ test("user.public-identity-display", async ({ page }, testInfo) => {
   });
   try {
     for (const locale of ["en-us", "zh-cn"] as const) {
-      await page
-        .context()
-        .addCookies([
-          {
-            name: "NEXT_LOCALE",
-            value: locale,
-            url: testInfo.project.use.baseURL as string,
-          },
-        ]);
+      await page.context().addCookies([
+        {
+          name: "NEXT_LOCALE",
+          value: locale,
+          url: testInfo.project.use.baseURL as string,
+        },
+      ]);
       for (const { user } of fixture.entries) {
         const expected =
           user.name.trim() ||

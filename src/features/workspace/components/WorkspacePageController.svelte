@@ -230,7 +230,9 @@ const {
   setBulkImportText: (v) => {
     bulkImportText = v;
   },
-  setCalendarDay: (v) => { calendarDay = v; },
+  setCalendarDay: (v) => {
+    calendarDay = v;
+  },
   setCalendarMonth: (v) => {
     calendarMonth = v;
   },

@@ -559,8 +559,8 @@ function buildMobileSecondaryNavGroups(
         { href: "/usage/bot", icon: BotIcon, label: copy.nav.prestoBot },
         { href: "/usage/mcp", icon: CableIcon, label: copy.nav.mcp },
         { href: "/usage/cli", icon: TerminalIcon, label: copy.nav.cli },
-    { href: "/terms", icon: ScrollTextIcon, label: copy.footer.terms },
-    { href: "/privacy", icon: GavelIcon, label: copy.footer.privacy },
+        { href: "/terms", icon: ScrollTextIcon, label: copy.footer.terms },
+        { href: "/privacy", icon: GavelIcon, label: copy.footer.privacy },
       ],
     },
     ...(isAdmin
