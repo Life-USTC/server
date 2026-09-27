@@ -139,11 +139,24 @@ requirements:
       name: oauth.llm-platform-oauth-compatibility
 - id: oauth.trusted-clients-admin-backend
   category: authorization
-  rule: Only an explicit persisted administrator-controlled trust marker or configured allowlist establishes
-    a trusted OAuth client. A name, domain, upstream identity, or registration method cannot establish
-    trust. Client trust does not confer administrator role or ownership of user resources.
+  rule: Only an explicit persisted administrator-controlled trust marker establishes a trusted OAuth client.
+    A name, domain, upstream identity, or registration method cannot establish trust. Client trust does
+    not confer administrator role or ownership of user resources.
   rationale: The supported trusted-client consent treatment is a separate explicit authorization policy;
     no additional cached-client or implicit trust mechanism is promised.
+  acceptance:
+    given: Recent administrator and ordinary sessions, all three actual admin client patterns, and separate
+      users with private todos.
+    when: Create clients, resolve active grants without consent, spoof provenance metadata, and use a
+      trusted client token against workspace and administrator routes.
+    then:
+    - Only the administrator-created trusted pattern receives persisted trust; ordinary users cannot create
+      it, and names, callback hosts, discovery source, or upstream metadata never confer trust.
+    - Trusted tokens read only their user-owned resources and cannot access session-only admin routes;
+      clearing trust immediately removes the consent exemption.
+    test:
+      file: tests/integration/oauth-admin-client-contracts.test.ts
+      name: oauth.trusted-clients-admin-backend
 - id: oauth.public-clients-pkce
   category: authorization
   rule: Public MCP, CLI, and native clients use PKCE with token_endpoint_auth_method=none. Registration
@@ -203,9 +216,36 @@ requirements:
       name: oauth.user-delegated-grants-only
 - id: oauth.client-validation-from-provider
   category: consistency
-  rule: Administrator-created clients use the same redirect URI and client metadata validation as other
-    supported registrations. Linked sign-in account identity is keyed by issuer and provider subject;
-    matching subject values from different issuers do not identify the same external account.
+  rule: Administrator-created clients use the same provider redirect URI and client metadata validation
+    as other supported registrations. Invalid administrator form fields or provider metadata return a
+    client error and persist no client.
+  acceptance:
+    given: An actual recent administrator session and the installed provider admin/DCR registration paths
+      using production database roles.
+    when: Submit valid HTTPS/native-loopback callbacks and invalid relative, executable, fragment, credential-bearing
+      callbacks, names, auth methods, or scopes.
+    then:
+    - Both registrations accept supported callbacks and reject invalid callbacks without persisting a
+      client.
+    - Administrator input/provider validation failures return 400 rather than an internal server error.
+    test:
+      file: tests/integration/oauth-admin-client-contracts.test.ts
+      name: oauth.client-validation-from-provider
+- id: oauth.external-account-issuer-identity
+  category: authorization
+  rule: Linked sign-in account identity is keyed by issuer and provider subject; matching subject values
+    from different issuers do not identify the same external account. Provider aliases cannot create duplicate
+    identities within an issuer.
+  acceptance:
+    given: Two separate users linked to the same provider subject at two different issuers.
+    when: Resolve account identity and ownership through the installed authentication adapter and attempt
+      a duplicate issuer/subject with another provider alias.
+    then:
+    - Each issuer resolves only its own account and owner; an unregistered issuer resolves no account.
+    - The database rejects a duplicate issuer/subject even when its provider alias differs.
+    test:
+      file: tests/integration/oauth-admin-client-contracts.test.ts
+      name: oauth.external-account-issuer-identity
 - id: oauth.loopback-redirect-tolerance
   category: validation
   rule: A native client callback must use its registered loopback host, scheme, path, and query. localhost

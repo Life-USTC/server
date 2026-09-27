@@ -1,4 +1,5 @@
 import { fail } from "@sveltejs/kit";
+import { isAPIError } from "better-auth/api";
 import {
   ADMIN_OAUTH_CLIENT_PATTERNS,
   getOAuthActionErrorMessage,
@@ -85,6 +86,16 @@ export async function createAdminOAuthClientAction(
       createdClientTrusted: clientPattern.skipConsent,
     };
   } catch (error) {
+    if (
+      isAPIError(error) &&
+      error.statusCode >= 400 &&
+      error.statusCode < 500
+    ) {
+      return fail(error.statusCode, {
+        message: getOAuthActionErrorMessage(error, copy.createError),
+        variant: "destructive" as const,
+      });
+    }
     logServerActionError("admin.oauth-client.create.failed", error, {
       action: "create-client",
       requestId,
