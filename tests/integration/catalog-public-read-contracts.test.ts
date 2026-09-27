@@ -344,15 +344,50 @@ it("section.public-teacher-reference", async () => {
 });
 
 it("teacher.public-detail-fields", async () => {
+  const teacher = fixture.teachers[0];
   for (const locale of ["zh-cn", "en-us"] as const) {
-    const detail = await findTeacherDetailById(fixture.teachers[0].id, locale);
-    expect(detail).toMatchObject({
-      id: fixture.teachers[0].id,
-      jwId: fixture.teachers[0].jwId,
-      namePrimary:
-        locale === "en-us"
-          ? fixture.teachers[0].nameEn
-          : fixture.teachers[0].nameCn,
+    const detail = await request(() =>
+      findTeacherDetailById(teacher.id, locale),
+    );
+    expect(detail).toEqual({
+      id: teacher.id,
+      jwId: teacher.jwId,
+      personId: teacher.personId,
+      code: teacher.code,
+      nameCn: teacher.nameCn,
+      nameEn: teacher.nameEn,
+      namePrimary: locale === "en-us" ? teacher.nameEn : teacher.nameCn,
+      nameSecondary: locale === "en-us" ? teacher.nameCn : teacher.nameEn,
+      email: teacher.email,
+      telephone: teacher.telephone,
+      mobile: teacher.mobile,
+      address: teacher.address,
+      departmentId: teacher.departmentId,
+      teacherTitleId: teacher.teacherTitleId,
+      department: expect.objectContaining({
+        id: fixture.departments[0].id,
+        namePrimary:
+          locale === "en-us"
+            ? fixture.departments[0].nameEn
+            : fixture.departments[0].nameCn,
+      }),
+      teacherTitle: expect.objectContaining({
+        id: fixture.titles[0].id,
+        namePrimary:
+          locale === "en-us"
+            ? fixture.titles[0].nameEn
+            : fixture.titles[0].nameCn,
+      }),
+      _count: { sections: 1 },
+      sections: [
+        expect.objectContaining({
+          id: fixture.sections[0].id,
+          jwId: fixture.sections[0].jwId,
+          code: fixture.sections[0].code,
+          course: expect.objectContaining({ id: fixture.courses[0].id }),
+          semester: expect.objectContaining({ id: fixture.semester.id }),
+        }),
+      ],
     });
     for (const field of ["age", "postcode", "qq", "wechat"])
       expect(detail).not.toHaveProperty(field);

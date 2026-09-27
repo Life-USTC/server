@@ -117,16 +117,21 @@ requirements:
       name: teacher.history-page-validation
 - id: teacher.public-detail-fields
   category: behavior
-  rule: Public teacher payloads explicitly select allowed fields; never source-only columns such as age,
-    postcode, QQ, or WeChat.
-  rationale: 'Product decision required: define exact public list, nested-reference and detail allowlists,
-    including whether email, telephone, mobile and address are approved for public publication. Existing
-    field selections do not establish approval.'
+  rule: Public Teacher detail payloads retain identity identifiers, original and localized names,
+    department and title identifiers and context, email, telephone, mobile, address, offering records and
+    the offering count. They exclude source-only age, postcode, QQ and WeChat fields.
+  rationale: Identity and affiliation distinguish teachers and connect their teaching records. The existing
+    public email, telephone and mobile fields support teaching-related contact; address provides the
+    corresponding contact location. Offering records and counts support teaching-history discovery.
+    These purposes preserve the current public detail boundary without exposing additional source fields.
+    Embedded course and section references retain their narrower, separately specified identity shapes.
   acceptance:
-    given: A persisted Teacher has source-only age, postcode, QQ and WeChat values alongside public identity.
+    given: A persisted Teacher has public identity, all four contact fields, department and title context,
+      an offering, and source-only age, postcode, QQ and WeChat values.
     when: The restricted-role public Teacher detail reader serializes both locales.
     then:
-    - Identity and the requested localized name remain intact.
+    - The exact public Teacher field set retains identity, both original names, localized primary and
+      secondary names, all four contact values, department/title context and its offering with the count.
     - Source-only age, postcode, QQ and WeChat never appear in the public payload.
     test:
       file: tests/integration/catalog-public-read-contracts.test.ts
