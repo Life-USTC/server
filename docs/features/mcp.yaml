@@ -227,10 +227,6 @@ requirements:
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.resource-bound-access-token
-- id: mcp.refresh-resource-binding
-  category: authorization
-  rule: OAuth authorization resources remain code-bound; omitted-resource refresh maps to MCP only with
-    an MCP feature scope and canonical MCP approval.
 - id: mcp.complete-batch-scope-enforcement
   category: authorization
   rule: Each fixed-scope tool in a JSON-RPC batch requires all its declared scopes before any tool executes.

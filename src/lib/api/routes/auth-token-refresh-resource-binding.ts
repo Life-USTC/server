@@ -70,7 +70,10 @@ export async function maybeBindOAuthRefreshResourceRequest(
     where: { token: refreshTokenHash },
     select: { resources: true, scopes: true },
   });
-  if (!refreshRecord) {
+  if (
+    !refreshRecord ||
+    !getApprovedProtectedResource(refreshRecord.resources, refreshRecord.scopes)
+  ) {
     return request;
   }
 

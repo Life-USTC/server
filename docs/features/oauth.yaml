@@ -92,10 +92,22 @@ requirements:
     as Bearer. Browser cookie sessions continue to use normal signed-in user semantics without OAuth scopes.
 - id: oauth.mcp-refresh-resource-binding
   category: authorization
-  rule: Omitted-resource refresh-token requests map to MCP only when the stored grant includes an MCP
-    feature scope and canonical MCP approval. Explicit-resource replacement verifies the current upstream
-    JWT, requires cnf.jkt and token_type to agree, permits a valid Bearer-to-DPoP refresh upgrade, and
-    rejects malformed or conflicting old/current confirmation data instead of downgrading sender constraint.
+  rule: Omitted-resource refresh requests map to canonical MCP only when the stored grant approves exactly
+    that protected resource and includes an MCP feature scope, and the requested effective scope still
+    includes MCP authority. Requested scopes cannot create missing stored approval; malformed or ambiguous
+    resource lists do not select MCP.
+  acceptance:
+    given: Real database refresh records with MCP, absent, provider-only, ambiguous, or malformed approvals
+      and feature or profile-only scopes.
+    when: The production token request preparation adapter reads a refresh request that omits resource.
+    then:
+    - Only unambiguous stored MCP approval with stored and effective feature authority inserts the canonical
+      resource into the prepared request.
+    - Scope downselection to profile removes implicit binding; scope escalation from a profile-only stored
+      grant cannot create it.
+    test:
+      file: tests/integration/oauth-resource-binding.test.ts
+      name: oauth.mcp-refresh-resource-binding
 - id: oauth.token-endpoint-observability
   category: privacy
   rule: OAuth token handling exports whole-request and fixed-stage durations to separate provider, grant
@@ -311,6 +323,43 @@ requirements:
     test:
       file: tests/integration/account-authority-reduction.test.ts
       name: oauth.authorization-reduce-concurrent
+- id: oauth.authorization-code-resource-binding
+  category: authorization
+  rule: Authorization codes retain the resource approved at consent. Token exchange cannot substitute
+    a different protected resource.
+  acceptance:
+    given: A real public PKCE client, user session row, accepted consent, and authorization codes created
+      by the consent service.
+    when: Exchange MCP-bound codes at the production token route with matching MCP and substituted GraphQL
+      resource indicators.
+    then:
+    - The stored code contains the approved MCP resource; matching exchange returns a token whose audience
+      includes MCP and OIDC userinfo.
+    - Resource substitution returns400 invalid_target without an access token.
+    test:
+      file: tests/integration/oauth-resource-binding.test.ts
+      name: oauth.authorization-code-resource-binding
+- id: oauth.refresh-confirmation-binding
+  category: authorization
+  rule: Explicit-resource refresh JWT replacement verifies the current upstream JWT and requires cnf.jkt
+    and token_type to agree. It preserves matching DPoP binding, permits a valid Bearer-to-DPoP upgrade,
+    and skips replacement for malformed or conflicting confirmation data, token-type mismatch, downgrade,
+    or invalid signature.
+  rationale: This contract covers resource-bound token replacement after provider issuance; the provider
+    owns validating the refresh request and DPoP proof. Skipping replacement preserves the upstream response
+    rather than minting a weaker token.
+  acceptance:
+    given: Real stored refresh records and actual signed upstream JWTs, including a payload-tampered signature
+      negative control.
+    when: The production refresh replacement service evaluates10 stored/current confirmation and token-type
+      cases.
+    then:
+    - Valid Bearer, matching DPoP, and new DPoP binding produce appropriately bound replacements.
+    - Malformed or conflicting confirmations, dropped sender constraint, inconsistent token types, and
+      invalid signatures produce no replacement.
+    test:
+      file: tests/integration/oauth-resource-binding.test.ts
+      name: oauth.refresh-confirmation-binding
 capabilities:
   authorization:
     title: Authorization
