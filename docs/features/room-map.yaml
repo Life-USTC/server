@@ -16,22 +16,69 @@ access:
 requirements:
 - id: room-map.normalization
   category: consistency
-  rule: Trim, normalize full-width input with NFKC, and uppercase room codes. Accept ASCII letters, digits
-    and separating hyphens, at most 64 input characters.
+  rule: Trim room input, then accept at most 64 characters before NFKC normalization and uppercasing.
+    Normalized codes contain ASCII letters/digits with single separating hyphens.
+  acceptance:
+    given: Room codes contain lowercase/fullwidth characters, valid hyphens, invalid separators or boundary
+      lengths.
+    when: The room input parser normalizes and validates them.
+    then:
+    - Valid inputs normalize to uppercase ASCII.
+    - Invalid characters and more than 64 trimmed input characters are rejected.
+    test:
+      file: tests/unit/features/rooms/room-map.test.ts
+      name: room-map.normalization
 - id: room-map.coverage
   category: behavior
   rule: highlighted means a verified room annotation; overview means only a matching floor/building image
     and does not assert room existence; unavailable means no map. Unmapped rooms are not guessed.
+  acceptance:
+    given: The manifest contains one verified room and a broader floor-image rule.
+    when: Lookups request that room, another matching room and an unknown room.
+    then:
+    - Only the annotated room is highlighted.
+    - Floor-rule matches are overview only and unknown rooms are unavailable.
+    test:
+      file: tests/unit/features/rooms/room-map.test.ts
+      name: room-map.coverage
 - id: room-map.public
   category: authorization
-  rule: Lookup is public and does not disclose personal schedules.
+  rule: Public room lookup data are available without personal schedule scope. REST and GraphQL accept
+    anonymous reads; the MCP tool returns the same viewer-independent data subject to the platform MCP
+    transport authentication policy.
+  acceptance:
+    given: No user is authenticated and static assets describe highlighted, overview and unknown rooms.
+    when: Anonymous REST/GraphQL reads and in-process MCP tool calls without personal state look up each
+      room.
+    then:
+    - All calls succeed with matching room-map coverage.
+    - The response contains only room map fields and no personal schedule data.
+    test:
+      file: tests/integration/mcp/catalog/room-maps.test.ts
+      name: room-map.public
 - id: room-map.calendar
   category: behavior
   rule: Calendar course and exam events prefer highlighted public room image URLs over available overview
     images.
+  acceptance:
+    given: A room has both a verified highlight and a broader overview image.
+    when: A course and an exam event are serialized.
+    then:
+    - Both event attachments select the verified highlight.
+    test:
+      file: tests/unit/features/calendar/ical-room-maps.test.ts
+      name: room-map.calendar
 - id: room-map.web
   category: presentation
   rule: Room labels support a lazily loaded preview on pointer hover and keyboard focus.
+  acceptance:
+    given: A public section calendar contains a room label and no preview request has run.
+    when: The viewer hovers the label and then focuses it by keyboard.
+    then:
+    - The map is loaded lazily and shown on both interactions.
+    test:
+      file: tests/e2e/src/app/rooms/test.ts
+      name: room-map.web
 - id: room-map.bot
   category: behavior
   rule: Explicit room queries and recognized bare room codes return the available map image without a
@@ -43,18 +90,60 @@ requirements:
   category: behavior
   rule: Each mapped exam room contributes its public image URL to the event attachments, deduplicated
     by URL.
+  acceptance:
+    given: An exam names multiple mapped rooms, duplicates and an unknown room.
+    when: The exam is serialized to iCalendar.
+    then:
+    - Every distinct mapped room URL appears once in ATTACH.
+    - Unknown rooms do not add guessed attachments.
+    test:
+      file: tests/unit/features/calendar/ical-room-maps.test.ts
+      name: room-map.exam-map-attachments
 - id: room-map.calendar-map-descriptions
   category: behavior
   rule: Calendar descriptions label each map link with its room so multiple room images remain distinguishable.
+  acceptance:
+    given: Course and exam events have available room maps.
+    when: Chinese and English event descriptions are serialized.
+    then:
+    - Every map URL is labeled with its room code.
+    test:
+      file: tests/unit/features/calendar/ical-room-maps.test.ts
+      name: room-map.calendar-map-descriptions
 - id: room-map.unmapped-calendar-events
   category: behavior
   rule: Missing room maps never suppress an otherwise valid calendar event.
+  acceptance:
+    given: A valid course/exam has an unknown or free-text room.
+    when: Calendar events are generated.
+    then:
+    - The events remain present without guessed map attachments.
+    test:
+      file: tests/unit/features/calendar/ical-room-maps.test.ts
+      name: room-map.unmapped-calendar-events
 - id: room-map.expanded-map-view
   category: presentation
   rule: Clicking or tapping a room map opens its expanded image with full-size viewing available.
+  acceptance:
+    given: A room map is displayed on desktop and mobile.
+    when: The viewer opens and zooms the map.
+    then:
+    - An expanded image is visible, zoom works and the original image link is available.
+    test:
+      file: tests/e2e/src/app/rooms/test.ts
+      name: room-map.expanded-map-view
 - id: room-map.keyboard-map-access
   category: presentation
   rule: Room preview and expanded-view actions are operable by keyboard.
+  acceptance:
+    given: A public section calendar contains a room preview control.
+    when: The viewer focuses it, presses Enter and then Escape.
+    then:
+    - Preview and expansion are keyboard accessible.
+    - Closing the dialog returns focus to the room control.
+    test:
+      file: tests/e2e/src/app/rooms/test.ts
+      name: room-map.keyboard-map-access
 capabilities:
   room-map:
     title: Room map lookup
