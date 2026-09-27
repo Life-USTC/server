@@ -1618,7 +1618,7 @@
     "disconnectConfirmTitle": "断开账户连接",
     "disconnectConfirmDescription": "确定要断开 {provider} 账户吗？断开后将无法使用此账户登录。",
     "cancel": "取消",
-    "cannotDisconnectLast": "您不能断开唯一关联的账户。请先连接另一个账户。",
+    "cannotDisconnectLast": "请至少保留一种可用的登录方式。请先关联可用的登录账户或添加另一把通行密钥。",
     "ustcIdentityTitle": "USTC 身份信息",
     "ustcIdentityDescription": "仅您本人可见。每次通过 USTC 登录时会同步并保留所有上游身份记录。",
     "ustcIdentityEmpty": "尚未同步到身份信息。请重新通过 USTC 登录以收集上游 UID、GID 和学号。",

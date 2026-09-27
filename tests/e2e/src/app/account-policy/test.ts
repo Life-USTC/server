@@ -259,7 +259,9 @@ test("cases.account.oauth-connection-error-2", async ({ page }) => {
       github.getByRole("button", { name: /断开连接|Disconnect/i }),
     ).toBeDisabled();
     await expect(
-      github.getByText(/不能断开|无法断开|至少|Cannot disconnect|last/i),
+      github.getByText(
+        /至少保留一种可用的登录方式|at least one usable sign-in method/i,
+      ),
     ).toBeVisible();
     const denied = await page.request.post("/api/auth/unlink-account", {
       data: { accountId: account.id },

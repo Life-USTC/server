@@ -1960,7 +1960,7 @@
     "disconnectConfirmTitle": "Disconnect Account",
     "disconnectConfirmDescription": "Are you sure you want to disconnect your {provider} account? You will no longer be able to sign in with this account.",
     "cancel": "Cancel",
-    "cannotDisconnectLast": "You cannot disconnect your only linked account. Connect another account first.",
+    "cannotDisconnectLast": "Keep at least one usable sign-in method. Connect an available provider or add another passkey before removing this method.",
     "ustcIdentityTitle": "USTC identity records",
     "ustcIdentityDescription": "Visible only to you. Each USTC sign-in syncs and keeps every upstream identity on record.",
     "ustcIdentityEmpty": "No identity records yet. Sign in with USTC again to collect upstream UID, GID, and student number.",
