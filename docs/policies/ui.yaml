@@ -143,6 +143,15 @@ requirements:
   category: presentation
   topic: list-table
   rule: Route tabs use PageSectionNav; settings retains DetailSectionNav.
+  rationale: This component ownership boundary covers second-classroom browse/detail/reminder tabs, moderation tabs and publication source grouping. App-shell navigation, calendar date controls and document anchor indexes are separate navigation concerns.
+  acceptance:
+    given: Every current route-tab owner and the settings page controller.
+    when: The Svelte compiler resolves the actually rendered imported component graph for each owner.
+    then:
+    - Route-tab graphs render PageSectionNav and never DetailSectionNav; the settings graph renders DetailSectionNav and never PageSectionNav.
+    test:
+      file: tests/unit/lib/components/navigation-ownership.test.ts
+      name: ui.list-table-9
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells
