@@ -37,7 +37,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     };
 
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await context.client.call<Result>("community_comment_list", {
           targetType: "section",
@@ -122,7 +122,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       };
     };
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await context.client.call<Result>("community_comment_get", {
           commentId: seedComment?.id,

@@ -28,9 +28,15 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
     ...profile,
     copy,
     locale: locals.locale,
-    socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
-      description,
-      title: `${displayName} - Life@USTC`,
-    }),
+    socialMetadata: {
+      ...updateSocialMetadata(layoutData.socialMetadata, {
+        description,
+        title: `${displayName} - Life@USTC`,
+      }),
+      canonicalUrl: new URL(
+        `/community/users/${encodeURIComponent(profile.user.username || profile.user.id)}`,
+        layoutData.socialMetadata.canonicalUrl,
+      ).href,
+    },
   };
 };

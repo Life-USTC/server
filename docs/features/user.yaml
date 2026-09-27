@@ -103,10 +103,32 @@ requirements:
     use the anonymous label regardless of the author's profile.
 - id: user.public-profile-canonical-route
   category: behavior
-  rule: An ID-based or noncanonical-case profile URL redirects to the current username URL when the user
-    has a username. The already-canonical username URL does not redirect. Profiles without usernames remain
-    addressable by ID without displaying the ID as primary metadata. After a rename the old username no
-    longer identifies that user.
+  rule: Username, differently cased username and stable user-ID addresses resolve the same public profile;
+    its canonical and Open Graph URLs use the current username when available.
+  rationale: Usernames are mutable. Keeping ID addresses usable avoids permanently caching a redirect
+    to an old username; canonical metadata identifies the preferred current address.
+  acceptance:
+    given: A public profile has a username and a stable ID.
+    when: A browser loads its username, uppercase username and ID URLs.
+    then:
+    - All three addresses render the same public profile.
+    - Canonical and Open Graph URLs identify the lowercase username address without query parameters.
+    test:
+      file: tests/e2e/src/app/u/[username]/test.ts
+      name: user.public-profile-canonical-route
+- id: user.public-profile-id-addressability
+  category: behavior
+  rule: A profile without a username is addressable by its stable ID, with its display name as primary
+    identity and its ID address as the canonical URL.
+  acceptance:
+    given: A user has a display name and no username.
+    when: A browser visits that user's ID URL.
+    then:
+    - The profile and canonical URL resolve successfully.
+    - Primary heading and page title show the display name, not the internal ID.
+    test:
+      file: tests/e2e/src/app/u/[username]/test.ts
+      name: user.public-profile-id-addressability
 - id: user.account-deletion-retention
   category: consistency
   rule: Settings account deletion requires an authoritative session created within the last 15 minutes.

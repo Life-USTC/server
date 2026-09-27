@@ -3,7 +3,7 @@ import { resolveMcpMode } from "./helper-schemas";
 
 export function sectionNotFoundToolResult(
   sectionJwId: number,
-  mode?: "summary" | "default" | "full",
+  mode?: "default" | "full",
 ) {
   return jsonToolResult(
     {

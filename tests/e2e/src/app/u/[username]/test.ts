@@ -22,12 +22,74 @@
  * - Empty username param → 404
  */
 import { expect, test } from "@playwright/test";
+import { createFixturePrisma } from "../../../../../shared/prisma";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
+
+test("user.public-profile-canonical-route", async ({ page }) => {
+  const db = createFixturePrisma();
+  try {
+    const user = await db.user.findUniqueOrThrow({
+      where: { username: DEV_SEED.adminUsername },
+      select: { id: true },
+    });
+    for (const identifier of [
+      DEV_SEED.adminUsername,
+      DEV_SEED.adminUsername.toUpperCase(),
+      user.id,
+    ]) {
+      await gotoAndWaitForReady(
+        page,
+        `/community/users/${identifier}?ignored=1`,
+      );
+      await expect(
+        page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
+      ).toBeVisible();
+      const expected = new URL(
+        `/community/users/${DEV_SEED.adminUsername}`,
+        page.url(),
+      ).href;
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        expected,
+      );
+      await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+        "content",
+        expected,
+      );
+    }
+  } finally {
+    await db.$disconnect();
+  }
+});
+
+test("user.public-profile-id-addressability", async ({ page }) => {
+  const db = createFixturePrisma();
+  const user = await db.user.create({
+    data: {
+      name: "Public profile without username",
+      email: `${crypto.randomUUID()}@profile.test`,
+    },
+  });
+  try {
+    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: user.name }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(`${user.name} - Life@USTC`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new URL(`/community/users/${user.id}`, page.url()).href,
+    );
+  } finally {
+    await db.user.delete({ where: { id: user.id } });
+    await db.$disconnect();
+  }
+});
 
 test.describe("/community/users/[identifier]", () => {
   test("页面契约", async ({ page }, testInfo) => {

@@ -26,7 +26,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       viewer?: { isAuthenticated?: boolean; userId?: string | null };
     };
     const results = await Promise.all(
-      (["default", "summary", "full"] as const).map(async (mode) => ({
+      (["default", "full"] as const).map(async (mode) => ({
         mode,
         result: await isolated.client.call<Result>(
           "community_description_get",
@@ -102,10 +102,10 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
         target?: { targetId?: number; type?: string };
       };
       const results: Array<{
-        mode: "default" | "summary" | "full";
+        mode: "default" | "full";
         result: Result;
       }> = [];
-      for (const mode of ["default", "summary", "full"] as const) {
+      for (const mode of ["default", "full"] as const) {
         results.push({
           mode,
           result: await isolated.client.call<Result>(
