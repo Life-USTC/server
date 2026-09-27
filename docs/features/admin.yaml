@@ -161,13 +161,34 @@ requirements:
 - id: admin.feature-experience-telemetry
   category: behavior
   rule: PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded
-    feature, operation, protocol, surface, authentication, outcome, error class, identity, and wall-duration
-    dimensions; Prometheus snapshots expose counters, duration histograms and activity gauges and deduplicate
-    identified users independently per window. Anonymous visitors are not unique users.
+    feature, operation, protocol, surface, authentication, outcome, error class, identity, and nonnegative
+    finite wall-duration dimensions.
+  rationale: Prometheus counter, histogram, and rolling distinct-user semantics are bound separately in
+    the collection and windows requirements.
+  acceptance:
+    given: Production request observation capture, a verified user, and the actual runtime-role observation
+      writer.
+    when: Capture twenty operations and submit invalid values for every bounded dimension and duration.
+    then:
+    - All twenty operations persist with exact verified identity, dimensions, and durations.
+    - Database constraints reject unbounded dimensions and invalid durations without storing them.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-telemetry
 - id: admin.feature-experience-outcomes
   category: consistency
   rule: Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no
     identified error. They contribute to usage but not issue samples or warning logs.
+  acceptance:
+    given: A successful SvelteKit page-data envelope containing an uninspected application error.
+    when: Pass the original response through HTTP feature observation and persist its event.
+    then:
+    - The response remains unconsumed and unchanged; usage records unknown outcome with no identified
+      error.
+    - No issue row or warning log is generated.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-outcomes
 - id: admin.feature-experience-retention
   category: consistency
   rule: Observation capture is best effort and is bounded to 256 events per request. Records older than
@@ -175,6 +196,19 @@ requirements:
     observations; missing history must not be presented as zero activity.
   rationale: Raw-observation retention and aggregate metrics are separate from the security audit history.
     Observation writes do not participate in business transactions.
+  acceptance:
+    given: Actual request capture, the runtime writer, the production maintenance role, and recent/older-than-ninety-day
+      events.
+    when: Capture 300 operations, trigger a database write failure, and run one-row retention batches.
+    then:
+    - Capture stores at most 256 events and reports overflow; failed persistence does not alter the business
+      result.
+    - Each maintenance batch removes at most its configured rows per event type while preserving recent
+      records.
+    - Metrics rendering marks absent retained history unavailable and omits unknown active-user values.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
   rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
@@ -195,6 +229,17 @@ requirements:
   rule: Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary
     paths, messages, stacks, request bodies, search text, IP addresses and credentials. Telemetry writer
     failures cannot recursively generate telemetry writes.
+  acceptance:
+    given: Structured runtime logs with safe correlation data and deliberately private payload/error fields.
+    when: Capture logs through the real recorder and writer, including invalid event names, writer diagnostics,
+      and a failed observation write.
+    then:
+    - Only safe event, status, and request correlation fields persist; private messages, paths, bodies,
+      search, IP, credentials, and stacks do not.
+    - Writer failures and telemetry diagnostics never generate recursive issue rows.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.platform-runtime-logs
 - id: admin.prometheus-export
   category: behavior
   rule: GET /metrics accepts only the dedicated METRICS_SECRET as a Bearer credential. Missing configuration
