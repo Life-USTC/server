@@ -5,7 +5,7 @@ import {
   listSubscribedSchedules,
   toSubscribedScheduleEntryDto,
 } from "@/features/subscriptions/server/subscription-read-model";
-import { subscribedExamDtoSchema } from "@/lib/api/schemas/subscribed-exams-schemas";
+import { subscribedExamMcpSchema } from "@/lib/mcp/tool-output-schemas/workspace-schemas";
 import {
   flexDateInputSchema,
   getUserId,
@@ -16,6 +16,15 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
+
+// Retain the declared MCP metadata while excluding undeclared persistence fields.
+const subscribedExamProjection = subscribedExamMcpSchema.extend({
+  section: subscribedExamMcpSchema.shape.section
+    .extend({
+      course: subscribedExamMcpSchema.shape.section.shape.course.strip(),
+    })
+    .strip(),
+});
 
 export function registerWorkspaceScheduleTools(server: McpServer) {
   server.registerTool(
@@ -102,7 +111,7 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
       return jsonToolResult(
         {
           exams: exams.map((exam) =>
-            subscribedExamDtoSchema.parse(serializeDatesDeep(exam)),
+            subscribedExamProjection.parse(serializeDatesDeep(exam)),
           ),
         },
         { mode: resolvedMode },

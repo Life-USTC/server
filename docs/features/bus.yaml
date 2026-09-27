@@ -337,10 +337,10 @@ requirements:
   rule: Viewer-independent route-search responses may be publicly cached only while their imported revision
     remains current.
   acceptance:
-    given: The imported bus topology has a revision and route search has warmed its shared cache.
-    when: The actual public REST handler reads the same revision and then a newly imported revision.
+    given: Controlled database and import-revision boundaries supply bus topology to the actual route handler, service and process cache.
+    when: The public REST handler reads a warm revision and then the controlled revision boundary changes alongside the topology.
     then:
-    - Responses carry public CDN caching and the catalog cache tag without reading viewer preferences.
+    - Responses declare public CDN caching and the catalog cache tag without reading viewer preferences; this test does not execute a CDN or commit an import.
     - The warm revision reuses its topology; a changed revision immediately reads the updated topology.
     test:
       file: tests/unit/features/bus/bus-timetable-data.test.ts

@@ -200,6 +200,31 @@ requirements:
     test:
       file: tests/integration/catalog-semantic-parity.test.ts
       name: interface-hierarchy.catalog-explicit-read-parity
+- id: interface-hierarchy.workspace-explicit-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Workspace todo, homework, schedule and exam reads select the same ordered identities for
+    the same owner and equivalent supported filters across REST, GraphQL and native MCP. Paginated
+    bindings return the corresponding slice and total; prefix-limited bindings return that prefix.
+    Shared homework retains each owner's own completion state. Unsupported filters and pagination
+    controls do not become implicit transport capabilities.
+  rationale: Todo REST and MCP and schedule REST and MCP use prefix limits; homework and exam REST
+    and all four GraphQL collections use pages. Native MCP collections use prefix limits. Todo
+    priority and due bounds are shared only by REST and GraphQL; homework completion and semester
+    filters and schedule semester filters are shared only by GraphQL and MCP. The native todo MCP
+    includeCompleted flag maps to all versus incomplete records, not a completed-only filter.
+  acceptance:
+    given: Three isolated owners, resource-bound OAuth credentials, a restricted database role,
+      overlapping and distinct subscriptions, differing homework completion and an empty workspace.
+    when: Real loopback REST, GraphQL and MCP HTTP requests read each collection with supported
+      common filters, two-item pages or limits and a limit large enough for the complete fixture.
+    then:
+    - Ordered identities equal the independently arranged fixture for each owner and filter.
+    - Paginated bindings report exact totals and an empty page after the end; prefix bindings return the requested prefix.
+    - Shared homework completion remains owner-specific and the empty owner receives no records.
+    test:
+      file: tests/integration/workspace-semantic-parity.test.ts
+      name: interface-hierarchy.workspace-explicit-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity
