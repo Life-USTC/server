@@ -118,6 +118,8 @@ requirements:
     objects.
 - id: overview.card-order
   category: presentation
+  applies_to:
+  - authenticated-overview
   expectation:
     kind: ordered_items
     surface: web

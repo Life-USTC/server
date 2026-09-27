@@ -79,13 +79,6 @@ requirements:
     test:
       file: tests/e2e/src/app/rooms/test.ts
       name: room-map.web
-- id: room-map.bot
-  category: behavior
-  rule: Explicit room queries and recognized bare room codes return the available map image without a
-    caption. When image responses are disabled, return map text and the available public image URL; unavailable
-    maps return an explanatory message. Public room queries are available in shared conversations; private
-    AI conversations can also use catalog_rooms_map. Do not attach every room map to ordinary timetable
-    replies. Resolve ambiguous class references before querying a map.
 - id: room-map.exam-map-attachments
   category: behavior
   rule: Each mapped exam room contributes its public image URL to the event attachments, deduplicated
@@ -168,3 +161,5 @@ capabilities:
 rationale:
 - Published static room_maps.json contains exact annotated rooms and generated PNG paths. building_img_rules.json
   identifies overview images only.
+- Bot owns its client requirements and literal command acceptance tests in docs/specifications/contracts.json
+  in the Bot repository; server tests do not prove client command behavior.

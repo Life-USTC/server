@@ -14,6 +14,52 @@ describe("API 可观测性", () => {
     vi.restoreAllMocks();
   });
 
+  it("openapi.rest-observability", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint } });
+    const markers = [
+      "private-body",
+      "private-bearer",
+      "private-cookie",
+      "private-query",
+      "clx1234567890abcdef",
+      "private-correlation",
+      "private-exception",
+    ];
+    for (const fails of [false, true]) {
+      const request = new Request(
+        `https://example.test/api/workspace/uploads/${markers[4]}?secret=${markers[3]}`,
+        {
+          method: "POST",
+          body: markers[0],
+          headers: {
+            authorization: `Bearer ${markers[1]}`,
+            cookie: `session=${markers[2]}`,
+            "x-request-id": markers[5],
+          },
+        },
+      );
+      const route = observedApiRoute(() => {
+        if (fails) throw new Error(markers[6]);
+        return Response.json({ ok: true });
+      });
+      if (fails) await expect(route(request)).rejects.toThrow(markers[6]);
+      else expect((await route(request)).status).toBe(200);
+      expect(request.bodyUsed).toBe(false);
+    }
+    expect(info).toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+    expect(writeDataPoint).toHaveBeenCalled();
+    const recorded = JSON.stringify([
+      info.mock.calls,
+      error.mock.calls,
+      writeDataPoint.mock.calls,
+    ]);
+    for (const marker of markers) expect(recorded).not.toContain(marker);
+  });
+
   it("规范化高基数路由段", () => {
     expect(normalizeApiRoutePath("/api/workspace/todos/123")).toBe(
       "/api/workspace/todos/:id",

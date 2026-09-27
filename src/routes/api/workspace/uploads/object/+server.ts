@@ -13,6 +13,7 @@ import type { RequestHandler } from "./$types";
  * @response 413:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.upload:write
  */
 export const PUT: RequestHandler = ({ request }) =>
   observedApiRoute(putUploadObjectRoute)(request);

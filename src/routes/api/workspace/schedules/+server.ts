@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response subscribedSchedulesResponseSchema
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
+ * @oauthScope workspace.schedule:read
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getMySubscribedSchedulesRoute),

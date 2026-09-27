@@ -11,6 +11,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 403:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.upload:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postUploadCompleteRoute),

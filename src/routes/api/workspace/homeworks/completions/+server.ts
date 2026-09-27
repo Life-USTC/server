@@ -10,6 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.homework:write
  */
 export const PUT = svelteRequestHandler(
   observedApiRoute(putHomeworkCompletionsRoute),

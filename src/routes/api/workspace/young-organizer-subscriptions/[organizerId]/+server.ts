@@ -14,6 +14,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.young-subscription:write
  */
 export const PUT: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>
@@ -24,6 +25,7 @@ export const PUT: RequestHandler = ({ request, params }) =>
  * @pathParams youngOrganizerIdPathParamsSchema
  * @response youngOrganizerSubscriptionStateSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.young-subscription:read
  */
 export const GET: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

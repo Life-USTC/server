@@ -14,6 +14,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.subscription:write
  */
 export const PATCH = svelteRequestHandler(
   observedApiRoute(patchCalendarSubscriptionsRoute),
@@ -28,6 +29,7 @@ export const PATCH = svelteRequestHandler(
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.subscription:write
  */
 export const DELETE = svelteRequestHandler(
   observedApiRoute(deleteCalendarSubscriptionsRoute),

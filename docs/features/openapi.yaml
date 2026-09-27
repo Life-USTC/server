@@ -44,10 +44,17 @@ requirements:
     or MCP.'
 - id: openapi.security-schemes
   category: authorization
-  rule: 'Generated OpenAPI reflects each operation''s explicit authentication mechanism and scopes, not
-    only its actor role: ordinary user business routes declare scoped Bearer/session alternatives, administrator
-    routes session only, MCP and OAuth-client activity Bearer only, ingestion its dedicated header secret,
-    and personal calendar feed export its approved feed-token alternative.'
+  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, bearer-only MCP and client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
+  acceptance:
+    given: Current business, admin, MCP, ingestion and calendar-feed routes declare their authentication.
+    when: The real generator builds the complete document.
+    then:
+    - Every authenticated operation advertises the mechanism appropriate to its route.
+    - Each ordinary bearer operation supplies nonempty registered feature scopes.
+    - Current subscriptions distinguish the optional calendar-feed scope from the required subscription scope.
+    test:
+      file: tests/unit/lib/openapi/openapi-generator.test.ts
+      name: openapi.security-schemes
 - id: openapi.generated-client-required
   category: consistency
   rule: CLI and Bot use generated OpenAPI request/response types and clients for covered business operations.
@@ -57,18 +64,39 @@ requirements:
     alone does not establish client behavior.
 - id: openapi.openapi-drift-gate
   category: consistency
-  rule: Before publishing a changed server contract with its clients, regenerate the server OpenAPI artifact
-    and the CLI/Bot copies and generated clients from that current document. Each repository verifies
-    its own generated artifacts and client behavior; intentional contract changes do not retain obsolete
-    endpoints for compatibility.
+  rule: The committed server OpenAPI document exactly matches regeneration from the current route declarations and schemas.
+  acceptance:
+    given: The committed server artifact and current route/schema sources are available.
+    when: The real generator creates an OpenAPI document.
+    then:
+    - The generated document equals the entire committed artifact.
+    test:
+      file: tests/unit/lib/openapi/openapi-generator.test.ts
+      name: openapi.openapi-drift-gate
 - id: openapi.openapi-document-cache
   category: consistency
-  rule: GET /api/openapi serves one build-time serialized document per Worker isolate and allows public
-    clients and edge caches to reuse it for five minutes.
+  rule: GET /api/openapi serves the generated build artifact as JSON and permits public HTTP caching for 300 seconds.
+  acceptance:
+    given: The static asset binding supplies the generated OpenAPI JSON.
+    when: The actual OpenAPI route handles a GET request.
+    then:
+    - It reads openapi.generated.json and returns the artifact as JSON with public max-age=300.
+    test:
+      file: tests/unit/lib/openapi/openapi-route.test.ts
+      name: openapi.openapi-document-cache
 - id: openapi.rest-observability
   category: privacy
   rule: REST logging must never include bodies, credentials, query strings, exception messages, client-supplied
     correlation IDs, or resource IDs.
+  acceptance:
+    given: A request contains distinct private markers in its body, bearer, cookie, query, resource ID and correlation header.
+    when: The real REST observation wrapper records a successful response and a thrown error.
+    then:
+    - Neither console output nor analytics contains any private marker or exception message.
+    - The request body remains unread by observation.
+    test:
+      file: tests/unit/lib/api/api-observability.test.ts
+      name: openapi.rest-observability
 - id: openapi.authenticated-mutation-rate-limits
   category: validation
   rule: 'Authenticated end-user and admin REST mutations use Cloudflare rate-limit bindings keyed by deployment
@@ -149,6 +177,18 @@ requirements:
   category: behavior
   rule: PATCH /api/workspace/subscriptions/{jwId} updates the current user subscription kind; returns
     404 for missing subscriptions. Personal subscription read objects include kind.
+- id: openapi.build-generation
+  category: consistency
+  rule: Production builds regenerate the server OpenAPI artifact, and the repository check rejects a changed artifact.
+  acceptance:
+    given: The production build and OpenAPI check commands are configured in package.json.
+    when: Their actual command definitions are inspected.
+    then:
+    - The build regenerates OpenAPI before building the application.
+    - The OpenAPI check regenerates then rejects a diff in the committed artifact.
+    test:
+      file: tests/unit/lib/openapi/openapi-workflow-contract.test.ts
+      name: openapi.build-generation
 - id: openapi.public-catalog-pagination-bounds
   category: validation
   rule: Public catalog list page and pageSize inputs are integers from 1 through 100.

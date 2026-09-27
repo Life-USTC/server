@@ -13,6 +13,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.todo:write
  */
 export const PATCH = svelteRequestHandler(
   observedApiRoute(patchTodoBatchRoute),
@@ -26,6 +27,7 @@ export const PATCH = svelteRequestHandler(
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.todo:write
  */
 export const DELETE = svelteRequestHandler(
   observedApiRoute(deleteTodoBatchRoute),

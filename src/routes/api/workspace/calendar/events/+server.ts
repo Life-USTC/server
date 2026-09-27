@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response personalCalendarPageSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.calendar:read
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getPersonalCalendarRoute),

@@ -1374,9 +1374,6 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           },
           {
@@ -2525,6 +2522,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2745,6 +2745,9 @@
         "tags": [
           "community.descriptions"
         ],
+        "x-oauth-scopes": [
+          "community.description:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2959,6 +2962,9 @@
         "tags": [
           "community.section-homework"
         ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3158,6 +3164,9 @@
         "tags": [
           "workspace.bus-preferences"
         ],
+        "x-oauth-scopes": [
+          "workspace.bus-preferences:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3194,6 +3203,9 @@
         "summary": "Update bus preferences",
         "tags": [
           "workspace.bus-preferences"
+        ],
+        "x-oauth-scopes": [
+          "workspace.bus-preferences:write"
         ],
         "security": [
           {
@@ -3291,6 +3303,9 @@
         "summary": "List exams across the current user's subscribed sections and semesters",
         "tags": [
           "workspace.exam"
+        ],
+        "x-oauth-scopes": [
+          "workspace.exam:read"
         ],
         "security": [
           {
@@ -3422,6 +3437,9 @@
         "tags": [
           "workspace.homework"
         ],
+        "x-oauth-scopes": [
+          "workspace.homework:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3494,6 +3512,9 @@
         "tags": [
           "workspace.link-pin"
         ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3530,6 +3551,9 @@
         "summary": "Set one campus link pin",
         "tags": [
           "workspace.link-pin"
+        ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:write"
         ],
         "security": [
           {
@@ -3649,6 +3673,9 @@
         "tags": [
           "workspace.overview"
         ],
+        "x-oauth-scopes": [
+          "workspace.overview:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3739,6 +3766,9 @@
         "summary": "List schedules across the current user's subscribed sections",
         "tags": [
           "workspace.schedule"
+        ],
+        "x-oauth-scopes": [
+          "workspace.schedule:read"
         ],
         "security": [
           {
@@ -3839,6 +3869,9 @@
         "summary": "Append section subscriptions",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -3944,6 +3977,9 @@
         "summary": "Remove section subscriptions",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -4052,6 +4088,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4152,6 +4191,9 @@
         "summary": "Create a todo",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -4258,6 +4300,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4325,6 +4370,9 @@
         "summary": "Create a signed upload URL",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -4443,6 +4491,9 @@
         "tags": [
           "workspace.young-event-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4525,6 +4576,9 @@
         "tags": [
           "workspace.young-notifications"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-notification:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4606,6 +4660,9 @@
         "summary": "List personal young-organizer-subscriptions",
         "tags": [
           "workspace.young-organizer-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
         ],
         "security": [
           {
@@ -6370,6 +6427,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6496,6 +6556,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6603,6 +6666,9 @@
         "summary": "Delete multiple comments owned by the current user",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -6761,6 +6827,9 @@
         "tags": [
           "community.section-homework"
         ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6886,6 +6955,9 @@
         "summary": "Soft delete a shared section homework as its unsuspended creator",
         "tags": [
           "community.section-homework"
+        ],
+        "x-oauth-scopes": [
+          "community.section-homework:write"
         ],
         "security": [
           {
@@ -7387,6 +7459,9 @@
         "tags": [
           "workspace.calendar"
         ],
+        "x-oauth-scopes": [
+          "workspace.calendar:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7475,6 +7550,9 @@
         "summary": "Update homework completions in a batch",
         "tags": [
           "workspace.homework"
+        ],
+        "x-oauth-scopes": [
+          "workspace.homework:write"
         ],
         "security": [
           {
@@ -7572,6 +7650,9 @@
         "summary": "Set multiple campus link pins",
         "tags": [
           "workspace.link-pin"
+        ],
+        "x-oauth-scopes": [
+          "workspace.link-pin:write"
         ],
         "security": [
           {
@@ -7679,6 +7760,9 @@
         "summary": "Update an existing subscription's personal kind",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -7798,6 +7882,9 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7906,7 +7993,9 @@
           "workspace.subscription"
         ],
         "x-oauth-scopes": [
-          "workspace.subscription:read",
+          "workspace.subscription:read"
+        ],
+        "x-oauth-optional-scopes": [
           "workspace.calendar-feed:read"
         ],
         "security": [
@@ -7947,6 +8036,9 @@
         "summary": "Import section subscriptions by section codes",
         "tags": [
           "workspace.subscription"
+        ],
+        "x-oauth-scopes": [
+          "workspace.subscription:write"
         ],
         "security": [
           {
@@ -8055,6 +8147,9 @@
         "tags": [
           "workspace.subscription"
         ],
+        "x-oauth-scopes": [
+          "workspace.subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8123,6 +8218,9 @@
         "summary": "Update one todo",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -8250,6 +8348,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8358,6 +8459,9 @@
         "tags": [
           "workspace.todo"
         ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8452,6 +8556,9 @@
         "summary": "Delete multiple todos by id",
         "tags": [
           "workspace.todo"
+        ],
+        "x-oauth-scopes": [
+          "workspace.todo:write"
         ],
         "security": [
           {
@@ -8549,6 +8656,9 @@
         "summary": "Rename one upload",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -8676,6 +8786,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8794,6 +8907,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -8900,6 +9016,9 @@
         "summary": "Write upload object",
         "tags": [
           "workspace.upload"
+        ],
+        "x-oauth-scopes": [
+          "workspace.upload:write"
         ],
         "security": [
           {
@@ -9030,6 +9149,9 @@
         "tags": [
           "workspace.young-event-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9079,6 +9201,9 @@
         "summary": "Set personal events subscription state. This does not register attendance",
         "tags": [
           "workspace.young-event-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:write"
         ],
         "security": [
           {
@@ -9200,6 +9325,9 @@
         "tags": [
           "workspace.young-organizer-subscriptions"
         ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9249,6 +9377,9 @@
         "summary": "Set personal organizers subscription state. This does not register attendance",
         "tags": [
           "workspace.young-organizer-subscriptions"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-subscription:write"
         ],
         "security": [
           {
@@ -9770,6 +9901,9 @@
         "tags": [
           "community.comments"
         ],
+        "x-oauth-scopes": [
+          "community.comment:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -9895,6 +10029,9 @@
         "summary": "Remove one reaction from a comment",
         "tags": [
           "community.comments"
+        ],
+        "x-oauth-scopes": [
+          "community.comment:write"
         ],
         "security": [
           {
@@ -10297,6 +10434,9 @@
         "tags": [
           "workspace.homework"
         ],
+        "x-oauth-scopes": [
+          "workspace.homework:write"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -10415,6 +10555,9 @@
         "tags": [
           "workspace.upload"
         ],
+        "x-oauth-scopes": [
+          "workspace.upload:read"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -10475,6 +10618,9 @@
         "summary": "Mark a personal activity notification read",
         "tags": [
           "workspace.young-notifications"
+        ],
+        "x-oauth-scopes": [
+          "workspace.young-notification:write"
         ],
         "security": [
           {

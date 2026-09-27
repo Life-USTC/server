@@ -85,13 +85,6 @@ requirements:
     test:
       file: tests/integration/workspace-exam-list.test.ts
       name: exam.retired-exam-exclusion
-- id: exam.cli-complete-list
-  category: behavior
-  rule: The CLI exhausts REST exam pagination unless page or limit is explicitly selected, preserves the
-    complete total, and displays each exam's semester. A failed later page fails the command instead of
-    returning partial success.
-  rationale: The CLI repository owns command-level acceptance evidence; server tests do not prove this
-    client behavior.
 - id: exam.mobile-display-overflow
   category: presentation
   rule: Mobile exam card/list display selection is available in a keyboard-accessible overflow menu.
@@ -182,3 +175,5 @@ capabilities:
 rationale:
 - A public section exam read fetches section context and its ordered exam children in one top-level Section
   query.
+- CLI owns its client requirements and literal command acceptance tests in docs/specifications/contracts.json
+  in the CLI repository; server tests do not prove client command behavior.

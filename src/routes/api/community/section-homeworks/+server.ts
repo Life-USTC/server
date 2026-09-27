@@ -22,5 +22,6 @@ export const GET = svelteRequestHandler(observedApiRoute(getHomeworksRoute));
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.section-homework:write
  */
 export const POST = svelteRequestHandler(observedApiRoute(postHomeworkRoute));

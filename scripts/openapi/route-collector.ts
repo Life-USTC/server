@@ -6,6 +6,7 @@ import {
   SyntaxKind,
 } from "ts-morph";
 import type { ZodType } from "zod";
+import { isFeatureScope } from "../../src/lib/oauth/scope-registry";
 import type { SchemaCollector } from "./schema-collector";
 
 const METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"] as const;
@@ -360,10 +361,18 @@ function buildOperation(
         );
         break;
       }
-      case "oauthScope": {
-        const scopes =
-          (operation["x-oauth-scopes"] as string[] | undefined) ?? [];
-        operation["x-oauth-scopes"] = [...scopes, docTag.text];
+      case "oauthScope":
+      case "oauthOptionalScope": {
+        if (!isFeatureScope(docTag.text))
+          throw new Error(
+            `Invalid OAuth scope for ${method.toUpperCase()} ${routePath}: ${docTag.text}`,
+          );
+        const key =
+          docTag.name === "oauthScope"
+            ? "x-oauth-scopes"
+            : "x-oauth-optional-scopes";
+        const scopes = (operation[key] as string[] | undefined) ?? [];
+        operation[key] = [...scopes, docTag.text];
         break;
       }
       case "ingestionSecret": {
@@ -383,7 +392,13 @@ function buildOperation(
     operation.responses = responses;
   }
 
-  const security = buildSecurity(routePath, method, has401, hasIngestionSecret);
+  const security = buildSecurity(
+    routePath,
+    method,
+    has401,
+    hasIngestionSecret,
+    Array.isArray(operation["x-oauth-scopes"]),
+  );
   if (security) {
     operation.security = security;
   }
@@ -583,6 +598,7 @@ function buildSecurity(
   method: string,
   has401: boolean,
   hasIngestionSecret: boolean,
+  hasBearerScope: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
 
@@ -607,12 +623,10 @@ function buildSecurity(
   }
 
   if (routePath.startsWith("/api/calendar-feeds/")) {
-    return [
-      { bearerAuth: [] },
-      { sessionCookie: [] },
-      { calendarFeedToken: [] },
-    ];
+    return [{ sessionCookie: [] }, { calendarFeedToken: [] }];
   }
 
-  return [{ bearerAuth: [] }, { sessionCookie: [] }];
+  return hasBearerScope
+    ? [{ bearerAuth: [] }, { sessionCookie: [] }]
+    : [{ sessionCookie: [] }];
 }
