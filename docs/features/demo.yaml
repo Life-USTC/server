@@ -19,12 +19,32 @@ requirements:
   rule: Demo mode has no public authentication entry point or supported REST, GraphQL, or MCP capability.
   rationale: Demo mode is an unshipped product experiment. A future design requires a separate product
     decision before any public surface is added.
+  acceptance:
+    given: The current authentication endpoint registry, generated REST paths, executable GraphQL schema,
+      and live MCP tool list.
+    when: The supported surfaces are enumerated and a demo authentication request is submitted.
+    then:
+    - No demo operation is registered on any supported API surface.
+    - The authentication request returns 404 without establishing a session.
+    test:
+      file: tests/integration/demo-unavailable.test.ts
+      name: demo.planned-only
 - id: demo.no-live-writes
   category: authorization
   rule: Ordinary authenticated sessions cannot be converted into demo principals, and public inputs cannot
     impersonate a real user through a demo identity.
   rationale: Any future demo must isolate simulated state from durable business data; no such write capability
     is currently supported.
+  acceptance:
+    given: A signed authoritative session and a different real user, plus unsigned forged demo inputs.
+    when: Production principal resolution receives demo flags and victim identities in query parameters,
+      JSON, cookies, and headers.
+    then:
+    - The signed request remains the original session principal; the unsigned request has no principal.
+    - The authoritative session owner is unchanged and no victim session is created.
+    test:
+      file: tests/integration/demo-unavailable.test.ts
+      name: demo.no-live-writes
 capabilities:
   demo-bootstrap:
     title: Demo Bootstrap

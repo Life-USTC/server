@@ -24,10 +24,34 @@ requirements:
     test:
       file: tests/unit/lib/auth/webhook-login-handler.test.ts
       name: webhook-login.no-session-in-body
+- id: webhook-login.explicit-enablement
+  category: authorization
+  rule: Internal debug-login endpoints are registered only when explicitly enabled and a nonempty shared
+    secret is configured.
+  acceptance:
+    given: Enabled, disabled, and missing-secret private-environment configurations.
+    when: The actual authentication plugin list is constructed.
+    then:
+    - Only the explicitly enabled configuration with a secret registers the internal debug-login endpoint.
+    test:
+      file: tests/unit/lib/auth/webhook-login-enablement.test.ts
+      name: webhook-login.explicit-enablement
+- id: webhook-login.shared-secret
+  category: authorization
+  rule: Internal debug login rejects missing or incorrect shared secrets before looking up a user or creating
+    a session.
+  acceptance:
+    given: Missing, wrong, or differently sized credentials.
+    when: The internal login handler validates its caller.
+    then:
+    - The response is 403 and neither identity lookup nor session creation occurs.
+    test:
+      file: tests/unit/lib/auth/webhook-login-handler.test.ts
+      name: webhook-login.shared-secret
 capabilities:
   webhook-login:
     title: Webhook Login
-    auth: admin
+    auth: internal
     web: unavailable
     rest: unavailable
     graphql: unavailable
