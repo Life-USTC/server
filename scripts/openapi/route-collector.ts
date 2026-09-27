@@ -615,7 +615,7 @@ function buildSecurity(
   }
 
   if (routePath === "/api/mcp" && method !== "options") {
-    return [{ mcpBearerAuth: [] }];
+    return [{}, { mcpBearerAuth: [] }];
   }
 
   if (routePath === "/api/account/client-activity") {

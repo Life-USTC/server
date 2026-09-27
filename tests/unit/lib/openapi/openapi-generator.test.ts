@@ -41,7 +41,7 @@ describe("openapi generator", () => {
             { publicationIngestionSecret: [] },
           ]);
         if (path === "/api/mcp" && ["post", "delete"].includes(method))
-          expect(operation.security).toEqual([{ mcpBearerAuth: [] }]);
+          expect(operation.security).toEqual([{}, { mcpBearerAuth: [] }]);
         if (path.startsWith("/api/calendar-feeds/"))
           expect(operation.security).toEqual([
             { sessionCookie: [] },
