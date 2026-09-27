@@ -147,7 +147,15 @@ const calendarLabels = $derived({
 });
 </script>
 
-<CollectionPage description={youngCopy.calendarDescription} title={youngCopy.calendarTitle}>
+<CollectionPage
+  breadcrumb={[
+    { href: "/catalog/young-events", label: youngCopy.title },
+    { label: youngCopy.calendarTitle },
+  ]}
+  breadcrumbLabel={copy.common.breadcrumb}
+  description={youngCopy.calendarDescription}
+  title={youngCopy.calendarTitle}
+>
   {#snippet before()}
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">

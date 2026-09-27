@@ -39,7 +39,13 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
-    common: { next: string; previous: string; home: string; teachers: string };
+    common: {
+      breadcrumb: string;
+      home: string;
+      next: string;
+      previous: string;
+      teachers: string;
+    };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {
@@ -69,7 +75,16 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<CollectionPage layout="detail" title={displayName} titleClass="text-2xl leading-tight sm:text-3xl">
+<CollectionPage
+  breadcrumb={[
+    { href: "/catalog/teachers", label: copy.common.teachers },
+    { label: displayName },
+  ]}
+  breadcrumbLabel={copy.common.breadcrumb}
+  layout="detail"
+  title={displayName}
+  titleClass="text-2xl leading-tight sm:text-3xl"
+>
 
         <section id="introduction" class="scroll-mt-4">
           {#key `description:teacher:${data.teacher.id}`}

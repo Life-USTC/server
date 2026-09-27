@@ -73,7 +73,13 @@ import {
   type ShellViewerState,
 } from "$lib/shell/shell-viewer";
 import { cn } from "$lib/utils.js";
-import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
+import {
+  buildDetailSecondaryLinks,
+  currentNewsItem,
+  currentYoungItem,
+  type ShellSectionDirectoryItem,
+  sectionDirectoryItems,
+} from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 type AppShellData = {
@@ -108,6 +114,8 @@ $: shellViewer.set({
   status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
 });
 let workspaceNavigation: WorkspaceNavigationSummary | null = null;
+let subscribedSections: ShellSectionDirectoryItem[] = [];
+let subscribedSectionsUserId: string | null = null;
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
 
@@ -115,6 +123,8 @@ $: if (!data.resolveViewerOnClient || data.user) {
   if (viewerUser?.id !== data.user?.id) {
     cancelShellBootstrap();
     workspaceNavigation = null;
+    subscribedSections = [];
+    subscribedSectionsUserId = null;
   }
   viewerUser = data.user;
   viewerLoading = false;
@@ -154,6 +164,7 @@ $: navGroups = settingsSidebar
       $page.url.pathname,
       $page.data,
       workspaceNavigation,
+      subscribedSections,
     );
 $: mobileNavGroups = settingsSidebar
   ? navGroups
@@ -164,6 +175,7 @@ $: mobileNavGroups = settingsSidebar
         $page.url.pathname,
         $page.data,
         workspaceNavigation,
+        subscribedSections,
       )
     : navGroups;
 $: settingsBackLink = settingsSidebar
@@ -266,6 +278,7 @@ function buildShellNavGroups(
   pathname: string,
   pageData: Record<string, unknown>,
   workspaceNavigation: WorkspaceNavigationSummary | null,
+  subscribedSections: readonly ShellSectionDirectoryItem[],
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
@@ -283,9 +296,7 @@ function buildShellNavGroups(
       href: "/catalog/sections",
       icon: RouteIcon,
       label: copy.nav.sections,
-      items: pathname.startsWith("/catalog/sections/")
-        ? detailSecondaryLinks
-        : undefined,
+      items: sectionDirectoryItems(pathname, pageData, subscribedSections),
     },
     {
       href: "/catalog/teachers",
@@ -328,7 +339,8 @@ function buildShellNavGroups(
           icon: UsersIcon,
           label: copy.nav.youngOrganizers,
         },
-      ],
+        currentYoungItem(pathname, pageData),
+      ].filter((item): item is ShellLink => item !== null),
     },
     {
       href: "/catalog/weather",
@@ -345,7 +357,8 @@ function buildShellNavGroups(
           icon: UsersIcon,
           label: copy.nav.newsSources,
         },
-      ],
+        currentNewsItem(pathname, pageData),
+      ].filter((item): item is ShellLink => item !== null),
     },
   ];
   const usageLinks: ShellLink[] = [
@@ -524,6 +537,7 @@ function buildMobileSecondaryNavGroups(
   pathname: string,
   pageData: Record<string, unknown>,
   workspaceNavigation: WorkspaceNavigationSummary | null,
+  subscribedSections: readonly ShellSectionDirectoryItem[],
 ): ShellNavGroup[] {
   const detailSecondaryLinks = isDetailWorkspacePath(pathname)
     ? undefined
@@ -586,7 +600,8 @@ function buildMobileSecondaryNavGroups(
           icon: UsersIcon,
           label: copy.nav.youngOrganizers,
         },
-      ],
+        currentYoungItem(pathname, pageData),
+      ].filter((item): item is ShellLink => item !== null),
     },
     {
       href: "/catalog/weather",
@@ -603,14 +618,13 @@ function buildMobileSecondaryNavGroups(
           icon: UsersIcon,
           label: copy.nav.newsSources,
         },
-      ],
+        currentNewsItem(pathname, pageData),
+      ].filter((item): item is ShellLink => item !== null),
     },
     {
       href: "/catalog/sections",
       icon: RouteIcon,
-      items: pathname.startsWith("/catalog/sections/")
-        ? detailSecondaryLinks
-        : undefined,
+      items: sectionDirectoryItems(pathname, pageData, subscribedSections),
       label: copy.nav.sections,
     },
     {
@@ -737,7 +751,6 @@ function isActiveLink(link: ShellLink) {
       "/catalog/teachers",
       "/catalog/rooms",
       "/catalog/young-events",
-      "/catalog/young-events/organizers",
     ].includes(target.pathname)
   ) {
     return (
@@ -863,7 +876,15 @@ async function resolveClientShell() {
     viewerUser?.id,
   );
   if (serverNavigation) workspaceNavigation = serverNavigation;
-  if (viewerUser && workspaceNavigation?.userId === viewerUser.id) return;
+  const sectionsReady =
+    Boolean(viewerUser) && subscribedSectionsUserId === viewerUser?.id;
+  if (
+    viewerUser &&
+    workspaceNavigation?.userId === viewerUser.id &&
+    sectionsReady
+  ) {
+    return;
+  }
   if (!data.resolveViewerOnClient && !viewerUser) return;
 
   cancelShellBootstrap();
@@ -881,6 +902,8 @@ async function resolveClientShell() {
     }
     viewerUser = bootstrap.viewer;
     workspaceNavigation = bootstrap.navigation;
+    subscribedSections = bootstrap.subscribedSections;
+    subscribedSectionsUserId = bootstrap.viewer?.id ?? null;
     viewerLoading = false;
     viewerFailed = false;
     if (

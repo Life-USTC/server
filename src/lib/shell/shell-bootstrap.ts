@@ -1,4 +1,7 @@
+import type { ShellSectionDirectoryItem } from "@/lib/components/shell/shell-nav-helpers";
 import type { LayoutUserSummary } from "@/lib/shell/layout-server-data";
+
+export type { ShellSectionDirectoryItem };
 
 export type WorkspaceNavigationSummary = {
   userId: string;
@@ -13,7 +16,21 @@ export type WorkspaceNavigationSummary = {
 export type ShellBootstrapPayload = {
   viewer: LayoutUserSummary;
   navigation: WorkspaceNavigationSummary | null;
+  subscribedSections: ShellSectionDirectoryItem[];
 };
+
+function parseSubscribedSections(value: unknown): ShellSectionDirectoryItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    if (typeof record.href !== "string" || !record.href.startsWith("/")) {
+      return [];
+    }
+    if (typeof record.label !== "string" || !record.label.trim()) return [];
+    return [{ href: record.href, label: record.label }];
+  });
+}
 
 function parseLayoutUserSummary(value: unknown): LayoutUserSummary {
   if (!value || typeof value !== "object") return null;
@@ -106,8 +123,11 @@ export function parseShellBootstrapPayload(
     throw new TypeError("Invalid shell bootstrap payload");
   }
   const payload = value as Record<string, unknown>;
+  const subscribedSections = parseSubscribedSections(
+    payload.subscribedSections,
+  );
   if (payload.viewer === null && payload.navigation === null) {
-    return { viewer: null, navigation: null };
+    return { viewer: null, navigation: null, subscribedSections };
   }
 
   const viewer = parseLayoutUserSummary(payload.viewer);
@@ -119,7 +139,7 @@ export function parseShellBootstrapPayload(
   if (payload.navigation !== null && !navigation) {
     throw new TypeError("Invalid shell bootstrap navigation summary");
   }
-  return { viewer, navigation };
+  return { viewer, navigation, subscribedSections };
 }
 
 export async function getClientShellBootstrap(

@@ -61,7 +61,16 @@ const levelIndex = $derived(data.directory.groups);
   <title>{copy.sourcesPageTitle} - Life@USTC</title>
 </svelte:head>
 
-<CollectionPage description={copy.sourcesPageDescription} panel={false} title={copy.sourcesPageTitle}>
+<CollectionPage
+  breadcrumb={[
+    { href: "/news", label: copy.title },
+    { label: copy.sourcesTitle },
+  ]}
+  breadcrumbLabel={copy.breadcrumb}
+  description={copy.sourcesPageDescription}
+  panel={false}
+  title={copy.sourcesPageTitle}
+>
   {#snippet actions()}
         <Button href="/news" variant="outline">
           <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />

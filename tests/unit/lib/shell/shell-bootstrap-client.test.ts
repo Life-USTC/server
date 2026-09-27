@@ -27,14 +27,16 @@ describe("shell bootstrap client", () => {
   test("accepts explicit anonymous and matched authenticated payloads", () => {
     expect(
       parseShellBootstrapPayload({ viewer: null, navigation: null }),
-    ).toEqual({ viewer: null, navigation: null });
+    ).toEqual({ viewer: null, navigation: null, subscribedSections: [] });
     expect(parseShellBootstrapPayload({ viewer, navigation: null })).toEqual({
       viewer,
       navigation: null,
+      subscribedSections: [],
     });
     expect(parseShellBootstrapPayload({ viewer, navigation })).toEqual({
       viewer,
       navigation,
+      subscribedSections: [],
     });
   });
 
@@ -89,6 +91,7 @@ describe("shell bootstrap client", () => {
     await expect(getClientShellBootstrap(fetcher)).resolves.toEqual({
       viewer,
       navigation,
+      subscribedSections: [],
     });
     expect(fetcher).toHaveBeenCalledWith("/_internal/shell-bootstrap", {
       cache: "no-store",

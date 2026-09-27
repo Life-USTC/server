@@ -1,6 +1,7 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -49,6 +50,19 @@ let {
 // biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
 const sidebar = Sidebar.useSidebar();
 const groupOpen = $state<Record<string, boolean>>({});
+let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
+  {},
+);
+
+function submenuIsOpen(href: string, autoOpen: boolean, path: string) {
+  const saved = submenuOverride[href];
+  if (saved?.path === path) return saved.open;
+  return autoOpen;
+}
+
+function setSubmenuOpen(href: string, path: string, open: boolean) {
+  submenuOverride = { ...submenuOverride, [href]: { open, path } };
+}
 
 function hasActiveChild(link: ShellLink): boolean {
   return (
@@ -172,6 +186,11 @@ function closeMobileSidebar(): void {
                       {@const childActive = hasActiveChild(link)}
                       {@const ownActive = isActiveLink(link) && !childActive}
                       {@const active = showActiveState(ownActive)}
+                      {@const submenuOpen = submenuIsOpen(
+                        link.href,
+                        ownActive || childActive,
+                        currentPathname,
+                      )}
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
@@ -193,11 +212,30 @@ function closeMobileSidebar(): void {
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
+                        <Sidebar.MenuAction
+                          aria-expanded={submenuOpen}
+                          aria-label={link.label}
+                          class={link.badge != null && link.badge > 0
+                            ? "right-8"
+                            : undefined}
+                          onclick={(event) => {
+                            event.preventDefault();
+                            setSubmenuOpen(
+                              link.href,
+                              currentPathname,
+                              !submenuOpen,
+                            );
+                          }}
+                        >
+                          <ChevronRightIcon
+                            class={submenuOpen ? "rotate-90" : undefined}
+                          />
+                        </Sidebar.MenuAction>
                         {#if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
 
-                        {#if ownActive || childActive}
+                        {#if submenuOpen}
                           <Sidebar.MenuSub>
                             {#each link.items as subLink}
                               {@const nestedActive = hasActiveChild(subLink)}

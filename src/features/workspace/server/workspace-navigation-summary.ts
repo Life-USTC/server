@@ -1,6 +1,7 @@
 import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import { Prisma } from "@/generated/prisma/client";
 import { withUserDbContext } from "@/lib/db/prisma";
+import { localizedNamePrimary } from "@/lib/localized-name";
 import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
@@ -313,6 +314,49 @@ export async function getWorkspaceNavigationAggregate(
   options: AggregateOptions = {},
 ) {
   return loadNavigationAggregate(tx, userId, referenceDate, options);
+}
+
+export async function listShellSubscribedSections(
+  userId: string,
+  locale: string,
+): Promise<Array<{ href: string; label: string }>> {
+  const rows = await withUserDbContext(userId, (tx) =>
+    tx.userSectionSubscription.findMany({
+      orderBy: [
+        { section: { course: { nameCn: "asc" } } },
+        { sectionId: "asc" },
+      ],
+      select: {
+        section: {
+          select: {
+            code: true,
+            jwId: true,
+            course: { select: { nameCn: true, nameEn: true } },
+          },
+        },
+      },
+      where: { section: { retiredAt: null }, userId },
+    }),
+  );
+  const labels = rows.map((row) =>
+    localizedNamePrimary(
+      locale,
+      row.section.course.nameCn,
+      row.section.course.nameEn,
+    ),
+  );
+  const counts = new Map<string, number>();
+  for (const label of labels) {
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return rows.map((row, index) => {
+    const base = labels[index] || row.section.code;
+    const duplicated = (counts.get(base) ?? 0) > 1;
+    return {
+      href: `/catalog/sections/${row.section.jwId}`,
+      label: duplicated ? `${base} ${row.section.code}` : base,
+    };
+  });
 }
 
 export async function getWorkspaceNavigationSummary(

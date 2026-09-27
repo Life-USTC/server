@@ -39,7 +39,13 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string };
-    common: { next: string; previous: string; courses: string; home: string };
+    common: {
+      breadcrumb: string;
+      courses: string;
+      home: string;
+      next: string;
+      previous: string;
+    };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
@@ -81,7 +87,16 @@ $: displayName =
   {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
-<CollectionPage layout="detail" title={displayName} titleClass="text-2xl leading-tight sm:text-3xl">
+<CollectionPage
+  breadcrumb={[
+    { href: "/catalog/courses", label: copy.common.courses },
+    { label: displayName },
+  ]}
+  breadcrumbLabel={copy.common.breadcrumb}
+  layout="detail"
+  title={displayName}
+  titleClass="text-2xl leading-tight sm:text-3xl"
+>
   {#snippet eyebrowContent()}
         <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
   {/snippet}

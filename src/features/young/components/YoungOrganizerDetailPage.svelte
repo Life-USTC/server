@@ -50,7 +50,17 @@ function pageHref(page: number) {
       <ListPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
 {/snippet}
 
-<CollectionPage description={youngCopy.organizersDescription} layout="detail" title={organizer.name}>
+<CollectionPage
+  breadcrumb={[
+    { href: "/catalog/young-events", label: youngCopy.title },
+    { href: "/catalog/young-events/organizers", label: youngCopy.organizersTitle },
+    { label: organizer.name },
+  ]}
+  breadcrumbLabel={copy.common.breadcrumb}
+  description={youngCopy.organizersDescription}
+  layout="detail"
+  title={organizer.name}
+>
   {#snippet actions()}
         <Button href={`/catalog/young-events?organizerId=${encodeURIComponent(organizer.id)}`} variant="outline">
           {youngCopy.organizerEvents}

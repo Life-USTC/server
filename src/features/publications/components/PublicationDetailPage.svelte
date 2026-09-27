@@ -50,7 +50,17 @@ const articleInformation = $derived(
 
 <svelte:head><title>{revision.title} - {copy.title}</title></svelte:head>
 
-<CollectionPage headerClass="min-w-0" title={revision.title} titleClass="[overflow-wrap:anywhere]" width="reading">
+<CollectionPage
+  breadcrumb={[
+    { href: returnHref, label: copy.title },
+    { label: revision.title },
+  ]}
+  breadcrumbLabel={copy.breadcrumb}
+  headerClass="min-w-0"
+  title={revision.title}
+  titleClass="[overflow-wrap:anywhere]"
+  width="reading"
+>
   {#snippet lead()}
       <nav aria-label={copy.backToList}>
         <Button href={returnHref} variant="ghost" size="sm"><ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />{copy.backToList}</Button>

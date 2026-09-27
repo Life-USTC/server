@@ -74,6 +74,7 @@ export type PublicationPageCopy = {
   readMore: string;
   sourcePage: string;
   backToList: string;
+  breadcrumb: string;
   attachments: string;
   media: string;
   openAttachment: string;

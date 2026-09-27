@@ -76,7 +76,16 @@ const summary = $derived(
   />
 {/snippet}
 
-<CollectionPage description={youngCopy.organizersDescription} footer={pagination.totalPages > 1 ? paginationFooter : undefined} title={youngCopy.organizersTitle}>
+<CollectionPage
+  breadcrumb={[
+    { href: "/catalog/young-events", label: youngCopy.title },
+    { label: youngCopy.organizersTitle },
+  ]}
+  breadcrumbLabel={copy.common.breadcrumb}
+  description={youngCopy.organizersDescription}
+  footer={pagination.totalPages > 1 ? paginationFooter : undefined}
+  title={youngCopy.organizersTitle}
+>
   {#snippet before()}
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
