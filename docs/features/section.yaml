@@ -209,14 +209,16 @@ requirements:
       name: section.bounded-related-sections
 - id: section.private-section-projection
   category: consistency
-  rule: After hydration, a session-only private, no-store projection supplies the viewer's subscription,
-    homework completion and permissions without exposing a new public API capability.
+  rule: Public Section HTML and page data retain anonymous subscription, homework and permission state
+    even for session requests. After hydration, a session-only private, no-store projection supplies the
+    viewer's subscription, homework completion and permissions without exposing a new public API capability.
   acceptance:
     given: A session owner subscribes to a Section and completes one homework while an anonymous viewer
       has neither state.
-    when: A hydrated page fetches its private projection and HTTP callers attempt anonymous, session and
-      Bearer reads.
+    when: Anonymous and session requests read public HTML and decoded page data before a hydrated page
+      fetches its private projection; HTTP callers also attempt anonymous, session and Bearer reads.
     then:
+    - Public HTML and page data never include the session owner or its subscription, completion and editing authority.
     - The session projection supplies that owner’s subscription, completion and viewer permissions.
     - Responses are private no-store; anonymous reads cannot select a user through query parameters and
       Bearer is rejected.

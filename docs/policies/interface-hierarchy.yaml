@@ -266,6 +266,42 @@ requirements:
     test:
       file: tests/integration/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
+- id: interface-hierarchy.public-homework-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public section homework reads retain the same target, stable due-date/creation/ID order and
+    owner-specific completion across REST and MCP. REST supports bounded pages and local/JW section
+    selectors; MCP takes one section JW ID and returns its full list without pagination. No GraphQL
+    public-homework collection is declared.
+  acceptance:
+    given: Two owners have different completions for shared homework with tied dates, unknown deadlines,
+      deleted rows and distinct local versus JW section IDs.
+    when: Real loopback REST session requests and native MCP resource-bound bearer requests read the
+      same sections; REST additionally exercises local-ID selectors, unions and pagination bounds.
+    then:
+    - Every REST page equals the corresponding slice of the independently ordered MCP full list, with complete totals and empty exhaustion.
+    - Owner completion differs correctly, anonymous REST completion is null, selector unions deduplicate, and invalid or missing targets preserve declared errors.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.public-homework-read-parity
+- id: interface-hierarchy.description-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Course, section, teacher and homework descriptions resolve the same declared public-reference
+    and internal target-ID forms through REST and MCP. Both return at most the latest 20 history entries
+    ordered by creation time descending then ID descending; an existing target without a description
+    returns an empty payload with a null updatedAt. Neither surface exposes caller-selected history pagination.
+  acceptance:
+    given: Four isolated target kinds have 25 history rows including 24 tied timestamps inserted against
+      expected order; additional targets have no description.
+    when: Real loopback REST session and native MCP resource-bound bearer requests resolve every supported
+      public-reference and internal target-ID form, mismatched identifiers and empty descriptions.
+    then:
+    - Full description and viewer payloads match after removing declared protocol envelopes, including the exact latest 20 history IDs.
+    - Wrong identifier forms are not silently reinterpreted, empty descriptions remain valid and reads do not mutate history.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.description-read-parity
 - id: interface-hierarchy.public-profile-read-parity
   category: consistency
   topic: semantic-parity

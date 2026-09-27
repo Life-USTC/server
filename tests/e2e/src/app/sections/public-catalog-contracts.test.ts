@@ -4,6 +4,7 @@ import {
   type Page,
   test,
 } from "@playwright/test";
+import { unflatten } from "devalue";
 import {
   type CatalogContractFixture,
   cleanupCatalogContractFixture,
@@ -244,6 +245,39 @@ test("section.private-section-projection", async ({ page, request }) => {
     viewer: { signedIn: false, isSubscribed: false },
   });
   await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+  // A session must not personalize either public HTML or Svelte page data.
+  const publicPath = `/catalog/sections/${fixture.sections[0].jwId}`;
+  for (const client of [request, page.request, request]) {
+    const html = await client.get(publicPath);
+    expect(html.status()).toBe(200);
+    expect(await html.text()).not.toContain(user.id);
+    const response = await client.get(`${publicPath}/__data.json`);
+    expect(response.status()).toBe(200);
+    const envelope = await response.json();
+    const data = Object.assign(
+      {},
+      ...envelope.nodes
+        .filter((node: { type: string } | null) => node?.type === "data")
+        .map((node: { data: unknown[] }) => unflatten(node.data)),
+    );
+    expect(data.user).toBeNull();
+    expect(data.viewer).toEqual({ signedIn: false, isSubscribed: false });
+    expect(data.homeworkData).toEqual({
+      auditLogs: [],
+      homeworks: [],
+      viewer: {
+        isAdmin: false,
+        isAuthenticated: false,
+        isSuspended: false,
+        userId: null,
+      },
+    });
+    expect(data.descriptionData.viewer).toMatchObject({
+      userId: null,
+      isAuthenticated: false,
+      isAdmin: false,
+    });
+  }
   const projection = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname.endsWith(

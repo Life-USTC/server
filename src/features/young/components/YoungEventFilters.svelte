@@ -73,8 +73,13 @@ $effect(() => {
     };
   }
 });
-const unknownModule = $derived(Boolean(advancedDraft.module) && !modules.includes(advancedDraft.module));
-const unknownLevel = $derived(Boolean(advancedDraft.activityLevel) && !levels.includes(advancedDraft.activityLevel));
+const unknownModule = $derived(
+  Boolean(advancedDraft.module) && !modules.includes(advancedDraft.module),
+);
+const unknownLevel = $derived(
+  Boolean(advancedDraft.activityLevel) &&
+    !levels.includes(advancedDraft.activityLevel),
+);
 
 const activeCount = $derived(
   advancedKeys.filter((key) => Boolean(filters[key])).length,

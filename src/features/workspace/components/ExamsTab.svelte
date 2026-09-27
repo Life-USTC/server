@@ -1,7 +1,6 @@
 <script lang="ts">
-import { cn } from "$lib/utils";
-import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
+import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type {
   SignedWorkspaceData,
   WorkspaceCopy,
@@ -9,6 +8,7 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import { cn } from "$lib/utils";
 import ExamsCardsView from "./ExamsCardsView.svelte";
 import ExamsListView from "./ExamsListView.svelte";
 import ExamsTabToolbar from "./ExamsTabToolbar.svelte";

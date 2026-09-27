@@ -265,12 +265,10 @@ test("bus.raw-data-returned", async ({ page, request }) => {
               }),
             ),
           ).toEqual(
-            trips
-              .slice(pageNumber - 1, pageNumber)
-              .map((trip) => ({
-                position: trip.position,
-                times: trip.stopTimes.map((stop) => stop.time),
-              })),
+            trips.slice(pageNumber - 1, pageNumber).map((trip) => ({
+              position: trip.position,
+              times: trip.stopTimes.map((stop) => stop.time),
+            })),
           );
         }
       }
