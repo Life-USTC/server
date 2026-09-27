@@ -15,6 +15,10 @@ import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route"
 import * as audit from "@/lib/audit/write-audit-log";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
+import {
+  assertCommentWriteTransportAuthorization,
+  assertDescriptionWriteTransportAuthorization,
+} from "../shared/community-write-parity";
 import { createDeferred } from "../shared/deferred";
 import { createFixturePrisma } from "../shared/prisma";
 
@@ -305,6 +309,7 @@ it("comment.batch-delete-shared-policy", async () => {
 });
 
 it("comment.interaction-gate", async () => {
+  await assertCommentWriteTransportAuthorization();
   const active = await seed();
   for (const viewer of [null, suspended]) {
     const expected = viewer ? 403 : 401;
@@ -543,6 +548,7 @@ it("comment.rich-content", async () => {
 });
 
 it("description.editor-authorization", async () => {
+  await assertDescriptionWriteTransportAuthorization();
   const body = {
     targetType: "teacher",
     teacherId,

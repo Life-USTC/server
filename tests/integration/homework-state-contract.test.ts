@@ -4,6 +4,7 @@ import { setHomeworkCompletion } from "@/features/homeworks/server/homework-comp
 import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { assertHomeworkWriteTransportAuthorization } from "../shared/community-write-parity";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
@@ -203,6 +204,7 @@ it("homework.completion-owner", async () => {
 });
 
 it("homework.active-collaborator-write", async () => {
+  await assertHomeworkWriteTransportAuthorization();
   const homework = await create();
   for (const index of [1, 2]) {
     const own = await create(index);
