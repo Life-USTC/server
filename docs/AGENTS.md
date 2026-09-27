@@ -49,6 +49,9 @@ Acceptance scenarios use `id`, `given`, `when`, and a `then` list. Every typed
 scenario requires `tests` entries with a repository-relative `file` and exact
 literal `name` passed to an enabled `it` or `test` declaration. Read the expectation
 in those tests and compare it with an observation from the real implementation.
+Use a stable, individually named test for each binding. A parameterized name
+template from `it.each`/`test.for` is not a runtime test identity; put the input
+matrix inside a named acceptance test or give cases explicit unique test names.
 Do not compare two values both generated from the specification. Service tests
 with mocks do not establish HTTP authentication, database isolation or browser
 behavior; bind tests at the layer that exercises the requirement.

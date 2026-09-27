@@ -123,13 +123,14 @@ describe("specification structure and references", () => {
       const unused = "string only";
       it("real test", () => {});
       test.each([1])("parameterized %s", () => {});
+      test.for([1])("repeated title", () => {});
       test.skip("skipped", () => {});
       describe.skip("disabled group", () => { it("disabled child", () => {}); });
       other("not a test", () => {});
       test.step("step only", () => {});
       it.extend("not a declaration", () => {});
     `),
-    ]).toEqual(["real test", "parameterized %s"]);
+    ]).toEqual(["real test"]);
   });
 
   it("rejects specifications misplaced outside their canonical directory", async () => {

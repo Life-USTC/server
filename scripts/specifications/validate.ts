@@ -258,7 +258,7 @@ export function declaredTestNames(text: string): Set<string> {
         parts
           .slice(1)
           .every((part) =>
-            ["only", "each", "for", "concurrent", "sequential"].includes(part),
+            ["only", "concurrent", "sequential"].includes(part),
           ) &&
         node.arguments.length >= 2 &&
         first &&

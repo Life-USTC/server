@@ -107,7 +107,7 @@ requirements:
     - The request fails with 400 before any course, teacher or viewer lookup.
     tests:
     - file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
-      name: rejects invalid sectionsPage=%s before catalog reads
+      name: rejects invalid course history pages before catalog reads
   surfaces:
   - web
 - id: course.public-detail-fields
