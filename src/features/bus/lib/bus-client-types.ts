@@ -16,7 +16,7 @@ export type BusApplicableTrip = {
   endStop: BusRouteStopSummary;
   startTime: BusComputedStopTime;
   endTime: BusComputedStopTime;
-  status: BusTripStatus;
+  status: BusTripStatus | null;
   minutesUntilStart: number | null;
 };
 

@@ -13,7 +13,7 @@ export type BusApplicableTrip = {
   endStop: BusRouteStopSummary;
   startTime: BusComputedStopTime;
   endTime: BusComputedStopTime;
-  status: "upcoming" | "departed";
+  status: "upcoming" | "departed" | null;
   minutesUntilDeparture: number | null;
 };
 
@@ -32,10 +32,11 @@ export function buildApplicableBusTrip(input: {
   const startTime = stopTimes[input.startIndex];
   const endTime = stopTimes[input.endIndex];
   const status =
-    startTime.displayMinutes == null ||
-    startTime.displayMinutes >= input.nowMinutes
-      ? "upcoming"
-      : "departed";
+    startTime.displayMinutes == null
+      ? null
+      : startTime.displayMinutes >= input.nowMinutes
+        ? "upcoming"
+        : "departed";
 
   return {
     trip: input.trip,

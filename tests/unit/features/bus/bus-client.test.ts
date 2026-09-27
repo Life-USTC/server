@@ -1,9 +1,11 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   getApplicableBusRoutes,
   getShanghaiMinutesSinceMidnight,
   resolveClientBusDayType,
 } from "@/features/bus/lib/bus-client";
+import { buildNextBusDeparturesFromData } from "@/features/bus/lib/bus-departures";
+import { buildComputedStopTime } from "@/features/bus/lib/bus-stop-time-computation";
 import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type {
   BusTimetableData,
@@ -191,4 +193,113 @@ describe("班车客户端时刻表计算", () => {
     expect(routes[1]?.allTrips[0]?.status).toBe("departed");
     expect(routes[1]?.allTrips[0]?.minutesUntilStart).toBe(-10);
   });
+});
+
+afterEach(() => vi.unstubAllEnvs());
+
+test("bus.shanghai-time-interpretation", () => {
+  for (const timezone of ["UTC", "Asia/Shanghai", "America/Los_Angeles"]) {
+    vi.stubEnv("TZ", timezone);
+    const now = new Date("2026-04-22T13:30:00Z");
+    expect(getShanghaiMinutesSinceMidnight(now)).toBe(21 * 60 + 30);
+    const routes = getApplicableBusRoutes({
+      data: createBusData(),
+      dayType: "weekday",
+      startCampusId: 1,
+      endCampusId: 2,
+      showDepartedTrips: true,
+      now,
+    });
+    expect(routes.map((route) => route.route.id)).toEqual([9, 8]);
+    expect(routes[0]?.nextTrip?.minutesUntilStart).toBe(10);
+    expect(routes[0]?.nextTrip?.status).toBe("upcoming");
+    expect(routes[1]?.allTrips[0]?.status).toBe("departed");
+    expect(routes[1]?.allTrips[0]?.minutesUntilStart).toBe(-10);
+  }
+});
+
+test("bus.stop-time-estimate-bounds", () => {
+  const stops = (times: (string | null)[]) =>
+    times.map((time, index) => ({
+      stopOrder: index + 1,
+      campusId: index + 1,
+      campusName: String(index + 1),
+      time,
+      minutesSinceMidnight: parseBusTimeMinutes(time),
+      isPassThrough: time === null,
+    }));
+  expect(
+    buildComputedStopTime(stops(["08:00", null, "08:20"]), 1),
+  ).toMatchObject({
+    displayTime: "08:10",
+    displayMinutes: 490,
+    isEstimated: true,
+  });
+  expect(
+    buildComputedStopTime(stops(["08:00", null, "08:00"]), 1),
+  ).toMatchObject({ displayTime: "08:00", isEstimated: true });
+  expect(
+    buildComputedStopTime(stops(["08:00", "08:05", "08:20"]), 1),
+  ).toMatchObject({
+    displayTime: "08:05",
+    displayMinutes: 485,
+    isEstimated: false,
+  });
+  for (const times of [
+    ["23:50", null, "00:10"],
+    ["08:00", null, null],
+    [null, null, "08:20"],
+    [null, null, null],
+  ] as const) {
+    const stopTimes = stops([...times]);
+    expect(buildComputedStopTime(stopTimes, 1)).toMatchObject({
+      displayTime: null,
+      displayMinutes: null,
+      isEstimated: false,
+    });
+    const data = createBusData();
+    data.routes = [
+      {
+        ...data.routes[1],
+        stops: data.routes[1].stops.map((stop, index) => ({
+          ...stop,
+          stopOrder: index + 1,
+          campus: { ...stop.campus, id: index + 1 },
+        })),
+      },
+    ];
+    data.trips = [{ ...data.trips[1], stopTimes }];
+    const result = getApplicableBusRoutes({
+      data,
+      dayType: "weekday",
+      startCampusId: 2,
+      endCampusId: 3,
+      showDepartedTrips: true,
+      now: new Date("2026-04-22T00:00:00Z"),
+    });
+    expect(result[0]?.nextTrip?.minutesUntilStart ?? null).toBeNull();
+    expect(result[0]?.upcomingTrips ?? []).toEqual([]);
+    expect(result[0]?.allTrips[0]?.status).toBeNull();
+    const visibleUnknown = getApplicableBusRoutes({
+      data,
+      dayType: "weekday",
+      startCampusId: 2,
+      endCampusId: 3,
+      showDepartedTrips: false,
+      now: new Date("2026-04-22T00:00:00Z"),
+    });
+    expect(visibleUnknown[0]?.visibleTrips).toHaveLength(1);
+    expect(visibleUnknown[0]?.visibleTrips[0]?.status).toBeNull();
+    for (const includeDeparted of [false, true]) {
+      const departures = buildNextBusDeparturesFromData(data, {
+        originCampusId: 2,
+        destinationCampusId: 3,
+        dayType: "weekday",
+        atTime: "2026-04-22T00:00:00Z",
+        includeDeparted,
+      });
+      expect(departures.departures).toEqual([]);
+      expect(departures.nextAvailableDeparture).toBeNull();
+    }
+  }
 });

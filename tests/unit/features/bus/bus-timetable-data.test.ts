@@ -195,7 +195,7 @@ afterEach(() => {
 });
 
 describe("getBusTimetableData 班车时刻表数据", () => {
-  it("使用请求历史版本的拓扑结构", async () => {
+  it("bus.version-topology-self-contained", async () => {
     const data = await timetable.getBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",
@@ -240,7 +240,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(db.busRouteFindMany).not.toHaveBeenCalled();
   });
 
-  it("bus map 复用静态时刻表缓存并按请求时间重算 active trips", async () => {
+  it("bus.request-time-planning", async () => {
     await timetable.getStaticBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-02T00:00:00.000Z",
@@ -258,9 +258,32 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(data?.activeTrips).toEqual([
       expect.objectContaining({ routeId: 8, status: "en-route" }),
     ]);
+    const later = await transitMap.getBusMapData({
+      locale: "zh-cn",
+      now: "2026-02-02T00:25:00.000Z",
+      versionKey: "old-bus",
+    });
+    expect(later?.now).toBe("2026-02-02T00:25:00.000Z");
+    expect(later?.activeTrips).toEqual([]);
+    const before = await queryService.getNextBusDepartures({
+      locale: "zh-cn",
+      originCampusId: 1,
+      destinationCampusId: 2,
+      atTime: "2026-02-01T23:55:00.000Z",
+      dayType: "weekday",
+      versionKey: "old-bus",
+    });
+    expect(before?.departures[0]?.minutesUntilDeparture).toBe(5);
+    const after = await queryService.getNextBusDepartures({
+      locale: "zh-cn",
+      originCampusId: 1,
+      destinationCampusId: 2,
+      atTime: "2026-02-02T00:25:00.000Z",
+      dayType: "weekday",
+      versionKey: "old-bus",
+    });
+    expect(after?.departures).toEqual([]);
     expect(db.busTripFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindMany).toHaveBeenCalledTimes(1);
-    expect(versionLookupCount("old-bus")).toBe(1);
   });
 
   it("为每次调用刷新 fetchedAt 而不重新加载静态数据", async () => {

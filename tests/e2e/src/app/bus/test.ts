@@ -10,6 +10,7 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   getCurrentSessionUser,
   setBusPreferenceFixture,
@@ -131,7 +132,7 @@ test.describe("校车面板标签页", () => {
     await page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z"));
   });
 
-  test("/catalog/bus 是可索引的公共语义路径", async ({ page }, testInfo) => {
+  test("bus.public-no-signin", async ({ page }, testInfo) => {
     const response = await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus-public-route",
@@ -157,7 +158,7 @@ test.describe("校车面板标签页", () => {
     expect(response.headers().location).toBe("/catalog/bus?linkView=list");
   });
 
-  test("公共校车页面桌面端恢复完整双栏规划器", async ({ page }, testInfo) => {
+  test("bus.public-responsive-planner", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -192,15 +193,26 @@ test.describe("校车面板标签页", () => {
     await expect(
       page.getByRole("main").getByRole("link", { name: /Transit map|线路图/ }),
     ).toHaveCount(0);
+    const controls = await page
+      .getByTestId("bus-start-stop-group")
+      .boundingBox();
+    const table = await page.locator("table:visible").first().boundingBox();
+    if (!controls || !table)
+      throw new Error("Missing desktop planner geometry");
+    expect(table.x).toBeGreaterThanOrEqual(controls.x + controls.width);
+    expect(await page.locator("tbody tr:visible").count()).toBeGreaterThan(0);
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 
-  test("公共与登录校车界面不显示无值版本标签", async ({
+  test("bus.public-version-metadata-omitted", async ({
     page,
     baseURL,
   }, testInfo) => {
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/catalog/bus");
+    await expect(
+      page.getByText(DEV_SEED.bus.versionKey, { exact: true }),
+    ).toHaveCount(0);
     await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
@@ -210,6 +222,9 @@ test.describe("校车面板标签页", () => {
     await signInAsDebugUser(page, "/catalog/bus");
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/catalog/bus");
+    await expect(
+      page.getByText(DEV_SEED.bus.versionKey, { exact: true }),
+    ).toHaveCount(0);
     await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
@@ -217,6 +232,9 @@ test.describe("校车面板标签页", () => {
 
     await setLocale(page, baseURL, "en-us");
     await gotoAndWaitForReady(page, "/catalog/bus");
+    await expect(
+      page.getByText(DEV_SEED.bus.versionKey, { exact: true }),
+    ).toHaveCount(0);
     await expect(page.getByText("Active version", { exact: true })).toHaveCount(
       0,
     );
@@ -253,9 +271,7 @@ test.describe("校车面板标签页", () => {
     );
   });
 
-  test("公共校车页面在移动端保持下一班、路线更改和全表可用", async ({
-    page,
-  }, testInfo) => {
+  test("bus.mobile-full-timetable", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
@@ -273,6 +289,13 @@ test.describe("校车面板标签页", () => {
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
 
+    const hideTimetable = page.getByRole("button", {
+      name: /Hide full timetable|收起完整时刻表/,
+    });
+    await expect(hideTimetable).toBeVisible();
+    await hideTimetable.click();
+    await expect(page.locator("table:visible")).toHaveCount(0);
+    await openFullTimetable(page);
     await openRouteControls(page);
     await chooseStop(page, /End stop|到达站/, /南区/);
     await expect(summary).toContainText(/东区\s*→\s*南区/);
@@ -419,9 +442,7 @@ test.describe("校车面板标签页", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
   });
 
-  test("280px 与 320px 公共规划器无页面溢出且主要操作达到触控高度", async ({
-    page,
-  }) => {
+  test("bus.primary-route-action-size", async ({ page }) => {
     for (const width of [280, 320]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/catalog/bus");
