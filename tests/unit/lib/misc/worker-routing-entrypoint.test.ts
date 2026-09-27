@@ -1,7 +1,11 @@
+import { readFileSync } from "node:fs";
+import { parse } from "jsonc-parser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   appFetchMock,
+  maintainAuditLogRetentionMock,
+  cleanupExpiredAuthRecordsMock,
   handleAuditLogWriteBatchMock,
   handleCalendarExportRebuildBatchMock,
   logAppEventMock,
@@ -9,6 +13,8 @@ const {
   setCloudflareRequestContextMock,
 } = vi.hoisted(() => ({
   appFetchMock: vi.fn(),
+  maintainAuditLogRetentionMock: vi.fn(),
+  cleanupExpiredAuthRecordsMock: vi.fn(),
   handleAuditLogWriteBatchMock: vi.fn(),
   handleCalendarExportRebuildBatchMock: vi.fn(),
   logAppEventMock: vi.fn(),
@@ -18,6 +24,18 @@ const {
   setCloudflareRequestContextMock: vi.fn(),
 }));
 
+vi.mock("@/features/admin/server/audit-retention", () => ({
+  maintainAuditLogRetention: maintainAuditLogRetentionMock,
+  maintainOAuthGrantUsageRetention: vi.fn(async () => ({
+    oauthRetentionComplete: true,
+  })),
+  maintainObservabilityRetention: vi.fn(async () => ({
+    observabilityRetentionComplete: true,
+  })),
+}));
+vi.mock("@/features/auth/server/auth-record-cleanup", () => ({
+  cleanupExpiredAuthRecords: cleanupExpiredAuthRecordsMock,
+}));
 vi.mock("cloudflare:workers", () => ({
   WorkerEntrypoint: class {},
 }));
@@ -976,4 +994,75 @@ describe("Worker routing entrypoint", () => {
       }),
     ]);
   });
+});
+
+it("audit.retention-maintenance-cadence", async () => {
+  const config = parse(
+    readFileSync(
+      new URL("../../../../wrangler.jsonc", import.meta.url),
+      "utf8",
+    ),
+  );
+  expect(config.triggers.crons).toContain("23 */6 * * *");
+  const controller = { cron: "23 */6 * * *" };
+  const context = { waitUntil: vi.fn() };
+  cleanupExpiredAuthRecordsMock.mockResolvedValue({
+    sessions: 0,
+    verificationTokens: 0,
+    oauthAccessTokens: 0,
+    oauthRefreshTokens: 0,
+    deviceCodes: 0,
+  });
+  const report = {
+    auditRetentionBatches: 1,
+    auditRetentionComplete: true,
+    attributionAnonymized: 2,
+    networkAnonymized: 3,
+    rowsDeleted: 4,
+  };
+  maintainAuditLogRetentionMock.mockResolvedValue(report);
+  logAppEventMock.mockClear();
+  await worker.scheduled(controller, {}, context);
+  expect(maintainAuditLogRetentionMock).toHaveBeenCalledTimes(1);
+  expect(logAppEventMock.mock.calls).toContainEqual([
+    "info",
+    "scheduled.task.finish",
+    expect.objectContaining({
+      ...report,
+      task: "auth-and-audit-retention",
+      outcome: "success",
+    }),
+  ]);
+  for (const mode of ["incomplete", "failed"]) {
+    logAppEventMock.mockClear();
+    if (mode === "incomplete")
+      maintainAuditLogRetentionMock.mockResolvedValue({
+        ...report,
+        auditRetentionBatches: 20,
+        auditRetentionComplete: false,
+      });
+    else
+      maintainAuditLogRetentionMock.mockRejectedValue(
+        new Error("private database failure"),
+      );
+    await expect(worker.scheduled(controller, {}, context)).rejects.toThrow(
+      mode === "incomplete"
+        ? "Audit retention did not finish"
+        : "private database failure",
+    );
+    expect(
+      logAppEventMock.mock.calls.filter(
+        (call) => call[1] === "scheduled.task.finish",
+      ),
+    ).toEqual([]);
+    expect(logAppEventMock.mock.calls).toContainEqual([
+      "error",
+      "scheduled.task.error",
+      expect.objectContaining({
+        task: "auth-and-audit-retention",
+        outcome: "error",
+      }),
+      expect.any(Error),
+    ]);
+  }
 });

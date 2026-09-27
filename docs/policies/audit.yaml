@@ -5,18 +5,48 @@ requirements:
 - id: audit.writer-1
   category: privacy
   topic: writer
-  rule: AuditLog is the authoritative store of security and business audit events. Operational logs and derived
-    activity projections do not replace its records.
+  rule: AuditLog is the authoritative store of security and business audit events. Operational logs and
+    derived activity projections do not replace its records.
+  acceptance:
+    given: A real authorization has committed an audit event.
+    when: The runtime reads its derived account activity and emits an unrelated operational log.
+    then:
+    - The activity references the same AuditLog event; the authoritative row retains safe attribution
+      and metadata.
+    - Operational logging does not create or replace audit events.
+    test:
+      file: tests/integration/audit-oauth-actions.test.ts
+      name: audit.writer-1
 - id: audit.writer-2
   category: privacy
   topic: writer
   rule: Business mutations whose audit action declares an atomic trail commit the domain change and AuditLog
     row in one transaction; an audit insertion failure rolls back that change.
+  acceptance:
+    given: An owner has an active persisted comment.
+    when: The actual deletion use-case encounters a database failure at audit insertion, then retries
+      successfully.
+    then:
+    - Audit failure rolls back the comment mutation with no audit event.
+    - The retry commits both the deletion and exactly one event.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: audit.writer-2
 - id: audit.writer-3
   category: privacy
   topic: writer
-  rule: A Section retirement or reactivation performed by static import commits its lifecycle change and corresponding
-    audit row in the same transaction.
+  rule: A Section retirement or reactivation performed by static import commits its lifecycle change and
+    corresponding audit row in the same transaction.
+  acceptance:
+    given: A static-import scope contains a missing active section and a reappearing retired section.
+    when: The actual migrator-connected reconciler encounters invalid JSON in its final audit write, then
+      retries.
+    then:
+    - Failure rolls back both lifecycle changes and every audit row.
+    - Successful reconciliation commits both lifecycle changes and their two events.
+    test:
+      file: tests/integration/audit-section-lifecycle.test.ts
+      name: audit.writer-3
 - id: audit.writer-4
   category: privacy
   topic: writer
@@ -32,10 +62,10 @@ requirements:
       age threshold.
     when: The actual restricted maintenance role runs retention with an injected maintenance clock.
     then:
-    - At network_days, ipAddress and userAgent are cleared; at attribution_days, oauthGrantId, sessionId, and
-      requestId are cleared; at event_days, the entire row is deleted.
-    - Each boundary is inclusive; younger rows retain the corresponding fields. Event identity, actor, and
-      safe metadata survive until event expiry.
+    - At network_days, ipAddress and userAgent are cleared; at attribution_days, oauthGrantId, sessionId,
+      and requestId are cleared; at event_days, the entire row is deleted.
+    - Each boundary is inclusive; younger rows retain the corresponding fields. Event identity, actor,
+      and safe metadata survive until event expiry.
     test:
       file: tests/integration/audit-policy-retention.test.ts
       name: audit.writer-4
@@ -44,16 +74,17 @@ requirements:
 - id: audit.auth-hook-failure-isolation
   category: privacy
   topic: writer
-  rule: Authentication lifecycle hooks write audit events after the authentication transaction commits. An
-    audit logging failure is contained and produces a safe operational diagnostic without rolling back an already
-    committed sign-in or leaking credentials.
+  rule: Authentication lifecycle hooks write audit events after the authentication transaction commits.
+    An audit logging failure is contained and produces a safe operational diagnostic without rolling back
+    an already committed sign-in or leaking credentials.
   acceptance:
-    given: A registered passkey user signs out and a user-scoped database constraint rejects their next sign-in
-      audit insert.
-    when: The real browser completes passkey sign-in while the Worker audit queue encounters the database failure.
+    given: A registered passkey user signs out and a user-scoped database constraint rejects their next
+      sign-in audit insert.
+    when: The real browser completes passkey sign-in while the Worker audit queue encounters the database
+      failure.
     then:
-    - Sign-in reaches the account page and creates one persistent session that the authenticated session endpoint
-      accepts, while the audit row remains absent during failure.
+    - Sign-in reaches the account page and creates one persistent session that the authenticated session
+      endpoint accepts, while the audit row remains absent during failure.
     - Actual Worker diagnostics identify an audit database-write retry without session credentials, passkey
       names, or user profile values.
     - Removing the constraint lets the real queue persist one successful audit for that same session.
@@ -65,17 +96,28 @@ requirements:
   topic: writer
   rule: Audit retention maintenance is scheduled every six hours. A failed or incomplete cleanup is reported
     rather than treated as a completed retention run.
+  acceptance:
+    given: The actual Worker configuration and scheduled handler are loaded with a controlled maintenance
+      boundary.
+    when: The configured six-hour cron runs with complete, incomplete and failed audit retention results.
+    then:
+    - The configured cron is 23 */6 * * *.
+    - Only complete maintenance records success; incomplete or failed runs reject and report scheduled.task.error.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: audit.retention-maintenance-cadence
 - id: audit.retention-maintenance-authority
   category: authorization
   topic: writer
-  rule: Audit retention cleanup is performed only through the maintenance-only SECURITY DEFINER function. Ordinary
-    application and authentication database roles cannot invoke cleanup or delete audit history directly.
+  rule: Audit retention cleanup is performed only through the maintenance-only SECURITY DEFINER function.
+    Ordinary application and authentication database roles cannot invoke cleanup or delete audit history
+    directly.
   acceptance:
     given: Separate application, authentication, and maintenance database role connections.
     when: Each role attempts cleanup and direct audit deletion; the function definition is inspected.
     then:
-    - Only the maintenance role can execute the SECURITY DEFINER cleanup function; runtime roles cannot call
-      it or directly delete audit rows.
+    - Only the maintenance role can execute the SECURITY DEFINER cleanup function; runtime roles cannot
+      call it or directly delete audit rows.
     test:
       file: tests/integration/audit-policy-retention.test.ts
       name: audit.retention-maintenance-authority
@@ -85,12 +127,12 @@ requirements:
   rule: User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
   acceptance:
     given: An authenticated MCP user has a persisted course target and no comment from this operation.
-    when: The user invokes the create-comment tool with private fixture content, then the test reads the persisted
-      comment and audit event.
+    when: The user invokes the create-comment tool with private fixture content, then the test reads the
+      persisted comment and audit event.
     then:
     - User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
-    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
-      private content.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without
+      copying private content.
     test:
       file: tests/integration/mcp/community/audit-policy.test.ts
       name: audit.action-comment-create
@@ -100,27 +142,28 @@ requirements:
   rule: User edits their own comment. MCP-originated writes include metadata.source=mcp.
   acceptance:
     given: An authenticated MCP user owns a persisted active comment on a course.
-    when: The user invokes the edit-comment tool with replacement private content, then the test reads the changed
-      comment and audit event.
+    when: The user invokes the edit-comment tool with replacement private content, then the test reads
+      the changed comment and audit event.
     then:
     - User edits their own comment. MCP-originated writes include metadata.source=mcp.
-    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
-      private content.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without
+      copying private content.
     test:
       file: tests/integration/mcp/community/audit-policy.test.ts
       name: audit.action-comment-edit
 - id: audit.action-comment-delete
   category: privacy
   topic: actions
-  rule: User deletes their own comment. Transport-originated writes include safe metadata.source where available.
+  rule: User deletes their own comment. Transport-originated writes include safe metadata.source where
+    available.
   acceptance:
     given: An authenticated MCP user owns a persisted active comment on a course.
-    when: The user invokes the delete-comment tool, then the test reads the deleted comment state and audit
-      event.
+    when: The user invokes the delete-comment tool, then the test reads the deleted comment state and
+      audit event.
     then:
     - User deletes their own comment. Transport-originated writes include safe metadata.source where available.
-    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
-      private content.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without
+      copying private content.
     test:
       file: tests/integration/mcp/community/audit-policy.test.ts
       name: audit.action-comment-delete
@@ -130,12 +173,12 @@ requirements:
   rule: User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
   acceptance:
     given: An authenticated MCP user can view an active comment and has no reaction on it.
-    when: The user adds a reaction twice and removes it twice through MCP, reading persisted reaction and audit
-      rows after each operation.
+    when: The user adds a reaction twice and removes it twice through MCP, reading persisted reaction
+      and audit rows after each operation.
     then:
     - User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
-    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
-      private content.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without
+      copying private content.
     - Unchanged repeated add/remove operations add no audit event.
     test:
       file: tests/integration/mcp/community/audit-policy.test.ts
@@ -146,10 +189,10 @@ requirements:
   rule: User updates an object description (content changed). The description row, edit history, and audit
     row are committed together.
   acceptance:
-    given: An authenticated MCP user can edit a persisted course whose description and edit history are initially
-      unchanged.
-    when: A database constraint rejects the audit insertion for a description edit; the user retries after that
-      constraint is removed and then repeats the identical content.
+    given: An authenticated MCP user can edit a persisted course whose description and edit history are
+      initially unchanged.
+    when: A database constraint rejects the audit insertion for a description edit; the user retries after
+      that constraint is removed and then repeats the identical content.
     then:
     - Audit insertion failure rolls back description and edit-history writes.
     - A successful change persists the description, one edit-history row, and one content-free audit event;
@@ -164,13 +207,13 @@ requirements:
     After storage deletion succeeds, metadata deletion and the audit row are committed together.
   acceptance:
     given: An authenticated owner has uploaded real content and authorized an MCP client to delete uploads.
-    when: An owner-scoped database constraint rejects the deletion audit; the owner retries through MCP after
-      removing the constraint and repeats the completed deletion.
+    when: An owner-scoped database constraint rejects the deletion audit; the owner retries through MCP
+      after removing the constraint and repeats the completed deletion.
     then:
-    - Storage deletion succeeds before the transaction, but audit failure preserves upload metadata and commits
-      no audit event.
-    - A successful retry deletes metadata and commits exactly one event with actor, upload target, OAuth client
-      and grant, size, and source=mcp, without content, filename, storage key, or credentials.
+    - Storage deletion succeeds before the transaction, but audit failure preserves upload metadata and
+      commits no audit event.
+    - A successful retry deletes metadata and commits exactly one event with actor, upload target, OAuth
+      client and grant, size, and source=mcp, without content, filename, storage key, or credentials.
     - Repeating the completed deletion returns not_found and adds no event.
     test:
       file: tests/e2e/src/app/account-policy/upload-audit.test.ts
@@ -178,23 +221,45 @@ requirements:
 - id: audit.action-section-retire
   category: privacy
   topic: actions
-  rule: The importer marks one missing in-scope Section inactive without deleting the row or children. The
-    same transaction records the Section target, source snapshot SHA-256, observation time, and jwId.
+  rule: The importer marks one missing in-scope Section inactive without deleting the row or children.
+    The same transaction records the Section target, source snapshot SHA-256, observation time, and jwId.
+  acceptance:
+    given: A section is absent from a nonempty validated snapshot within one scoped semester.
+    when: The actual static importer reconciles presence twice.
+    then:
+    - The section is retained with retiredAt set, while out-of-scope sections remain active.
+    - Exactly one retirement event records target, source, snapshot hash, observation time and public
+      section ID.
+    test:
+      file: tests/integration/audit-section-lifecycle.test.ts
+      name: audit.action-section-retire
 - id: audit.action-section-reactivate
   category: privacy
   topic: actions
-  rule: The importer clears retiredAt when a Section reappears. The same transaction records the Section target,
-    source snapshot SHA-256, observation time, jwId, and previous retiredAt.
+  rule: The importer clears retiredAt when a Section reappears. The same transaction records the Section
+    target, source snapshot SHA-256, observation time, jwId, and previous retiredAt.
+  acceptance:
+    given: A previously retired section reappears in a scoped snapshot.
+    when: The actual static importer reconciles presence twice.
+    then:
+    - The same section ID is active again.
+    - Exactly one reactivation event records target, source, snapshot hash, observation time, public section
+      ID and previous retirement time.
+    test:
+      file: tests/integration/audit-section-lifecycle.test.ts
+      name: audit.action-section-reactivate
 - id: audit.action-admin-user-suspend
   category: privacy
   topic: actions
   rule: Admin suspends a user account. The suspension change and audit row are committed together.
   acceptance:
-    given: An administrator replaces an isolated user's existing active suspension through the real REST endpoint.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed.
+    given: An administrator replaces an isolated user's existing active suspension through the real REST
+      endpoint.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed.
     then:
-    - Audit failure leaves the previous suspension unchanged and commits neither a replacement nor an audit row.
+    - Audit failure leaves the previous suspension unchanged and commits neither a replacement nor an
+      audit row.
     - Success lifts the previous suspension, creates one active replacement, and records one event identifying
       the administrator and subject with only reasonProvided metadata, excluding reason, note, and credentials.
     test:
@@ -206,12 +271,12 @@ requirements:
   rule: Admin lifts a user suspension. The suspension change and audit row are committed together.
   acceptance:
     given: An administrator lifts an isolated user's active suspension through the real REST endpoint.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed.
     then:
     - Audit failure leaves the suspension unchanged and commits no audit row.
-    - Success records the lift time and administrator and commits one event identifying the subject and suspension,
-      excluding reason, note, user profile values, and credentials.
+    - Success records the lift time and administrator and commits one event identifying the subject and
+      suspension, excluding reason, note, user profile values, and credentials.
     test:
       file: tests/e2e/src/app/account-policy/admin-audit.test.ts
       name: audit.action-admin-user-unsuspend
@@ -221,12 +286,12 @@ requirements:
   rule: Admin hides or moderates a comment. The moderation change and audit row are committed together.
   acceptance:
     given: An administrator hides an isolated user's active comment through the real REST endpoint.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed.
     then:
     - Audit failure preserves the complete previous comment and commits no audit row.
-    - Success persists hidden status, moderation time, administrator, and note, and commits one event identifying
-      the actor, author, and comment with only status and moderationNoteProvided metadata.
+    - Success persists hidden status, moderation time, administrator, and note, and commits one event
+      identifying the actor, author, and comment with only status and moderationNoteProvided metadata.
     - The event excludes comment content, moderation note, user profile values, and credentials.
     test:
       file: tests/e2e/src/app/account-policy/admin-audit.test.ts
@@ -238,12 +303,13 @@ requirements:
     and audit row are committed together.
   acceptance:
     given: An administrator updates an isolated course description through the moderation REST endpoint.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed.
     then:
-    - Audit failure preserves the previous description and editor and commits neither edit history nor audit.
-    - Success persists the new content and editor, creates one history record with the actual previous and next
-      content, and commits one event containing only changedFields=content metadata.
+    - Audit failure preserves the previous description and editor and commits neither edit history nor
+      audit.
+    - Success persists the new content and editor, creates one history record with the actual previous
+      and next content, and commits one event containing only changedFields=content metadata.
     - The audit event excludes previous and next content, user profile values, and credentials.
     test:
       file: tests/e2e/src/app/account-policy/admin-audit.test.ts
@@ -251,12 +317,12 @@ requirements:
 - id: audit.action-admin-user-role-update
   category: privacy
   topic: actions
-  rule: Admin changes administrator access. The user update and an audit row containing changedFields only
-    are committed together.
+  rule: Admin changes administrator access. The user update and an audit row containing changedFields
+    only are committed together.
   acceptance:
     given: An administrator grants administrator access to an isolated ordinary user through REST.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed and repeats the unchanged grant.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed and repeats the unchanged grant.
     then:
     - Audit failure preserves the complete previous user record and commits no event.
     - Success changes administrator access and commits one event identifying actor and subject with exactly
@@ -268,15 +334,16 @@ requirements:
 - id: audit.action-admin-user-profile-update
   category: privacy
   topic: actions
-  rule: Admin changes managed profile fields. The audit row records field names, never previous or next values.
+  rule: Admin changes managed profile fields. The audit row records field names, never previous or next
+    values.
   acceptance:
     given: An administrator changes an isolated user's name and username through REST.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed and repeats the unchanged update.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed and repeats the unchanged update.
     then:
     - Audit failure preserves the complete previous user record and commits no event.
-    - Success changes both profile fields and commits one actor-and-subject event containing exactly the name
-      and username field names, excluding all previous and next values and credentials.
+    - Success changes both profile fields and commits one actor-and-subject event containing exactly the
+      name and username field names, excluding all previous and next values and credentials.
     - An unchanged retry adds no event and never creates a role-update audit.
     test:
       file: tests/e2e/src/app/account-policy/admin-audit.test.ts
@@ -284,28 +351,56 @@ requirements:
 - id: audit.action-admin-oauth-client-create
   category: privacy
   topic: actions
-  rule: Admin creates an OAuth client. Client secrets and redirect URI values are never stored in audit metadata.
+  rule: Admin creates an OAuth client. Client secrets and redirect URI values are never stored in audit
+    metadata.
+  acceptance:
+    given: A recently authenticated administrator supplies a private client name and redirect URI.
+    when: The real admin action creates a confidential client through the provider.
+    then:
+    - The persisted client and one audit event have matching IDs.
+    - Audit metadata contains changed field names, never client secret, client name or redirect URI values.
+    test:
+      file: tests/integration/oauth-admin-client-contracts.test.ts
+      name: audit.action-admin-oauth-client-create
 - id: audit.action-admin-oauth-client-delete
   category: privacy
   topic: actions
   rule: Admin deletes an OAuth client after confirmation.
+  acceptance:
+    given: A recently authenticated administrator has a client and submits its confirmed delete form.
+    when: The real delete action runs and the same deletion is retried.
+    then:
+    - The client is deleted and exactly one successful event records its ID and administrator.
+    - The retry reports not found without producing another event or leaking the secret.
+    test:
+      file: tests/integration/oauth-admin-client-contracts.test.ts
+      name: audit.action-admin-oauth-client-delete
 - id: audit.action-admin-bus-version-activate
   category: privacy
   topic: actions
   rule: Admin activates a timetable version; the version update and audit row are committed together.
+  acceptance:
+    given: An administrator has an inactive timetable version and existing enabled versions.
+    when: The actual activation action encounters a database audit failure, then succeeds.
+    then:
+    - Failure preserves all version states and creates no event.
+    - Success enables only the selected version and commits one event without its private title.
+    test:
+      file: tests/integration/audit-bus-actions.test.ts
+      name: audit.action-admin-bus-version-activate
 - id: audit.action-admin-bus-version-delete
   category: privacy
   topic: actions
   rule: Admin deletes an inactive timetable version; the delete and audit row are committed together.
   acceptance:
-    given: An administrator deletes an isolated inactive timetable version with an associated trip through the
-      real web action.
-    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
-      the constraint is removed and repeats the completed deletion.
+    given: An administrator deletes an isolated inactive timetable version with an associated trip through
+      the real web action.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries
+      after the constraint is removed and repeats the completed deletion.
     then:
     - Audit failure preserves both the version and its trip and commits no event.
-    - Success removes the version and trip and commits one web event identifying the administrator and version,
-      without raw import data, source URL, title, profile values, or credentials.
+    - Success removes the version and trip and commits one web event identifying the administrator and
+      version, without raw import data, source URL, title, profile values, or credentials.
     - Repeating deletion returns not found and adds no event; active timetable versions remain unchanged.
     test:
       file: tests/e2e/src/app/account-policy/admin-audit.test.ts
@@ -314,17 +409,31 @@ requirements:
   category: privacy
   topic: actions
   rule: Admin imports the static timetable and records only version and aggregate row counts.
+  acceptance:
+    given: An authenticated administrator has a valid static timetable supplied at the external fetch
+      boundary.
+    when: The actual static import action fetches, persists campuses, routes and trips, and writes audit.
+    then:
+    - One event records the imported version ID and aggregate campus, route and trip counts.
+    - Private source message, URL, campus names and timetable values are absent from audit metadata.
+    test:
+      file: tests/integration/audit-bus-actions.test.ts
+      name: audit.action-admin-bus-import
 - id: audit.action-homework-create
   category: privacy
   topic: actions
-  rule: Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without title
-    or description content.
+  rule: Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without
+    title or description content.
   acceptance:
-    given: An isolated user completes device authorization for a resource-bound homework-write bearer and has a persisted OAuth consent grant.
-    when: The real REST create endpoint writes a private title and description while a database CHECK first rejects homework audit insertion, then after the CHECK is removed.
+    given: An isolated user completes device authorization for a resource-bound homework-write bearer
+      and has a persisted OAuth consent grant.
+    when: The real REST create endpoint writes a private title and description while a database CHECK
+      first rejects homework audit insertion, then after the CHECK is removed.
     then:
-    - Audit failure rolls back homework creation; retry commits the homework, description, edit history, and one audit event.
-    - The event contains the verified actor, REST channel, client ID, grant ID, section, and changed fields, without title, content, token, cookie, or personal identity values.
+    - Audit failure rolls back homework creation; retry commits the homework, description, edit history,
+      and one audit event.
+    - The event contains the verified actor, REST channel, client ID, grant ID, section, and changed fields,
+      without title, content, token, cookie, or personal identity values.
     test:
       file: tests/e2e/src/app/account-policy/homework-audit.test.ts
       name: audit.action-homework-create
@@ -333,11 +442,15 @@ requirements:
   topic: actions
   rule: Records the collaborative editor and changed field names in the same transaction as the update.
   acceptance:
-    given: A homework belongs to another creator and an isolated collaborative editor has a real resource-bound homework-write bearer.
-    when: The REST update endpoint changes title and description with audit insertion rejected by a CHECK, then retries after the CHECK is removed.
+    given: A homework belongs to another creator and an isolated collaborative editor has a real resource-bound
+      homework-write bearer.
+    when: The REST update endpoint changes title and description with audit insertion rejected by a CHECK,
+      then retries after the CHECK is removed.
     then:
-    - The failed attempt preserves the original title and absent description; the retry commits both changes and identifies the collaborative editor.
-    - One event records the verified client/grant attribution, section and changed-field names while omitting the private title and description.
+    - The failed attempt preserves the original title and absent description; the retry commits both changes
+      and identifies the collaborative editor.
+    - One event records the verified client/grant attribution, section and changed-field names while omitting
+      the private title and description.
     test:
       file: tests/e2e/src/app/account-policy/homework-audit.test.ts
       name: audit.action-homework-update
@@ -346,31 +459,58 @@ requirements:
   topic: actions
   rule: Records the creator/admin actor and target without retaining a title snapshot.
   acceptance:
-    given: An isolated homework creator has a real resource-bound homework-write bearer and an active homework with a private title.
-    when: The REST delete endpoint runs with a CHECK rejecting the audit event, then retries after the CHECK is removed.
+    given: An isolated homework creator has a real resource-bound homework-write bearer and an active
+      homework with a private title.
+    when: The REST delete endpoint runs with a CHECK rejecting the audit event, then retries after the
+      CHECK is removed.
     then:
-    - Audit failure preserves the active homework; retry commits deletedAt and exactly one successful event.
-    - The event identifies the creator, target, verified client/grant and section; metadata contains no title snapshot or private content.
+    - Audit failure preserves the active homework; retry commits deletedAt and exactly one successful
+      event.
+    - The event identifies the creator, target, verified client/grant and section; metadata contains no
+      title snapshot or private content.
     test:
       file: tests/e2e/src/app/account-policy/homework-audit.test.ts
       name: audit.action-homework-delete
 - id: audit.action-webhook-login
   category: privacy
   topic: actions
-  rule: Internal debug login aid (not a product surface). When enabled in a private environment, audit metadata
-    records the lookup mode only; secrets and session tokens are never stored.
+  rule: Internal debug login aid (not a product surface). When enabled in a private environment, audit
+    metadata records the lookup mode only; secrets and session tokens are never stored.
+  acceptance:
+    given: Private debug login is explicitly enabled with a secret and an existing user.
+    when: The real Better Auth webhook endpoint authenticates by email and by user ID.
+    then:
+    - Both issued cookies resolve to real persisted sessions.
+    - Each event contains only the lookup mode in metadata, excluding the secret, user email and session
+      tokens.
+    test:
+      file: tests/integration/audit-auth-provisioning.test.ts
+      name: audit.action-webhook-login
 - id: audit.action-account-create
   category: privacy
   topic: actions
-  rule: Records successful account provisioning after the user transaction commits. Credentials, tokens, and
-    request bodies are excluded.
+  rule: Records successful account provisioning after the user transaction commits. Credentials, tokens,
+    and request bodies are excluded.
+  acceptance:
+    given: The actual Better Auth internal adapter and production hooks operate through the authentication
+      database role.
+    when: OAuth provisioning first fails during provider-account insertion, then succeeds with valid credentials.
+    then:
+    - Failed provisioning commits neither the user nor its audit event.
+    - An independent database connection observes the committed user and provider account before the real
+      audit hook writes exactly one account_create event.
+    - Audit excludes provider credentials, private profile data and request content.
+    test:
+      file: tests/integration/audit-auth-provisioning.test.ts
+      name: audit.action-account-create
 - id: audit.action-account-sign-in
   category: privacy
   topic: actions
   rule: Records successful sign-in after the session transaction commits without copying the session token.
   acceptance:
     given: An isolated user registered a real browser passkey, then signed out with no remaining sessions.
-    when: The browser completes passkey sign-in and the test reads its new committed session and audit event.
+    when: The browser completes passkey sign-in and the test reads its new committed session and audit
+      event.
     then:
     - Exactly one successful sign-in event names the user and the new persisted session.
     - The event contains neither the session token nor the private passkey name.
@@ -383,43 +523,45 @@ requirements:
   rule: Records successful sign-out after the session transaction commits.
   acceptance:
     given: An isolated account has a valid persisted session and signed session cookie.
-    when: The production Better Auth sign-out endpoint handles that cookie, after which the test reads the session
-      and account-sign-out audit rows.
+    when: The production Better Auth sign-out endpoint handles that cookie, after which the test reads
+      the session and account-sign-out audit rows.
     then:
     - Records successful sign-out after the session transaction commits.
-    - Exactly one successful persisted audit row identifies the actor and target without copying private field
-      or token values.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private
+      field or token values.
     test:
       file: tests/integration/auth-lifecycle-audit.test.ts
       name: audit.action-account-sign-out
 - id: audit.action-account-profile-update
   category: privacy
   topic: actions
-  rule: Records successful profile changes with an allowlisted changed-field list, never field values or request
-    bodies.
+  rule: Records successful profile changes with an allowlisted changed-field list, never field values
+    or request bodies.
   acceptance:
     given: An isolated account has a valid session and an existing display name.
-    when: The production Better Auth update-user endpoint receives a new private display name, after which the
-      test reads the user and profile-update audit rows.
+    when: The production Better Auth update-user endpoint receives a new private display name, after which
+      the test reads the user and profile-update audit rows.
     then:
-    - Records successful profile changes with an allowlisted changed-field list, never field values or request
-      bodies.
-    - Exactly one successful persisted audit row identifies the actor and target without copying private field
-      or token values.
+    - Records successful profile changes with an allowlisted changed-field list, never field values or
+      request bodies.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private
+      field or token values.
     test:
       file: tests/integration/auth-lifecycle-audit.test.ts
       name: audit.action-account-profile-update
 - id: audit.action-account-credential-update
   category: privacy
   topic: actions
-  rule: Records successful credential changes with changed-field names only; password and token values are
-    excluded.
+  rule: Records successful credential changes with changed-field names only; password and token values
+    are excluded.
   acceptance:
     given: An isolated signed-in user has a valid password account and a recent session.
-    when: The production change-password endpoint replaces its password; subsequent real sign-in attempts use the old and new passwords.
+    when: The production change-password endpoint replaces its password; subsequent real sign-in attempts
+      use the old and new passwords.
     then:
     - The persisted password hash changes; the old password fails with 401 and the new password succeeds.
-    - One successful credential-update event records only changedFields=password, omitting passwords, hashes, and the session cookie.
+    - One successful credential-update event records only changedFields=password, omitting passwords,
+      hashes, and the session cookie.
     test:
       file: tests/e2e/src/app/account-policy/audit.test.ts
       name: audit.action-account-credential-update
@@ -428,27 +570,38 @@ requirements:
   topic: actions
   rule: Records successful linking for the authenticated user after commit, excluding provider credentials
     and tokens.
+  acceptance:
+    given: An existing user has a real authentication session and a pending provider account link.
+    when: The actual Better Auth adapter links within its database transaction, first with invalid then
+      valid credentials.
+    then:
+    - Failed linking leaves no account or event.
+    - The real hook sees the account committed through an independent connection and writes exactly one
+      account_link event with provider name only.
+    test:
+      file: tests/integration/audit-auth-provisioning.test.ts
+      name: audit.action-account-link
 - id: audit.action-account-unlink
   category: privacy
   topic: actions
   rule: Records successful provider unlinking after commit, excluding provider credentials and tokens.
   acceptance:
-    given: An isolated account has two linked providers and a valid session; the provider being removed has
-      a private access token.
-    when: The production Better Auth unlink-account endpoint receives that provider account ID, after which
-      the test reads the provider and unlink audit rows.
+    given: An isolated account has two linked providers and a valid session; the provider being removed
+      has a private access token.
+    when: The production Better Auth unlink-account endpoint receives that provider account ID, after
+      which the test reads the provider and unlink audit rows.
     then:
     - Records successful provider unlinking after commit, excluding provider credentials and tokens.
-    - Exactly one successful persisted audit row identifies the actor and target without copying private field
-      or token values.
+    - Exactly one successful persisted audit row identifies the actor and target without copying private
+      field or token values.
     test:
       file: tests/integration/auth-lifecycle-audit.test.ts
       name: audit.action-account-unlink
 - id: audit.action-account-delete
   category: privacy
   topic: actions
-  rule: Records denial or failure while the user exists. The success row deliberately omits the deleted user's
-    raw identifier.
+  rule: Records denial or failure while the user exists. The success row deliberately omits the deleted
+    user's raw identifier.
   acceptance:
     given: An isolated signed-in user submits the real account-settings deletion action with a private
       extra form field.
@@ -466,11 +619,12 @@ requirements:
 - id: audit.action-account-passkey-create
   category: privacy
   topic: actions
-  rule: Records committed passkey registration from the final endpoint result, excluding attestation, credential
-    material, and request bodies.
+  rule: Records committed passkey registration from the final endpoint result, excluding attestation,
+    credential material, and request bodies.
   acceptance:
     given: An isolated signed-in user has no passkeys and a real browser virtual WebAuthn authenticator.
-    when: The account settings form completes WebAuthn registration and the test reads the committed passkey and audit rows.
+    when: The account settings form completes WebAuthn registration and the test reads the committed passkey
+      and audit rows.
     then:
     - One successful registration event identifies the user and committed passkey.
     - Audit rows omit the public key, credential ID, private name, session cookie, and email.
@@ -483,7 +637,8 @@ requirements:
   rule: Records committed passkey updates using only the passkey identifier and safe request context.
   acceptance:
     given: An isolated signed-in user has a real browser-registered passkey and recent session.
-    when: The production passkey update endpoint receives a new private name and the test reads the persisted passkey and audit row.
+    when: The production passkey update endpoint receives a new private name and the test reads the persisted
+      passkey and audit row.
     then:
     - The committed name changes and one successful audit event identifies the passkey and user.
     - Audit rows omit the name, key material, credential ID, session cookie, and email.
@@ -495,8 +650,10 @@ requirements:
   topic: actions
   rule: Records committed passkey deletion using only the passkey identifier and safe request context.
   acceptance:
-    given: An isolated signed-in user has a real browser-registered passkey and a usable password account that permits removal.
-    when: The production passkey deletion endpoint removes the key and the test reads the passkey table and audit row.
+    given: An isolated signed-in user has a real browser-registered passkey and a usable password account
+      that permits removal.
+    when: The production passkey deletion endpoint removes the key and the test reads the passkey table
+      and audit row.
     then:
     - The key is absent and one successful deletion event identifies the removed passkey and user.
     - Audit rows omit the name, key material, credential ID, session cookie, and email.
@@ -522,10 +679,13 @@ requirements:
   rule: Records successful token creation without storing the calendar feed token value.
   acceptance:
     given: An isolated signed-in user has a null calendar-feed token and a recent session.
-    when: Two real workspace subscription page requests request the private feed and the test reads the persisted token and audit events.
+    when: Two real workspace subscription page requests request the private feed and the test reads the
+      persisted token and audit events.
     then:
-    - A token is persisted and exactly one successful creation event names the actor and calendar-feed target.
-    - Repeated reads do not add creation events; token values, session cookies, and email are absent from the audit rows.
+    - A token is persisted and exactly one successful creation event names the actor and calendar-feed
+      target.
+    - Repeated reads do not add creation events; token values, session cookies, and email are absent from
+      the audit rows.
     test:
       file: tests/e2e/src/app/account-policy/audit.test.ts
       name: audit.action-account-calendar-token-create
@@ -535,27 +695,61 @@ requirements:
   rule: Records denied, failed, and successful rotation without storing old or new token values.
   acceptance:
     given: An isolated signed-in user has an existing calendar token and a persisted session.
-    when: The real settings action runs with an old session, then a fresh session while a database CHECK rejects token writes, then after the constraint is removed.
+    when: The real settings action runs with an old session, then a fresh session while a database CHECK
+      rejects token writes, then after the constraint is removed.
     then:
     - The three attempts return 403, 500, and 303 with denied, failure, and success audit outcomes.
-    - Refused and failed attempts retain the old token; success changes it. Neither token, session cookie, email, nor private request body appears in audit rows.
+    - Refused and failed attempts retain the old token; success changes it. Neither token, session cookie,
+      email, nor private request body appears in audit rows.
     test:
       file: tests/e2e/src/app/account-policy/audit.test.ts
       name: audit.action-account-calendar-token-rotate
 - id: audit.action-oauth-authorization-grant
   category: privacy
   topic: actions
-  rule: Records a grant atomically with authorization state and verification-code creation, excluding codes,
-    tokens, state, and request bodies.
+  rule: Records a grant atomically with authorization state and verification-code creation, excluding
+    codes, tokens, state, and request bodies.
+  acceptance:
+    given: A user and public client have no consent or authorization code.
+    when: The real consent service first encounters a database audit-write failure and then succeeds.
+    then:
+    - Failure preserves the empty state; success commits consent, its bound verification code and exactly
+      one grant event.
+    - The event contains safe IDs, changed field names and counts, excluding codes, tokens, state and
+      redirect values.
+    test:
+      file: tests/integration/audit-oauth-actions.test.ts
+      name: audit.action-oauth-authorization-grant
 - id: audit.action-oauth-authorization-update
   category: privacy
   topic: actions
-  rule: Records an authorization scope change atomically with authorization state using scope counts and changed-field
-    names only.
+  rule: Records an authorization scope change atomically with authorization state using scope counts and
+    changed-field names only.
+  acceptance:
+    given: A consent has access, refresh and device credentials.
+    when: The real scope-reduction service first encounters a database audit failure and then succeeds.
+    then:
+    - Failure preserves consent, every credential and existing audit state.
+    - Success changes scopes and generation with one event containing only safe attribution, scope count
+      and changed field names.
+    test:
+      file: tests/integration/audit-oauth-actions.test.ts
+      name: audit.action-oauth-authorization-update
 - id: audit.action-oauth-authorization-revoke
   category: privacy
   topic: actions
   rule: Records revocation atomically with authorization deletion using safe identifiers and counts only.
+  acceptance:
+    given: A consent has one access token, refresh token and device code.
+    when: The real revocation service first encounters a database audit failure, then succeeds and is
+      retried.
+    then:
+    - Failure restores consent and all credentials.
+    - Success deletes the authorization and credentials with exactly one event containing safe IDs and
+      deletion counts; retry creates no extra event.
+    test:
+      file: tests/integration/audit-oauth-actions.test.ts
+      name: audit.action-oauth-authorization-revoke
 audit_actions:
 - action: comment_create
   trigger: POST /api/community/comments or MCP community_comment_create
@@ -574,8 +768,8 @@ audit_actions:
   requirement_refs:
   - audit.action-comment-delete
 - action: comment_react
-  trigger: POST /api/community/comments/[id]/reactions, DELETE /api/community/comments/[id]/reactions, MCP
-    community_comment_reaction_add, or MCP community_comment_reaction_remove
+  trigger: POST /api/community/comments/[id]/reactions, DELETE /api/community/comments/[id]/reactions,
+    MCP community_comment_reaction_add, or MCP community_comment_reaction_remove
   description: Audit event for comment react.
   requirement_refs:
   - audit.action-comment-react
@@ -585,8 +779,8 @@ audit_actions:
   requirement_refs:
   - audit.action-description-edit
 - action: upload_delete
-  trigger: DELETE /api/workspace/uploads/[id], GraphQL uploadDelete, MCP workspace_upload_delete, or the registered
-    GraphQL operation
+  trigger: DELETE /api/workspace/uploads/[id], GraphQL uploadDelete, MCP workspace_upload_delete, or the
+    registered GraphQL operation
   description: Audit event for upload delete.
   requirement_refs:
   - audit.action-upload-delete

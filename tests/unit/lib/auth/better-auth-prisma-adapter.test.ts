@@ -6,6 +6,14 @@ const { adapterFactoryMock, findOneMock, prismaAdapterMock } = vi.hoisted(
     const adapterFactory = vi.fn(() => ({
       id: "prisma",
       findOne,
+      transaction: vi.fn(
+        async (
+          callback: (tx: {
+            id: string;
+            findOne: typeof findOne;
+          }) => Promise<unknown>,
+        ) => callback({ id: "prisma", findOne }),
+      ),
     }));
     return {
       adapterFactoryMock: adapterFactory,
@@ -37,6 +45,7 @@ describe("createBetterAuthPrismaAdapter", () => {
     expect(adapter.id).toBe("prisma");
     expect(prismaAdapterMock).toHaveBeenCalledWith(prisma, {
       provider: "postgresql",
+      transaction: true,
     });
     expect(adapterFactoryMock).toHaveBeenCalledTimes(1);
   });
@@ -83,4 +92,20 @@ describe("createBetterAuthPrismaAdapter", () => {
       }),
     ).resolves.toBe(revokedAccess);
   });
+});
+
+it("preserves revoked refresh-token filtering in transaction adapters", async () => {
+  const { createBetterAuthPrismaAdapter } = await import(
+    "@/lib/auth/better-auth-prisma-adapter"
+  );
+  const adapter = createBetterAuthPrismaAdapter({} as never)({} as never);
+  findOneMock.mockResolvedValue({ id: "revoked", revoked: new Date() });
+  await expect(
+    adapter.transaction((tx) =>
+      tx.findOne({
+        model: "oauthRefreshToken",
+        where: [{ field: "token", value: "revoked-token" }],
+      }),
+    ),
+  ).resolves.toBeNull();
 });

@@ -274,3 +274,95 @@ it("oauth.external-account-issuer-identity", async () => {
     }),
   ).rejects.toMatchObject({ code: "P2002" });
 });
+
+it("audit.action-admin-oauth-client-create", async () => {
+  const name = `private-client-name-${marker}`;
+  const redirect = `https://private-client.example/${marker}`;
+  const result = await create(name, redirect, "client_secret_basic");
+  if (!("createdClientId" in result)) throw new Error(JSON.stringify(result));
+  expect(typeof result.createdClientSecret).toBe("string");
+  const stored = await db.oAuthClient.findUniqueOrThrow({
+    where: { clientId: result.createdClientId },
+  });
+  expect(stored.redirectUris).toEqual([redirect]);
+  const events = await db.auditLog.findMany({
+    where: {
+      action: "admin_oauth_client_create",
+      targetId: result.createdClientId,
+    },
+  });
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({
+    userId: adminId,
+    targetId: result.createdClientId,
+    targetType: "oauth_client",
+    channel: "web",
+    outcome: "success",
+    metadata: {
+      changedFields: [
+        "redirectUris",
+        "scopes",
+        "tokenEndpointAuthMethod",
+        "trusted",
+      ],
+    },
+  });
+  for (const privateValue of [name, redirect, result.createdClientSecret])
+    if (privateValue)
+      expect(JSON.stringify(events)).not.toContain(privateValue);
+});
+
+it("audit.action-admin-oauth-client-delete", async () => {
+  const { deleteAdminOAuthClientAction } = await import(
+    "@/features/admin/server/admin-oauth-delete-action"
+  );
+  const created = await create(
+    `delete-${marker}`,
+    "https://private-client.example/deleted",
+    "client_secret_basic",
+  );
+  if (!("createdClientId" in created)) throw new Error(JSON.stringify(created));
+  const form = new FormData();
+  form.set("clientId", created.createdClientId);
+  const confirmedRequest = () =>
+    new Request(`${origin}/admin/oauth?/deleteClient`, {
+      method: "POST",
+      headers: { cookie, origin },
+      body: form,
+    });
+  expect(
+    await deleteAdminOAuthClientAction(confirmedRequest(), "en-us", marker),
+  ).toMatchObject({ variant: "default" });
+  expect(
+    await db.oAuthClient.findUnique({
+      where: { clientId: created.createdClientId },
+    }),
+  ).toBeNull();
+  const rows = await db.auditLog.findMany({
+    where: {
+      action: "admin_oauth_client_delete",
+      targetId: created.createdClientId,
+    },
+  });
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    userId: adminId,
+    channel: "web",
+    targetType: "oauth_client",
+    metadata: null,
+    outcome: "success",
+  });
+  expect(
+    await deleteAdminOAuthClientAction(confirmedRequest(), "en-us", marker),
+  ).toMatchObject({ status: 404 });
+  expect(
+    await db.auditLog.findMany({
+      where: {
+        action: "admin_oauth_client_delete",
+        targetId: created.createdClientId,
+      },
+    }),
+  ).toEqual(rows);
+  if (created.createdClientSecret)
+    expect(JSON.stringify(rows)).not.toContain(created.createdClientSecret);
+});

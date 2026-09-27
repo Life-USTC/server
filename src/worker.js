@@ -643,6 +643,11 @@ export default {
                     maintainOAuthGrantUsageRetention(maintenancePrisma),
                     maintainObservabilityRetention(maintenancePrisma),
                   ]);
+                if (!auditLog.auditRetentionComplete) {
+                  throw new Error(
+                    "Audit retention did not finish within its batch limit",
+                  );
+                }
                 logScheduledTaskFinish(
                   task,
                   {

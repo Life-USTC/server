@@ -20,27 +20,14 @@ function isOAuthRefreshTokenLookup(input: {
 export function createBetterAuthPrismaAdapter(prisma: PrismaClient) {
   const createAdapter = prismaAdapter(prisma, {
     provider: "postgresql",
+    transaction: true,
   });
   return (options: Parameters<typeof createAdapter>[0]) => {
     const adapter = createAdapter(options);
-    const findOne: typeof adapter.findOne = async <T>(
-      input: Parameters<typeof adapter.findOne>[0],
-    ): Promise<T | null> => {
-      const row = await adapter.findOne<T>(input);
-      // Better Auth 1.6 invalidates a reused token by client/user, which can
-      // delete a newer authorization generation. The token route performs the
-      // required cleanup itself using immutable grant-lineage evidence.
-      if (
-        row &&
-        typeof row === "object" &&
-        "revoked" in row &&
-        row.revoked != null &&
-        isOAuthRefreshTokenLookup(input)
-      ) {
-        return null;
-      }
-      return row;
-    };
+    const transaction: typeof adapter.transaction = (callback) =>
+      adapter.transaction((transaction) =>
+        callback(hideRevokedRefreshToken(transaction)),
+      );
     const remove: typeof adapter.delete = async (input) => {
       const model = input.model.toLowerCase();
       if (model !== "account" && model !== "passkey")
@@ -60,6 +47,34 @@ export function createBetterAuthPrismaAdapter(prisma: PrismaClient) {
         });
       }
     };
-    return { ...adapter, findOne, delete: remove };
+    return { ...hideRevokedRefreshToken(adapter), transaction, delete: remove };
+  };
+}
+
+type AuthAdapter = ReturnType<ReturnType<typeof prismaAdapter>>;
+function hideRevokedRefreshToken<T extends Pick<AuthAdapter, "findOne">>(
+  adapter: T,
+): T {
+  const findOne: typeof adapter.findOne = async <T>(
+    input: Parameters<typeof adapter.findOne>[0],
+  ): Promise<T | null> => {
+    const row = await adapter.findOne<T>(input);
+    // Better Auth 1.6 invalidates a reused token by client/user, which can
+    // delete a newer authorization generation. The token route performs the
+    // required cleanup itself using immutable grant-lineage evidence.
+    if (
+      row &&
+      typeof row === "object" &&
+      "revoked" in row &&
+      row.revoked != null &&
+      isOAuthRefreshTokenLookup(input)
+    ) {
+      return null;
+    }
+    return row;
+  };
+  return {
+    ...adapter,
+    findOne,
   };
 }

@@ -650,3 +650,30 @@ it("upload.one-upload-one-comment", async () => {
   ).toEqual([{ commentId: firstId }]);
   expect(await db.upload.count({ where: { id: attachment } })).toBe(1);
 });
+
+it("audit.writer-2", async () => {
+  const id = await seed();
+  const before = await db.comment.findUniqueOrThrow({ where: { id } });
+  const invoke = (source: string) =>
+    deleteOwnComment({
+      userId: owner,
+      commentId: id,
+      auditMetadata: { source },
+    });
+  await expect(invoke("invalid\u0000audit-source")).rejects.toThrow();
+  expect(await db.comment.findUniqueOrThrow({ where: { id } })).toEqual(before);
+  expect(
+    await db.auditLog.count({
+      where: { targetId: id, action: "comment_delete" },
+    }),
+  ).toBe(0);
+  expect(await invoke("rest")).toMatchObject({ ok: true });
+  expect((await db.comment.findUniqueOrThrow({ where: { id } })).status).toBe(
+    "deleted",
+  );
+  expect(
+    await db.auditLog.count({
+      where: { targetId: id, action: "comment_delete", userId: owner },
+    }),
+  ).toBe(1);
+});
