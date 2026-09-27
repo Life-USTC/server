@@ -10,6 +10,11 @@ on:
       job-phase:
         required: true
         type: string
+      specification-needs:
+        description: JSON needs results from the specification evidence caller.
+        required: false
+        type: string
+        default: ""
       timeout-minutes:
         required: false
         type: number
@@ -100,6 +105,7 @@ jobs:
         shell: bash
         env:
           JOB_PHASE: ${{ inputs.job-phase }}
+          SPEC_EVIDENCE_NEEDS: ${{ inputs.specification-needs }}
         run: |
           case "$JOB_PHASE" in
             ci:verify)

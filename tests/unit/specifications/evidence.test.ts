@@ -10,6 +10,7 @@ import {
   parseNativeReport,
   validateEvidenceManifest,
 } from "../../../scripts/specifications/evidence";
+import { MANDATORY_EVIDENCE_ARTIFACTS } from "../../../scripts/specifications/evidence-ci";
 import type { SpecificationFile } from "../../../scripts/specifications/repository";
 
 const root = "/repo";
@@ -18,6 +19,12 @@ const reference = {
   name: "example.ownership",
 };
 const run = { sha: "a".repeat(40), run: "123", attempt: "1" };
+const successfulExecutions = () =>
+  [...MANDATORY_EVIDENCE_ARTIFACTS.keys()].map((artifact) => ({
+    ...run,
+    artifact,
+    outcome: "success" as const,
+  }));
 const vitest = () => ({
   success: true,
   startTime: 1,
@@ -294,6 +301,7 @@ describe("requirement coverage", () => {
       buildEvidenceReport(
         specifications({ test: reference }, false),
         parseNativeReport(vitest(), "vitest", root),
+        successfulExecutions(),
       ).gatePassed,
     ).toBe(true);
   });
@@ -346,12 +354,12 @@ describe("workflow provenance", () => {
       reports: [{ runner: "vitest", file: "vitest-123.json" }],
     };
     expect(validateEvidenceManifest(manifest, run)).toEqual(manifest);
-    expect(
+    expect(() =>
       validateEvidenceManifest(manifest, { ...run, attempt: "2" }),
-    ).toEqual(manifest);
+    ).toThrow("attempt does not match");
     expect(() =>
       validateEvidenceManifest({ ...manifest, attempt: "2" }, run),
-    ).toThrow("newer");
+    ).toThrow("attempt does not match");
     expect(() =>
       validateEvidenceManifest({ ...manifest, attempt: "invalid" }, run),
     ).toThrow();
@@ -390,9 +398,9 @@ describe("workflow provenance", () => {
     vi.stubEnv("SPEC_EVIDENCE_OUTCOME", "success");
     await captureEvidence(artifact, root);
     expect((await loadEvidence(directory, run)).observations).toHaveLength(1);
-    expect(
-      (await loadEvidence(directory, { ...run, attempt: "2" })).observations,
-    ).toHaveLength(1);
+    await expect(
+      loadEvidence(directory, { ...run, attempt: "2" }),
+    ).rejects.toThrow("attempt does not match");
   });
   test("rejects manifests without an explicit phase outcome", () => {
     const manifest = { ...run, root, reports: [] };
@@ -424,7 +432,12 @@ describe("workflow provenance", () => {
       const report = buildEvidenceReport(
         specifications(),
         evidence.observations,
-        evidence.executions,
+        [
+          ...successfulExecutions().filter(
+            (execution) => execution.artifact !== "spec-evidence-unit",
+          ),
+          ...evidence.executions,
+        ],
       );
       expect(report.gatePassed).toBe(outcome === "success");
       expect(report.requirements[0].status).toBe(
@@ -433,7 +446,7 @@ describe("workflow provenance", () => {
       expect(report.executionFailures).toHaveLength(
         outcome === "success" ? 0 : 1,
       );
-      expect(report.executions[0]).toEqual({
+      expect(report.executions.at(-1)).toEqual({
         ...run,
         artifact: "spec-evidence-unit",
         outcome,
@@ -450,7 +463,7 @@ describe("workflow provenance", () => {
     async (outcome) => {
       const directory = await mkdtemp(join(tmpdir(), "spec-evidence-"));
       directories.push(directory);
-      const artifact = join(directory, "spec-evidence-integration");
+      const artifact = join(directory, "spec-evidence-life_ustc_integration_1");
       await mkdir(artifact);
       await writeFile(
         join(artifact, "manifest.json"),
@@ -467,7 +480,7 @@ describe("workflow provenance", () => {
       expect(report.gatePassed).toBe(false);
       expect(report.summary.unsuccessfulExecutions).toBe(1);
       expect(report.executionFailures[0]).toMatchObject({
-        artifact: "spec-evidence-integration",
+        artifact: "spec-evidence-life_ustc_integration_1",
         outcome,
       });
     },
