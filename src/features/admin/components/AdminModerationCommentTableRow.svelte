@@ -31,12 +31,10 @@ export let targetLabel: AdminModerationCommentFormatter;
         preserveWhitespace
         text={comment.body}
       />
-      {#if comment.moderationNote}
-        <TruncatedText
-          class="text-muted-foreground text-xs"
-          text={`${copy.moderationNote}: ${comment.moderationNote}`}
-        />
-      {/if}
+      <TruncatedText
+        class="text-muted-foreground text-xs"
+        text={comment.moderationNote ? `${copy.moderationNote}: ${comment.moderationNote}` : null}
+      />
     </div>
   </Table.Cell>
   <Table.Cell class="max-w-0">

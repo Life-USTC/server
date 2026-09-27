@@ -70,14 +70,10 @@ export let users: AdminUserRow[];
                 {:else}
                   <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
                 {/if}
-                {#if user.activeSuspension}
-                  <span class="block max-w-full" title={suspensionLabel(user)}>
-                    <TruncatedText
-                      class="text-muted-foreground text-xs"
-                      text={suspensionLabel(user)}
-                    />
-                  </span>
-                {/if}
+                <TruncatedText
+                  class="text-muted-foreground text-xs"
+                  text={user.activeSuspension ? suspensionLabel(user) : null}
+                />
               </div>
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
