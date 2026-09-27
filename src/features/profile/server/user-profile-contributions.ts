@@ -98,12 +98,13 @@ export async function buildUserProfileContributions(
     userId,
     startDate.toDate(),
   );
-  const contributionMap = new Map(
-    contributionDays.map(({ count, date }) => [date, count]),
-  );
-
   const startDateKey = requireCampusDateKeyForValue(startDate.toDate());
   const todayKey = requireCampusDateKeyForValue(today.toDate());
+  const contributionMap = new Map(
+    contributionDays
+      .filter(({ date }) => date >= startDateKey && date <= todayKey)
+      .map(({ count, date }) => [date, count]),
+  );
   const gridStartKey = campusWeekStartKey(startDateKey);
   const gridEndKey = addCampusDays(campusWeekStartKey(todayKey), 6);
   const days: ContributionCell[] = campusDateKeyRange(

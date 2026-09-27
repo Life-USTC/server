@@ -21,6 +21,18 @@ access:
   agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions
     by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
 requirements:
+- id: user.public-contribution-window
+  category: consistency
+  rule: The public contribution heatmap and its total cover exactly 365 Asia/Shanghai calendar days ending today. Padding to full Sunday-through-Saturday weeks has zero contributions outside that interval. Future dates never increase the annual total, which equals the sum of displayed cells.
+  acceptance:
+    given: Public contributions exist at the lower boundary, just before it, today, tomorrow within the padded week and after the visible grid.
+    when: The restricted runtime builds the profile projection at a fixed Shanghai date.
+    then:
+    - Only contributions in the inclusive 365-day window count.
+    - Padding cells remain zero, every week has seven cells and the total equals their sum.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-contribution-window
 - id: user.shell-viewer
   category: behavior
   rule: The root layout owns the client viewer state and issues at most one shell bootstrap request per
