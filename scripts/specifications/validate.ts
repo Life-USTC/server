@@ -356,6 +356,7 @@ export function declaredTestNames(text: string): Set<string> {
 export async function validateSpecificationReferences(
   files: SpecificationFile[],
   root = repositoryRoot,
+  testNames = new Map<string, Set<string>>(),
 ): Promise<{
   errors: string[];
   requirements: number;
@@ -377,7 +378,6 @@ export async function validateSpecificationReferences(
       .filter(({ data }) => data.kind === "feature")
       .map(({ data }) => [data.id, data]),
   );
-  const testNames = new Map<string, Set<string>>();
   const testOwners = new Map<string, string>();
   let requirements = 0;
   let boundRequirements = 0;
@@ -531,6 +531,7 @@ export async function validateSpecificationReferences(
 export async function validateCanonicalTestOwnership(
   files: SpecificationFile[],
   root = repositoryRoot,
+  testNames = new Map<string, Set<string>>(),
 ): Promise<string[]> {
   const errors: string[] = [];
   const owners = new Map(
@@ -551,9 +552,13 @@ export async function validateCanonicalTestOwnership(
       const path = `${directory}/${entry.name}`;
       if (entry.isDirectory()) await walk(path);
       else if (/(?:\.test|\/test)\.ts$/.test(path)) {
-        for (const name of declaredTestNames(
-          await readFile(join(root, path), "utf8"),
-        )) {
+        const filename = await resolveRepositoryFile(root, path);
+        let names = testNames.get(filename);
+        if (!names) {
+          names = declaredTestNames(await readFile(filename, "utf8"));
+          testNames.set(filename, names);
+        }
+        for (const name of names) {
           if (
             !prefixes.some((prefix) => name.startsWith(prefix)) ||
             !/^[a-z0-9.-]+$/.test(name)
@@ -590,8 +595,19 @@ export async function checkSpecifications(
   if (!files.length) throw new Error("No YAML specifications found");
   const shapeErrors = validateSpecificationShapes(files, validators);
   if (shapeErrors.length) throw new Error(shapeErrors.join("\n"));
-  const references = await validateSpecificationReferences(files, root);
-  const ownershipErrors = await validateCanonicalTestOwnership(files, root);
+  // Share parsed declarations only within this check. Subsequent checks must
+  // reread the filesystem so edits and newly disabled tests cannot be hidden.
+  const testNames = new Map<string, Set<string>>();
+  const references = await validateSpecificationReferences(
+    files,
+    root,
+    testNames,
+  );
+  const ownershipErrors = await validateCanonicalTestOwnership(
+    files,
+    root,
+    testNames,
+  );
   const missing = files
     .flatMap(({ data }) => collectRequirements(data))
     .filter((requirement) => !requirement.acceptance)

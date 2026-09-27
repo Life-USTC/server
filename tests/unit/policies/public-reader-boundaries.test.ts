@@ -1,7 +1,9 @@
 import { Project, SyntaxKind } from "ts-morph";
 import { expect, it } from "vitest";
 
-it("rendering-and-cache.contributor-notes-1", () => {
+// Resolving the repository's real type graph under coverage takes longer than
+// a small unit test; this budget does not constrain any application request.
+it("rendering-and-cache.contributor-notes-1", { timeout: 15_000 }, () => {
   const project = new Project({
     tsConfigFilePath: "tsconfig.typecheck.json",
     skipAddingFilesFromTsConfig: true,
@@ -44,8 +46,31 @@ it("rendering-and-cache.contributor-notes-1", () => {
     "session",
     "preferences",
   ]);
+  // Build one type-checker program after loading every inspected source. Adding
+  // files between parameter queries repeatedly invalidates ts-morph's program.
+  const personalReaders = [
+    [
+      "section-detail/server/section-personal-data.ts",
+      "getSectionPersonalData",
+    ],
+    [
+      "catalog-links/server/catalog-link-data.ts",
+      "getSignedInCatalogLinksData",
+    ],
+    ["bus/server/bus-timetable-data.ts", "getBusTimetableData"],
+    ["young/server/young-subscription-service.ts", "getYoungEventSubscription"],
+    [
+      "young/server/young-subscription-service.ts",
+      "getYoungOrganizerSubscription",
+    ],
+  ];
+  for (const file of new Set([
+    ...Object.keys(publicReaders),
+    ...personalReaders.map(([file]) => file),
+  ]))
+    project.addSourceFileAtPath(`src/features/${file}`);
   for (const [file, names] of Object.entries(publicReaders)) {
-    const source = project.addSourceFileAtPath(`src/features/${file}`);
+    const source = project.getSourceFileOrThrow(`src/features/${file}`);
     for (const name of names) {
       const reader = source.getFunctionOrThrow(name);
       expect(reader.isExported(), name).toBe(true);
@@ -65,24 +90,9 @@ it("rendering-and-cache.contributor-notes-1", () => {
         );
     }
   }
-  for (const [file, name] of [
-    [
-      "section-detail/server/section-personal-data.ts",
-      "getSectionPersonalData",
-    ],
-    [
-      "catalog-links/server/catalog-link-data.ts",
-      "getSignedInCatalogLinksData",
-    ],
-    ["bus/server/bus-timetable-data.ts", "getBusTimetableData"],
-    ["young/server/young-subscription-service.ts", "getYoungEventSubscription"],
-    [
-      "young/server/young-subscription-service.ts",
-      "getYoungOrganizerSubscription",
-    ],
-  ]) {
+  for (const [file, name] of personalReaders) {
     const reader = project
-      .addSourceFileAtPath(`src/features/${file}`)
+      .getSourceFileOrThrow(`src/features/${file}`)
       .getFunctionOrThrow(name);
     expect(
       reader

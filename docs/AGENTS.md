@@ -78,6 +78,12 @@ native execution evidence from the same CI run. Prose and typed requirements hav
 the same completeness gate. A passing linked test only proves its actual
 assertions, so reviewers must check that the assertion covers the entire rule.
 
+CI evidence must include every required unit, integration, REST, role-isolation
+and browser partition from the same commit, run and attempt. The gate also checks
+the independent CI job results, including build and setup failures that produced
+no test report. After a failure, use **Re-run all jobs**; a partial rerun cannot
+borrow successful reports from an older attempt.
+
 Review the requirement itself before implementing its test: identify the user
 need, scope and actors; resolve conflicting rules; separate independent outcomes;
 and specify observable boundaries. Existing behavior is evidence, not the product
