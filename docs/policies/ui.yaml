@@ -300,7 +300,16 @@ requirements:
   category: presentation
   topic: data-table-cells
   rule: In non-catalog application data tables, headers and cells use a consistent column alignment. Numeric measures and counts align right; the Young capacity/organizer-count, upload-byte and section-exam-count columns are covered independently by ui.numeric-measure-table-alignment. Text aligns left; status and action columns may center, and temporal columns use a consistent chosen alignment. Bus timetable stop columns preserve their positional left/center/right alignment.
-  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The remaining application table columns retain this unbound obligation until their own rendered matrix is covered; ui.numeric-measure-table-alignment covers only its specified numeric columns, not the other columns in those tables.
+  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The specified Young/upload/section-exam numeric columns retain the separate ui.numeric-measure-table-alignment owner; this rule owns all other columns across the remaining twenty-three table roots.
+  acceptance:
+    given: Isolated database fixtures populate Young lists, uploads, section homework/exam/calendar tables, workspace homework/exam/todo/subscription tables, homework/todo facts, source directories and all seven administrative table types; signed-in and anonymous link directories and the full bus timetable provide their actual records.
+    when: A desktop browser measures every rendered header and populated body cell, opens both task detail overlays and enables departed trips in the public bus planner.
+    then:
+    - Each table retains its expected columns; text and facts align left, subscription/source/bus-version measures align right, and status/action/temporal columns use the same declared alignment in every header and row.
+    - Bus stop headers and their times align left at the origin, center at intermediate stops and right at the destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/remaining-table-alignment.test.ts
+      name: ui.data-table-cells-4
 - id: ui.numeric-measure-table-alignment
   category: presentation
   topic: data-table-cells
