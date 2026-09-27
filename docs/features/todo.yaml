@@ -27,8 +27,7 @@ requirements:
   category: presentation
   rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
   acceptance:
-    given: The owner has todos and no completed rows; original completion states are restored after the
-      test.
+    given: An isolated temporary owner and signed session have one incomplete todo and no completed rows.
     when: Desktop and mobile views repeatedly select the empty completed filter, switch to populated filters
       and explicitly clear the filter.
     then:

@@ -1,6 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
 
 const widths = [1280, 390];
 function surface(page: Page, width: number) {
@@ -124,24 +126,25 @@ test("todo.web-detail", async ({ page }) => {
 });
 
 test("todo.web-list-state", async ({ page }) => {
-  await signInAsDebugUser(page, "/workspace/todos");
-  const response = await page.request.get("/api/workspace/todos?limit=200");
-  expect(response.ok()).toBe(true);
-  const original: { id: string; completed: boolean }[] = (await response.json())
-    .todos;
-  const completedIds = original
-    .filter((row) => row.completed)
-    .map((row) => row.id);
-  expect(original.length).toBeGreaterThan(0);
+  const id = crypto.randomUUID();
+  const marker = `todo-filter-${id.slice(0, 8)}`;
+  await withE2ePrisma((db) =>
+    db.user.create({
+      data: {
+        id,
+        username: marker,
+        name: marker,
+        email: `${marker}@test.invalid`,
+        emailVerified: true,
+      },
+    }),
+  );
   try {
-    for (const id of completedIds)
-      expect(
-        (
-          await page.request.patch(`/api/workspace/todos/${id}`, {
-            data: { completed: false },
-          })
-        ).ok(),
-      ).toBe(true);
+    await page.context().addCookies([await createSignedSessionCookie(id)]);
+    const created = await page.request.post("/api/workspace/todos", {
+      data: { title: `${marker} incomplete` },
+    });
+    expect(created.status()).toBe(201);
     for (const width of widths) {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(page, "/workspace/todos");
@@ -175,10 +178,7 @@ test("todo.web-list-state", async ({ page }) => {
       ).toHaveCount(0);
     }
   } finally {
-    for (const id of completedIds)
-      await page.request.patch(`/api/workspace/todos/${id}`, {
-        data: { completed: true },
-      });
+    await withE2ePrisma((db) => db.user.delete({ where: { id } }));
   }
 });
 
