@@ -3,6 +3,10 @@ import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
+import {
+  toolbarControlClass,
+  toolbarFieldClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button";
 import * as Field from "$lib/components/ui/field";
 import { Input } from "$lib/components/ui/input";
@@ -90,13 +94,13 @@ function move(direction: number) {
 
 <section class="grid gap-4" aria-label={text.calendar}>
   <div class="flex flex-wrap items-end gap-3">
-    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{text.calendar}</Field.FieldLabel><Input id="personal-activity-date" type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
+    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{text.calendar}</Field.FieldLabel><Input id="personal-activity-date" class={toolbarFieldClass} type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
     <ToggleGroup.Root type="single" value={view} onValueChange={(value) => { if (value) view = value; }} variant="outline" aria-label={text.calendar}>
       <ToggleGroup.Item value="day">{text.day}</ToggleGroup.Item><ToggleGroup.Item value="week">{text.week}</ToggleGroup.Item><ToggleGroup.Item value="month">{text.month}</ToggleGroup.Item>
     </ToggleGroup.Root>
-    <Button variant="outline" onclick={() => move(-1)}>{copy.common.previous}</Button>
-    <Button variant="outline" onclick={() => selectedDate = shanghaiDayjs().format("YYYY-MM-DD")}>{copy.workspace.todayAction}</Button>
-    <Button variant="outline" onclick={() => move(1)}>{copy.common.next}</Button>
+    <Button variant="outline" class={toolbarControlClass} onclick={() => move(-1)}>{copy.common.previous}</Button>
+    <Button variant="outline" class={toolbarControlClass} onclick={() => selectedDate = shanghaiDayjs().format("YYYY-MM-DD")}>{copy.workspace.todayAction}</Button>
+    <Button variant="outline" class={toolbarControlClass} onclick={() => move(1)}>{copy.common.next}</Button>
     <Button href="/workspace/subscriptions/activities" variant="link">{text.manage}</Button>
   </div>
   {#if loading}<p role="status">{text.loading}</p>

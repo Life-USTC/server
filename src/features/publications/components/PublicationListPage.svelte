@@ -177,7 +177,7 @@ function changeType(value: string) {
                   <Checkbox id="publication-fold" name="fold" value="1" bind:checked={foldDraft} />
                   <Field.Label for="publication-fold">{copy.foldToggle}</Field.Label>
                 </Field.Field>
-                <Button type="submit" class="self-start">{copy.applyFilters}</Button>
+                <Button type="submit" class="{toolbarControlClass} self-start">{copy.applyFilters}</Button>
               </Field.Group>
             </form>
           {/snippet}

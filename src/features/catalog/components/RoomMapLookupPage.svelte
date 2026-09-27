@@ -5,6 +5,10 @@ import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
+import {
+  toolbarControlClass,
+  toolbarFieldClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
@@ -44,6 +48,7 @@ function submit(event: SubmitEvent) {
           <Field.FieldLabel for="room-map-code">{copy.searchLabel}</Field.FieldLabel>
           <Input
             id="room-map-code"
+            class={toolbarFieldClass}
             bind:value={input}
             placeholder={copy.placeholder}
             maxlength={64}
@@ -51,7 +56,7 @@ function submit(event: SubmitEvent) {
             spellcheck="false"
           />
         </Field.Field>
-        <Button type="submit">
+        <Button type="submit" class={toolbarControlClass}>
           <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
           {copy.submit}
         </Button>
