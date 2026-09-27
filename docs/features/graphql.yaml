@@ -785,13 +785,18 @@ requirements:
 - id: graphql.mcp-mutation-confirmation
   category: validation
   rule: Every GraphQL mutation submitted through MCP requires confirmed=true before executing its feature
-    write, whether supplied as an arbitrary document or a registered operation.
+    write, whether supplied as an arbitrary document or a registered operation. Confirmation records intent;
+    ordinary feature write scopes and target ownership remain independently required.
   acceptance:
-    given: A live MCP client invoking arbitrary and registered todo creation.
-    when: Each operation is submitted with missing, false, and true confirmation.
+    given: In-memory MCP SDK clients with injected owner write, owner read-only and other-user write principals
+      invoke real restricted-role resolvers for arbitrary and registered todo operations.
+    when: Creation is submitted with missing, false, and true confirmation; confirmed requests also attempt
+      a read-only creation and deletion of another user's todo.
     then:
     - Missing/false confirmation returns CONFIRMATION_REQUIRED with no persisted row.
     - Explicit confirmation persists exactly one owner-scoped row.
+    - Confirmed read-only creation returns FORBIDDEN with no row; confirmed foreign deletion returns NOT_FOUND
+      and preserves the exact owned row. HTTP token verification is covered by its separate transport owner.
     test:
       file: tests/integration/graphql-mcp-resources.test.ts
       name: graphql.mcp-mutation-confirmation

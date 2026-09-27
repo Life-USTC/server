@@ -108,7 +108,7 @@ export type PublicRuntimeCacheAnalyticsNamespace =
   | "catalog:young-organizer-options"
   | "sitemap"
   | `page:section-detail:overview:${AppLocale}`
-  | `search:catalog:v4:${AppLocale}`
+  | `search:catalog:v5:${AppLocale}`
   | `bus:timetable:${AppLocale}`
   | `catalog:${
       | "courses"
@@ -558,7 +558,7 @@ const CACHE_LOCALE_NAMESPACE_PREFIXES = [
   "page:teacher-detail",
   "page:teacher-list",
   "page:teachers-list",
-  "search:catalog:v4",
+  "search:catalog:v5",
 ];
 const CACHE_NAMESPACES = new Set<string>([
   ...CACHE_FIXED_NAMESPACES,

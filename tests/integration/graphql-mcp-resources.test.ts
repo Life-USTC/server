@@ -272,41 +272,98 @@ describe("GraphQL MCP operations", () => {
   });
 
   it("graphql.mcp-mutation-confirmation", async () => {
-    for (const mode of ["document", "registered"] as const) {
-      const title = `${marker}-confirmation-${mode}`;
-      const input = {
-        ...(mode === "document"
-          ? {
-              document:
-                "mutation CreateTodo($input: CreateTodoInput!) { todoCreate(input: $input) { id } }",
-              operationName: "CreateTodo",
-            }
-          : { operationId: "workspace.todo.create.v1" }),
-        variables: { input: { title } },
-        locale: "zh-cn",
-      };
-      for (const confirmed of [undefined, false]) {
-        const result = await callExpectedGraphqlError({ ...input, confirmed });
-        expect(result).toMatchObject({
-          success: false,
-          error: "CONFIRMATION_REQUIRED",
+    const readOnly = await createMcpHarness(isolated.userId, [
+      restReadScope("workspace.todo"),
+    ]);
+    const other = await fixtures.prisma.user.create({
+      data: { email: `${crypto.randomUUID()}@confirmed-authority.test` },
+    });
+    const foreignActor = await createMcpHarness(other.id, [
+      restWriteScope("workspace.todo"),
+    ]);
+    try {
+      for (const mode of ["document", "registered"] as const) {
+        const title = `${marker}-confirmation-${mode}`;
+        const input = {
+          ...(mode === "document"
+            ? {
+                document:
+                  "mutation CreateTodo($input: CreateTodoInput!) { todoCreate(input: $input) { id } }",
+                operationName: "CreateTodo",
+              }
+            : { operationId: "workspace.todo.create.v1" }),
+          variables: { input: { title } },
+          locale: "zh-cn",
+        };
+        for (const confirmed of [undefined, false]) {
+          const result = await callExpectedGraphqlError({
+            ...input,
+            confirmed,
+          });
+          expect(result).toMatchObject({
+            success: false,
+            error: "CONFIRMATION_REQUIRED",
+          });
+          expect(
+            await fixtures.prisma.todo.count({
+              where: { userId: isolated.userId, title },
+            }),
+          ).toBe(0);
+        }
+        const insufficient = await readOnly.callToolResult(
+          "graphql_operation_run",
+          { ...input, confirmed: true },
+        );
+        expect(insufficient).toMatchObject({
+          isError: true,
+          structuredContent: { success: false, error: "FORBIDDEN" },
         });
         expect(
           await fixtures.prisma.todo.count({
             where: { userId: isolated.userId, title },
           }),
         ).toBe(0);
-      }
-      const result = await isolated.client.call("graphql_operation_run", {
-        ...input,
-        confirmed: true,
-      });
-      expect(result).toMatchObject({ success: true });
-      expect(
-        await fixtures.prisma.todo.count({
+        const result = await isolated.client.call("graphql_operation_run", {
+          ...input,
+          confirmed: true,
+        });
+        expect(result).toMatchObject({ success: true });
+        expect(
+          await fixtures.prisma.todo.count({
+            where: { userId: isolated.userId, title },
+          }),
+        ).toBe(1);
+        const owned = await fixtures.prisma.todo.findFirstOrThrow({
           where: { userId: isolated.userId, title },
-        }),
-      ).toBe(1);
+        });
+        const denied = await foreignActor.callToolResult(
+          "graphql_operation_run",
+          {
+            ...(mode === "document"
+              ? {
+                  document:
+                    "mutation($id:ID!) { todoDelete(id:$id) { id success } }",
+                }
+              : { operationId: "workspace.todo.delete.v1" }),
+            variables: { id: owned.id },
+            confirmed: true,
+          },
+        );
+        expect(denied).toMatchObject({
+          isError: true,
+          structuredContent: {
+            success: false,
+            errors: [{ extensions: { code: "NOT_FOUND" } }],
+          },
+        });
+        expect(
+          await fixtures.prisma.todo.findUnique({ where: { id: owned.id } }),
+        ).toEqual(owned);
+      }
+    } finally {
+      await readOnly.close();
+      await foreignActor.close();
+      await fixtures.prisma.user.delete({ where: { id: other.id } });
     }
   });
 

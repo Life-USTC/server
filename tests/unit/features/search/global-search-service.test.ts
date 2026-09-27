@@ -109,7 +109,7 @@ describe("global search service", () => {
     });
 
     expect(cachedCatalogRuntimeDataMock).toHaveBeenCalledWith(
-      "search:catalog:v4:zh-cn",
+      "search:catalog:v5:zh-cn",
       "5:数据",
       ORIGIN,
       expect.any(Function),

@@ -23,7 +23,7 @@ import { ilike } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 
 const DEFAULT_LIMIT = 5;
-/** Catalog search is shared across users; short L1 TTL keeps results fresh enough. */
+/** Catalog search is shared across users; a five-minute lifetime bounds every cache layer. */
 const SEARCH_CATALOG_CACHE_TTL_MS = 300_000;
 
 function catalogPrimaryName(item: {
@@ -173,7 +173,7 @@ async function searchCachedCatalogGroups(input: {
   origin: string;
   query: string;
 }): Promise<GlobalSearchResultGroup[]> {
-  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v4:${input.locale}`;
+  const namespace: PublicRuntimeCacheAnalyticsNamespace = `search:catalog:v5:${input.locale}`;
   return cachedCatalogRuntimeData(
     namespace,
     catalogSearchCacheKey(input.query, input.limit),

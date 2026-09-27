@@ -272,6 +272,52 @@
       "minItems": 1,
       "uniqueItems": true
     },
+    "cache_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "representations",
+          "layers",
+          "freshness",
+          "invalidators",
+          "clock",
+          "requirement_refs"
+        ],
+        "properties": {
+          "id": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
+          "representations": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
+          },
+          "layers": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
+          },
+          "freshness": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
+          "invalidators": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
+          },
+          "clock": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
+          "requirement_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
+          }
+        }
+      }
+    },
     "enforcement": {
       "enum": ["advisory"]
     },

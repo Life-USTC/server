@@ -684,7 +684,7 @@ describe("public runtime cache", () => {
 
     await expect(
       cachedPublicRuntimeData(
-        "search:catalog:v4:zh-cn",
+        "search:catalog:v5:zh-cn",
         "5:calculus",
         60_000,
         chineseLoad,
@@ -692,7 +692,7 @@ describe("public runtime cache", () => {
     ).resolves.toEqual({ locale: "zh-cn" });
     await expect(
       cachedPublicRuntimeData(
-        "search:catalog:v4:en-us",
+        "search:catalog:v5:en-us",
         "5:calculus",
         60_000,
         englishLoad,

@@ -509,11 +509,64 @@ requirements:
     test:
       file: tests/unit/policies/public-reader-boundaries.test.ts
       name: rendering-and-cache.contributor-notes-1
-- id: rendering-and-cache.contributor-notes-3
+- id: rendering-and-cache.global-search-freshness
   category: consistency
-  topic: contributor-notes
-  rule: Every mutable public representation identifies the writes that invalidate it. Every time-derived representation
-    also declares a clock expiry boundary independent of static data revisions.
+  topic: cache-layers-and-invalidation
+  rule: Global search shares only public catalog groups, keyed by imported revision, locale, normalized query
+    and limit. Every runtime tier expires those groups at five minutes; private todos and subscribed homework
+    are read on every request for the current owner and are never serialized into shared caches. Public REST
+    responses separately allow 120 seconds fresh and 300 seconds stale-while-revalidate with the catalog tag.
+  acceptance:
+    given: Restricted-role search services use a real isolated catalog, two owners with distinct todos and
+      subscribed homework, the production cache machinery and controlled external colo/KV stores.
+    when: Reads reuse memory, colo and KV, committed public/private rows change, the clock reaches five minutes,
+      and a subsequent static import revision changes.
+    then:
+    - Public groups retain their original values through 299999 milliseconds in every tier, then refresh at
+      300000 milliseconds even with unchanged revision; a changed revision refreshes immediately.
+    - Locale and limit select separate results; anonymous reads omit private groups and owner reads reflect
+      changed todo/homework content and removed subscriptions immediately without leaking private IDs into KV.
+    - The actual public REST route omits private groups and declares its exact independent browser/CDN lifetime
+      and catalog purge tag.
+    test:
+      file: tests/integration/public-discovery-cache-contract.test.ts
+      name: rendering-and-cache.global-search-freshness
+- id: rendering-and-cache.sitemap-freshness
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: Sitemap generation caches current public catalog URLs in revision-scoped memory, colo and KV for
+    twenty-four hours. A new imported revision regenerates URLs and ETag; retired sections and inactive Young
+    events are excluded. Browser responses require revalidation; CDN freshness is 3600 seconds with 21600
+    seconds of stale-while-revalidate and the catalog purge tag.
+  acceptance:
+    given: The actual sitemap route reads an isolated PostgreSQL catalog through restricted roles and uses
+      production memory/colo/KV caching with controlled external stores and clock.
+    when: Source records become retired/inactive, the same revision is read from each tier, a weak ETag is sent,
+      the imported revision changes, and the unchanged-revision cache reaches its twenty-four-hour boundary.
+    then:
+    - Same-revision tiers reuse XML and a matching weak ETag returns empty 304; exact browser/CDN headers and
+      catalog tag are preserved.
+    - Revision changes remove retired/inactive URLs and change ETag; exactly twenty-four hours later newly
+      committed course URLs appear without requiring another import revision.
+    test:
+      file: tests/integration/public-discovery-cache-contract.test.ts
+      name: rendering-and-cache.sitemap-freshness
+- id: rendering-and-cache.static-location-freshness
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: Room-map manifests, building image rules and location coordinates loaded from mutable static JSON
+    URLs expire in the serving process at five minutes independently of the imported database revision.
+    This origin loader lifetime is separate from any downstream HTTP response lifetime.
+  acceptance:
+    given: The actual room-map and geographic services fetch controlled external manifests, image rules and
+      coordinates at a fixed clock.
+    when: The external files change and the same serving process reads just before and exactly at five minutes.
+    then:
+    - Highlighted room maps, building overviews and coordinates retain their first values through 299999
+      milliseconds with one fetch each, then return the changed values with a second fetch at 300000 milliseconds.
+    test:
+      file: tests/unit/features/rooms/static-location-freshness.test.ts
+      name: rendering-and-cache.static-location-freshness
 - id: rendering-and-cache.contributor-notes-4
   category: consistency
   topic: contributor-notes
@@ -538,6 +591,153 @@ cache_layers:
 - layer: Isolate L1 / KV
   content: Public catalog data
   invalidation: Revision-scoped keys
+cache_contracts:
+- id: public-html
+  representations: [academic lists and details, campus links, static guides and sign-in shell, Young lists and details and organizers and calendar]
+  layers: [Workers PublicSsr entrypoint]
+  freshness: Ordinary admitted HTML is fresh for 86400 seconds; Young HTML for at most 60 seconds. Delivered browser/CDN HTML is private no-store.
+  invalidators: [committed static import purges zone and entrypoint, committed description edits or moderation purge affected HTML, application deployment replaces build representations]
+  clock: Young calendar HTML also expires at the next Shanghai midnight; other Young HTML never exceeds 60 seconds. Render duration consumes the available lifetime.
+  requirement_refs:
+  - rendering-and-cache.cache-layers-and-invalidation-1
+  - rendering-and-cache.cache-layers-and-invalidation-3
+  - rendering-and-cache.cache-layers-and-invalidation-4
+  - rendering-and-cache.cache-layers-and-invalidation-5
+  - rendering-and-cache.cache-layers-and-invalidation-6
+  - rendering-and-cache.cache-layers-and-invalidation-9
+  - description.public-cache-invalidation
+- id: imported-public-facts
+  representations: [course and section and teacher lists and detail cores, schedules, Young events and organizers, bus timetable facts]
+  layers: [isolate memory, colo Cache API, catalog KV]
+  freshness: Revision-scoped public facts use a 24-hour catalog runtime lifetime; caller identity never enters their values. Keys include locale and actual entity/filter/page/shape inputs.
+  invalidators: [committed static import revision changes the key on the next request, catalog zone purge removes HTTP representations]
+  clock: Runtime entries have finite expiry independently of revision. Young source-age and upcoming/history projections use the current request clock over cached facts.
+  requirement_refs:
+  - course.public-detail-cache
+  - section.public-detail-cache
+  - teacher.public-detail-cache
+  - course.public-list-cache
+  - section.public-list-cache
+  - teacher.public-list-cache
+  - course.history-cache-page-isolation
+  - rendering-and-cache.cache-layers-and-invalidation-7
+  - rendering-and-cache.cache-layers-and-invalidation-10
+  - rendering-and-cache.cache-layers-and-invalidation-11
+  - rendering-and-cache.cache-origin-recovery
+  - young-event.shared-public-cache
+  - bus.route-search-public-cache
+- id: public-catalog-http
+  representations: [academic lists and details and metadata and semester lists, public Young event and organizer JSON, bus route-search JSON]
+  layers: [public REST response, zone CDN]
+  freshness: Catalog JSON uses browser max-age zero and CDN max-age 86400 with 300 seconds stale-while-revalidate. Bus route-search uses CDN max-age 3600 with 300 seconds stale-while-revalidate. Workspace, bus timetable and current-departure reads retain their separate private policies.
+  invalidators: [committed import purges catalog-tagged public responses]
+  clock: These response lifetimes bound reuse independently of revision. A cached Young JSON response may retain the clock projection made at its origin read; service-level current-clock evaluation does not promise an uncached REST response.
+  requirement_refs: [rendering-and-cache.personal-overlays-9, rendering-and-cache.cache-layers-and-invalidation-5, bus.route-search-public-cache, schedule.public-rest-locale-cache]
+- id: public-description-and-community
+  representations: [public descriptions and edit history, comments and reactions and attachment metadata, shared homework and public contributions]
+  layers: [request reads, description text in public HTML]
+  freshness: Mutable community projections are request reads; descriptions embedded in shared HTML additionally require committed-write purge. They are excluded from immutable academic detail cores.
+  invalidators: [description commit or moderation purges HTML, comment and reaction and homework commits are observed by the next authorized read, account deletion removes public identity links]
+  clock: No shared community response TTL; per-request authority and visibility apply. Description HTML retains the ordinary entrypoint expiry as an additional bound.
+  requirement_refs:
+  - description.public-cache-invalidation
+  - description.editor-authorization
+  - comment.interaction-gate
+  - homework.active-collaborator-write
+  - user.public-comment-contribution-privacy
+  - user.public-upload-contribution-privacy
+  - rendering-and-cache.personal-overlays-10
+- id: global-search
+  representations: [shared public search groups, per-owner todos and subscribed homework search]
+  layers: [isolate memory, colo Cache API, catalog KV, public REST response, private request composition]
+  freshness: Public groups expire after 300 seconds in every runtime tier; public REST responses separately use 120 seconds fresh plus 300 seconds stale-while-revalidate. Private groups are never shared and are read for every request.
+  invalidators: [import revision replaces public search keys, todo and homework and subscription commits affect the next private search]
+  clock: All public tiers reject the entry at exactly 300 seconds independently of static revisions.
+  requirement_refs: [rendering-and-cache.global-search-freshness, rendering-and-cache.cacheable-public-pages-13]
+- id: sitemap
+  representations: [public sitemap XML and ETag]
+  layers: [isolate memory, colo Cache API, catalog KV, zone CDN]
+  freshness: Origin XML has a 24-hour revision-scoped lifetime; browser revalidates and CDN has 3600 seconds fresh plus 21600 seconds stale-while-revalidate.
+  invalidators: [import revision regenerates XML and ETag, committed import purges catalog-tagged CDN response]
+  clock: Origin entries expire at 24 hours without a new revision. CDN response lifetime is a separate layer and may compose with origin age.
+  requirement_refs: [rendering-and-cache.sitemap-freshness, rendering-and-cache.cache-layers-and-invalidation-5]
+- id: current-semester
+  representations: [current semester selection]
+  layers: [runtime read-model cache, public REST response]
+  freshness: Selection is keyed by Shanghai date and committed import revision, including a null selection. REST CDN lifetime ends at the next Shanghai midnight.
+  invalidators: [committed semester import revision replaces selection key]
+  clock: The next Shanghai date changes the key without waiting for an import.
+  requirement_refs: [semester.current-semester-cache-invalidation]
+- id: bus-clock-projections
+  representations: [next departures, timetable date projections, bus page current departure display]
+  layers: [request projection over cached timetable facts]
+  freshness: Recalculate time-dependent outputs on each request; private saved preferences are composed separately.
+  invalidators: [import revision replaces timetable facts, saved preference commit affects owner composition]
+  clock: Request time selects the service date and departure window; a static revision never freezes current departures.
+  requirement_refs: [bus.next-departures-uncached, bus.cache-boundaries, rendering-and-cache.cacheable-public-pages-11, rendering-and-cache.cacheable-public-pages-12]
+- id: external-location-assets
+  representations: [room-map manifest, building overview rules, location coordinates]
+  layers: [serving-process loaders, public room-map HTTP response]
+  freshness: Each mutable external JSON loader expires after 300 seconds. The room-map HTTP response has its own 300-second cache lifetime.
+  invalidators: [external static provider replaces files at their stable URLs and next expired loader refetches]
+  clock: Process expiry is independent of catalog import revisions; downstream HTTP age can add to loader age.
+  requirement_refs: [rendering-and-cache.static-location-freshness, room-map.public]
+- id: weather
+  representations: [weather snapshots, hourly forecast projection]
+  layers: [weather KV, current-clock service projection]
+  freshness: A snapshot is usable for less than 15 minutes; invalid or future timestamps force refresh and an unavailable refresh does not revive expired data.
+  invalidators: [scheduled provider refresh replaces snapshots and writes observation history, expired read requests provider refresh]
+  clock: Snapshot age expires independently of catalog imports; past hourly entries disappear under the request clock even in an otherwise fresh snapshot.
+  requirement_refs: [weather.cache-and-history, weather.hourly-forecast-expiry]
+- id: publication-metadata
+  representations: [publication list and detail JSON]
+  layers: [zone CDN]
+  freshness: Browser max-age is zero; shared responses are fresh for 120 seconds with 300 seconds of stale-while-revalidate. Missing/error responses are no-store.
+  invalidators: [publication ingestion or tombstone becomes visible when the bounded response cache revalidates]
+  clock: HTTP lifetime bounds reuse independently of catalog revision.
+  requirement_refs: [publications.public-cache, publications.tombstones]
+- id: publication-objects-and-media
+  representations: [publication object bytes, archived publication images]
+  layers: [object storage, conditional HTTP object responses, finite HTTP image cache]
+  freshness: Objects recheck current public eligibility before conditional responses and disable CDN reuse; archived validated images retain their own finite response policy.
+  invalidators: [publication withdrawal removes object access on the next request, changed media URLs identify different image archive keys]
+  clock: Object access never relies on an immutable year-long response. Image responses use finite freshness and stale periods; archive bytes remain stored by their URL-hash identity.
+  requirement_refs: [publications.object-cache-revalidation, publications.image-archive]
+- id: public-profile-and-avatar
+  representations: [public profile identity and contributions, profile avatar bytes]
+  layers: [request database reads, object storage]
+  freshness: Current profile visibility and avatar references are rechecked per request; avatar responses are no-store even though individual object IDs are stable.
+  invalidators: [profile update or removed avatar reference affects the next request, account deletion removes the owner]
+  clock: No positive shared-cache lifetime can bypass current reference checks.
+  requirement_refs: [user.avatar-current-reference, user.public-profile-id-addressability, user.public-comment-contribution-privacy, user.public-upload-contribution-privacy]
+- id: young-posters
+  representations: [current event poster redirect, immutable poster representation bytes]
+  layers: [request redirect, object storage, HTTP immutable representation cache]
+  freshness: Mutable event image URLs redirect without caching; immutable representation URLs include poster identity and reuse matching bytes and ETag.
+  invalidators: [changed event poster path selects a different representation URL]
+  clock: Immutable representation lifetime is one year; it does not freeze the mutable event-to-poster mapping.
+  requirement_refs: [young-event.image-proxy-cached]
+- id: private-workspace
+  representations: [todos and subscriptions and completion state, notifications and follows, saved bus preferences and pins and visits, shell identity and counts, GraphQL request entities]
+  layers: [private request reads, GraphQL request-local DataLoaders]
+  freshness: Owner reads and private overlays never share positive HTTP/CDN caches. GraphQL loaders live for one request only.
+  invalidators: [committed owner writes are observed on subsequent requests, identity and authorization are resolved for the current request]
+  clock: No shared cache expiry applies; a new request constructs fresh request-local entity loaders.
+  requirement_refs: [graphql.request-cache, rendering-and-cache.personal-overlays-8, rendering-and-cache.personal-overlays-10, young-workspace.private-response-cache, bus.preference-owner-state, catalog-link.pin-owner-state]
+- id: personal-calendar
+  representations: [authorized personal ICS export and ETag]
+  layers: [owner-keyed isolate memory, calendar KV, private conditional HTTP]
+  freshness: Exports are fresh for 30 minutes and reusable stale for up to 24 hours during asynchronous refresh; serving instances reread shared storage after 60 seconds.
+  invalidators: [committed calendar-source writes enqueue rebuild after commit, token rotation or revocation rejects access before any cached read or ETag response]
+  clock: Stale reads enqueue bounded/coalesced refresh independently of static revisions; failed enqueue remains retryable and source writes do not depend on stale-read coalescing.
+  requirement_refs: [calendar.feed-cache-refresh, calendar.feed-refresh-visible, calendar.feed-refresh-coalescing, calendar.feed-enqueue-retry, calendar.feed-write-rebuild-independent, calendar.feed-auth-before-cache, ical.committed-write-rebuilds]
+- id: operational-and-build-representations
+  representations: [Prometheus activity gauges, generated OpenAPI document, bundled campus-link definitions and static guide content]
+  layers: [database metric cache, HTTP document cache, application build]
+  freshness: Gauges are fresh for 60 seconds and at most 120 seconds old during refresh contention; generated OpenAPI responses cache for 300 seconds. Bundled definitions change with deployment.
+  invalidators: [metric collector replaces gauge snapshot, application deployment replaces generated and bundled content]
+  clock: Gauge contention cannot extend stale data beyond 120 seconds; empty or older snapshots fail until recovery. OpenAPI response TTL is independent of catalog revisions.
+  requirement_refs: [admin.prometheus-gauge-cache, openapi.openapi-document-cache, rendering-and-cache.cache-layers-and-invalidation-9]
 policy_refs:
 - interface-hierarchy
 topics:
@@ -570,6 +770,14 @@ topics:
 - id: contributor-notes
   title: Contributor notes
 rationale:
+- The former contributor-notes-3 is the finite cache_contracts inventory above. Mutable imported facts,
+  community text, search, discovery XML, external location files, publications, profiles, private overlays
+  and exports have distinct invalidators; clock projections have independent expiry. Each entry indexes
+  existing behavioral owners, not a second test that merely checks whether bindings exist. Global search,
+  sitemap and external location freshness have their own newly exercised atomic contracts.
+- Lifetime values describe each stated layer. A CDN response may be filled from an already aged origin
+  cache; independent layer lifetimes are not an end-to-end freshness guarantee. Immutable media identifiers
+  describe bytes, while mutable access or mapping rules retain their own current-read requirements.
 - Separating public facts from private overlays is a prerequisite for sharing an anonymous representation safely.
 - Authentication variants, write/read invalidation, purge failure recovery, and revision changes are separate
   sources of cache regressions; their acceptance evidence belongs to the corresponding behavioral requirements.

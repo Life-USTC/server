@@ -455,17 +455,6 @@ requirements:
     test:
       file: tests/integration/mutation-error-parity.test.ts
       name: interface-hierarchy.suspended-delete-error-parity
-- id: interface-hierarchy.semantic-parity-7
-  category: consistency
-  topic: semantic-parity
-  rule: Each read capability declares its freshness boundary, and each mutation defines whether its returned
-    data represents the committed state. Cached reads do not silently promise the same freshness as uncached
-    projections.
-- id: interface-hierarchy.semantic-parity-8
-  category: consistency
-  topic: semantic-parity
-  rule: Destructive capabilities document effects and safe retry behavior. Human interfaces provide their declared
-    confirmation flow; server authorization never depends on trusting a client confirmation flag.
 - id: interface-hierarchy.semantic-parity-9
   category: consistency
   topic: semantic-parity
@@ -1052,6 +1041,78 @@ topics:
   - graphql.comment-batch-results
   - graphql.subscription-batch-results
   - graphql.pin-batch-failure
+- id: read-freshness
+  title: Read freshness and independently expiring clocks
+  requirement_refs:
+  - rendering-and-cache.global-search-freshness
+  - rendering-and-cache.sitemap-freshness
+  - rendering-and-cache.static-location-freshness
+  - rendering-and-cache.cache-layers-and-invalidation-4
+  - rendering-and-cache.cache-layers-and-invalidation-7
+  - course.public-detail-cache
+  - section.public-detail-cache
+  - teacher.public-detail-cache
+  - description.public-cache-invalidation
+  - young-event.shared-public-cache
+  - semester.current-semester-cache-invalidation
+  - bus.next-departures-uncached
+  - weather.cache-and-history
+  - weather.hourly-forecast-expiry
+  - publications.public-cache
+  - publications.object-cache-revalidation
+  - user.avatar-current-reference
+  - graphql.request-cache
+  - calendar.feed-cache-refresh
+  - calendar.feed-refresh-visible
+  - calendar.feed-auth-before-cache
+  - ical.committed-write-rebuilds
+  - admin.prometheus-gauge-cache
+  - openapi.openapi-document-cache
+- id: committed-mutation-results
+  title: Successful mutation results and committed owner state
+  requirement_refs:
+  - todo.personal-ownership
+  - subscription.user-scoped
+  - subscription.kind-owner-existing-only
+  - young-workspace.ownership
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - catalog-link.pin-limit
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - description.editor-authorization
+  - homework.active-collaborator-write
+  - homework.completion-owner
+  - upload.completion-retry
+  - upload.write-auth-unsuspended
+- id: destructive-effects-and-intent
+  title: Destructive effects, safe retries and confirmation authority
+  requirement_refs:
+  - todo.single-delete-replay
+  - comment.single-delete-replay
+  - homework.single-delete-replay
+  - upload.storage-delete-retry
+  - todo.batch-result-replay
+  - comment.batch-delete-results
+  - comment.batch-delete-shared-policy
+  - graphql.homework-batch-results
+  - subscription.duplicate-input-semantics
+  - homework.completion-set-idempotency
+  - young-workspace.ownership
+  - catalog-link.pin-owner-state
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - graphql.mutation-timeout-ambiguity
+  - graphql.graphql-operation-prompt
+  - graphql.mcp-mutation-confirmation
+  - cases.content-security.deletion-confirmation
+  - cases.content-security.destructive-actions-1
+  - upload.web-delete-feedback
+  - user.account-deletion-retention
+  - user.account-deletion-session-authority
+  - user.account-deletion-last-admin
+  - cases.account.deleted-session-revocation
 - id: mutation-result-contracts
   title: Mutation atomicity, ordered results and retries
   requirement_refs:
@@ -1075,6 +1136,19 @@ topics:
 - id: locale-caching-and-seo
   title: Locale, Caching, and SEO
 rationale:
+- The former semantic-parity-7 is indexed by read-freshness and committed-mutation-results, with ordered
+  batch results in mutation-result-contracts. The rendering-and-cache cache_contracts inventory records
+  each representation's actual layer, write invalidators and independent clock boundary. Mutation results
+  describe the committed write, while a subsequent read still follows its own cache contract; identity-only
+  or success-only response shapes do not promise a complete entity snapshot.
+- The former semantic-parity-8 is indexed by destructive-effects-and-intent and the finite effects/retry
+  contracts in mutation-capabilities. Permanent todo deletion, comment tombstones, replayable homework
+  tombstones and storage-first upload deletion retain distinct results. Replacing subscription, follow,
+  completion or pin state uses its existing set/batch owner. Uncertain timed-out mutations may still commit;
+  clients inspect current state before retrying. Web account/comment/upload dialogs and MCP GraphQL intent
+  confirmation are their actual declared flows, not a universal confirmation parameter for native writes.
+  Account/security/governance operations remain in their own session-authority contracts; Bot and CLI
+  confirmation/recovery implementations remain owned by their repositories.
 - This document defines the canonical information architecture shared by the Life@USTC web app, REST API, GraphQL
   API, MCP server, Bot, and CLI.
 - Each transport may use its native syntax.
