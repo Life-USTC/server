@@ -1,7 +1,6 @@
 import {
   getYoungEventImageByPathResponse,
-  getYoungEventImageResponse,
-  requestMatchesEtag,
+  getYoungEventPosterUrl,
   YoungEventImageOriginError,
   YoungEventImageStorageUnavailableError,
 } from "@/features/young/server/young-event-image-service";
@@ -31,11 +30,6 @@ import {
   youngOrganizerSummarySchema,
   youngOrganizersQuerySchema,
 } from "@/lib/api/schemas/young-event-schemas";
-import { logAppEvent } from "@/lib/log/app-logger";
-import {
-  type CloudflareCache,
-  getCloudflareNamedCache,
-} from "@/lib/ports/runtime";
 import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getYoungEventsRoute(request: Request) {
@@ -140,72 +134,7 @@ export async function getYoungEventDetailRoute(
   }
 }
 
-const YOUNG_EVENT_IMAGE_COLO_CACHE_NAME = "life-ustc-young-event-image-v1";
-const YOUNG_EVENT_IMAGE_COLO_CACHE_PATH =
-  "/_life-ustc-internal-cache/young-event-image/v1";
-
-type YoungEventImageColoCache = {
-  cache: CloudflareCache;
-  request: Request;
-};
-
-async function openYoungEventImageColoCache(
-  request: Request,
-  youngId: string,
-): Promise<YoungEventImageColoCache | undefined> {
-  const cache = await getCloudflareNamedCache(
-    YOUNG_EVENT_IMAGE_COLO_CACHE_NAME,
-  )?.catch(() => undefined);
-  if (!cache) return undefined;
-  const key = new URL(
-    `${YOUNG_EVENT_IMAGE_COLO_CACHE_PATH}/${encodeURIComponent(youngId)}`,
-    request.url,
-  );
-  return { cache, request: new Request(key, { method: "GET" }) };
-}
-
-/** The Cache API expires entries with the response's own Cache-Control TTL;
- * only responses carrying an explicit max-age are stored (304s and the 503
- * storage-unavailable response are not). */
-function isYoungEventImageColoCacheable(response: Response) {
-  if (response.status === 304) return false;
-  const cacheControl = response.headers.get("Cache-Control") ?? "";
-  return (
-    /\bmax-age=\d+/.test(cacheControl) && !/\bno-store\b/.test(cacheControl)
-  );
-}
-
-async function writeYoungEventImageColoCache(
-  target: YoungEventImageColoCache,
-  response: Response,
-  defer?: (promise: Promise<unknown>) => void,
-) {
-  let write: Promise<void>;
-  try {
-    write = target.cache.put(target.request, response);
-  } catch {
-    return;
-  }
-  const logged = write.catch((error: unknown) => {
-    logAppEvent(
-      "error",
-      "Failed to cache young event image response",
-      { source: "young-event-image" },
-      error,
-    );
-  });
-  if (defer) {
-    defer(logged);
-  } else {
-    await logged;
-  }
-}
-
-/**
- * Serve a rich-text inline image by its upstream young.ustc.edu.cn pic path.
- * Unlike the per-event poster route these bytes are event-independent, so the
- * per-colo cache is skipped and R2 alone deduplicates them.
- */
+/** Serve immutable image representations through the local R2-backed proxy. */
 export async function getYoungEventImageByPathRoute(
   request: Request,
   params: { path: string },
@@ -247,9 +176,8 @@ export async function getYoungEventImageByPathRoute(
 }
 
 export async function getYoungEventImageRoute(
-  request: Request,
+  _request: Request,
   params: { youngId: string },
-  options: { defer?: (promise: Promise<unknown>) => void } = {},
 ) {
   const parsed = await parseRouteParams(
     Promise.resolve(params),
@@ -257,66 +185,15 @@ export async function getYoungEventImageRoute(
     "Invalid young event ID",
   );
   if (parsed instanceof Response) return parsed;
-
-  // Repeat image requests are served from the per-colo Cache API so they skip
-  // the DB + R2 + origin chain entirely.
-  const coloCache = await openYoungEventImageColoCache(request, parsed.youngId);
-  if (coloCache) {
-    const cached = await coloCache.cache
-      .match(coloCache.request)
-      .catch(() => undefined);
-    if (cached) {
-      const etag = cached.headers.get("ETag");
-      if (etag && requestMatchesEtag(request, etag)) {
-        const headers = new Headers(cached.headers);
-        headers.delete("Content-Length");
-        return new Response(null, { status: 304, headers });
-      }
-      return cached;
-    }
-  }
-
-  let response: Response;
   try {
-    const result = await getYoungEventImageResponse({
-      request,
-      youngId: parsed.youngId,
-      defer: options.defer,
-    });
-    if (!result) {
-      // Short CDN caching on errors absorbs repeat misses without pinning a
-      // stale 404 if the event gains a poster later.
-      response = notFound("Young event image not found");
-      response.headers.set("Cache-Control", "public, max-age=300");
-    } else {
-      response = result;
-    }
+    const imageUrl = await getYoungEventPosterUrl(parsed.youngId);
+    const response = imageUrl
+      ? new Response(null, { status: 302, headers: { Location: imageUrl } })
+      : notFound("Young event image not found");
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Cloudflare-CDN-Cache-Control", "no-store");
+    return response;
   } catch (error) {
-    if (error instanceof YoungEventImageStorageUnavailableError) {
-      response = handleRouteError(
-        "Young event image storage unavailable",
-        error,
-        503,
-      );
-      response.headers.set("Retry-After", "60");
-    } else if (error instanceof YoungEventImageOriginError) {
-      response = handleRouteError(
-        "Failed to fetch young event image from origin",
-        error,
-        502,
-      );
-      response.headers.set("Cache-Control", "public, max-age=60");
-    } else {
-      return handleRouteError("Failed to fetch young event image", error);
-    }
+    return handleRouteError("Failed to resolve young event image", error);
   }
-
-  if (coloCache && isYoungEventImageColoCacheable(response)) {
-    await writeYoungEventImageColoCache(
-      coloCache,
-      response.clone(),
-      options.defer,
-    );
-  }
-  return response;
 }

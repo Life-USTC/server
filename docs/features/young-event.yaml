@@ -151,6 +151,15 @@ requirements:
   rule: Public Young image responses use the local proxy. Immutable cache entries must identify the poster
     representation; changing an event's poster must not continue serving old bytes under an unchanged
     immutable representation.
+  acceptance:
+    given: A controlled event record changes its poster path while both image representations are cached in R2.
+    when: The actual event-image route resolves each current poster and the local path proxy reads its bytes.
+    then:
+    - The mutable event route returns an uncached redirect; distinct poster paths produce distinct local URLs.
+    - Representation URLs serve the matching immutable bytes and ETags from R2 without an origin request.
+    test:
+      file: tests/unit/features/young/young-event-image-route.test.ts
+      name: young-event.image-proxy-cached
 - id: young-event.shanghai-local-times
   category: consistency
   rule: Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only
@@ -370,14 +379,13 @@ capabilities:
         - 404 when the organizer ID is unknown.
       - path: /api/catalog/young-events/[youngId]/image
         notes:
-        - 'Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable
-          year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic>
-          and stores the result. Repeat requests are served from the per-colo Cache API keyed by youngId.'
-        - 404 when the youngId is unknown or the event has no image (cached for 300s); 502 when the origin
-          fetch fails (cached for 60s).
-        - A companion route, GET /api/catalog/young-events/images/[...path], serves rich-text inline images
-          by their upstream pic path. It shares the same R2 objects and validation; because the bytes
-          are event-independent it skips the per-colo cache keyed by youngId.
+        - Resolves the current poster with an uncached 302 redirect to its local image-path URL; unknown events or missing posters return an uncached 404.
+        - Public event imageUrl values identify the poster path directly, so a replacement poster has a different URL.
+      - path: /api/catalog/young-events/images/[...path]
+        notes:
+        - Serves R2-cached image representations with immutable year-long cache headers and ETag/304 support; a miss fetches the validated young.ustc.edu.cn path and stores the result.
+        - Invalid or missing images return 404 (cached for 300s); origin failures return 502 (cached for 60s).
+
     graphql:
       queries:
       - name: youngEvents

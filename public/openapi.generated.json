@@ -9437,7 +9437,7 @@
     "/api/catalog/young-events/{youngId}/image": {
       "get": {
         "operationId": "get-api-catalog-young-events-youngId-image",
-        "summary": "Serve the cached poster image for a second-classroom (Young) signup event",
+        "summary": "Redirect to the current immutable poster representation",
         "tags": [
           "catalog.young-events"
         ],
@@ -9455,19 +9455,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Binary response",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "304": {
-            "description": "Response 304"
+          "302": {
+            "description": "Response 302"
           },
           "400": {
             "description": "Error response",
@@ -9481,35 +9470,6 @@
           },
           "404": {
             "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {

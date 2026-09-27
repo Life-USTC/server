@@ -254,10 +254,14 @@ describe("young event service", () => {
     youngEventMock.findUnique.mockResolvedValue({ ...withImage, rawJson: {} });
 
     const listed = await listYoungEvents();
-    expect(listed.data[0]?.imageUrl).toBe("/api/catalog/young-events/42/image");
+    expect(listed.data[0]?.imageUrl).toBe(
+      "/api/catalog/young-events/images/group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
+    );
 
     const detail = await getYoungEvent("42");
-    expect(detail?.imageUrl).toBe("/api/catalog/young-events/42/image");
+    expect(detail?.imageUrl).toBe(
+      "/api/catalog/young-events/images/group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg",
+    );
   });
 
   it("keeps imageUrl null when the event has no poster", async () => {

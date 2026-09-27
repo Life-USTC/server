@@ -114,7 +114,7 @@ test.describe("GET /api/catalog/young-events 接口", () => {
     expect(response.status()).toBe(200);
     const body = (await response.json()) as { imageUrl?: string | null };
     expect(body.imageUrl).toBe(
-      `/api/catalog/young-events/${DEV_SEED.youngEvent.youngId}/image`,
+      `/api/catalog/young-events/images/${DEV_SEED.youngEvent.imageUrl}`,
     );
   });
 
