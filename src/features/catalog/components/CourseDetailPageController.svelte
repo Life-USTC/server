@@ -40,7 +40,6 @@ type PageData = {
   copy: {
     comments: { loadFailed: string; retry: string };
     common: {
-      breadcrumb: string;
       courses: string;
       home: string;
       next: string;
@@ -88,11 +87,6 @@ $: displayName =
 </svelte:head>
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/courses", label: copy.common.courses },
-    { label: displayName },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   layout="detail"
   title={displayName}
   titleClass="text-2xl leading-tight sm:text-3xl"

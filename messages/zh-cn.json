@@ -60,7 +60,6 @@
     "footerNavigation": "页脚导航",
     "profileMenu": "个人菜单",
     "backToHome": "返回首页",
-    "breadcrumb": "面包屑",
     "undergraduateGraduate": "本研贯通",
     "allSemesters": "所有学期",
     "allEducationLevels": "所有教育层次",
@@ -2724,6 +2723,7 @@
   },
   "youngEvents": {
     "title": "第二课堂",
+    "activitiesTitle": "活动列表",
     "calendarTitle": "活动日历",
     "organizersTitle": "主办方",
     "calendarDescription": "按日、周或月浏览第二课堂活动。",
@@ -2935,7 +2935,6 @@
     "readMore": "查看详情",
     "sourcePage": "查看来源原文",
     "backToList": "返回新闻与通知",
-    "breadcrumb": "面包屑",
     "attachments": "附件",
     "media": "媒体",
     "openAttachment": "打开附件",

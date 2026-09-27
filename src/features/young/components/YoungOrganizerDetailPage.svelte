@@ -51,12 +51,6 @@ function pageHref(page: number) {
 {/snippet}
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/young-events", label: youngCopy.title },
-    { href: "/catalog/young-events/organizers", label: youngCopy.organizersTitle },
-    { label: organizer.name },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   description={youngCopy.organizersDescription}
   layout="detail"
   title={organizer.name}

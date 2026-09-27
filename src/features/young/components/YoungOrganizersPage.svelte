@@ -77,11 +77,6 @@ const summary = $derived(
 {/snippet}
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/young-events", label: youngCopy.title },
-    { label: youngCopy.organizersTitle },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   description={youngCopy.organizersDescription}
   footer={pagination.totalPages > 1 ? paginationFooter : undefined}
   title={youngCopy.organizersTitle}

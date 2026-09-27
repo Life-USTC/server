@@ -148,11 +148,6 @@ const calendarLabels = $derived({
 </script>
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/young-events", label: youngCopy.title },
-    { label: youngCopy.calendarTitle },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   description={youngCopy.calendarDescription}
   title={youngCopy.calendarTitle}
 >

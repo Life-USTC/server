@@ -4,9 +4,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
-import { page } from "$app/stores";
 import { detailColumnsClass } from "$lib/components/detail-layout";
-import type { PageBreadcrumbItem } from "$lib/components/PageBreadcrumb.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
@@ -91,38 +89,11 @@ onMount(() => {
 $: sectionExamEvents = sectionCalendarEvents.filter(
   (event) => event.kind === "exam",
 );
-$: sectionHash = $page.url.hash.replace(/^#/, "");
-$: sectionTabLabel =
-  sectionHash === "introduction"
-    ? data.copy.descriptions.title
-    : sectionHash === "calendar"
-      ? sectionCopy.tabs.calendar
-      : sectionHash === "exams"
-        ? sectionCopy.tabs.exams
-        : sectionHash === "homework"
-          ? sectionCopy.tabs.homeworks
-          : sectionHash === "teachers"
-            ? sectionCopy.teachers
-            : sectionHash === "comments"
-              ? sectionCopy.tabs.comments
-              : "";
-$: sectionBreadcrumb = [
-  { href: "/catalog/sections", label: data.copy.common.sections },
-  sectionTabLabel
-    ? {
-        href: `/catalog/sections/${data.section.jwId}`,
-        label: courseName,
-      }
-    : { label: courseName },
-  ...(sectionTabLabel ? [{ label: sectionTabLabel }] : []),
-] satisfies PageBreadcrumbItem[];
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <div class="bg-card px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
     <SectionDetailHeader
-      breadcrumb={sectionBreadcrumb}
-      breadcrumbLabel={data.copy.common.breadcrumb}
       courseName={courseName}
       courseSecondaryName={courseSecondaryName}
       formError={formError}

@@ -51,11 +51,6 @@ const articleInformation = $derived(
 <svelte:head><title>{revision.title} - {copy.title}</title></svelte:head>
 
 <CollectionPage
-  breadcrumb={[
-    { href: returnHref, label: copy.title },
-    { label: revision.title },
-  ]}
-  breadcrumbLabel={copy.breadcrumb}
   headerClass="min-w-0"
   title={revision.title}
   titleClass="[overflow-wrap:anywhere]"

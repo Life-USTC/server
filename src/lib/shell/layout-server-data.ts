@@ -80,6 +80,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       transitMap: messages.metadata.pages.busMap,
       weather: messages.weather.title,
       youngEvents: messages.youngEvents.title,
+      youngActivities: messages.youngEvents.activitiesTitle,
       youngCalendar: messages.youngEvents.calendarTitle,
       youngOrganizers: messages.youngEvents.organizersTitle,
       mobileApp: messages.metadata.pages.mobileApp,

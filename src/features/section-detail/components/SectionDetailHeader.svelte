@@ -1,6 +1,5 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
-import type { PageBreadcrumbItem } from "$lib/components/PageBreadcrumb.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -28,8 +27,6 @@ type SectionHeaderViewer = {
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
-export let breadcrumb: PageBreadcrumbItem[] = [];
-export let breadcrumbLabel = "";
 export let courseName: string;
 export let courseSecondaryName: string;
 export let formError: string | null | undefined;
@@ -45,8 +42,6 @@ export let viewer: SectionHeaderViewer;
 </script>
 
 <PageHeader
-  {breadcrumb}
-  {breadcrumbLabel}
   title={courseName}
   description={courseSecondaryName}
   actionsClass="hidden md:flex"

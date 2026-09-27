@@ -38,7 +38,9 @@ import {
   isGlobalSearchShortcut,
 } from "$lib/browser/page-search-shortcut";
 import AppFooter from "$lib/components/shell/AppFooter.svelte";
-import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
+import AppSidebar, {
+  type SectionSidebar,
+} from "$lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
 import {
   loadStoredThemeMode,
@@ -76,7 +78,6 @@ import { cn } from "$lib/utils.js";
 import {
   buildDetailSecondaryLinks,
   currentNewsItem,
-  currentYoungItem,
   type ShellSectionDirectoryItem,
   sectionDirectoryItems,
 } from "./shell-nav-helpers";
@@ -155,32 +156,52 @@ $: if (
 $: profileHref = resolveProfileHref(viewerUser);
 $: avatarFallback = resolveAvatarFallback(viewerUser);
 $: settingsSidebar = isSettingsPath($page.url.pathname);
+$: youngSidebar = isYoungPath($page.url.pathname);
 $: navGroups = settingsSidebar
   ? buildSettingsNavGroups(data.copy)
-  : buildShellNavGroups(
-      data.copy,
-      Boolean(viewerUser),
-      viewerUser?.isAdmin ?? false,
-      $page.url.pathname,
-      $page.data,
-      workspaceNavigation,
-      subscribedSections,
-    );
-$: mobileNavGroups = settingsSidebar
-  ? navGroups
-  : viewerUser
-    ? buildMobileSecondaryNavGroups(
+  : youngSidebar
+    ? buildYoungNavGroups(data.copy)
+    : buildShellNavGroups(
         data.copy,
-        viewerUser.isAdmin,
+        Boolean(viewerUser),
+        viewerUser?.isAdmin ?? false,
         $page.url.pathname,
         $page.data,
         workspaceNavigation,
         subscribedSections,
-      )
-    : navGroups;
-$: settingsBackLink = settingsSidebar
-  ? { href: "/", label: data.copy.shell.backToHome }
-  : null;
+      );
+$: mobileNavGroups =
+  settingsSidebar || youngSidebar
+    ? navGroups
+    : viewerUser
+      ? buildMobileSecondaryNavGroups(
+          data.copy,
+          viewerUser.isAdmin,
+          $page.url.pathname,
+          $page.data,
+          workspaceNavigation,
+          subscribedSections,
+        )
+      : navGroups;
+$: sectionSidebar = settingsSidebar
+  ? ({
+      backHref: "/",
+      backLabel: data.copy.shell.backToHome,
+      backTestId: "settings-sidebar-back",
+      level: "settings",
+      navLabel: data.copy.nav.settings,
+      testId: "settings-sidebar",
+    } satisfies SectionSidebar)
+  : youngSidebar
+    ? ({
+        backHref: "/",
+        backLabel: data.copy.shell.backToHome,
+        backTestId: "young-sidebar-back",
+        level: "young",
+        navLabel: data.copy.nav.youngEvents,
+        testId: "young-sidebar",
+      } satisfies SectionSidebar)
+    : null;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
 $: adminRoute =
   $page.url.pathname === "/admin" || $page.url.pathname.startsWith("/admin/");
@@ -228,6 +249,39 @@ function isSettingsPath(pathname: string) {
     pathname === "/account/settings" ||
     pathname.startsWith("/account/settings/")
   );
+}
+
+function isYoungPath(pathname: string) {
+  return (
+    pathname === "/catalog/young-events" ||
+    pathname.startsWith("/catalog/young-events/")
+  );
+}
+
+function buildYoungNavGroups(copy: LayoutCopy): ShellNavGroup[] {
+  return [
+    {
+      defaultOpen: true,
+      label: copy.nav.youngEvents,
+      links: [
+        {
+          href: "/catalog/young-events",
+          icon: SparklesIcon,
+          label: copy.nav.youngActivities,
+        },
+        {
+          href: "/catalog/young-events/calendar",
+          icon: CalendarDaysIcon,
+          label: copy.nav.youngCalendar,
+        },
+        {
+          href: "/catalog/young-events/organizers",
+          icon: UsersIcon,
+          label: copy.nav.youngOrganizers,
+        },
+      ],
+    },
+  ];
 }
 
 function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
@@ -328,19 +382,6 @@ function buildShellNavGroups(
       href: "/catalog/young-events",
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
-      items: [
-        {
-          href: "/catalog/young-events/calendar",
-          icon: CalendarDaysIcon,
-          label: copy.nav.youngCalendar,
-        },
-        {
-          href: "/catalog/young-events/organizers",
-          icon: UsersIcon,
-          label: copy.nav.youngOrganizers,
-        },
-        currentYoungItem(pathname, pageData),
-      ].filter((item): item is ShellLink => item !== null),
     },
     {
       href: "/catalog/weather",
@@ -589,19 +630,6 @@ function buildMobileSecondaryNavGroups(
       href: "/catalog/young-events",
       icon: SparklesIcon,
       label: copy.nav.youngEvents,
-      items: [
-        {
-          href: "/catalog/young-events/calendar",
-          icon: CalendarDaysIcon,
-          label: copy.nav.youngCalendar,
-        },
-        {
-          href: "/catalog/young-events/organizers",
-          icon: UsersIcon,
-          label: copy.nav.youngOrganizers,
-        },
-        currentYoungItem(pathname, pageData),
-      ].filter((item): item is ShellLink => item !== null),
     },
     {
       href: "/catalog/weather",
@@ -744,13 +772,29 @@ function isActiveLink(link: ShellLink) {
   if (target.pathname.startsWith("/workspace/")) {
     return pathname === target.pathname;
   }
+  if (target.pathname === "/catalog/young-events") {
+    const eventId = pathname.startsWith("/catalog/young-events/")
+      ? pathname.slice("/catalog/young-events/".length).split("/")[0]
+      : "";
+    return (
+      pathname === "/catalog/young-events" ||
+      (eventId.length > 0 && eventId !== "calendar" && eventId !== "organizers")
+    );
+  }
+  if (
+    target.pathname === "/catalog/young-events/calendar" ||
+    target.pathname === "/catalog/young-events/organizers"
+  ) {
+    return (
+      pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
+    );
+  }
   if (
     [
       "/catalog/courses",
       "/catalog/sections",
       "/catalog/teachers",
       "/catalog/rooms",
-      "/catalog/young-events",
     ].includes(target.pathname)
   ) {
     return (
@@ -1061,7 +1105,7 @@ afterNavigate(({ from, to }) => {
         copy={data.copy}
         currentPathname={$page.url.pathname}
         dockAboveFooter={showFooter}
-        backLink={settingsBackLink}
+        {sectionSidebar}
         {isActiveLink}
         {mobileNavGroups}
         {navGroups}

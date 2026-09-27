@@ -122,9 +122,22 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       .getByRole("link", { name: /返回活动列表|Back to all events/ })
       .click();
     await expect(page).toHaveURL(browseUrl);
-    await page
-      .locator('[data-shell-navigation="desktop"]')
-      .getByRole("link", { name: /活动日历|Event calendar/ })
+    const youngNav = page.getByTestId("young-sidebar");
+    await expect(youngNav).toBeVisible();
+    await expect(page.getByTestId("young-sidebar-back")).toHaveAttribute(
+      "href",
+      "/",
+    );
+    await expect(
+      youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      youngNav.getByRole("link", {
+        name: new RegExp(DEV_SEED.youngEvent.name),
+      }),
+    ).toHaveCount(0);
+    await youngNav
+      .getByRole("link", { name: /^(?:活动日历|Event calendar)$/ })
       .click();
     await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
   });

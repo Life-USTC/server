@@ -72,12 +72,13 @@ requirements:
   category: presentation
   topic: list-table
   rule: The sidebar owns navigation between routes. Do not repeat those destinations
-    as page tabs. PageSectionNav is only for in-page anchors. A list child shows a
-    breadcrumb back to that list; a further child stays in the breadcrumb. The sidebar
-    syncs the current branch and stays collapsed until that route matches. Sections
-    list subscribed classes under 班级. Settings routes replace the primary sidebar
-    with a settings sidebar. Its top control returns home, and its only group is the
-    settings sections. The home page keeps the primary sidebar.
+    as page tabs. PageSectionNav is only for in-page anchors. Sections list subscribed
+    classes under 班级 and stay collapsed until the route matches /catalog/sections.
+    Settings routes replace the primary sidebar with a settings sidebar. Its top
+    control returns home, and its only group is the settings sections. Second-classroom
+    routes replace the primary sidebar with a second-classroom sidebar. Its top control
+    returns home, and its only group is the activity list, event calendar, and organizers.
+    Event and organizer names stay on the page. The home page keeps the primary sidebar.
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells
@@ -113,7 +114,7 @@ requirements:
 - id: ui.detail-hero-2
   category: presentation
   topic: detail-hero
-  rule: Contains breadcrumb, h1, and an optional subtitle.
+  rule: Contains an h1 and an optional subtitle.
 - id: ui.detail-hero-3
   category: presentation
   topic: detail-hero

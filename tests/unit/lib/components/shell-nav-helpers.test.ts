@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
   currentNewsItem,
-  currentYoungItem,
   sectionDirectoryItems,
 } from "@/lib/components/shell/shell-nav-helpers";
 
@@ -33,7 +32,7 @@ describe("shell branch navigation", () => {
     ).toEqual({ href: "/catalog/sections/33", label: "编译原理" });
   });
 
-  test("adds the open news article and young event or organizer", () => {
+  test("adds the open news article beside the source directory", () => {
     expect(
       currentNewsItem("/news/sources", {
         publication: { id: "sources", revision: { title: "来源" } },
@@ -44,26 +43,5 @@ describe("shell branch navigation", () => {
         publication: { id: "article-1", revision: { title: "校园通知" } },
       }),
     ).toEqual({ href: "/news/article-1", label: "校园通知" });
-    expect(
-      currentYoungItem("/catalog/young-events/calendar", {
-        event: { name: "日历", youngId: "calendar" },
-      }),
-    ).toBeNull();
-    expect(
-      currentYoungItem("/catalog/young-events/event-1", {
-        event: { name: "示例活动", youngId: "event-1" },
-      }),
-    ).toEqual({
-      href: "/catalog/young-events/event-1",
-      label: "示例活动",
-    });
-    expect(
-      currentYoungItem("/catalog/young-events/organizers/club", {
-        organizer: { id: "club", name: "学生会" },
-      }),
-    ).toEqual({
-      href: "/catalog/young-events/organizers/club",
-      label: "学生会",
-    });
   });
 });

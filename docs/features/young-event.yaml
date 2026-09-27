@@ -222,3 +222,4 @@ capabilities:
       - status and source freshness
       - organizer and stable organizer ID
       - sourceMissing and lastSeenAt when applicable
+      - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home

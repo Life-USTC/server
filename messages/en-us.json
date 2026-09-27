@@ -60,7 +60,6 @@
     "footerNavigation": "Footer navigation",
     "profileMenu": "Profile menu",
     "backToHome": "Back to Home",
-    "breadcrumb": "Breadcrumb",
     "undergraduateGraduate": "UG & Grad",
     "allSemesters": "All Semesters",
     "allEducationLevels": "All Education Levels",
@@ -1056,6 +1055,7 @@
   },
   "youngEvents": {
     "title": "Second Classroom",
+    "activitiesTitle": "Activity list",
     "calendarTitle": "Event calendar",
     "organizersTitle": "Organizers",
     "calendarDescription": "Browse second-classroom activities by day, week, or month.",
@@ -1267,7 +1267,6 @@
     "readMore": "Read more",
     "sourcePage": "View source page",
     "backToList": "Back to news and notices",
-    "breadcrumb": "Breadcrumb",
     "attachments": "Attachments",
     "media": "Media",
     "openAttachment": "Open attachment",

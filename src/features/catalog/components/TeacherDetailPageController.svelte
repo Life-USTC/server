@@ -40,7 +40,6 @@ type PageData = {
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
     common: {
-      breadcrumb: string;
       home: string;
       next: string;
       previous: string;
@@ -76,11 +75,6 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 </svelte:head>
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/teachers", label: copy.common.teachers },
-    { label: displayName },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   layout="detail"
   title={displayName}
   titleClass="text-2xl leading-tight sm:text-3xl"

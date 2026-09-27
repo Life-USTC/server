@@ -51,6 +51,20 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
       "https://young.ustc.edu.cn",
     );
 
+    const youngNav = page.getByTestId("young-sidebar");
+    await expect(youngNav).toBeVisible();
+    await expect(
+      youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      youngNav.getByRole("link", {
+        name: new RegExp(DEV_SEED.youngEvent.name),
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("navigation", { name: /面包屑|Breadcrumb/ }),
+    ).toHaveCount(0);
+
     const backLink = page.getByRole("link", {
       name: /返回活动列表|Back to all events/i,
     });

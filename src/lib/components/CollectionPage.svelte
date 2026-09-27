@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import DetailPageLayout from "./DetailPageLayout.svelte";
-import type { PageBreadcrumbItem } from "./PageBreadcrumb.svelte";
 import PageHeader from "./PageHeader.svelte";
 import PageLayout from "./PageLayout.svelte";
 import Panel from "./Panel.svelte";
@@ -31,8 +30,6 @@ type Props = {
   aside?: Snippet;
   before?: Snippet;
   belowTitle?: Snippet;
-  breadcrumb?: PageBreadcrumbItem[];
-  breadcrumbLabel?: string;
   children: Snippet;
   class?: string;
   density?: PageDensity;
@@ -60,8 +57,6 @@ let {
   aside: asideContent,
   before,
   belowTitle,
-  breadcrumb = [],
-  breadcrumbLabel = "",
   children,
   class: className,
   density = "comfortable",
@@ -95,8 +90,6 @@ let {
           {actionsClass}
           {after}
           {belowTitle}
-          {breadcrumb}
-          {breadcrumbLabel}
           class={headerClass}
           {description}
           {density}
@@ -114,8 +107,6 @@ let {
         {actionsClass}
         {after}
         {belowTitle}
-        {breadcrumb}
-        {breadcrumbLabel}
         class={headerClass}
         {description}
         {density}

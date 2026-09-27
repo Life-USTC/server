@@ -238,11 +238,6 @@ const places = $derived(
 {/snippet}
 
 <CollectionPage
-  breadcrumb={[
-    { href: "/catalog/young-events", label: youngCopy.title },
-    { label: event.name },
-  ]}
-  breadcrumbLabel={copy.common.breadcrumb}
   description={event.category ?? youngCopy.description}
   layout="detail"
   title={event.name}

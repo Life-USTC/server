@@ -13,9 +13,17 @@ import type {
 import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
+export type SectionSidebar = {
+  backHref: string;
+  backLabel: string;
+  backTestId: string;
+  level: "settings" | "young";
+  navLabel: string;
+  testId: string;
+};
+
 let {
   avatarFallback,
-  backLink = null,
   closeMenus,
   copy,
   currentPathname,
@@ -24,6 +32,7 @@ let {
   mobileNavGroups,
   navGroups,
   profileHref,
+  sectionSidebar = null,
   setUserMenuOpen,
   showAccountFooter = true,
   user,
@@ -31,7 +40,6 @@ let {
   viewerLoading,
 }: {
   avatarFallback: string;
-  backLink?: { href: string; label: string } | null;
   closeMenus: () => void;
   copy: LayoutCopy;
   currentPathname: string;
@@ -40,6 +48,7 @@ let {
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
+  sectionSidebar?: SectionSidebar | null;
   setUserMenuOpen: (open: boolean) => void;
   showAccountFooter?: boolean;
   user: LayoutUserSummary;
@@ -96,31 +105,31 @@ function closeMobileSidebar(): void {
 
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
-    aria-label={backLink
-      ? copy.nav.settings
+    aria-label={sectionSidebar
+      ? sectionSidebar.navLabel
       : mobile
         ? copy.shell.secondaryNavigation
         : copy.shell.primaryNavigation}
     data-shell-navigation={mobile ? "secondary" : "desktop"}
-    data-sidebar-level={backLink ? "settings" : undefined}
-    data-testid={backLink ? "settings-sidebar" : undefined}
+    data-sidebar-level={sectionSidebar?.level}
+    data-testid={sectionSidebar?.testId}
     class="flex min-h-0 flex-1 flex-col"
   >
     <Sidebar.Header>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
-          {#if backLink}
-            {@const homeLink = backLink}
-            <Sidebar.MenuButton tooltipContent={homeLink.label}>
+          {#if sectionSidebar}
+            {@const section = sectionSidebar}
+            <Sidebar.MenuButton tooltipContent={section.backLabel}>
               {#snippet child({ props })}
                 <a
                   {...props}
-                  href={homeLink.href}
-                  data-testid="settings-sidebar-back"
+                  href={section.backHref}
+                  data-testid={section.backTestId}
                   onclick={closeMobileSidebar}
                 >
                   <ArrowLeftIcon />
-                  <span>{homeLink.label}</span>
+                  <span>{section.backLabel}</span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>

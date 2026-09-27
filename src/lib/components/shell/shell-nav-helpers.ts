@@ -8,8 +8,6 @@ type Named = {
 
 type DetailPageData = {
   course?: Named | null;
-  event?: { name?: string | null; youngId?: string | null } | null;
-  organizer?: { id?: string | null; name?: string | null } | null;
   publication?: {
     id?: string | null;
     revision?: { title?: string | null } | null;
@@ -107,33 +105,4 @@ export function currentNewsItem(
   const title = pageData.publication?.revision?.title?.trim();
   if (!id || !title) return null;
   return { href: `/news/${encodeURIComponent(id)}`, label: title };
-}
-
-export function currentYoungItem(
-  pathname: string,
-  pageData: DetailPageData,
-): ShellLink | null {
-  const organizer = pathname.match(
-    /^\/catalog\/young-events\/organizers\/([^/]+)/,
-  );
-  if (organizer) {
-    const id = pageData.organizer?.id;
-    const name = pageData.organizer?.name?.trim();
-    if (!id || !name) return null;
-    return {
-      href: `/catalog/young-events/organizers/${encodeURIComponent(id)}`,
-      label: name,
-    };
-  }
-  const event = pathname.match(/^\/catalog\/young-events\/([^/]+)/);
-  if (!event || event[1] === "calendar" || event[1] === "organizers") {
-    return null;
-  }
-  const youngId = pageData.event?.youngId;
-  const name = pageData.event?.name?.trim();
-  if (!youngId || !name) return null;
-  return {
-    href: `/catalog/young-events/${encodeURIComponent(youngId)}`,
-    label: name,
-  };
 }
