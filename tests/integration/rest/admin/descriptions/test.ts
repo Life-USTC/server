@@ -7,7 +7,7 @@
  * - Supports `targetType` filter: "all", "section", "course", "teacher", "homework"
  * - Supports `hasContent` filter: "all", "withContent", "empty"
  * - Supports `search` parameter (content, course/section/teacher/homework names)
- * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
+ * - Supports `page` and `pageSize` parameters; retired `limit` is rejected
  * - Descriptions are ordered by lastEditedAt desc, then updatedAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */

@@ -6,7 +6,7 @@
  * - GET returns `{ data: [...], pagination }` with detailed includes (user, section, course, etc.)
  * - Supports `status` filter: "active", "softbanned", "deleted", "suspended"
  *   - "suspended" filters by users with active suspensions
- * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
+ * - Supports `page` and `pageSize` parameters; retired `limit` is rejected
  * - Comments are ordered by createdAt descending
  * - Returns 401 for unauthenticated or non-admin requests
  */

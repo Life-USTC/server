@@ -6,7 +6,7 @@
  * - GET returns `{ data, pagination }` with user objects
  *   containing id, name, username, isAdmin, email, createdAt
  * - Supports `search` query for filtering by id, name, username, or email
- * - Supports `page` and `pageSize` pagination parameters (deprecated `limit` alias, max 100)
+ * - Supports `page` and `pageSize` pagination parameters (max 100; retired `limit` is rejected)
  * - Returns 401 for unauthenticated or non-admin requests
  * - Returns 400 for invalid query parameters
  */

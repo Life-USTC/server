@@ -102,3 +102,22 @@ describe("API 路由查询校验", () => {
     ).toMatchObject({ limit: 100 });
   });
 });
+
+it("preserves unknown query fields for a strict declared schema to reject", async () => {
+  const schema = z.strictObject({ pageSize: z.string().optional() });
+  for (const query of ["limit=1", "pageSize=2&limit=1"]) {
+    const result = parseRouteQuery(
+      new URLSearchParams(query),
+      schema,
+      "Invalid query",
+    );
+    expect(result).toBeInstanceOf(Response);
+    await expectInvalidQueryResponse(result as Response, "Invalid query");
+  }
+  const accepted = parseRouteQuery(
+    new URLSearchParams("pageSize=2"),
+    schema,
+    "Invalid query",
+  );
+  expect(accepted).not.toBeInstanceOf(Response);
+});

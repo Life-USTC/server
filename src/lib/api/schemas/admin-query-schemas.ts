@@ -18,26 +18,26 @@ const adminUsersPageSizeSchema = integerStringRangeSchema({
   message: "pageSize must be between 1 and 100",
 });
 
-export const adminUsersQuerySchema = z.object({
+export const adminUsersQuerySchema = z.strictObject({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminUsersPageSizeSchema),
 });
 
-export const adminCommentsQuerySchema = z.object({
+export const adminCommentsQuerySchema = z.strictObject({
   status: z.enum(ADMIN_COMMENT_STATUS_FILTERS).optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
 });
 
-export const adminHomeworksQuerySchema = z.object({
+export const adminHomeworksQuerySchema = z.strictObject({
   status: z.enum(["all", "active", "deleted"]).optional(),
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
 });
 
-export const adminDescriptionsQuerySchema = z.object({
+export const adminDescriptionsQuerySchema = z.strictObject({
   targetType: z
     .enum(["all", "section", "course", "teacher", "homework"])
     .optional(),

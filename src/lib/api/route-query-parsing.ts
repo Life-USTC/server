@@ -9,14 +9,11 @@ export type ParseRouteQueryOptions = ParseRouteOptions & {
   pagination?: PaginationOptions;
 };
 
-function searchParamsInput<TSchema extends z.ZodObject>(
-  searchParams: URLSearchParams,
-  schema: TSchema,
-) {
+function searchParamsInput(searchParams: URLSearchParams) {
   return Object.fromEntries(
-    Object.keys(schema.shape).map((key) => [
+    [...new Set(searchParams.keys())].map((key) => [
       key,
-      searchParams.get(key) ?? undefined,
+      searchParams.get(key),
     ]),
   );
 }
@@ -28,7 +25,7 @@ export function parseRouteSearchParams<TSchema extends z.ZodObject>(
   options?: ParseRouteOptions,
 ): z.output<TSchema> | Response {
   return parseRouteInput(
-    searchParamsInput(searchParams, schema),
+    searchParamsInput(searchParams),
     schema,
     message,
     options,

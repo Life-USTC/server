@@ -43,5 +43,6 @@ export async function getAdminHomeworksRoute(request: Request) {
         ),
       );
     },
+    { allowSuspended: true },
   );
 }

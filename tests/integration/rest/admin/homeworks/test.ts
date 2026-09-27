@@ -6,7 +6,7 @@
  * - GET returns `{ data: [...], pagination }` with section/course and user summary includes
  * - Supports `status` filter: "all", "active", "deleted"
  * - Supports `search` parameter (title, section code, course code, course name)
- * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
+ * - Supports `page` and `pageSize` parameters; retired `limit` is rejected
  * - Homeworks are ordered by deletedAt desc, then createdAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */
