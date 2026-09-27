@@ -36,7 +36,7 @@ $: copy = profile.copy.publicProfile;
 $: dateFormatter = createShanghaiDateTimeFormatter(profile.locale, {
   dateStyle: "medium",
 });
-$: displayName = user.name ?? user.username ?? copy.idLabel;
+$: displayName = user.name?.trim() || user.username?.trim() || copy.idLabel;
 $: initials = displayName.slice(0, 1).toUpperCase();
 $: joinedDate = dateFormatter.format(new Date(user.createdAt));
 

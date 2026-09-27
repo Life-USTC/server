@@ -24,12 +24,15 @@ const OAUTH_E2E_PKCE = {
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 
-async function registerPublicClient(request: APIRequestContext) {
+async function registerPublicClient(
+  request: APIRequestContext,
+  redirectUri = REDIRECT_URI,
+) {
   const response = await request.post("/api/auth/oauth2/register", {
     data: {
       application_type: "native",
       client_name: `oauth-authorize-e2e-${Date.now()}`,
-      redirect_uris: [REDIRECT_URI],
+      redirect_uris: [redirectUri],
       token_endpoint_auth_method: "none",
       grant_types: ["authorization_code"],
       response_types: ["code"],
@@ -231,4 +234,50 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
 
 test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/oauth/authorize", testInfo });
+});
+
+test("user.oauth-consent-loopback-continuation", async ({ page }) => {
+  const callback = new URL("/e2e/oauth/callback", PLAYWRIGHT_BASE_URL);
+  callback.hostname = "127.0.0.1";
+  const redirectUri = callback.href;
+  const clientId = await registerPublicClient(page.request, redirectUri);
+  await signInAsDebugUser(page, "/workspace/overview");
+  const parameters = {
+    ...OAUTH_E2E_PKCE,
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "openid profile",
+    state: "loopback-原样+state",
+    prompt: "consent",
+  };
+  await gotoAndWaitForReady(page, buildAuthorizeApiUrl(parameters));
+  expect(new URL(page.url()).hostname).toBe("localhost");
+  const consent = new URL(page.url());
+  for (const [key, value] of Object.entries(parameters))
+    expect(consent.searchParams.get(key), key).toBe(value);
+  await page.getByRole("button", { name: /允许|Allow/i }).click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.hostname === "127.0.0.1" &&
+      url.pathname === callback.pathname &&
+      url.searchParams.has("code"),
+  );
+  const completed = new URL(page.url());
+  expect(completed.searchParams.get("state")).toBe(parameters.state);
+  const response = await page.request.post(
+    new URL("/api/auth/oauth2/token", PLAYWRIGHT_BASE_URL).href,
+    {
+      headers: { cookie: "" },
+      form: {
+        client_id: clientId,
+        grant_type: "authorization_code",
+        code: completed.searchParams.get("code") ?? "",
+        code_verifier: OAUTH_E2E_CODE_VERIFIER,
+        redirect_uri: redirectUri,
+      },
+    },
+  );
+  expect(response.status()).toBe(200);
+  expect((await response.json()).access_token).toEqual(expect.any(String));
 });

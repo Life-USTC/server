@@ -23,7 +23,7 @@ export function commentAuthorName(
   anonymousLabel: string,
 ) {
   if (comment.authorHidden) return anonymousLabel;
-  return comment.author?.name ?? anonymousLabel;
+  return comment.author?.name?.trim() || anonymousLabel;
 }
 
 export function commentAuthorInitials(

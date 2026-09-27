@@ -265,11 +265,30 @@ requirements:
   rule: The OAuth consent step must continue working for loopback public clients even when the client
     uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve
     the original authorization query and complete the redirect back to the registered loopback callback.
+  acceptance:
+    given: A signed-in browser uses localhost and a native public client registers a 127.0.0.1 callback.
+    when: The actual authorization page submits consent and the client exchanges the returned code with its PKCE verifier.
+    then:
+    - The consent page preserves the original client, redirect, scope, state and PKCE query values.
+    - The browser reaches the registered IP-literal callback with the original state and a usable authorization code.
+    test:
+      file: tests/e2e/src/app/oauth/authorize/test.ts
+      name: user.oauth-consent-loopback-continuation
 - id: user.public-identity-display
   category: presentation
   rule: Public identity uses the display name, then username, then a non-identifying localized fallback.
     Internal user IDs may locate a profile but are never its primary display label. Anonymous comments
     use the anonymous label regardless of the author's profile.
+  rationale: Empty and whitespace-only names are absent for display purposes; profile headings and page metadata use the same fallback order. Comment wire output resolves a known username into the existing author name field without adding a new public identity field.
+  acceptance:
+    given: Isolated public profiles have a display name, an empty name with username, or only whitespace and no username; each owns named and anonymous comments.
+    when: An anonymous browser reads their profile and comment headings in both locales.
+    then:
+    - Headings and profile titles follow the nonempty name, username, localized fallback order.
+    - Internal IDs never become visible labels and anonymous comments always show the anonymous label.
+    test:
+      file: tests/e2e/src/app/account-policy/public-identity.test.ts
+      name: user.public-identity-display
 - id: user.public-profile-canonical-route
   category: behavior
   rule: Username, differently cased username and stable user-ID addresses resolve the same public profile;
@@ -321,6 +340,16 @@ requirements:
   rule: The session-only /account/settings/security page lists the owning user's sensitive account events
     with cursor pagination, masked network prefixes, coarse device families, and safe OAuth client names.
     OAuth clients cannot access this all-clients security view.
+  acceptance:
+    given: An isolated user owns 21 security events with detailed network/device/metadata values; a second user owns another event, and the client name contains HTML markup.
+    when: The browser exhausts the owner's 20-item cursor pages and a real OAuth token attempts to read the same page without cookies.
+    then:
+    - Exactly the owner's events appear across both pages with masked network prefixes and coarse device names.
+    - Client names remain escaped text; raw IPs, user agents, private metadata and other-user events are absent.
+    - Anonymous and verified bearer-only requests are redirected to sign-in; the same bearer works for its authorized profile API.
+    test:
+      file: tests/e2e/src/app/account-policy/security-activity.test.ts
+      name: user.account-security-activity
 - id: user.oauth-client-activity-isolation
   category: authorization
   rule: REST, GraphQL, and MCP expose only events whose subject user and OAuth client both come from the
