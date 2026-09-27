@@ -10849,6 +10849,38 @@
   "components": {
     "schemas": {
       "__schema0": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema0"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema0"
+            }
+          }
+        ]
+      },
+      "__schema1": {
         "type": "object",
         "properties": {
           "id": {
@@ -10928,7 +10960,7 @@
           "replies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema0"
+              "$ref": "#/components/schemas/__schema1"
             }
           },
           "repliesNextCursor": {
@@ -11126,7 +11158,39 @@
         ],
         "additionalProperties": false
       },
-      "__schema1": {
+      "__schema2": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema2"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/__schema2"
+            }
+          }
+        ]
+      },
+      "__schema3": {
         "type": "object",
         "properties": {
           "id": {
@@ -11207,7 +11271,7 @@
           "replies": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema3"
             }
           },
           "repliesNextCursor": {
@@ -14872,7 +14936,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -14907,14 +14975,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -16492,7 +16570,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema3"
             }
           },
           "pagination": {
@@ -17788,7 +17866,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -17823,14 +17905,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema2"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -18992,7 +19084,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -19027,14 +19123,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -19458,7 +19564,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -19493,14 +19603,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -20730,7 +20850,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -20765,14 +20889,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema2"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -21373,7 +21507,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -21408,14 +21546,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema2"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -22086,7 +22234,11 @@
                           "type": "string"
                         },
                         "dateTimePlacePersonText": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
                         },
                         "actualPeriods": {
                           "nullable": true,
@@ -22121,14 +22273,24 @@
                           "type": "string"
                         },
                         "suggestScheduleWeeks": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
                         },
                         "suggestScheduleWeekInfo": {
                           "nullable": true,
                           "type": "string"
                         },
                         "scheduleJsonParams": {
-                          "nullable": true
+                          "nullable": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/__schema2"
+                          }
                         },
                         "selectedStdCount": {
                           "nullable": true,
@@ -23103,7 +23265,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -23138,14 +23304,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -23549,7 +23725,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -23584,14 +23764,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -24302,7 +24492,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -24337,14 +24531,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -27662,7 +27866,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -27697,14 +27905,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -28048,7 +28266,11 @@
             "type": "string"
           },
           "dateTimePlacePersonText": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "actualPeriods": {
             "nullable": true,
@@ -28083,14 +28305,24 @@
             "type": "string"
           },
           "suggestScheduleWeeks": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
           },
           "suggestScheduleWeekInfo": {
             "nullable": true,
             "type": "string"
           },
           "scheduleJsonParams": {
-            "nullable": true
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/__schema2"
+            }
           },
           "selectedStdCount": {
             "nullable": true,
@@ -29597,7 +29829,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -29632,14 +29868,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -30455,7 +30701,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -30490,14 +30740,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -31297,7 +31557,7 @@
           "thread": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema3"
             }
           },
           "focusId": {
@@ -31549,7 +31809,7 @@
             "type": "boolean"
           },
           "comment": {
-            "$ref": "#/components/schemas/__schema1"
+            "$ref": "#/components/schemas/__schema3"
           }
         },
         "required": [
@@ -31822,7 +32082,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -31857,14 +32121,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema2"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -32577,7 +32851,11 @@
                     "type": "string"
                   },
                   "dateTimePlacePersonText": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "actualPeriods": {
                     "nullable": true,
@@ -32612,14 +32890,24 @@
                     "type": "string"
                   },
                   "suggestScheduleWeeks": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
                   },
                   "suggestScheduleWeekInfo": {
                     "nullable": true,
                     "type": "string"
                   },
                   "scheduleJsonParams": {
-                    "nullable": true
+                    "nullable": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/__schema2"
+                    }
                   },
                   "selectedStdCount": {
                     "nullable": true,
@@ -34191,7 +34479,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -34226,14 +34518,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -34912,7 +35214,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -34947,14 +35253,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -35647,7 +35963,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -35682,14 +36002,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -36421,7 +36751,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -36456,14 +36790,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -37113,7 +37457,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -37148,14 +37496,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -37805,7 +38163,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -37840,14 +38202,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -38499,7 +38871,11 @@
                       "type": "string"
                     },
                     "dateTimePlacePersonText": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "actualPeriods": {
                       "nullable": true,
@@ -38534,14 +38910,24 @@
                       "type": "string"
                     },
                     "suggestScheduleWeeks": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
                     },
                     "suggestScheduleWeekInfo": {
                       "nullable": true,
                       "type": "string"
                     },
                     "scheduleJsonParams": {
-                      "nullable": true
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/__schema2"
+                      }
                     },
                     "selectedStdCount": {
                       "nullable": true,
@@ -39321,7 +39707,11 @@
                   "type": "string"
                 },
                 "dateTimePlacePersonText": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "actualPeriods": {
                   "nullable": true,
@@ -39356,14 +39746,24 @@
                   "type": "string"
                 },
                 "suggestScheduleWeeks": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
                 },
                 "suggestScheduleWeekInfo": {
                   "nullable": true,
                   "type": "string"
                 },
                 "scheduleJsonParams": {
-                  "nullable": true
+                  "nullable": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/__schema2"
+                  }
                 },
                 "selectedStdCount": {
                   "nullable": true,
@@ -40594,7 +40994,7 @@
           "thread": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/__schema1"
+              "$ref": "#/components/schemas/__schema3"
             }
           },
           "nextCursor": {
