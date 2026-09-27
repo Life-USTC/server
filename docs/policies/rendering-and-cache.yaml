@@ -346,6 +346,15 @@ requirements:
   topic: cache-layers-and-invalidation
   rule: Deployments do not reuse HTML cached by a previous Worker version; cache.cross_version_cache remains
     disabled.
+  acceptance:
+    given: The production and local Worker deployment configurations declare cached entrypoints.
+    when: Their JSONC configuration is parsed and each cache-enabled entrypoint is inspected.
+    then:
+    - PublicSsr enables caching with cross_version_cache explicitly false in both configurations.
+    - No cache-enabled entrypoint opts into reuse across Worker versions.
+    test:
+      file: tests/unit/lib/cloudflare/wrangler-rate-limit-config.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-9
 - id: rendering-and-cache.cache-layers-and-invalidation-10
   category: consistency
   topic: cache-layers-and-invalidation

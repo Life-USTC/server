@@ -171,3 +171,29 @@ describe("Wrangler mutation rate-limit bindings", () => {
     ]);
   });
 });
+
+it("rendering-and-cache.cache-layers-and-invalidation-9", async () => {
+  for (const fileName of ["wrangler.jsonc", "wrangler.e2e.jsonc"]) {
+    const source = await readFile(
+      new URL(`../../../../${fileName}`, import.meta.url),
+      "utf8",
+    );
+    const config = parseConfig(source) as {
+      exports?: Record<
+        string,
+        { cache?: { enabled?: boolean; cross_version_cache?: boolean } }
+      >;
+    };
+    expect(config.exports?.PublicSsr?.cache, fileName).toEqual({
+      enabled: true,
+      cross_version_cache: false,
+    });
+    for (const [name, entrypoint] of Object.entries(config.exports ?? {})) {
+      if (entrypoint.cache?.enabled)
+        expect(
+          entrypoint.cache.cross_version_cache,
+          `${fileName}:${name}`,
+        ).toBe(false);
+    }
+  }
+});
