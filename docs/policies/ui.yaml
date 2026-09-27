@@ -676,6 +676,17 @@ requirements:
   topic: settings-navigation
   rule: Preferences reuse the shared theme mechanism and /api/account/preferences for server-supported preferences.
     Theme remains a browser preference; locale changes do not add locale URL segments.
+  acceptance:
+    given: An isolated signed-in browser opens Preferences in English.
+    when: Change theme through both Preferences and the shared shell, then change locale to Chinese and back.
+    then:
+    - Both theme selectors and the rendered theme agree immediately; theme persists in browser storage
+      without a preferences API mutation.
+    - Language changes POST only the selected locale to /api/account/preferences and reload the same URL,
+      preserving the browser theme without adding locale route segments.
+    test:
+      file: tests/e2e/src/app/shared-policy/preferences-state.test.ts
+      name: ui.settings-navigation-4
 - id: ui.settings-navigation-5
   category: presentation
   topic: settings-navigation
