@@ -679,8 +679,19 @@ requirements:
 - id: ui.settings-navigation-5
   category: presentation
   topic: settings-navigation
-  rule: Application authorizations and linked sign-in providers occupy distinct settings destinations. Revoking
-    an authorization requires explicit confirmation for the selected application.
+  rule: Revoking an application authorization requires explicit confirmation identifying the selected application.
+    Opening or dismissing confirmation does not revoke access; confirmation revokes only that application.
+  acceptance:
+    given: An isolated user owns two application grants; English desktop and Chinese mobile settings render
+      their authorization rows.
+    when: Open the selected application's revoke dialog, dismiss with Cancel and Escape, then explicitly confirm.
+    then:
+    - The dialog names only the selected application and exposes both confirm and cancel controls.
+    - Opening and dismissing send no mutation and preserve both grants; confirming sends one mutation,
+      removes only the selected grant and retains the other application's row.
+    test:
+      file: tests/e2e/src/app/shared-policy/authorization-confirmation.test.ts
+      name: ui.settings-navigation-5
 - id: ui.settings-navigation-6
   category: presentation
   topic: settings-navigation
@@ -1092,3 +1103,6 @@ rationale:
   agendas and calendar.views for the declared desktop grids; those feature requirements own their acceptance.
 - The former ui.model-property-priority-primary-3 duplicates section.student-identity-teachers, which retains
   course name plus teachers as primary identity and section code as secondary across student-facing views.
+- Settings destination separation for linked sign-in identities versus delegated application grants is
+  owned by user.sign-in-identities-separate; ui.settings-navigation-5 independently owns explicit
+  confirmation of the selected application's revocation.
