@@ -1,5 +1,6 @@
 <script lang="ts">
 import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -39,7 +40,7 @@ export let teacher: TeacherDetailTeacher;
           <Table.Row>
             <Table.Cell class="p-0">
               <CatalogTableLink href={sectionHref} nowrap>
-                {section.semester?.nameCn ?? notAvailable}
+                {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}
               </CatalogTableLink>
             </Table.Cell>
             <Table.Cell class="p-0">

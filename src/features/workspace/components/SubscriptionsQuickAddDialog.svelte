@@ -1,6 +1,7 @@
 <script lang="ts">
 import Search from "@lucide/svelte/icons/search";
 import SearchX from "@lucide/svelte/icons/search-x";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -43,7 +44,7 @@ let searchGeneration = 0;
 
 $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
   value: String(semester.id),
-  label: semester.nameCn,
+  label: formatSemesterName(signedData.locale, semester.nameCn),
 }));
 $: selectedSectionIdSet = new Set(selectedSectionIds);
 $: subscribedSectionIdSet = new Set(

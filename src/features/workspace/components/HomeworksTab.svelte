@@ -133,6 +133,7 @@ $: ({
 
     <div class="md:hidden">
       <HomeworksCardsView
+        {locale}
         unknownSemesterLabel={commonCopy.unknown}
         {filteredHomeworkItems}
         {hasHomeworkItems}
@@ -151,6 +152,7 @@ $: ({
     </div>
     <div class="hidden min-w-0 overflow-x-auto md:block">
       <HomeworksListView
+        {locale}
         unknownSemesterLabel={commonCopy.unknown}
         {filteredHomeworkItems}
         {hasHomeworkItems}

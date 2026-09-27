@@ -116,7 +116,15 @@ async function assertTaskSemesterLabels(
                 );
           await expect(row.filter({ visible: true })).toHaveCount(1);
           await expect(row.filter({ visible: true })).toContainText(
-            item.semesterName ?? (locale === "en-us" ? "Unknown" : "未知"),
+            item.semesterName
+              ? locale === "en-us"
+                ? item.semesterName === DEV_SEED.semesterNameCn
+                  ? "Spring 2026"
+                  : "Fall 2025"
+                : item.semesterName
+              : locale === "en-us"
+                ? "Unknown"
+                : "未知",
           );
         }
       }

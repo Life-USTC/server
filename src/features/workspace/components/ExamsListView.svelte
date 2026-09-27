@@ -2,6 +2,7 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
@@ -15,6 +16,7 @@ import type {
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let locale: string;
 export let namePrimary: NamePrimary;
 export let unknownSemesterLabel: string;
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
@@ -57,7 +59,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         </Table.Cell>
         <Table.Cell>
           {exam.section.code ?? subscriptionsCopy.section}
-          <span class="block text-muted-foreground text-sm">{namePrimary(exam.section.semester) || unknownSemesterLabel}</span>
+          <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, namePrimary(exam.section.semester) || unknownSemesterLabel)}</span>
         </Table.Cell>
         <Table.Cell>
           {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}

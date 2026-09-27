@@ -29,8 +29,18 @@ requirements:
       name: semester.current-semester-by-rules
 - id: semester.semester-visible-in-filters
   category: presentation
-  rule: Cross-semester section, schedule and exam views identify each semester by its localized display
-    name in filters and grouped results.
+  rule: Section filters, course/teacher offerings, subscription groups/import selectors, task semester labels
+    and semester calendar navigation use localized semester names. Recognized upstream spring/fall names
+    display as Spring/Fall plus year in English; other upstream names remain unchanged instead of being guessed.
+  acceptance:
+    given: One isolated course and teacher have offerings in known spring/fall semesters and an unrecognized short-term name, with an owner subscribed to each and task records in each.
+    when: Chinese and English browsers inspect section filters, offering lists, subscription groups and selectors, task lists and semester calendar navigation at desktop/mobile widths.
+    then:
+    - Every displayed semester identity uses the proper Chinese or English term name; numeric IDs remain form values only.
+    - Selecting each term retains its own label and only its associated section records.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-presentation.test.ts
+      name: semester.semester-visible-in-filters
 - id: semester.current-semester.latest-startdate-wins
   category: consistency
   rule: The current semester is determined by date range; when multiple semester ranges overlap the current
@@ -51,6 +61,15 @@ requirements:
   category: consistency
   rule: Cached current-semester results are scoped by the Shanghai calendar date and imported semester
     revision; advancing either makes the previous entry ineligible.
+  acceptance:
+    given: The real current-semester read model and runtime cache receive controlled database rows and committed import revisions.
+    when: Read twice on one Shanghai date, cross midnight, advance the imported snapshot and reimport the same snapshot at a new timestamp.
+    then:
+    - Same-date same-revision reads reuse the cached value, including null.
+    - A new Shanghai date or either import revision component causes a fresh database read and cannot retain the old value.
+    test:
+      file: tests/unit/features/catalog/current-semester-cache-contract.test.ts
+      name: semester.current-semester-cache-invalidation
 capabilities:
   semester-list:
     title: Semester List

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -35,7 +36,7 @@ export let teacher: TeacherDetailTeacher;
               <TruncatedCode text={section.code} />
             </Item.Actions>
             <Item.Footer class="flex-wrap justify-start">
-              <span>{section.semester?.nameCn ?? notAvailable}</span>
+              <span>{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}</span>
               <span>{section.credits ?? notAvailable} {copy.teacherDetail.credits}</span>
             </Item.Footer>
           </a>

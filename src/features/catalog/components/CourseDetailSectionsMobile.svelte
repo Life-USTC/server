@@ -3,6 +3,7 @@ import {
   type CatalogNamed,
   catalogLocalizedNames,
 } from "@/features/catalog/lib/catalog-list-display";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -33,7 +34,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
             <Item.Content>
-              <Item.Title>{section.semester?.nameCn ?? notAvailable}</Item.Title>
+              <Item.Title>{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}</Item.Title>
               <Item.Description>
                 {catalogLocalizedNames(section.teachers, locale) || notAvailable}
               </Item.Description>

@@ -4,6 +4,7 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -18,6 +19,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
@@ -84,7 +86,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
                 {homework.section?.courseName ?? homeworkCopy.section}
               </a>
               <span aria-hidden="true">·</span>
-              <span class="max-w-full break-words">{homework.section?.semesterName ?? unknownSemesterLabel}</span>
+              <span class="max-w-full break-words">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
               <span aria-hidden="true">·</span>
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
