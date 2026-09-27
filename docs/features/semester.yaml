@@ -14,18 +14,14 @@ access:
   admin: Can read semester information. Does not directly modify semester facts through ordinary pages.
   agent: Can only read existing semester information; no additional write permissions.
 requirements:
-- id: semester.organizational-dimension
-  category: behavior
-  rule: Semesters are the organizational dimension for courses, sections, schedules, and exams.
 - id: semester.current-semester-by-rules
   category: consistency
-  rule: The current semester must be determined by explicit business rules against the current Asia/Shanghai
-    calendar date, not by rough natural-year inference. Public REST, GraphQL, and MCP reads share a static-revision-
-    and date-scoped runtime cache.
+  rule: The current semester is selected by explicit semester-date rules using the current Asia/Shanghai
+    calendar date. Cached results must change when the calendar date or imported semester data changes.
 - id: semester.semester-visible-in-filters
   category: presentation
-  rule: Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester
-    browsing.
+  rule: Cross-semester section, schedule and exam views identify each semester by its localized display
+    name in filters and grouped results.
 - id: semester.current-semester.latest-startdate-wins
   category: consistency
   rule: The current semester is determined by date range; when multiple semester ranges overlap the current
@@ -45,8 +41,7 @@ capabilities:
       routes:
       - path: /api/catalog/semesters
         notes:
-        - REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize
-          wins when both are supplied. Out-of-range values are rejected instead of clamped.
+        - REST page and pageSize accept 1-100. Out-of-range values are rejected instead of clamped.
     graphql:
       queries:
       - name: semesters
@@ -99,3 +94,5 @@ capabilities:
       - semester.startDate
       - semester.endDate
       - semester.code
+rationale:
+- Semesters are the organizational dimension for courses, sections, schedules, and exams.

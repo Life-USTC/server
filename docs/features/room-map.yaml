@@ -14,10 +14,6 @@ access:
   admin: Read room maps
   agent: Read room maps
 requirements:
-- id: room-map.source
-  category: behavior
-  rule: Published static room_maps.json contains exact annotated rooms and generated PNG paths. building_img_rules.json
-    identifies overview images only.
 - id: room-map.normalization
   category: consistency
   rule: Trim, normalize full-width input with NFKC, and uppercase room codes. Accept ASCII letters, digits
@@ -31,13 +27,11 @@ requirements:
   rule: Lookup is public and does not disclose personal schedules.
 - id: room-map.calendar
   category: behavior
-  rule: Course and exam iCalendar events attach public image URLs, preferring highlighted room maps. Every
-    mapped exam room contributes an attachment, deduplicated by URL. Descriptions include room-labeled
-    map links. Missing maps never suppress events.
+  rule: Calendar course and exam events prefer highlighted public room image URLs over available overview
+    images.
 - id: room-map.web
   category: presentation
-  rule: Room labels support lazy hover/focus preview and click/tap expansion, with keyboard access and
-    full-size image viewing.
+  rule: Room labels support a lazily loaded preview on pointer hover and keyboard focus.
 - id: room-map.bot
   category: behavior
   rule: Explicit room queries and recognized bare room codes return the available map image without a
@@ -45,6 +39,22 @@ requirements:
     maps return an explanatory message. Public room queries are available in shared conversations; private
     AI conversations can also use catalog_rooms_map. Do not attach every room map to ordinary timetable
     replies. Resolve ambiguous class references before querying a map.
+- id: room-map.exam-map-attachments
+  category: behavior
+  rule: Each mapped exam room contributes its public image URL to the event attachments, deduplicated
+    by URL.
+- id: room-map.calendar-map-descriptions
+  category: behavior
+  rule: Calendar descriptions label each map link with its room so multiple room images remain distinguishable.
+- id: room-map.unmapped-calendar-events
+  category: behavior
+  rule: Missing room maps never suppress an otherwise valid calendar event.
+- id: room-map.expanded-map-view
+  category: presentation
+  rule: Clicking or tapping a room map opens its expanded image with full-size viewing available.
+- id: room-map.keyboard-map-access
+  category: presentation
+  rule: Room preview and expanded-view actions are operable by keyboard.
 capabilities:
   room-map:
     title: Room map lookup
@@ -66,3 +76,6 @@ capabilities:
       tools:
       - name: catalog_rooms_map
         rest_equivalent: GET /api/catalog/rooms/{code}/map
+rationale:
+- Published static room_maps.json contains exact annotated rooms and generated PNG paths. building_img_rules.json
+  identifies overview images only.

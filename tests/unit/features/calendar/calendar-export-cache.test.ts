@@ -87,7 +87,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain("user-1");
   });
 
-  it("stale 导出立即返回且通过 defer 跟踪 enqueue Promise", async () => {
+  it("calendar.feed-cache-refresh", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
@@ -126,7 +126,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(enqueued).toHaveLength(1);
   });
 
-  it("serving isolate observes a consumer's KV refresh after revalidation", async () => {
+  it("calendar.feed-refresh-visible", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
@@ -179,7 +179,7 @@ describe("用户 iCal 导出缓存", () => {
     }
   });
 
-  it("bounds repeated stale enqueues while KV still contains the old export", async () => {
+  it("calendar.feed-refresh-coalescing", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();
@@ -203,7 +203,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(buildExport).toHaveBeenCalledTimes(1);
   });
 
-  it("write-triggered rebuilds bypass the stale-read cooldown", async () => {
+  it("calendar.feed-write-rebuild-independent", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const sender = vi.fn().mockResolvedValue(undefined);

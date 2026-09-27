@@ -20,32 +20,23 @@ access:
 requirements:
 - id: schedule.teacher-participation
   category: behavior
-  rule: A physical meeting has one row. Teacher participation stores source periods and exerciseClass
-    independently for each teacher; unknown participation facts stay null, including existing links migrated
-    without source evidence. Schedule teachers is a flat projection of the same participation relation.
-    Schedule list/detail REST, MCP and GraphQL expose teacherParticipations with public teacher identity
-    and participation facts.
-- id: schedule.schedule-definition
-  category: behavior
-  rule: Schedule refers to a section's class times, locations, and week patterns.
+  rule: A physical meeting is represented once even when several teachers participate.
 - id: schedule.schedule-as-context
   category: presentation
-  rule: The schedule within a section detail page is not treated as an isolated table but as an important
-    entry point for understanding the section context.
-- id: schedule.personal-calendar-integrates
-  category: behavior
-  rule: The personal calendar integrates subscribed section schedules, homework due dates, exam times,
-    and personal todo due dates.
+  rule: The section calendar presents meeting dates/times, teachers and available location context with
+    links to the relevant public details.
 - id: schedule.public-rest-locale-cache
   category: consistency
-  rule: 'Public schedule REST responses are deterministic by URL: omitted locale uses canonical zh-cn
-    and locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may
-    use shared CDN caching. REST and MCP schedule lists share revision-scoped locale/filter/pagination
-    runtime caching.'
-- id: schedule.section-schedule-query
-  category: consistency
-  rule: A section schedule read fetches section context and its filtered, ordered, optionally bounded
-    schedules in one top-level Section query while preserving includeSection output semantics.
+  rule: 'Public schedule REST output is determined by URL parameters: omitted locale uses zh-cn and locale=en-us
+    selects English. Cookie and Accept-Language do not personalize the output.'
+- id: schedule.teacher-participation-facts
+  category: behavior
+  rule: Each schedule teacher retains independent source periods and exerciseClass facts; unsupported
+    participation facts remain null.
+- id: schedule.teacher-participation-output
+  category: behavior
+  rule: Schedule list/detail REST, GraphQL and MCP expose public teacher identity and participation facts,
+    with teachers as the flat identity projection of the same relation.
 capabilities:
   my-schedule:
     title: My Schedule
@@ -99,6 +90,8 @@ capabilities:
       - teacher names
       filters:
       - Previous/next semester links
+    requirement_refs:
+    - calendar.event-card-types
   public-schedule-query:
     title: Public Schedule Query
     auth: anon
@@ -113,8 +106,7 @@ capabilities:
         - Supports filtering by section, teacher, room, date range, and day of week.
         - REST/MCP both accept exact JW/code-style filters for schedules so callers do not need to resolve
           internal numeric IDs first.
-        - REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize
-          wins when both are supplied. Out-of-range values are rejected instead of clamped.
+        - REST page and pageSize accept 1-100. Out-of-range values are rejected instead of clamped.
         - REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale
           input.
     mcp:
@@ -135,6 +127,8 @@ capabilities:
       - roomJwId
       - dateFrom/dateTo
       - weekday
+    requirement_refs:
+    - calendar.event-card-types
   section-schedule:
     title: Section Schedule
     auth: anon
@@ -163,16 +157,14 @@ capabilities:
       - name: catalog_section_schedule_list
         rest_equivalent: GET /api/catalog/sections/[jwId]/schedules
         notes:
-        - Default and the deprecated summary alias omit the repeated per-item section payload because
-          the top-level section already scopes the list.
+        - Default mode omit the repeated per-item section payload because the top-level section already
+          scopes the list.
         - Accepts optional dateFrom/dateTo to narrow results to a specific window (e.g. the current week);
           both accept flexible date strings.
       - name: workspace_calendar_timeline_get
         auth: user
         notes:
         - Returns schedules as the schedule type within a unified event stream.
-        - The deprecated summary input returns the same compact events[] structure as default instead
-          of changing the collection type.
         - Accepts optional atTime to anchor the 7-day window to a specific moment instead of the server
           clock; useful for asking about a future week.
     presentation:
@@ -182,3 +174,9 @@ capabilities:
       - schedule.room (with building/campus)
       - schedule.weekday (1=Monday, 7=Sunday)
       - schedule.teachers[] names
+    requirement_refs:
+    - calendar.event-card-types
+rationale:
+- Schedule refers to a section's class times, locations, and week patterns.
+- A section schedule read fetches section context and its filtered, ordered, optionally bounded schedules
+  in one top-level Section query while preserving includeSection output semantics.

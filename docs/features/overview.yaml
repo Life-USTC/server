@@ -22,13 +22,7 @@ access:
 requirements:
 - id: overview.decision-page
   category: presentation
-  rule: The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized
-    workspace data; the authenticated /workspace overview is the personal decision page for 'what to do
-    next'.
-- id: overview.semantic-route-compatibility
-  category: behavior
-  rule: Known legacy /?tab= inputs permanently redirect to semantic public or workspace paths while preserving
-    unrelated query parameters.
+  rule: The anonymous home page prioritizes public course, section and teacher discovery.
 - id: overview.now-next-first
   category: presentation
   rule: The authenticated overview begins with the current or next actionable schedule, homework, exam,
@@ -38,6 +32,8 @@ requirements:
   category: presentation
   rule: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical
     semester content or complete directory information.
+  rationale: 'Product decision required: Current semester is useful default context but must not bury
+    urgent tasks from another still-relevant term or activities/personal todos.'
 - id: overview.homework-todo-layered
   category: presentation
   rule: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due
@@ -47,18 +43,6 @@ requirements:
   rule: Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview.
     They include known-date exams that have not ended or start later today, and exclude date-unknown exam
     records that cannot be placed in the upcoming timeline.
-- id: overview.non-current-not-disguised
-  category: presentation
-  rule: Non-current-semester subscribed sections must not be disguised as current learning tasks.
-- id: overview.aggregate-first-for-assistants
-  category: presentation
-  rule: Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into
-    multiple narrower tool calls.
-- id: overview.assistant-tool-hierarchy
-  category: presentation
-  rule: Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my
-    next class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when
-    lighter counts and samples suffice.
 - id: overview.historical-subscriptions-remain-discoverable
   category: presentation
   rule: A zero current-semester subscription count must not be presented as no course history when total
@@ -66,24 +50,18 @@ requirements:
     schedules, and exams.
 - id: overview.focused-extracts-share-window
   category: consistency
-  rule: Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon
-    window as the broader workspace snapshot.
-- id: overview.private-shell-overlay
-  category: privacy
-  rule: Public HTML remains viewer-independent. Authenticated browsers hydrate workspace navigation counts
-    through a session-only, private no-store Web bootstrap; workspace SSR seeds the same in-memory projection
-    without a duplicate browser request.
+  rule: With the same atTime and default inputs, the workspace snapshot, next-class and deadline tools
+    use the same seven-day horizon. Explicit supported horizon arguments override only the requested tool's
+    window.
 - id: overview.workspace-card-priority
   category: presentation
-  rule: Workspace cards prioritize the actionable object title, timing/status, and direct destination
-    over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary
-    context such as course, section, campus, or priority badge remains visible for disambiguation without
-    crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards
-    and MCP default output.
+  rule: Workspace cards present the actionable title, time/status and direct destination before secondary
+    details.
 - id: overview.workspace-shell-navigation.internal-endpoint
   category: behavior
-  rule: /_internal/shell-bootstrap is a same-origin session-cookie-only Web transport and returns the
-    allowlisted viewer plus five workspace navigation counts.
+  rule: The same-origin session-cookie-only /_internal/shell-bootstrap Web transport returns only the
+    allowlisted viewer fields and counts for calendar items, pending homework, pending todos, upcoming
+    exams and subscribed sections.
   applies_to:
   - workspace-shell-navigation
 - id: overview.workspace-shell-navigation.private-cache-boundary
@@ -98,11 +76,21 @@ requirements:
     hydration; explicit anonymous results contain null viewer and navigation values.
   applies_to:
   - workspace-shell-navigation
-- id: overview.anonymous-overview.static-loader
-  category: consistency
-  rule: The loader returns localized static copy only and performs no business-data queries.
-  applies_to:
-  - anonymous-overview
+- id: overview.public-html-viewer-independent
+  category: privacy
+  rule: Public HTML contains no viewer identity, personal counts or other private workspace state.
+- id: overview.personal-next-action-page
+  category: presentation
+  rule: The authenticated workspace overview prioritizes the next personal learning action rather than
+    a complete catalog directory.
+- id: overview.workspace-card-disambiguation
+  category: presentation
+  rule: Course, section, campus and relevant priority context remain available to distinguish similarly
+    named objects without crowding the title.
+- id: overview.compact-operational-fields
+  category: presentation
+  rule: Compact workspace cards and default MCP output omit platform audit timestamps and repeated parent
+    objects.
 capabilities:
   authenticated-overview:
     title: Authenticated Workspace Overview
@@ -156,9 +144,6 @@ capabilities:
           Asia/Shanghai day.
         - Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact
           overview read operation.
-        - The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and
-          upcomingExams[] structure returned by default; use workspace_snapshot_get for a richer single-call
-          assistant snapshot.
     presentation:
       items:
       - pendingHomeworksCount
@@ -175,6 +160,9 @@ capabilities:
       - todo due today/due soon/all badges
       - Pending todos
       - Tab icons and counts
+    requirement_refs:
+    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - overview.historical-subscriptions-remain-discoverable
   workspace-shell-navigation:
     title: Workspace Shell Navigation Summary
     description: Private Web-only projection used to hydrate viewer identity and workspace sidebar counts
@@ -208,6 +196,9 @@ capabilities:
       - Pending todo count
       - Upcoming exam count
       - Subscribed section count
+    requirement_refs:
+    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - overview.historical-subscriptions-remain-discoverable
   workspace-snapshot:
     title: Assistant Workspace Snapshot & Focused Extracts
     auth: user
@@ -232,8 +223,6 @@ capabilities:
           filters on workspace_homework_list, workspace_schedule_list, and workspace_exam_list.
         - Default mode should stay assistant-compact; request full mode when the caller explicitly needs
           full nested schedule, room, teacher, or homework payloads.
-        - The deprecated summary input is an alias for default and must preserve the same top-level workspace
-          collections rather than introducing alternate wrapper shapes.
       - name: workspace_schedule_next
         notes:
         - Focused extract for 'what is my next class?' prompts; prefer workspace_snapshot_get when broader
@@ -254,6 +243,9 @@ capabilities:
       - upcomingDeadlines
       - todos.incompleteCount
       - bus.nextDeparture
+    requirement_refs:
+    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - overview.historical-subscriptions-remain-discoverable
   anonymous-overview:
     title: Anonymous Homepage
     auth: anon
@@ -266,3 +258,13 @@ capabilities:
       - Course discovery
       - Section discovery
       - Teacher discovery
+    requirement_refs:
+    - overview.workspace-shell-navigation.ssr-csr-hydration
+    - overview.historical-subscriptions-remain-discoverable
+rationale:
+- Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple
+  narrower tool calls.
+- Use workspace_snapshot_get for broad assistant context; workspace_schedule_next for 'what is my next
+  class?'; workspace_deadline_list for merged upcoming deadlines; workspace_overview_get only when lighter
+  counts and samples suffice.
+- The loader returns localized static copy only and performs no business-data queries.

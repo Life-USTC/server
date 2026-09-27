@@ -19,27 +19,14 @@ requirements:
 - id: subscribed-sections.grouped-by-semester
   category: presentation
   rule: The list is grouped by semester rather than presented as a single flat list.
-- id: subscribed-sections.retired-history
-  category: consistency
-  rule: Existing subscription relationships to retired Sections remain visible in the owner's subscribed
-    Sections list and can be removed. Retired Sections cannot be newly discovered or added and are omitted
-    from current personal calendar events/feeds.
 - id: subscribed-sections.section-codes-promoted
   category: presentation
-  rule: In the 'subscribed context', users manage specific section relationships, so section codes are
-    intentionally promoted.
+  rule: Subscribed-section management shows the section code alongside course name and teachers so multiple
+    offerings of the same course can be distinguished.
 - id: subscribed-sections.sidebar-summary-only
   category: presentation
   rule: The shell exposes one Section Subscriptions destination and an optional count badge; it must not
     mirror subscribed sections as dynamic child navigation.
-- id: subscribed-sections.legacy-sections-route
-  category: behavior
-  rule: /workspace/subscriptions/sections is a legacy redirect-only route to /workspace/subscriptions
-    and must not expose page actions.
-- id: subscribed-sections.subscription-kind
-  category: behavior
-  rule: 'Personal subscription items include kind: regular, auditor, or teaching_assistant. Public Section
-    facts remain unchanged. Non-regular kinds show badges in workspace and Bot.'
 capabilities:
   subscribed-sections-tab:
     title: Subscribed Sections Tab
@@ -91,3 +78,6 @@ capabilities:
       - section.teachers[]
       - section.credits
       - Row opens section subscription details and the available actions, including Unsubscribe
+    requirement_refs:
+    - section.retired-read-semantics
+    - subscription.personal-kind

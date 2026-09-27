@@ -22,25 +22,26 @@ requirements:
     through private client requests.
 - id: teacher.identified-by-name
   category: presentation
-  rule: Teacher objects are naturally identified by name.
+  rule: Teacher names are the primary display labels. Teachers with equal names remain distinct records
+    and display available department/title context for disambiguation.
 - id: teacher.section-code-auxiliary
   category: presentation
   rule: Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching
     section list.
 - id: teacher.public-list-cache
   category: consistency
-  rule: 'Public Teacher REST responses are deterministic by URL: omitted locale uses canonical zh-cn and
-    locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use
-    shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime
-    caching. Localized HTML pages use their locale-partitioned SSR cache.'
+  rule: Public teacher list REST output depends on URL locale/filter/pagination values, not Cookie or
+    Accept-Language. Omitted locale uses zh-cn and locale=en-us selects English.
+  rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
+    topology is an architecture choice; revision freshness and locale separation remain required.
 - id: teacher.mobile-detail-hierarchy
   category: presentation
-  rule: Teacher detail pages use a responsive title size and the Detail Two-Column Stream without a context-tab
-    rail on mobile.
+  rule: At mobile widths, teacher detail presents a readable localized name and directly reachable public
+    details without page-level horizontal overflow.
 - id: teacher.detail-canonical-url
   category: behavior
-  rule: The canonical teacher detail URL is `/catalog/teachers/[id]`. Legacy path segments and `?tab=`
-    deep links permanently redirect to the root; optional hash anchors scroll within the page.
+  rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content
+    within that page.
 - id: teacher.bounded-detail-history
   category: consistency
   rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
@@ -56,10 +57,15 @@ requirements:
   category: behavior
   rule: Public teacher payloads explicitly select allowed fields; never source-only columns such as age,
     postcode, QQ, or WeChat.
+  rationale: 'Product decision required: define exact public list, nested-reference and detail allowlists,
+    including whether email, telephone, mobile and address are approved for public publication. Existing
+    field selections do not establish approval.'
 - id: teacher.public-detail-cache
   category: consistency
-  rule: Anonymous REST, MCP, and single-entity GraphQL Teacher reads share a revision-, locale-, ID-,
-    and response-shape-scoped runtime cache. Missing entities are not cached.
+  rule: Public teacher detail reads never mix different entity IDs, locales, include shapes or imported
+    revisions. A missing entity is re-evaluated after an import.
+  rationale: A shared runtime cache is an implementation option; this requirement constrains observable
+    identity, shape and freshness.
 capabilities:
   teacher-list:
     title: Teacher List & Filter
@@ -76,9 +82,8 @@ capabilities:
       routes:
       - path: /api/catalog/teachers
         notes:
-        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated
-          limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are
-          rejected instead of clamped.
+        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters. Out-of-range
+          values are rejected instead of clamped.
     graphql:
       queries:
       - name: teachers

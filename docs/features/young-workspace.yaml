@@ -16,17 +16,22 @@ access:
 requirements:
 - id: young-workspace.subscription
   category: behavior
-  rule: Subscribing never registers attendance. Event subscriptions add activity instants to personal
-    calendars and ICS; organizer follows only create daily new-event digests.
+  rule: Subscribing to an activity does not register attendance with the official activity system.
 - id: young-workspace.ownership
   category: authorization
-  rule: User identity comes from the authenticated principal; private tables enforce owner RLS. Reads
-    are private/no-store.
+  rule: User identity for activity subscriptions and notifications comes only from the authenticated principal;
+    only the owner may read or mutate personal state.
 - id: young-workspace.reminders
   category: behavior
-  rule: Signup opening after subscription, deadline 24h before, event start 1h before, each independently
-    configurable. Scheduled generation every 10 minutes and refresh on notification listing. Expired reminders
-    excluded; important activity changes refresh calendar export and remove superseded reminders.
+  rule: Signup-opening reminders apply only when registration opens after subscription.
+  acceptance:
+    given: The viewer subscribes after registration has opened.
+    when: Signup-opening reminder candidates are evaluated.
+    then:
+    - No retroactive signup-opening reminder is generated.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminders
 - id: young-workspace.digest
   category: behavior
   rule: Previous Shanghai day newly discovered future events, after follow time, grouped per organizer;
@@ -37,9 +42,42 @@ requirements:
     bounds, maximum 366 days, paired bounds or default seven-day window. REST/GraphQL paginated; MCP complete
     unified event list. GraphQL boundary strings share service validation. Unknown event start times are
     not invented.
-- id: young-workspace.history
+- id: young-workspace.event-calendar-membership
   category: behavior
-  rule: Imported events and subscriptions survive source absence. Absence does not imply cancellation.
+  rule: Individual event subscriptions add known activity instants to personal calendars and ICS.
+- id: young-workspace.organizer-digest-only
+  category: behavior
+  rule: Organizer follows create new-event digests without automatically subscribing to their events.
+- id: young-workspace.private-response-cache
+  category: authorization
+  rule: Personal activity subscription and notification reads use private, no-store.
+- id: young-workspace.reminder-deadline-window
+  category: behavior
+  rule: Deadline reminders become eligible 24 hours before the deadline.
+  acceptance:
+    given: A subscribed event has a known future signup deadline and deadline reminders enabled.
+    when: Reminder candidates are evaluated immediately before and at the 24-hour threshold.
+    then:
+    - The deadline reminder is absent before the threshold and eligible at the threshold.
+    - At the deadline the expired candidate is absent.
+    test:
+      file: tests/unit/features/young/young-reminders.test.ts
+      name: young-workspace.reminder-deadline-window
+- id: young-workspace.reminder-start-window
+  category: behavior
+  rule: Event-start reminders become eligible one hour before the event starts.
+- id: young-workspace.reminder-settings
+  category: behavior
+  rule: Signup-opening, deadline and event-start reminders are independently configurable.
+- id: young-workspace.reminder-generation
+  category: behavior
+  rule: Reminder generation runs every ten minutes and refreshes on notification listing.
+- id: young-workspace.reminder-expiry
+  category: behavior
+  rule: Expired reminders are excluded from notification results.
+- id: young-workspace.reminder-source-change
+  category: behavior
+  rule: Material activity changes refresh the personal calendar export and remove superseded reminders.
 capabilities:
   workspace-young-event-subscription-list:
     title: youngEventSubscriptions
@@ -63,6 +101,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_list
         rest_equivalent: GET /api/workspace/young-event-subscriptions
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-event-subscription-get:
     title: youngEventSubscription
     auth: user
@@ -85,6 +125,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_get
         rest_equivalent: GET /api/workspace/young-event-subscriptions/[youngId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-list:
     title: youngOrganizerSubscriptions
     auth: user
@@ -107,6 +149,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_list
         rest_equivalent: GET /api/workspace/young-organizer-subscriptions
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-get:
     title: youngOrganizerSubscription
     auth: user
@@ -129,6 +173,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_get
         rest_equivalent: GET /api/workspace/young-organizer-subscriptions/[organizerId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-notification-list:
     title: youngNotifications
     auth: user
@@ -151,6 +197,8 @@ capabilities:
       tools:
       - name: workspace_young_notification_list
         rest_equivalent: GET /api/workspace/young-notifications
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-calendar-event-list:
     title: calendarEvents
     auth: user
@@ -173,6 +221,8 @@ capabilities:
       tools:
       - name: workspace_calendar_event_list
         rest_equivalent: GET /api/workspace/calendar/events
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-event-subscription-set:
     title: youngEventSubscriptionSet
     auth: user
@@ -195,6 +245,8 @@ capabilities:
       tools:
       - name: workspace_young_event_subscription_set
         rest_equivalent: PUT /api/workspace/young-event-subscriptions/[youngId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-organizer-subscription-set:
     title: youngOrganizerSubscriptionSet
     auth: user
@@ -217,6 +269,8 @@ capabilities:
       tools:
       - name: workspace_young_organizer_subscription_set
         rest_equivalent: PUT /api/workspace/young-organizer-subscriptions/[organizerId]
+    requirement_refs:
+    - young-event.snapshot-authoritative
   workspace-young-notification-read:
     title: youngNotificationRead
     auth: user
@@ -239,3 +293,5 @@ capabilities:
       tools:
       - name: workspace_young_notification_read
         rest_equivalent: POST /api/workspace/young-notifications/[id]/read
+    requirement_refs:
+    - young-event.snapshot-authoritative

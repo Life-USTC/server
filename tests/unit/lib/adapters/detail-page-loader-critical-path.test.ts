@@ -257,10 +257,7 @@ describe.each(["course", "teacher"] as const)(
     }
 
     if (kind === "course") {
-      it(
-        "rejects invalid course history pages before catalog reads",
-        rejectsInvalidPages,
-      );
+      it("course.history-page-validation", rejectsInvalidPages);
     } else {
       it(
         "rejects invalid teacher history pages before catalog reads",

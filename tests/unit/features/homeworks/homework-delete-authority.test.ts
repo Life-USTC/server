@@ -93,11 +93,11 @@ describe("homework deletion authority", () => {
     }
   }
 
-  it("enforces the specified ordinary deletion authority matrix", async () => {
+  it("homework.creator-only-delete", async () => {
     await verifyAuthority("homework.creator-only-delete");
   });
 
-  it("enforces the specified moderation deletion authority matrix", async () => {
+  it("homework.moderation-delete", async () => {
     await verifyAuthority("homework.moderation-delete");
   });
 });

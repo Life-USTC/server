@@ -16,25 +16,21 @@ access:
 requirements:
 - id: young-event.shared-public-cache
   category: consistency
-  rule: Public event lists, sanitized detail, categories, organizer identities and static counts share
-    the revision-scoped runtime cache across Web, REST, GraphQL and MCP. Query keys include normalized
-    filters, Shanghai date boundaries, ordering and pagination. Source freshness and organizer upcoming/history
-    counts are evaluated against the current clock outside the snapshot cache.
+  rule: Public event facts, sanitized detail, categories and organizer identity remain viewer-independent
+    and reflect the current imported revision. Moving source-freshness and upcoming/history counts use
+    the current reference clock.
 - id: young-event.private-client-overlays
   category: privacy
-  rule: Subscription controls and calendar conflicts share the root-layout viewer state and request their
-    private APIs with no-store only for signed-in viewers; an expired session returns the sign-in state.
-    They never issue a separate shell bootstrap request.
+  rule: Private event subscription and conflict APIs are requested with no-store only for signed-in viewers;
+    an expired session restores sign-in state.
 - id: young-event.public-no-signin
   category: authorization
   rule: Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn,
     so sign-in is not a prerequisite for browsing.
 - id: young-event.static-snapshot-sourced
   category: behavior
-  rule: Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs)
-    into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time
-    call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once
-    and caches it in R2.
+  rule: Catalog activity reads use the imported static snapshot and do not require request-time access
+    to authenticated Young APIs. Image retrieval is handled separately through the public image proxy.
 - id: young-event.snapshot-authoritative
   category: consistency
   rule: A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It
@@ -50,12 +46,14 @@ requirements:
     the sponsor and contact person, and the per-slot venue list. The upstream record, including itemPlaceDTO
     and its place details split into snapshot subtables, stays available under rawJson for REST, GraphQL,
     and MCP consumers.
+  rationale: 'Product decision required: Preservation for provenance is useful, but publishing entire
+    authenticated upstream rawJson conflicts with controlled public surface and sanitized-only text intent;
+    approve exact fields.'
 - id: young-event.rich-text-sanitized
   category: validation
-  rule: description and participationNotes are stored exactly as young.ustc.edu.cn published them. Every
-    interface sanitizes them at serialization time with the shared markdown whitelist (no scripts, iframes,
-    or event handlers) and rewrites young.ustc.edu.cn image URLs to the local cached proxy, so no client
-    ever renders raw upstream HTML or calls the upstream image host.
+  rule: 'Every public interface sanitizes description and participationNotes before exposing renderable
+    rich text: scripts, iframes and event handlers are removed, and young.ustc.edu.cn image URLs use the
+    local image proxy.'
 - id: young-event.signup-state
   category: behavior
   rule: The upstream activity status label and code (status, activityStatusCode) are distinct from the
@@ -64,37 +62,28 @@ requirements:
     empty upstream registrationStatus key remains only in rawJson.
 - id: young-event.image-proxy-cached
   category: consistency
-  rule: The public imageUrl is a local proxy path (/api/catalog/young-events/[youngId]/image). On first
-    miss the route fetches https://young.ustc.edu.cn/login/<pic>, stores bytes in R2 under young-events/images/<pic>,
-    and serves immutable year-long cache headers. Final responses are also held in the per-colo Cache
-    API keyed by youngId for their Cache-Control TTL (200 long-term, 404 for 300s, 502 for 60s); the 503
-    storage-unavailable response is never cached.
+  rule: Public Young image responses use the local proxy. Immutable cache entries must identify the poster
+    representation; changing an event's poster must not continue serving old bytes under an unchanged
+    immutable representation.
 - id: young-event.shanghai-local-times
   category: consistency
   rule: Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only
     range boundaries use Asia/Shanghai day boundaries.
 - id: young-event.date-range-overlap
   category: consistency
-  rule: dateFrom/dateTo include every overlapping interval selected by timeBasis=activity or registration.
-    Rows missing the selected start time are counted in unknownDateCount and can be paginated with dateUnknown=true.
-    A missing end time is treated as a point at the known start.
+  rule: Activity date-range searches include intervals overlapping the selected activity or registration
+    time basis; a known start with no end is treated as a point.
 - id: young-event.read-only
   category: authorization
   rule: Events are imported facts; no transport exposes writes.
 - id: young-event.structured-participation
   category: behavior
-  rule: Source category/module/form/level codes, organization IDs, tag IDs and signup scope IDs remain
-    opaque, separate from labels and local organizer identity. Participation columns cover strict binary
-    signup-info and online flags, meeting text, normalized attachment extensions and external sponsor;
-    blank or placeholder sponsor text is null. Arrays use [] for missing values. Internal workflow fields
-    stay in rawJson.
+  rule: Source category/module/form/level, organization, tag and signup-scope codes remain opaque and
+    separate from labels and local organizer identity.
 - id: young-event.display-known-values
   category: presentation
-  rule: Web shows registration requirements, meeting information, accepted attachment formats and external
-    sponsor when supplied. isOnline reflects the upstream online-meeting option, not an exclusive activity
-    format; false never implies in-person attendance. Unknown occupancy is not zero. Partial time ranges
-    label their known endpoint in Asia/Shanghai; unknown scope codes are not translated into eligibility
-    claims.
+  rule: Published registration requirements, meeting information, accepted attachment formats and external
+    sponsor are shown when supplied.
 - id: young-event.web-browse-context
   category: presentation
   rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
@@ -102,9 +91,9 @@ requirements:
     active filter explicitly.
 - id: young-event.web-organizer-order
   category: presentation
-  rule: Web organizer browsing orders organizers with at least one isActive event first, then others;
-    each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and
-    MCP organizer ordering remains alphabetical.
+  rule: Web organizer discovery places organizers with source-active events before other organizers, with
+    alphabetical order and stable ID ties within each group. REST, GraphQL and MCP order alphabetically.
+    Source-active does not imply registration is open.
 - id: young-event.web-detail-priority
   category: presentation
   rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
@@ -120,6 +109,36 @@ requirements:
     校级, 省级 and 国家级. Other upstream values remain visible as badges but do not become filter choices.
   surfaces:
   - web
+  rationale: 'Product decision required: Fixed known taxonomy is simple but hiding valid other upstream
+    values from filters can make relevant events undiscoverable; decide unknown/other filtering policy.'
+- id: young-event.overlay-shared-viewer-state
+  category: privacy
+  rule: Event subscription/conflict controls reuse root viewer state without issuing a separate shell
+    bootstrap request.
+- id: young-event.unknown-date-results
+  category: consistency
+  rule: Rows lacking the selected start time contribute to unknownDateCount and are available through
+    paginated dateUnknown results.
+- id: young-event.participation-flag-normalization
+  category: behavior
+  rule: Participation signup-info and online flags use strict binary source interpretation; missing arrays
+    serialize as empty arrays.
+- id: young-event.participation-sponsor-normalization
+  category: behavior
+  rule: Blank or placeholder sponsor values serialize as null; attachment extensions are normalized without
+    inventing unsupported formats.
+- id: young-event.online-option-uncertainty
+  category: presentation
+  rule: isOnline describes the upstream online-meeting option; false does not imply in-person attendance.
+- id: young-event.occupancy-uncertainty
+  category: presentation
+  rule: Unknown activity occupancy is displayed as unknown rather than zero.
+- id: young-event.partial-time-uncertainty
+  category: presentation
+  rule: Partial time ranges label the known endpoint in Asia/Shanghai.
+- id: young-event.scope-uncertainty
+  category: presentation
+  rule: Unknown signup-scope codes are never translated into eligibility claims.
 capabilities:
   young-event:
     title: Second-Classroom Events
@@ -144,8 +163,8 @@ capabilities:
         - Date ranges include overlapping known intervals; unknown start times are counted separately
           and available through the paginated dateUnknown filter. source reports fresh, stale, or unknown
           snapshot freshness; sourceMissing marks rows absent from the latest complete snapshot.
-        - 'Default order: signup-open (active) events first, then by startAt descending; imageUrl is the
-          local cached proxy path.'
+        - 'Default order: source-active events first, then by startAt descending; imageUrl is the local
+          cached proxy path.'
       - path: /api/catalog/young-events/[youngId]
         notes:
         - 404 when the youngId is unknown.

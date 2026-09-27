@@ -128,7 +128,7 @@ describe("teaching assistant pending scope", () => {
   });
 });
 
-it("derives completion requirements from the specification without changing records", () => {
+it("homework.teaching-assistant-completion", () => {
   const specification = homeworkExpectation(
     "homework.teaching-assistant-completion",
     "subscription_completion",
@@ -147,7 +147,7 @@ it("derives completion requirements from the specification without changing reco
   expect(original).toEqual(snapshot);
 });
 
-it("applies the specified TA pending deadline boundaries", () => {
+it("homework.teaching-assistant-pending", () => {
   const specification = homeworkExpectation(
     "homework.teaching-assistant-pending",
     "pending_deadline",

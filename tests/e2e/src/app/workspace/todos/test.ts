@@ -91,7 +91,7 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-seed");
   });
 
-  test("移动端待办工具栏保留筛选和大尺寸主操作", async ({ page }, testInfo) => {
+  test("todo.web-create-target", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
@@ -196,7 +196,7 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-toggle");
   });
 
-  test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
+  test("todo.web-completed-title", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
     const titleRule = await todoExpectation(
@@ -242,7 +242,7 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-completed");
   });
 
-  test("待办详情弹窗展示优先级、状态与底部操作", async ({ page }, testInfo) => {
+  test("todo.web-detail-actions", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/workspace/todos");
 
     await visibleText(page, DEV_SEED.todos.dueTodayTitle).first().click();

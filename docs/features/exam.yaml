@@ -19,46 +19,19 @@ requirements:
 - id: exam.complete-workspace-list
   category: consistency
   rule: Workspace exam lists cover all subscribed active sections across all semesters, including past
-    exams and unknown dates by default. REST and GraphQL are paginated; the CLI exhausts REST pagination
-    unless page or limit is explicitly selected, preserves the true result total and displays each exam's
-    semester. Failed later pages fail the command instead of returning a partial success.
-  acceptance:
-  - id: exam.complete-workspace-list.owned-pages
-    given: Two users subscribe to different sections, and the first user has four exams across semesters
-      including an unknown-date exam.
-    when: The first user reads successive two-row REST-model pages without a date or semester filter.
-    then:
-    - Both pages preserve total=4 and together contain all four owned exams.
-    - The unknown-date exam and its semester context remain present.
-    - The second user sees only their separately subscribed exam.
-    tests:
-    - file: tests/integration/workspace-exam-list.test.ts
-      name: returns four owned exams across real pages with semester context and unknown dates
-  - id: exam.complete-workspace-list.scope-rejection
-    given: An active OAuth grant has a correctly signed REST token containing only workspace.overview:read.
-    when: The client requests the subscribed exam REST list with that token.
-    then:
-    - The request is rejected without returning exam data.
-    tests:
-    - file: tests/integration/workspace-exam-list.test.ts
-      name: rejects an active, correctly signed overview-only token without returning exam data
-  - id: exam.complete-workspace-list.retired-subscription
-    given: The owner still subscribes to a retired section with an exam.
-    when: The owner requests the complete workspace exam list.
-    then:
-    - The retired exam is excluded from the list and total.
-    - The subscription relationship is preserved.
-    tests:
-    - file: tests/integration/workspace-exam-list.test.ts
-      name: excludes retired sections while preserving the owner's subscription relationship
+    exams and unknown dates by default. REST and GraphQL return paginated results with the complete total
+    and semester context.
 - id: exam.source-audience-and-monitors
   category: consistency
   rule: Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved
     by import and exposed with exam records. Monitor school IDs are required, while missing names remain
     null. Monitor identities are not inferred from teacher names; no contact information is included.
+  rationale: 'Product decision required: Preserving source facts is sensible, but public exposure of required
+    monitor school IDs needs a publication purpose/allowlist distinct from importer integrity.'
 - id: exam.attached-to-section
   category: behavior
-  rule: Exams are attached to sections and are high-priority time events.
+  rule: Every exam belongs to a section; personal exam views include the section and semester context
+    needed to distinguish the offering.
 - id: exam.read-only
   category: authorization
   rule: Exams are read-only; no ordinary user edit entry point is provided.
@@ -72,13 +45,59 @@ requirements:
     end instant counts as completed.
 - id: exam.mobile-toolbar-priority
   category: presentation
-  rule: At mobile widths, completion-status filters stay directly available, card/list display mode moves
-    into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target.
-    Desktop toolbar behavior remains unchanged.
-- id: exam.section-exam-query
+  rule: Mobile exam completion-status filters remain directly accessible.
+- id: exam.owned-page-completeness
   category: consistency
-  rule: A public section exam read fetches section context and its ordered exam children in one top-level
-    Section query.
+  rule: The REST exam read model returns complete, stably paginated owner-subscription results across
+    semesters, retaining unknown-date exams and the same total on every page.
+  acceptance:
+    given: Two users subscribe to different sections, and the first user has four exams across semesters
+      including an unknown-date exam.
+    when: The first user reads successive two-row REST-model pages without a date or semester filter.
+    then:
+    - Both pages preserve total=4 and together contain all four owned exams.
+    - The unknown-date exam and its semester context remain present.
+    - The second user sees only their separately subscribed exam.
+    test:
+      file: tests/integration/workspace-exam-list.test.ts
+      name: exam.owned-page-completeness
+- id: exam.rest-read-scope
+  category: authorization
+  rule: A valid active REST bearer grant lacking workspace.exam:read cannot read subscribed exams.
+  acceptance:
+    given: An active OAuth grant has a correctly signed REST token containing only workspace.overview:read.
+    when: The client requests the subscribed exam REST list with that token.
+    then:
+    - The request is rejected without returning exam data.
+    test:
+      file: tests/integration/workspace-exam-list.test.ts
+      name: exam.rest-read-scope
+- id: exam.retired-exam-exclusion
+  category: consistency
+  rule: Workspace exam lists and totals exclude retired sections without deleting their existing subscription
+    relationships.
+  acceptance:
+    given: The owner still subscribes to a retired section with an exam.
+    when: The owner requests the complete workspace exam list.
+    then:
+    - The retired exam is excluded from the list and total.
+    - The subscription relationship is preserved.
+    test:
+      file: tests/integration/workspace-exam-list.test.ts
+      name: exam.retired-exam-exclusion
+- id: exam.cli-complete-list
+  category: behavior
+  rule: The CLI exhausts REST exam pagination unless page or limit is explicitly selected, preserves the
+    complete total, and displays each exam's semester. A failed later page fails the command instead of
+    returning partial success.
+  rationale: The CLI repository owns command-level acceptance evidence; server tests do not prove this
+    client behavior.
+- id: exam.mobile-display-overflow
+  category: presentation
+  rule: Mobile exam card/list display selection is available in a keyboard-accessible overflow menu.
+- id: exam.mobile-toolbar-targets
+  category: presentation
+  rule: Mobile exam toolbar controls provide touch targets at least 44 by 44 CSS pixels.
 capabilities:
   cross-section-exam-list:
     title: Cross-Section Exam List
@@ -160,3 +179,6 @@ capabilities:
       - exam.examBatch.id
       - exam.examBatch.namePrimary
       - exam.examRooms[]
+rationale:
+- A public section exam read fetches section context and its ordered exam children in one top-level Section
+  query.

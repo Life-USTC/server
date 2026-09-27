@@ -587,7 +587,7 @@ describe("GraphQL homework CRUD mutations", () => {
   });
 });
 
-it("GraphQL completion batches enforce specified bounds and duplicate policy with a real bearer principal", async () => {
+it("homework.graphql-completion-batch-input", async () => {
   const specification = homeworkExpectation(
     "homework.graphql-completion-batch-input",
     "collection_input",

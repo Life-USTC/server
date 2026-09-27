@@ -18,10 +18,7 @@ access:
 requirements:
 - id: bus.public-web-personal-overlay
   category: privacy
-  rule: The Web timetable renders public timetable data without user preferences, then fetches the private
-    bus-preferences endpoint after hydration. Preference writes are disabled until this request resolves;
-    authentication and read failures do not silently overwrite stored preferences. Request-time timetable
-    and map SSR remain dynamic.
+  rule: Public bus HTML contains public timetable data without saved user preferences.
 - id: bus.public-no-signin
   category: authorization
   rule: Bus is public campus life information; sign-in should not be a prerequisite.
@@ -36,30 +33,23 @@ requirements:
     with the browser's timezone.
 - id: bus.core-filters-only
   category: presentation
-  rule: The workspace bus page provides only core filters for departure stop, arrival stop, direction
-    reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable
-    vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.
+  rule: The bus planner exposes departure campus, arrival campus, direction reversal, day type and show-departed
+    controls. On mobile, route controls may use progressive disclosure while the next departure remains
+    directly visible.
 - id: bus.visual-priority
   category: presentation
-  rule: The workspace visual structure should prioritize 'quick scanning of the next trip and route differences';
-    selected stop, direction, next departure time, and route grouping must be more prominent than decorative
-    cards.
+  rule: The bus planner presents the next boardable departure together with the selected origin, destination
+    and route before secondary route details and decorative content.
 - id: bus.public-responsive-planner
   category: presentation
-  rule: The public /catalog/bus page restores the complete two-column route planner and grouped timetable
-    at desktop widths. On mobile it leads with the next boardable departure and up to two following departures,
-    keeps route controls behind progressive disclosure, and shows the complete grouped timetable by default
-    with an option to collapse it. A valid recent local route is reused when no signed-in preference is
-    available.
-- id: bus.semantic-public-route
-  category: behavior
-  rule: Anonymous /?tab=bus requests permanently redirect to /catalog/bus; signed-in compatibility requests
-    redirect to /catalog/bus.
+  rule: Desktop bus planning presents route controls alongside a complete grouped timetable.
 - id: bus.sort-by-next-boardable
   category: presentation
   rule: Routes are currently sorted by 'the next boardable time from the selected departure stop'; if
     a stop has no exact time in the original timetable, the average of adjacent known stop times in the
     same trip is used as an estimate.
+  rationale: 'Product decision required: Sorting by useful departure is valid; averaging adjacent stop
+    times invents boardability without a stated confidence/display policy or overnight rules.'
 - id: bus.merged-table-grouped-by-route
   category: presentation
   rule: The signed-in workspace and the public /catalog/bus default timetable use a single merged large
@@ -67,9 +57,9 @@ requirements:
     visible trips for that route.
 - id: bus.raw-data-returned
   category: behavior
-  rule: /api/catalog/bus and catalog_bus_timetable_get return raw route/stop/trip data within the selected
-    timetable version; the preferences field is null for anonymous callers and returns the authenticated
-    caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.
+  rule: GET /api/catalog/bus and full mode of catalog_bus_timetable_get return the selected version's
+    route, stop and trip dataset without client-side route filtering or ordering. Anonymous output has
+    null preferences; authenticated preferences belong only to the caller.
 - id: bus.version-topology-self-contained
   category: consistency
   rule: When versionKey selects a historical timetable version, routes, stops, campuses, and trips are
@@ -82,35 +72,55 @@ requirements:
   category: consistency
   rule: catalog_bus_route_list only lists routes actually present in the current active timetable version;
     it does not expose historical route IDs outside the current version.
-- id: bus.workspace-vs-map
-  category: behavior
-  rule: The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
 - id: bus.public-version-metadata-omitted
   category: presentation
-  rule: Public bus workspace pages omit timetable version metadata rather than showing an unlabeled or
-    unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.
+  rule: Public bus pages do not display opaque imported version keys or unlocalized version titles as
+    user-facing labels.
 - id: bus.responsive-route-surfaces
   category: presentation
-  rule: Bus planner and transit-map pages keep document content within narrow viewports, provide at least
-    44 CSS pixels of height for primary route actions, wrap stop sequences only between complete arrow-and-stop
-    tokens, and keep campus labels legible over route strokes.
-- id: bus.task-oriented-tool-hierarchy
-  category: presentation
-  rule: Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,
-    catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next
-    for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for
-    personal defaults.
+  rule: Bus planner and transit-map content fit narrow viewports without page-level horizontal overflow.
 - id: bus.canonical-compact-mode
   category: presentation
-  rule: catalog_bus_timetable_get default mode returns compact counts, route/campus summaries, and relevant
-    departures rather than the full trip dataset; the deprecated summary input is an alias for this same
-    shape.
+  rule: The default catalog_bus_timetable_get response contains counts, route/campus summaries and relevant
+    next departures. Full mode returns the complete timetable dataset.
 - id: bus.cache-boundaries
   category: consistency
-  rule: Raw timetable REST responses remain private because they may contain viewer preferences; route-search
-    REST responses may use revision-purged public edge caching, while all next-departure responses remain
-    private and uncached. The bus map dynamically renders request-time active trips while reusing revision-scoped
-    static schedule and topology data.
+  rule: Timetable REST responses containing optional viewer preferences use private caching.
+- id: bus.preference-hydration-write-gate
+  category: privacy
+  rule: Web preference writes remain disabled until the private preference read succeeds. Authentication
+    or read failures never overwrite stored preferences.
+- id: bus.request-time-planning
+  category: privacy
+  rule: Bus planner and map results reflect their request reference time rather than a previously rendered
+    page's departure state.
+- id: bus.mobile-next-departures
+  category: presentation
+  rule: On mobile, the bus planner leads with the next boardable departure and at most two following departures.
+- id: bus.mobile-full-timetable
+  category: presentation
+  rule: On mobile, route controls use progressive disclosure and the complete grouped timetable is initially
+    visible with a collapse action.
+- id: bus.recent-route-precedence
+  category: presentation
+  rule: A valid recently selected local route is reused when no signed-in route preference is available;
+    signed-in preferences take precedence.
+- id: bus.primary-route-action-size
+  category: presentation
+  rule: Primary bus route actions are at least 44 CSS pixels high.
+- id: bus.stop-label-wrapping
+  category: presentation
+  rule: Route stop sequences wrap only between complete arrow-and-stop tokens.
+- id: bus.map-label-legibility
+  category: presentation
+  rule: Campus map labels remain legible where they intersect route strokes.
+- id: bus.next-departures-uncached
+  category: consistency
+  rule: Time-sensitive next-departure responses are private and uncached.
+- id: bus.route-search-public-cache
+  category: consistency
+  rule: Viewer-independent route-search responses may be publicly cached only while their imported revision
+    remains current.
 capabilities:
   bus-timetable:
     title: Bus Timetable
@@ -158,9 +168,8 @@ capabilities:
       - name: catalog_bus_timetable_get
         rest_equivalent: GET /api/catalog/bus
         notes:
-        - default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes,
-          and relevant nextDepartures instead of the full trip dataset; deprecated summary is an alias
-          for default.
+        - 'default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes,
+          and relevant nextDepartures instead of the full trip dataset; '
         - Request full mode for the raw campuses/routes/trips dataset.
       - name: catalog_bus_route_list
         rest_equivalent: GET /api/catalog/bus
@@ -239,8 +248,8 @@ capabilities:
           bounds 1-50.'
         - When a route exists but no remaining departures are available for the requested window, return
           guidance describing the situation and, when possible, the next available service time.
-        - Default and the deprecated summary alias avoid repeating the same originCampus/destinationCampus
-          object inside every departure item when they already appear at the top level.
+        - Default mode avoid repeating the same originCampus/destinationCampus object inside every departure
+          item when they already appear at the top level.
     presentation:
       items:
       - originCampus
@@ -265,3 +274,9 @@ capabilities:
       - Active trips derived from timetable times
       - Campus locations reference
       - Interactive map controls
+rationale:
+- The workspace prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
+- Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery,
+  catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next
+  for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for
+  personal defaults.

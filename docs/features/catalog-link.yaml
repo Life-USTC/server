@@ -18,33 +18,31 @@ access:
 requirements:
 - id: catalog-link.public-web-personal-overlay
   category: authorization
-  rule: Public links HTML is identical for anonymous and signed-in viewers. A session-only private no-store
-    Web projection loads click counts and pins after hydration; pin controls are enabled only after the
-    viewer projection succeeds. Existing public REST, GraphQL and MCP capabilities are unchanged.
-- id: catalog-link.navigation-not-feed
-  category: presentation
-  rule: Frequent links are a navigation capability, not a content feed.
+  rule: Public links HTML contains no personal pin or click state. A session-only private, no-store projection
+    supplies the current viewer's personal state after hydration.
 - id: catalog-link.search-fuzzy
   category: behavior
   rule: Search supports Chinese, pinyin, and whitespace-tolerant matching.
-- id: catalog-link.links-vs-buttons
-  category: presentation
-  rule: Links are for navigation; buttons are for actions.
 - id: catalog-link.pin-limit
   category: validation
   rule: Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.
-- id: catalog-link.semantic-public-route
-  category: behavior
-  rule: Legacy query navigation resolves to the canonical /catalog/links page for both anonymous and signed-in
-    users.
+  rationale: 'Product decision required: Four may fit the intended UI, but silently evicting earliest
+    user choice is a destructive UX policy needing explicit feedback and retry semantics.'
 - id: catalog-link.pin-error-clear
   category: presentation
-  rule: When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as
-    successes.
+  rule: A failed pin/unpin write returns an error and does not report successful state. The Web interface
+    retains the last confirmed state and displays a localized failure message.
 - id: catalog-link.visit-tracking-link
   category: behavior
-  rule: Campus link cards use GET /api/catalog/links/resolve?slug=… tracking links (not POST forms) so
-    navigation works as a normal hyperlink.
+  rule: Campus link cards use ordinary GET hyperlinks to the visit resolver, preserving browser link behavior.
+- id: catalog-link.visit-owner-count
+  category: behavior
+  rule: A public visit redirect records click count only for its authenticated viewer. Anonymous visits
+    do not write personal click state.
+- id: catalog-link.pin-write-gate
+  category: authorization
+  rule: Pin/unpin controls remain disabled until the viewer's private pin projection succeeds; unresolved
+    or failed personal state never initiates a preference write.
 capabilities:
   link-browse:
     title: Link Browse & Search
@@ -141,3 +139,5 @@ capabilities:
       - link.slug visit action
       - Pin/unpin button
       - Pinned indicator
+rationale:
+- Frequent links are a navigation capability, not a content feed.

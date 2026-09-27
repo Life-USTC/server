@@ -14,9 +14,6 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
-- id: homework.attached-to-section
-  category: behavior
-  rule: Homework is attached to a section, not a personal user todo.
 - id: homework.no-subscription-required
   category: authorization
   rule: Creating homework does not require the user to be subscribed to the section first.
@@ -28,7 +25,6 @@ requirements:
   category: presentation
   applies_to:
   - cross-section-homework-summary
-  - section-homework-tab
   expectation:
     kind: state_visibility
     surface: web
@@ -48,15 +44,14 @@ requirements:
     restore_on_incomplete:
     - deadline_reminder
   acceptance:
-  - id: homework.completed-deadline-display.verified
     given: Upcoming and overdue homework has both non-default badges.
     when: Completion is set and then cleared in desktop and mobile workspace views.
     then:
     - Each specified visible field remains visible on each target.
     - The specified reminder is hidden when complete and restored when incomplete.
-    tests:
-    - file: tests/e2e/src/app/workspace/homeworks/list-state.test.ts
-      name: 已完成作业在列表卡片和详情中按规格显示状态
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/list-state.test.ts
+      name: homework.completed-deadline-display
 - id: homework.teaching-assistant-completion
   category: consistency
   applies_to:
@@ -69,18 +64,14 @@ requirements:
     completion_required: false
     preserve_records: true
   acceptance:
-  - id: homework.teaching-assistant-completion.verified
     given: A viewer has the specified subscription kind and an existing completion record.
     when: Completion requirements are derived for that viewer.
     then:
     - The specified completionRequired value is attached.
     - The existing completion record is preserved.
-    tests:
-    - file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: derives completion requirements from the specification without changing records
-    - file: tests/integration/ta-homework-state.test.ts
-      name: derives TA pending membership before pagination and preserves actual completion across role/deadline
-        changes
+    test:
+      file: tests/unit/features/homeworks/homework-completion-state.test.ts
+      name: homework.teaching-assistant-completion
 - id: homework.mobile-toolbar-priority
   category: presentation
   applies_to:
@@ -95,26 +86,23 @@ requirements:
     min_width: 44
     min_height: 44
   acceptance:
-  - id: homework.mobile-toolbar-priority.verified
     given: The workspace homework page is open at the specified mobile viewport.
     when: The create action is measured in the browser.
     then:
     - Its width and height meet the specified minimum CSS pixels.
-    tests:
-    - file: tests/e2e/src/app/workspace/homeworks/mobile.test.ts
-      name: 移动端保留直接筛选和足够大的新建操作
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/mobile.test.ts
+      name: homework.mobile-toolbar-priority
+  rationale: This requirement covers the create action touch target only. Responsive list/card layout
+    and completion filters are specified independently.
 - id: homework.compact-card-list-surface
   category: presentation
-  rule: In card and list views, the default homework surface only shows title, subtitle (course name when
-    useful plus non-default attribute badges), submission due date, relative due label, and a small completion
-    action. Standard/default homework is not shown as a separate badge. Course/section context, description,
-    homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens
-    on click and closes via outside click or Escape.
+  rule: Default homework cards/lists show title, useful course subtitle, non-default major/team badges,
+    due date, relative due label and completion action. Standard/default homework has no redundant badge.
 - id: homework.homework-style-guide-advisory
   category: presentation
-  rule: Section create and edit forms expose the collapsible advisory guide defined by the homework-naming
-    policy. The workspace create form deliberately omits the guide. Naming and description conventions
-    remain advisory on every surface and never block otherwise valid writes.
+  rule: Homework naming/description guidance is advisory on every surface and never rejects otherwise
+    valid writes.
 - id: homework.creator-only-delete
   category: authorization
   applies_to:
@@ -171,30 +159,19 @@ requirements:
     - audit
     - calendar
   acceptance:
-  - id: homework.creator-only-delete.verified
     given: Each specified identity attempts to delete an active homework.
     when: The ordinary delete service runs.
     then:
     - Each case returns the specified outcome.
     - Rejected cases perform none of the specified side effects.
-    tests:
-    - file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: enforces the specified ordinary deletion authority matrix
+    test:
+      file: tests/unit/features/homeworks/homework-delete-authority.test.ts
+      name: homework.creator-only-delete
 - id: homework.completion-set-idempotency
   category: consistency
   rule: Setting completed=true on an existing completion preserves its original completedAt; repeated
     single and batch completion requests are idempotent. Setting false removes the completion, and a subsequent
     true records a new completion time.
-  acceptance:
-  - id: homework.completion-set-idempotency.preserved-owner-record
-    given: The owner completion upsert returns an existing completedAt timestamp.
-    when: The owner sets completed=true through the shared completion service.
-    then:
-    - The upsert leaves existing completion fields unchanged.
-    - The service returns the stored completedAt timestamp.
-    tests:
-    - file: tests/unit/features/homeworks/homework-completion-rls-context.test.ts
-      name: validates and upserts through one owner transaction
 - id: homework.moderation-delete
   category: authorization
   applies_to:
@@ -233,15 +210,14 @@ requirements:
     - audit
     - calendar
   acceptance:
-  - id: homework.moderation-delete.verified
     given: Each specified identity attempts to delete an active homework.
     when: The explicit moderation delete service runs.
     then:
     - Only allowed cases change the homework and write the deletion audit.
     - Rejected cases perform none of the specified side effects.
-    tests:
-    - file: tests/unit/features/homeworks/homework-delete-authority.test.ts
-      name: enforces the specified moderation deletion authority matrix
+    test:
+      file: tests/unit/features/homeworks/homework-delete-authority.test.ts
+      name: homework.moderation-delete
 - id: homework.teaching-assistant-pending
   category: consistency
   applies_to:
@@ -255,17 +231,17 @@ requirements:
     after_deadline: false
     completed: false
   acceptance:
-  - id: homework.teaching-assistant-pending.verified
     given: An incomplete homework is viewed by a subscriber of the specified kind.
     when: Pending membership is evaluated around the deadline and after actual completion.
     then:
     - Every boundary returns its specified pending value.
-    tests:
-    - file: tests/unit/features/homeworks/homework-completion-state.test.ts
-      name: applies the specified TA pending deadline boundaries
+    test:
+      file: tests/unit/features/homeworks/homework-completion-state.test.ts
+      name: homework.teaching-assistant-pending
 - id: homework.teaching-assistant-label
   category: presentation
-  rule: Every homework surface displays 无需完成 / No completion required for teaching-assistant subscriptions.
+  rule: Authenticated personal homework views display 无需完成 / No completion required for teaching-assistant
+    subscriptions. Public and anonymous views do not infer or expose a viewer's subscription kind.
 - id: homework.rest-completion-batch-input
   category: behavior
   applies_to:
@@ -279,17 +255,17 @@ requirements:
     max_items: 100
     unique_items: false
   acceptance:
-  - id: homework.rest-completion-batch-input.verified
     given: Authenticated completion writes provide boundary-sized item arrays and duplicate homework IDs.
     when: The real REST adapter parses each input.
     then:
     - Both inclusive size boundaries are accepted and out-of-range sizes rejected before writes.
     - Duplicate target IDs follow the specified uniqueness policy.
-    tests:
-    - file: tests/unit/features/homeworks/homework-batch-specification.test.ts
-      name: enforces the specified REST completion batch boundaries
-    - file: tests/integration/rest/homeworks/completions/test.ts
-      name: REST completion batches enforce specified bounds and duplicate policy over HTTP
+    test:
+      file: tests/integration/rest/homeworks/completions/test.ts
+      name: homework.rest-completion-batch-input
+  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
+    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
+    bounds tests do not establish final duplicate-write state.'
 - id: homework.graphql-completion-batch-input
   category: behavior
   applies_to:
@@ -303,18 +279,17 @@ requirements:
     max_items: 100
     unique_items: true
   acceptance:
-  - id: homework.graphql-completion-batch-input.verified
     given: Authenticated completion writes provide boundary-sized item arrays and duplicate homework IDs.
     when: The real GRAPHQL adapter parses each input.
     then:
     - Both inclusive size boundaries are accepted and out-of-range sizes rejected before writes.
     - Duplicate target IDs follow the specified uniqueness policy.
-    tests:
-    - file: tests/unit/features/homeworks/homework-batch-specification.test.ts
-      name: enforces the specified GRAPHQL completion batch boundaries
-    - file: tests/integration/graphql-homework-mutations.test.ts
-      name: GraphQL completion batches enforce specified bounds and duplicate policy with a real bearer
-        principal
+    test:
+      file: tests/integration/graphql-homework-mutations.test.ts
+      name: homework.graphql-completion-batch-input
+  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
+    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
+    bounds tests do not establish final duplicate-write state.'
 - id: homework.public-section-read
   category: authorization
   rule: Anonymous viewers can read homework under public sections.
@@ -326,12 +301,35 @@ requirements:
   rule: Each user can only manage their own completion state.
 - id: homework.oauth-write-gates
   category: authorization
-  rule: REST, GraphQL and MCP homework mutations require the action-specific OAuth scope when called with
-    a bearer token; ordinary deletion retains creator authority through every transport.
+  rule: Bearer-authenticated REST, GraphQL and MCP homework mutations require the action-specific OAuth
+    scope.
 - id: homework.responsive-workspace-view
   category: presentation
   rule: Workspace homework displays cards on mobile and lists on desktop, with directly available completion
     filters and no view-mode control.
+- id: homework.detail-secondary-content
+  category: presentation
+  rule: Homework description, additional timestamps, discussion and secondary actions are available in
+    the detail dialog rather than crowded into compact cards.
+- id: homework.detail-dialog-dismissal
+  category: presentation
+  rule: Homework details open in a centered dialog and can be closed using Escape or an outside click.
+- id: homework.section-style-guide
+  category: presentation
+  rule: Section homework create/edit forms expose the collapsible homework-naming guide.
+- id: homework.workspace-style-guide-omitted
+  category: presentation
+  rule: The workspace homework create form omits the section-context advisory guide.
+- id: homework.transport-creator-delete
+  category: authorization
+  rule: Ordinary homework deletion retains creator-only authority on REST, GraphQL and MCP; administrator
+    moderation is a separate capability.
+- id: homework.section-completed-deadline-display
+  category: presentation
+  applies_to:
+  - section-homework-tab
+  rule: Completed homework in a personal section view retains due datetime, completion state and non-default
+    major/team badges while hiding the deadline reminder; reopening restores the reminder.
 capabilities:
   cross-section-homework-summary:
     title: Cross-Section Homework Summary
@@ -408,8 +406,8 @@ capabilities:
       routes:
       - path: /api/community/section-homeworks
         notes:
-        - Accepts sectionJwId to match the MCP tool's public section identifier, while preserving sectionId
-          and sectionIds for existing REST clients.
+        - Accepts sectionJwId to match the MCP tool's public section identifier, and also supports sectionId
+          and sectionIds for callers with resolved IDs.
         - 'The paginated list is summary-only: it keeps title, scheduling, completion, permission, and
           comment-count fields without descriptions, section/course relations, editor relations, or audit
           history.'
@@ -480,9 +478,8 @@ capabilities:
         auth: user
         rest_equivalent: POST /api/community/section-homeworks
         notes:
-        - REST accepts either sectionId for compatibility or sectionJwId to match the MCP tool's public
-          section identifier; when both are supplied, they must resolve to the same section or the request
-          returns 400.
+        - REST accepts sectionId or sectionJwId to match the MCP tool's public section identifier; when
+          both are supplied, they must resolve to the same section or the request returns 400.
         - Returns the created homework snapshot so MCP clients can continue with follow-up actions without
           an extra read.
         - Description advertises the advisory 第{N}次作业 / {主题}作业 title patterns and ordered 题目 / 提交方式 /
@@ -531,7 +528,7 @@ capabilities:
       routes:
       - path: /api/admin/homeworks
         notes:
-        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+        - Accepts page and pageSize.
       - path: /api/admin/homeworks/[id]
         method: DELETE
     mcp: unavailable
@@ -599,3 +596,5 @@ capabilities:
     requirement_refs:
     - homework.rest-completion-batch-input
     - homework.graphql-completion-batch-input
+rationale:
+- Homework is attached to a section, not a personal user todo.

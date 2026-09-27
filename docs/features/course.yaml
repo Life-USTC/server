@@ -20,94 +20,71 @@ requirements:
   rule: Course detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in
     requests. Public description content and structured data remain in SSR; description permissions and
     comments are resolved through private client requests.
-- id: course.stable-entity
-  category: behavior
-  rule: A course is a stable course entity and does not represent a specific semester offering.
 - id: course.static-course-identity
   category: consistency
-  rule: Static ingestion stores the upstream Course id unchanged as Course.jwId and upserts only by jwId.
-    Code, names, and classification metadata are mutable attributes and never participate in identity
-    inference. Conflicting codes for one jwId abort; other metadata is selected deterministically from
-    the latest semester occurrence.
+  rule: Static ingestion preserves upstream Course id as Course.jwId; code, names and classifications
+    do not determine entity identity.
 - id: course.static-section-course-link
   category: consistency
   rule: Each imported Section resolves the upstream Course jwId attached to its lesson parent. Static
     sync updates courseId on both insert and conflict update; missing Course jwId mappings abort the transaction.
-- id: course.retired-section-history
-  category: consistency
-  rule: Direct Course detail retains retired Section offerings as historical references; public Section
-    discovery excludes them.
 - id: course.jwid-url-only
   category: presentation
   rule: jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed
     in ordinary course UI.
 - id: course.education-level-display-casing
   category: presentation
-  rule: English education-level filter labels uppercase only their initial character for consistent display
-    while preserving all remaining source casing; non-English labels remain unchanged.
+  rule: English education-level filter labels preserve source acronyms and readable localized casing;
+    non-English labels are not case-transformed.
 - id: course.public-list-cache
   category: consistency
-  rule: 'Public Course REST responses are deterministic by URL: omitted locale uses canonical zh-cn and
-    locale=en-us selects English. They do not derive output from Cookie or Accept-Language and may use
-    shared CDN caching. REST, GraphQL, and MCP lists share revision-scoped locale/filter/pagination runtime
-    caching. Localized HTML pages use their locale-partitioned SSR cache.'
+  rule: Public course list REST output depends on URL locale/filter/pagination values, not Cookie or Accept-Language.
+    Omitted locale uses zh-cn and locale=en-us selects English.
+  rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
+    topology is an architecture choice; revision freshness and locale separation remain required.
 - id: course.mobile-detail-hierarchy
   category: presentation
-  rule: Course detail pages present the public course code before the localized display name on mobile,
-    use a responsive title size, and use the Detail Two-Column Stream without a context-tab rail.
+  rule: At mobile widths, course detail shows the public course code and localized name prominently, with
+    a readable responsive title and directly reachable detail content.
 - id: course.detail-canonical-url
   category: behavior
-  rule: The canonical course detail URL is `/catalog/courses/[jwId]`. Legacy path segments and `?tab=`
-    deep links permanently redirect to the root; optional hash anchors scroll within the page.
+  rule: The canonical course detail URL is /catalog/courses/[jwId]. Optional hash anchors identify content
+    within that page.
 - id: course.static-classification-unsupported
   category: behavior
-  rule: Static course snapshots do not currently provide CourseClassify source data, so static-loaded
-    courses keep classifyId/classify null and static-loaded metadata may expose courseClassifies as an
-    empty array.
+  rule: When a static snapshot has no classification source value, the imported course classification
+    remains null; no classification is inferred from other metadata.
 - id: course.bounded-detail-history
   category: consistency
-  rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
-    Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated
-    HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
-    entity root.'
+  rule: Web course history exposes all Section offerings, including retired offerings, through stable
+    20-row pages with the complete count and entity-root canonical URL. Page reload and navigation preserve
+    the selected history page.
+  surfaces:
+  - web
   acceptance:
-  - id: course.bounded-detail-history.paged-cache-and-total
-    given: A course has 23 historical Section offerings, including retired offerings.
-    when: The first and second history pages are loaded, followed by another first-page read.
-    then:
-    - The page-core cache keeps the pages separate.
-    - The second query skips 20 and takes 20, with no retired filter.
-    - The full relation count is 23 and ordering ends in unique jwId.
-    tests:
-    - file: tests/unit/features/catalog/catalog-detail-page-data.test.ts
-      name: keeps history pages separate in the cache and counts the whole relation
-  - id: course.bounded-detail-history.historical-navigation
     given: A course has 23 offerings with equal non-unique sort values and the last three are retired.
     when: A visitor opens page 2, reloads it, and returns to page 1 on desktop and mobile.
     then:
     - All 23 offerings are reachable without duplicates.
     - The total stays 23 and the entity-root canonical URL is preserved.
     - The page-2 reload is no-store and retains the retired offerings.
-    tests:
-    - file: tests/e2e/src/app/courses/history-pagination.test.ts
-      name: 课程和教师历史分页包含第 21 条以后的已退役教学班
-  surfaces:
-  - web
+    test:
+      file: tests/e2e/src/app/courses/history-pagination.test.ts
+      name: course.bounded-detail-history
 - id: course.history-page-validation
   category: validation
-  rule: sectionsPage defaults to 1 only when omitted. Supplied values must be positive decimal integers
-    without leading zeros, signs, fractions, exponent notation, or whitespace. Reject invalid values and
-    pages above 450359962737050 with 400 before database access, keeping the 20-row offset within Number.MAX_SAFE_INTEGER.
+  rule: Supplied values must be positive decimal integers without leading zeros, signs, fractions, exponent
+    notation or whitespace. Invalid values and offsets outside the safe integer range return 400 before
+    catalog reads.
   acceptance:
-  - id: course.history-page-validation.invalid-offset
     given: A course detail request explicitly supplies an invalid sectionsPage, including exponent notation
       or a page above the safe offset bound.
     when: The page loader validates the query parameter.
     then:
     - The request fails with 400 before any course, teacher or viewer lookup.
-    tests:
-    - file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
-      name: rejects invalid course history pages before catalog reads
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: course.history-page-validation
   surfaces:
   - web
 - id: course.public-detail-fields
@@ -116,8 +93,35 @@ requirements:
     source columns.
 - id: course.public-detail-cache
   category: consistency
-  rule: Anonymous REST, MCP, and single-entity GraphQL Course reads share a revision-, locale-, ID-, and
-    response-shape-scoped runtime cache. Missing entities are not cached.
+  rule: Public course detail reads never mix different entity IDs, locales, include shapes or imported
+    revisions. A missing entity is re-evaluated after an import.
+  rationale: A shared runtime cache is an implementation option; this requirement constrains observable
+    identity, shape and freshness.
+- id: course.history-cache-page-isolation
+  category: consistency
+  rule: Course history page-core cache entries distinguish pages and retain the complete historical relation
+    count, including retired offerings.
+  acceptance:
+    given: A course has 23 historical Section offerings, including retired offerings.
+    when: The first and second history pages are loaded, followed by another first-page read.
+    then:
+    - The page-core cache keeps the pages separate.
+    - The second query skips 20 and takes 20, with no retired filter.
+    - The full relation count is 23 and ordering ends in unique jwId.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-page-data.test.ts
+      name: course.history-cache-page-isolation
+- id: course.static-course-code-conflict
+  category: consistency
+  rule: Conflicting codes for one upstream Course jwId reject the import before it commits.
+- id: course.static-course-metadata-precedence
+  category: consistency
+  rule: When the same Course occurs across semesters, non-identity metadata is selected deterministically
+    from its latest semester occurrence.
+- id: course.history-page-default
+  category: validation
+  rule: Omitting sectionsPage opens the first course-history page; an explicitly invalid value never silently
+    falls back to page 1.
 capabilities:
   course-list:
     title: Course List & Filter
@@ -134,9 +138,8 @@ capabilities:
       routes:
       - path: /api/catalog/courses
         notes:
-        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters; the deprecated
-          limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are
-          rejected instead of clamped.
+        - REST page accepts 1-100, pageSize accepts 1-100, and search accepts 2-200 characters. Out-of-range
+          values are rejected instead of clamped.
     graphql:
       queries:
       - name: courses
@@ -165,6 +168,8 @@ capabilities:
       - educationLevelId
       - categoryId
       - classTypeId
+    requirement_refs:
+    - section.retired-read-semantics
   course-detail:
     title: Course Detail
     auth: anon
@@ -208,3 +213,7 @@ capabilities:
       - section.campus.namePrimary (Campus)
       - section.stdCount / section.limitCount (Capacity)
       - description.content (Markdown-rendered via DescriptionLoader)
+    requirement_refs:
+    - section.retired-read-semantics
+rationale:
+- A course is a stable course entity and does not represent a specific semester offering.

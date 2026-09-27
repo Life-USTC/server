@@ -4,7 +4,7 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 // Isolated rows, never shared seed courses or teachers. Equal sort values force
 // the unique jwId tie-breaker to keep all 23 offerings reachable without repeats.
-test("课程和教师历史分页包含第 21 条以后的已退役教学班", async ({ page }) => {
+test("course.bounded-detail-history", async ({ page }) => {
   test.setTimeout(120_000);
   const fixture = await withE2ePrisma(async (prisma) => {
     const course = await prisma.course.create({

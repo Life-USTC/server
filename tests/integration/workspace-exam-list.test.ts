@@ -142,7 +142,7 @@ async function read(userId: string, input: Record<string, string> = {}) {
 }
 
 describe("complete subscribed exam pages", () => {
-  it("excludes retired sections while preserving the owner's subscription relationship", async () => {
+  it("exam.retired-exam-exclusion", async () => {
     expect(
       await db.userSectionSubscription.findUnique({
         where: {
@@ -169,7 +169,7 @@ describe("complete subscribed exam pages", () => {
     }
   });
 
-  it("rejects an active, correctly signed overview-only token without returning exam data", async () => {
+  it("exam.rest-read-scope", async () => {
     const request = await signedRequest(0, "workspace.overview:read");
     // The same JWT succeeds on its authorized feature, proving the denial is
     // the exam scope boundary rather than a broken signer or consent fixture.
@@ -199,7 +199,7 @@ describe("complete subscribed exam pages", () => {
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
 
-  it("returns four owned exams across real pages with semester context and unknown dates", async () => {
+  it("exam.owned-page-completeness", async () => {
     const first = await read(users[0], { pageSize: "2" });
     const second = await read(users[0], { page: "2", pageSize: "2" });
     expect(first.pagination).toEqual({

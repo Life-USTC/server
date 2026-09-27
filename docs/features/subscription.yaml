@@ -24,28 +24,44 @@ requirements:
     must not use 'follow' or describe the action as course enrollment.
 - id: subscription.web-quick-add-selection
   category: presentation
-  rule: Quick-add search auto-selects a section only when the entire result contains exactly one section
-    and it is not already subscribed. Multiple results start unselected, even when only one result remains
-    unsubscribed. Each new search resets the selection. Already-subscribed sections remain checked and
-    disabled without contributing to the submission count. The results description explains the 20-section
-    limit and asks users to narrow their search.
+  rule: Quick-add auto-selects only when the entire result contains exactly one section and that section
+    is not already subscribed.
 - id: subscription.user-scoped
   category: authorization
-  rule: Subscription relationships belong only to the current user and determine the display scope for
-    home page, calendar, homework, and exam.
+  rule: Only the authenticated owner may read or change their section subscriptions. Personal academic
+    homework, exam and schedule scope is derived from those subscriptions; personal todos and independently
+    subscribed activities do not require section subscriptions.
 - id: subscription.bounded-batch-input
   category: validation
-  rule: Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500
-    lookup codes per request, in addition to the per-user batch request budget.
+  rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
+    lookup-code entries per request. Per-user request-rate limits apply independently.
 - id: subscription.personal-kind
   category: behavior
-  rule: Subscriptions default to regular. Only an existing subscription may be marked auditor or teaching_assistant
-    by its owner. Adding/importing never overwrites its kind. Web edits are available only in workspace
-    subscriptions, without explanatory callouts.
+  rule: New section subscriptions default to regular.
 - id: subscription.ta-calendar
   category: consistency
-  rule: Personal calendar course names for teaching_assistant subscriptions are prefixed with [TA]. Public
-    calendar exports remain unpersonalized.
+  rule: Personal iCalendar course event names for teaching_assistant subscriptions use the [TA] prefix.
+    Public calendar exports remain unpersonalized; Web calendars use the role badge without changing the
+    course title.
+- id: subscription.quick-add-selection-reset
+  category: presentation
+  rule: A new quick-add search clears selection; multiple matching sections initially remain unselected.
+- id: subscription.quick-add-existing-state
+  category: presentation
+  rule: Already-subscribed quick-add results remain checked and disabled and do not contribute to the
+    submission count.
+- id: subscription.quick-add-result-bound
+  category: presentation
+  rule: Quick-add explains its 20-section result limit and asks the user to narrow the search.
+- id: subscription.kind-owner-existing-only
+  category: behavior
+  rule: Only the owner of an existing subscription may change its kind to regular, auditor or teaching_assistant.
+- id: subscription.import-preserves-kind
+  category: behavior
+  rule: Adding or importing an already-subscribed section preserves its existing kind.
+- id: subscription.kind-web-editor-location
+  category: behavior
+  rule: Web subscription-kind editing is available in workspace subscriptions.
 capabilities:
   subscribe-from-section:
     title: Subscribe from Section Detail
@@ -77,14 +93,14 @@ capabilities:
       - name: workspace_subscription_add
         notes:
         - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
-        - Default and the deprecated summary alias return a compact subscription update result instead
-          of the full subscribed section list.
+        - Default mode return a compact subscription update result instead of the full subscribed section
+          list.
         - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
       - name: workspace_subscription_remove
         notes:
         - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
-        - Default and the deprecated summary alias return a compact subscription update result instead
-          of the full subscribed section list.
+        - Default mode return a compact subscription update result instead of the full subscribed section
+          list.
         - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
     presentation:
       items:
@@ -149,14 +165,6 @@ capabilities:
         - Used by workspace opt-out controls so concurrent additions are not overwritten by stale client-side
           read-merge-replace flows.
         - Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.
-      - path: /api/workspace/subscriptions/import-codes
-        method: POST
-        notes:
-        - Compatibility convenience endpoint that combines code matching with an append-only subscription
-          mutation.
-        - Codes may be section codes or course codes in the selected/current semester.
-        - Does not replace the caller's whole subscription set, so concurrent additions are not overwritten
-          by stale client-side read-merge-replace flows.
     mcp:
       tools:
       - name: catalog_section_match_preview
@@ -169,12 +177,12 @@ capabilities:
         - MCP callers that need per-section selection can subscribe selected preview results by calling
           workspace_subscription_add with each section.jwId.
       - name: workspace_subscription_import
-        rest_equivalent: POST /api/workspace/subscriptions/import-codes
+        rest_equivalent: POST /api/workspace/subscriptions/batch
         notes:
         - Convenience mutation that combines matching with subscription update.
         - Use catalog_section_match_preview first when the caller needs a dry-run style preview.
-        - Default and the deprecated summary alias return the subscription totals plus feed link information,
-          not the entire subscribed section list.
+        - Default mode return the subscription totals plus credential-free subscription information, not
+          the entire subscribed section list.
         - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
     presentation:
       items:

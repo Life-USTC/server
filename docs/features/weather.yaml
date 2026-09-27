@@ -19,33 +19,43 @@ requirements:
   rule: Weather is public campus life information; sign-in should not be a prerequisite.
 - id: weather.two-locations-only
   category: behavior
-  rule: 'Only two locations are tracked: ustc-main (本部, Amap adcode 340100) covers the closely clustered
-    east/west/south/north/central campuses, and ustc-gaoxin (高新校区, adcode 340104 Shushan — the Gaoxin
-    campus''s district; the economic-zone adcode 340171 has no AMap weather coverage) covers the distant
-    Gaoxin campus.'
+  rule: Campus weather supports ustc-main for the closely clustered main campuses and ustc-gaoxin for
+    Gaoxin.
 - id: weather.amap-primary
   category: behavior
   rule: Amap (高德) is the primary provider; Open-Meteo supplements hourly forecast, precipitation probability,
     and other fields Amap does not return. The merged snapshot lists which providers contributed.
 - id: weather.rolling-hourly-forecast
   category: behavior
-  rule: Web, REST, GraphQL and MCP return the available hourly points in [request time, request time +
-    24 hours), including tomorrow. Cached snapshots retain the full Open-Meteo seven-day hourly series
-    so each read advances the window without another provider request. Amap has no hourly forecast; unavailable
-    or expired hourly data stays empty instead of showing past hours.
+  rule: Web, REST, GraphQL and MCP expose available hourly forecast points in the half-open interval from
+    request time through request time plus 24 hours, including the next day.
 - id: weather.raw-extensions-preserved
   category: behavior
   rule: Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay
     available under extensions for REST and MCP consumers.
+  rationale: 'Product decision required: Raw provider payload publication expands contract and data exposure
+    without student-facing need; separate debugging/admin source retention from public full output.'
 - id: weather.cache-and-history
   category: consistency
-  rule: Snapshots are cached in the WEATHER KV namespace for 15 minutes per location and persisted to
-    WeatherObservation history; a scheduled cron refreshes both locations to stay within the Amap monthly
-    quota.
+  rule: Campus weather snapshots have a 15-minute freshness interval per location.
 - id: weather.location-key-boundary
   category: consistency
   rule: REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin;
     unknown keys are rejected as bad input.
+- id: weather.location-provider-mapping
+  category: behavior
+  rule: Weather provider location mappings use the approved main-campus and Gaoxin forecast regions without
+    substituting an unrelated administrative region.
+- id: weather.hourly-forecast-expiry
+  category: behavior
+  rule: Unavailable or expired hourly data is empty; past hourly points never masquerade as the current
+    forecast window.
+- id: weather.weather-observation-history
+  category: consistency
+  rule: Successful refreshes persist timestamped WeatherObservation history for their location.
+- id: weather.weather-refresh-budget
+  category: consistency
+  rule: Scheduled refreshes cover both locations within the configured provider quota.
 capabilities:
   weather:
     title: Campus Weather

@@ -18,27 +18,14 @@ access:
 requirements:
 - id: calendar.personal-feed-http-cache
   category: privacy
-  rule: Personal calendar feed responses and revoked-credential errors use private, no-store. Authorization
-    runs before the user-scoped server-side rendering cache and conditional ETag handling.
-  acceptance:
-  - id: calendar.personal-feed-http-cache.revoked-token
-    given: A previously valid personal calendar feed token has been revoked.
-    when: A request presents the revoked token for that user.
-    then:
-    - Authorization rejects the token before cached calendar identity or data can be read.
-    tests:
-    - file: tests/unit/features/calendar/calendar-route-user-access.test.ts
-      name: rejects a revoked token before any rendered cache can be read
+  rule: Personal calendar HTTP responses and revoked-credential errors use private, no-store.
 - id: calendar.views
   category: presentation
   rule: Course-subscribed workspaces provide semester, month, and week views with subscribed activities
     overlaid. Activity-only workspaces provide day, week, and month views without requiring course subscriptions.
-- id: calendar.retired-sections
-  category: consistency
-  rule: Current/public collection calendars, personal calendar views, feeds, and calendar event tools
-    exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical
-    reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription
-    relationships.
+  rationale: 'Product decision required: Changing navigation modes when a user adds their first course
+    subscription creates surprising loss of day view; define a unified personal calendar hierarchy or
+    justify academic semester context.'
 - id: calendar.mobile-agenda-first
   category: presentation
   rule: At mobile widths, the personal calendar presents the selected week as a vertically readable agenda
@@ -48,38 +35,92 @@ requirements:
 - id: calendar.week-starts-sunday
   category: presentation
   rule: Existing academic grids start on Sunday; activity calendars use Monday-start weeks.
+  rationale: 'Product decision required: Existing implementation is not a product reason for Sunday academic
+    and Monday activity calendars in one workspace; mixed subscriptions expose inconsistency.'
 - id: calendar.subscription-badges
   category: presentation
-  rule: Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as
-    a localized top-right badge in desktop grids and mobile agendas. Regular subscriptions show no badge;
-    course titles and public calendars are unchanged.
+  rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
+    grids and mobile agendas. Regular subscriptions show no badge. Web course titles and public calendar
+    content remain unchanged.
 - id: calendar.event-card-types
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
     events.
 - id: calendar.feed-cache-refresh
   category: consistency
-  rule: Personal iCal feeds serve a cached export while refreshing stale content asynchronously. Serving
-    instances periodically revalidate shared cached exports so completed background refreshes become visible.
-    Repeated stale reads briefly coalesce refresh requests; failed enqueue attempts remain retryable,
-    and user writes still request a rebuild independently.
+  rule: A stale cached personal export remains available while an asynchronous refresh is requested.
   acceptance:
-  - id: calendar.feed-cache-refresh.consumer-update-visible
-    given: A serving isolate has a stale personal calendar export while a separate consumer writes a fresh
-      export to shared KV.
-    when: The serving isolate reaches its next shared-cache revalidation after the consumer finishes.
+    given: A cached export has passed its freshness interval.
+    when: A caller reads it while the refresh enqueue remains pending.
     then:
-    - The served calendar contains the refreshed export.
-    - The serving isolate does not rebuild the export on the request path.
-    tests:
-    - file: tests/unit/features/calendar/calendar-export-cache.test.ts
-      name: serving isolate observes a consumer's KV refresh after revalidation
+    - The stale export returns immediately.
+    - A deferred refresh is requested without rebuilding on the read path.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-cache-refresh
 - id: calendar.teaching-assistant-homework
   category: consistency
   rule: Personal calendar views, event sources, and iCal feeds preserve actual completion records but
     exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline
     TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed
     promptly.
+- id: calendar.revoked-feed-access
+  category: privacy
+  rule: The personal-feed access gate rejects a revoked credential with 410 and private, no-store, without
+    returning an authorized user/cache identity.
+  acceptance:
+    given: A formerly valid credential differs from the stored current feed token.
+    when: The feed access gate resolves that credential.
+    then:
+    - Access is denied with 410 and private, no-store.
+    - No authorized user/cache identity is returned.
+    test:
+      file: tests/unit/features/calendar/calendar-route-user-access.test.ts
+      name: calendar.revoked-feed-access
+- id: calendar.feed-refresh-visible
+  category: consistency
+  rule: After a separate consumer stores a refreshed export, the serving instance observes it on shared-cache
+    revalidation without rebuilding the export on the read path.
+  acceptance:
+    given: A serving isolate has a stale personal calendar export while a separate consumer writes a fresh
+      export to shared KV.
+    when: The serving isolate reaches its next shared-cache revalidation after the consumer finishes.
+    then:
+    - The served calendar contains the refreshed export.
+    - The serving isolate does not rebuild the export on the request path.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-refresh-visible
+- id: calendar.feed-auth-before-cache
+  category: privacy
+  rule: The canonical personal feed route authorizes its current credential before reading any export
+    cache or returning a conditional ETag response.
+- id: calendar.feed-refresh-coalescing
+  category: consistency
+  rule: Repeated stale reads coalesce refresh requests during a bounded interval.
+  acceptance:
+    given: Repeated concurrent readers observe the same stale export.
+    when: Reads occur within successive refresh coalescing intervals.
+    then:
+    - The cached content remains readable.
+    - One refresh request is emitted per coalescing interval.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-refresh-coalescing
+- id: calendar.feed-enqueue-retry
+  category: consistency
+  rule: A failed refresh enqueue remains retryable on subsequent reads.
+- id: calendar.feed-write-rebuild-independent
+  category: consistency
+  rule: A source write requests a rebuild independently of stale-read refresh coalescing.
+  acceptance:
+    given: A stale read has already requested a refresh.
+    when: A successful source write requests its calendar rebuild during that cooldown.
+    then:
+    - The write still emits its own rebuild request.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-write-rebuild-independent
 capabilities:
   personal-calendar-view:
     title: Personal Calendar View
@@ -132,6 +173,8 @@ capabilities:
       filters:
       - View tabs
       - Previous/next semester controls
+    requirement_refs:
+    - section.retired-read-semantics
   section-calendar-view:
     title: Section Calendar View
     auth: anon
@@ -154,6 +197,8 @@ capabilities:
       - weekLabelTemplate (Week numbers)
       - weekdayLabels (Sun-Sat)
       - todayKey (Today highlight)
+    requirement_refs:
+    - section.retired-read-semantics
   event-card:
     title: Event Card
     auth: anon
@@ -166,3 +211,5 @@ capabilities:
       - event.title or section.course.namePrimary
       - event.time or first metadata segment
       - Details/popover may show location
+    requirement_refs:
+    - section.retired-read-semantics
