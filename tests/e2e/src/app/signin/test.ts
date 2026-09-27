@@ -19,6 +19,7 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../utils/auth";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -207,17 +208,31 @@ test("/account/sign-in 调试管理员可登出", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "signin/admin-after-sign-out");
 });
 
-test("/account/sign-in 登录后重定向到 callbackUrl", async ({
-  page,
-}, testInfo) => {
-  // callbackUrl preserved through the sign-in flow (user.yml post-login-redirect)
-  await gotoAndWaitForReady(page, "/account/sign-in?callbackUrl=%2Fsections", {
-    testInfo,
-    screenshotLabel: "signin-callback",
-  });
-  await signInAsDebugUser(page, "/catalog/sections", "/catalog/sections", {
-    ui: true,
-  });
-  await expect(page).toHaveURL(/\/catalog\/sections(?:\?.*)?$/);
-  await captureStepScreenshot(page, testInfo, "signin/post-login-redirect");
+test("user.post-login-redirect", async ({ page }) => {
+  for (const callback of [
+    "/catalog/sections?search=COMP#results",
+    "https://attacker.example/",
+    "//attacker.example/",
+    "/\\attacker.example/",
+    "/%2f%2fattacker.example/",
+  ]) {
+    await page.context().clearCookies();
+    await gotoAndWaitForReady(
+      page,
+      `/account/sign-in?callbackUrl=${encodeURIComponent(callback)}`,
+    );
+    await page
+      .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+      .click();
+    await expect(page).toHaveURL(
+      callback.startsWith("/catalog/")
+        ? /\/catalog\/sections\?search=COMP#results$/
+        : /\/workspace\/overview$/,
+    );
+    const response = await page.request.get(
+      "/api/auth/get-session?disableCookieCache=true",
+    );
+    expect(response.status()).toBe(200);
+    expect((await response.json()).user.username).toBe(DEV_SEED.debugUsername);
+  }
 });

@@ -413,7 +413,7 @@ test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
 
 test("cases.disambiguation.multiple-sections-same-course-1", async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(60_000);
   const fixture = await createFixture();
   const semesters = await withE2ePrisma((db) =>
@@ -483,7 +483,7 @@ test("cases.disambiguation.multiple-sections-same-course-1", async ({
                 : "Unknown";
         if (section.id === fixture.section.id && locale === "zh-cn") {
           await page.screenshot({
-            path: "/tmp/life-policy-section-semester-after.png",
+            path: testInfo.outputPath("section-semester-after.png"),
             fullPage: true,
           });
         }

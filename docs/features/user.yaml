@@ -49,6 +49,20 @@ requirements:
   category: behavior
   rule: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered
     due to security and maintenance cost.
+- id: user.explicit-provider-linking
+  category: authorization
+  rule: OAuth provider identities are linked to an existing account only through an explicit authenticated account-link flow. A matching verified email alone cannot merge accounts; a provider identity already owned by another user cannot be reassigned by linking.
+  rationale: USTC and mapped GitHub profiles may lack a provider-verified mailbox. Configured providers are trusted to prove their own identity during explicit linking, while implicit email-based linking is disabled so this trust does not authorize account merging.
+  acceptance:
+    given: A local user has the same verified email as an unlinked upstream GitHub identity, and a second user also exists.
+    when: Real HTTP requests attempt ordinary social sign-in, explicit owner linking and linking the same identity from the other user's session.
+    then:
+    - Ordinary same-email sign-in creates no link or session.
+    - Explicit owner linking succeeds.
+    - The second user's attempt fails and the identity remains attached only to its original owner.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.explicit-provider-linking
 - id: user.passkey-server-boundary
   category: authorization
   rule: The passkey plugin requires an explicit production origin, derives its RP ID from the canonical hostname and permits only explicitly configured HTTPS origins on that hostname or its subdomains. Local loopback configuration uses localhost as the RP and allowed browser origin; it does not authorize ceremonies from an IP-literal browser origin.
@@ -90,8 +104,17 @@ requirements:
       name: user.debug-password-boundary
 - id: user.oauth-callback-integrity
   category: authorization
-  rule: On a canonical same-origin deployment, OAuth login callbacks must complete state validation and
-    session creation directly, without losing state due to proxy wrapping or container-internal host differences.
+  rule: Same-origin social login callbacks validate both state and its browser cookie before exchanging a code. Successful callbacks create the linked account/session and return directly to the original application destination; callback state cannot be replayed.
+  acceptance:
+    given: A real local HTTP auth server and controlled GitHub token/profile responses.
+    when: Callbacks use wrong state, omit the state cookie, complete correctly or replay a completed state.
+    then:
+    - Invalid state or missing cookies never exchange an upstream token or create a user/session.
+    - The valid callback persists the provider account and one usable session, then returns directly to the app callback.
+    - Replaying the callback performs no token exchange and creates no extra session.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.oauth-callback-integrity
 - id: user.welcome-flow-required
   category: behavior
   rule: A signed-in user missing either name or username must complete profile entry before proceeding to ordinary pages or later welcome steps. Anonymous users must sign in first.
@@ -180,9 +203,17 @@ requirements:
       name: user.avatar-current-reference
 - id: user.welcome-oauth-refresh
   category: consistency
-  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing profile
-    values may be filled and new avatar choices added, but user-entered values are preserved. This refresh
-    does not authorize a third-party application to use Life@USTC APIs.
+  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing name/image values may be filled and new avatar choices added, while user-entered name, username and image remain unchanged. Refresh neither links a previously unlinked provider nor grants a third-party application access to Life@USTC APIs.
+  acceptance:
+    given: A real social-login session has an existing provider identity and user-entered profile fields.
+    when: The actual welcome refresh action rejects unsupported/unlinked providers, then completes provider callbacks with new profile data and later with missing local values.
+    then:
+    - User-entered fields are preserved and new avatar choices are recorded.
+    - Missing name/image fields are filled from the provider without changing the username.
+    - The account remains singly linked and no delegated API consent is created.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.welcome-oauth-refresh
 - id: user.welcome-completion-resume
   category: consistency
   rule: The final welcome action returns to a safe app-relative callback including its query and fragment. Missing, external, encoded authority, backslash and recursive welcome callbacks fall back through home to the signed-in workspace overview.
@@ -208,8 +239,16 @@ requirements:
       name: user.auth-callback-not-intercepted
 - id: user.post-login-redirect
   category: behavior
-  rule: After successful login, the user should be redirected back to the originally requested app-relative
-    page whenever possible; unsafe external callbacks fall back to the home page.
+  rule: After successful login, return to the original safe app-relative callback including its query and fragment. Unsafe external callbacks fall back through home to the signed-in workspace overview.
+  acceptance:
+    given: Signed-out browsers request sign-in with app-relative, absolute external, protocol-relative, backslash or encoded-authority callbacks.
+    when: The real sign-in page completes password authentication through its local debug provider.
+    then:
+    - The safe destination and its query/fragment survive login.
+    - Unsafe destinations land in the workspace overview with a verified authenticated session.
+    test:
+      file: tests/e2e/src/app/signin/test.ts
+      name: user.post-login-redirect
 - id: user.oauth-login-resume
   category: behavior
   rule: "Raw OAuth authorization parameters on the sign-in page reconstruct the exact app-relative authorization continuation, preserving PKCE, state, resource and signed-query fields."

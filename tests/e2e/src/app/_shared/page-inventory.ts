@@ -224,7 +224,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "passkeys-ui",
         e2eSpec: E2E.settingsPasskeys,
-        evidence: "注册、退出、通行密钥登录、重命名和删除",
+        evidence: "user.passkey-user-flow",
       },
       ...SETTINGS_TABS.map(
         (tab): PrimaryAction => ({

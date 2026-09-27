@@ -1,3 +1,4 @@
+import type { BetterAuthOptions } from "better-auth";
 import * as z from "zod";
 import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
 
@@ -27,6 +28,11 @@ export const betterAuthUserOptions = {
 export const betterAuthAccountOptions = {
   accountLinking: {
     enabled: true,
+    // These providers may omit a verified mailbox (notably USTC). Linking
+    // proves the provider identity and an existing recent app session;
+    // a matching email alone must never merge accounts.
+    trustedProviders: ["oidc", "github", "google"],
+    disableImplicitLinking: true,
     // User-initiated linking must support providers like USTC OIDC that do
     // not expose the user's email and therefore use a local fallback email.
     allowDifferentEmails: true,
@@ -45,7 +51,7 @@ export const betterAuthAccountOptions = {
     refreshTokenExpiresAt: "refreshTokenExpiresAt",
     password: "password",
   },
-} as const;
+} satisfies NonNullable<BetterAuthOptions["account"]>;
 
 export const betterAuthSessionOptions = {
   storeSessionInDatabase: true,
