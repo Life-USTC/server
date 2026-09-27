@@ -3,7 +3,7 @@ import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
 import { compactSchedule } from "@/lib/mcp/compact-entities";
 
 describe("compactMcpPayload MCP 载荷压缩", () => {
-  it("mcp.property-priority-parity", () => {
+  it("preserves task fields across nested compact entity branches", () => {
     const course = {
       id: 1,
       jwId: 101,

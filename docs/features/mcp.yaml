@@ -172,16 +172,19 @@ requirements:
     fields and useful disambiguators, compact repeated nested objects, and omit low-priority raw/audit
     fields unless full mode is explicitly requested.'
   acceptance:
-    given: Course, teacher, schedule, homework, and todo objects containing identity, task details, repeated
-      relations, and raw or audit fields.
-    when: Apply the production default MCP compactor.
+    given: An isolated catalog, user, schedule, exam, homework, todo, upload, comment, description, Young event
+      and organizer fixture, read-only bus/link catalogs, and controlled weather/storage external boundaries.
+    when: The native MCP SDK invokes every tool named by structured field-view declarations in default and full modes.
     then:
-    - Exact output retains identifiers, disambiguating codes, schedule time/place, homework deadlines
-      and Markdown, and unfinished todo content.
-    - Nested course, section, teacher, and department identities compact recursively; raw/audit fields
-      and completed todo content are absent.
+    - Every declared primary and secondary path is present in populated successful responses; exact fixture identity,
+      task, status, timing and disambiguation values survive compact projection.
+    - Read projections preserve the declared scalar values and compact nested objects without losing their identities;
+      write projections echo the actual saved values and deletion results.
+    - Full-only course relations, teacher contacts, rendered Markdown and source weather/Young data appear only in full mode;
+      personal calendar credentials never appear in either mode.
+    - The tested tool inventory exactly equals the declared MCP field-view inventory, so adding a declared tool requires a real SDK case.
     test:
-      file: tests/unit/lib/mcp/compact-payload.test.ts
+      file: tests/integration/mcp/property-priority.test.ts
       name: mcp.property-priority-parity
 - id: mcp.actionable-errors
   category: presentation

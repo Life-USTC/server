@@ -272,10 +272,11 @@ capabilities:
           - provider.rawResponse
         mcp-catalog-weather-get:
           primary:
-          - locationKey
-          - hasData
+          - location.key
+          - location.name
           secondary:
-          - current
+          - current.temperature
+          - current.condition.text
           tertiary: []
       items:
       - Hourly temperature and precipitation probability share one full-width plot; details respond to hover, touch

@@ -525,7 +525,6 @@ capabilities:
           primary:
           - data
           secondary:
-          - errors
           - operationName
           - operationType
           tertiary: []

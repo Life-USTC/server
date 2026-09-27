@@ -476,11 +476,10 @@ capabilities:
         mcp-catalog-bus-timetable-get:
           primary:
           - routes.descriptionPrimary
-          - nextDepartures.departureTime
           secondary:
           - campuses.namePrimary
-          - nextDepartures.arrivalTime
           - counts
+          - notice
           tertiary: []
         mcp-catalog-bus-route-list:
           primary:
@@ -488,7 +487,6 @@ capabilities:
           secondary:
           - routes.id
           - routes.stops
-          - notice
           tertiary: []
         mcp-catalog-bus-route-get:
           primary:
@@ -604,8 +602,8 @@ capabilities:
           secondary:
           - departures.minutesUntilDeparture
           - departures.route.descriptionPrimary
-          - departures.originCampus.nameCn
-          - departures.destinationCampus.nameCn
+          - originCampus.nameCn
+          - destinationCampus.nameCn
           tertiary: []
   bus-map:
     title: Bus Route Map

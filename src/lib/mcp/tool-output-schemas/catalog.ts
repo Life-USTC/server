@@ -12,6 +12,7 @@ import {
   compactCatalogExamSchema,
   compactCatalogTeacherSchema,
   compactCourseSchema,
+  compactLocalizedSubscriptionSectionSchema,
   compactMatchSectionSchema,
   compactPublicScheduleSchema,
   compactScopedScheduleSchema,
@@ -19,7 +20,6 @@ import {
   compactSectionDetailSchema,
   compactSectionSummarySchema,
   compactSemesterSchema,
-  compactSubscriptionSectionSchema,
   compactTeacherDetailSchema,
   courseDetailMcpSchema,
   courseDetailSchema,
@@ -341,7 +341,9 @@ export const catalogNonAcademicModeOutputSchemas = {
     full: roomMapResponseSchema.extend({ success: z.boolean() }),
   },
   catalog_section_calendar_feed_get: {
-    default: sectionCalendarFeedOutputSchema(compactSubscriptionSectionSchema),
+    default: sectionCalendarFeedOutputSchema(
+      compactLocalizedSubscriptionSectionSchema,
+    ),
     full: sectionCalendarFeedOutputSchema(subscriptionFullSectionSchema),
   },
   catalog_weather_get: {
@@ -374,7 +376,10 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   catalog_rooms_map: roomMapResponseSchema.extend({ success: z.boolean() }),
   catalog_section_calendar_feed_get: objectOutputSchema({
     section: z
-      .union([compactSubscriptionSectionSchema, subscriptionFullSectionSchema])
+      .union([
+        compactLocalizedSubscriptionSectionSchema,
+        subscriptionFullSectionSchema,
+      ])
       .nullable(),
     calendarPath: z.string(),
     calendarUrl: z.string(),
