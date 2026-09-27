@@ -1,15 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 // Isolated rows, never shared seed courses or teachers. Equal sort values force
 // the unique jwId tie-breaker to keep all 23 offerings reachable without repeats.
-test("course.bounded-detail-history", async ({ page }) => {
+async function verifyHistory(page: Page, kind: "course" | "teacher") {
+  const fixtureId = kind === "course" ? 1900100001 : 1900100101;
+  const sectionBase = kind === "course" ? 1900200000 : 1900200100;
   test.setTimeout(120_000);
   const fixture = await withE2ePrisma(async (prisma) => {
     const course = await prisma.course.create({
       data: {
-        jwId: 1900100001,
+        jwId: fixtureId,
         code: "E2E-HISTORY",
         nameCn: "历史分页测试课程",
         nameEn: "Historical offerings",
@@ -17,7 +19,7 @@ test("course.bounded-detail-history", async ({ page }) => {
     });
     const teacher = await prisma.teacher.create({
       data: {
-        jwId: 1900100001,
+        jwId: fixtureId,
         nameCn: "历史分页测试教师",
         nameEn: "History teacher",
       },
@@ -25,7 +27,7 @@ test("course.bounded-detail-history", async ({ page }) => {
     for (let index = 0; index < 23; index++) {
       await prisma.section.create({
         data: {
-          jwId: 1900200000 + index,
+          jwId: sectionBase + index,
           code: "E2E-HISTORY.01",
           courseId: course.id,
           retiredAt: index >= 20 ? new Date("2025-01-01T00:00:00Z") : null,
@@ -43,8 +45,9 @@ test("course.bounded-detail-history", async ({ page }) => {
     ]) {
       await page.setViewportSize(viewport);
       for (const route of [
-        `/catalog/courses/${fixture.course.jwId}`,
-        `/catalog/teachers/${fixture.teacher.id}`,
+        kind === "course"
+          ? `/catalog/courses/${fixture.course.jwId}`
+          : `/catalog/teachers/${fixture.teacher.id}`,
       ]) {
         const response = await gotoAndWaitForReady(page, route);
         const history = page.getByTestId("section-history-pagination");
@@ -82,7 +85,9 @@ test("course.bounded-detail-history", async ({ page }) => {
         await expect(history).toContainText(/21–23/);
         await expect(
           page
-            .locator('#sections a[href="/catalog/sections/1900200022"]:visible')
+            .locator(
+              `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
+            )
             .first(),
         ).toBeVisible();
         await history
@@ -95,13 +100,17 @@ test("course.bounded-detail-history", async ({ page }) => {
     }
     await gotoAndWaitForReady(
       page,
-      `/catalog/teachers/${fixture.teacher.id}?sectionsPage=2#sections`,
+      `${kind === "course" ? `/catalog/courses/${fixture.course.jwId}` : `/catalog/teachers/${fixture.teacher.id}`}?sectionsPage=2#sections`,
     );
     await page
-      .locator('#sections a[href="/catalog/sections/1900200022"]:visible')
+      .locator(
+        `#sections a[href="/catalog/sections/${sectionBase + 22}"]:visible`,
+      )
       .first()
       .click();
-    await expect(page).toHaveURL(/\/catalog\/sections\/1900200022$/);
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/sections/${sectionBase + 22}$`),
+    );
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   } finally {
     await withE2ePrisma(async (prisma) => {
@@ -112,4 +121,9 @@ test("course.bounded-detail-history", async ({ page }) => {
       await prisma.course.delete({ where: { id: fixture.course.id } });
     });
   }
-});
+}
+
+test("course.bounded-detail-history", async ({ page }) =>
+  verifyHistory(page, "course"));
+test("teacher.bounded-detail-history", async ({ page }) =>
+  verifyHistory(page, "teacher"));

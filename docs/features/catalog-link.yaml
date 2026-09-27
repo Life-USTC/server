@@ -22,7 +22,20 @@ requirements:
     supplies the current viewer's personal state after hydration.
 - id: catalog-link.search-fuzzy
   category: behavior
-  rule: Search supports Chinese, pinyin, and whitespace-tolerant matching.
+  rule: Search lowercases and splits queries on whitespace. Every token must occur in the title, description,
+    URL or toneless pinyin fields; an empty query matches all links. Matching is substring-based, not
+    edit-distance typo correction.
+  acceptance:
+    given: A localized link summary has Chinese title, pinyin fields and a URL.
+    when: The real tokenizer and matcher receive Chinese, pinyin, mixed-case and whitespace-separated
+      queries.
+    then:
+    - Every token must match a title, description, URL or toneless pinyin substring.
+    - Repeated whitespace and case differences do not change matches; missing tokens reject a link.
+    - An empty query matches all links and misspellings are not silently treated as matches.
+    test:
+      file: tests/unit/features/catalog-links/catalog-links.test.ts
+      name: catalog-link.search-fuzzy
 - id: catalog-link.pin-limit
   category: validation
   rule: Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.

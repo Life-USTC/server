@@ -259,29 +259,31 @@ describe.each(["course", "teacher"] as const)(
     if (kind === "course") {
       it("course.history-page-validation", rejectsInvalidPages);
     } else {
-      it(
-        "rejects invalid teacher history pages before catalog reads",
-        rejectsInvalidPages,
-      );
+      it("teacher.history-page-validation", rejectsInvalidPages);
     }
 
-    it.each([
-      { value: null, page: 1 },
-      { value: "1", page: 1 },
-      { value: "2", page: 2 },
-      { value: "107374184", page: 107374184 },
-      { value: "450359962737050", page: 450359962737050 },
-    ])("accepts sectionsPage=$value as page $page", async ({ value, page }) => {
-      const result = await loadPage(value);
-      const reader = kind === "course" ? getCoursePageMock : getTeacherPageMock;
-      expect(reader).toHaveBeenCalledWith(
-        kind === "course" ? course.jwId : teacher.id,
-        "en-us",
-        page,
-      );
-      expect(result.sectionsPagination.page).toBe(page);
-      expect(Number.isSafeInteger((page - 1) * 20)).toBe(true);
-    });
+    async function acceptsValidPages() {
+      for (const { value, page } of [
+        { value: null, page: 1 },
+        { value: "1", page: 1 },
+        { value: "2", page: 2 },
+        { value: "107374184", page: 107374184 },
+        { value: "450359962737050", page: 450359962737050 },
+      ]) {
+        const result = await loadPage(value);
+        const reader =
+          kind === "course" ? getCoursePageMock : getTeacherPageMock;
+        expect(reader).toHaveBeenLastCalledWith(
+          kind === "course" ? course.jwId : teacher.id,
+          "en-us",
+          page,
+        );
+        expect(result.sectionsPagination.page).toBe(page);
+        expect(Number.isSafeInteger((page - 1) * 20)).toBe(true);
+      }
+    }
+    if (kind === "course") it("course.history-page-default", acceptsValidPages);
+    else it("teacher.history-page-default", acceptsValidPages);
   },
 );
 

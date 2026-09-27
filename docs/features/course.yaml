@@ -122,6 +122,15 @@ requirements:
   category: validation
   rule: Omitting sectionsPage opens the first course-history page; an explicitly invalid value never silently
     falls back to page 1.
+  acceptance:
+    given: History page input is omitted or is a supported positive decimal integer.
+    when: The real detail loader parses the history page.
+    then:
+    - Omitted input selects page one; supplied valid values reach the page reader unchanged.
+    - The maximum accepted page produces a safe row offset.
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: course.history-page-default
 capabilities:
   course-list:
     title: Course List & Filter

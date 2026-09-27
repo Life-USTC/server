@@ -16,8 +16,17 @@ access:
 requirements:
 - id: semester.current-semester-by-rules
   category: consistency
-  rule: The current semester is selected by explicit semester-date rules using the current Asia/Shanghai
-    calendar date. Cached results must change when the calendar date or imported semester data changes.
+  rule: The current-semester service selects only semesters whose inclusive date range contains the current
+    Asia/Shanghai calendar date. When no range contains the date, no current semester is returned.
+  acceptance:
+    given: A real database semester has inclusive date-only start and end dates.
+    when: The current-semester read model queries just before and at Shanghai midnight around both boundaries.
+    then:
+    - The semester is current throughout its inclusive Shanghai date range.
+    - No matching range returns null without choosing a past or future semester.
+    test:
+      file: tests/integration/current-semester-contract.test.ts
+      name: semester.current-semester-by-rules
 - id: semester.semester-visible-in-filters
   category: presentation
   rule: Cross-semester section, schedule and exam views identify each semester by its localized display
@@ -29,6 +38,19 @@ requirements:
     from shadowing a more specific newer semester.
   applies_to:
   - current-semester
+  acceptance:
+    given: Two database semesters have overlapping date ranges and distinct start dates.
+    when: The real current-semester query executes before, at and after the later start date.
+    then:
+    - Before the later start, the older semester is returned.
+    - Once both ranges contain the Shanghai date, the later startDate wins.
+    test:
+      file: tests/integration/current-semester-contract.test.ts
+      name: semester.current-semester.latest-startdate-wins
+- id: semester.current-semester-cache-invalidation
+  category: consistency
+  rule: Cached current-semester results are scoped by the Shanghai calendar date and imported semester
+    revision; advancing either makes the previous entry ineligible.
 capabilities:
   semester-list:
     title: Semester List

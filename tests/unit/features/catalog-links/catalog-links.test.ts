@@ -151,3 +151,27 @@ describe("仪表盘链接推荐", () => {
     ).toBe(true);
   });
 });
+
+it("catalog-link.search-fuzzy", () => {
+  const { catalogLinks } = buildCatalogLinkSummaries({}, new Set(), "zh-cn");
+  const mail = catalogLinks.find((link) => link.slug === "mail");
+  if (!mail) throw new Error("Missing mail link");
+  for (const query of [
+    "邮箱",
+    "youxiang",
+    "YOUXIANG",
+    "  you  xiang  ",
+    "\tUSTC\n邮箱 ",
+    "mail.ustc.edu.cn",
+  ]) {
+    expect(linkMatchesTokens(mail, searchQueryToTokens(query)), query).toBe(
+      true,
+    );
+  }
+  for (const query of ["邮箱 no-such-token", "youxang", "图书馆"]) {
+    expect(linkMatchesTokens(mail, searchQueryToTokens(query)), query).toBe(
+      false,
+    );
+  }
+  expect(linkMatchesTokens(mail, searchQueryToTokens(" \t\n"))).toBe(true);
+});

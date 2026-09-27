@@ -48,11 +48,30 @@ requirements:
     Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated
     HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
     entity root.'
+  acceptance:
+    given: An isolated teacher has 23 equal-sort-value offerings including three retired offerings.
+    when: Desktop and mobile viewers navigate both history pages, reload page two and follow a retired
+      Section.
+    then:
+    - Pages contain 20 then 3 distinct offerings and the full count.
+    - 'Pagination uses sectionsPage and #sections; a page-two reload stays on page two with no-store.'
+    - Canonical URLs omit pagination and retired details remain reachable.
+    test:
+      file: tests/e2e/src/app/courses/history-pagination.test.ts
+      name: teacher.bounded-detail-history
 - id: teacher.history-page-validation
   category: validation
-  rule: sectionsPage defaults to 1 only when omitted. Supplied values must be positive decimal integers
-    without leading zeros, signs, fractions, exponent notation, or whitespace. Reject invalid values and
-    pages above 450359962737050 with 400 before database access, keeping the 20-row offset within Number.MAX_SAFE_INTEGER.
+  rule: Supplied sectionsPage values must be positive decimal integers without leading zeros, signs, fractions,
+    exponent notation or whitespace. Values above 450359962737050 are rejected before catalog or viewer
+    reads.
+  acceptance:
+    given: A teacher page is requested with malformed, nonpositive or unsafe history page input.
+    when: The real page loader validates the URL.
+    then:
+    - It returns 400 before catalog and viewer reads.
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: teacher.history-page-validation
 - id: teacher.public-detail-fields
   category: behavior
   rule: Public teacher payloads explicitly select allowed fields; never source-only columns such as age,
@@ -66,6 +85,19 @@ requirements:
     revisions. A missing entity is re-evaluated after an import.
   rationale: A shared runtime cache is an implementation option; this requirement constrains observable
     identity, shape and freshness.
+- id: teacher.history-page-default
+  category: behavior
+  rule: Omitting sectionsPage opens the first teacher-history page. Valid decimal pages through 450359962737050
+    are forwarded unchanged and keep row offsets within safe integer range.
+  acceptance:
+    given: History page input is omitted or is a supported positive decimal integer.
+    when: The real detail loader parses the history page.
+    then:
+    - Omitted input selects page one; supplied valid values reach the page reader unchanged.
+    - The maximum accepted page produces a safe row offset.
+    test:
+      file: tests/unit/lib/adapters/detail-page-loader-critical-path.test.ts
+      name: teacher.history-page-default
 capabilities:
   teacher-list:
     title: Teacher List & Filter
