@@ -1,8 +1,5 @@
 import { afterAll, expect, it } from "vitest";
-import {
-  ingestPublicationBatch,
-  PublicationIngestionConflictError,
-} from "@/features/publications/server/publication-ingestion-service";
+import { ingestPublicationBatch } from "@/features/publications/server/publication-ingestion-service";
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
 import { prisma as runtime } from "@/lib/db/prisma";
@@ -55,11 +52,23 @@ async function next(
   label: string,
   item: Partial<Batch["items"][number]>,
 ) {
-  return ingest({
-    ...payload,
-    batchId: `${payload.batchId}-${label}`,
-    items: [{ ...payload.items[0], ...item }],
-  });
+  const merged = { ...payload.items[0], ...item };
+  const revision = merged.tombstone
+    ? {
+        tombstone: true,
+        sourceId: merged.sourceId,
+        canonicalUrl: merged.canonicalUrl,
+        revisionHash: merged.revisionHash,
+        observedAt: merged.observedAt,
+      }
+    : merged;
+  return ingest(
+    publicationIngestionBatchRequestSchema.parse({
+      ...payload,
+      batchId: `${payload.batchId}-${label}`,
+      items: [revision],
+    }),
+  );
 }
 afterAll(async () => {
   const publications = await db.publication.findMany({
@@ -91,6 +100,7 @@ it("publications.service-principal", async () => {
     await crypto.subtle.digest("SHA-256", new TextEncoder().encode(marker)),
   ).toString("hex");
   objectHashes.push(hash);
+  if (payload.items[0].tombstone) throw new Error("Expected publication item");
   payload.items[0].objects = [
     {
       kind: "body_markdown",
@@ -131,28 +141,6 @@ it("publications.service-principal", async () => {
   expect(
     await db.user.findUnique({ where: { id: principal.principalKey } }),
   ).toBeNull();
-});
-
-it("publications.batch-idempotency", async () => {
-  const payload = batch("replay");
-  const first = await ingest(payload);
-  expect(await ingest(structuredClone(payload))).toEqual(first);
-  await expect(
-    ingest({ ...payload, items: [{ ...payload.items[0], title: "changed" }] }),
-  ).rejects.toBeInstanceOf(PublicationIngestionConflictError);
-  expect(
-    await db.ingestionBatch.count({ where: { batchId: payload.batchId } }),
-  ).toBe(1);
-  expect(
-    await db.publicationRevision.count({
-      where: { publicationId: first.results[0].publicationId! },
-    }),
-  ).toBe(1);
-  expect(
-    await db.ingestionRun.count({
-      where: { clientRunId: payload.clientRunId },
-    }),
-  ).toBe(1);
 });
 
 it("publications.revision-ordering", async () => {

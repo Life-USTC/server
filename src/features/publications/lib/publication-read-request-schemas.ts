@@ -69,7 +69,7 @@ function commaSeparatedList<TValue>(
     .trim()
     .min(1)
     .transform((value, context) => {
-      const entries = parameterList(value);
+      const entries = [...new Set(parameterList(value))];
       if (entries.length === 0 || entries.length > options.maxEntries) {
         context.addIssue({
           code: "custom",

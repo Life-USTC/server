@@ -23,11 +23,16 @@ requirements:
 - id: publications.public-read
   category: authorization
   rule: Anonymous reads expose only non-deleted publications whose effective type is news or notice; detail
-    addresses are public by publication id. Deleted publications and other are never returned. The list
-    supports type=news|notice, query, page, pageSize, and the source and organizationLevel list filters.
-    A list filter accepts the documented comma-separated form (source=a,b) and the repeated form a checkbox
-    group submits; duplicates collapse, a single value is unchanged, at most 20 source ids, and the facets
-    intersect.
+    addresses are public by publication id. Deleted publications and other are never returned.
+  acceptance:
+    given: Real ingested news, notice, other, and deleted publications.
+    when: Read public list and detail endpoints over HTTP without credentials.
+    then:
+    - Only nondeleted news and notice appear in lists and return200 detail.
+    - Other, deleted, and nonexistent detail IDs return404.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-read
 - id: publications.reprint-folding
   category: presentation
   rule: Publication lists default to unfolded rows. Explicit fold=1 groups matching normalized titles
@@ -102,6 +107,17 @@ requirements:
   rule: Ingestion writes require the X-Publication-Ingestion-Secret header, compared against the Worker
     secret PUBLICATION_INGESTION_SECRET with a timing-safe comparison. Missing or invalid configuration
     returns the same generic 401 response, and the secret is never logged or returned.
+  acceptance:
+    given: The real Node HTTP adapter for ingestion, the production secret comparison, and a production-role
+      database.
+    when: Send absent/wrong/ordinary Bearer credentials, then valid credentials with absent and present
+      configuration.
+    then:
+    - Every unauthorized case returns the same401 Unauthorized body and creates no batch.
+    - The dedicated header succeeds when configured and the returned payload contains no secret.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.service-auth
 - id: publications.service-principal
   category: authorization
   rule: All crawler batches, runs, and object claims use the stable service:publication-crawler principal
@@ -176,13 +192,13 @@ requirements:
     the stored result without reapplying writes; reusing the pair with another digest returns 409. clientRunId
     is likewise scoped by principalKey.
   acceptance:
-    given: An isolated source and canonical publication batch.
-    when: Ingest the payload, replay it, then reuse the same batch identity with changed content.
+    given: An isolated source and canonical publication batch submitted with the dedicated machine secret.
+    when: POST the payload over HTTP, replay it, then reuse the same batch identity with changed content.
     then:
-    - Replay returns exactly the stored result.
-    - Changed content raises the conflict mapped to409; only one batch, run, and revision exist.
+    - Replay returns200 and exactly the stored result.
+    - Changed content returns409; only one batch, run, and revision exist.
     test:
-      file: tests/integration/publication-ingestion-contracts.test.ts
+      file: tests/integration/publication-http-contracts.test.ts
       name: publications.batch-idempotency
 - id: publications.batch-size
   category: validation
@@ -190,6 +206,16 @@ requirements:
     and the batch is refused whole without ingestion writes.
   rationale: The body-byte budget bounds memory independently of the per-batch item count; clients split
     oversized batches.
+  acceptance:
+    given: The real ingestion HTTP route and valid machine credentials.
+    when: Post an exactly8MiB JSON body and an8MiB+1 body; separately feed an endless stream directly
+      to the Worker route.
+    then:
+    - The inclusive byte boundary succeeds; the oversized request returns413 without persisting its batch.
+    - The direct streaming route returns413 and cancels the stream after bounded over-read.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.batch-size
 - id: publications.partial-item-rejection
   category: consistency
   rule: A source or item validation error is returned as a per-item rejected result and does not roll
@@ -281,6 +307,22 @@ requirements:
     test:
       file: tests/unit/features/publications/publication-ingestion-contract.test.ts
       name: publications.manifest-content-type
+- id: publications.public-list-filters
+  category: behavior
+  rule: Public lists support type=news|notice, query, page, pageSize, and source/organizationLevel facets.
+    Comma-separated and repeated list forms select the same values; duplicates collapse before the20-unique-source
+    limit. Source and organization-level facets intersect.
+  acceptance:
+    given: Real news and notice publications in university and college sources.
+    when: Query the HTTP list with pagination, comma/repeated source values, duplicated values, intersecting
+      organization/type filters, and20/21 unique-source boundaries.
+    then:
+    - Both records appear once across paginated results; intersecting filters return only the matching
+      notice.
+    - 21 repetitions of one source remain valid;20 unique sources succeed and21 unique sources return400.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-list-filters
 capabilities:
   publication-read:
     title: Public publication list, detail, and verified object read
