@@ -515,7 +515,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     e2eSpec: E2E.rooms,
     mobileScreenshots: ["public"],
     primaryActions: [
-      { id: "room-map-lookup", e2eSpec: E2E.rooms, evidence: "查询展示地图" },
+      { id: "room-map-lookup", e2eSpec: E2E.rooms, testId: "room-map-preview" },
     ],
   },
   {

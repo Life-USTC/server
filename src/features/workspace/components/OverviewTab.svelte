@@ -196,24 +196,6 @@ function overviewFocus(
         focus={overviewFocus(overviewCalendar, agendaDays)}
       />
 
-      <div class="min-w-0">
-        <OverviewWeekCard
-          {workspaceCopy}
-          {workspaceTabHref}
-          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
-          {formatMessage}
-        />
-      </div>
-
-      <OverviewLinksGrid
-        {workspaceCopy}
-        {workspaceTabHref}
-        {linkIconLabel}
-        links={overviewLinkItems}
-        {submitWorkspaceLinkPin}
-        {updatingCatalogLinkSlug}
-      />
-
       <OverviewTodayOverdueCards
         {copy}
         {commonCopy}
@@ -233,6 +215,15 @@ function overviewFocus(
         {todoStatus}
         viewAllLabel={workspaceCopy.viewAll as string}
       />
+
+      <div class="min-w-0">
+        <OverviewWeekCard
+          {workspaceCopy}
+          {workspaceTabHref}
+          days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
+          {formatMessage}
+        />
+      </div>
 
       <OverviewSummaryCards
         {calendarExamDetail}
@@ -254,6 +245,15 @@ function overviewFocus(
         {todoStatus}
         upcomingExams={upcomingOverviewExams}
         viewAllLabel={workspaceCopy.viewAll as string}
+      />
+
+      <OverviewLinksGrid
+        {workspaceCopy}
+        {workspaceTabHref}
+        {linkIconLabel}
+        links={overviewLinkItems}
+        {submitWorkspaceLinkPin}
+        {updatingCatalogLinkSlug}
       />
     </div>
   {/if}

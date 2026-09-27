@@ -39,7 +39,7 @@ export let previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 export let viewAllLabel = "View all";
 </script>
 
-<div class="grid gap-8 lg:grid-cols-3 lg:gap-6">
+<div class="grid gap-8 lg:grid-cols-3 lg:gap-6" data-testid="workspace-overview-summaries">
   <OverviewHomeworkSummaryCard
     {commonCopy}
     {workspaceCopy}

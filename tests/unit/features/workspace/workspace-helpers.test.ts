@@ -76,6 +76,6 @@ describe("仪表盘辅助函数", () => {
       unscheduled,
     ]);
     expect(result.dueToday).toEqual([today]);
-    expect(result.dueWithin3Days).toEqual([today, soon]);
+    expect(result.dueWithin3Days).toEqual([soon]);
   });
 });

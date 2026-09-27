@@ -25,9 +25,20 @@ requirements:
   rule: The anonymous home page prioritizes public course, section and teacher discovery.
 - id: overview.now-next-first
   category: presentation
-  rule: The authenticated overview begins with the current or next actionable schedule, homework, exam,
-    or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain
-    secondary and appear after planning content.
+  rule: 'The overview focus is selected from today and the next six Shanghai calendar days: first the
+    current incomplete timed event, then an overdue incomplete homework/todo from today, then the next
+    incomplete item in timeline order. If none is actionable, no focus item is selected.'
+  acceptance:
+    given: The seven-day agenda includes an ongoing event, overdue homework, completed todo, next session
+      and tomorrow exam.
+    when: The real overview agenda builder and focus selector choose the next action.
+    then:
+    - Current events precede today overdue tasks; those precede the next incomplete item.
+    - Later days are eligible within the seven Shanghai calendar-day agenda, and an all-completed agenda
+      returns no action.
+    test:
+      file: tests/unit/features/workspace/workspace-agenda.test.ts
+      name: overview.now-next-first
 - id: overview.current-semester-priority
   category: presentation
   rule: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical
@@ -36,8 +47,22 @@ requirements:
     urgent tasks from another still-relevant term or activities/personal todos.'
 - id: overview.homework-todo-layered
   category: presentation
-  rule: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due
-    date does not participate in upcoming due date sorting.
+  rule: 'Homework and todo deadline groups use Shanghai calendar days: due today, due in the next three
+    days excluding today, and all pending. The first two groups are disjoint. Undated pending items remain
+    in all-pending only; completed items are excluded from every pending group.'
+  acceptance:
+    given: Homework and todos cover the preceding day, both today boundaries, next three days, fourth
+      day, no deadline and completed state.
+    when: The real homework and todo bucket functions run under UTC, Shanghai and Los Angeles process
+      time zones.
+    then:
+    - Today and upcoming-three-day buckets are disjoint and use Shanghai dates.
+    - The upcoming bucket begins tomorrow at 00:00 and ends before the fourth day at 00:00.
+    - Undated pending items appear only in all-pending; completed items appear in none of the pending
+      buckets.
+    test:
+      file: tests/unit/features/workspace/overview-deadline-buckets.test.ts
+      name: overview.homework-todo-layered
 - id: overview.upcoming-exam-counts
   category: behavior
   rule: Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview.
@@ -91,6 +116,26 @@ requirements:
   category: presentation
   rule: Compact workspace cards and default MCP output omit platform audit timestamps and repeated parent
     objects.
+- id: overview.card-order
+  category: presentation
+  expectation:
+    kind: ordered_items
+    surface: web
+    target: workspace-overview-sections
+    items:
+    - workspace-overview-focus
+    - workspace-overview-today-overdue
+    - workspace-overview-week
+    - workspace-overview-summaries
+    - workspace-overview-links
+  acceptance:
+    given: An authenticated viewer opens the overview on desktop or mobile.
+    when: The real overview renders its focus, urgency, week, summary and links sections.
+    then:
+    - The rendered document and vertical position follow the declared section order.
+    test:
+      file: tests/e2e/src/app/workspace/overview-order.test.ts
+      name: overview.card-order
 capabilities:
   authenticated-overview:
     title: Authenticated Workspace Overview

@@ -833,7 +833,7 @@
       "titleV2": "Incomplete homework",
       "descriptionV2": "Prioritize what's due today and soon.",
       "dueToday": "Due today {count}",
-      "dueSoon": "Due in 3 days {count}",
+      "dueSoon": "Next 3 days, excluding today: {count}",
       "all": "All {count}",
       "etaOverdue": "Overdue",
       "etaMinutes": "{count}m left",
@@ -912,7 +912,7 @@
       "title": "Todos",
       "pending": "Pending {count}",
       "dueToday": "Due today {count}",
-      "dueSoon": "Due in 3 days {count}",
+      "dueSoon": "Next 3 days, excluding today: {count}",
       "all": "All {count}",
       "viewAll": "View all"
     }

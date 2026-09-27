@@ -833,7 +833,7 @@
       "titleV2": "未完成作业",
       "descriptionV2": "优先处理今天与近期截止的作业。",
       "dueToday": "今天截止 {count}",
-      "dueSoon": "3 天内截止 {count}",
+      "dueSoon": "未来 3 天（不含今天）截止 {count}",
       "all": "全部 {count}",
       "etaOverdue": "已过期",
       "etaMinutes": "还剩 {count} 分钟",
@@ -912,7 +912,7 @@
       "title": "待办事项",
       "pending": "待完成 {count}",
       "dueToday": "今天截止 {count}",
-      "dueSoon": "3 天内截止 {count}",
+      "dueSoon": "未来 3 天（不含今天）截止 {count}",
       "all": "全部 {count}",
       "viewAll": "查看全部"
     }

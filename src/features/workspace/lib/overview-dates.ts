@@ -1,3 +1,4 @@
+import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
 import type {
   HomeworkWithDue,
   OverviewSource,
@@ -5,9 +6,7 @@ import type {
 } from "./overview-types";
 
 export function dayStart(value: Date) {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return startOfShanghaiDay(value);
 }
 
 export function referenceDate(value: Date | string | null | undefined) {
