@@ -19,7 +19,6 @@ export type SectionListLabels = {
   courseName: string;
   courseCode: string;
   credits: string;
-  creditValue: string;
   department: string;
   educationLevel: string;
   filterDescription: string;

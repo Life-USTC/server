@@ -221,7 +221,6 @@
       "fetchFailed": "获取课程信息失败",
       "pleaseRetry": "请稍后重试",
       "confirmTitle": "确认订阅 {count} 个教学班",
-      "foundSections": "找到 {count} 个匹配的教学班，请选择要订阅的教学班：",
       "unmatchedCodes": "未匹配到的代码 ({count})",
       "cancel": "取消",
       "subscribeSelected": "订阅已选的 {count} 个教学班",
@@ -636,7 +635,6 @@
     "currentFilter": "当前筛选",
     "allUsers": "全部用户",
     "summaryShowing": "当前显示",
-    "summaryShowingMeta": "共 {total} 个匹配账号",
     "summaryAdmins": "管理员",
     "summaryAdminsMeta": "当前页",
     "summarySuspended": "已封禁",
@@ -756,7 +754,6 @@
       "exams": {
         "title": "考试",
         "description": "查看你订阅的教学班的考试安排",
-        "count": "{count} 场考试",
         "noSubscriptionsTitle": "尚未订阅教学班",
         "noSubscriptionsDescription": "订阅教学班后即可在此查看考试。",
         "empty": "暂时没有可用的考试安排。",
@@ -808,8 +805,7 @@
       "todayStatus": "今日状态",
       "noCurrentClass": "当前没有进行中的课程",
       "noNextClass": "接下来没有课程安排",
-      "remainingToday": "今天剩余课程",
-      "tomorrowCount": "明天共 {count} 节课程"
+      "remainingToday": "今天剩余课程"
     },
     "today": {
       "title": "今天",
@@ -827,7 +823,6 @@
       "descriptionTable": "按时间段与周一到周日查看完整课表。",
       "empty": "本周暂无课程安排。",
       "time": "时间",
-      "classCount": "{count} 节课",
       "more": "还有 {count} 节",
       "viewCalendar": "查看日历"
     },
@@ -842,7 +837,6 @@
       "etaMinutes": "还剩 {count} 分钟",
       "etaHours": "还剩 {count} 小时",
       "etaToday": "今天截止",
-      "etaDays": "还剩 {count} 天",
       "empty": "没有未完成作业。",
       "noDue": "未设置截止时间",
       "openAll": "打开全部作业"
@@ -949,7 +943,6 @@
     },
     "route": {
       "favorite": "常用",
-      "totalTrips": "共 {count} 班",
       "upcomingTrips": "后续 {count} 班",
       "departedTrips": "已发 {count} 班",
       "stops": "停靠",
@@ -979,16 +972,11 @@
       "endShort": "终",
       "empty": "当前方向下没有可用路线。可以尝试反向或重新选择站点。",
       "emptyReverseAction": "反向查询",
-      "departIn": "约 {count} 分钟后发车",
-      "departEtaMinutes": "{count} 分钟",
-      "departEtaHours": "{count} 小时",
-      "departEtaHoursMinutes": "{hours} 小时 {minutes} 分钟",
       "etaUnknown": "到站时间未知",
       "estimatedHint": "~ 表示该时间由同班次相邻站点推算得出。",
       "clientHint": "班次与路线会根据你选择的站点以及当天是工作日、周六还是周日而显示。",
       "direction": "方向",
       "routes": "路线",
-      "routeSectionsCount": "共 {count} 条路线分组",
       "departureColumn": "出发",
       "routeColumn": "路线时刻",
       "arrivalColumn": "到达"
@@ -1227,7 +1215,6 @@
       "showing": "显示",
       "showingMeta": "第 {page} 页 / 共 {totalPages} 页",
       "filters": "筛选",
-      "filterMeta": "{count} 个已启用筛选",
       "options": "选项",
       "optionsMeta": "课程目录维度"
     },
@@ -1238,7 +1225,6 @@
     }
   },
   "courseDetail": {
-    "availableSections": "可用班级 ({count})",
     "basicInfo": "基本信息",
     "basicInfoDescription": "已导入的课程元数据。",
     "noSections": "此课程暂无可用班级",
@@ -1250,7 +1236,6 @@
     "capacity": "容量",
     "classType": "课程类型",
     "courseType": "课程归类",
-    "sectionCount": "{count} 个班级",
     "summarySections": "班级",
     "summarySectionsMeta": "近期开课记录",
     "summaryComments": "评论",
@@ -1358,7 +1343,6 @@
     "credits": "学分",
     "capacity": "容量",
     "noSemester": "无学期",
-    "creditValue": "{count} 学分",
     "filterDescription": "组合班级、课程属性和排序条件；留空表示不限，点击“应用筛选”后生效。",
     "filters": {
       "any": "不限",
@@ -1389,7 +1373,6 @@
       "showing": "显示",
       "showingMeta": "第 {page} 页 / 共 {totalPages} 页",
       "filters": "筛选",
-      "filterMeta": "{count} 个已启用筛选",
       "semesters": "学期",
       "semestersMeta": "可用学期"
     }
@@ -1438,7 +1421,6 @@
     "viewAllCourseSections": "查看全部班级",
     "addToCalendar": "添加到日历",
     "calendarDescription": "此班级的上课与考试安排。",
-    "calendarCountMeta": "{count} 个课程与考试事件",
     "calendarMiniDescription": "快速查看上课与考试日期。",
     "classLegend": "上课",
     "examLegend": "考试",
@@ -1747,7 +1729,6 @@
       "showing": "显示",
       "showingMeta": "第 {page} 页 / 共 {totalPages} 页",
       "filters": "筛选",
-      "filterMeta": "{count} 个已启用筛选",
       "departments": "院系",
       "departmentsMeta": "已有教师记录"
     },
@@ -1756,7 +1737,6 @@
     "mobile": "手机",
     "address": "地址",
     "basicInfo": "基本信息",
-    "teachingSections": "授课班级 ({count})",
     "noSections": "暂无授课班级",
     "viewAllSections": "查看此教师的所有授课班级",
     "allDepartments": "所有院系"
@@ -1773,13 +1753,11 @@
     "basicInfo": "基本信息",
     "basicInfoDescription": "已导入的教师元数据。",
     "contact": "联系方式",
-    "teachingSections": "授课班级 ({count})",
     "teachingSectionsTitle": "授课班级",
     "teachingSectionsDescription": "按学期由近到远排列的历史教学班。",
     "noSections": "暂无授课班级",
     "noDepartment": "无院系",
     "notAvailable": "暂无",
-    "sectionCount": "{count} 个班级",
     "summarySections": "班级",
     "summarySectionsMeta": "近期授课记录",
     "summaryComments": "评论",
@@ -2133,8 +2111,6 @@
     "filterSoftbanned": "私密",
     "filterDeleted": "已删除",
     "filterSuspended": "已封禁",
-    "commentCount": "{count} 条评论",
-    "suspensionCount": "{count} 条封禁记录",
     "expiresAt": "到期时间：{date}",
     "permanent": "永久",
     "viewComment": "查看评论",
@@ -2479,8 +2455,6 @@
     "credentialsCopied": "客户端凭据已复制到剪贴板。",
     "publicClientNoSecret": "公共客户端不会签发客户端密钥。",
     "dismissCredentials": "完成",
-    "previewRedirectCount": "{count, plural, =0 {尚未填写重定向 URI} one {# 个重定向 URI} other {# 个重定向 URI}}",
-    "previewScopeCount": "{count, plural, =0 {尚未选择权限} one {已选择 # 个权限} other {已选择 # 个权限}}",
     "existingClients": "已有客户端",
     "existingClientsDescription": "在一个列表中检查客户端身份、信任类型、状态和权限范围。",
     "tableColumnScopes": "权限范围",
@@ -3027,11 +3001,6 @@
       "enRoute": "行驶中",
       "departingSoon": "{minutes}分钟后发车",
       "noActive": "当前没有运行中的班车"
-    },
-    "tripCount": {
-      "weekday": "工作日 {count} 趟",
-      "saturday": "周六 {count} 趟",
-      "sunday": "周日 {count} 趟"
     },
     "backToBus": "返回时刻表",
     "noData": "暂无班车数据。",

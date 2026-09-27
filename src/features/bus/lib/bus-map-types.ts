@@ -72,7 +72,6 @@ export type BusMapCopy = {
   statusTitle: string;
   subtitle: string;
   title: string;
-  tripCount: Record<BusMapData["todayType"], string>;
   tripsToday: string;
   updated: string;
 };
