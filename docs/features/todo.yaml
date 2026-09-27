@@ -203,18 +203,16 @@ requirements:
     input: items
     min_items: 1
     max_items: 100
-    unique_items: false
+    unique_items: true
   acceptance:
     given: An authenticated caller sends a batch.
     when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
     then:
-    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
+    - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
     test:
       file: tests/unit/features/todos/todo-batch-route.test.ts
       name: todo.rest-batch-patch-bounds
-  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
-    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
-    bounds tests do not establish final duplicate-write state.'
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-batch-delete-bounds
   category: validation
   applies_to:
@@ -226,18 +224,16 @@ requirements:
     input: ids
     min_items: 1
     max_items: 100
-    unique_items: false
+    unique_items: true
   acceptance:
     given: An authenticated caller sends a batch.
     when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
     then:
-    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
+    - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
     test:
       file: tests/unit/features/todos/todo-batch-route.test.ts
       name: todo.rest-batch-delete-bounds
-  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
-    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
-    bounds tests do not establish final duplicate-write state.'
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-patch-ownership
   category: authorization
   applies_to:

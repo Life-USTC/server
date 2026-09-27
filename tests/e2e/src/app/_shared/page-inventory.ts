@@ -1165,6 +1165,32 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     contractPath: "/workspace/subscriptions/sections",
     e2eSpec: E2E.workspaceSubscriptions,
   },
+  {
+    routeId: "/workspace/uploads",
+    samplePath: "/workspace/uploads",
+    kind: "page",
+    auth: "user",
+    contractPath: "/workspace/uploads",
+    e2eSpec: "src/app/account-policy/upload-management.test.ts",
+    mobileCoveredBy: {
+      e2eSpec: "src/app/account-policy/upload-management.test.ts",
+      testName: "upload.web-list",
+      reason:
+        "The owner fixture verifies mobile upload rows, pagination, quota and privacy.",
+    },
+    primaryActions: [
+      {
+        id: "rename",
+        e2eSpec: "src/app/account-policy/upload-management.test.ts",
+        evidence: "upload.web-rename",
+      },
+      {
+        id: "delete",
+        e2eSpec: "src/app/account-policy/upload-management.test.ts",
+        evidence: "upload.web-delete-feedback",
+      },
+    ],
+  },
 ] as const satisfies readonly PageInventoryEntry[];
 
 export function inventoryByRouteId(

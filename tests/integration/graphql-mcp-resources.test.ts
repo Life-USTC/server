@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   runWithCloudflareRuntimeEnv,
@@ -7,6 +8,7 @@ import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
 } from "@/lib/graphql/constants";
+import { publicGraphqlOperationsManifest } from "@/lib/graphql/operations";
 import { GRAPHQL_OPERATION_PROMPT_NAME } from "@/lib/graphql/prompts";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 import * as fixtures from "./mcp/_harness";
@@ -30,7 +32,7 @@ describe("GraphQL MCP operations", () => {
     return result.structuredContent as T;
   }
 
-  it("lists the canonical SDL and a document-free operation manifest", async () => {
+  it("interface-hierarchy.transport-specific-exceptions-11", async () => {
     const resources = await isolated.client.listResources();
 
     expect(resources.resources).toEqual(
@@ -53,7 +55,7 @@ describe("GraphQL MCP operations", () => {
     });
     expect(schema.contents[0]).toHaveProperty(
       "text",
-      expect.stringContaining("type Query"),
+      readFileSync("docs/graphql/schema.graphql", "utf8"),
     );
     const operationContent = operations.contents[0];
     if (!operationContent || !("text" in operationContent)) {
@@ -79,7 +81,8 @@ describe("GraphQL MCP operations", () => {
         }),
       ]),
     });
-    expect((manifest.operations as unknown[]).length).toBe(61);
+    expect(manifest).toEqual(publicGraphqlOperationsManifest);
+    expect(JSON.stringify([schema, operations])).not.toContain(isolated.userId);
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 

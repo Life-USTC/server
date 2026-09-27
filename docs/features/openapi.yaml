@@ -34,11 +34,6 @@ requirements:
     test:
       file: tests/integration/rest-state-setting-contract.test.ts
       name: openapi.session-and-bearer
-- id: openapi.rest-mcp-consistent
-  category: consistency
-  rule: Equivalent REST and MCP capabilities agree on authorized domain values, state transitions, ownership,
-    and operation outcomes. Each capability declares its transport-specific projection, pagination inputs,
-    and omissions; compact MCP output never weakens a privacy restriction.
 - id: openapi.crawler-ingestion-rest-only
   category: behavior
   rule: 'Crawler publication ingestion is an explicit REST-only exception: its machine-secret-authenticated
@@ -66,13 +61,6 @@ requirements:
     test:
       file: tests/unit/lib/openapi/openapi-generator.test.ts
       name: openapi.security-schemes
-- id: openapi.generated-client-required
-  category: consistency
-  rule: CLI and Bot use generated OpenAPI request/response types and clients for covered business operations.
-    Explicit raw-request commands, OAuth protocol exchange, external provider APIs, and documented operations
-    outside OpenAPI are separate transport responsibilities.
-  rationale: Client usage is verified in the corresponding client repository; server schema generation
-    alone does not establish client behavior.
 - id: openapi.rest-batch-unique-targets
   category: validation
   rule: REST todo completion/deletion, homework completion and comment-deletion batches reject duplicate normalized target IDs before any domain write. Distinct targets retain the feature's per-item outcome semantics.
@@ -615,3 +603,5 @@ rationale:
 - Public documentation helps callers understand the existing product capability boundaries, not to introduce
   a separate developer-specific business model.
 - REST private response defaults, CDN no-store and opt-in viewer-independent caching are owned by rendering-and-cache.personal-overlays-8, rendering-and-cache.personal-overlays-9 and rendering-and-cache.personal-overlays-10.
+- Cross-surface conformance is decomposed into the atomic ownership, identifier, pagination, time, mutation, error and freshness requirements in interface-hierarchy; it is not duplicated as a catch-all OpenAPI acceptance item.
+- Generated business-client usage is owned by openapi.cli-generated-business-client in the CLI repository and openapi.bot-generated-business-client in the Bot repository. Each has its own native AST plus HTTP acceptance in internal/cmd/root/generated_contract_test.go and internal/life/generated_contract_test.go respectively. Server schema drift alone cannot establish either client contract.

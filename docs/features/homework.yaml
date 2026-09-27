@@ -318,7 +318,7 @@ requirements:
     input: items
     min_items: 1
     max_items: 100
-    unique_items: false
+    unique_items: true
   acceptance:
     given: Authenticated completion writes provide boundary-sized item arrays and duplicate homework IDs.
     when: The real REST adapter parses each input.
@@ -328,9 +328,7 @@ requirements:
     test:
       file: tests/integration/rest/homeworks/completions/test.ts
       name: homework.rest-completion-batch-input
-  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
-    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
-    bounds tests do not establish final duplicate-write state.'
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.graphql-completion-batch-input
   category: behavior
   applies_to:
@@ -352,9 +350,7 @@ requirements:
     test:
       file: tests/integration/graphql-homework-mutations.test.ts
       name: homework.graphql-completion-batch-input
-  rationale: 'The declared duplicate-input policy remains explicit. Product decision required: specify
-    conflicting duplicate target order/retry behavior and justify any REST/GraphQL difference; collection
-    bounds tests do not establish final duplicate-write state.'
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: homework.public-section-read
   category: authorization
   rule: Anonymous viewers can read homework under public sections.

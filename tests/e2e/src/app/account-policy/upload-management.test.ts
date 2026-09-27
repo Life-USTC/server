@@ -5,6 +5,7 @@ import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { assertPageContract } from "../_shared/page-contract";
 
 async function fixture(page: Page) {
   const user = await withE2ePrisma((db) =>
@@ -118,6 +119,10 @@ test("upload.web-list", async ({ page, request }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     const response = await page.goto("/workspace/uploads");
     expect(response?.headers()["cache-control"]).toContain("private, no-store");
+    await assertPageContract(page, {
+      routePath: "/workspace/uploads",
+      testInfo,
+    });
     await expect(
       page.getByRole("heading", { name: "My Uploads", exact: true }),
     ).toBeVisible();

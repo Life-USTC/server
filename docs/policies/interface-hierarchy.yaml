@@ -2,12 +2,6 @@ kind: policy
 id: interface-hierarchy
 title: Canonical capabilities and surface parity
 requirements:
-- id: interface-hierarchy.interface-hierarchy-2
-  category: consistency
-  topic: interface-hierarchy
-  rule: Supported surfaces of one capability preserve its business ownership, data scope, effects, and domain
-    error meaning. Authentication, token audience, OAuth grants, input syntax, defaults, and output encoding
-    are declared explicitly for each surface.
 - id: interface-hierarchy.canonical-tree-2
   category: consistency
   topic: canonical-tree
@@ -63,13 +57,6 @@ requirements:
     test:
       file: tests/unit/policies/interface-hierarchy.test.ts
       name: interface-hierarchy.surface-mapping-3
-- id: interface-hierarchy.surface-mapping-4
-  category: consistency
-  topic: surface-mapping
-  surfaces:
-  - graphql
-  rule: Public catalog and public community GraphQL queries permit an anonymous principal. Native MCP tools
-    enforce the authentication and scopes declared on their own bindings.
 - id: interface-hierarchy.canonical-actions-1
   category: consistency
   topic: canonical-actions
@@ -135,13 +122,16 @@ requirements:
 - id: interface-hierarchy.transport-specific-exceptions-11
   category: consistency
   topic: transport-specific-exceptions
-  rule: MCP schema resources and operation-planning prompts identify the currently supported GraphQL schema
-    and registered operation context without embedding user credentials.
-- id: interface-hierarchy.transport-specific-exceptions-14
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Administration is available only through its declared Web, REST, and CLI bindings. GraphQL, MCP, and
-    Bot do not expose governance operations.
+  rule: MCP schema resources expose the exact current canonical GraphQL SDL and the registered-operation manifest without executable operation documents, user identifiers or credentials. Planning prompt guidance is owned by graphql.graphql-operation-prompt.
+  acceptance:
+    given: A real authenticated MCP client, canonical SDL snapshot and compiled public operation manifest.
+    when: List and read the registered schema and operation resources.
+    then:
+    - Resource payloads exactly equal the canonical SDL and complete public manifest.
+    - The manifest omits executable documents and both resources omit the authenticated user identifier.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: interface-hierarchy.transport-specific-exceptions-11
 - id: interface-hierarchy.semantic-parity-1
   category: consistency
   topic: semantic-parity
@@ -618,8 +608,7 @@ rationale:
   docs/graphql/schema.graphql.
 - Authentication redirects, OAuth endpoints, cookie writes, and raw upload bytes are transport operations,
   not business capabilities.
-- Tree entries such as workspace/schedules and workspace/uploads are API/MCP/CLI capabilities and do not imply
-  a matching Web page.
+- A tree entry alone does not imply a Web page. Workspace schedules have no dedicated page; owned upload management has the explicit /workspace/uploads binding.
 - Bot exposes deterministic commands for frequent, short interactions.
 - CLI-local configuration and Bot-local AI/tool settings are client state and remain outside the server capability
   tree.
@@ -632,3 +621,6 @@ rationale:
 
 - Anonymous GraphQL root access has one canonical obligation, graphql.anonymous-roots; its real HTTP acceptance covers null account/workspace roots and readable catalog/community roots.
 - Governance exclusion is owned by graphql.registered-operation-coverage for the executable GraphQL schema and mcp.personal-workspace-focus for the complete MCP tool inventory.
+- Cross-surface conformance is split into the atomic semantic-parity requirements below this policy; the former umbrella statement did not define an independent testable obligation.
+- Anonymous GraphQL catalog/community access is owned by graphql.anonymous-roots. MCP public access and authorization are owned by mcp.public-catalog-access, mcp.resource-bound-access-token and mcp.complete-batch-scope-enforcement; these transports intentionally have separate authentication contracts.
+- Administration uses declared Web and session-only REST bindings (admin.admin-rest-session-only and openapi.session-and-bearer). GraphQL and MCP governance exclusion belong to graphql.registered-operation-coverage and mcp.personal-workspace-focus. CLI does not expose session-only governance commands; cli.admin-session-boundary is verified in the CLI repository.
