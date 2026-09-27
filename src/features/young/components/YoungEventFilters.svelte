@@ -73,6 +73,9 @@ $effect(() => {
     };
   }
 });
+const unknownModule = $derived(Boolean(advancedDraft.module) && !modules.includes(advancedDraft.module));
+const unknownLevel = $derived(Boolean(advancedDraft.activityLevel) && !levels.includes(advancedDraft.activityLevel));
+
 const activeCount = $derived(
   advancedKeys.filter((key) => Boolean(filters[key])).length,
 );
@@ -191,17 +194,19 @@ const activeFilters = $derived(
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-module`}>{labels.module}</Field.FieldLabel>
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-module`} name="module" bind:value={advancedDraft.module}>
+          {#if unknownModule}<input type="hidden" name="module" value={advancedDraft.module} />{/if}
+          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-module`} name={unknownModule ? undefined : "module"} bind:value={advancedDraft.module}>
             <NativeSelect.Option value="">{labels.allModules}</NativeSelect.Option>
-            {#if advancedDraft.module && !modules.includes(advancedDraft.module)}<NativeSelect.Option value={advancedDraft.module}>{advancedDraft.module}</NativeSelect.Option>{/if}
+            {#if unknownModule}<NativeSelect.Option value={advancedDraft.module} disabled>{advancedDraft.module}</NativeSelect.Option>{/if}
             {#each modules as module (module)}<NativeSelect.Option value={module}>{module}</NativeSelect.Option>{/each}
           </NativeSelect.Root>
         </Field.Field>
         <Field.Field>
           <Field.FieldLabel for={`${prefix}-activity-level`}>{labels.activityLevel}</Field.FieldLabel>
-          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-activity-level`} name="activityLevel" bind:value={advancedDraft.activityLevel}>
+          {#if unknownLevel}<input type="hidden" name="activityLevel" value={advancedDraft.activityLevel} />{/if}
+          <NativeSelect.Root class="[&_select]:h-11" id={`${prefix}-activity-level`} name={unknownLevel ? undefined : "activityLevel"} bind:value={advancedDraft.activityLevel}>
             <NativeSelect.Option value="">{labels.allActivityLevels}</NativeSelect.Option>
-            {#if advancedDraft.activityLevel && !levels.includes(advancedDraft.activityLevel)}<NativeSelect.Option value={advancedDraft.activityLevel}>{advancedDraft.activityLevel}</NativeSelect.Option>{/if}
+            {#if unknownLevel}<NativeSelect.Option value={advancedDraft.activityLevel} disabled>{advancedDraft.activityLevel}</NativeSelect.Option>{/if}
             {#each levels as level (level)}<NativeSelect.Option value={level}>{level}</NativeSelect.Option>{/each}
           </NativeSelect.Root>
         </Field.Field>

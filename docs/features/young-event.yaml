@@ -226,11 +226,30 @@ requirements:
   rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
     detail return links preserve the originating catalog browse route. Unknown-date results show their
     active filter explicitly.
+  acceptance:
+    given: Isolated events have shared search, category, module, level, organizer and source-list filters plus missing activity or registration starts.
+    when: Desktop and mobile browsers switch between list and calendar and open details from list, calendar and organizer history.
+    then:
+    - All shared filters survive list/calendar navigation and the detail return link restores the exact originating browse URL.
+    - Unknown-date results visibly identify the selected time basis and retain the filter when the search form is submitted.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.web-browse-context
 - id: young-event.web-organizer-order
   category: presentation
   rule: Web organizer discovery places organizers with source-active events before other organizers, with
     alphabetical order and stable ID ties within each group. REST, GraphQL and MCP order alphabetically.
     Source-active does not imply registration is open.
+  acceptance:
+    given: Twenty-four isolated organizers include six source-active organizers and equal-name records inserted in reverse ID order.
+    when: Desktop and mobile browsers follow organizer pagination across the active and inactive group boundary.
+    then:
+    - Source-active organizers precede other organizers, with alphabetical name and stable ID order within each group.
+    - The second page continues the exact sequence and retains search; a page beyond the result set is empty.
+    - Organizer links resolve to the exact local organizer identity.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.web-organizer-order
 - id: young-event.web-detail-priority
   category: presentation
   rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
@@ -242,12 +261,23 @@ requirements:
     their current view and title the matching date range.
 - id: young-event.fixed-browse-filter-options
   category: presentation
-  rule: Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
-    校级, 省级 and 国家级. Other upstream values remain visible as badges but do not become filter choices.
+  rule: Selectable Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
+    校级, 省级 and 国家级. Other upstream values remain visible in results without becoming selectable taxonomy choices.
+    An unknown value already present in the URL remains visible as the current filter, survives unchanged submissions,
+    and can be explicitly cleared or replaced with a standard value.
   surfaces:
   - web
-  rationale: 'Product decision required: Fixed known taxonomy is simple but hiding valid other upstream
-    values from filters can make relevant events undiscoverable; decide unknown/other filtering policy.'
+  rationale: Fixed standard choices coexist with unknown upstream facts; preserving current URL filters and unfiltered results avoids hiding those activities.
+  acceptance:
+    given: Source activities include unknown module and level values and a browse URL already filters by those values.
+    when: A browser opens list and calendar filter sheets, submits unchanged filters, replaces them with standard choices or clears the active chips.
+    then:
+    - Selectable module and level choices remain the five standard values plus the unfiltered option.
+    - Unknown values remain visible in unfiltered activity results and active filter context; they are not additional selectable taxonomy choices.
+    - Unchanged primary and advanced submissions preserve unknown filters, standard choices replace them and clear links remove them explicitly.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.fixed-browse-filter-options
 - id: young-event.overlay-shared-viewer-state
   category: privacy
   rule: Event subscription/conflict controls reuse root viewer state without issuing a separate shell
