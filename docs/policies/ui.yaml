@@ -39,6 +39,19 @@ requirements:
   rule: At mobile widths, catalog detail pages render the hero, compact identity facts, the main reading stream,
     and remaining secondary facts in that order. Workspace views and overlays follow their own declared content
     order.
+  acceptance:
+    given: Isolated course, teacher, and section details include compact identity facts, a description,
+      and remaining secondary facts in Chinese and English.
+    when: A browser renders each detail at 390 pixels, then resizes the same page to 1280 pixels.
+    then:
+    - Mobile DOM and visible geometry order the hero, compact identity facts, reading stream, and remaining
+      facts without horizontal document overflow.
+    - Course level/category, teacher department/title, and section teachers/campus appear before reading;
+      the section retains one linked teachers anchor.
+    - Desktop places identity and remaining facts to the right of the reading stream.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.layout-principles-3
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles

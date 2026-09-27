@@ -13,6 +13,7 @@ import {
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
+import CourseDetailIdentity from "./CourseDetailIdentity.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
   CourseDetailCopy,
@@ -92,6 +93,10 @@ $: displayName =
         <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
       {/snippet}
     </PageHeader>
+  {/snippet}
+
+  {#snippet identity()}
+    <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
   {/snippet}
 
         <section id="introduction" class="scroll-mt-4">

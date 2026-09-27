@@ -22,6 +22,7 @@ import type {
   CatalogDetailDescriptionData,
 } from "./catalog-detail-page-types";
 import TeacherDetailBasicInfo from "./TeacherDetailBasicInfo.svelte";
+import TeacherDetailIdentity from "./TeacherDetailIdentity.svelte";
 import TeacherDetailSections from "./TeacherDetailSections.svelte";
 
 type TeacherDetailData = CatalogNamed & {
@@ -76,6 +77,10 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
       title={displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
     />
+  {/snippet}
+
+  {#snippet identity()}
+    <TeacherDetailIdentity copy={detailCopy} teacher={data.teacher} {primaryName} {notAvailable} />
   {/snippet}
 
         <section id="introduction" class="scroll-mt-4">
@@ -135,8 +140,6 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
         <section id="overview">
           <TeacherDetailBasicInfo
             copy={detailCopy}
-            {notAvailable}
-            {primaryName}
             teacher={data.teacher}
           />
         </section>

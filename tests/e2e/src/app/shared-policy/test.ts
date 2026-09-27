@@ -69,9 +69,7 @@ async function openMobileMenu(page: Page) {
 async function assertReadingOrder(page: Page, id: string) {
   const { items } = uiExpectation(id, "ordered_items");
   const actual = await page
-    .locator(
-      "[data-detail-scroll-container] > div > div:first-child > section[id]",
-    )
+    .locator("[data-detail-reading-stream] > section[id]")
     .evaluateAll((nodes) => nodes.map((node) => node.id));
   expect(actual).toEqual(items);
   let previousBottom = -Infinity;
@@ -146,9 +144,7 @@ test("ui.layout-principles-1", async ({ page }) => {
   await page.setViewportSize(viewports[0]);
   for (const { href, collection } of await catalogPages(page)) {
     await gotoAndWaitForReady(page, href);
-    const column = page.locator(
-      "[data-detail-scroll-container] > div > div:first-child",
-    );
+    const column = page.locator("[data-detail-reading-stream]");
     for (const id of [
       "introduction",
       "comments",
