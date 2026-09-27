@@ -149,6 +149,19 @@ requirements:
   topic: actions
   rule: User deletes an upload they own. Transport-originated writes include metadata.source where available.
     After storage deletion succeeds, metadata deletion and the audit row are committed together.
+  acceptance:
+    given: An authenticated owner has uploaded real content and authorized an MCP client to delete uploads.
+    when: An owner-scoped database constraint rejects the deletion audit; the owner retries through MCP after
+      removing the constraint and repeats the completed deletion.
+    then:
+    - Storage deletion succeeds before the transaction, but audit failure preserves upload metadata and commits
+      no audit event.
+    - A successful retry deletes metadata and commits exactly one event with actor, upload target, OAuth client
+      and grant, size, and source=mcp, without content, filename, storage key, or credentials.
+    - Repeating the completed deletion returns not_found and adds no event.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-audit.test.ts
+      name: audit.action-upload-delete
 - id: audit.action-section-retire
   category: privacy
   topic: actions
