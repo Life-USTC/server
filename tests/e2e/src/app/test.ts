@@ -893,7 +893,10 @@ test("cases.semester.only-non-current-semester-subscriptions-3", async ({
       ),
     );
     await expect(
-      page.getByText(/线性代数进阶|Advanced Linear Algebra/i).first(),
+      page
+        .getByText(/线性代数进阶|Advanced Linear Algebra/i)
+        .filter({ visible: true })
+        .first(),
     ).toBeVisible();
   } finally {
     await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
