@@ -26,7 +26,9 @@ export const youngEventsQuerySchema = z.object({
     ),
   active: booleanQuerySchema
     .optional()
-    .describe("Filter by signup-open (active) events."),
+    .describe(
+      "Filter by source-active list membership, independently of the current signup window.",
+    ),
   category: z
     .string()
     .trim()

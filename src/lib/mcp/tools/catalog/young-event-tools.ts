@@ -162,7 +162,9 @@ export function registerYoungEventTools(server: McpServer) {
         active: z
           .boolean()
           .optional()
-          .describe("Filter by signup-open (active) events."),
+          .describe(
+            "Filter by source-active list membership, independently of the current signup window.",
+          ),
         category: z
           .string()
           .trim()
