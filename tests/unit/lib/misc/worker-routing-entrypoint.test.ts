@@ -138,6 +138,56 @@ describe("Worker routing entrypoint", () => {
     vi.restoreAllMocks();
   });
 
+  it("defaults early dynamic redirects to private caching without changing their payload or cookies", async () => {
+    for (const [status, body, contentType, location] of [
+      [303, null, null, "/account/welcome?callbackUrl=%2F"],
+      [
+        200,
+        JSON.stringify({ type: "redirect", location: "/account/welcome" }),
+        "application/json",
+        null,
+      ],
+    ] as const) {
+      for (const policy of ["missing", "private", "public"]) {
+        const headers = new Headers({
+          "Set-Cookie": "session=renewed; Path=/; HttpOnly",
+        });
+        if (contentType) headers.set("Content-Type", contentType);
+        if (location) headers.set("Location", location);
+        if (policy !== "missing") {
+          headers.set(
+            "Cache-Control",
+            policy === "public" ? "public, max-age=120" : "private, no-store",
+          );
+          headers.set("Cloudflare-CDN-Cache-Control", "public, max-age=240");
+        }
+        appFetchMock.mockResolvedValueOnce(
+          new Response(body, { status, headers }),
+        );
+        const response = await worker.fetch(
+          new Request("https://life-ustc.test/__data.json", {
+            headers: { cookie: "better-auth.session_token=session" },
+          }),
+          {},
+          { waitUntil: vi.fn() },
+        );
+        expect(response.status).toBe(status);
+        expect(response.headers.get("Location")).toBe(location);
+        expect(response.headers.get("Set-Cookie")).toBe(
+          headers.get("Set-Cookie"),
+        );
+        expect(response.headers.get("Content-Type")).toBe(contentType);
+        expect(response.headers.get("Cache-Control")).toBe(
+          policy === "public" ? "public, max-age=120" : "private, no-store",
+        );
+        expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+          policy === "public" ? "public, max-age=240" : "no-store",
+        );
+        expect(await response.text()).toBe(body ?? "");
+      }
+    }
+  });
+
   it("correlates and sanitizes dynamic sign-in requests without changing method or body", async () => {
     let forwardedBody: string | undefined;
     appFetchMock.mockImplementationOnce(async (forwardedRequest: Request) => {

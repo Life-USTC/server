@@ -181,6 +181,20 @@ requirements:
   topic: cacheable-public-pages
   rule: A signed-in visitor to / continues to the canonical workspace or required onboarding flow; the public
     landing cache never replaces this redirect.
+  acceptance:
+    given: An anonymous landing request and isolated session users with complete profiles, a missing name,
+      or a missing username.
+    when: Warm anonymous HTML, request the same root HTML and page-data URL with each session, follow each
+      redirect in a browser, and request anonymously again for Chinese and English.
+    then:
+    - Complete profiles receive a private no-store 303 to workspace overview; either incomplete profile
+      receives a private no-store 303 to welcome with the original root callback.
+    - Page-data preserves SvelteKit's JSON redirect shape with private browser/CDN no-store headers.
+    - Browser navigation reaches the intended page, and anonymous landing HTML remains successful without
+      any session user's identity.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.cacheable-public-pages-14
 - id: rendering-and-cache.personal-overlays-1
   category: privacy
   topic: personal-overlays

@@ -66,6 +66,103 @@ function expectPrivate(response: APIResponse) {
   expect(response.headers().vary?.split(/,\s*/)).toContain("Cookie");
 }
 
+test("rendering-and-cache.cacheable-public-pages-14", async ({
+  browser,
+  request,
+}) => {
+  const users = await createUsers();
+  const incomplete = await withE2ePrisma(async (db) => {
+    const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
+    return Promise.all([
+      db.user.create({
+        data: {
+          name: "",
+          username: `new${suffix}`,
+          email: `noname-${suffix}@example.test`,
+        },
+      }),
+      db.user.create({
+        data: {
+          name: `New viewer ${suffix}`,
+          email: `nousername-${suffix}@example.test`,
+        },
+      }),
+    ]);
+  });
+  const contexts = [];
+  try {
+    for (const user of [users[0], ...incomplete]) {
+      const context = await browser.newContext({
+        baseURL: PLAYWRIGHT_BASE_URL,
+      });
+      contexts.push(context);
+      await context.addCookies([await createSignedSessionCookie(user.id)]);
+    }
+    for (const locale of ["zh-cn", "en-us"]) {
+      const headers = { "Accept-Language": locale };
+      const anonymous = await request.get("/", { headers, maxRedirects: 0 });
+      expect(anonymous.status()).toBe(200);
+      expect(anonymous.headers()["content-type"]).toContain("text/html");
+      for (const [index, context] of contexts.entries()) {
+        const response = await context.request.get("/", {
+          headers,
+          maxRedirects: 0,
+        });
+        expect(response.status()).toBe(303);
+        expect(response.headers().location).toBe(
+          index === 0
+            ? "/workspace/overview"
+            : "/account/welcome?callbackUrl=%2F",
+        );
+        expect(response.headers()["cache-control"]).toBe("private, no-store");
+        expect(response.headers()["cloudflare-cdn-cache-control"]).toBe(
+          "no-store",
+        );
+        const dataRedirect = await context.request.get("/__data.json", {
+          headers,
+          maxRedirects: 0,
+        });
+        expect(dataRedirect.status()).toBe(200);
+        expect(await dataRedirect.json()).toEqual({
+          type: "redirect",
+          location:
+            index === 0
+              ? "/workspace/overview"
+              : "/account/welcome?callbackUrl=%2F",
+        });
+        expect(dataRedirect.headers()["cache-control"]).toBe(
+          "private, no-store",
+        );
+        expect(dataRedirect.headers()["cloudflare-cdn-cache-control"]).toBe(
+          "no-store",
+        );
+        const page = await context.newPage();
+        await gotoAndWaitForReady(page, "/");
+        await expect(page).toHaveURL(
+          index === 0
+            ? /\/workspace\/overview$/
+            : /\/account\/welcome\?callbackUrl=%2F$/,
+        );
+        await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+        await page.close();
+      }
+      const finalAnonymous = await request.get("/", {
+        headers,
+        maxRedirects: 0,
+      });
+      expect(finalAnonymous.status()).toBe(200);
+      const html = await finalAnonymous.text();
+      for (const user of [...users, ...incomplete]) {
+        expect(html).not.toContain(user.id);
+        expect(html).not.toContain(user.email);
+      }
+    }
+  } finally {
+    for (const context of contexts) await context.close();
+    await cleanup([...users, ...incomplete]);
+  }
+});
+
 test("rendering-and-cache.personal-overlays-4", async ({
   browser,
   request,

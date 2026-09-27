@@ -58,6 +58,7 @@ import {
 } from "./lib/cloudflare/public-ssr-gateway";
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
 import { prisma } from "./lib/db/prisma";
+import { setPrivateCacheDefaults } from "./lib/http-cache-control";
 import { elapsedMs, monotonicNowMs } from "./lib/log/observability-clock";
 import {
   INTERNAL_REQUEST_ID_HEADER,
@@ -482,6 +483,10 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
         await forwardedRequest.cancel().catch(() => undefined);
       }
     }
+    // SvelteKit can create early redirect/error responses after the request hook
+    // exits. Apply the private default at the outer boundary as well.
+    response = new Response(response.body, response);
+    setPrivateCacheDefaults(response.headers);
     return finish(response, "dynamic", route, "dynamic");
   }
 
