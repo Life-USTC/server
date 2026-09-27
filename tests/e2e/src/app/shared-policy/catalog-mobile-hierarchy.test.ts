@@ -131,6 +131,69 @@ function required(value: string | null) {
   return value;
 }
 
+test("ui.detail-two-column-stream-1", async ({ page }) => {
+  const fixture = await createFixture();
+  try {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const item of [
+        {
+          path: `/catalog/courses/${fixture.course.jwId}`,
+          sections: ["introduction", "sections", "comments"],
+        },
+        {
+          path: `/catalog/teachers/${fixture.teacher.id}`,
+          sections: ["introduction", "sections", "comments"],
+        },
+        {
+          path: `/catalog/sections/${fixture.section.jwId}`,
+          sections: [
+            "introduction",
+            "calendar",
+            "exams",
+            "homework",
+            "comments",
+          ],
+        },
+      ]) {
+        await gotoAndWaitForReady(page, item.path);
+        const stream = page.locator("[data-detail-reading-stream]");
+        await expect(stream).toHaveCount(1);
+        for (const id of item.sections) {
+          const section = stream.locator(`:scope > section#${id}`);
+          await expect(section).toBeVisible();
+          await section.scrollIntoViewIfNeeded();
+          await expect(page).toHaveURL(new RegExp(`${item.path}$`));
+          for (const other of item.sections)
+            await expect(
+              stream.locator(`:scope > section#${other}`),
+            ).toBeVisible();
+        }
+        const sections = await stream
+          .locator(":scope > section")
+          .evaluateAll((elements) => elements.map((element) => element.id));
+        expect(sections).toEqual(item.sections);
+        const links = await page
+          .getByRole("main")
+          .locator("a[href]")
+          .evaluateAll((anchors) =>
+            anchors.map((anchor) => anchor.getAttribute("href") ?? ""),
+          );
+        for (const href of links) {
+          const url = new URL(href, `http://localhost${item.path}`);
+          if (url.pathname === item.path)
+            expect(url.searchParams.has("tab")).toBe(false);
+          expect(
+            item.sections.some((id) => url.pathname === `${item.path}/${id}`),
+          ).toBe(false);
+        }
+      }
+    }
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test("ui.detail-two-column-stream-7", async ({ page }) => {
   const fixture = await createFixture();
   try {

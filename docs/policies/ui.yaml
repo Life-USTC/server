@@ -281,8 +281,16 @@ requirements:
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
-  rule: Course, section, and teacher detail pages expose a continuous reading stream and a desktop facts sidebar.
-    In-page navigation uses fragment anchors rather than tab query parameters or legacy detail-subroute links.
+  rule: Course, section and teacher detail pages keep all applicable reading sections rendered in one continuous stream. Moving through that stream does not select a detail tab or navigate to a detail subroute.
+  rationale: Desktop facts-sidebar placement is owned by ui.layout-principles-3. Fragment-anchor scrolling is owned by ui.detail-two-column-stream-7, and entity-root canonical addresses by course.detail-canonical-url, teacher.detail-canonical-url and section.detail-canonical-url.
+  acceptance:
+    given: Isolated course, teacher and section details have descriptions and their applicable reading sections.
+    when: Mobile and desktop browsers scroll through every section and inspect the detail links.
+    then:
+    - Every applicable section remains visible in the same ordered stream without changing the entity URL; in-page links do not use detail-tab queries or detail subroutes.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-two-column-stream-1
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
