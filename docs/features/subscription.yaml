@@ -22,6 +22,16 @@ requirements:
   category: presentation
   rule: User-facing copy uses 'section subscription', 'subscribe', and 'unsubscribe' consistently; it
     must not use 'follow' or describe the action as course enrollment.
+  acceptance:
+    given: An isolated owner has an actual subscribed section.
+    when: Chinese and English workspace and section pages render before and after unsubscribing.
+    then:
+    - Workspace labels describe section subscriptions and the section action changes from unsubscribe
+      to subscribe.
+    - Subscription action buttons do not use follow or course-enrollment wording.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscription.subscription-language
 - id: subscription.web-quick-add-selection
   category: presentation
   rule: A new quick-add search clears earlier manual selection. Exactly one unsubscribed result is selected
@@ -78,6 +88,15 @@ requirements:
 - id: subscription.quick-add-result-bound
   category: presentation
   rule: Quick-add explains its 20-section result limit and asks the user to narrow the search.
+  acceptance:
+    given: A course has more than twenty matching active offerings and the owner opens quick-add.
+    when: The actual search runs in both languages at desktop and mobile widths.
+    then:
+    - Exactly twenty selection controls are shown.
+    - The localized explanation states the twenty-result limit and asks for a narrower search.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscription.quick-add-result-bound
 - id: subscription.kind-owner-existing-only
   category: behavior
   rule: Only the owner of an existing subscription may change its kind to regular, auditor or teaching_assistant.
@@ -105,6 +124,16 @@ requirements:
 - id: subscription.kind-web-editor-location
   category: behavior
   rule: Web subscription-kind editing is available in workspace subscriptions.
+  acceptance:
+    given: An isolated owner has a real section subscription.
+    when: The workspace role editor saves teaching-assistant, auditor and regular roles in both languages
+      at desktop and mobile widths.
+    then:
+    - Each successful save persists the requested role for the owner.
+    - Reopening the workspace editor selects the persisted role.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscription.kind-web-editor-location
 capabilities:
   subscribe-from-section:
     title: Subscribe from Section Detail

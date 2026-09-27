@@ -80,6 +80,165 @@ async function open(page: Page, width: number) {
   await gotoAndWaitForReady(page, "/workspace/subscriptions");
 }
 
+async function setLocale(page: Page, locale: string) {
+  expect(
+    (
+      await page.request.post("/api/account/preferences", { data: { locale } })
+    ).status(),
+  ).toBe(200);
+  await page
+    .context()
+    .addCookies([
+      { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+    ]);
+}
+
+test("subscription.subscription-language", async ({ page }) => {
+  for (const locale of ["zh-cn", "en-us"]) {
+    await setLocale(page, locale);
+    await open(page, 1280);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      locale === "zh-cn" ? "教学班订阅" : "Section Subscriptions",
+    );
+    await expect(
+      page
+        .getByRole("button", {
+          name: locale === "zh-cn" ? "取消订阅" : "Unsubscribe",
+          exact: true,
+        })
+        .first(),
+    ).toBeVisible();
+    const first = page
+      .locator(
+        `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[0].jwId}"]`,
+      )
+      .filter({ visible: true });
+    await first.click();
+    await page.waitForURL(`**/catalog/sections/${sections[0].jwId}`);
+    const unsubscribe = page.getByRole("button", {
+      name: /^(取消订阅|Unsubscribe from section)$/,
+    });
+    await expect(unsubscribe).toBeVisible();
+    await unsubscribe.click();
+    const confirmation = page.getByRole("alertdialog");
+    if (await confirmation.count())
+      await confirmation
+        .getByRole("button", { name: /确认取消订阅|Unsubscribe|Confirm/i })
+        .click();
+    await expect(
+      page.getByRole("button", { name: /^(订阅教学班|Subscribe to section)$/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: /^(Follow|Unfollow|Enroll|Unenroll|关注|取消关注|选课|退课)$/i,
+      }),
+    ).toHaveCount(0);
+    const response = await page.request.patch("/api/workspace/subscriptions", {
+      data: { sectionIds: [sections[0].id] },
+    });
+    expect(response.status()).toBe(200);
+  }
+});
+
+test("subscription.quick-add-result-bound", async ({ page }) => {
+  await withE2ePrisma(async (db) => {
+    const seed = await db.section.findUniqueOrThrow({
+      where: { id: sections[0].id },
+    });
+    const firstJwId = sections[0].jwId + 100;
+    for (const index of Array.from({ length: 21 }, (_, i) => i)) {
+      sections.push(
+        await db.section.create({
+          data: {
+            code: `${seed.code}-search-${index}`,
+            jwId: firstJwId + index,
+            courseId: seed.courseId,
+            semesterId: seed.semesterId,
+          },
+        }),
+      );
+    }
+  });
+  for (const locale of ["zh-cn", "en-us"]) {
+    await setLocale(page, locale);
+    for (const width of widths) {
+      await open(page, width);
+      await page
+        .getByRole("button", { name: /^(添加订阅|Add subscription)$/i })
+        .click();
+      const dialog = page.getByRole("dialog");
+      await dialog
+        .locator("#subscriptions-quick-add-semester")
+        .selectOption(String(sections[0].semesterId));
+      await dialog
+        .locator("#subscriptions-quick-add-code")
+        .fill(DEV_SEED.course.code);
+      await dialog.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+      await expect(dialog.getByRole("checkbox")).toHaveCount(20);
+      await expect(
+        dialog.getByText(
+          locale === "zh-cn"
+            ? "最多显示 20 个教学班，请增加限定条件"
+            : "Up to 20 sections are shown. Add more details to narrow your search.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+    }
+  }
+});
+
+test("subscription.kind-web-editor-location", async ({ page }) => {
+  for (const locale of ["zh-cn", "en-us"]) {
+    await setLocale(page, locale);
+    for (const width of widths) {
+      await open(page, width);
+      for (const [kind, label] of [
+        ["teaching_assistant", /^(助教|Teaching assistant)$/],
+        ["auditor", /^(旁听|Auditor)$/],
+        ["regular", /^(普通|Regular)$/],
+      ] as const) {
+        const link = page
+          .locator(
+            `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[0].jwId}"]`,
+          )
+          .filter({ visible: true });
+        const row = link.locator(
+          'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
+        );
+        await row
+          .getByRole("button", { name: /^(订阅身份|Subscription role)$/ })
+          .click();
+        const dialog = page.getByRole("dialog", {
+          name: /^(订阅身份|Subscription role)$/,
+        });
+        await dialog.getByRole("radio", { name: label }).click();
+        await dialog.getByRole("button", { name: /^(保存|Save)$/ }).click();
+        await expect(dialog).toBeHidden();
+        expect(
+          await withE2ePrisma((db) =>
+            db.userSectionSubscription.findUniqueOrThrow({
+              where: {
+                userId_sectionId: {
+                  userId: ownerId,
+                  sectionId: sections[0].id,
+                },
+              },
+            }),
+          ),
+        ).toMatchObject({ kind });
+        await row
+          .getByRole("button", { name: /^(订阅身份|Subscription role)$/ })
+          .click();
+        await expect(
+          dialog.getByRole("radio", { name: label }),
+        ).toHaveAttribute("data-state", "on");
+        await page.keyboard.press("Escape");
+      }
+    }
+  }
+});
+
 test("subscribed-sections.grouped-by-semester", async ({ page }) => {
   for (const width of widths) {
     await open(page, width);
