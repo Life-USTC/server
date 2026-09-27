@@ -690,6 +690,16 @@ requirements:
   topic: settings-navigation
   rule: Destructive account controls are grouped in the separate danger settings destination rather than interspersed
     with routine profile or preference controls.
+  acceptance:
+    given: An isolated signed-in user opens each settings destination in Chinese on desktop and English
+      on mobile.
+    when: The browser inspects profile, preferences, linked accounts, security, authorizations and danger.
+    then:
+    - Only the active danger destination renders the visible account deletion region and its single trigger.
+    - Routine destinations render neither the deletion trigger nor an account deletion form.
+    test:
+      file: tests/e2e/src/app/shared-policy/page-identity.test.ts
+      name: ui.settings-navigation-7
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap
@@ -744,6 +754,16 @@ requirements:
   topic: workspace-page-identity
   rule: After a canonical workspace-root redirect, the final route determines the localized heading, main landmark
     label, and document title. Legacy query values do not define workspace identity.
+  acceptance:
+    given: An isolated signed-in user uses Chinese on desktop and English on mobile.
+    when: The browser follows workspace-root redirects for default, calendar, homework, todo, exam and
+      invalid selectors, then opens a semantic todo route carrying a stale calendar selector.
+    then:
+    - The final semantic route determines the single level-one heading, main landmark name and document title.
+    - Root redirects remove tab selectors; a stale selector cannot rename an existing semantic route.
+    test:
+      file: tests/e2e/src/app/shared-policy/page-identity.test.ts
+      name: ui.workspace-page-identity-4
 - id: ui.workspace-mobile-priority-1
   category: presentation
   topic: workspace-mobile-priority
