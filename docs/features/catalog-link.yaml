@@ -20,6 +20,18 @@ requirements:
   category: authorization
   rule: Public links HTML contains no personal pin or click state. A session-only private, no-store projection
     supplies the current viewer's personal state after hydration.
+  acceptance:
+    given: Two isolated owners have different pins and click totals; anonymous requests have no session.
+    when: The real public HTML is read with JavaScript disabled, then session-only projections and a hydrated
+      page are read.
+    then:
+    - Public HTML contains neither owner IDs nor their distinct click totals and exposes no pin forms.
+    - Successful owner projections are private, no-store and contain only that owner's pin/click state;
+      Authorization headers are rejected and anonymous state is null.
+    - Hydration displays the current owner's confirmed pins.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.public-web-personal-overlay
 - id: catalog-link.search-fuzzy
   category: behavior
   rule: Search lowercases and splits queries on whitespace. Every token must occur in the title, description,
@@ -39,23 +51,80 @@ requirements:
 - id: catalog-link.pin-limit
   category: validation
   rule: Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.
-  rationale: 'Product decision required: Four may fit the intended UI, but silently evicting earliest
-    user choice is a destructive UX policy needing explicit feedback and retry semantics.'
+  rationale: Four slots match the compact overview destination set. A newly selected destination replaces
+    the earliest pin when full; repeated pin requests preserve the original timestamp and do not displace
+    another choice. All responses return the final pin set so clients display the persisted result.
+  acceptance:
+    given: An isolated owner starts with one pin and another owner has independent state.
+    when: Real REST writes fill four slots, repeat pins, overflow, remove and repin entries, followed
+      by the actual Web view.
+    then:
+    - At most four pins persist and the fifth displaces the earliest original pin.
+    - Repeated pins are idempotent and preserve their original pin timestamp; later eviction follows that
+      ordering.
+    - Another owner stays unchanged and Web controls reflect the exact persisted final set.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-limit
 - id: catalog-link.pin-error-clear
   category: presentation
   rule: A failed pin/unpin write returns an error and does not report successful state. The Web interface
     retains the last confirmed state and displays a localized failure message.
+  acceptance:
+    given: An isolated-owner database trigger rejects actual pin and unpin persistence while another owner's
+      state exists.
+    when: The real browser submits both actions in Chinese and English, then retries after the database
+      failure is removed.
+    then:
+    - Every failed write returns HTTP 500 with an error, retains both owners' exact pin/click state and
+      displays a localized failure heading.
+    - The buttons recover from pending state and a successful retry updates the pin and clears the error.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-error-clear
 - id: catalog-link.visit-tracking-link
   category: behavior
   rule: Campus link cards use ordinary GET hyperlinks to the visit resolver, preserving browser link behavior.
+  acceptance:
+    given: Anonymous and signed-in browsers render the public campus link catalog.
+    when: Each view inspects actual anchors and clicks the academic-affairs link through its real visit
+      resolver, intercepting its response before external navigation.
+    then:
+    - Campus link anchors have resolver URLs with slugs and preserve new-tab link behavior.
+    - The actual click issues GET in a new browser tab and its real server response redirects to the expected
+      destination.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.visit-tracking-link
 - id: catalog-link.visit-owner-count
   category: behavior
   rule: A public visit redirect records click count only for its authenticated viewer. Anonymous visits
     do not write personal click state.
+  acceptance:
+    given: Two isolated owners have distinct persisted click counts and pins.
+    when: An anonymous request and two requests per owner follow the public redirect; owner requests inject
+      the other user's ID query.
+    then:
+    - All valid requests return the correct target redirect.
+    - Anonymous reads leave all state unchanged; authenticated reads increment only the session owner
+      and never change pins.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.visit-owner-count
 - id: catalog-link.pin-write-gate
   category: authorization
   rule: Pin/unpin controls remain disabled until the viewer's private pin projection succeeds; unresolved
     or failed personal state never initiates a preference write.
+  acceptance:
+    given: An isolated owner's private links request is held and then fails before a retry succeeds.
+    when: Public search remains usable throughout and the viewer later performs an explicit unpin.
+    then:
+    - Pending and failed projections expose no pin forms and send zero preference writes.
+    - Retry enables actions only after the real projection succeeds; exactly one explicit unpin persists
+      afterward.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-write-gate
 capabilities:
   link-browse:
     title: Link Browse & Search
