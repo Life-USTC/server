@@ -71,6 +71,20 @@ requirements:
   category: presentation
   rule: Default and full outputs preserve top-level collection and key types; full adds only fields permitted
     by the corresponding domain projection.
+  acceptance:
+    given: An isolated subscribed user with a private due todo and seeded academic, bus, link, and comment
+      records, accessed through the real MCP SDK using synthetic identity and the production database
+      role.
+    when: Call snapshot, next schedule, overview, timeline, deadline, subscription, calendar feed, todo,
+      homework, schedule, exam, course detail, bus route detail, link list, and comment list in default
+      and full modes.
+    then:
+    - Every call succeeds with the mode-specific output schema; full retains each default top-level key
+      and its value kind.
+    - Top-level collections retain their length across modes.
+    test:
+      file: tests/integration/mcp/mode-privacy.test.ts
+      name: mcp.output-modes
 - id: mcp.catalog-search-length
   category: validation
   rule: Course, section and teacher MCP search strings accept2-200 characters after trimming.
@@ -123,11 +137,38 @@ requirements:
     add documented nonsensitive fields but cannot disclose credentials, another user's private data, or
     hidden author identity. workspace_calendar_feed_get never returns a personal iCal URL, calendar path,
     credential, or token in any mode.
+  acceptance:
+    given: Two isolated users own distinct private todos; one user owns an anonymous public comment and
+      a stored calendar credential. The SDK injects identity while application queries use the production
+      database role.
+    when: Each user lists todos and attempts to update the other user’s todo in default and full modes;
+      the reader fetches the anonymous thread and the owner fetches calendar metadata.
+    then:
+    - Each todo list contains only its owner’s todo; foreign writes fail without disclosing its title
+      or changing the stored row.
+    - The anonymous author stays null and hidden, with no author ID or name in either mode.
+    - Neither calendar mode exposes the stored credential, calendar path, personal iCal URL, or token
+      field.
+    test:
+      file: tests/integration/mcp/mode-privacy.test.ts
+      name: mcp.privacy-safe-default
 - id: mcp.property-priority-parity
   category: presentation
   rule: 'MCP default output follows the shared UI Model Property Priority contract: keep primary identity/task
     fields and useful disambiguators, compact repeated nested objects, and omit low-priority raw/audit
     fields unless full mode is explicitly requested.'
+  acceptance:
+    given: Course, teacher, schedule, homework, and todo objects containing identity, task details, repeated
+      relations, and raw or audit fields.
+    when: Apply the production default MCP compactor.
+    then:
+    - Exact output retains identifiers, disambiguating codes, schedule time/place, homework deadlines
+      and Markdown, and unfinished todo content.
+    - Nested course, section, teacher, and department identities compact recursively; raw/audit fields
+      and completed todo content are absent.
+    test:
+      file: tests/unit/lib/mcp/compact-payload.test.ts
+      name: mcp.property-priority-parity
 - id: mcp.actionable-errors
   category: presentation
   rule: Validation and not-found tool results contain a stable error classification and a user-readable

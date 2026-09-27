@@ -20,9 +20,7 @@ import {
   objectOutputSchema,
   objectOutputSchemaFromApi,
   subscribedExamMcpSchema,
-  subscribedExamSchema,
   subscribedScheduleEntryMcpSchema,
-  subscribedScheduleEntrySchema,
   subscriptionFullSectionSchema,
   subscriptionImportOutputSchema,
   todoListMcpSchema,
@@ -43,7 +41,9 @@ export const workspaceAcademicModeOutputSchemas = {
       exactFailureOutputSchema,
     ]),
     full: z.union([
-      exactSuccessOutput({ schedules: z.array(subscribedScheduleEntrySchema) }),
+      exactSuccessOutput({
+        schedules: z.array(subscribedScheduleEntryMcpSchema),
+      }),
       exactFailureOutputSchema,
     ]),
   },
@@ -53,7 +53,7 @@ export const workspaceAcademicModeOutputSchemas = {
       exactFailureOutputSchema,
     ]),
     full: z.union([
-      exactSuccessOutput({ exams: z.array(subscribedExamSchema) }),
+      exactSuccessOutput({ exams: z.array(subscribedExamMcpSchema) }),
       exactFailureOutputSchema,
     ]),
   },

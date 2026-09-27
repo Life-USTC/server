@@ -71,6 +71,8 @@ export const persistedLocalizedLabelSchema = z.strictObject({
   id: z.number().int(),
   nameCn: z.string(),
   nameEn: z.string().nullable(),
+  namePrimary: z.string().optional(),
+  nameSecondary: z.string().nullable().optional(),
 });
 
 export const subscriptionFullCourseSchema = courseSchema.extend({
@@ -249,9 +251,7 @@ export const subscribedScheduleEntryMcpSchema =
     }),
   });
 export const subscribedExamMcpSchema = subscribedExamSchema.extend({
-  section: subscribedExamSchema.shape.section.extend({
-    semester: compactSemesterSchema.nullable(),
-  }),
+  section: workspaceHomeworkFullSectionSchema,
 });
 export const todoListMcpSchema = objectOutputSchema({
   counts: todoCountsSchema,
