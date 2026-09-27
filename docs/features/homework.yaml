@@ -410,17 +410,22 @@ requirements:
       name: homework.active-collaborator-write
 - id: homework.completion-owner
   category: authorization
-  rule: Each user can only manage their own completion state.
+  rule: Each authenticated user can only manage their own homework completion state, including while
+    suspended. Missing and deleted homework cannot receive completion changes and share the declared
+    not-found meaning across REST, GraphQL and native MCP.
   acceptance:
-    given: One owner has completed a shared homework; another regular user and an administrator have no
-      completion.
-    when: Each foreign actor invokes their own completion service and attempts direct cross-owner reads,
-      updates, deletes and insertion in the actual RLS context.
+    given: Isolated owners have distinct completion states for shared homework; missing and deleted
+      targets exist, with resource-bound OAuth credentials and restricted application database services.
+    when: Actual REST, GraphQL and native MCP HTTP requests complete and reopen the same homework as
+      both owners, attempt anonymous/read-scope and missing/deleted target writes, and repeat successful
+      writes during suspension; regular and admin actors also attempt direct cross-owner RLS operations.
     then:
-    - Foreign reads return no rows, cross-owner updates/deletes affect zero rows and forged-owner insertion
-      fails.
-    - The owner’s original completion remains byte-for-byte unchanged, including its timestamp.
-    - Only the owner’s own uncomplete action removes that record.
+    - Only the authenticated owner's completion changes; each successful response's completed state and
+      exact completedAt instant equal the stored row, and foreign completion rows remain exactly unchanged.
+    - Suspended owner writes succeed. Missing/deleted targets return REST 404, GraphQL NOT_FOUND or native
+      MCP not_found; rejected requests preserve all completion and shared homework rows.
+    - Foreign RLS reads return no rows, cross-owner updates/deletes affect zero rows and forged-owner
+      insertion fails; only the owner's own reopen action removes their completion.
     test:
       file: tests/integration/homework-state-contract.test.ts
       name: homework.completion-owner

@@ -436,15 +436,19 @@ requirements:
   category: authorization
   rule: Comment creation rejects uploads that are missing, owned by another user, or already attached
     to a comment. Editing rejects such uploads except those already attached to the comment being edited.
-    REST returns 400 Invalid attachments.
+    Invalid references return REST 400 Invalid attachments, GraphQL BAD_USER_INPUT or native MCP
+    invalid_attachments without revealing the foreign or occupied upload.
   acceptance:
-    given: Uploads include an unattached owned file, another user's file and an owned file already attached
-      elsewhere.
-    when: Create and edit through the actual REST routes using valid, missing, foreign and occupied uploads.
+    given: Two isolated owners have unattached owned files, foreign files and owned files attached
+      elsewhere, with resource-bound OAuth credentials and restricted application database services.
+    when: Each owner creates and edits through actual REST, GraphQL and native MCP HTTP using valid,
+      missing, foreign and occupied uploads, then retains, replaces and removes owned attachment links.
     then:
-    - Invalid uploads return 400 Invalid attachments without changing content or links.
-    - Creation attaches an available owned upload; editing may retain its existing upload or replace it
-      with another available owned upload.
+    - Missing, foreign and occupied uploads retain the declared validation error meaning and leave exact
+      comment, attachment, reaction, audit and invalidation snapshots unchanged.
+    - Creation attaches an available owned upload; editing may retain it, replace it with another available
+      owned upload or detach it, without changing another comment's occupied link.
+    - All original upload records remain exactly unchanged throughout these attachment operations.
     test:
       file: tests/integration/comment-write-contracts.test.ts
       name: comment.attachment-ownership

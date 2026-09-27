@@ -197,6 +197,13 @@ test("todo.personal-ownership", async ({ page, request }) => {
           content: `${marker} secret content`,
         },
       });
+      if (isAdmin)
+        await db.userSuspension.create({
+          data: {
+            userId: user.id,
+            reason: "Private todo ownership remains available",
+          },
+        });
       users.push({ ...user, todo });
     }
     return users;
