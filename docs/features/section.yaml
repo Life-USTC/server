@@ -56,11 +56,20 @@ requirements:
       name: section.retirement-preserves-data
 - id: section.retired-read-semantics
   category: consistency
-  rule: Public Section/search/match and public/current calendar collection queries exclude retired rows.
-    Direct Section detail and single-Section calendar access remain available for historical references;
-    the detail page labels the record historical and does not offer a new subscription. Course/Teacher
-    detail histories and the owner's subscribed Sections list also retain retired rows. New subscription
-    discovery/add operations reject retired rows, while an existing owner can still remove one.
+  rule: Public Section list/search/code-match and calendar collection services exclude retired rows. Direct
+    Section detail and single-Section calendar reads remain available. Course/Teacher detail histories
+    and the owner's subscribed Sections list retain retired rows.
+  acceptance:
+    given: A real course and teacher have active and retired Sections, both subscribed by one owner.
+    when: Actual public discovery, code matching, detail, calendar and history read services query the
+      database.
+    then:
+    - Public discovery, search, matching and current calendar collections return only active Sections.
+    - Direct Section detail and single-Section calendar retain retired Sections.
+    - Course/Teacher history and the owner subscription list retain both records.
+    test:
+      file: tests/integration/retired-section-contract.test.ts
+      name: section.retired-read-semantics
 - id: section.jwid-url-only
   category: behavior
   rule: Opaque Section jwId values remain routing/API identifiers and are not displayed as ordinary student-facing
@@ -173,6 +182,32 @@ requirements:
 - id: section.teacher-assignment-reference
   category: privacy
   rule: TeacherAssignment output links to teacherId without duplicating the nested Teacher payload.
+- id: section.retired-subscription-mutations
+  category: consistency
+  rule: New subscription add operations reject retired rows. Existing owners can remove retired subscriptions
+    through individual, batch and explicit subscribed=false operations.
+  acceptance:
+    given: An owner has an existing retired Section subscription beside an active subscription.
+    when: Actual individual, batch and explicit-state subscription services add and remove the retired
+      record.
+    then:
+    - All add paths reject the retired row without changing existing ownership.
+    - All remove paths delete the retired subscription while preserving the active subscription.
+    test:
+      file: tests/integration/retired-section-contract.test.ts
+      name: section.retired-subscription-mutations
+- id: section.retired-detail-presentation
+  category: presentation
+  rule: A retired Section detail page labels the record historical and does not offer a new subscription.
+  acceptance:
+    given: A persisted Section is retired.
+    when: An anonymous viewer opens its detail with the subscribe=1 deep link.
+    then:
+    - The page displays a historical label and retains calendar access.
+    - No new-subscription control or subscription dialog is offered.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/subscribe.test.ts
+      name: section.retired-detail-presentation
 capabilities:
   section-list:
     title: Section List & Filter
