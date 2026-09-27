@@ -110,25 +110,81 @@ requirements:
   rule: Validation and not-found tool results contain a stable error classification and a user-readable
     message. Any recovery hint names an available tool or valid input correction and excludes credentials
     and hidden resource data.
+- id: mcp.public-catalog-access
+  category: authorization
+  rule: MCP discovery and public catalog calls allow anonymous access. Personal tools require authenticated
+    user context; absence of credentials rejects before private business execution.
+  acceptance:
+    given: The real HTTP MCP transport, public catalog data and a private tool.
+    when: Anonymous requests list tools, read semesters and request private todos.
+    then:
+    - Discovery and catalog calls succeed; private calls return401 and a bootstrap resource-metadata challenge.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.public-catalog-access
+- id: mcp.invalid-credentials-no-downgrade
+  category: authorization
+  rule: Any supplied invalid or unsupported authorization credential rejects the MCP request, including
+    public catalog calls; it cannot fall back to anonymous access.
+  acceptance:
+    given: A public catalog request supplies invalid Bearer, Basic or DPoP credentials.
+    when: The actual HTTP transport verifies the supplied header.
+    then:
+    - Every request returns401 without a successful tool result.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.invalid-credentials-no-downgrade
 - id: mcp.resource-bound-access-token
   category: authorization
-  rule: MCP is Bearer-only. The upstream @better-auth/mcp mcpHandler verifies JWT signature, issuer, expiry,
-    and the canonical or loopback-equivalent /api/mcp audience. The local adapter then requires the exact
-    active user-grant generation before constructing SDK AuthInfo. DPoP and resource-less opaque tokens
-    are rejected. Authorization resources remain code-bound; omitted-resource refresh maps to MCP only
-    with an MCP feature scope and canonical MCP approval.
+  rule: Authenticated MCP calls use Bearer JWTs bound to the MCP resource. The upstream verifier checks
+    signature, issuer, expiry and resource audience; local authorization requires the exact active user-grant
+    generation before SDK AuthInfo is constructed. Opaque and DPoP credentials are unsupported.
+  acceptance:
+    given: A real signer, publicly served Better Auth JWKS and production-role database grant.
+    when: HTTP private calls use a valid JWT and tokens with wrong issuer/audience, expiry, grant generation,
+      signature or opaque format.
+    then:
+    - The valid token returns only owner data.
+    - Each invalid token returns401 before tool results; the upstream verifier fetches actual JWKS over
+      HTTP.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.resource-bound-access-token
+- id: mcp.refresh-resource-binding
+  category: authorization
+  rule: OAuth authorization resources remain code-bound; omitted-resource refresh maps to MCP only with
+    an MCP feature scope and canonical MCP approval.
 - id: mcp.complete-batch-scope-enforcement
   category: authorization
-  rule: Every fixed-scope tool feature declared by each requested tool is required across the complete
-    JSON-RPC batch. A feature:write grant also satisfies feature:read for the same feature. The GraphQL
-    runner delegates exact selected-field scopes to the shared resolvers.
-- id: mcp.least-privilege-bootstrap-scope
+  rule: Each fixed-scope tool in a JSON-RPC batch requires all its declared scopes before any tool executes.
+    A feature write grant satisfies read access for the same feature. GraphQL selected-field scopes remain
+    canonical in graphql.scoped-query-auth and graphql.scoped-mutations.
+  acceptance:
+    given: A signed read-only grant and a batch containing read plus write tools.
+    when: The real HTTP transport checks the batch, then checks a write-only token on a read tool.
+    then:
+    - The under-scoped batch returns403 with the required write scope and creates no todo.
+    - The write token can read its owner’s todos.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.complete-batch-scope-enforcement
+- id: mcp.bootstrap-auth-challenge
   category: authorization
-  rule: The upstream MCP verifier returns a JSON-RPC -32000 authentication error and RFC 9728 Bearer resource_metadata
-    challenge for missing or invalid credentials; the adapter adds only account.profile:read as the bootstrap
-    scope. Exact local per-tool insufficient_scope challenges drive incremental authorization. WWW-Authenticate
-    values escape quotes and backslashes and reject control characters; descriptions never reflect request-controlled
-    tool names, and scope values come only from the registry.
+  rule: Missing or invalid credentials on a private MCP call return the upstream JSON-RPC -32000 error
+    and RFC9728 resource_metadata challenge with only account.profile:read as bootstrap scope.
+  acceptance:
+    given: Private HTTP requests with missing and invalid Bearer credentials.
+    when: The actual transport rejects authorization.
+    then:
+    - Both responses are401 with JSON-RPC -32000, resource_metadata and the minimal bootstrap scope.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.bootstrap-auth-challenge
+- id: mcp.safe-auth-challenges
+  category: privacy
+  rule: Local insufficient_scope challenges drive incremental authorization. WWW-Authenticate values escape
+    quotes/backslashes and reject control characters; descriptions never reflect request-controlled tool
+    names and required scope values come from the registry.
 - id: mcp.graphql-authorization
   category: authorization
   rule: graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or registered
@@ -152,13 +208,38 @@ requirements:
     completion of an already-uploaded object, rename, and delete. Although the runner accepts a GraphQL
     document, it never accepts or proxies R2 object bytes. Its MCP bearer remains resource-bound to /api/mcp
     and is not replayable at the REST PUT URL.
-- id: mcp.bounded-auth-first-request-body
+- id: mcp.request-body-limit
   category: validation
-  rule: MCP transport requests run upstream @better-auth/mcp JWT verification and local active-grant authorization
-    before parsing JSON-RPC. Authenticated JSON request bodies are streamed with a 64 KiB limit and JSON-RPC
-    batches are limited to 50 messages. Empty batches return JSON-RPC -32600 Invalid Request; larger bodies
-    or batches return 413 before tool handling. Accepted bodies are parsed once and shared by scope enforcement,
-    observability, rate limiting, and the SDK transport.
+  rule: All MCP JSON request bodies have an inclusive64KiB byte limit before optional authentication or
+    business dispatch. Oversized declared or streamed bodies return413.
+  acceptance:
+    given: A valid65536-byte JSON-RPC request and larger bodies, including a chunked Request stream.
+    when: Anonymous, invalid-credential and authenticated clients submit bounded bodies over HTTP; the
+      same route also processes a direct streamed Request.
+    then:
+    - The exact boundary executes successfully.
+    - Every larger body returns413 before authentication or tool execution.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.request-body-limit
+- id: mcp.request-batch-limit
+  category: validation
+  rule: An empty MCP JSON-RPC batch returns400/-32600. Batches of at most50 messages are accepted; larger
+    batches return413 before handling.
+  acceptance:
+    given: JSON-RPC batches at0,50 and51 messages.
+    when: The actual HTTP parser and SDK transport handle them.
+    then:
+    - The empty batch is Invalid Request;51 messages exceed the limit.
+    - All50 valid requests produce distinct successful responses.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.request-batch-limit
+- id: mcp.parsed-body-reuse
+  category: consistency
+  rule: Accepted MCP JSON request bodies are parsed once and the same parsed body is shared by scope enforcement,
+    observability, rate limiting and SDK dispatch. Authentication and complete fixed-tool scope enforcement
+    finish before restricted business execution.
 - id: mcp.transport-observability
   category: privacy
   rule: MCP transport logging must never include bearer tokens, cookies, exception messages, or tool argument
@@ -194,8 +275,8 @@ requirements:
     Public catalog tools advertise noauth; ordinary personal tools advertise their fixed feature scopes.
     graphql_operation_run advertises conservative write/destructive/open-world hints and delegates exact
     scopes to selected operations.
-  rationale: Public catalog descriptor noauth describes public data access, while the HTTP transport bearer
-    gate is defined by mcp.resource-bound-access-token. Mode shape parity is canonical in mcp.output-modes.
+  rationale: Public catalog descriptor noauth and anonymous HTTP calls are canonical in mcp.public-catalog-access.
+    Mode shape parity is canonical in mcp.output-modes.
   acceptance:
     given: Every actual server tool descriptor is captured before the SDK client strips extension fields.
     when: The raw tools/list wire response is inspected.
@@ -229,8 +310,9 @@ requirements:
       name: mcp.tool-registry-completeness
 - id: mcp.room-maps
   category: behavior
-  rule: 'catalog_rooms_map returns public room-map coverage and public image URLs for code and mode. Public
-    describes the data: calls still require the MCP bearer credential and declared catalog room scope.'
+  rule: catalog_rooms_map returns public room-map coverage and public image URLs for code and mode. It
+    is an anonymous public catalog tool; supplied credentials still undergo the MCP invalid-credential
+    gate.
 - id: mcp.subscription-kind-projection
   category: consistency
   rule: Personal subscription reads include membership kind in both default and full modes. workspace_subscription_kind_update
@@ -241,27 +323,41 @@ requirements:
   category: consistency
   rule: All ordinary MCP tool results use the canonical result envelope. JSON-RPC protocol and transport
     errors retain their protocol-specific error shapes.
+- id: mcp.http-methods
+  category: behavior
+  rule: MCP uses POST for JSON-RPC and OPTIONS for trusted-origin CORS preflight. GET returns405. DELETE
+    is idempotent on the stateless transport and succeeds with absent or valid credentials; invalid supplied
+    credentials reject401.
+  acceptance:
+    given: The real HTTP route adapter and stateless SDK transport.
+    when: A client sends GET, trusted OPTIONS and DELETE with absent, valid and invalid credentials.
+    then:
+    - GET returns405; OPTIONS returns204 with the trusted origin; valid/anonymous DELETE returns200.
+    - Invalid credentials on DELETE return401.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.http-methods
 capabilities:
   protocol-endpoint:
     title: Protocol Endpoint
-    auth: user
+    auth: anon
     web: unavailable
     rest:
       routes:
       - path: /api/mcp
         method: POST
         notes:
-        - All tool calls are handled through this endpoint and require a Bearer token bound to the MCP
-          protected resource /api/mcp. Upstream @better-auth/mcp performs JWT resource verification while
-          local authorization enforces active grants and exact tool scopes.
-        - Trusted browser-origin Bearer-token clients receive CORS headers, including exposed MCP-Session-Id,
-          Retry-After, and WWW-Authenticate response headers for browser transports.
-        - Answers browser CORS preflight requests for the MCP transport headers used by POST/DELETE browser
-          clients.
-        - Requests with a foreign Origin header are rejected before MCP auth/tool handling.
+        - Public discovery and catalog calls allow anonymous access. Personal tools require a resource-bound
+          Bearer JWT, active grant and all declared scopes; supplied invalid credentials never downgrade
+          to anonymous.
+        - Trusted browser-origin clients receive MCP CORS headers. Foreign Origin requests reject before
+          tool handling.
+        auth: anon
       - path: /api/mcp
+        auth: anon
       - path: /api/mcp
         method: DELETE
+        auth: anon
       - path: /api/mcp
         method: OPTIONS
         auth: anon
@@ -270,8 +366,8 @@ capabilities:
           handling.
     presentation:
       items:
-      - MCP protocol server endpoint
-      - GET/POST/DELETE transport methods
+      - JSON-RPC over POST; trusted-origin OPTIONS preflight
+      - GET returns method-not-allowed; stateless DELETE is idempotent
       - Returns JSON-RPC or transport responses
   tool-groups:
     title: Tool Groups
