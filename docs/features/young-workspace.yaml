@@ -28,8 +28,22 @@ requirements:
       name: young-workspace.subscription
 - id: young-workspace.ownership
   category: authorization
-  rule: User identity for activity subscriptions and notifications comes only from the authenticated principal;
-    only the owner may read or mutate personal state.
+  rule: User identity for activity subscriptions, organizer follows and notifications comes only from
+    the authenticated principal; only the owner may read or mutate personal state.
+  acceptance:
+    given: Two authenticated owners have different activity subscriptions, organizer follows and unread
+      notifications.
+    when: Both owners use signed REST and GraphQL requests and registered MCP tools to list state and
+      target the other owner’s resources; an anonymous client also requests personal state.
+    then:
+    - Every list contains only the authenticated owner’s rows, even with a foreign userId query parameter.
+    - A foreign userId in a REST mutation body is rejected; unsubscribing a foreign-only activity or organizer
+      never removes the other owner’s subscription.
+    - Reading the other owner’s notification fails without changing its read state.
+    - Anonymous REST and MCP reads are rejected; GraphQL returns no workspace. Anonymous REST subscription writes are rejected.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.ownership
 - id: young-workspace.reminders
   category: behavior
   rule: Signup-opening reminders apply only when registration opens after subscription.
@@ -95,7 +109,18 @@ requirements:
       name: young-workspace.event-calendar-membership
 - id: young-workspace.private-response-cache
   category: authorization
-  rule: Personal activity subscription and notification reads use private, no-store.
+  rule: Personal activity subscription, organizer follow and notification REST reads use private, no-store.
+    GraphQL and MCP follow their shared transport cache policies.
+  acceptance:
+    given: Two authenticated owners have nonempty activity subscriptions, organizer follows and notification
+      lists.
+    when: Each owner reads actual REST lists and individual activity/organizer subscription state.
+    then:
+    - 'Every successful REST response uses Cache-Control: private, no-store.'
+    - Lists retain actual personal data and individual subscribed state remains correct.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.private-response-cache
 - id: young-workspace.reminder-deadline-window
   category: behavior
   rule: Deadline reminders become eligible 24 hours before the deadline.
@@ -179,6 +204,20 @@ requirements:
   category: behavior
   rule: Personal calendar REST and GraphQL results are paginated; MCP returns the complete unified event
     list for the requested bounded window.
+  acceptance:
+    given: An owner has seven same-day events spanning schedules, exams, homework, todos and three subscribed
+      Young activities; another owner subscribes only a fourth activity.
+    when: Signed REST and GraphQL requests traverse four pages of size two, and registered MCP reads the
+      same bounded day.
+    then:
+    - REST and GraphQL return identical chronological event identities, types and timestamps, with page
+      sizes 2/2/2/1, total 7 and no duplicate events.
+    - MCP returns all seven events in one bounded-window response, retaining the subscribed activity and
+      personal item identities.
+    - The other owner’s REST calendar contains only their subscribed activity.
+    test:
+      file: tests/integration/mcp/workspace/young-transport-contract.test.ts
+      name: young-workspace.calendar-transport-pagination
 capabilities:
   workspace-young-event-subscription-list:
     title: youngEventSubscriptions
