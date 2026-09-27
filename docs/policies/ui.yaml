@@ -70,16 +70,43 @@ requirements:
   topic: list-table
   rule: Advanced list filters use one labeled Sheet containing the complete declared filter form and explicit
     Apply and dismiss actions.
+  acceptance:
+    given: The seeded course, teacher, and section collections expose their declared advanced filters.
+    when: An anonymous browser opens each advanced-filter sheet and inspects its accessible name, form fields, Apply action, and explicit Close action.
+    then:
+    - Exactly one named sheet contains every declared advanced field and one form.
+    - Apply is visible and Close dismisses the sheet.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-3
 - id: ui.list-table-4
   category: presentation
   topic: list-table
   rule: Opening advanced filters initializes draft values from the current applied URL query. Closing the sheet
     without Apply leaves the URL and results unchanged.
+  acceptance:
+    given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
+    when: The browser opens each sheet, changes every draft, dismisses through Close and Escape, then reopens it.
+    then:
+    - Draft values initialize from the applied URL on every opening.
+    - Dismissing without Apply preserves both the exact URL and rendered results.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-4
 - id: ui.list-table-5
   category: presentation
   topic: list-table
   rule: Applying advanced filters submits the current search query and all draft filter values and resets pagination.
     A primary search change preserves the already applied advanced filters.
+  acceptance:
+    given: Each catalog collection has a search query and page=2 before the advanced sheet opens.
+    when: The browser fills every advanced field, applies the form, and then changes the primary search query.
+    then:
+    - Apply retains the search and every draft value, removes the page parameter, and shows the matching seeded result.
+    - Primary search changes preserve every applied advanced filter and still show the matching result.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-5
 - id: ui.list-table-6
   category: presentation
   topic: list-table

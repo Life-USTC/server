@@ -163,9 +163,11 @@ test("ui.theme-system-response", async ({ page }, testInfo) => {
   }
 
   await selectTheme(/^(浅色|Light)$/i, "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await captureStepScreenshot(page, testInfo, "theme-light");
 
   await selectTheme(/^(深色|Dark)$/i, "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await captureStepScreenshot(page, testInfo, "theme-dark");
 
   await page.emulateMedia({ colorScheme: "dark" });

@@ -91,6 +91,7 @@ test.describe("/account/settings 设置中心", () => {
     for (const width of [280, 320, 375]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/account/settings/danger");
+      await expect(activeLink).toHaveCount(1);
       await expect(activeLink).toBeVisible();
       await expect
         .poll(() =>
