@@ -49,7 +49,8 @@ export async function getHomeworksRoute(request: Request) {
       userId: viewerUserId,
     });
 
-    return jsonResponse(result);
+    const { viewer, ...page } = result;
+    return jsonResponse({ ...page, meta: { viewer } });
   } catch (error) {
     return handleRouteError("Failed to fetch homeworks", error);
   }

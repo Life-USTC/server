@@ -81,7 +81,7 @@ describe("public room map transport parity", () => {
       }
     }
   });
-  it("rejects invalid input at all boundaries", async () => {
+  it("openapi.room-maps", async () => {
     const response = await getRoomMapRoute(
       new Request("https://example.test/"),
       { code: "../invalid" },

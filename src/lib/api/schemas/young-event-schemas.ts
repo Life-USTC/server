@@ -156,15 +156,17 @@ export const youngEventDetailSchema = youngEventSummarySchema.extend({
   rawJson: z.unknown(),
 });
 
-export const paginatedYoungEventResponseSchema = createPaginatedSchema(
-  youngEventSummarySchema,
-).extend({
+export const youngEventListMetadataSchema = z.strictObject({
   unknownDateCount: z.number().int().nonnegative(),
   source: z.strictObject({
     status: z.enum(["fresh", "stale", "unknown"]),
     lastSyncedAt: dateTimeSchema.nullable(),
   }),
 });
+
+export const paginatedYoungEventResponseSchema = createPaginatedSchema(
+  youngEventSummarySchema,
+).extend({ meta: youngEventListMetadataSchema });
 
 export const youngOrganizerSummarySchema = z.strictObject({
   id: z.string(),

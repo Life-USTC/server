@@ -63,9 +63,15 @@ export async function getYoungEventsRoute(request: Request) {
       page: pagination.page,
       pageSize: pagination.pageSize,
     });
-    return schemaJsonResponse(paginatedYoungEventResponseSchema, result, {
-      headers: PUBLIC_CATALOG_HEADERS,
-    });
+    const { unknownDateCount, source, ...page } = result;
+    return schemaJsonResponse(
+      paginatedYoungEventResponseSchema,
+      {
+        ...page,
+        meta: { unknownDateCount, source },
+      },
+      { headers: PUBLIC_CATALOG_HEADERS },
+    );
   } catch (error) {
     if (error instanceof RangeError) return badRequest(error.message);
     return handleRouteError("Failed to fetch young events", error);

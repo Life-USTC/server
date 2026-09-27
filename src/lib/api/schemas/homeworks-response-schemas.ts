@@ -88,7 +88,7 @@ export const homeworkAuditListResponseSchema = z.strictObject({
 
 export const homeworksListResponseSchema = createPaginatedSchema(
   homeworkSummarySchema,
-).extend({ viewer: viewerContextSchema });
+).extend({ meta: z.strictObject({ viewer: viewerContextSchema }) });
 
 export const homeworkDetailResponseSchema = z.strictObject({
   homework: homeworkItemSchema,

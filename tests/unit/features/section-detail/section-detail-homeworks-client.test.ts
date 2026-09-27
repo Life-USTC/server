@@ -57,7 +57,7 @@ describe("课程详情作业客户端", () => {
           JSON.stringify({
             data: [{ id: "homework-1" }],
             pagination: { page: 1, pageSize: 50, total: 1, totalPages: 1 },
-            viewer: { userId: "user-1" },
+            meta: { viewer: { userId: "user-1" } },
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),

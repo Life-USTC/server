@@ -16478,32 +16478,42 @@
             ],
             "additionalProperties": false
           },
-          "unknownDateCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "source": {
+          "meta": {
             "type": "object",
             "properties": {
-              "status": {
-                "type": "string",
-                "enum": [
-                  "fresh",
-                  "stale",
-                  "unknown"
-                ]
+              "unknownDateCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               },
-              "lastSyncedAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              "source": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "fresh",
+                      "stale",
+                      "unknown"
+                    ]
+                  },
+                  "lastSyncedAt": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "status",
+                  "lastSyncedAt"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
-              "status",
-              "lastSyncedAt"
+              "unknownDateCount",
+              "source"
             ],
             "additionalProperties": false
           }
@@ -16511,8 +16521,7 @@
         "required": [
           "data",
           "pagination",
-          "unknownDateCount",
-          "source"
+          "meta"
         ],
         "additionalProperties": false
       },
@@ -17460,50 +17469,59 @@
             ],
             "additionalProperties": false
           },
-          "viewer": {
+          "meta": {
             "type": "object",
             "properties": {
-              "userId": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "image": {
-                "nullable": true,
-                "type": "string"
-              },
-              "isAdmin": {
-                "type": "boolean"
-              },
-              "isAuthenticated": {
-                "type": "boolean"
-              },
-              "isSuspended": {
-                "type": "boolean"
-              },
-              "suspensionReason": {
-                "nullable": true,
-                "type": "string"
-              },
-              "suspensionExpiresAt": {
-                "nullable": true,
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              "viewer": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "name": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "image": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "isAdmin": {
+                    "type": "boolean"
+                  },
+                  "isAuthenticated": {
+                    "type": "boolean"
+                  },
+                  "isSuspended": {
+                    "type": "boolean"
+                  },
+                  "suspensionReason": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "suspensionExpiresAt": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "name",
+                  "image",
+                  "isAdmin",
+                  "isAuthenticated",
+                  "isSuspended",
+                  "suspensionReason",
+                  "suspensionExpiresAt"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
-              "userId",
-              "name",
-              "image",
-              "isAdmin",
-              "isAuthenticated",
-              "isSuspended",
-              "suspensionReason",
-              "suspensionExpiresAt"
+              "viewer"
             ],
             "additionalProperties": false
           }
@@ -17511,7 +17529,7 @@
         "required": [
           "data",
           "pagination",
-          "viewer"
+          "meta"
         ],
         "additionalProperties": false
       },

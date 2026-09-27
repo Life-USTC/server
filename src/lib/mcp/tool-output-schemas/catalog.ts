@@ -126,14 +126,14 @@ export const youngEventListDefaultSchema = objectOutputSchema({
   data: z.array(compactYoungEventSchema),
   pagination: youngEventPaginationSchema,
   unknownDateCount: z.number().int().nonnegative(),
-  source: paginatedYoungEventResponseSchema.shape.source,
+  source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
 });
 
 export const youngEventListFullSchema = objectOutputSchema({
   data: z.array(youngEventSummarySchema),
   pagination: youngEventPaginationSchema,
   unknownDateCount: z.number().int().nonnegative(),
-  source: paginatedYoungEventResponseSchema.shape.source,
+  source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
 });
 
 // Default mode keeps the sanitized rich text — it is the point of fetching one
@@ -371,7 +371,7 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
     pagination: youngEventPaginationSchema,
     unknownDateCount: z.number().int().nonnegative(),
-    source: paginatedYoungEventResponseSchema.shape.source,
+    source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
   }),
   catalog_young_event_get: objectOutputSchema({
     youngId: z.string(),

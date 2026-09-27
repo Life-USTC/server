@@ -68,7 +68,7 @@ describe("homework REST locale 适配", () => {
     await expect(response.json()).resolves.toEqual({
       data: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
-      viewer: { userId: "viewer-1" },
+      meta: { viewer: { userId: "viewer-1" } },
     });
     expect(listSectionHomeworkPageWithViewerMock).toHaveBeenCalledWith({
       includeDeleted: false,

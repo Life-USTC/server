@@ -18,14 +18,14 @@ export async function loadSectionHomeworks<Viewer, Homework>(
 ) {
   const result = await apiClient.GET<{
     data: Homework[];
-    viewer: Viewer;
+    meta: { viewer: Viewer };
   }>("/api/community/section-homeworks", {
     params: { query: { pageSize: 50, sectionId } },
   });
   if (!result.response.ok || !result.data) throw new Error(errorMessage);
   return {
     homeworks: result.data.data,
-    viewer: result.data.viewer,
+    viewer: result.data.meta.viewer,
   };
 }
 
