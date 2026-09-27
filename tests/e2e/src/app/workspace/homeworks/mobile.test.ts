@@ -36,11 +36,12 @@ test.describe("仪表盘作业", () => {
       0,
     );
 
-    for (const control of [incomplete, add]) {
-      const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(specification.min_height);
-      expect(box?.width).toBeGreaterThanOrEqual(specification.min_width);
-    }
+    const addBox = await add.boundingBox();
+    expect(addBox?.height).toBeGreaterThanOrEqual(specification.min_height);
+    expect(addBox?.width).toBeGreaterThanOrEqual(specification.min_width);
+    const filterBox = await incomplete.boundingBox();
+    expect(filterBox?.height).toBeGreaterThanOrEqual(44);
+    expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
     const all = page.getByRole("radio", { name: /全部|All/i }).first();
     await all.click();

@@ -141,7 +141,9 @@ it("derives completion requirements from the specification without changing reco
     new Map([[1, specification.subscription_kind]]),
   );
   expect(actual.completionRequired).toBe(specification.completion_required);
-  expect(actual.completion === completion).toBe(specification.preserve_records);
+  expect(actual.completion).toEqual(
+    specification.preserve_records ? snapshot.completion : null,
+  );
   expect(original).toEqual(snapshot);
 });
 
