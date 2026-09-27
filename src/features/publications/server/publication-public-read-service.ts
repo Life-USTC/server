@@ -253,9 +253,10 @@ export const PUBLICATION_READ_CACHE_HEADERS = {
 } as const;
 
 const PUBLICATION_OBJECT_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=31536000, immutable, no-transform",
-  "Cloudflare-CDN-Cache-Control":
-    "public, max-age=31536000, immutable, no-transform",
+  // Bytes are immutable, but public eligibility belongs to the current revision.
+  // Revalidate in the Worker before returning bytes or an ETag-only response.
+  "Cache-Control": "public, no-cache, no-transform",
+  "Cloudflare-CDN-Cache-Control": "no-store",
 } as const;
 
 function normalizePublicationPagination(input: PaginationInput = {}) {

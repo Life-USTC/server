@@ -416,6 +416,15 @@ requirements:
   category: behavior
   rule: PATCH /api/workspace/subscriptions/{jwId} updates the current user subscription kind; returns
     404 for missing subscriptions. Personal subscription read objects include kind.
+  acceptance:
+    given: An isolated owner has one subscription and a second user has none.
+    when: Actual HTTP adapters update all three supported kinds and read the owner's current subscriptions.
+    then:
+    - Each owner update returns200 with sectionJwId and kind, and the read object contains that kind.
+    - The second user receives404 without creating a subscription or modifying the owner's row.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: openapi.subscription-kind
 - id: openapi.build-generation
   category: consistency
   rule: Production builds regenerate the server OpenAPI artifact, and the repository check rejects a changed artifact.

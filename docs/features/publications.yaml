@@ -126,10 +126,48 @@ requirements:
     response cache lifetimes; failures are not cached.
 - id: publications.public-cache
   category: consistency
-  rule: Public list/detail responses are cacheable JSON. Object responses use their content-addressed
-    key as a long-lived immutable cache key and forward a provider ETag for conditional requests. Media
-    may render inline; all other object kinds use a generated safe attachment filename and never trust
-    crawler-provided filenames.
+  rule: Successful public list/detail responses are JSON with browser max-age=0, shared-cache max-age=120
+    and stale-while-revalidate=300 seconds. Missing records return404 with no-store and no success cache policy.
+  acceptance:
+    given: An actual ingested public record and a nonexistent record ID.
+    when: Anonymous HTTP clients read the list and both detail addresses.
+    then:
+    - Successful JSON reads expose the exact bounded browser/shared cache policy without setting a cookie.
+    - Missing detail returns404 and no-store.
+    test:
+      file: tests/integration/publication-http-contracts.test.ts
+      name: publications.public-cache
+- id: publications.object-cache-revalidation
+  category: consistency
+  rule: Content-addressed object bytes may be stored by browsers but require origin revalidation before
+    reuse. CDN responses use no-store. ETag matches return304 only while the object remains eligible through
+    a current public revision; withdrawn objects return404/no-store even with a previously valid ETag.
+  rationale: Immutable bytes do not imply immutable public access. A year-long immutable HTTP response
+    would bypass the current-public-revision check after withdrawal; R2 still reuses the content-addressed bytes.
+  acceptance:
+    given: Real R2 bytes are linked to a public current revision and the first response supplies an ETag.
+    when: The client conditionally reads before and after publication withdrawal.
+    then:
+    - The first200 and conditional304 require browser revalidation and disable CDN storage.
+    - Withdrawal causes404/no-store instead of304 or cached bytes.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.object-cache-revalidation
+- id: publications.object-content-disposition
+  category: privacy
+  rule: Verified image/audio/video media objects may render inline. All other kinds and HTML media download
+    with a generated kind-and-hash filename, never a crawler-provided filename. Responses declare their
+    canonical Content-Type and nosniff.
+  acceptance:
+    given: Real stored media, HTML, Markdown, raw-page and PDF asset objects have hostile crawler filenames.
+    when: Public object routes read all eight kind/MIME cases.
+    then:
+    - Only supported media MIME families render inline; other cases receive generated safe attachment names.
+    - Content-Type and nosniff match the object and hostile filenames cannot add response headers.
+    - Returned bytes equal the verified stored fixture.
+    test:
+      file: tests/integration/publication-object-contracts.test.ts
+      name: publications.object-content-disposition
 - id: publications.rest-only
   category: behavior
   rule: Publication ingestion and object upload planning are exposed only under /api/ingestion/publications.

@@ -5,8 +5,8 @@ import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
 import { ingestPublicationBatch } from "@/features/publications/server/publication-ingestion-service";
 import {
-  runWithCloudflareRuntimeEnv,
   type CloudflareR2Bucket,
+  runWithCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 import {
   postPublicationObjectPlanRoute,
@@ -478,4 +478,92 @@ it("publications.public-object-read", async () => {
     httpMetadata: { contentType: "text/html" },
   });
   expect((await read(f)).status).toBe(404);
+});
+
+it("publications.object-cache-revalidation", async () => {
+  const f = await fixture("cache-revalidation");
+  expect((await upload(f)).status).toBe(200);
+  const first = await read(f);
+  expect(first.status).toBe(200);
+  const etag = first.headers.get("etag");
+  expect(etag).toBeTruthy();
+  if (!etag) throw new Error("Missing object ETag");
+  expect(await first.text()).toBe(new TextDecoder().decode(f.bytes));
+  expect(first.headers.get("cache-control")).toBe(
+    "public, no-cache, no-transform",
+  );
+  expect(first.headers.get("cloudflare-cdn-cache-control")).toBe("no-store");
+  const unchanged = await read(f, { "If-None-Match": etag });
+  expect(unchanged.status).toBe(304);
+  expect(await unchanged.text()).toBe("");
+  expect(unchanged.headers.get("etag")).toBe(etag);
+  expect(unchanged.headers.get("cache-control")).toBe(
+    first.headers.get("cache-control"),
+  );
+  expect(unchanged.headers.get("cloudflare-cdn-cache-control")).toBe(
+    "no-store",
+  );
+  await db.publication.update({
+    where: { id: f.publicationId },
+    data: { deletedAt: new Date() },
+  });
+  const revoked = await read(f, { "If-None-Match": etag });
+  expect(revoked.status).toBe(404);
+  expect(revoked.headers.get("cache-control")).toBe("private, no-store");
+  expect(await revoked.text()).not.toContain(new TextDecoder().decode(f.bytes));
+});
+
+it("publications.object-content-disposition", async () => {
+  for (const [kind, contentType, disposition] of [
+    ["media", "image/png", "inline"],
+    ["media", "audio/mpeg", "inline"],
+    ["media", "video/mp4", "inline"],
+    ["media", "text/html", "attachment"],
+    ["body_html", "text/html", "attachment"],
+    ["body_markdown", "text/markdown", "attachment"],
+    ["raw_page", "text/html", "attachment"],
+    ["asset", "application/pdf", "attachment"],
+  ] as const) {
+    const f = await fixture(
+      `disposition-${kind}-${contentType.replace("/", "-")}`,
+    );
+    const original = await objectRow(f);
+    const key = `publications/${kind}/sha256/${f.object.sha256.slice(0, 2)}/${f.object.sha256}`;
+    await platform.env.R2_PUBLICATIONS.put(key, f.bytes, {
+      httpMetadata: { contentType },
+    });
+    await db.publicationObject.update({
+      where: { id: original.id },
+      data: {
+        kind,
+        r2Key: key,
+        contentType,
+        status: "verified",
+        verifiedAt: new Date(),
+      },
+    });
+    await db.publicationObjectLink.updateMany({
+      where: { objectId: original.id },
+      data: { role: kind, filename: '../../unsafe"\r\nX-Injected: yes.pdf' },
+    });
+    const response = await runtime(() =>
+      getPublicPublicationObjectRoute(
+        new Request(
+          `${origin}/api/publications/objects/${kind}/${f.object.sha256}`,
+        ),
+        { kind, sha256: f.object.sha256 },
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe(contentType);
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("x-injected")).toBeNull();
+    const filename = `publication-${kind}-${f.object.sha256.slice(0, 16)}${contentType === "application/pdf" ? ".pdf" : ""}`;
+    expect(response.headers.get("content-disposition")).toBe(
+      disposition === "inline"
+        ? "inline"
+        : `attachment; filename="${filename}"`,
+    );
+    expect(await response.text()).toBe(new TextDecoder().decode(f.bytes));
+  }
 });

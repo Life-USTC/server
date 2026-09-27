@@ -325,3 +325,32 @@ it("publications.batch-idempotency", async () => {
     }),
   ).toBe(1);
 });
+
+it("publications.public-cache", async () => {
+  const payload = batch("json-cache");
+  const created = await post(payload);
+  expect(created.status).toBe(200);
+  const id = (await created.json()).results[0].publicationId;
+  for (const path of [
+    `/api/publications?query=${marker}`,
+    `/api/publications/${id}`,
+  ]) {
+    const response = await fetch(`${origin}${path}`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=0, s-maxage=120, stale-while-revalidate=300",
+    );
+    expect(response.headers.get("cloudflare-cdn-cache-control")).toBe(
+      "public, max-age=120, stale-while-revalidate=300",
+    );
+    expect(response.headers.get("set-cookie")).toBeNull();
+    await response.json();
+  }
+  const missing = await fetch(
+    `${origin}/api/publications/${crypto.randomUUID()}`,
+  );
+  expect(missing.status).toBe(404);
+  expect(missing.headers.get("cache-control")).toBe("private, no-store");
+  await missing.json();
+});
