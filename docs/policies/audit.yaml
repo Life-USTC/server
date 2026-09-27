@@ -176,14 +176,48 @@ requirements:
   category: privacy
   topic: actions
   rule: Admin suspends a user account. The suspension change and audit row are committed together.
+  acceptance:
+    given: An administrator replaces an isolated user's existing active suspension through the real REST endpoint.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed.
+    then:
+    - Audit failure leaves the previous suspension unchanged and commits neither a replacement nor an audit row.
+    - Success lifts the previous suspension, creates one active replacement, and records one event identifying
+      the administrator and subject with only reasonProvided metadata, excluding reason, note, and credentials.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-user-suspend
 - id: audit.action-admin-user-unsuspend
   category: privacy
   topic: actions
   rule: Admin lifts a user suspension. The suspension change and audit row are committed together.
+  acceptance:
+    given: An administrator lifts an isolated user's active suspension through the real REST endpoint.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed.
+    then:
+    - Audit failure leaves the suspension unchanged and commits no audit row.
+    - Success records the lift time and administrator and commits one event identifying the subject and suspension,
+      excluding reason, note, user profile values, and credentials.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-user-unsuspend
 - id: audit.action-admin-comment-moderate
   category: privacy
   topic: actions
   rule: Admin hides or moderates a comment. The moderation change and audit row are committed together.
+  acceptance:
+    given: An administrator hides an isolated user's active comment through the real REST endpoint.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed.
+    then:
+    - Audit failure preserves the complete previous comment and commits no audit row.
+    - Success persists hidden status, moderation time, administrator, and note, and commits one event identifying
+      the actor, author, and comment with only status and moderationNoteProvided metadata.
+    - The event excludes comment content, moderation note, user profile values, and credentials.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-comment-moderate
 - id: audit.action-admin-description-moderate
   category: privacy
   topic: actions
