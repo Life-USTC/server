@@ -57,7 +57,33 @@ requirements:
 - id: subscription.bounded-batch-input
   category: validation
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
-    lookup-code entries per request. Per-user request-rate limits apply independently.
+    lookup-code entries per request.
+  acceptance:
+    given: Five isolated owners and 500 newly created active Sections have distinct IDs and codes.
+    when: Real REST query, append/remove, batch add/remove and import, GraphQL import, and OAuth HTTP
+      MCP import receive 500 and 501 entries.
+    then:
+    - Exactly 500 entries are accepted and the matching real memberships are created or removed.
+    - 501 entries are rejected before changing any persisted membership, even when the extra entry duplicates
+      an earlier one.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/bounds-contract.test.ts
+      name: subscription.bounded-batch-input
+- id: subscription.per-user-rate-limit
+  category: validation
+  rule: Subscription batch writes enforce the configured per-user request budget. Exhausting one owner’s
+    budget does not block another owner or read-only queries.
+  acceptance:
+    given: Two isolated owners share a Section and the real local Cloudflare limiter uses the production
+      batch budget.
+    when: Actual authenticated subscription routes exhaust one owner’s write budget, then process another
+      owner’s write and the first owner’s query.
+    then:
+    - The over-budget write returns 429 with Retry-After and does not change membership.
+    - Another owner’s write and the first owner’s read query still succeed.
+    test:
+      file: tests/integration/subscription-rate-limit.test.ts
+      name: subscription.per-user-rate-limit
 - id: subscription.personal-kind
   category: behavior
   rule: New section subscriptions default to regular.
