@@ -28,7 +28,7 @@ requirements:
       toggle the departed-trip setting, attempt anonymous or read-scope writes and unknown origin or
       destination IDs, then repeat successful writes during an active suspension.
     then:
-    - Successful writes change only the authenticated owner's row, including during suspension.
+    - Successful writes change only the authenticated owner's row, including during suspension; the returned preference contains exactly origin, destination and showDepartedTrips with their committed values.
     - Anonymous and insufficient-scope writes are rejected before persistence.
     - Unknown campuses retain both owners' exact rows and produce REST 400, GraphQL BAD_USER_INPUT
       or native MCP invalid_bus_preference according to the declared transport error shape.

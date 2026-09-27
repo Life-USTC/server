@@ -277,7 +277,7 @@ requirements:
     when: Write through actual loopback REST, GraphQL and native MCP and moderate through governance REST.
     then:
     - Unauthenticated writes return 401 and suspended writes return 403.
-    - Different ordinary users collaboratively edit the same description ID and append precisely attributed history through all three business transports.
+    - Different ordinary users collaboratively edit the same description ID and append precisely attributed history through all three business transports. All responses acknowledge the changed ID; native MCP additionally returns the committed description content and timestamp.
     - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or cache invalidation state.
     - Only an unsuspended administrator can moderate; ordinary and moderation writes record their respective
       audit actions.

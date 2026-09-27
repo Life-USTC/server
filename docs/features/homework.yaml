@@ -402,7 +402,7 @@ requirements:
     when: Active actors use the real service and loopback REST, GraphQL and native MCP writes with
       resource-bound OAuth or supported sessions; anonymous, read-only, suspended and invalid-target writes are attempted.
     then:
-    - Active collaborators can create and update shared homework while preserving the original creator.
+    - Active collaborators can create and update shared homework while preserving the original creator; returned homework identity, title, flags and timestamps match committed rows. GraphQL completion fields and REST/MCP completion objects retain their declared shapes.
     - Suspended, unauthenticated and read-only credentials are rejected consistently; deleted, missing and wrong-JW targets cannot be edited.
     - Rejected writes preserve homework, completion, description/history and business audit rows and produce no cache invalidation.
     test:

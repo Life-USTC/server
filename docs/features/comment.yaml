@@ -163,6 +163,7 @@ requirements:
       ownership.
     - Deleted and softbanned comments reject ordinary mutations across all business transports.
     - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or cache invalidation state.
+    - Edit responses retain the declared transport shape; returned comment bodies, public author identity and timestamps match committed rows. Reaction change flags, where exposed, match the performed change.
     - Only an unsuspended administrator can moderate through the governance route.
     test:
       file: tests/integration/comment-write-contracts.test.ts

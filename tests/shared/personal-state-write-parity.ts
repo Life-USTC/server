@@ -151,7 +151,12 @@ export async function assertSubscriptionKindTransportAuthority() {
     expect(await rows()).toEqual(original);
     for (const transport of transports)
       for (const kind of ["regular", "auditor", "teaching_assistant"]) {
-        await h.call(transport, subscriptionKind(h.section.jwId, kind), owner);
+        const result = await h.call(
+          transport,
+          subscriptionKind(h.section.jwId, kind),
+          owner,
+        );
+        expect(result).toMatchObject({ sectionJwId: h.section.jwId, kind });
         expect(await rows()).toMatchObject([{ userId: owner.id, kind }]);
       }
     await h.db.userSuspension.create({
@@ -258,11 +263,12 @@ export async function assertYoungWriteTransportAuthority() {
           [youngId, false],
           [organizerId, true],
         ] as const) {
-          await h.call(
+          const result = await h.call(
             transport,
             youngSubscription(id, organizer, true),
             actor,
           );
+          expect(result).toMatchObject({ subscribed: true });
           const state = await snapshot();
           expect(
             (organizer ? state.follows : state.subscriptions).some(
@@ -276,7 +282,13 @@ export async function assertYoungWriteTransportAuthority() {
         [youngId, false],
         [organizerId, true],
       ] as const)
-        await h.call(transport, youngSubscription(id, organizer, false), other);
+        expect(
+          await h.call(
+            transport,
+            youngSubscription(id, organizer, false),
+            other,
+          ),
+        ).toMatchObject({ subscribed: false });
       const after = await snapshot();
       expect(after.subscriptions).toEqual(
         foreignBefore.subscriptions.filter((row) => row.userId === owner.id),

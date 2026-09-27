@@ -112,7 +112,7 @@ function homeworkCreate(sectionJwId: number, title: string): Operation {
     graphql: {
       field: "homeworkCreate",
       query:
-        "mutation($input: CreateHomeworkInput!) { homeworkCreate(input:$input) { id } }",
+        "mutation($input: CreateHomeworkInput!) { homeworkCreate(input:$input) { id homework { id title createdAt updatedAt publishedAt submissionStartAt submissionDueAt isMajor requiresTeam completionRequired completed completedAt } } }",
       variables: { input },
     },
     mcp: { name: "community_section_homework_create", arguments: input },
@@ -128,7 +128,7 @@ function homeworkUpdate(id: string, title: string): Operation {
     graphql: {
       field: "homeworkUpdate",
       query:
-        "mutation($id: ID!, $input: UpdateHomeworkInput!) { homeworkUpdate(id:$id,input:$input) { id } }",
+        "mutation($id: ID!, $input: UpdateHomeworkInput!) { homeworkUpdate(id:$id,input:$input) { id homework { id title createdAt updatedAt publishedAt submissionStartAt submissionDueAt isMajor requiresTeam completionRequired completed completedAt } } }",
       variables: { id, input: { title } },
     },
     mcp: {
@@ -157,7 +157,25 @@ export async function assertCommentWriteTransportAuthorization() {
         const own = rows[index];
         const foreign = rows[1 - index];
         const body = `Edited by ${actor.id} through ${transport}`;
-        await h.call(transport, commentUpdate(own.id, body), actor);
+        const updated = await h.call(
+          transport,
+          commentUpdate(own.id, body),
+          actor,
+        );
+        if (transport === "graphql") expect(updated).toEqual({ id: own.id });
+        else {
+          const stored = await h.db.comment.findUniqueOrThrow({
+            where: { id: own.id },
+          });
+          expect(updated.comment).toMatchObject({
+            id: stored.id,
+            body: stored.body,
+            author: { id: stored.userId },
+          });
+          expect(new Date(updated.comment.updatedAt).getTime()).toBe(
+            stored.updatedAt.getTime(),
+          );
+        }
         expect(
           await h.db.comment.findUnique({ where: { id: own.id } }),
         ).toMatchObject({ body, userId: actor.id });
@@ -177,13 +195,27 @@ export async function assertCommentWriteTransportAuthorization() {
         expect(
           await h.db.comment.findUnique({ where: { id: reply.id } }),
         ).toMatchObject({ userId: actor.id, parentId: foreign.id });
-        await h.call(transport, reaction(foreign.id, true), actor);
+        const added = await h.call(
+          transport,
+          reaction(foreign.id, true),
+          actor,
+        );
+        if (transport === "rest") expect(added).toEqual({ success: true });
+        else expect(added.changed).toBe(true);
+        if (transport === "graphql") expect(added.active).toBe(true);
         expect(
           await h.db.commentReaction.findMany({
             where: { commentId: foreign.id, userId: actor.id },
           }),
         ).toHaveLength(1);
-        await h.call(transport, reaction(foreign.id, false), actor);
+        const removed = await h.call(
+          transport,
+          reaction(foreign.id, false),
+          actor,
+        );
+        if (transport === "rest") expect(removed).toEqual({ success: true });
+        else expect(removed.changed).toBe(true);
+        if (transport === "graphql") expect(removed.active).toBe(false);
         expect(
           await h.db.commentReaction.count({
             where: { commentId: foreign.id, userId: actor.id },
@@ -306,6 +338,16 @@ export async function assertDescriptionWriteTransportAuthorization() {
           descriptionSet(h.section.jwId, content),
           actor,
         );
+        expect(result.updated).toBe(true);
+        if (transport === "mcp") {
+          const stored = await h.db.description.findUniqueOrThrow({
+            where: { id: result.id },
+          });
+          expect(result.description).toMatchObject({ content: stored.content });
+          expect(new Date(result.description.updatedAt).getTime()).toBe(
+            stored.updatedAt.getTime(),
+          );
+        }
         if (id) expect(result.id).toBe(id);
         else id = result.id;
         expect(
@@ -389,7 +431,13 @@ export async function assertHomeworkWriteTransportAuthorization() {
         expect(
           await h.db.homework.findUnique({ where: { id: created.id } }),
         ).toMatchObject({ title, createdById: actor.id });
-        await h.call(transport, homeworkUpdate(shared.id, title), actor);
+        await assertHomeworkResult(h, created, created.id, title, transport);
+        const updated = await h.call(
+          transport,
+          homeworkUpdate(shared.id, title),
+          actor,
+        );
+        await assertHomeworkResult(h, updated, shared.id, title, transport);
         expect(
           await h.db.homework.findUnique({ where: { id: shared.id } }),
         ).toMatchObject({
@@ -582,4 +630,41 @@ export async function assertCommentAttachmentTransportOwnership() {
         expect(await uploads()).toEqual(originalUploads);
       }
   });
+}
+
+async function assertHomeworkResult(
+  h: Awaited<ReturnType<typeof createWriteTransportHarness>>,
+  result: { homework: Record<string, unknown> },
+  id: string,
+  title: string,
+  transport: (typeof transports)[number],
+) {
+  const stored = await h.db.homework.findUniqueOrThrow({ where: { id } });
+  expect(result.homework).toMatchObject({
+    id: stored.id,
+    title,
+    isMajor: stored.isMajor,
+    requiresTeam: stored.requiresTeam,
+    completionRequired: true,
+  });
+  if (transport === "graphql")
+    expect(result.homework).toMatchObject({
+      completed: false,
+      completedAt: null,
+    });
+  else expect(result.homework.completion).toBeNull();
+  for (const key of [
+    "createdAt",
+    "updatedAt",
+    "publishedAt",
+    "submissionStartAt",
+    "submissionDueAt",
+  ] as const) {
+    const timestamp = stored[key];
+    if (timestamp === null) expect(result.homework[key], key).toBeNull();
+    else
+      expect(new Date(String(result.homework[key])).getTime(), key).toBe(
+        timestamp.getTime(),
+      );
+  }
 }

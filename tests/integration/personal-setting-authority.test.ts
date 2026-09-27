@@ -20,7 +20,16 @@ it("bus.preference-owner-state", async () => {
           (row) => row.userId === other?.id,
         );
         for (const departed of [true, false]) {
-          await h.call(transport, busPreference(null, null, departed), actor);
+          const result = await h.call(
+            transport,
+            busPreference(null, null, departed),
+            actor,
+          );
+          expect(transport === "graphql" ? result : result.preference).toEqual({
+            preferredOriginCampusId: null,
+            preferredDestinationCampusId: null,
+            showDepartedTrips: departed,
+          });
           expect(
             await h.db.busUserPreference.findUnique({
               where: { userId: actor.id },

@@ -542,12 +542,12 @@ requirements:
   rule: GraphQL date-range calendars expose full subscribed event metadata for the authenticated owner
     and requested Shanghai days.
   acceptance:
-    given: Only one of two users subscribes an upcoming event.
-    when: GraphQL queries its Shanghai calendar day and the following day.
+    given: Only one of two users subscribes an event spanning Shanghai midnight.
+    when: GraphQL queries both overlapping Shanghai dates and the day after the event ends.
     then:
     - The owner receives event type, ID, exact start instant, end and location only within the requested
       day.
-    - The other user receives no private calendar event.
+    - Both overlapping dates include the same event; the day after its end is empty. The other user receives no private calendar event.
     test:
       file: tests/integration/graphql-workspace-domain-contracts.test.ts
       name: graphql.young-calendar

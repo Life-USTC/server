@@ -440,6 +440,12 @@ it("graphql.young-daily-digests", async () => {
 });
 
 it("graphql.young-calendar", async () => {
+  const eventStart = new Date("2026-09-27T23:30:00+08:00");
+  const eventEnd = new Date("2026-09-28T00:30:00+08:00");
+  await db.youngEvent.update({
+    where: { youngId },
+    data: { startAt: eventStart, endAt: eventEnd, applyEndAt: null },
+  });
   await run(
     owner,
     `mutation Subscribe($youngId: String!) { youngEventSubscriptionSet(youngId: $youngId, input: {subscribed: true}) { subscribed } }`,
@@ -450,7 +456,7 @@ it("graphql.young-calendar", async () => {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(future);
+  }).format(eventStart);
   const query = `query Calendar($from: String!, $to: String!) { workspace { calendarEvents(dateFrom: $from, dateTo: $to) { items { type youngId at endsAt location } pageInfo { total } } } }`;
   const result = await run(owner, query, { from: date, to: date });
   expect(result).toMatchObject({
@@ -475,21 +481,33 @@ it("graphql.young-calendar", async () => {
   const events = (
     result.data.workspace as { calendarEvents: { items: { at: string }[] } }
   ).calendarEvents.items;
-  expect(new Date(events[0].at).getTime()).toBe(future.getTime());
+  expect(new Date(events[0].at).getTime()).toBe(eventStart.getTime());
   expect(await run(other, query, { from: date, to: date })).toMatchObject({
     success: true,
     data: {
       workspace: { calendarEvents: { items: [], pageInfo: { total: 0 } } },
     },
   });
-  const tomorrow = new Intl.DateTimeFormat("en-CA", {
+  const overlap = await run(owner, query, {
+    from: "2026-09-28",
+    to: "2026-09-28",
+  });
+  expect(overlap).toMatchObject({
+    success: true,
+    data: {
+      workspace: {
+        calendarEvents: { items: [{ youngId }], pageInfo: { total: 1 } },
+      },
+    },
+  });
+  const dayAfterEvent = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(future.getTime() + 24 * 60 * 60_000));
+  }).format(new Date(eventEnd.getTime() + 24 * 60 * 60_000));
   expect(
-    await run(owner, query, { from: tomorrow, to: tomorrow }),
+    await run(owner, query, { from: dayAfterEvent, to: dayAfterEvent }),
   ).toMatchObject({
     success: true,
     data: {

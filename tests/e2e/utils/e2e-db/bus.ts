@@ -68,8 +68,6 @@ export async function setBusPreferenceFixture(
       where: { userId },
       create: {
         userId,
-        favoriteCampusIds: [],
-        favoriteRouteIds: [],
         ...preference,
       },
       update: preference,
