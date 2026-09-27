@@ -5,11 +5,9 @@ import type {
 } from "@/lib/auth/oauth-profile-types";
 import {
   fallbackEmail,
-  firstProfileName,
   firstStringValue,
   profileEmail,
   profileImage,
-  profileName,
 } from "@/lib/auth/oauth-profile-values";
 import { isPublishableUserEmail } from "@/lib/auth/oauth-user-email";
 import { stageSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
@@ -19,27 +17,18 @@ export function mapOidcProfileToUser(profile: OAuthProfile) {
 
   // USTC passport does not expose a real mailbox; keep a local unique email for
   // Better Auth and ignore passport fake_email placeholders.
-  const displayName =
-    firstProfileName(profile, [
-      "name",
-      "preferred_username",
-      "nickname",
-      "email",
-    ]) ?? `USTC User ${accountId}`;
-
   const image = profileImage(profile.picture);
   stageSocialVerifiedEmail({
     provider: "oidc",
     accountId,
     email: null,
     emailVerified: false,
-    name: displayName,
     image: image ?? null,
   });
 
   return {
     email: fallbackEmail("oidc", accountId),
-    name: displayName,
+    name: "",
     image,
     emailVerified: false,
   };
@@ -62,13 +51,12 @@ export function mapGithubProfileToUser(profile: GithubProfile) {
     // GitHub user:email returns account mailboxes; treat as verified for
     // OAuth client publication once stored in VerifiedEmail.
     emailVerified: isPublishableUserEmail(email),
-    name: profileName(profile.name ?? profile.login) || null,
     image: profileImage(profile.avatar_url) ?? null,
   });
 
   return {
     email: email ?? fallbackEmail("github", profile.id),
-    name: profileName(profile.name ?? profile.login),
+    name: "",
     image: profileImage(profile.avatar_url),
     emailVerified: false,
   };
@@ -86,13 +74,12 @@ export function mapGoogleProfileToUser(profile: GoogleProfile) {
     accountId: profile.sub,
     email: isPublishableUserEmail(email) && emailVerified ? email : null,
     emailVerified,
-    name: profileName(profile.name) || null,
     image: profileImage(profile.picture) ?? null,
   });
 
   return {
     email: email ?? fallbackEmail("google", profile.sub),
-    name: profileName(profile.name),
+    name: "",
     image: profileImage(profile.picture),
     emailVerified,
   };

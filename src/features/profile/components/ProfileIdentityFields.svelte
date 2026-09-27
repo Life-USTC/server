@@ -25,7 +25,7 @@ export let showUsernameRequiredIndicator = true;
     name="name"
     value={user.name ?? ""}
     placeholder={copy.namePlaceholder}
-    autocomplete="name"
+    autocomplete="nickname"
     required
     {disabled}
   />

@@ -3,7 +3,6 @@ export type StagedSocialVerifiedEmail = {
   accountId: string;
   email: string | null;
   emailVerified: boolean;
-  name: string | null;
   image: string | null;
 };
 
