@@ -1,3 +1,10 @@
+## [1.122.1](https://github.com/Life-USTC/server/compare/v1.122.0...v1.122.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **profile:** use nickname and ID with no default nickname ([#1140](https://github.com/Life-USTC/server/issues/1140)) ([b765261](https://github.com/Life-USTC/server/commit/b7652611fa34cf78d6b951d1679d79ff2e3b3c67))
+
 # [1.122.0](https://github.com/Life-USTC/server/compare/v1.121.7...v1.122.0) (2026-09-27)
 
 
