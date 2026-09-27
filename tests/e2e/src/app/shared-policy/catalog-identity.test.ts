@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEV_SEED } from "../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
@@ -406,6 +407,174 @@ test("cases.disambiguation.duplicate-course-names-1", async ({ page }) => {
     }
   } finally {
     await withE2ePrisma((db) => db.course.delete({ where: { id: second.id } }));
+    await cleanup(fixture);
+  }
+});
+
+test("cases.disambiguation.multiple-sections-same-course-1", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const fixture = await createFixture();
+  const semesters = await withE2ePrisma((db) =>
+    db.semester.findMany({
+      where: {
+        jwId: { in: [DEV_SEED.semesterJwId, DEV_SEED.previousSemesterJwId] },
+      },
+    }),
+  );
+  const current = semesters.find(
+    (semester) => semester.jwId === DEV_SEED.semesterJwId,
+  );
+  const previous = semesters.find(
+    (semester) => semester.jwId === DEV_SEED.previousSemesterJwId,
+  );
+  if (!current || !previous) throw new Error("Missing seeded semesters");
+  const sections = await withE2ePrisma(async (db) => {
+    const result = [];
+    for (const [index, semester] of [current, current, previous].entries()) {
+      result.push(
+        await db.section.create({
+          data: {
+            id: fixture.section.id + 2 * (index + 1),
+            jwId: fixture.section.jwId + 2 * (index + 1),
+            code: `${fixture.course.code}.0${index + 2}`,
+            courseId: fixture.course.id,
+            semesterId: semester.id,
+          },
+        }),
+      );
+    }
+    return result;
+  });
+  try {
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      const name =
+        locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
+      if (!name) throw new Error("Missing localized course name");
+      await gotoAndWaitForReady(
+        page,
+        `/search?q=${encodeURIComponent(fixture.course.code)}`,
+      );
+      for (const section of [fixture.section, ...sections]) {
+        const result = page
+          .getByRole("option")
+          .filter({ hasText: section.code });
+        await expect(result).toHaveCount(1);
+        await expect(result).toContainText(name);
+        const semesterLabel =
+          section.semesterId === current.id
+            ? locale === "zh-cn"
+              ? "2026年春季学期"
+              : "Spring 2026"
+            : section.semesterId === previous.id
+              ? locale === "zh-cn"
+                ? "2025年秋季学期"
+                : "Fall 2025"
+              : locale === "zh-cn"
+                ? "未知"
+                : "Unknown";
+        if (section.id === fixture.section.id && locale === "zh-cn") {
+          await page.screenshot({
+            path: "/tmp/life-policy-section-semester-after.png",
+            fullPage: true,
+          });
+        }
+        await expect(result).toContainText(semesterLabel);
+      }
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(
+          page,
+          `/catalog/courses/${fixture.course.jwId}`,
+        );
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          name,
+        );
+        for (const section of [fixture.section, ...sections]) {
+          const link = page
+            .locator(`a[href="/catalog/sections/${section.jwId}"]`)
+            .filter({ visible: true });
+          const row =
+            width < 768 ? link : page.getByRole("row").filter({ has: link });
+          await expect(row).toContainText(section.code);
+          await expect(row).toContainText(
+            section.semesterId === current.id
+              ? current.nameCn
+              : section.semesterId === previous.id
+                ? previous.nameCn
+                : locale === "zh-cn"
+                  ? "暂无"
+                  : "N/A",
+          );
+        }
+      }
+      await page
+        .context()
+        .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await page
+        .getByRole("button", { name: /批量添加订阅|Bulk Add Subscriptions/i })
+        .first()
+        .click();
+      await page
+        .locator("#bulk-import-semester")
+        .selectOption(String(current.id));
+      await page.locator("#bulk-import-section-codes").fill(
+        sections
+          .slice(0, 2)
+          .map((section) => section.code)
+          .join("\n"),
+      );
+      await page
+        .getByRole("button", { name: /识别并匹配课程|Match Sections/ })
+        .click();
+      const dialog = page.getByRole("dialog", {
+        name: /确认订阅|Confirm .*section subscriptions/,
+      });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+      for (const section of sections.slice(0, 2)) {
+        const field = dialog
+          .locator('[data-slot="field"]')
+          .filter({ has: page.locator(`#bulk-import-section-${section.id}`) });
+        await expect(field).toContainText(name);
+        await expect(field).toContainText(section.code);
+        await expect(field).toContainText(current.nameCn);
+      }
+      await dialog
+        .getByRole("button", {
+          name: /订阅已选的 2 个教学班|Subscribe to 2 sections/,
+        })
+        .click();
+      await expect(dialog).toBeHidden();
+      for (const section of sections.slice(0, 2)) {
+        await expect(
+          page
+            .locator(`a[href="/catalog/sections/${section.jwId}"]`)
+            .filter({ visible: true })
+            .first(),
+        ).toContainText(name);
+      }
+      await withE2ePrisma((db) =>
+        db.userSectionSubscription.deleteMany({
+          where: { userId: fixture.user.id },
+        }),
+      );
+    }
+  } finally {
+    await withE2ePrisma((db) =>
+      db.section.deleteMany({
+        where: { id: { in: sections.map((section) => section.id) } },
+      }),
+    );
     await cleanup(fixture);
   }
 });

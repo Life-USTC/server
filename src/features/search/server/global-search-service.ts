@@ -13,6 +13,7 @@ import type {
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { getMessages } from "@/i18n/messages.server";
 import { cachedCatalogRuntimeData } from "@/lib/catalog-runtime-cache";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -66,6 +67,7 @@ function toSectionItem(
     }>;
   },
   locale: AppLocale,
+  unknownSemester: string,
 ): GlobalSearchResultItem {
   const courseName = catalogPrimaryName(section.course);
   const teacherNames = section.teachers
@@ -78,7 +80,7 @@ function toSectionItem(
       : `${courseName} · ${section.code}`;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
-    : null;
+    : unknownSemester;
   const campusName = section.campus ? catalogPrimaryName(section.campus) : null;
   const description = [semesterName, campusName || null, section.code]
     .filter((part): part is string => Boolean(part))
@@ -96,10 +98,11 @@ async function searchCatalogGroups(
   locale: AppLocale,
   limit: number,
 ): Promise<GlobalSearchResultGroup[]> {
-  const [courses, teachers, sections] = await Promise.all([
+  const [courses, teachers, sections, messages] = await Promise.all([
     searchCoursesForGlobal(query, locale, limit),
     searchTeachersForGlobal(query, locale, limit),
     searchSectionsForGlobal(query, locale, limit),
+    getMessages(locale),
   ]);
 
   const groupItems: Partial<
@@ -112,7 +115,9 @@ async function searchCatalogGroups(
       description: teacher.department?.nameCn ?? teacher.code,
       href: `/catalog/teachers/${teacher.id}`,
     })),
-    sections: sections.map((section) => toSectionItem(section, locale)),
+    sections: sections.map((section) =>
+      toSectionItem(section, locale, messages.common.unknown),
+    ),
   };
 
   return GLOBAL_SEARCH_GROUP_ORDER.flatMap((type) => {

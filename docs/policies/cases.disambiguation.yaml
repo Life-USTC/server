@@ -22,6 +22,16 @@ requirements:
   rule: Section search, course-detail offerings, and subscription match/import results display section code
     and semester alongside course identity. Missing semester data uses an explicit unknown label rather than
     a fabricated current semester.
+  acceptance:
+    given: One named course has two sections in Spring 2026, one in Fall 2025, and one with no semester.
+    when: A browser searches the course, reads desktop and mobile course offerings, and matches and imports the two Spring sections in Chinese and English.
+    then:
+    - Search and course offerings retain each section code and its actual semester; missing semester is explicitly unknown or unavailable.
+    - The import confirmation shows each matching section code, course name, and selected semester before subscribing to the two distinct sections.
+    - The resulting subscriptions link to the selected teaching sections and retain the course identity.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.disambiguation.multiple-sections-same-course-1
 refs:
 - feature: course
   capability: course-list
