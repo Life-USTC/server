@@ -12,6 +12,7 @@ import {
   signInAsDebugUser,
   signInAsDevAdmin,
 } from "../../../utils/auth";
+import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -54,10 +55,9 @@ test("已移除的可观测性页面返回 404 且不出现在管理导航", asy
   await expect(navigation.locator('a[href="/admin/audit"]')).toHaveCount(0);
 });
 
-test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
-  page,
-}, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/users");
+test("admin.primary-admin-navigation", async ({ page }, testInfo) => {
+  await signInAsDevAdmin(page, "/admin");
+  await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
 
   const paths = [
     { path: "/admin/users", name: /用户管理|User Management/i },
@@ -67,7 +67,11 @@ test("/admin 主导航在所有管理页面保持唯一当前位置", async ({
   ] as const;
 
   for (const { path, name } of paths) {
-    await gotoAndWaitForReady(page, path);
+    await gotoAndWaitForReady(page, path, {
+      browserHealth: {},
+      expectMeaningfulContent: true,
+      expectNoHorizontalOverflow: true,
+    });
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
@@ -178,4 +182,89 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
 
 test("页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/admin", testInfo });
+});
+
+test("admin.responsive-workspace", async ({ page }, testInfo) => {
+  const clientId = `responsive-${crypto.randomUUID()}`;
+  await withE2ePrisma((prisma) =>
+    prisma.oAuthClient.create({
+      data: {
+        clientId,
+        name: clientId,
+        tokenEndpointAuthMethod: "none",
+        scopes: ["openid"],
+      },
+    }),
+  );
+  try {
+    await signInAsDevAdmin(page, "/admin/users");
+    for (const entry of [
+      { path: "/admin/users", mobile: "admin-users-mobile-list" },
+      { path: "/admin/moderation", mobile: "admin-moderation-mobile-list" },
+      { path: "/admin/oauth", mobile: null },
+      { path: "/admin/bus", mobile: "admin-bus-mobile-list" },
+    ]) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(page, entry.path, {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+      });
+      const heading = page.getByRole("heading", { level: 1 });
+      await expect(heading).toBeVisible();
+      const identity = (await heading.innerText()).trim();
+      const row = page.locator("tbody tr:visible").first();
+      await expect(row).toBeVisible();
+      const recordIdentity = (await row.locator("td").first().innerText())
+        .trim()
+        .split("\n")[0];
+      expect(recordIdentity.length).toBeGreaterThan(0);
+      const actions = await row
+        .getByRole("button")
+        .evaluateAll((buttons) =>
+          buttons
+            .map(
+              (button) =>
+                button.getAttribute("aria-label") ||
+                button.textContent?.trim() ||
+                "",
+            )
+            .filter(Boolean),
+        );
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        `admin-responsive-desktop-${entry.path.split("/").at(-1)}`,
+      );
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoAndWaitForReady(page, entry.path, {
+        browserHealth: {},
+        expectMeaningfulContent: true,
+        expectNoHorizontalOverflow: true,
+      });
+      await expect(heading).toHaveText(identity);
+      await expect(page.locator("table:visible")).toHaveCount(0);
+      const record = (
+        entry.mobile
+          ? page.getByTestId(entry.mobile).locator('[data-slot="item"]')
+          : page.getByRole("listitem")
+      )
+        .filter({ hasText: recordIdentity })
+        .first();
+      await expect(record).toBeVisible();
+      for (const action of actions)
+        await expect(
+          record.getByRole("button", { name: action, exact: true }),
+        ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        `admin-responsive-mobile-${entry.path.split("/").at(-1)}`,
+      );
+    }
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.oAuthClient.deleteMany({ where: { clientId } }),
+    );
+  }
 });

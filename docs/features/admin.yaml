@@ -16,15 +16,30 @@ access:
     and anonymous-comment identity revelation; other read-only governance access follows admin.suspended-admin-write-gate.
   agent: No admin tools are currently provided.
 requirements:
-- id: admin.divided-by-responsibility
-  category: presentation
-  rule: The admin backend is divided by governance responsibility, not all actions on one page.
 - id: admin.moderation-centralized
   category: presentation
   rule: Comment and description governance are currently centralized on the moderation page.
+  acceptance:
+    given: A signed-in administrator and seeded comment/description queues.
+    when: Open moderation, inspect comment management, then follow the descriptions tab.
+    then:
+    - Both governance queues remain on the same moderation page and expose their respective management
+      controls.
+    test:
+      file: tests/e2e/src/app/admin/moderation/test.ts
+      name: admin.moderation-centralized
 - id: admin.high-risk-feedback
   category: presentation
   rule: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
+  acceptance:
+    given: An isolated user, comment, and homework controlled through the actual admin UI.
+    when: Hide the comment, suspend its author, cancel homework deletion, then confirm deletion.
+    then:
+    - Each successful high-risk action displays specific feedback and changes the persisted record.
+    - Deletion confirmation names the target and cancellation leaves the homework unchanged.
+    test:
+      file: tests/e2e/src/app/admin/moderation/test.ts
+      name: admin.high-risk-feedback
 - id: admin.admin-self-protection
   category: authorization
   rule: Admin user management must reject self-suspension, self-demotion, and removing the final remaining
@@ -132,8 +147,17 @@ requirements:
       name: admin.admin-mutation-not-found
 - id: admin.primary-admin-navigation
   category: presentation
-  rule: The global shell groups users, moderation, OAuth clients, and bus management under Admin tools.
-    /admin redirects to /admin/users.
+  rule: The global shell groups responsibility-specific users, moderation, OAuth clients, and bus management
+    pages under Admin tools. /admin redirects to /admin/users.
+  acceptance:
+    given: A signed-in administrator opening the admin entry and all four governance pages.
+    when: Follow the entry redirect and inspect the global primary navigation on each page.
+    then:
+    - The entry redirects to users; responsibility-specific users, moderation, OAuth, and bus pages each
+      have one heading and exactly one current primary-navigation link.
+    test:
+      file: tests/e2e/src/app/admin/test.ts
+      name: admin.primary-admin-navigation
 - id: admin.feature-experience-telemetry
   category: behavior
   rule: PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded
@@ -156,6 +180,16 @@ requirements:
   rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
     shows tabular records; mobile presents compact records containing the same primary identity and available
     actions.
+  acceptance:
+    given: A signed-in administrator and real users, moderation, OAuth, and bus records.
+    when: Render each page at desktop and mobile widths and compare the first record and its available
+      actions.
+    then:
+    - Each page preserves its heading and primary record identity; desktop tables become compact mobile
+      records with the same available actions and no horizontal overflow.
+    test:
+      file: tests/e2e/src/app/admin/test.ts
+      name: admin.responsive-workspace
 - id: admin.platform-runtime-logs
   category: privacy
   rule: Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary

@@ -1,7 +1,7 @@
-import { getAdminDemotionFailure } from "@/features/admin/server/admin-role-change";
 import { makeSignature } from "better-auth/crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { moderateCommentAction } from "@/features/admin/server/admin-moderation-action-handlers";
+import { getAdminDemotionFailure } from "@/features/admin/server/admin-role-change";
 import { getAdminUsersPage } from "@/features/admin/server/admin-users-page-data";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { patchAdminCommentRoute } from "@/lib/api/routes/admin-comment-update-route";
@@ -96,7 +96,7 @@ beforeAll(async () => {
     },
     include: { consents: true },
   });
-  token = (await signResourceBoundOAuthAccessToken({
+  const signedToken = await signResourceBoundOAuthAccessToken({
     clientId,
     userId: adminId,
     grantId: client.consents[0].grantId,
@@ -104,7 +104,9 @@ beforeAll(async () => {
     scopes: ["workspace.todo:read"],
     issuedAt: Math.floor(Date.now() / 1000),
     expiresAt: Math.floor(Date.now() / 1000) + 600,
-  }))!;
+  });
+  if (!signedToken) throw new Error("Expected signed administrator token");
+  token = signedToken;
   const section = await db.section.findFirstOrThrow();
   for (let index = 0; index < 3; index++) {
     const homework = await db.homework.create({
@@ -321,7 +323,8 @@ it("admin.single-open-suspension", async () => {
   expect(history.filter((row) => row.liftedAt !== null)[0].liftedById).toBe(
     adminId,
   );
-  const open = history.find((row) => row.liftedAt === null)!;
+  const open = history.find((row) => row.liftedAt === null);
+  if (!open) throw new Error("Expected one remaining open suspension");
   expect((await findActiveSuspension(secondUserId))?.id).toBe(open.id);
   const lifted = await patchAdminSuspensionRoute(
     request(`/api/admin/suspensions/${open.id}`, "PATCH"),
