@@ -6,11 +6,9 @@ import type {
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/stores";
 import ActiveFilters from "$lib/components/ActiveFilters.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
@@ -78,8 +76,8 @@ const summary = $derived(
   />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}<PageHeader title={youngCopy.organizersTitle} description={youngCopy.organizersDescription} />{/snippet}
+<CollectionPage description={youngCopy.organizersDescription} footer={pagination.totalPages > 1 ? paginationFooter : undefined} title={youngCopy.organizersTitle}>
+  {#snippet before()}
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
@@ -91,11 +89,9 @@ const summary = $derived(
       {/if}
       {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
     </span>
-
   </div>
-
-  <Panel footer={pagination.totalPages > 1 ? paginationFooter : undefined}>
-    {#snippet header()}
+  {/snippet}
+  {#snippet toolbar()}
       <FilterToolbar>
         {#snippet primary()}
           <form action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-1 items-center gap-2">
@@ -182,5 +178,4 @@ const summary = $derived(
         </div>
       {/if}
     </section>
-  </Panel>
-</PageLayout>
+</CollectionPage>

@@ -15,5 +15,8 @@ Shared UI primitives and layout components.
 - Feature-specific UI stays under `src/features/<feature>/components`.
 - Prefer the local UI wrapper components here over direct primitive-library
   usage in feature code.
+- New collection pages copy `CollectionPage`: title, optional actions, an
+  optional note, toolbar, results, and pagination. `Panel` is an unframed
+  section for pages that need more than one stack. Do not wrap a page in a card.
 - Keep icons in one system. Add a local icon only when the library icon cannot
   be used directly.

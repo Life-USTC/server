@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
-import * as Card from "$lib/components/ui/card/index.js";
+import Panel from "$lib/components/Panel.svelte";
 import ProfileContributionFooter from "./ProfileContributionFooter.svelte";
 import ProfileContributionHeatmap from "./ProfileContributionHeatmap.svelte";
 import type {
@@ -46,20 +46,15 @@ function heatmapClass(count: number) {
 }
 </script>
 
-<Card.Root class="min-w-0">
-  <Card.Header>
-    <Card.Title>
-      {copy.contribution.title.replace(
-        "{count}",
-        String(totalContributions),
-      )}
-    </Card.Title>
-    <Card.Description class="mt-2">
-      {copy.contribution.description}
-    </Card.Description>
-  </Card.Header>
-
-  <Card.Content class="grid gap-5">
+<Panel class="min-w-0">
+  {#snippet header()}
+    <div class="grid gap-1">
+      <h2 class="text-lg font-semibold">
+        {copy.contribution.title.replace("{count}", String(totalContributions))}
+      </h2>
+      <p class="text-muted-foreground text-sm">{copy.contribution.description}</p>
+    </div>
+  {/snippet}
     <ProfileContributionHeatmap
       cellLabel={copy.contribution.cell}
       {dateFormatter}
@@ -76,5 +71,4 @@ function heatmapClass(count: number) {
         {copy.contribution.empty}
       </p>
     {/if}
-  </Card.Content>
-</Card.Root>
+</Panel>

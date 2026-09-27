@@ -14,8 +14,7 @@ import type { YoungCalendarPageFilters } from "@/features/young/server/young-pag
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { page } from "$app/stores";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
@@ -148,8 +147,8 @@ const calendarLabels = $derived({
 });
 </script>
 
-<PageLayout>
-  {#snippet header()}<PageHeader title={youngCopy.calendarTitle} description={youngCopy.calendarDescription} />{/snippet}
+<CollectionPage description={youngCopy.calendarDescription} title={youngCopy.calendarTitle}>
+  {#snippet before()}
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
@@ -161,11 +160,11 @@ const calendarLabels = $derived({
       {/if}
       {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
     </span>
-
   </div>
-
-  <div class="grid gap-4">
-    <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
+  {/snippet}
+  {#snippet toolbar()}
+      <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
+  {/snippet}
 
     <div class="grid gap-3">
     <ResultsSummary summary={youngCopy.showing.replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
@@ -192,5 +191,4 @@ const calendarLabels = $derived({
       {view}
     />
     </div>
-  </div>
-</PageLayout>
+</CollectionPage>

@@ -15,7 +15,7 @@ let { children, class: className = "", label }: Props = $props();
 <div
   aria-label={label}
   class={cn(
-    "min-w-0 max-w-full overflow-x-auto rounded-lg border bg-card [&>[data-slot=table-container]]:overflow-visible",
+    "min-w-0 max-w-full overflow-x-auto [&>[data-slot=table-container]]:overflow-visible",
     className,
   )}
   role={label ? "region" : undefined}

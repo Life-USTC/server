@@ -33,8 +33,11 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: 'Collection pages compose PageLayout, PageHeader and Panel: FilterToolbar/ActiveFilters, ResultsSummary/domain
-    results, then ListPagination links preserving filters.'
+  rule: 'Collection pages use CollectionPage. It fills PageLayout, PageHeader, and one unframed
+    Panel: actions hold header buttons, before holds an optional note, toolbar holds FilterToolbar
+    and ActiveFilters, the body holds ResultsSummary and the results, and the footer holds
+    ListPagination links that preserve filters. Panel is that unframed stack, not a card. Pages
+    with several sections compose PageLayout and Panel directly.'
 - id: ui.list-table-2
   category: presentation
   topic: list-table

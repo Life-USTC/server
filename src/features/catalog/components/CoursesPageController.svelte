@@ -6,10 +6,8 @@ import {
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
 import { page } from "$app/stores";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
@@ -136,10 +134,8 @@ function courseEmptyDescription() {
   />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}<PageHeader description={courseLabels.subtitle} title={courseLabels.title} />{/snippet}
-  <Panel footer={totalPages > 1 ? paginationFooter : undefined}>
-    {#snippet header()}
+<CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title}>
+  {#snippet toolbar()}
       <CatalogFilters
         activeFilters={courseActiveFilters}
         clearHref="/catalog/courses"
@@ -163,7 +159,7 @@ function courseEmptyDescription() {
           idPrefix="mobile-course"
         />
       </CatalogFilters>
-    {/snippet}
+  {/snippet}
     <CoursesResults
       {courseEmptyDescription}
       {courseLabels}
@@ -172,5 +168,4 @@ function courseEmptyDescription() {
       {primaryName}
       {totalPages}
     />
-  </Panel>
-</PageLayout>
+</CollectionPage>

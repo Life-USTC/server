@@ -8,11 +8,9 @@ import type { PublicationSourceOrganizationLevel } from "@/features/publications
 import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { goto } from "$app/navigation";
 import ActiveFilters from "$lib/components/ActiveFilters.svelte";
+import CollectionPage from "$lib/components/CollectionPage.svelte";
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import PageLayout from "$lib/components/PageLayout.svelte";
-import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
@@ -126,15 +124,9 @@ function changeType(value: string) {
   <ListPagination page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} pageHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} previousPageLabel={copy.previousPage} nextLabel={copy.nextPage} nextPageLabel={copy.nextPage} ariaLabel={copy.pagination} />
 {/snippet}
 
-<PageLayout>
-  {#snippet header()}
-    <PageHeader title={copy.pageTitle} description={copy.pageDescription}>
-      {#snippet actions()}<Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>{/snippet}
-    </PageHeader>
-  {/snippet}
-
-  <Panel footer={data.publications.pagination.totalPages > 1 ? pagination : undefined}>
-    {#snippet header()}
+<CollectionPage description={copy.pageDescription} footer={data.publications.pagination.totalPages > 1 ? pagination : undefined} title={copy.pageTitle}>
+  {#snippet actions()}<Button href="/news/sources" variant="outline">{copy.sourcesTitle}</Button>{/snippet}
+  {#snippet toolbar()}
       <div class="grid min-w-0 gap-3">
         <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.filters.type ?? "all", changeType} aria-label={copy.publicationType}>
           <ToggleGroup.Item value="all">{copy.all}</ToggleGroup.Item>
@@ -184,7 +176,7 @@ function changeType(value: string) {
         </FilterToolbar>
         <ActiveFilters items={activeFilters.map((filter) => ({ ...filter, removeLabel: copy.removeFilter.replace("{filter}", filter.label) }))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} />
       </div>
-    {/snippet}
+  {/snippet}
 
     <ResultsSummary summary={resultsCount} page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} />
     {#if data.publications.data.length === 0}
@@ -211,5 +203,4 @@ function changeType(value: string) {
         {/each}
       </ul>
     {/if}
-  </Panel>
-</PageLayout>
+</CollectionPage>
