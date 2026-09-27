@@ -284,6 +284,19 @@ requirements:
   category: privacy
   topic: actions
   rule: Admin deletes an inactive timetable version; the delete and audit row are committed together.
+  acceptance:
+    given: An administrator deletes an isolated inactive timetable version with an associated trip through the
+      real web action.
+    when: An actor-scoped database constraint rejects the audit insertion, then the administrator retries after
+      the constraint is removed and repeats the completed deletion.
+    then:
+    - Audit failure preserves both the version and its trip and commits no event.
+    - Success removes the version and trip and commits one web event identifying the administrator and version,
+      without raw import data, source URL, title, profile values, or credentials.
+    - Repeating deletion returns not found and adds no event; active timetable versions remain unchanged.
+    test:
+      file: tests/e2e/src/app/account-policy/admin-audit.test.ts
+      name: audit.action-admin-bus-version-delete
 - id: audit.action-admin-bus-import
   category: privacy
   topic: actions

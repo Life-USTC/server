@@ -451,3 +451,106 @@ test("audit.action-admin-description-moderate", async ({ page }) => {
     await f.cleanup();
   }
 });
+
+test("audit.action-admin-bus-version-delete", async ({ page }) => {
+  const f = await setup(page);
+  let versionId: number | undefined;
+  try {
+    const activeBefore = await withE2ePrisma((db) =>
+      db.busScheduleVersion.findMany({
+        where: { isEnabled: true },
+        orderBy: { id: "asc" },
+      }),
+    );
+    const marker = `bus-audit-${crypto.randomUUID()}`;
+    const version = await withE2ePrisma((db) =>
+      db.busScheduleVersion.create({
+        data: {
+          key: marker,
+          checksum: marker,
+          title: "Private archived import title",
+          isEnabled: false,
+          rawJson: { message: f.content },
+          sourceMessage: f.note,
+          sourceUrl: `https://example.test/${marker}`,
+        },
+      }),
+    );
+    versionId = version.id;
+    const route = await withE2ePrisma((db) => db.busRoute.findFirstOrThrow());
+    const trip = await withE2ePrisma((db) =>
+      db.busTrip.create({
+        data: {
+          versionId: version.id,
+          routeId: route.id,
+          dayType: "weekday",
+          position: 1,
+          stopTimes: ["08:00", "08:30"],
+        },
+      }),
+    );
+    const submit = () =>
+      page.request.post("/admin/bus?/deleteVersion", {
+        form: { id: String(version.id) },
+        headers: { "x-sveltekit-action": "true", accept: "application/json" },
+      });
+    await f.rejectAudit("admin_bus_version_delete");
+    expect((await submit()).status()).toBe(500);
+    expect(
+      await withE2ePrisma((db) =>
+        db.busScheduleVersion.findUnique({ where: { id: version.id } }),
+      ),
+    ).toEqual(version);
+    expect(
+      await withE2ePrisma((db) =>
+        db.busTrip.findUnique({ where: { id: trip.id } }),
+      ),
+    ).toEqual(trip);
+    expect(await f.events("admin_bus_version_delete")).toHaveLength(0);
+    await f.restoreAudit();
+    const response = await submit();
+    expect(response.status(), await response.text()).toBe(200);
+    expect(await response.json()).toMatchObject({ type: "success" });
+    expect(
+      await withE2ePrisma((db) =>
+        db.busScheduleVersion.findUnique({ where: { id: version.id } }),
+      ),
+    ).toBeNull();
+    expect(
+      await withE2ePrisma((db) =>
+        db.busTrip.findUnique({ where: { id: trip.id } }),
+      ),
+    ).toBeNull();
+    const events = await f.events("admin_bus_version_delete");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      userId: f.admin.id,
+      targetId: String(version.id),
+      targetType: "bus_schedule_version",
+      channel: "web",
+      outcome: "success",
+      metadata: null,
+    });
+    f.assertSafe(events);
+    for (const secret of [version.key, version.title, version.sourceUrl])
+      expect(JSON.stringify(events)).not.toContain(secret);
+    const repeat = await submit();
+    expect(await repeat.json()).toMatchObject({ type: "failure", status: 404 });
+    expect(await f.events("admin_bus_version_delete")).toEqual(events);
+    expect(
+      await withE2ePrisma((db) =>
+        db.busScheduleVersion.findMany({
+          where: { isEnabled: true },
+          orderBy: { id: "asc" },
+        }),
+      ),
+    ).toEqual(activeBefore);
+    versionId = undefined;
+  } finally {
+    if (versionId)
+      await withE2ePrisma((db) =>
+        db.busScheduleVersion.deleteMany({ where: { id: versionId } }),
+      );
+    await f.cleanup();
+  }
+});
