@@ -11,7 +11,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("global static import state persistence", () => {
-  it("accepts the first snapshot and rejects stale or conflicting snapshots", async () => {
+  it("section.source-monotonic-revision", async () => {
     const rollback = new Error("ROLLBACK_STATIC_IMPORT_STATE_TEST");
     const snapshotSha = "a".repeat(64);
     const otherSnapshotSha = "b".repeat(64);

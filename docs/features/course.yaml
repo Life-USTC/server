@@ -24,6 +24,14 @@ requirements:
   category: consistency
   rule: Static ingestion preserves upstream Course id as Course.jwId; code, names and classifications
     do not determine entity identity.
+  acceptance:
+    given: Two upstream courses have the same display name but distinct identities.
+    when: The actual course selection stage processes the occurrences.
+    then:
+    - Both identities survive as separate course records.
+    test:
+      file: tests/unit/static-loader/static-direct-identity.test.ts
+      name: course.static-course-identity
 - id: course.static-section-course-link
   category: consistency
   rule: Each imported Section resolves the upstream Course jwId attached to its lesson parent. Static
@@ -114,10 +122,26 @@ requirements:
 - id: course.static-course-code-conflict
   category: consistency
   rule: Conflicting codes for one upstream Course jwId reject the import before it commits.
+  acceptance:
+    given: One upstream course identity appears with conflicting codes.
+    when: The actual course selection stage validates all occurrences.
+    then:
+    - The conflict rejects the source selection instead of choosing an arbitrary code.
+    test:
+      file: tests/unit/static-loader/static-direct-identity.test.ts
+      name: course.static-course-code-conflict
 - id: course.static-course-metadata-precedence
   category: consistency
   rule: When the same Course occurs across semesters, non-identity metadata is selected deterministically
     from its latest semester occurrence.
+  acceptance:
+    given: One course has old and new metadata in different semesters.
+    when: The actual course selector runs in both input orders.
+    then:
+    - The latest semester metadata wins independently of source order.
+    test:
+      file: tests/unit/static-loader/static-direct-identity.test.ts
+      name: course.static-course-metadata-precedence
 - id: course.history-page-default
   category: validation
   rule: Omitting sectionsPage opens the first course-history page; an explicitly invalid value never silently

@@ -7,7 +7,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("static Section source lifecycle persistence", () => {
-  it("reconciles over 65,535 source IDs without deleting user data or history", async () => {
+  it("section.retirement-preserves-data", async () => {
     const rollback = new Error("ROLLBACK_STATIC_SECTION_LIFECYCLE_TEST");
     const marker = `[integration-test] section-lifecycle-${Date.now()}`;
     const numericMarker = 2_140_000_000 + (Date.now() % 1_000_000);
@@ -46,6 +46,33 @@ describe("static Section source lifecycle persistence", () => {
             courseId: course.id,
             semesterId: semester.id,
           },
+        });
+        const scheduleGroup = await tx.scheduleGroup.create({
+          data: {
+            jwId: numericMarker,
+            no: 1,
+            limitCount: 20,
+            stdCount: 10,
+            actualPeriods: 2,
+            isDefault: true,
+            sectionId: missingSection.id,
+          },
+        });
+        const schedule = await tx.schedule.create({
+          data: {
+            sectionId: missingSection.id,
+            scheduleGroupId: scheduleGroup.id,
+            periods: 2,
+            weekday: 1,
+            startTime: 800,
+            endTime: 1000,
+            weekIndex: 1,
+            startUnit: 1,
+            endUnit: 2,
+          },
+        });
+        const exam = await tx.exam.create({
+          data: { jwId: numericMarker, sectionId: missingSection.id },
         });
         const user = await tx.user.create({
           data: {
@@ -140,6 +167,12 @@ describe("static Section source lifecycle persistence", () => {
         ).resolves.toEqual({
           sectionSubscriptions: [{ sectionId: missingSection.id }],
         });
+        expect(
+          await tx.schedule.findUnique({ where: { id: schedule.id } }),
+        ).toEqual(schedule);
+        expect(await tx.exam.findUnique({ where: { id: exam.id } })).toEqual(
+          exam,
+        );
         const preservedUserData = [
           await tx.comment.findUnique({ where: { id: comment.id } }),
           await tx.description.findUnique({ where: { id: description.id } }),

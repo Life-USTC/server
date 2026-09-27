@@ -27,6 +27,16 @@ requirements:
   rule: Required teaching weeks and catalog admin-class localized names are preserved. Catalog names without
     IDs remain catalogAdminClasses metadata, separate from authoritative AdminClass relations; no identities
     are invented or matched by name.
+  acceptance:
+    given: A section source provides required weeks and a localized catalog class name without a class
+      identity.
+    when: The real section importer persists it and the public DTO serializer reads the result.
+    then:
+    - Required weeks and localized catalog names are retained.
+    - No authoritative AdminClass relation is invented.
+    test:
+      file: tests/integration/static-source-metadata.test.ts
+      name: section.source-planning-metadata
 - id: section.source-lifecycle
   category: consistency
   rule: Static sync rejects incomplete snapshots before any database writes.
@@ -34,6 +44,16 @@ requirements:
   category: consistency
   rule: Section retirement preserves the Section, comments, description, homework, subscriptions, schedules,
     exams and audit history.
+  acceptance:
+    given: A section has a subscription, comments, description, homework, schedules, exams and audit history;
+      a second previously retired section reappears.
+    when: The actual presence reconciler retires and later reactivates rows in a real database transaction.
+    then:
+    - Retirement preserves the Section and all related user, academic and audit records.
+    - Reactivation restores active status without losing prior data.
+    test:
+      file: tests/integration/static-section-lifecycle.test.ts
+      name: section.retirement-preserves-data
 - id: section.retired-read-semantics
   category: consistency
   rule: Public Section/search/match and public/current calendar collection queries exclude retired rows.
@@ -93,10 +113,29 @@ requirements:
   category: consistency
   rule: Static sync rejects snapshot generated_at more than 15 minutes after the import reference time
     before writes.
+  acceptance:
+    given: Snapshot generation time is at, just beyond or far beyond the 15-minute future-clock allowance.
+    when: The actual timestamp validator and importer process the snapshot.
+    then:
+    - The exact allowance is accepted and one millisecond beyond is rejected.
+    - A far-future snapshot is rejected before table reads or database transaction writes.
+    test:
+      file: tests/unit/static-loader/static-loader-future-snapshot.test.ts
+      name: section.source-future-clock-bound
 - id: section.source-monotonic-revision
   category: consistency
   rule: Static sync rejects a snapshot older than the last completed import or a different snapshot claiming
     the same generated_at.
+  acceptance:
+    given: A real import state stores one completed timestamp and snapshot hash.
+    when: The actual import gate receives the same snapshot, an older timestamp, or changed content at
+      the same timestamp.
+    then:
+    - Older and same-time conflicting snapshots are rejected.
+    - The first snapshot can record its exact timestamp/hash and same snapshot respects transform revision.
+    test:
+      file: tests/integration/static-import-state.test.ts
+      name: section.source-monotonic-revision
 - id: section.source-section-presence
   category: consistency
   rule: After successful snapshot validation, missing Sections become inactive and reappearing Sections
@@ -113,7 +152,20 @@ requirements:
   rule: Import reports include missing, before/after, deactivated and reactivated counts.
 - id: section.empty-semester-retirement
   category: consistency
-  rule: Semesters with no source lessons are excluded from automatic retirement reconciliation.
+  rule: Section retirement uses explicit complete source coverage. An explicitly fetched complete empty
+    semester retires its missing Sections; unavailable or out-of-coverage semesters are excluded rather
+    than interpreted as empty.
+  acceptance:
+    given: Source coverage distinguishes unfetched semesters, fetched historical rows and an explicitly
+      fetched complete empty semester.
+    when: The actual importer writes into a real PostgreSQL transaction.
+    then:
+    - Uncovered historical data remains intact.
+    - The explicitly covered empty semester retires its missing Section.
+    - A failed source fetch rejects the import instead of treating it as empty.
+    test:
+      file: tests/integration/static-import-coverage.test.ts
+      name: section.empty-semester-retirement
 - id: section.mobile-sticky-actions
   category: presentation
   rule: Mobile calendar and subscription actions remain reachable in a bottom action bar above the signed-in

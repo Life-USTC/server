@@ -13,7 +13,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("academic source metadata persistence", () => {
-  it("imports and reads metadata, then clears values removed from the source", async () => {
+  it("section.source-planning-metadata", async () => {
     const rollback = new Error("ROLLBACK_SOURCE_METADATA_TEST");
     const marker = 2_130_000_000 + (Date.now() % 1_000_000);
     try {

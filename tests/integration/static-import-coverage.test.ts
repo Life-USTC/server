@@ -48,7 +48,7 @@ const prisma = createFixturePrisma();
 afterAll(() => disconnectTestPrisma(prisma));
 
 describe("static import source coverage", () => {
-  it("preserves uncovered history, reconciles fetched exams, and retires a fetched empty semester", async () => {
+  it("section.empty-semester-retirement", async () => {
     const { runImport } = await import("@/static-loader/import");
     const rollback = new Error("ROLLBACK_STATIC_IMPORT_COVERAGE_TEST");
     const marker = 1_940_000_000;
