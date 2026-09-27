@@ -210,14 +210,41 @@ requirements:
   topic: actions
   rule: Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without title
     or description content.
+  acceptance:
+    given: An isolated user completes device authorization for a resource-bound homework-write bearer and has a persisted OAuth consent grant.
+    when: The real REST create endpoint writes a private title and description while a database CHECK first rejects homework audit insertion, then after the CHECK is removed.
+    then:
+    - Audit failure rolls back homework creation; retry commits the homework, description, edit history, and one audit event.
+    - The event contains the verified actor, REST channel, client ID, grant ID, section, and changed fields, without title, content, token, cookie, or personal identity values.
+    test:
+      file: tests/e2e/src/app/account-policy/homework-audit.test.ts
+      name: audit.action-homework-create
 - id: audit.action-homework-update
   category: privacy
   topic: actions
   rule: Records the collaborative editor and changed field names in the same transaction as the update.
+  acceptance:
+    given: A homework belongs to another creator and an isolated collaborative editor has a real resource-bound homework-write bearer.
+    when: The REST update endpoint changes title and description with audit insertion rejected by a CHECK, then retries after the CHECK is removed.
+    then:
+    - The failed attempt preserves the original title and absent description; the retry commits both changes and identifies the collaborative editor.
+    - One event records the verified client/grant attribution, section and changed-field names while omitting the private title and description.
+    test:
+      file: tests/e2e/src/app/account-policy/homework-audit.test.ts
+      name: audit.action-homework-update
 - id: audit.action-homework-delete
   category: privacy
   topic: actions
   rule: Records the creator/admin actor and target without retaining a title snapshot.
+  acceptance:
+    given: An isolated homework creator has a real resource-bound homework-write bearer and an active homework with a private title.
+    when: The REST delete endpoint runs with a CHECK rejecting the audit event, then retries after the CHECK is removed.
+    then:
+    - Audit failure preserves the active homework; retry commits deletedAt and exactly one successful event.
+    - The event identifies the creator, target, verified client/grant and section; metadata contains no title snapshot or private content.
+    test:
+      file: tests/e2e/src/app/account-policy/homework-audit.test.ts
+      name: audit.action-homework-delete
 - id: audit.action-webhook-login
   category: privacy
   topic: actions

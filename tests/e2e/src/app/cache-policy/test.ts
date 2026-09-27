@@ -11,40 +11,8 @@ import {
   PLAYWRIGHT_BASE_URL,
 } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
-
-async function issueBearer(request: APIRequestContext, clientId: string) {
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
-  const response = await request.post("/api/auth/oauth2/device-authorization", {
-    form: {
-      client_id: clientId,
-      scope: restReadScope("account.profile"),
-      resource,
-    },
-    headers: { origin: PLAYWRIGHT_BASE_URL },
-  });
-  expect(response.status(), await response.text()).toBe(200);
-  const code = await response.json();
-  const approval = await request.post("/oauth/device?/approve", {
-    form: { userCode: code.user_code },
-    headers: { origin: PLAYWRIGHT_BASE_URL, accept: "text/html" },
-    maxRedirects: 0,
-  });
-  expect(approval.status(), await approval.text()).toBe(303);
-  expect(approval.headers().location).toContain("result=approved");
-  const exchange = await request.post("/api/auth/oauth2/token", {
-    form: {
-      grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
-      client_id: clientId,
-      device_code: code.device_code,
-      resource,
-    },
-  });
-  expect(exchange.status(), await exchange.text()).toBe(200);
-  const { access_token: token } = await exchange.json();
-  expect(typeof token).toBe("string");
-  return token as string;
-}
 
 test("rendering-and-cache.personal-overlays-9", async ({
   playwright,
@@ -101,7 +69,11 @@ test("rendering-and-cache.personal-overlays-9", async ({
       const profile = await session.get("/api/account/profile");
       expect(profile.status()).toBe(200);
       expect(await profile.json()).toMatchObject({ id: user.id });
-      const token = await issueBearer(session, client.clientId);
+      const token = await authorizeDeviceBearer(
+        session,
+        client.clientId,
+        restReadScope("account.profile"),
+      );
       const bearer = await playwright.request.newContext({
         baseURL: PLAYWRIGHT_BASE_URL,
         extraHTTPHeaders: { authorization: `Bearer ${token}` },
