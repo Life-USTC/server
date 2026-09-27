@@ -14,6 +14,127 @@ function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function normalizeOperation(operation: string): string {
+  return operation.replace(/\[([^\]]+)\]/g, "{$1}");
+}
+
+function transportOperations(
+  capability: Record<string, unknown>,
+  surface: string,
+): Set<string> {
+  const binding = capability[surface];
+  const operations = new Set<string>();
+  if (!record(binding)) return operations;
+  if (surface === "rest" && Array.isArray(binding.routes)) {
+    for (const route of binding.routes) {
+      if (record(route) && typeof route.path === "string")
+        operations.add(
+          normalizeOperation(`${route.method ?? "GET"} ${route.path}`),
+        );
+    }
+  } else if (surface === "mcp" && Array.isArray(binding.tools)) {
+    for (const tool of binding.tools) {
+      if (record(tool) && typeof tool.name === "string")
+        operations.add(tool.name);
+    }
+  } else if (surface === "graphql") {
+    for (const key of ["queries", "mutations", "fields"]) {
+      const fields = binding[key];
+      if (!Array.isArray(fields)) continue;
+      for (const field of fields) {
+        if (record(field) && typeof field.name === "string") {
+          operations.add(
+            typeof field.parent === "string"
+              ? `${field.parent}.${field.name}`
+              : field.name,
+          );
+        }
+      }
+    }
+  }
+  return operations;
+}
+
+function validateExpectation(
+  requirement: Requirement,
+  capabilities: Record<string, unknown>,
+): string[] {
+  const value = requirement.expectation;
+  if (!value) return [];
+  const errors: string[] = [];
+  const { kind } = value;
+  if (kind === "numeric_input" || kind === "collection_input") {
+    const minimum = Number(
+      kind === "numeric_input" ? value.minimum : value.min_items,
+    );
+    const maximum = Number(
+      kind === "numeric_input" ? value.maximum : value.max_items,
+    );
+    if (minimum > maximum) errors.push("minimum must not exceed maximum");
+    if (
+      typeof value.default === "number" &&
+      (value.default < minimum || value.default > maximum)
+    ) {
+      errors.push("default must be within the declared bounds");
+    }
+    if (
+      value.integer === true &&
+      [minimum, maximum, value.default].some(
+        (item) => typeof item === "number" && !Number.isInteger(item),
+      )
+    ) {
+      errors.push("integer constraints require integer bounds and defaults");
+    }
+  }
+  if (kind === "authorization" && Array.isArray(value.cases)) {
+    const ids = new Set<string>();
+    for (const entry of value.cases) {
+      if (!record(entry) || typeof entry.id !== "string") continue;
+      if (ids.has(entry.id))
+        errors.push(`duplicate authorization case ${entry.id}`);
+      ids.add(entry.id);
+    }
+  }
+  if (
+    kind === "state_visibility" &&
+    Array.isArray(value.visible) &&
+    Array.isArray(value.hidden)
+  ) {
+    for (const target of value.visible) {
+      if (value.hidden.includes(target))
+        errors.push(`${String(target)} cannot be both visible and hidden`);
+    }
+    if (Array.isArray(value.restore_on_incomplete)) {
+      for (const target of value.restore_on_incomplete) {
+        if (!value.hidden.includes(target))
+          errors.push(
+            `${String(target)} must be hidden before it can be restored`,
+          );
+      }
+    }
+  }
+  if (
+    typeof value.operation === "string" &&
+    typeof value.surface === "string" &&
+    ["rest", "graphql", "mcp"].includes(value.surface)
+  ) {
+    const operations = new Set(
+      (requirement.applies_to ?? []).flatMap((id) => {
+        const capability = capabilities[id];
+        return record(capability)
+          ? [...transportOperations(capability, value.surface as string)]
+          : [];
+      }),
+    );
+    if (!operations.has(normalizeOperation(value.operation))) {
+      errors.push(
+        `operation ${value.operation} is not declared on the applicable ${value.surface} capability`,
+      );
+    }
+  }
+  return errors;
+}
+
 export function collectRequirements(value: unknown): Requirement[] {
   if (Array.isArray(value)) return value.flatMap(collectRequirements);
   if (!record(value)) return [];
@@ -138,6 +259,9 @@ export async function validateSpecificationReferences(
   const errors: string[] = [];
   const documentIds = new Set<string>();
   const requirementIds = new Set<string>();
+  const knownRequirementIds = new Set(
+    files.flatMap(({ data }) => collectRequirements(data).map(({ id }) => id)),
+  );
   const policies = new Set(
     files
       .filter(({ data }) => data.kind === "policy")
@@ -190,6 +314,9 @@ export async function validateSpecificationReferences(
       if (requirementIds.has(requirement.id))
         errors.push(`${path}: duplicate requirement ID ${requirement.id}`);
       requirementIds.add(requirement.id);
+      for (const error of validateExpectation(requirement, capabilities)) {
+        errors.push(`${path}: ${requirement.id}: ${error}`);
+      }
       if (requirement.topic && !topicIds.has(requirement.topic)) {
         errors.push(
           `${path}: ${requirement.id} references unknown topic ${requirement.topic}`,
@@ -252,6 +379,12 @@ export async function validateSpecificationReferences(
       if (Array.isArray(value)) {
         value.forEach(checkReferences);
       } else if (record(value)) {
+        if (Array.isArray(value.requirement_refs)) {
+          for (const id of value.requirement_refs) {
+            if (!knownRequirementIds.has(String(id)))
+              errors.push(`${path}: unknown requirement ${String(id)}`);
+          }
+        }
         if (Array.isArray(value.policy_refs)) {
           for (const policy of value.policy_refs) {
             if (!policies.has(policy))

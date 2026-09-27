@@ -4,15 +4,7 @@
   "title": "Feature product specification",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "kind",
-    "id",
-    "name",
-    "areas",
-    "access",
-    "requirements",
-    "capabilities"
-  ],
+  "required": ["kind", "id", "name", "areas", "requirements", "capabilities"],
   "properties": {
     "kind": {
       "const": "feature"
@@ -92,6 +84,9 @@
           },
           "mcp": {
             "$ref": "defs.schema.json#/$defs/mcpSurface"
+          },
+          "requirement_refs": {
+            "$ref": "defs.schema.json#/$defs/requirementRefs"
           }
         }
       }
