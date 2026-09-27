@@ -55,9 +55,25 @@ requirements:
     REST does not accept the retired limit alias. meta contains the owner's quota and file-size limits.
 - id: upload.write-auth-unsuspended
   category: authorization
-  rule: Every upload write requires an unsuspended verified user and the relevant ownership permission.
+  rule: Every upload write requires an unsuspended authenticated user and the relevant ownership permission.
     Cookie sessions use first-party authority; OAuth callers also need the receiving resource audience
     and workspace.upload:write. Denied requests cannot change upload metadata or object state.
+  acceptance:
+    given: An isolated owner has a completed real upload, an uploaded pending reservation, and separately
+      issued REST, GraphQL, and MCP read/write grants; a second user has an independent session and MCP write grant.
+    when: Actual first-party, REST, GraphQL, registered MCP, and native MCP mutations encounter missing or
+      invalid authority, insufficient scopes, another resource's token, nonownership, and a newly persisted suspension.
+    then:
+    - Valid owner writes succeed; unauthorized REST and GraphQL writes are rejected, and tokens for another
+      resource cannot be replayed at REST, GraphQL, or MCP.
+    - Read-only grants cannot reserve, complete, rename, or delete; REST object PUT also requires the REST write scope.
+    - Nonowners cannot PUT or complete the owner's reservation or rename/delete its completed upload; suspension
+      blocks every mutation even for existing sessions and correctly scoped grants.
+    - Denials preserve exact completed-upload and pending-reservation records and add no deletion audit; after
+      suspension is removed, completion and both downloads return the unchanged original object bytes.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-security.test.ts
+      name: upload.write-auth-unsuspended
 - id: upload.three-step-upload
   category: behavior
   rule: Web comment attachment uploads follow a three-step flow — create upload session on-site → browser
