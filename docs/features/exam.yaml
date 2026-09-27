@@ -16,18 +16,26 @@ access:
   admin: Maintains exam data through admin or import flows, not direct edits on ordinary pages.
   agent: After authorization, can read exams relevant to the current user through REST, GraphQL, and MCP.
 requirements:
-- id: exam.complete-workspace-list
-  category: consistency
-  rule: Workspace exam lists cover all subscribed active sections across all semesters, including past
-    exams and unknown dates by default. REST and GraphQL return paginated results with the complete total
-    and semester context.
 - id: exam.source-audience-and-monitors
   category: consistency
   rule: Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved
     by import and exposed with exam records. Monitor school IDs are required, while missing names remain
     null. Monitor identities are not inferred from teacher names; no contact information is included.
-  rationale: 'Product decision required: Preserving source facts is sensible, but public exposure of required
-    monitor school IDs needs a publication purpose/allowlist distinct from importer integrity.'
+  rationale: 'Confirmed publication decision: source grades and administrative-class names explain the
+    exam audience; monitor school IDs distinguish same-named monitors and retain identity when a localized
+    name is absent. Published monitor records contain only jwId, nameCn and nameEn. These facts do not
+    establish account links and never include contact details or personal participation state.'
+  acceptance:
+    given: Source exam metadata contains grades, a class name and three monitors including equal names,
+      absent names and private extra properties.
+    when: The actual mapper and importer persist the exam and public section DTOs read both locales.
+    then:
+    - Monitor IDs distinguish same-name rows; absent names remain null and missing IDs reject mapping.
+    - Only jwId/nameCn/nameEn monitor properties are published; no teacher/account identities are synthesized.
+    - Source metadata remains exact and fields removed in a later import clear previous values.
+    test:
+      file: tests/integration/static-source-metadata.test.ts
+      name: exam.source-audience-and-monitors
 - id: exam.attached-to-section
   category: behavior
   rule: Every exam belongs to a section; personal exam views include the section and semester context
@@ -43,21 +51,33 @@ requirements:
   rule: Exam completion uses the Asia/Shanghai calendar date and local HHMM times. When no exam time is
     available, the completion instant is the end of its exam date (23:59:59.999 Shanghai time); the exact
     end instant counts as completed.
+  acceptance:
+    given: Exams have an explicit end time or no times, under UTC, Shanghai and Los Angeles host timezones.
+    when: The actual date helpers and row presentation model classify at the exact end and one millisecond
+      before it.
+    then:
+    - HHMM uses Shanghai time; an untimed exam ends at 23:59:59.999 Shanghai.
+    - The exact end is completed and the immediately preceding instant remains incomplete.
+    test:
+      file: tests/unit/features/workspace/exam-date-display.test.ts
+      name: exam.completion-time-zone
 - id: exam.mobile-toolbar-priority
   category: presentation
   rule: Mobile exam completion-status filters remain directly accessible.
 - id: exam.owned-page-completeness
   category: consistency
-  rule: The REST exam read model returns complete, stably paginated owner-subscription results across
-    semesters, retaining unknown-date exams and the same total on every page.
+  rule: The authenticated REST exam handler returns complete, stable paginated owner-subscription results
+    across all semesters by default, including past and unknown-date exams with semester context and the
+    same total on every page. Responses are private, no-store.
   acceptance:
-    given: Two users subscribe to different sections, and the first user has four exams across semesters
-      including an unknown-date exam.
-    when: The first user reads successive two-row REST-model pages without a date or semester filter.
+    given: Two authenticated users subscribe to distinct active Sections; the first owns four exams across
+      semesters, including past and unknown dates.
+    when: Actual signed REST requests read successive two-row pages without a date or semester filter.
     then:
-    - Both pages preserve total=4 and together contain all four owned exams.
-    - The unknown-date exam and its semester context remain present.
-    - The second user sees only their separately subscribed exam.
+    - Pages retain total=4, stable ordering and all four owner exams, including unknown dates and semester
+      context.
+    - The second user sees only their own exam, and an exhausted page is empty.
+    - Every response is private, no-store.
     test:
       file: tests/integration/workspace-exam-list.test.ts
       name: exam.owned-page-completeness
@@ -91,6 +111,27 @@ requirements:
 - id: exam.mobile-toolbar-targets
   category: presentation
   rule: Mobile exam toolbar controls provide touch targets at least 44 by 44 CSS pixels.
+- id: exam.rest-date-semester-filters
+  category: validation
+  rule: The REST exam handler filters inclusive Shanghai calendar-day bounds and semester before pagination/counting.
+    Unknown-date exams remain included by default and can be excluded explicitly; invalid dates, reversed
+    bounds, invalid booleans or pageSize above 100 return 400.
+  acceptance:
+    given: Owned exams include dated and unknown-date records across two semesters.
+    when: Signed REST requests apply datetime/date-only bounds, unknown-date options, semester filters
+      and invalid query values.
+    then:
+    - Bounds normalize to inclusive Shanghai days; unknown dates follow the explicit/default option.
+    - Filtering precedes total and stable page slicing.
+    - Invalid date/range/boolean/page-size input returns 400.
+    test:
+      file: tests/integration/workspace-exam-list.test.ts
+      name: exam.rest-date-semester-filters
+- id: exam.graphql-page-completeness
+  category: consistency
+  rule: Workspace.exams GraphQL pages cover all subscribed active Sections across semesters by default,
+    including past and unknown-date exams. Every page retains the complete total and each result exposes
+    Section semester context; retired and unowned exams are excluded.
 capabilities:
   cross-section-exam-list:
     title: Cross-Section Exam List

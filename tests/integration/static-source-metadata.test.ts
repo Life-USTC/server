@@ -6,7 +6,11 @@ import {
 } from "@/features/catalog/server/academic-query-includes";
 import { toSectionDetailDto } from "@/features/catalog/server/course-section-read-queries";
 import { upsertExams, upsertSections } from "@/static-loader/import-sections";
-import type { ExamBuild, SectionBuild } from "@/static-loader/mappers";
+import {
+  type ExamBuild,
+  mapExam,
+  type SectionBuild,
+} from "@/static-loader/mappers";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createFixturePrisma();
@@ -108,4 +112,98 @@ describe("academic source metadata persistence", () => {
       if (error !== rollback) throw error;
     }
   });
+});
+
+it("exam.source-audience-and-monitors", async () => {
+  const rollback = new Error("ROLLBACK_EXAM_SOURCE_METADATA_TEST");
+  const marker = 2_132_000_000 + (Date.now() % 100_000);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const course = await tx.course.create({
+        data: {
+          jwId: marker,
+          code: String(marker),
+          nameCn: "Monitor identity test",
+        },
+      });
+      const section = await tx.section.create({
+        data: { jwId: marker, code: String(marker), courseId: course.id },
+      });
+      const mapped = mapExam(
+        { id: marker, grades: "2025,2026", adminclasseNames: "Source class" },
+        { id: marker },
+        undefined,
+        [],
+        [
+          {
+            id: 123,
+            cn: "Same name",
+            en: "Monitor",
+            email: "must-not-publish@example.test",
+            userId: "must-not-link",
+          },
+          { id: 456, cn: "Same name" },
+          { id: 789 },
+        ],
+      );
+      if (!mapped) throw new Error("Expected exam mapping");
+      expect(() =>
+        mapExam(
+          { id: marker },
+          { id: marker },
+          undefined,
+          [],
+          [{ cn: "Same name" }],
+        ),
+      ).toThrow("no upstream identity");
+      const expected = [
+        { jwId: 123, nameCn: "Same name", nameEn: "Monitor" },
+        { jwId: 456, nameCn: "Same name", nameEn: null },
+        { jwId: 789, nameCn: null, nameEn: null },
+      ];
+      expect(mapped.monitors).toEqual(expected);
+      await upsertExams(
+        tx,
+        [mapped],
+        new Map([[marker, section.id]]),
+        new Map(),
+      );
+      const read = () =>
+        tx.section.findUniqueOrThrow({
+          where: { id: section.id },
+          include: {
+            ...sectionInclude,
+            roomType: true,
+            schedules: true,
+            scheduleGroups: true,
+            teachers: { select: teacherPublicReferenceSelect },
+            teacherAssignments: { select: teacherAssignmentPublicSelect },
+            exams: { include: { examBatch: true, examRooms: true } },
+          },
+        });
+      for (const locale of ["zh-cn", "en-us"] as const) {
+        const exam = toSectionDetailDto(await read(), locale).exams[0];
+        expect(exam.grades).toBe("2025,2026");
+        expect(exam.adminClassNames).toBe("Source class");
+        expect(exam.monitors).toEqual(expected);
+      }
+      expect(await tx.teacher.count({ where: { nameCn: "Same name" } })).toBe(
+        0,
+      );
+      await upsertExams(
+        tx,
+        [{ jwId: marker, sectionJwId: marker, rooms: [] }],
+        new Map([[marker, section.id]]),
+        new Map(),
+      );
+      expect(toSectionDetailDto(await read(), "zh-cn").exams[0]).toMatchObject({
+        grades: null,
+        adminClassNames: null,
+        monitors: [],
+      });
+      throw rollback;
+    });
+  } catch (error) {
+    if (error !== rollback) throw error;
+  }
 });

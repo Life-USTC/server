@@ -46,9 +46,12 @@ requirements:
     the sponsor and contact person, and the per-slot venue list. The upstream record, including itemPlaceDTO
     and its place details split into snapshot subtables, stays available under rawJson for REST, GraphQL,
     and MCP consumers.
-  rationale: 'Product decision required: Preservation for provenance is useful, but publishing entire
-    authenticated upstream rawJson conflicts with controlled public surface and sanitized-only text intent;
-    approve exact fields.'
+  rationale: 'Confirmed publication decision: retain the existing source activity record and structured
+    participation fields so clients can explain source audience, registration eligibility, venue slots
+    and provenance. Source identity/scope codes are opaque source facts, not account identifiers or proof
+    of personal eligibility. Activity contact fields identify the published event contact only; they must
+    not reveal a viewer''s contact details, account links or personal participation state. rawJson is
+    data; only separately sanitized description and participationNotes may be rendered as rich text.'
 - id: young-event.rich-text-sanitized
   category: validation
   rule: 'Every public interface sanitizes description and participationNotes before exposing renderable
