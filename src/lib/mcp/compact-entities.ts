@@ -297,7 +297,7 @@ export function compactHomework(value: unknown) {
   };
 }
 
-function compactBusRouteStop(value: unknown) {
+export function compactBusRouteStop(value: unknown) {
   if (!isRecord(value)) return value;
   if (Object.hasOwn(value, "campus")) {
     return { stopOrder: value.stopOrder, campus: compactCampus(value.campus) };

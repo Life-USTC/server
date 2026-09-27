@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { beforeAll, expect, it } from "vitest";
+import { z } from "zod";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   assertRegisteredMcpToolMetadata,
@@ -174,52 +175,170 @@ it("mcp.error-classification-shape", () => {
   expect(checked).toBeGreaterThan(0);
 });
 
+function inspect(schema: unknown, path: string): void {
+  if (typeof schema === "boolean") {
+    expect(schema, path).toBe(false);
+    return;
+  }
+  if (!schema || typeof schema !== "object")
+    throw new Error(`Missing schema at ${path}`);
+  const node = schema as Record<string, unknown>;
+  expect(Object.keys(node).length, path).toBeGreaterThan(0);
+  for (const [key, field] of Object.entries(
+    (node.properties ?? {}) as Record<string, unknown>,
+  )) {
+    // result is the generic non-object serializer envelope; it is not a domain field.
+    if (path.endsWith("output") && key === "result") continue;
+    inspect(field, `${path}.${key}`);
+  }
+  if (node.items) inspect(node.items, `${path}[]`);
+  for (const union of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(node[union]))
+      for (const [index, variant] of node[union].entries())
+        inspect(variant, `${path}.${union}[${index}]`);
+  }
+  for (const [key, definition] of Object.entries(
+    (node.$defs ?? {}) as Record<string, unknown>,
+  ))
+    inspect(definition, `${path}.$defs.${key}`);
+}
+
 it("mcp.typed-community-output-fields", () => {
   const community = tools.filter((tool) => tool.name.startsWith("community_"));
   expect(community.length).toBeGreaterThan(0);
-  function inspect(schema: unknown, path: string): void {
-    if (typeof schema === "boolean") {
-      expect(schema, path).toBe(false);
-      return;
-    }
-    if (!schema || typeof schema !== "object")
-      throw new Error(`Missing schema at ${path}`);
-    const node = schema as Record<string, unknown>;
-    expect(Object.keys(node).length, path).toBeGreaterThan(0);
-    for (const [key, field] of Object.entries(
-      (node.properties ?? {}) as Record<string, unknown>,
-    )) {
-      // result is the generic non-object serializer envelope; it is not a domain field.
-      if (path.endsWith("output") && key === "result") continue;
-      inspect(field, `${path}.${key}`);
-    }
-    if (node.items) inspect(node.items, `${path}[]`);
-    for (const union of ["anyOf", "oneOf", "allOf"]) {
-      if (Array.isArray(node[union]))
-        for (const [index, variant] of node[union].entries())
-          inspect(variant, `${path}.${union}[${index}]`);
-    }
-    for (const [key, definition] of Object.entries(
-      (node.$defs ?? {}) as Record<string, unknown>,
-    ))
-      inspect(definition, `${path}.$defs.${key}`);
-  }
   for (const tool of community)
     inspect(tool.outputSchema, `${tool.name}.output`);
-  for (const [name, key] of [
-    ["community_comment_get", "viewer"],
-    ["community_comment_get", "target"],
-    ["community_comment_replies", "viewer"],
-    ["community_comment_update", "comment"],
-    ["community_description_get", "target"],
-    ["community_description_set", "target"],
-    ["community_section_homework_delete", "alreadyDeleted"],
+  const viewer = {
+    userId: "viewer",
+    name: null,
+    image: null,
+    isAdmin: false,
+    isAuthenticated: true,
+    isSuspended: false,
+    suspensionReason: null,
+    suspensionExpiresAt: null,
+  };
+  const comment = {
+    id: "comment",
+    body: "text",
+    visibility: "public",
+    status: "active",
+    author: null,
+    authorHidden: true,
+    isAnonymous: true,
+    isAuthor: false,
+    createdAt: "2026-09-01T00:00:00+08:00",
+    updatedAt: "2026-09-01T00:00:00+08:00",
+    parentId: null,
+    rootId: null,
+    replies: [],
+    repliesNextCursor: null,
+    attachments: [],
+    reactions: [],
+    canReact: false,
+    canReply: false,
+    canEdit: false,
+    canDelete: false,
+    canModerate: false,
+  };
+  const target = {
+    sectionId: 1,
+    courseId: null,
+    teacherId: null,
+    sectionTeacherId: null,
+    sectionTeacherSectionId: null,
+    sectionTeacherTeacherId: null,
+    sectionTeacherSectionJwId: null,
+    sectionTeacherSectionCode: null,
+    sectionTeacherTeacherName: null,
+    sectionTeacherCourseJwId: null,
+    sectionTeacherCourseName: null,
+    homeworkId: null,
+    youngEventId: null,
+    youngId: null,
+    homeworkTitle: null,
+    homeworkSectionJwId: null,
+    homeworkSectionCode: null,
+    sectionJwId: 1001,
+    sectionCode: "CS1001.01",
+    courseJwId: null,
+    courseName: null,
+    teacherName: null,
+    youngEventName: null,
+  };
+  for (const [name, key, valid] of [
+    ["community_comment_get", "viewer", viewer],
+    ["community_comment_get", "target", target],
+    ["community_comment_replies", "viewer", viewer],
+    ["community_comment_update", "comment", comment],
+    ["community_description_get", "target", { type: "section", targetId: 1 }],
+    [
+      "community_description_set",
+      "target",
+      { type: "homework", targetId: "homework-id" },
+    ],
+    ["community_section_homework_delete", "alreadyDeleted", true],
   ] as const) {
+    const output = getMcpToolOutputSchema(name);
+    if (!(output instanceof z.ZodObject))
+      throw new Error(`Expected object schema for ${name}`);
+    const field = output.shape[key];
+    expect(field.safeParse(valid).success, `${name}.${key} valid`).toBe(true);
     for (const value of [0, "invalid", [], null])
-      expect(
-        getMcpToolOutputSchema(name).safeParse({ success: true, [key]: value })
-          .success,
-        `${name}.${key}`,
-      ).toBe(false);
+      expect(field.safeParse(value).success, `${name}.${key} invalid`).toBe(
+        false,
+      );
+  }
+});
+
+it("mcp.typed-bus-output-fields", () => {
+  const bus = tools.filter((tool) =>
+    /^(catalog|workspace)_bus_/.test(tool.name),
+  );
+  expect(bus).toHaveLength(7);
+  for (const tool of bus) inspect(tool.outputSchema, `${tool.name}.output`);
+  for (const [name, key, valid, invalid] of [
+    [
+      "catalog_bus_route_list",
+      "routes",
+      [{ stops: [{ stopOrder: 0, campusId: 1, campusName: "East" }] }],
+      [{ stops: ["invalid"] }],
+    ],
+    [
+      "catalog_bus_route_get",
+      "weekday",
+      [{ position: 1, stopTimes: [{ stopOrder: 0, time: "08:00" }] }],
+      [{ position: 1, stopTimes: [true] }],
+    ],
+    [
+      "catalog_bus_departure_next",
+      "departures",
+      [{ departureEstimated: true }],
+      [{ departureEstimated: "yes" }],
+    ],
+    ["workspace_bus_preferences_get", "preference", null, 1],
+    [
+      "workspace_bus_preferences_set",
+      "preference",
+      {
+        preferredOriginCampusId: 1,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      },
+      {
+        preferredOriginCampusId: "1",
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      },
+    ],
+  ] as const) {
+    const output = getMcpToolOutputSchema(name);
+    if (!(output instanceof z.ZodObject))
+      throw new Error(`Expected object schema for ${name}`);
+    const field = output.shape[key];
+    expect(field.safeParse(valid).success, `${name}.${key} valid`).toBe(true);
+    expect(field.safeParse(invalid).success, `${name}.${key} invalid`).toBe(
+      false,
+    );
   }
 });

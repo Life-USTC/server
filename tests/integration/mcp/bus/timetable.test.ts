@@ -307,3 +307,36 @@ describe("catalog_bus_route_get", () => {
     ).rejects.toThrow();
   });
 });
+
+it("mcp.bus-route-stop-projection", async () => {
+  const outputs = [];
+  for (const mode of ["default", "full"] as const) {
+    const result = await context.client.call<{
+      route: {
+        stops: { stopOrder: number; campusId: number; campusName: string }[];
+      };
+      weekday: {
+        position: number;
+        stopTimes: { stopOrder: number; time: string | null }[];
+      }[];
+    }>("catalog_bus_route_get", {
+      routeId: fixtures.DEV_SEED.bus.routeId,
+      locale: "en-us",
+      mode,
+    });
+    expect(result.route.stops.length).toBeGreaterThan(1);
+    for (const stop of result.route.stops) {
+      expect(stop.stopOrder).toEqual(expect.any(Number));
+      expect(stop.campusId).toEqual(expect.any(Number));
+      expect(stop.campusName.length).toBeGreaterThan(0);
+    }
+    expect(result.route.stops[0]).toMatchObject({
+      campusId: fixtures.DEV_SEED.bus.originCampusId,
+      campusName: fixtures.DEV_SEED.bus.originCampusName,
+    });
+    expect(result.weekday.length).toBeGreaterThan(0);
+    outputs.push(result);
+  }
+  expect(outputs[0]?.route.stops).toEqual(outputs[1]?.route.stops);
+  expect(outputs[0]?.weekday).toEqual(outputs[1]?.weekday);
+});

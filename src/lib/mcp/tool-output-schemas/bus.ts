@@ -1,52 +1,56 @@
 import { z } from "zod";
 import {
   busNextDeparturesResponseSchema,
+  busPreferenceResponseSchema,
   busQueryResponseSchema,
 } from "@/lib/api/schemas/bus-response-schemas";
 import {
   collectionOutputSchema,
   compactBusCampusSchema,
   compactCampusSchema,
-  compactObjectSchema,
   dateTimeSchema,
   type McpToolOutputSchema,
   objectOutputSchema,
-  topLevelOutputSchema,
 } from "./shared";
 
-export const compactBusRouteSchema = compactObjectSchema({
-  id: z.number().int(),
-  routeId: z.number().int(),
-  nameCn: z.string(),
-  nameEn: z.string().nullable(),
-  descriptionPrimary: z.string().nullable(),
-  descriptionSecondary: z.string().nullable(),
-  weekdayTrips: z.number().int().nonnegative(),
-  saturdayTrips: z.number().int().nonnegative(),
-  sundayTrips: z.number().int().nonnegative(),
-  stopCount: z.number().int().nonnegative(),
-  stops: z.array(z.unknown()),
-  originCampus: compactCampusSchema.nullable(),
-  destinationCampus: compactCampusSchema.nullable(),
+const busStopSchema = z.union([
+  z.strictObject({ stopOrder: z.number().int(), campus: compactCampusSchema }),
+  z.strictObject({
+    stopOrder: z.number().int(),
+    campusId: z.number().int(),
+    campusName: z.string(),
+  }),
+]);
+const busStopTimeSchema =
+  busQueryResponseSchema.shape.trips.element.shape.stopTimes.element;
+const busTripSlotSchema = z.strictObject({
+  position: z.number().int(),
+  stopTimes: z.array(busStopTimeSchema.pick({ stopOrder: true, time: true })),
 });
 
-export const compactBusTripSchema = compactObjectSchema({
-  id: z.number().int(),
-  tripId: z.number().int(),
-  routeId: z.number().int(),
-  dayType: z.string(),
-  position: z.number().int(),
-  departureTime: z.string().nullable(),
-  arrivalTime: z.string().nullable(),
-  departureMinutes: z.number().int().nullable(),
-  arrivalMinutes: z.number().int().nullable(),
-  minutesUntilDeparture: z.number().int().nullable(),
-  status: z.string().nullable(),
-  stopTimes: z.unknown(),
-  route: compactBusRouteSchema.nullable(),
-  originCampus: compactCampusSchema.nullable(),
-  destinationCampus: compactCampusSchema.nullable(),
-});
+export const compactBusRouteSchema = z
+  .strictObject({
+    ...busQueryResponseSchema.shape.routes.element.shape,
+    routeId: z.number().int(),
+    weekdayTrips: z.number().int().nonnegative(),
+    saturdayTrips: z.number().int().nonnegative(),
+    sundayTrips: z.number().int().nonnegative(),
+    stopCount: z.number().int().nonnegative(),
+    stops: z.array(busStopSchema),
+    originCampus: compactCampusSchema.nullable(),
+    destinationCampus: compactCampusSchema.nullable(),
+  })
+  .partial();
+
+export const compactBusTripSchema = z
+  .strictObject({
+    ...busQueryResponseSchema.shape.trips.element.shape,
+    ...busNextDeparturesResponseSchema.shape.departures.element.shape,
+    route: compactBusRouteSchema,
+    originCampus: compactCampusSchema.nullable(),
+    destinationCampus: compactCampusSchema.nullable(),
+  })
+  .partial();
 
 export const busVersionSummarySchema = z.strictObject({
   key: z.string(),
@@ -149,22 +153,26 @@ export const busToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   }),
   catalog_bus_route_list: objectOutputSchema({
     locale: z.string(),
-    version: z.unknown(),
+    version: busQueryResponseSchema.shape.version,
     campuses: collectionOutputSchema(compactCampusSchema),
     routes: collectionOutputSchema(compactBusRouteSchema),
-    notice: z.unknown(),
+    notice: busQueryResponseSchema.shape.notice,
   }),
   catalog_bus_route_get: objectOutputSchema({
     routeId: z.number().int(),
     route: compactBusRouteSchema,
-    weekday: collectionOutputSchema(z.unknown()),
-    saturday: collectionOutputSchema(z.unknown()),
-    sunday: collectionOutputSchema(z.unknown()),
+    weekday: collectionOutputSchema(busTripSlotSchema),
+    saturday: collectionOutputSchema(busTripSlotSchema),
+    sunday: collectionOutputSchema(busTripSlotSchema),
     alternateRoutes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
-  workspace_bus_preferences_get: topLevelOutputSchema(["preference"]),
-  workspace_bus_preferences_set: topLevelOutputSchema(["preference"]),
+  workspace_bus_preferences_get: objectOutputSchema({
+    preference: busPreferenceResponseSchema.shape.preference.nullable(),
+  }),
+  workspace_bus_preferences_set: objectOutputSchema(
+    busPreferenceResponseSchema.shape,
+  ),
   catalog_bus_route_search: objectOutputSchema({
     originCampus: compactCampusSchema.nullable(),
     destinationCampus: compactCampusSchema.nullable(),

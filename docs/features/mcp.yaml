@@ -398,11 +398,40 @@ requirements:
       name: mcp.openai-compatible-descriptors
 - id: mcp.typed-output-fields
   category: consistency
-  rule: Every known non-community MCP output field has an explicit value schema; known fields must not
-    silently become unconstrained unknown values.
-  rationale: Community field schemas are independently canonical in mcp.typed-community-output-fields.
-    Generic serializer result and selection-dependent GraphQL data are open JSON containers, not fixed
-    domain projections. Remaining unconstrained domain fields are still an implementation gap.
+  rule: Every known MCP output field outside the separately specified community and bus domains has an
+    explicit value schema; known fields must not silently become unconstrained unknown values.
+  rationale: Community and bus field schemas are independently canonical in mcp.typed-community-output-fields
+    and mcp.typed-bus-output-fields. Generic serializer result and selection-dependent GraphQL data are
+    open JSON containers, not fixed domain projections. Remaining unconstrained domain fields are still
+    an implementation gap.
+- id: mcp.typed-bus-output-fields
+  category: consistency
+  rule: All seven bus tools advertise explicit schemas for routes, stops, timetable slots, departures
+    and preferences, reusing the shared bus response schemas.
+  acceptance:
+    given: Actual bus tool descriptors over SDK tools/list and their production field validators.
+    when: All known field schemas are traversed and representative formerly unconstrained fields receive
+      valid and invalid values.
+    then:
+    - Every known nested field and collection element has an explicit schema.
+    - Valid route stops, time slots, departure flags and preferences pass; wrong types fail.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-bus-output-fields
+- id: mcp.bus-route-stop-projection
+  category: presentation
+  rule: Bus route timetables preserve stop order, campus ID, campus name and timetable slots in both default
+    and full output modes.
+  acceptance:
+    given: A seeded bus route with multiple stops and weekday trips.
+    when: The actual MCP SDK reads its route timetable in both modes.
+    then:
+    - Each stop retains numeric order and campus ID plus a nonempty campus name.
+    - The first stop matches the known origin campus; stop and weekday-slot arrays are identical across
+      modes.
+    test:
+      file: tests/integration/mcp/bus/timetable.test.ts
+      name: mcp.bus-route-stop-projection
 - id: mcp.typed-community-output-fields
   category: consistency
   rule: Community MCP tools advertise explicit schemas for every known field, including viewer context,
