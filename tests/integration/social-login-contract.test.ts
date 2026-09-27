@@ -3,6 +3,7 @@ import type { Cookies } from "@sveltejs/kit";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { getCookies } from "better-auth/cookies";
 import { makeSignature } from "better-auth/crypto";
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   afterAll,
   afterEach,
@@ -26,6 +27,8 @@ let server: Server;
 let origin: string;
 let upstreamTokenRequests = 0;
 let clientNumber = 0;
+const providerUsers: string[] = [];
+const oidcSubject = `oidc-${marker}`;
 beforeEach(() => {
   clientNumber++;
 });
@@ -61,6 +64,30 @@ beforeAll(async () => {
   vi.stubEnv("APP_CANONICAL_ORIGIN", origin);
   vi.stubEnv("AUTH_GITHUB_ID", "social-contract-client");
   vi.stubEnv("AUTH_GITHUB_SECRET", "social-contract-secret");
+  vi.stubEnv("AUTH_GOOGLE_ID", "google-contract-client");
+  vi.stubEnv("AUTH_GOOGLE_SECRET", "google-contract-secret");
+  vi.stubEnv("AUTH_OIDC_CLIENT_ID", "oidc-contract-client");
+  vi.stubEnv("AUTH_OIDC_CLIENT_SECRET", "oidc-contract-secret");
+  vi.stubEnv("AUTH_OIDC_ISSUER", "https://oidc.example.test");
+  const keys = await generateKeyPair("RS256");
+  const googleJwk = {
+    ...(await exportJWK(keys.publicKey)),
+    kid: "social-contract-key",
+    alg: "RS256",
+    use: "sig",
+  };
+  const googleToken = await new SignJWT({
+    sub: `google-${marker}`,
+    name: "Google profile",
+    email: `google-${email}`,
+    email_verified: true,
+  })
+    .setProtectedHeader({ alg: "RS256", kid: googleJwk.kid })
+    .setIssuer("https://accounts.google.com")
+    .setAudience("google-contract-client")
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(keys.privateKey);
   vi.stubGlobal(
     "fetch",
     async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -88,6 +115,23 @@ beforeAll(async () => {
         return Response.json([
           { email, primary: true, verified: true, visibility: "public" },
         ]);
+      if (url.href === "https://oauth2.googleapis.com/token")
+        return Response.json({
+          access_token: "google-controlled-token",
+          id_token: googleToken,
+          token_type: "Bearer",
+          expires_in: 300,
+        });
+      if (url.href === "https://www.googleapis.com/oauth2/v3/certs")
+        return Response.json({ keys: [googleJwk] });
+      if (url.href === "https://oidc.example.test/token/")
+        return Response.json({
+          access_token: "oidc-controlled-token",
+          token_type: "Bearer",
+          expires_in: 300,
+        });
+      if (url.href === "https://oidc.example.test/userinfo/")
+        return Response.json({ sub: oidcSubject, name: "USTC profile" });
       if (url.origin === origin) return nativeFetch(input, init);
       throw new Error(
         `Unexpected provider request: ${url.origin}${url.pathname}`,
@@ -96,14 +140,18 @@ beforeAll(async () => {
   );
 });
 afterEach(async () => {
-  await db.user.deleteMany({ where: { email } });
+  await db.user.deleteMany({
+    where: { OR: [{ email }, { id: { in: providerUsers } }] },
+  });
   upstreamName = "Upstream profile";
   upstreamImage = "https://example.test/upstream-avatar.png";
 });
 afterAll(async () => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
-  await db.user.deleteMany({ where: { email } });
+  await db.user.deleteMany({
+    where: { OR: [{ email }, { id: { in: providerUsers } }] },
+  });
   await Promise.all([
     db.$disconnect(),
     runtimePrisma.$disconnect(),
@@ -382,5 +430,83 @@ it("user.explicit-provider-linking", async () => {
     ).toBe(1);
   } finally {
     await db.user.delete({ where: { id: other.id } });
+  }
+});
+
+it("user.sign-in-providers", async () => {
+  for (const [
+    provider,
+    endpoint,
+    callbackPath,
+    expectedName,
+    expectedSubject,
+    upstreamOrigin,
+  ] of [
+    [
+      "github",
+      "/sign-in/social",
+      "/callback/github",
+      "Upstream profile",
+      "1900260927",
+      "https://github.com",
+    ],
+    [
+      "google",
+      "/sign-in/social",
+      "/callback/google",
+      "Google profile",
+      `google-${marker}`,
+      "https://accounts.google.com",
+    ],
+    [
+      "oidc",
+      "/sign-in/social",
+      "/callback/oidc",
+      "USTC profile",
+      oidcSubject,
+      "https://oidc.example.test",
+    ],
+  ]) {
+    const started = await nativeFetch(`${origin}/api/auth${endpoint}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({
+        provider,
+        callbackURL: `${origin}/workspace/overview`,
+        disableRedirect: true,
+      }),
+    });
+    expect(started.status).toBe(200);
+    const authorization = new URL((await started.json()).url);
+    expect(authorization.origin).toBe(upstreamOrigin);
+    expect(authorization.searchParams.get("redirect_uri")).toBe(
+      `${origin}/api/auth${callbackPath}`,
+    );
+    expect(authorization.searchParams.get("state")).toBeTruthy();
+    const completed = await nativeFetch(
+      `${origin}/api/auth${callbackPath}?${new URLSearchParams({ code: "controlled-code", state: authorization.searchParams.get("state") ?? "" })}`,
+      { headers: { cookie: cookies(started) }, redirect: "manual" },
+    );
+    expect(completed.status).toBe(302);
+    expect(completed.headers.get("location")).toBe(
+      `${origin}/workspace/overview`,
+    );
+    await completed.text();
+    const sessionResponse = await nativeFetch(
+      `${origin}/api/auth/get-session?disableCookieCache=true`,
+      { headers: { cookie: cookies(completed) } },
+    );
+    const current = await sessionResponse.json();
+    expect(current.user.name).toBe(expectedName);
+    providerUsers.push(current.user.id);
+    const accounts = await db.account.findMany({
+      where: { userId: current.user.id },
+    });
+    expect(accounts).toHaveLength(1);
+    expect(accounts[0]).toMatchObject({
+      provider,
+      providerAccountId: expectedSubject,
+    });
+    expect(accounts[0].password).toBeNull();
   }
 });

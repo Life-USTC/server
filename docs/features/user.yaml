@@ -47,8 +47,18 @@ requirements:
       name: user.shell-viewer
 - id: user.sign-in-providers
   category: behavior
-  rule: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered
-    due to security and maintenance cost.
+  rule: Configured USTC, GitHub and Google providers support OAuth sign-in, creating a session linked to the authenticated upstream identity.
+  rationale: Production password sign-in is separately prohibited and verified by user.debug-password-boundary.
+  acceptance:
+    given: All three providers are configured and their upstream token and profile endpoints return controlled identities.
+    when: Each provider completes the actual HTTP authorization and callback flow with its issued state and cookie.
+    then:
+    - Authorization uses the expected provider origin and registered callback.
+    - The callback returns to the requested workspace and creates a usable session for the upstream profile.
+    - Exactly one account links the user to the expected provider subject, without a password credential.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.sign-in-providers
 - id: user.explicit-provider-linking
   category: authorization
   rule: OAuth provider identities are linked to an existing account only through an explicit authenticated account-link flow. A matching verified email alone cannot merge accounts; a provider identity already owned by another user cannot be reassigned by linking.
