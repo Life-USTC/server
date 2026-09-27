@@ -55,8 +55,20 @@ requirements:
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
-  rule: Shared collection and detail layouts reuse the existing feature-neutral layout, panel, navigation,
-    and form primitives. Feature components own domain-specific data and interactions.
+  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse panels use PageLayout, PageHeader and Panel; other workspace and administrative pages use PageLayout and PageHeader. Course and teacher details use DetailPageLayout, section detail reuses PageHeader in its streaming shell, profiles reuse Card, and homework/todo overlays reuse Dialog. Route navigation and local settings navigation reuse PageSectionNav and DetailSectionNav respectively; catalog/Young filters and workspace task/profile identity fields reuse Field. The shared layout, navigation and form primitives do not import feature, server, route-state or database modules.
+  rationale: Section streaming and profile identity composition have specific layout needs; primitive reuse does not require turning those shells into browse panels. Feature data and interaction ownership remains independently required by ui.feature-interaction-ownership.
+  acceptance:
+    given: The collection, detail, overlay, route/local navigation and form owners, plus shared layout/navigation/form implementations.
+    when: Parse Svelte compiler ASTs, follow actually rendered imported feature components, and inspect the shared primitives' import dependencies.
+    then:
+    - Each owner renders the applicable shared primitive through its component tree; unused imports do not count, and the shared primitives have no feature/server/route-state/database imports.
+    test:
+      file: tests/unit/lib/components/layout-primitive-ownership.test.ts
+      name: ui.layout-principles-4
+- id: ui.feature-interaction-ownership
+  category: presentation
+  topic: layout-principles
+  rule: Feature components own domain-specific data and interactions rather than embedding that domain behavior in feature-neutral layout, panel, navigation or form primitives.
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
