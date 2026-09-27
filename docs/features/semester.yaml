@@ -14,6 +14,25 @@ access:
   admin: Can read semester information. Does not directly modify semester facts through ordinary pages.
   agent: Can only read existing semester information; no additional write permissions.
 requirements:
+- id: semester.list-order-pagination
+  category: consistency
+  applies_to:
+  - semester-list
+  rule: Public REST, GraphQL and MCP semester lists order known start dates newest first, unknown dates last,
+    and equal dates by descending unique JW ID. Explicit pages return the same ordered slices and total.
+  rationale: Known recent terms should lead navigation; undated terms remain available without outranking
+    them. The unique tie-breaker keeps page boundaries stable when imported terms share a start date.
+  acceptance:
+    given: A real database contains six isolated semesters inserted in ascending JW ID order, including
+      three equal known start dates and three unknown start dates, alongside existing terms.
+    when: Anonymous REST handlers, the actual Yoga request handler and a native MCP SDK in-memory client
+      exhaust two-item pages through the restricted application database runtime.
+    then:
+    - All transports return the same exact ordered IDs, page totals and exhausted empty page.
+    - Known dates precede unknown dates and equal-date rows follow descending JW ID order.
+    test:
+      file: tests/integration/catalog-directory-parity.test.ts
+      name: semester.list-order-pagination
 - id: semester.current-semester-by-rules
   category: consistency
   rule: The current-semester service selects only semesters whose inclusive date range contains the current

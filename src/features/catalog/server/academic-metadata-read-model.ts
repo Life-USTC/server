@@ -163,7 +163,10 @@ export function listSemesters(input: { page: number; pageSize?: number }) {
       prisma.semester.findMany({
         skip,
         take,
-        orderBy: { startDate: "desc" },
+        orderBy: [
+          { startDate: { sort: "desc", nulls: "last" } },
+          { jwId: "desc" },
+        ],
       }),
     () => prisma.semester.count(),
     input.page,

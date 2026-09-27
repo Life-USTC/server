@@ -45,8 +45,8 @@ describe("catalog detail cache revision", () => {
         getCatalogDetailCacheRevision(),
       ]);
       expect(revisions).toEqual([
-        "schema1:abcdef0123456789-msv7vmo0",
-        "schema1:abcdef0123456789-msv7vmo0",
+        "schema2:abcdef0123456789-msv7vmo0",
+        "schema2:abcdef0123456789-msv7vmo0",
       ]);
       await expect(getCatalogDetailCacheRevision()).resolves.toBe(revisions[0]);
     });
@@ -102,7 +102,7 @@ describe("catalog detail cache revision", () => {
         "database unavailable",
       );
       await expect(getCatalogDetailCacheRevision()).resolves.toBe(
-        "schema1:bootstrap",
+        "schema2:bootstrap",
       );
     });
     expect(findUniqueMock).toHaveBeenCalledTimes(2);
@@ -112,7 +112,7 @@ describe("catalog detail cache revision", () => {
     findUniqueMock.mockResolvedValue(null);
 
     await expect(getCatalogDetailCacheRevision()).resolves.toBe(
-      "schema1:bootstrap",
+      "schema2:bootstrap",
     );
   });
 
@@ -122,12 +122,17 @@ describe("catalog detail cache revision", () => {
         snapshotSha256: "abcdef0123456789",
         updatedAt: new Date("2026-08-16T03:00:00.000Z"),
       },
-      oldRevision: "abcdef0123456789-msv7vmo0",
+      oldRevision: "schema1:abcdef0123456789-msv7vmo0",
+      dataRevision: "abcdef0123456789-msv7vmo0",
     },
-    { state: null, oldRevision: "bootstrap" },
+    {
+      state: null,
+      oldRevision: "schema1:bootstrap",
+      dataRevision: "bootstrap",
+    },
   ])(
     "isolates every list/detail cache layer from old payloads ($oldRevision)",
-    async ({ state, oldRevision }) => {
+    async ({ state, oldRevision, dataRevision }) => {
       findUniqueMock.mockResolvedValue(state);
       const namespace = "page:teachers-list:zh-cn";
       const origin = "https://life-ustc.example";
@@ -160,9 +165,9 @@ describe("catalog detail cache revision", () => {
         origin,
       });
       for (const options of [detailOptions, listOptions]) {
-        expect(options.kvCacheKey).toContain(`schema1:${oldRevision}`);
+        expect(options.kvCacheKey).toContain(`schema2:${dataRevision}`);
         expect(decodeURIComponent(options.coloCacheKey)).toContain(
-          `/schema1:${oldRevision}/`,
+          `/schema2:${dataRevision}/`,
         );
       }
       expect(detailOptions.kvCacheKey).not.toBe(detailKey);

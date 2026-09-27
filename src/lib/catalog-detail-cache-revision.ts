@@ -4,9 +4,9 @@ import {
 } from "@/lib/adapters/cloudflare-runtime";
 import { prisma } from "@/lib/db/prisma";
 
-// Bump whenever a cached catalog payload changes shape, even if source data is unchanged.
+// Bump whenever a cached catalog payload changes shape or ordering, even if source data is unchanged.
 // Shared by list/detail L1, colo, and KV keys; never reuse an older payload revision.
-const CATALOG_PAYLOAD_SCHEMA_REVISION = "schema1";
+const CATALOG_PAYLOAD_SCHEMA_REVISION = "schema2";
 const BOOTSTRAP_REVISION = "bootstrap";
 
 const revisionRequestCacheKey = Symbol("catalog-detail-revision");

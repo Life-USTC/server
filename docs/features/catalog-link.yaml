@@ -16,6 +16,24 @@ access:
   agent: Can list/search catalog links and manage the authenticated user's link-pin state through MCP;
     visit redirects remain browser/REST navigation.
 requirements:
+- id: catalog-link.transport-list-search-parity
+  category: consistency
+  rule: Public link lists preserve configured slug order and localized title, description and URL.
+    REST and GraphQL support locale selection; GraphQL and MCP support token search, with MCP using
+    the default Chinese locale. This bounded static directory is returned without pagination.
+  rationale: The transports retain their explicit input contracts. REST has no search input and MCP
+    has no locale input; their absence does not imply that those inputs are silently supported.
+  acceptance:
+    given: The configured static campus directory contains bilingual labels and searchable Chinese and pinyin terms.
+    when: Anonymous REST and actual Yoga request handlers read both locales, then GraphQL and a native
+      MCP SDK in-memory client search empty, whitespace, Chinese, pinyin, mixed and unmatched queries.
+    then:
+    - REST and GraphQL return the configured localized fields in slug order.
+    - GraphQL and MCP return the same matching slugs; empty queries return all and unmatched queries return none.
+    - MCP total describes the whole directory and returned describes the filtered result count.
+    test:
+      file: tests/integration/catalog-directory-parity.test.ts
+      name: catalog-link.transport-list-search-parity
 - id: catalog-link.public-web-personal-overlay
   category: authorization
   rule: Public links HTML contains no personal pin or click state. A session-only private, no-store projection

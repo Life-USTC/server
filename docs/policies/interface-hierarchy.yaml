@@ -195,7 +195,7 @@ requirements:
     given: The same isolated catalog contains distinct row/JW IDs, multiple courses, sections, teachers and filter relationships.
     when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
     then:
-    - All three transports return the same ordered IDs and matching total on every page, including empty results.
+    - All three transports return the same ordered IDs and matching total on every page, including empty results and reverse-inserted rows with tied primary sort keys.
     - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
     test:
       file: tests/integration/catalog-semantic-parity.test.ts
@@ -219,7 +219,7 @@ requirements:
     when: Real loopback REST, GraphQL and MCP HTTP requests read each collection with supported
       common filters, two-item pages or limits and a limit large enough for the complete fixture.
     then:
-    - Ordered identities equal the independently arranged fixture for each owner and filter.
+    - Ordered identities equal the independently arranged fixture for each owner and filter, including reverse-inserted rows with tied primary sort keys.
     - Paginated bindings report exact totals and an empty page after the end; prefix bindings return the requested prefix.
     - Shared homework completion remains owner-specific and the empty owner receives no records.
     test:

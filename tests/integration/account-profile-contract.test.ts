@@ -249,10 +249,13 @@ it("user.oauth-client-activity-isolation", async () => {
       await db.auditLog.create({
         data: {
           ...identity,
+          id: `activity-${marker}-${String(10 + index).padStart(2, "0")}`,
           action: "comment_create",
           channel: "rest",
           outcome: "success",
-          createdAt: new Date(1_800_000_000_000 + index * 1000),
+          createdAt: new Date(
+            1_800_000_000_000 + (index < 2 ? 0 : index * 1000),
+          ),
           ipAddress: "203.0.113.49",
           userAgent: "PRIVATE_USER_AGENT",
           sessionId: "PRIVATE_SESSION",
@@ -263,6 +266,7 @@ it("user.oauth-client-activity-isolation", async () => {
       }),
     );
   }
+  // Equal timestamps must continue by descending unique ID, independently of insertion order.
   const expectedIds = [events[1].id, events[0].id];
   const fields = [
     "action",

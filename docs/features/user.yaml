@@ -455,11 +455,11 @@ requirements:
     verified principal and whose grant generation matches the current delegation. Callers cannot override
     those identities, and the projection excludes IP, user agent, grant, session, request, target ID and other-client data.
   acceptance:
-    given: Persisted audit events include two current-delegation events and separate other-user, other-client and old-grant controls with private attribution fields.
+    given: Persisted audit events include two equal-timestamp current-delegation events inserted in ascending ID order and separate other-user, other-client and old-grant controls with private attribution fields.
     when: Real signed REST, GraphQL and MCP HTTP requests exhaust one-item activity pages; REST also receives forged identity query parameters.
     then:
     - All three transports return exactly the two current-delegation events and only the public event fields.
-    - Pagination retains the correct boundary; forged query identities cannot change ownership.
+    - Pagination follows descending event IDs across the equal-timestamp cursor boundary; forged query identities cannot change ownership.
     - The REST client-specific view rejects a cookie session.
     test:
       file: tests/integration/account-profile-contract.test.ts
