@@ -291,6 +291,20 @@ jobs:
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
 
+  specification-evidence:
+    name: Specification execution evidence
+    needs: [test-unit, test-integration, test-rest, test-rls, test-e2e]
+    if: ${{ always() }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/bun-job.yml
+    with:
+      job-phase: ci:spec-evidence
+      upload-artifact-name: specification-coverage
+      upload-artifact-path: spec-coverage.json
+      upload-artifact-no-files-found: error
+      upload-artifact-always: true
+
   publish-e2e-html-report:
     name: Publish E2E HTML report
     needs: test-e2e
