@@ -116,10 +116,27 @@ requirements:
       name: oauth.dcr-rules-from-provider
 - id: oauth.llm-platform-oauth-compatibility
   category: consistency
-  rule: Remote MCP clients may use discovery, CIMD, authorization code with PKCE, /api/mcp resource indicators,
-    and protected-resource metadata. CIMD requires an HTTPS URL client ID, matching client_id, nonempty
+  rule: MCP clients may register through CIMD using an HTTPS URL client ID, matching client_id, nonempty
     client_name, and redirect_uris. Metadata retrieval fails closed for nonpublic DNS answers, disallowed
     redirects, exceeded size or timeout limits, unsupported grant requirements, and DPoP-only clients.
+    Accepted public clients require authorization code with S256 PKCE and receive no secret or implicit
+    trust.
+  rationale: Discovery, protected-resource metadata, and MCP resource indicators are separately bound
+    contracts. This requirement governs CIMD admission; controlled DNS and fetch responses test provider
+    policy without claiming live external-network or Worker DNS-rebinding coverage.
+  acceptance:
+    given: The installed CIMD and OAuth provider using the application fetch policy and production database
+      roles, with controlled remote DNS and metadata responses.
+    when: Authorize valid metadata and metadata with invalid identity, redirects, grant/auth requirements,
+      DNS, response format, redirect, size, or body-read timeout.
+    then:
+    - Valid public CIMD clients persist without secrets or trust, proceed with S256, and reject authorization
+      without PKCE.
+    - Every invalid admission fails without client persistence; nonpublic or failed DNS never fetches,
+      redirects remain manual, and timed-out body streams are cancelled.
+    test:
+      file: tests/integration/oauth-cimd-registration.test.ts
+      name: oauth.llm-platform-oauth-compatibility
 - id: oauth.trusted-clients-admin-backend
   category: authorization
   rule: Only an explicit persisted administrator-controlled trust marker or configured allowlist establishes
