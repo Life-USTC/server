@@ -19,6 +19,14 @@ requirements:
 - id: bus.public-web-personal-overlay
   category: privacy
   rule: Public bus HTML contains public timetable data without saved user preferences.
+  acceptance:
+    given: Two isolated users have different saved destinations and departed-trip preferences; a third caller is anonymous.
+    when: Chinese and English browsers disable JavaScript and request public bus HTML and page-data, while each owner also reads the private preferences endpoint.
+    then:
+    - Public HTML has no saved preference fields; page-data contains routes/trips with null preferences and the server-rendered planner uses the public default destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/bus-public-projection.test.ts
+      name: bus.public-web-personal-overlay
 - id: bus.public-no-signin
   category: authorization
   rule: Bus is public campus life information; sign-in should not be a prerequisite.
