@@ -5,7 +5,9 @@ requirements:
 - id: cases.missing-data.section-missing-teacher-location-or-exam-1
   category: behavior
   topic: section-missing-teacher-location-or-exam
-  rule: A default empty state should be displayed.
+  rule: A section with a missing teacher, location, or exam relation keeps the section visible and displays
+    a localized unknown or not-provided state for the missing fact. Missing source data is not presented as
+    a confirmed cancellation.
 - id: cases.missing-data.section-missing-teacher-location-or-exam-2
   category: behavior
   topic: section-missing-teacher-location-or-exam
@@ -13,7 +15,8 @@ requirements:
 - id: cases.missing-data.homework-no-due-date-1
   category: behavior
   topic: homework-no-due-date
-  rule: Does not enter the 'upcoming due' sort.
+  rule: Homework without a due date is excluded from due-window results. It remains reachable in unfiltered
+    homework lists and is not assigned a synthetic due date.
 - id: cases.missing-data.homework-no-due-date-2
   category: behavior
   topic: homework-no-due-date
@@ -21,7 +24,9 @@ requirements:
 - id: cases.missing-data.ical-no-events-1
   category: behavior
   topic: ical-no-events
-  rule: A valid but empty or informational calendar content should be returned.
+  rule: An existing calendar subject with no events returns a valid VCALENDAR with zero VEVENT components.
+    It does not invent an informational event; nonexistent or unauthorized subjects retain their documented
+    errors.
 refs:
 - feature: schedule
   capability: section-schedule

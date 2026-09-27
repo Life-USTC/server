@@ -5,57 +5,65 @@ requirements:
 - id: ui.layout-principles-1
   category: presentation
   topic: layout-principles
-  rule: 'Put reading-first content in the left/main column: introductions, descriptions, markdown, homework
-    content, and comments.'
+  rule: Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
+    and comments in the main reading column.
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
-  rule: 'Put structured facts in the right/side column: identifiers, metadata, dates, counts, actions, mini
-    calendars, and quick links.'
+  rule: Desktop catalog detail pages place identifiers, structured facts, and related actions in a facts sidebar.
+    Workspace task views and task-detail overlays use their own declared action-first order.
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
-  rule: On mobile, stack in that order.
+  rule: At mobile widths, catalog detail pages render the hero, compact identity facts, the main reading stream,
+    and remaining secondary facts in that order. Workspace views and overlays follow their own declared content
+    order.
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
-  rule: Reuse existing grids, cards, borders, muted text, and buttons.
+  rule: Shared collection and detail layouts reuse the existing feature-neutral layout, panel, navigation,
+    and form primitives. Feature components own domain-specific data and interactions.
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
-  rule: 'Popups are one scrollable column at a comfortable reading width with a sticky title header, never
-    a two-column page: due datetime first, relative urgency second, remaining facts in a table, then reading,
-    then discussion.'
+  rule: Homework and todo detail overlays use one scrollable content column with a visible sticky title. Their
+    content order is due date/time, relative urgency, remaining facts, reading content, then discussion when
+    available.
 - id: ui.layout-principles-6
   category: presentation
   topic: layout-principles
-  rule: No status side column, chip row, or nested collapsible in an overlay; side rails belong on pages.
+  rule: Homework and todo detail overlays do not introduce a second facts/status rail. Their primary content
+    and actions remain reachable within the single scrollable column.
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: 'Collection pages compose PageLayout, PageHeader and Panel: FilterToolbar/ActiveFilters, ResultsSummary/domain
-    results, then ListPagination links preserving filters.'
+  rule: Collection pages use the shared PageLayout, PageHeader, and Panel primitives, with filters before the
+    results summary and results, followed by pagination.
 - id: ui.list-table-2
   category: presentation
   topic: list-table
-  rule: SearchField owns the search shortcut.
+  rule: SearchField owns the application search-shortcut handler; collection pages do not register a competing
+    handler for the same shortcut.
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Advanced filters use a Sheet with a complete form.
+  rule: Advanced list filters use one labeled Sheet containing the complete declared filter form and explicit
+    Apply and dismiss actions.
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: The URL owns applied values; opening resets drafts, closing does not apply.
+  rule: Opening advanced filters initializes draft values from the current applied URL query. Closing the sheet
+    without Apply leaves the URL and results unchanged.
 - id: ui.list-table-5
   category: presentation
   topic: list-table
-  rule: Apply sends the current query and all draft values, resetting page; primary search uses applied advanced
-    values.
+  rule: Applying advanced filters submits the current search query and all draft filter values and resets pagination.
+    A primary search change preserves the already applied advanced filters.
 - id: ui.list-table-6
   category: presentation
   topic: list-table
-  rule: Compact lists avoid page overflow; wide tables retain comparison columns.
+  rule: At narrow widths, compact lists do not cause horizontal document overflow. Wide comparison tables retain
+    their required columns inside a horizontally scrollable table region.
 - id: ui.list-table-7
   category: presentation
   topic: list-table
@@ -71,13 +79,13 @@ requirements:
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells
-  rule: Desktop data-table rows keep a consistent compact height; optional secondary lines reserve space when
-    absent.
+  rule: Desktop table rows in the same list reserve the same secondary-line space when optional secondary text
+    is absent; longer content must remain accessible without clipping controls.
 - id: ui.data-table-cells-2
   category: presentation
   topic: data-table-cells
-  rule: Overflowing text is truncated, with its full value available from a tooltip on pointer hover and keyboard
-    focus.
+  rule: A truncated text cell makes its complete value available to pointer, keyboard, and touch users. The
+    accessible text retains the complete value.
 - id: ui.data-table-cells-3
   category: presentation
   topic: data-table-cells
@@ -90,16 +98,12 @@ requirements:
 - id: ui.data-table-cells-5
   category: presentation
   topic: data-table-cells
-  rule: Blank placeholders are hidden from assistive technology and do not replace meaningful labels such as
-    unknown or TBD.
+  rule: Purely decorative blank table placeholders are absent from the accessibility tree. Meaningful unknown
+    or TBD labels remain exposed.
 - id: ui.data-table-cells-6
   category: presentation
   topic: data-table-cells
   rule: Numeric, status, control, and action cells do not receive truncation tooltips when their content fits.
-- id: ui.detail-hero-1
-  category: presentation
-  topic: detail-hero
-  rule: Used at the top of course, section, and teacher detail pages.
 - id: ui.detail-hero-2
   category: presentation
   topic: detail-hero
@@ -111,22 +115,19 @@ requirements:
 - id: ui.detail-hero-4
   category: presentation
   topic: detail-hero
-  rule: At mobile widths, stable public identifiers and concise metadata precede a responsive title so long
-    localized names do not crowd out context or actions.
+  rule: Mobile catalog detail heroes keep public course or section codes and concise context visible alongside
+    long localized names without horizontal overflow. Database row IDs and JW IDs do not substitute for that
+    display context.
 - id: ui.detail-hero-5
   category: presentation
   topic: detail-hero
   rule: Course codes live in the title region, in plain monospace text before the name; the localized name
     remains the dominant h1.
-- id: ui.detail-hero-6
-  category: presentation
-  topic: detail-hero
-  rule: This compact context follows the name-first identity rule.
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Catalog detail (course, section, teacher): one scrollable main column plus facts/actions sidebar;
-    no Context Tabs, ?tab= or legacy path deep links.'
+  rule: Course, section, and teacher detail pages expose a continuous reading stream and a desktop facts sidebar.
+    In-page navigation uses fragment anchors rather than tab query parameters or legacy detail-subroute links.
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
@@ -138,15 +139,19 @@ requirements:
 - id: ui.detail-two-column-stream-4
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Sidebar: Basic Info Card, teachers, subscribe/calendar actions.'
+  rule: Each catalog detail sidebar contains that feature’s structured facts and applicable actions. Section
+    detail includes teachers and section subscription/calendar actions; course and teacher pages do not invent
+    section-specific actions without a selected section.
 - id: ui.detail-two-column-stream-5
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Mobile: hero → main → side, or compact facts under hero per mobile hierarchy.'
+  rule: Catalog detail mobile order is hero, compact identity facts, main reading stream, then remaining secondary
+    facts.
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
-  rule: Comments are client-fetched; PublicSsr never personalizes visibility.
+  rule: Public catalog detail HTML contains no personalized comment visibility or moderation permission state.
+    The comment panel loads viewer-dependent results through its private client request.
 - id: ui.detail-two-column-stream-7
   category: presentation
   topic: detail-two-column-stream
@@ -154,77 +159,48 @@ requirements:
 - id: ui.detail-two-column-stream-8
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Course/teacher offerings show total and URL pagination (20 per page), including retired records; navigation
-    stays in the offerings section with #sections.'
+  rule: 'Course and teacher offerings include retired records, display the total count, and paginate through
+    the URL with 20 items per page. Pagination links keep the #sections fragment.'
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
-  rule: Properties are ranked as primary, secondary, or tertiary so web, REST, and MCP surfaces present task-relevant
-    information consistently.
-- id: ui.model-property-priority-primary-1
-  category: presentation
-  topic: model-property-priority-primary
-  rule: 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
-    code, due/departure/start time, status, and primary action state.'
+  rule: Each feature declares its identifying, task-critical, and disambiguating display fields in presentation
+    data. UI and compact MCP projections retain those declared fields; JSON object key order is not a presentation
+    contract.
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary
-  rule: Put them in h1, card titles, the first list column, or the first line of compact assistant output.
+  rule: Each declared list, card, detail, and assistant projection puts its primary identity in that view’s
+    title or leading summary slot; task-critical time and status remain available in its primary content.
 - id: ui.model-property-priority-primary-3
   category: presentation
   topic: model-property-priority-primary
   rule: For teaching sections, student-facing primary identity is course name plus teachers, not section code.
-- id: ui.model-property-priority-secondary-1
-  category: presentation
-  topic: model-property-priority-secondary
-  rule: 'Secondary properties support disambiguation and comparison: localized secondary name, semester, campus/location,
-    teacher/department, counts, section code, and short metadata.'
 - id: ui.model-property-priority-secondary-2
   category: presentation
   topic: model-property-priority-secondary
-  rule: Use muted text, badges, side columns, or compact nested summaries.
-- id: ui.model-property-priority-tertiary-1
-  category: presentation
-  topic: model-property-priority-tertiary
-  rule: 'Tertiary properties support audit or exact reconstruction: internal IDs, raw timestamps, platform
-    metadata, long nested relations, and repeated parent objects.'
+  rule: Secondary metadata uses shared secondary-text styling without hiding required disambiguation. Public
+    course and section codes retain their plain monospace style rather than badge styling.
 - id: ui.model-property-priority-tertiary-2
   category: presentation
   topic: model-property-priority-tertiary
-  rule: Hide or de-emphasize them in ordinary UI; MCP default output may omit, redact, or compact them.
-- id: ui.model-property-priority-surfaces-1
-  category: presentation
-  topic: model-property-priority-surfaces
-  rule: REST may expose fuller records for application clients.
+  rule: Ordinary UI de-emphasizes internal reconstruction metadata. MCP default projections include only the
+    fields declared by that tool; full mode still obeys all secret and private-field exclusions.
 - id: ui.model-property-priority-surfaces-2
   category: presentation
   topic: model-property-priority-surfaces
-  rule: MCP default output preserves primary and important secondary fields, simplifies repeated low-priority
-    fields, and reserves exact raw payloads for explicit full mode where supported; the deprecated summary
-    input is an alias for default.
-- id: ui.basic-info-card-1
-  category: presentation
-  topic: basic-info-card
-  rule: Used in detail page sidebars or collapsible panels.
+  rule: MCP tools declare a compact default projection and, where supported, an explicit full projection. Default
+    preserves the task identity and important disambiguation; full adds only explicitly allowed fields. No
+    deprecated summary input is part of the supported contract.
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
   rule: Displays structured fields; does not carry comment or homework interactions.
-- id: ui.context-tabs-1
-  category: presentation
-  topic: context-tabs
-  rule: Not used for course, section, or teacher catalog detail pages (see Detail Two-Column Stream).
-- id: ui.context-tabs-2
-  category: presentation
-  topic: context-tabs
-  rule: May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
-    branches).
 - id: ui.context-tabs-3
   category: presentation
   topic: context-tabs
-  rule: When present, context navigation is a horizontal, touch-scrollable row with an overflow affordance
-    on mobile and a vertical sidebar on larger screens; the active destination remains programmatically identified
-    and scrolls into view.
+  rule: Context navigation uses a scrollable horizontal row on mobile and a vertical rail on desktop. The active
+    destination has aria-current=page and is scrolled into view; overflow does not make destinations unreachable.
 - id: ui.global-search-results-1
   category: presentation
   topic: global-search-results
@@ -241,15 +217,8 @@ requirements:
 - id: ui.global-search-results-4
   category: presentation
   topic: global-search-results
-  rule: Teacher items use title `teacher.namePrimary` and description department or code.
-- id: ui.calendar-export-dialog-1
-  category: presentation
-  topic: calendar-export-dialog
-  rule: Used to display single-object iCal and personal subscription iCal.
-- id: ui.calendar-export-dialog-2
-  category: presentation
-  topic: calendar-export-dialog
-  rule: Presented as a copyable link; users are not required to manually construct the URL.
+  rule: Teacher search results use the localized teacher name as title. Their secondary context uses department
+    when present, otherwise the public teacher code; absent context does not expose a database row ID.
 - id: ui.shell-layout-1
   category: presentation
   topic: shell-layout
@@ -257,7 +226,8 @@ requirements:
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: Signed-in desktop nav keeps task links in Workspace; Explore and Admin are progressive groups.
+  rule: Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
+    use distinct expandable groups, and admin entries are visible only to an authorized administrator.
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
@@ -265,15 +235,13 @@ requirements:
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: Signed-in mobile nav pins Today, Calendar, Tasks, and Explore, reserving height and safe area.
+  rule: Signed-in mobile navigation exposes Today, Calendar, Tasks, and Explore. The content layout reserves
+    navigation height and the device safe-area inset so the final content is not covered.
 - id: ui.shell-layout-5
   category: presentation
   topic: shell-layout
-  rule: Language and theme stay in the topbar; signed-in profile actions in the sidebar footer.
-- id: ui.shell-layout-6
-  category: presentation
-  topic: shell-layout
-  rule: Onboarding (`/account/welcome`) hides sidebar, global search, and mobile nav.
+  rule: The topbar exposes language and theme controls. Signed-in desktop profile actions use the sidebar footer;
+    mobile profile actions remain available from the mobile shell.
 - id: ui.shell-layout-7
   category: presentation
   topic: shell-layout
@@ -285,7 +253,8 @@ requirements:
 - id: ui.shell-layout-9
   category: presentation
   topic: shell-layout
-  rule: System/light/dark themes apply before first paint; system follows live OS changes, with a no-JS fallback.
+  rule: Theme resolves from the user’s system/light/dark preference before first paint. System mode follows
+    live OS changes; a JavaScript-disabled page remains readable using its declared static theme.
 - id: ui.workspace-footer-policy-1
   category: presentation
   topic: workspace-footer-policy
@@ -293,30 +262,24 @@ requirements:
 - id: ui.workspace-footer-policy-2
   category: presentation
   topic: workspace-footer-policy
-  rule: Signed-in workspace roots, onboarding (`/account/welcome`), and their settings/admin branches do not
-    append the public footer.
-- id: ui.workspace-footer-policy-3
-  category: presentation
-  topic: workspace-footer-policy
-  rule: A signed-in user visiting a public content route still sees the public footer.
+  rule: Workspace, /account/settings/*, /admin/*, and /account/welcome pages do not append the public footer.
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Homework, todo, and exam filters retain one selection through repeated clicks, Space, empty results,
-    and completing the last pending task; never automatically select All.
+  rule: Homework, todo, and exam status filters retain the selected value through repeated activation, empty
+    results, and completing the last pending task. Only an explicit selection or clear action changes the applied
+    filter.
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Selection colors update immediately; controls stay disabled until hydration.
+  rule: Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
+    visual and accessible state without waiting for the results request to finish.
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: 'All three use the homework empty-state style: retain desktop table headers, left-align compact text
-    without an icon or filled background, and place an outline clear-filter action below the description.'
-- id: ui.workspace-filters-and-empty-states-4
-  category: presentation
-  topic: workspace-filters-and-empty-states
-  rule: Mobile uses the same message and action styling.
+  rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
+    or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
+    the explanation.
 - id: ui.workspace-filters-and-empty-states-5
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -324,41 +287,43 @@ requirements:
 - id: ui.workspace-filters-and-empty-states-6
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Setup-empty states offer existing setup or create actions.
+  rule: 'Setup-empty states offer a relevant authorized next action: task creation for an empty todo list and
+    subscription setup for learning views that require subscribed sections.'
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings use concise labels in a desktop rail and scrollable mobile row.
+  rule: Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
+    settings destination with localized labels.
 - id: ui.settings-navigation-2
   category: presentation
   topic: settings-navigation
-  rule: '`/account/settings/profile` is the default; legacy tab inputs only redirect.'
-- id: ui.settings-navigation-3
-  category: presentation
-  topic: settings-navigation
-  rule: Legacy appearance, language, and preferences values redirect to `/account/settings/preferences`.
+  rule: The default settings destination is /account/settings/profile. Canonical settings navigation does not
+    depend on legacy tab query inputs.
 - id: ui.settings-navigation-4
   category: presentation
   topic: settings-navigation
-  rule: Preferences reuse the pre-paint/localStorage theme mechanism and `/api/account/preferences`; URLs have
-    no locale segments.
+  rule: Preferences reuse the shared theme mechanism and /api/account/preferences for server-supported preferences.
+    Theme remains a browser preference; locale changes do not add locale URL segments.
 - id: ui.settings-navigation-5
   category: presentation
   topic: settings-navigation
-  rule: Authorizations remain distinct from linked sign-in accounts and require confirmation before revocation.
+  rule: Application authorizations and linked sign-in providers occupy distinct settings destinations. Revoking
+    an authorization requires explicit confirmation for the selected application.
 - id: ui.settings-navigation-6
   category: presentation
   topic: settings-navigation
-  rule: The active section owns its copy, exposes one aria-current page link, and scrolls into view on mobile.
+  rule: Within settings navigation, exactly one link identifies the active page with aria-current=page, and
+    that link is visible in the mobile scroll region after navigation.
 - id: ui.settings-navigation-7
   category: presentation
   topic: settings-navigation
-  rule: Danger stays separate from routine settings.
+  rule: Destructive account controls are grouped in the separate danger settings destination rather than interspersed
+    with routine profile or preference controls.
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap
-  rule: Public profile contribution history keeps a readable minimum cell size and scrolls horizontally when
-    needed.
+  rule: Contribution history uses a horizontally scrollable heatmap region when its date range exceeds the
+    available width. Scrolling exposes all dates without causing horizontal document overflow.
 - id: ui.contribution-heatmap-2
   category: presentation
   topic: contribution-heatmap
@@ -379,50 +344,81 @@ requirements:
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity
-  rule: Identity follows the semantic workspace path after root or query compatibility redirects.
+  rule: After a canonical workspace-root redirect, the final route determines the localized heading, main landmark
+    label, and document title. Legacy query values do not define workspace identity.
 - id: ui.workspace-mobile-priority-1
   category: presentation
   topic: workspace-mobile-priority
-  rule: Personal workspace mobile layouts prioritize the next actionable information before directory-style
-    shortcuts or wide planning grids.
+  rule: Mobile workspace overview places its next learning/task actions before directory shortcuts. Mobile
+    task pages place their active filters and task results before secondary planning or navigation content.
 - id: ui.workspace-mobile-priority-2
   category: presentation
   topic: workspace-mobile-priority
-  rule: Calendar uses a readable agenda at mobile widths while retaining semester, month, and week grids on
-    desktop.
+  rule: Mobile workspace calendar presents events as a date-grouped agenda with event title and available time/location
+    context. Desktop retains the declared semester, month, and week grid views.
 - id: ui.workspace-mobile-priority-3
   category: presentation
   topic: workspace-mobile-priority
-  rule: Homework, todo, and exam mobile toolbars keep status filters directly available, move card/list display
-    mode into an accessible overflow menu, and keep primary controls at least 44 by 44 CSS pixels.
+  rule: Mobile homework, todo, and exam toolbars keep status filters directly available. Where card/list modes
+    exist, an accessible overflow menu changes display mode; primary control hit targets are at least 44 by
+    44 CSS pixels.
 - id: ui.social-sharing-metadata-1
   category: presentation
   topic: social-sharing-metadata
-  rule: Every rendered page exposes one localized description plus one complete Open Graph and Twitter card
-    set.
+  rule: Rendered pages provide one localized description and one Open Graph/Twitter card set. Account, OAuth,
+    admin, and private workspace metadata uses non-sensitive page descriptions and never embeds credentials
+    or private task content.
 - id: ui.social-sharing-metadata-2
   category: presentation
   topic: social-sharing-metadata
-  rule: Canonical and Open Graph URLs are absolute, same-origin, and exclude query strings and fragments.
+  rule: Canonical and Open Graph URLs are absolute and use the configured application origin. They exclude
+    query strings, fragments, credentials, and authorization continuation parameters.
+  acceptance:
+    given: Public paths, an attacker-origin path, and a private settings path carrying secret query parameters
+      and fragments.
+    when: The production social-metadata builder creates canonical URLs.
+    then:
+    - Canonical URLs use only the configured application origin and exclude query, fragment, credentials and
+      secret parameters.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-2
 - id: ui.social-sharing-metadata-3
   category: presentation
   topic: social-sharing-metadata
-  rule: Course, section, and teacher detail subroutes canonicalize to the entity root and use controlled localized
-    summaries rather than editable user content.
+  rule: Public course, section, and teacher detail metadata uses the canonical entity-root URL and controlled
+    localized summaries rather than editable user-authored descriptions. This does not require supporting obsolete
+    detail subroutes.
 - id: ui.social-sharing-metadata-4
   category: presentation
   topic: social-sharing-metadata
-  rule: Social images use the 1200 by 630 Life@USTC PNG card with explicit dimensions, MIME type, and localized
-    alternative text.
+  rule: Social metadata describes the fixed Life@USTC PNG card as 1200 by 630 pixels, with explicit MIME type
+    and localized alternative text.
+  acceptance:
+    given: Chinese and English metadata requests with their localized alternative text.
+    when: The production social-metadata builder creates the image descriptor.
+    then:
+    - The descriptor is a 1200 by 630 PNG with the provided localized alternative text.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-4
 - id: ui.social-sharing-metadata-5
   category: presentation
   topic: social-sharing-metadata
   rule: Every page and locale uses the same fixed /open-graph.png static asset without query parameters.
+  acceptance:
+    given: Several public/private page paths in both locales, followed by a page-copy override.
+    when: The production metadata builder and updater produce social images.
+    then:
+    - Every result keeps the same fixed /open-graph.png URL with no query parameters.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-5
 - id: ui.social-sharing-metadata-6
   category: presentation
   topic: social-sharing-metadata
-  rule: The image does not contain page titles, profile names, or avatars and is served without invoking application
-    code.
+  rule: The fixed social image contains no page titles, profile names, or avatars. It is delivered as a static
+    asset without invoking application rendering.
 - id: ui.localized-count-copy-1
   category: presentation
   topic: localized-count-copy
@@ -431,7 +427,7 @@ requirements:
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
-  rule: 'Desktop: Primary navigation / 主导航.'
+  rule: The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
@@ -439,24 +435,33 @@ requirements:
 - id: ui.navigation-landmarks-3
   category: presentation
   topic: navigation-landmarks
-  rule: Each surface exposes at most one aria-current page.
+  rule: Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
+    navigation landmarks may each identify their own active destination.
 - id: ui.navigation-landmarks-4
   category: presentation
   topic: navigation-landmarks
-  rule: The first focusable shell control is a localized skip link to main; footer links have their own landmark.
+  rule: The first focusable shell control is a localized skip link that moves focus to main content. Public
+    footer links belong to a separate navigation landmark.
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
-  rule: Campus services contains catalog, second classroom and news.
+  rule: Campus services navigation exposes distinct entries for the academic catalog, Young activities, and
+    news, each linking to its canonical destination.
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
-  rule: Public notices stay separate from personal activity reminders; the workspace exposes reminders with
-    an unexpired unread count.
+  rule: Public notices and private activity reminders are separate navigation destinations. A user’s reminder
+    badge counts only unread, unexpired notifications belonging to that user.
 - id: ui.navigation-landmarks-7
   category: presentation
   topic: navigation-landmarks
-  rule: Activity/calendar navigation and detail returns preserve filters; current views remain identified.
+  rule: Activity and calendar navigation preserves the applied filters when opening a detail and returning
+    to the list. The active view remains programmatically identified.
+- id: ui.list-pagination-filter-state
+  category: presentation
+  topic: list-table
+  rule: Collection pagination links preserve the applied search query and filters while changing only pagination
+    state; browser back/forward restores the corresponding query and results.
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -506,3 +511,14 @@ topics:
   title: Localized Count Copy
 - id: navigation-landmarks
   title: Navigation Landmarks
+rationale:
+- This compact context follows the name-first identity rule.
+- 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
+  code, due/departure/start time, status, and primary action state.'
+- 'Secondary properties support disambiguation and comparison: localized secondary name, semester, campus/location,
+  teacher/department, counts, section code, and short metadata.'
+- 'Tertiary properties support audit or exact reconstruction: internal IDs, raw timestamps, platform metadata,
+  long nested relations, and repeated parent objects.'
+- REST may expose fuller records for application clients.
+- May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
+  branches).

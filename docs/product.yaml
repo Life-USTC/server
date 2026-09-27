@@ -13,14 +13,14 @@ surfaces:
 - mcp
 roles:
 - id: anon
-  description: Unauthenticated visitor; can browse all public information.
+  description: Unauthenticated principal. Availability of public information is declared per transport; some
+    public-data tools still require an OAuth-authorized client.
 - id: user
-  description: Authenticated, non-suspended user; can manage personal state and perform social actions.
+  description: Authenticated account. Feature permissions, ownership, suspension state, and recent authentication
+    are evaluated independently for each action.
 - id: admin
-  description: Platform administrator; has governance, moderation, and maintenance capabilities.
-- id: agent
-  description: OAuth-authorized third-party client or MCP caller; inherits user permissions after authorization;
-    does not inherit admin by default.
+  description: Authenticated account with explicit governance authority. Administrative privileges apply only
+    on the declared governance surfaces.
 terms:
 - name: sectionSubscription
   meaning: In-app section subscription; not equivalent to official course enrollment.
@@ -28,3 +28,9 @@ terms:
   meaning: Class-attached learning task; completion state is tracked per user independently.
 - name: todo
   meaning: Personal user task; not attached to any class.
+clients:
+- id: first-party
+  description: Web and trusted first-party clients use the authentication declared by each binding.
+- id: agent
+  description: Delegated OAuth or MCP client acting for a user. Token audience and granted scopes constrain
+    the subject’s feature permissions; delegated access does not inherit administrator powers.

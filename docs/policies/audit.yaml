@@ -5,20 +5,40 @@ requirements:
 - id: audit.writer-1
   category: privacy
   topic: writer
-  rule: AuditLog is sole store.
+  rule: AuditLog is the authoritative store of security and business audit events. Operational logs and derived
+    activity projections do not replace its records.
 - id: audit.writer-2
   category: privacy
   topic: writer
-  rule: Mutations write trails transactionally where practical; Better Auth hooks contain logging failures.
+  rule: Business mutations whose audit action declares an atomic trail commit the domain change and AuditLog
+    row in one transaction; an audit insertion failure rolls back that change.
 - id: audit.writer-3
   category: privacy
   topic: writer
-  rule: Static imports write lifecycle rows transactionally.
+  rule: A Section retirement or reactivation performed by static import commits its lifecycle change and corresponding
+    audit row in the same transaction.
 - id: audit.writer-4
   category: privacy
   topic: writer
-  rule: Six-hour maintenance clears network data at 30 days, attribution at 90, and events at 400 via a maintenance-only
-    SECURITY DEFINER function.
+  rule: Retention maintenance removes network fields from audit events at least 30 days old, attribution fields
+    at least 90 days old, and events at least 400 days old. Eligibility uses the event timestamp and the maintenance
+    clock.
+- id: audit.auth-hook-failure-isolation
+  category: privacy
+  topic: writer
+  rule: Authentication lifecycle hooks write audit events after the authentication transaction commits. An
+    audit logging failure is contained and produces a safe operational diagnostic without rolling back an already
+    committed sign-in or leaking credentials.
+- id: audit.retention-maintenance-cadence
+  category: privacy
+  topic: writer
+  rule: Audit retention maintenance is scheduled every six hours. A failed or incomplete cleanup is reported
+    rather than treated as a completed retention run.
+- id: audit.retention-maintenance-authority
+  category: authorization
+  topic: writer
+  rule: Audit retention cleanup is performed only through the maintenance-only SECURITY DEFINER function. Ordinary
+    application and authentication database roles cannot invoke cleanup or delete audit history directly.
 audit_actions:
 - action: comment_create
   trigger: POST /api/community/comments or MCP community_comment_create
@@ -46,11 +66,11 @@ audit_actions:
   description: User deletes an upload they own. Transport-originated writes include metadata.source where available.
     After storage deletion succeeds, metadata deletion and the audit row are committed together.
 - action: section_retire
-  trigger: Reserved
+  trigger: Committed static Section snapshot import
   description: The importer marks one missing in-scope Section inactive without deleting the row or children.
     The same transaction records the Section target, source snapshot SHA-256, observation time, and jwId.
 - action: section_reactivate
-  trigger: Reserved
+  trigger: Committed static Section snapshot import
   description: The importer clears retiredAt when a Section reappears. The same transaction records the Section
     target, source snapshot SHA-256, observation time, jwId, and previous retiredAt.
 - action: admin_user_suspend
@@ -101,7 +121,7 @@ audit_actions:
   trigger: DELETE /api/community/section-homeworks/[id]
   description: Records the creator/admin actor and target without retaining a title snapshot.
 - action: webhook_login
-  trigger: Reserved
+  trigger: Explicitly enabled non-production internal debug login
   description: Internal debug login aid (not a product surface). When enabled in a private environment, audit
     metadata records the lookup mode only; secrets and session tokens are never stored.
 - action: account_create
@@ -148,10 +168,10 @@ audit_actions:
   trigger: POST /api/auth/revoke-session, /api/auth/revoke-sessions, or /api/auth/revoke-other-sessions
   description: Records successful current-user session revocation after commit without copying session tokens.
 - action: account_calendar_token_create
-  trigger: POST /settings subscription calendar initialization
+  trigger: First authorized initialization of the current user calendar feed credential
   description: Records successful token creation without storing the calendar feed token value.
 - action: account_calendar_token_rotate
-  trigger: POST /settings subscription calendar token rotation
+  trigger: POST /account/settings/security?/rotateCalendarToken
   description: Records denied, failed, and successful rotation without storing old or new token values.
 - action: oauth_authorization_grant
   trigger: POST /oauth/consent grant action

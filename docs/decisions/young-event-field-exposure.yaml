@@ -22,8 +22,9 @@ decisions:
   The image proxy carries no upstream authentication token.
 - Name upstream creation and modification fields createdAtUpstream and updatedAtUpstream to avoid confusion
   with server row timestamps.
-- Delete registrationStatus across storage and interfaces; the approved breaking change removed a field that
-  had never carried useful data.
+- Delete the promoted registrationStatus column and public interface field; original upstream rawJson remains
+  an unmodified source record, and the approved breaking change removed a field that had never carried useful
+  data.
 - Join dynamically stored places children through parent_store_id to avoid silently dropping venue records.
 consequences:
 - Public event contacts are intentional. Raw upstream workflow fields are not promoted to ordinary UI.

@@ -5,25 +5,29 @@ requirements:
 - id: cases.content-security.suspended-user-1
   category: authorization
   topic: suspended-user
-  rule: Suspended users cannot post new comments; both the product and permission layers must enforce this
-    restriction.
+  rule: A suspended user cannot create a comment through any supported mutation surface, even when the caller
+    otherwise has the comment-write OAuth scope.
 - id: cases.content-security.upload-attachment-download-1
   category: authorization
   topic: upload-attachment-download
-  rule: Attachment download must revalidate access permissions; possession of a link alone does not authorize
-    downloading.
+  rule: Each attachment-byte request checks the current upload and parent-content authorization before returning
+    bytes. A previously issued attachment URL does not bypass ownership, visibility, moderation, or deletion
+    checks.
 - id: cases.content-security.destructive-actions-1
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Deletion must have explicit feedback.
+  rule: The deletion UI announces success, permission refusal, or request failure to assistive technology.
+    Failed deletion keeps the item visible and does not announce success.
 - id: cases.content-security.destructive-actions-2
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Suspension must have explicit feedback.
+  rule: The suspension UI announces success, permission refusal, or request failure to assistive technology
+    and updates the displayed suspension state only after success.
 - id: cases.content-security.destructive-actions-3
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Hiding must have explicit feedback.
+  rule: The moderation-hide UI announces success, permission refusal, or request failure to assistive technology
+    and changes the displayed visibility only after success.
 refs:
 - feature: comment
   capability: object-comment-section

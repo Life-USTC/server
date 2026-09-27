@@ -2,35 +2,43 @@ kind: policy
 id: cases.account
 title: 'Cross-feature scenarios: account'
 requirements:
-- id: cases.account.username-change-1
-  category: behavior
-  topic: username-change
-  rule: The new profile page should be accessible.
 - id: cases.account.username-change-2
   category: behavior
   topic: username-change
-  rule: The old username must not continue to represent the user.
+  rule: After a successful username change, resolving the old username does not return the renamed user. The
+    new username resolves to that user immediately; no old-name compatibility redirect is created.
 - id: cases.account.oauth-connection-error-1
   category: behavior
   topic: oauth-connection-error
-  rule: Duplicate OAuth connection should give a clear error response.
+  rule: Linking a provider identity already associated with another user returns an explicit conflict without
+    exposing the other user. Reauthorization of a provider already linked to the current user follows the profile-refresh
+    capability rather than being treated as a duplicate-account conflict.
 - id: cases.account.oauth-connection-error-2
   category: behavior
   topic: oauth-connection-error
-  rule: Disconnecting the last sign-in account must be blocked with a clear error; it is not an ordinary failure-retry
-    scenario.
+  rule: Removing a linked sign-in provider must not leave the account with no usable sign-in method. The server
+    evaluates the remaining permitted providers and passkeys at mutation time; the settings UI displays an
+    explicit refusal when removal would leave none.
 - id: cases.account.account-deletion-1
   category: behavior
   topic: account-deletion
-  rule: Account deletion requires entering the fixed confirmation word DELETE.
+  rule: The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
+    it submits the deletion request.
 - id: cases.account.account-deletion-2
   category: behavior
   topic: account-deletion
-  rule: After successful deletion, the current session should be terminated and the settings page exited.
+  rule: After successful account deletion, the browser clears its authenticated viewer state and leaves settings
+    for a public page.
 - id: cases.account.scenario-guidance-1
   category: behavior
   topic: scenario-guidance
-  rule: After a username change, the new address should immediately become the canonical entry.
+  rule: After a successful username change, the public profile canonical URL uses the new username and resolves
+    to the same user.
+- id: cases.account.deleted-session-revocation
+  category: authorization
+  topic: account-deletion
+  rule: Successful account deletion revokes the deleted user’s active sessions; a previously valid session
+    cannot authorize subsequent account or workspace requests.
 refs:
 - feature: user
   capability: settings
