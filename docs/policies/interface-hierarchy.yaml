@@ -19,11 +19,29 @@ requirements:
   topic: surface-mapping
   rule: GraphQL business queries are organized below Query.catalog, Query.workspace, Query.community, and Query.account
     rather than underscore-encoded RPC query fields.
+  acceptance:
+    given: The executable GraphQL schema and the canonical business scopes declared by this policy.
+    when: The test enumerates Query fields and the fields exposed by each scope object.
+    then:
+    - Query contains exactly account, catalog, community, and workspace objects.
+    - Each scope exposes business fields without underscore-encoded RPC names.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-1
 - id: interface-hierarchy.surface-mapping-2
   category: consistency
   topic: surface-mapping
   rule: Business mutation fields are defined directly on GraphQL Mutation, not beneath nested query or mutation
     objects.
+  acceptance:
+    given: The executable GraphQL schema and every compiled registered mutation document.
+    when: The test compares every mutation document root with Mutation fields and traverses every Query-reachable object type.
+    then:
+    - Every business mutation is selected directly below Mutation and has a matching executable root field.
+    - No Query-reachable object exposes a Mutation root field or nests the Mutation object.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-2
 - id: interface-hierarchy.surface-mapping-3
   category: consistency
   topic: surface-mapping
@@ -35,13 +53,6 @@ requirements:
   - graphql
   rule: Public catalog and public community GraphQL queries permit an anonymous principal. Native MCP tools
     enforce the authentication and scopes declared on their own bindings.
-- id: interface-hierarchy.surface-mapping-5
-  category: consistency
-  topic: surface-mapping
-  surfaces:
-  - graphql
-  rule: GraphQL Query.workspace and Query.account return null when there is no authenticated principal. This
-    does not define the HTTP status of protected REST endpoints.
 - id: interface-hierarchy.surface-mapping-6
   category: consistency
   topic: surface-mapping
@@ -571,3 +582,5 @@ rationale:
 - Bot discovery, client annotation display, durable mutation confirmation, uncertain-write recovery and shared-conversation
   isolation are client-owned contracts. Their implementation and native acceptance evidence belong in the Bot
   repository; server token audience, feature scopes and ownership remain enforced here.
+
+- Anonymous GraphQL root access has one canonical obligation, graphql.anonymous-roots; its real HTTP acceptance covers null account/workspace roots and readable catalog/community roots.
