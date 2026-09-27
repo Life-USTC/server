@@ -19,6 +19,14 @@ requirements:
 - id: calendar.personal-feed-http-cache
   category: privacy
   rule: Personal calendar HTTP responses and revoked-credential errors use private, no-store.
+  acceptance:
+    given: A persisted owner has a personal calendar with one dated item.
+    when: The actual feed handler returns a cold 200, authorized ETag 304 and wrong-credential 410.
+    then:
+    - All three responses use private, no-store.
+    test:
+      file: tests/integration/calendar-feed-contract.test.ts
+      name: calendar.personal-feed-http-cache
 - id: calendar.views
   category: presentation
   rule: Course-subscribed workspaces provide semester, month, and week views with subscribed activities
@@ -105,8 +113,20 @@ requirements:
       name: calendar.feed-refresh-visible
 - id: calendar.feed-auth-before-cache
   category: privacy
-  rule: The canonical personal feed route authorizes its current credential before reading any export
-    cache or returning a conditional ETag response.
+  rule: The personal feed route authorizes its current credential before reading any export cache. Authorized
+    requests support strong, weak and multiple If-None-Match ETag forms; revoked credentials never receive
+    cached content or a 304 response.
+  acceptance:
+    given: A real owner has a cached personal ICS with an ETag and a current feed credential.
+    when: The actual feed route handles strong/weak/multiple If-None-Match, then the credential is rotated
+      in the database.
+    then:
+    - Authorized matching conditions return empty 304 responses.
+    - A revoked credential returns 410 before any export-cache read, despite a matching cached ETag.
+    - The replacement credential can still retrieve the authorized conditional response.
+    test:
+      file: tests/integration/calendar-feed-contract.test.ts
+      name: calendar.feed-auth-before-cache
 - id: calendar.feed-refresh-coalescing
   category: consistency
   rule: Repeated stale reads coalesce refresh requests during a bounded interval.

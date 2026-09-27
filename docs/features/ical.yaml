@@ -33,40 +33,57 @@ requirements:
   category: consistency
   rule: Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME
     with a Z suffix while retaining Asia/Shanghai TZID values for event start and end times.
+  acceptance:
+    given: A fixed clock and fixtures include schedule, exam, homework, todo and Young activity timestamps.
+    when: The actual single-section, multi-section and personal factories serialize their calendars.
+    then:
+    - Every event contains the exact UTC DTSTAMP with Z suffix.
+    - Every start and end carries Asia/Shanghai TZID and preserves its intended local time.
+    test:
+      file: tests/unit/features/calendar/ical-export-contract.test.ts
+      name: ical.rfc5545-dtstamp-utc
 - id: ical.bounded-multi-section-export
   category: validation
   rule: A multi-section iCalendar export accepts at most 50 unique positive Section IDs and rejects malformed
     or empty input before loading expanded section data.
-- id: ical.personal-feed-cache
-  category: consistency
-  rule: Private calendar exports may be cached server-side, but valid credential authorization is required
-    on every request before cached content or a 304 response is returned.
-  rationale: HTTP privacy is canonical in calendar.personal-feed-http-cache; server cache storage is not
-    permission to cache personal responses publicly.
+  acceptance:
+    given: Requests contain exactly 50 IDs, 51 unique IDs, empty input or malformed/nonpositive/unsafe
+      numbers.
+    when: The actual multi-section calendar route parses the requests.
+    then:
+    - Exactly 50 valid IDs reach calendar generation.
+    - Invalid and oversized input returns 400 before expanded section data loading.
+    test:
+      file: tests/unit/features/calendar/sections-calendar-route.test.ts
+      name: ical.bounded-multi-section-export
 - id: ical.static-json-resilient
   category: consistency
   rule: Unavailable or malformed optional location/image metadata does not prevent a valid iCalendar export
     or suppress its events.
-- id: ical.homework-description-rebuild
-  category: consistency
-  rule: An independent homework description edit requests export rebuilds for the same subscribed users
-    as a homework edit.
-- id: ical.description-retry-rebuild
-  category: consistency
-  rule: A successfully retried unchanged homework description edit still requests the affected calendar
-    export rebuilds.
+  acceptance:
+    given: Optional geographic, building image and room manifest fetches fail, return non-JSON or wrong
+      JSON shapes, alongside a valid-metadata control.
+    when: The actual single-section, multi-section and personal calendar factories load the metadata and
+      serialize their events.
+    then:
+    - All exports retain every expected schedule, exam and personal event.
+    - Invalid optional metadata omits coordinates and attachments without throwing; valid metadata still
+      adds both.
+    test:
+      file: tests/unit/features/calendar/ical-export-contract.test.ts
+      name: ical.static-json-resilient
 - id: ical.multi-section-canonical-set
   category: validation
   rule: Multi-section export IDs are deduplicated and sorted into a canonical URL before section relations
     are loaded; equivalent sets share a URL.
-- id: ical.feed-empty-calendar
-  category: behavior
-  rule: A valid personal feed with no current items returns a valid empty VCALENDAR so the calendar subscription
-    stays active.
-- id: ical.feed-etag
-  category: consistency
-  rule: An authorized personal feed supports conditional ETag requests; a revoked credential never receives
-    a cached 304 response.
+  acceptance:
+    given: A multi-section URL contains unordered and repeated positive IDs.
+    when: The actual REST route handles the URL.
+    then:
+    - It redirects to one sorted deduplicated URL before invoking expanded calendar data loading.
+    test:
+      file: tests/unit/features/calendar/sections-calendar-route.test.ts
+      name: ical.multi-section-canonical-set
 - id: ical.feed-telemetry-private
   category: privacy
   rule: Calendar cache telemetry never includes user IDs, feed credentials or token-bearing URLs.
@@ -74,6 +91,15 @@ requirements:
   category: consistency
   rule: A valid personal feed request with no usable cached export builds and returns its current export
     rather than an empty cache placeholder.
+  acceptance:
+    given: A real owner has a dated todo and the export cache is empty.
+    when: The actual feed route performs an authorized read.
+    then:
+    - The response is a 200 text/calendar containing the actual private item and VEVENT.
+    - An ETag is returned for the built export instead of an empty cache placeholder.
+    test:
+      file: tests/integration/calendar-feed-contract.test.ts
+      name: ical.feed-cold-miss
 capabilities:
   section-calendar-dialog:
     title: Section Calendar Dialog
@@ -157,3 +183,9 @@ rationale:
   stale retention window and a rebuild queue. The maximum acceptable freshness for deadline-driven changes
   remains a product decision; those storage details do not override per-request credential validation
   or HTTP privacy.
+- Empty Section, multi-Section and authorized personal calendar validity, including unchanged missing-target/authentication
+  errors, is canonically owned by cases.missing-data.ical-no-events-1.
+- Current authorization before personal cache reads and strong/weak/multiple ETag conditional responses
+  are canonically owned by calendar.feed-auth-before-cache.
+- Independent homework description writes and unchanged retries enqueue after-commit calendar rebuilds
+  under description.homework-calendar-invalidation.

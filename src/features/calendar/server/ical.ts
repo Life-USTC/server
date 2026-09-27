@@ -124,6 +124,7 @@ export async function createUserCalendar({
     calendar.createEvent({
       id: `young-${event.youngId}@life-ustc`,
       start: event.startAt,
+      timezone: APP_TIME_ZONE,
       ...(event.endAt && event.endAt > event.startAt
         ? { end: event.endAt }
         : {}),

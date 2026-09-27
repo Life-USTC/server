@@ -1,5 +1,9 @@
 import { createStaticJsonLoader } from "@/lib/static-json-loader";
-import type { GeoData, GeoLocation } from "./static-location-types";
+import {
+  type GeoData,
+  type GeoLocation,
+  geoDataSchema,
+} from "./static-location-types";
 
 const GEO_DATA_FILE = "geo_data.json";
 
@@ -7,9 +11,13 @@ const GEO_DATA_FILE = "geo_data.json";
  * Loads geographic data from the published static host.
  * Exported for batch operations that pre-load data once and do synchronous lookups.
  */
-export const loadGeoData = createStaticJsonLoader<GeoData>(GEO_DATA_FILE, {
-  locations: [],
-});
+export const loadGeoData = createStaticJsonLoader(
+  GEO_DATA_FILE,
+  geoDataSchema,
+  {
+    locations: [],
+  },
+);
 
 function normalizeGeoLocationName(location: GeoLocation) {
   return location.name.toLowerCase();
