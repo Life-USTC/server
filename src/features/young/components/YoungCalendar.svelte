@@ -3,7 +3,6 @@ import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "$lib/components/ui/button";
 import * as Collapsible from "$lib/components/ui/collapsible";
-import * as Item from "$lib/components/ui/item/index.js";
 import {
   type YoungCalendarView,
   youngCalendarAgenda,
@@ -13,6 +12,7 @@ import {
   youngCalendarPreviousDate,
   youngCalendarRange,
   youngCalendarWeeks,
+  youngEventStartsOnDay,
 } from "../lib/young-calendar";
 import type {
   YoungEventSummary,
@@ -39,6 +39,7 @@ export let labels: {
   unknownDates: string;
   week: string;
   day: string;
+  moreEvents: string;
   sourceMissing: string;
 };
 export let hrefFor: (view: YoungCalendarView, date: string) => string = (
@@ -78,20 +79,42 @@ $: weeks = youngCalendarWeeks(
     }).format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
-    events: day.events.map((event) => ({
+    events: (view === "day"
+      ? day.events
+      : day.events.filter((event) =>
+          youngEventStartsOnDay(event, day.key, timeBasis),
+        )
+    ).map((event) => ({
       href: eventHref(event),
       label: event.name,
-      meta: formatTime(event),
+      meta: formatClock(event),
+      title: [
+        event.name,
+        formatTime(event),
+        event.location,
+        conflictIds.has(event.youngId) ? conflictLabel : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       badge: conflictIds.has(event.youngId) ? conflictLabel : undefined,
-      detail: event.sourceMissing
-        ? `${event.location ?? ""}${event.location ? " · " : ""}${labels.sourceMissing}`
-        : (event.location ?? ""),
       tone: event.sourceMissing ? ("neutral" as const) : ("primary" as const),
     })),
   })),
 }));
 $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
+
+function formatClock(event: YoungEventSummary) {
+  const start =
+    timeBasis === "registration" ? event.applyStartAt : event.startAt;
+  if (!start) return "";
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "Asia/Shanghai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(start));
+}
 
 function formatTime(event: YoungEventSummary) {
   const start =
@@ -102,6 +125,7 @@ function formatTime(event: YoungEventSummary) {
     timeZone: "Asia/Shanghai",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
   return `${start ? formatter.format(new Date(start)) : "?"} – ${end ? formatter.format(new Date(end)) : "?"}`;
 }
@@ -119,35 +143,40 @@ function eventMeta(event: YoungEventSummary) {
 
 {#snippet agendaRows(agendaDays: typeof days)}
       {#each agendaDays as day}
+        {@const visible = view === "day" ? day.events : day.events.filter((event) => youngEventStartsOnDay(event, day.key, timeBasis))}
+        {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
         <section aria-labelledby={`young-agenda-${day.key}`} class="grid gap-2">
           <h3 id={`young-agenda-${day.key}`} class="text-sm font-medium">
-            {new Intl.DateTimeFormat(locale, {
-              timeZone: "Asia/Shanghai",
-              weekday: "long",
-              month: "short",
-              day: "numeric",
-            }).format(day.date)}
+            <a class="hover:underline" href={hrefFor("day", day.key)}>
+              {new Intl.DateTimeFormat(locale, {
+                timeZone: "Asia/Shanghai",
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              }).format(day.date)}
+            </a>
             {#if day.isToday}<Badge variant="secondary">{labels.today}</Badge>{/if}
           </h3>
-          {#if day.events.length > 0}
-            <Item.Group class="grid gap-2">
-              {#each day.events as event (event.youngId)}
-                <Item.Root size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
-                  {#snippet child({ props })}
-                    <a href={eventHref(event)} {...props}>
-                      <Item.Content>
-                        <Item.Title>{event.name}</Item.Title>
-                        <Item.Description>{eventMeta(event)}</Item.Description>
-                        {#if event.sourceMissing}
-                          <Item.Description>{labels.sourceMissing}</Item.Description>
-                        {/if}
-                      </Item.Content>
-                    </a>
-                  {/snippet}
-                </Item.Root>
+          {#if visible.length > 0}
+            <ul class="divide-y">
+              {#each visible.slice(0, limit) as event (event.youngId)}
+                <li>
+                  <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 py-2 text-sm hover:bg-muted/60" href={eventHref(event)}>
+                    <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
+                    <span class="min-w-0">
+                      <span class="block truncate font-medium">{event.name}</span>
+                      {#if event.location || event.sourceMissing}
+                        <span class="block truncate text-muted-foreground text-xs">{[event.location, event.sourceMissing ? labels.sourceMissing : null].filter(Boolean).join(" · ")}</span>
+                      {/if}
+                    </span>
+                  </a>
+                </li>
               {/each}
-            </Item.Group>
-          {:else}
+            </ul>
+            {#if visible.length > limit}
+              <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
+            {/if}
+          {:else if view === "day"}
             <p class="text-sm text-muted-foreground">{labels.empty}</p>
           {/if}
         </section>
@@ -193,10 +222,12 @@ function eventMeta(event: YoungEventSummary) {
             }).format(day.date)}
           </div>
           {#each day.events as event (event.youngId)}
-            <a class="rounded-lg border p-3 hover:bg-muted" href={eventHref(event)}>
-              <div class="font-medium">{event.name}</div>
-              <div class="text-muted-foreground text-sm">{eventMeta(event)}</div>
-              {#if event.sourceMissing}<div class="text-muted-foreground text-xs">{labels.sourceMissing}</div>{/if}
+            <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
+              <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
+              <span class="min-w-0">
+                <span class="block font-medium">{event.name}</span>
+                <span class="block truncate text-muted-foreground text-xs">{[eventMeta(event), event.sourceMissing ? labels.sourceMissing : null].filter(Boolean).join(" · ")}</span>
+              </span>
             </a>
           {:else}
             <p class="text-sm text-muted-foreground">{labels.empty}</p>
@@ -207,9 +238,10 @@ function eventMeta(event: YoungEventSummary) {
       {/if}
     {:else}
       <CalendarGrid
-        emptyLabel={labels.empty}
-        eventLimit={view === "week" ? 8 : 5}
-        moreLabel={(count) => `+${count}`}
+        density="lines"
+        emptyLabel=""
+        eventLimit={view === "week" ? 6 : 3}
+        moreLabel={(count) => labels.moreEvents.replace("{count}", String(count))}
         minWidth="760px"
         {weeks}
         variant={view === "week" ? "week" : "month"}

@@ -30,6 +30,28 @@ function eventTimes(event: YoungEventSummary, timeBasis: YoungEventTimeBasis) {
     : { startAt: event.startAt, endAt: event.endAt };
 }
 
+export function youngEventStartsOnDay(
+  event: YoungEventSummary,
+  key: string,
+  timeBasis: YoungEventTimeBasis = "activity",
+) {
+  const start = dayStart(key).toDate().getTime();
+  const end = dayStart(key).endOf("day").toDate().getTime();
+  return startsOnDay(event, start, end, timeBasis);
+}
+
+function startsOnDay(
+  event: YoungEventSummary,
+  dayStartMs: number,
+  dayEnd: number,
+  timeBasis: YoungEventTimeBasis,
+) {
+  const startAt = eventTimes(event, timeBasis).startAt;
+  if (!startAt) return false;
+  const eventStart = new Date(startAt).getTime();
+  return eventStart >= dayStartMs && eventStart <= dayEnd;
+}
+
 function dayKey(input: Date) {
   return formatShanghaiDate(input);
 }
@@ -112,12 +134,20 @@ export function youngCalendarDays(
             (eventStart === eventEnd && eventStart === dayStartMs))
         );
       })
-      .sort(
-        (left, right) =>
+      .sort((left, right) => {
+        const leftStarts = startsOnDay(left, dayStartMs, dayEnd, timeBasis)
+          ? 0
+          : 1;
+        const rightStarts = startsOnDay(right, dayStartMs, dayEnd, timeBasis)
+          ? 0
+          : 1;
+        if (leftStarts !== rightStarts) return leftStarts - rightStarts;
+        return (
           (eventTimes(left, timeBasis).startAt ?? "").localeCompare(
             eventTimes(right, timeBasis).startAt ?? "",
-          ) || left.youngId.localeCompare(right.youngId),
-      );
+          ) || left.youngId.localeCompare(right.youngId)
+        );
+      });
     days.push({
       key,
       date,

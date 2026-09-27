@@ -108,7 +108,18 @@ requirements:
 - id: young-event.web-detail-priority
   category: presentation
   rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
-    poster, statistics and record metadata are expandable.
+    poster, statistics and record metadata are expandable. The poster and description images stay inside
+    a bounded frame; the poster link opens the full picture.
+- id: young-event.web-list-scan
+  category: presentation
+  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of
+    place, module, level, hours and signup deadline, and the signup status. It does not repeat the full
+    signup window or occupancy on every row.
+- id: young-event.web-calendar-density
+  category: presentation
+  rule: Month and week grids show a few single-line entries for events that start that day. Events that
+    only continue into the day stay in the day view, which lists events that start that day first.
+    Further events open the day view.
 - id: young-event.web-mobile-calendar
   category: presentation
   rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;

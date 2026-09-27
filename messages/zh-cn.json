@@ -2791,6 +2791,7 @@
     "day": "日",
     "week": "周",
     "month": "月",
+    "moreEvents": "还有 {count} 场",
     "agenda": "活动日历导航",
     "today": "今天",
     "previous": "上一页",

@@ -257,7 +257,11 @@ const places = $derived(
   {#if event.imageUrl}
     <Collapsible.Root class="grid gap-3">
       <Collapsible.Trigger class={buttonVariants({ variant: "ghost", class: "justify-self-start" })}>{youngCopy.poster}</Collapsible.Trigger>
-      <Collapsible.Content><img alt={event.name} class="max-h-96 w-full rounded-lg object-contain" src={event.imageUrl} /></Collapsible.Content>
+      <Collapsible.Content>
+        <a class="inline-flex max-w-full" href={event.imageUrl} rel="noreferrer noopener" target="_blank">
+          <img alt={event.name} class="max-h-72 w-auto max-w-full rounded-lg bg-muted object-contain" src={event.imageUrl} />
+        </a>
+      </Collapsible.Content>
     </Collapsible.Root>
   {/if}
   {#if event.description}
@@ -265,7 +269,9 @@ const places = $derived(
       {#snippet header()}
         <h2 class="text-lg font-semibold tracking-tight">{youngCopy.sectionDescription}</h2>
       {/snippet}
-      <RenderedMarkdown html={event.description} />
+      <div class="young-event-copy">
+        <RenderedMarkdown html={event.description} />
+      </div>
     </Panel>
   {/if}
   {#if event.participationNotes}
@@ -273,7 +279,9 @@ const places = $derived(
       {#snippet header()}
         <h2 class="text-lg font-semibold tracking-tight">{youngCopy.sectionNotes}</h2>
       {/snippet}
-      <RenderedMarkdown html={event.participationNotes} />
+      <div class="young-event-copy">
+        <RenderedMarkdown html={event.participationNotes} />
+      </div>
     </Panel>
   {/if}
   {#if peopleFields.length || recordFields.length}
@@ -376,3 +384,16 @@ const places = $derived(
     </p>
   {/snippet}
 </CollectionPage>
+
+<style>
+  .young-event-copy :global(img) {
+    background: var(--muted);
+    display: block;
+    height: auto !important;
+    margin: 0.75rem auto;
+    max-height: 18rem;
+    max-width: min(100%, 24rem);
+    object-fit: contain;
+    width: auto !important;
+  }
+</style>

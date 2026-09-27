@@ -9,7 +9,7 @@
  * ## UI/UX Elements
  * - Search input (searchbox) with submit and clear buttons
  * - Signup status and category selects (native comboboxes)
- * - Desktop table / mobile item list with links to /catalog/young-events/{youngId}
+ * - Date-grouped rows with links to /catalog/young-events/{youngId}
  * - URL-driven pagination
  * - Empty state when no events match
  *
@@ -315,7 +315,9 @@ for (const width of [1280, 390]) {
       );
       const root = page.getByTestId("young-calendar");
       if (width > 700)
-        await root.getByRole("link", { name: "+101", exact: true }).click();
+        await root
+          .getByRole("link", { name: /^(?:还有 103 场|103 more)$/ })
+          .click();
       else await root.getByRole("link", { name: /^(日|Day)$/ }).click();
       await expect(page).toHaveURL(/view=day/);
       await expect(

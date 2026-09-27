@@ -1123,6 +1123,7 @@
     "day": "Day",
     "week": "Week",
     "month": "Month",
+    "moreEvents": "{count} more",
     "agenda": "Event calendar navigation",
     "today": "Today",
     "previous": "Previous",

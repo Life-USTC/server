@@ -7,6 +7,7 @@ import {
   youngCalendarNextDate,
   youngCalendarPreviousDate,
   youngCalendarRange,
+  youngEventStartsOnDay,
 } from "@/features/young/lib/young-calendar";
 import type { YoungEventSummary } from "@/features/young/server/young-event-service";
 
@@ -114,9 +115,9 @@ describe("Young calendar", () => {
     );
     expect(days).toHaveLength(1);
     expect(days[0]?.events.map(({ youngId }) => youngId)).toEqual([
-      "before",
       "missing-end",
       "after",
+      "before",
     ]);
     expect(days[0]?.isToday).toBe(true);
   });
@@ -138,6 +139,22 @@ describe("Young calendar", () => {
       "midnight-end",
     ]);
     expect(days[1]?.events).toEqual([]);
+  });
+
+  it("treats only the Shanghai start date as the day an event begins", () => {
+    const ongoing = event(
+      "ongoing",
+      "2026-09-01T00:00:00+08:00",
+      "2026-09-30T23:00:00+08:00",
+    );
+    const starting = event(
+      "starting",
+      "2026-09-27T08:00:00+08:00",
+      "2026-09-27T10:00:00+08:00",
+    );
+    expect(youngEventStartsOnDay(ongoing, "2026-09-01")).toBe(true);
+    expect(youngEventStartsOnDay(ongoing, "2026-09-27")).toBe(false);
+    expect(youngEventStartsOnDay(starting, "2026-09-27")).toBe(true);
   });
 
   it("marks the days outside the anchor month as muted", () => {
