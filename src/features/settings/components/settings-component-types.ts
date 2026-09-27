@@ -131,6 +131,7 @@ export type SettingsCopy = {
       title: string;
     };
     passkeys: {
+      createdAt: string;
       add: string;
       added: string;
       adding: string;

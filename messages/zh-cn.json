@@ -1041,6 +1041,7 @@
     "recentAuthRequired": "为保护账户安全，请先退出并重新登录后再执行此操作。",
     "workspaceBadge": "账户工作区",
     "passkeys": {
+      "createdAt": "创建时间",
       "title": "通行密钥",
       "description": "使用设备解锁方式安全登录，无需输入密码。",
       "name": "通行密钥名称",

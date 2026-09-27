@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Passkey } from "@better-auth/passkey";
+import type { AppLocale } from "@/i18n/config";
 import { invalidateAll } from "$app/navigation";
 import {
   passkeyAuthClient,
@@ -18,6 +19,7 @@ type Status = {
 };
 
 export let copy: SettingsCopy;
+export let locale: AppLocale;
 export let passkey: Passkey;
 export let reportStatus: (status: Status) => void;
 export let onSuccess: (message: string) => void = () => {};
@@ -29,6 +31,12 @@ let saving = false;
 
 $: displayName = passkey.name?.trim() || copy.settings.passkeys.unnamed;
 $: hasNameChange = name.trim().length > 0 && name.trim() !== displayName;
+$: createdAt = new Date(passkey.createdAt);
+$: createdAtLabel = new Intl.DateTimeFormat(locale, {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
+}).format(createdAt);
 
 function errorMessage(error: unknown) {
   const kind = passkeyClientErrorKind(error);
@@ -120,6 +128,10 @@ async function deletePasskey() {
         </InputGroup.Button>
       </InputGroup.Addon>
     </InputGroup.Root>
+    <Item.Description>
+      {copy.settings.passkeys.createdAt}:
+      <time datetime={createdAt.toISOString()}>{createdAtLabel}</time>
+    </Item.Description>
   </Item.Content>
   <Item.Actions>
     <Button

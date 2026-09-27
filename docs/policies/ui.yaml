@@ -580,6 +580,27 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
       name: ui.model-property-priority-catalog-views
+- id: ui.model-property-priority-account-views
+  category: presentation
+  topic: model-property-priority
+  rule: Every declared account Web field view visibly presents its primary identity or editable value,
+    renders declared secondary metadata with subordinate emphasis, and keeps internal grant, event and
+    credential identifiers out of ordinary content.
+  rationale: Account forms prioritize editable names and identifiers; consent screens prioritize the requesting
+    application and permissions. Passkey creation time helps distinguish credentials with similar names.
+    Device entry and approval are interface stages, while the result reports the authorization outcome.
+  acceptance:
+    given: Isolated profile, sign-in identity, passkey, security event, application grant and real grant usage
+      records plus clients supporting authorization-code and device flows.
+    when: Exercise all thirteen account field views in English and Chinese at desktop and mobile widths,
+      including welcome, profile/settings, consent, device authorization and client registration.
+    then:
+    - Each declared view and property is checked against visible text, editable values or actual avatar sources.
+    - Names, permissions and relevant status remain visible; secondary metadata is visually subordinate
+      and internal record identifiers do not appear as ordinary identifying content.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
+      name: ui.model-property-priority-account-views
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary

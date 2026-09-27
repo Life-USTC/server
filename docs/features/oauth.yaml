@@ -10,6 +10,11 @@ policy_refs:
 - ui
 - permission-ui
 - rendering-and-cache
+rationale:
+- Device code entry and approval are interface stages, not stored device status values. Their headings and
+  instructions orient the user; only the result view presents the actual authorization outcome as device.status.
+- Authorized application identity and permissions support the decision to retain or revoke access. Recent usage
+  counts support that decision as secondary metadata and must not visually dominate the application name.
 access:
   anon: When accessing the authorization page, will first be guided to sign in.
   user: Can only approve or reject third-party client authorization requests.
@@ -917,8 +922,7 @@ capabilities:
         web-code:
           primary:
           - device.userCode
-          secondary:
-          - device.status
+          secondary: []
           tertiary: []
         web-approval:
           primary:
@@ -926,7 +930,6 @@ capabilities:
           - scopes.name
           secondary:
           - resources.name
-          - device.status
           tertiary: []
         web-result:
           primary:

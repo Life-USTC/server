@@ -196,6 +196,7 @@ onMount(() => {
           accountAction={accountAction}
           accounts={data.accounts}
           {copy}
+          locale={data.locale}
           hasPendingAccountAction={_hasPendingAccountAction}
           isMounted={_isMounted}
           pendingAccountAction={_pendingAccountAction}

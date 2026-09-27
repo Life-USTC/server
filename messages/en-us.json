@@ -1391,6 +1391,7 @@
     "recentAuthRequired": "For account security, sign out and sign in again before performing this action.",
     "workspaceBadge": "Account workspace",
     "passkeys": {
+      "createdAt": "Created",
       "title": "Passkeys",
       "description": "Sign in securely with your device unlock instead of a password.",
       "name": "Passkey name",
