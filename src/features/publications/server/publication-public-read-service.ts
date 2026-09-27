@@ -637,7 +637,6 @@ async function findAlsoPublishedIn(record: {
       source: { select: { id: true, name: true, organizationLevel: true } },
     },
     orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
-    take: 20,
   });
 
   return siblings.map(

@@ -40,6 +40,19 @@ requirements:
     observed copy, then the lowest ID.
   rationale: Title-and-day folding is a discovery heuristic, not proof that two sources published identical
     content. Changing the default or equivalence criteria requires a product decision.
+  acceptance:
+    given: Eight real ingested rows spanning three reprint groups, a Shanghai-midnight boundary, and a
+      singleton.
+    when: Read default lists, explicitly folded lists, paginated folded lists, and a source-filtered folded
+      list.
+    then:
+    - Default lists return all rows without foldGroup.
+    - Folded representatives prefer university, then latest observation, then lowest ID; equal titles
+      on different Shanghai days remain separate.
+    - Totals and pages count groups, and source filtering happens before representative selection.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.reprint-folding
 - id: publications.reprint-fold-title-normalization
   category: consistency
   rule: 'Reprint grouping uses the persisted Postgres-generated title key: NFKC normalization, configured
@@ -64,6 +77,17 @@ requirements:
     never includes foldGroup. Independent of fold, the detail response always includes alsoPublishedIn,
     the sibling reprints sharing the same normalized title and published date, so a detail page can cross-link
     the other sections.
+  acceptance:
+    given: Twenty-three ingested same-title/day reprints and one same-title publication on a different
+      day.
+    when: Read folded and unfolded lists and independent detail responses.
+    then:
+    - Only folded groups with multiple members expose siblingCount, excluding the representative itself.
+    - The detail includes all twenty-two other same-title/day siblings with source links and excludes
+      itself and the different-day publication; singleton detail has an empty array.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.reprint-sibling-exposure
 - id: publications.public-object-read
   category: authorization
   rule: Object reads require a verified or linked object associated with the current non-tombstone revision
@@ -168,6 +192,20 @@ requirements:
     distinct nullable revision fields. Per-revision image metadata (altText/title/caption) and attachment
     filename/sourceUrl are retained separately from shared URL/hash object identities and participate
     in replay equality, together with object order and revision-specific media metadata.
+  acceptance:
+    given: An ingested revision with structured attribution, attachment metadata, and exact URL-hash image
+      metadata.
+    when: Replay unchanged and modified same-hash revisions, then ingest a new revision and the same URL
+      under another source.
+    then:
+    - Same source/URL reuses the publication and same revision hash reuses immutable revision identity.
+    - Changes to attribution, image alt/title/caption, attachment filename/source URL/alt text, or object
+      sort order reject under the old hash without rewriting stored data.
+    - New revisions retain separate metadata while reusing the shared object and image identities; another
+      source produces another publication.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.identity
 - id: publications.revision-ordering
   category: consistency
   rule: observedAt is the source observation time. An older observation never overwrites the current revision;
@@ -283,6 +321,19 @@ requirements:
   rule: Accepted revisions write a durable PublicationEventOutbox row in the same transaction. A future
     Queue consumer may derive work from this outbox; the ingestion path does not claim delivery until
     a real publisher exists.
+  acceptance:
+    given: An accepted revision and a fixture-specific database constraint that can reject its next outbox
+      event.
+    when: Verify the accepted event and replay, then fail the final outbox write during both new-publication
+      ingestion and existing-publication updates.
+    then:
+    - The event has the exact revision-bound identity and payload, starts unpublished with zero attempts,
+      and replay does not duplicate it.
+    - Outbox failure rolls back source/run/batch/publication/revision writes and leaves prior publication
+      and outbox state unchanged.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.outbox
 - id: publications.content-type
   category: validation
   rule: The first accepted content type for an object kind and SHA-256 is canonical. Later equivalent
@@ -327,6 +378,18 @@ requirements:
     so ingestion normalizes an unrecognized or absent level to unknown instead of rejecting the batch.
     The directory lists enabled, non-discovery-only sources, including one that has published nothing
     yet.
+  acceptance:
+    given: Sources ingested with every known organization level plus an unrecognized or absent level,
+      including enabled sources with no publications.
+    when: Read the actual source directory and filter options after disabling one source and marking another
+      discovery-only.
+    then:
+    - Known levels normalize case and whitespace; unknown and absent levels persist as unknown.
+    - Only enabled non-discovery sources appear, including empty sources with zero counts and null lastPublishedAt.
+    - Groups follow the declared enum order and public projections omit crawler-private fields.
+    test:
+      file: tests/integration/publication-persistence-contracts.test.ts
+      name: publications.source-registry
 - id: publications.object-size-limit
   category: validation
   rule: Each object manifest declares at most 32 MiB of object bytes. The bound is inclusive and is separate
