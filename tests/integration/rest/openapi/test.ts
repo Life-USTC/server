@@ -51,7 +51,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(
       body.paths?.["/.well-known/openid-configuration/api/auth"]?.get,
     ).toBeTruthy();
-    expect(body.paths?.["/.well-known/openid-configuration"]?.get).toBeTruthy();
+    expect(
+      body.paths?.["/.well-known/oauth-authorization-server/api/auth"]?.get,
+    ).toBeTruthy();
+    expect(body.paths?.["/.well-known/openid-configuration"]).toBeUndefined();
   });
 
   test("规范暴露生成客户端所需的具体 schema", async ({ request }) => {

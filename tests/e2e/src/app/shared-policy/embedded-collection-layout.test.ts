@@ -244,25 +244,29 @@ test("ui.list-table-6", async ({ page, baseURL }) => {
     await expect(
       page.getByRole("button", { name: "Hide full timetable", exact: true }),
     ).toBeVisible();
-    const busTables = page.getByTestId("bus-route-section").locator("table");
-    await expect(busTables.first().locator("tbody tr").first()).toBeVisible();
-    const mobileColumns = await busTables.evaluateAll((tables) =>
-      tables.map((table) =>
-        Array.from(table.querySelectorAll("thead th")).map((cell) =>
+    const busGroups = page.getByTestId("bus-route-section");
+    await expect(busGroups.first().locator("tr:has(td)").first()).toBeVisible();
+    const mobileColumns = await busGroups.evaluateAll((groups) =>
+      groups.map((group) =>
+        Array.from(group.querySelectorAll('th[scope="col"]')).map((cell) =>
           cell.textContent?.trim(),
         ),
       ),
     );
-    for (const table of await busTables.all()) {
-      const count = await table.locator("thead th").count();
+    for (const group of await busGroups.all()) {
+      const columns = group.locator('th[scope="col"]');
+      const count = await columns.count();
       expect(count).toBeGreaterThanOrEqual(2);
-      for (const row of await table.locator("tbody tr").all())
+      const rows = group.locator("tr:has(td)");
+      await expect(rows.first()).toBeVisible();
+      for (const row of await rows.all())
         await expect(row.locator("td")).toHaveCount(count);
+      const table = group.locator("xpath=ancestor::table");
       const container = table.locator("xpath=..");
       await container.evaluate((node) => {
         node.scrollLeft = node.scrollWidth;
       });
-      const last = await table.locator("thead th").last().boundingBox();
+      const last = await columns.last().boundingBox();
       const bounds = await container.boundingBox();
       if (!last || !bounds) throw new Error("Missing bus scroll bounds");
       expect(last.x + last.width).toBeLessThanOrEqual(
@@ -273,9 +277,9 @@ test("ui.list-table-6", async ({ page, baseURL }) => {
     await expectNoPageHorizontalOverflow(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     expect(
-      await busTables.evaluateAll((tables) =>
-        tables.map((table) =>
-          Array.from(table.querySelectorAll("thead th")).map((cell) =>
+      await busGroups.evaluateAll((groups) =>
+        groups.map((group) =>
+          Array.from(group.querySelectorAll('th[scope="col"]')).map((cell) =>
             cell.textContent?.trim(),
           ),
         ),
