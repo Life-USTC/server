@@ -27,10 +27,28 @@ requirements:
   category: authorization
   rule: Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn,
     so sign-in is not a prerequisite for browsing.
+  acceptance:
+    given: An anonymous browser opens an imported activity.
+    when: The actual detail page renders and the viewer returns to the public catalog.
+    then:
+    - Activity facts and public navigation are available without sign-in.
+    - Official registration links to young.ustc.edu.cn.
+    test:
+      file: tests/e2e/src/app/young-events/[youngId]/test.ts
+      name: young-event.public-no-signin
 - id: young-event.static-snapshot-sourced
   category: behavior
   rule: Catalog activity reads use the imported static snapshot and do not require request-time access
     to authenticated Young APIs. Image retrieval is handled separately through the public image proxy.
+  acceptance:
+    given: An activity has been imported into PostgreSQL and no source data is cached.
+    when: All network fetches are denied while anonymous REST/GraphQL/MCP detail operations execute.
+    then:
+    - Every operation still returns the persisted event.
+    - No upstream network request is attempted.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.static-snapshot-sourced
 - id: young-event.snapshot-authoritative
   category: consistency
   rule: A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It
@@ -74,17 +92,51 @@ requirements:
     of personal eligibility. Activity contact fields identify the published event contact only; they must
     not reveal a viewer''s contact details, account links or personal participation state. rawJson is
     data; only separately sanitized description and participationNotes may be rendered as rich text.'
+  acceptance:
+    given: An upstream activity contains rich text, module/level/form labels, source sponsor/contact,
+      hour and attendance counters, and nested venue subtables.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Raw source fields and reconstructed itemPlaceDTO are retained exactly (GraphQL uses a JSON string).
+    - Curated public activity facts and venue slots retain their values without adding viewer/account/participation
+      state.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.raw-payload-preserved
 - id: young-event.rich-text-sanitized
   category: validation
   rule: 'Every public interface sanitizes description and participationNotes before exposing renderable
     rich text: scripts, iframes and event handlers are removed, and young.ustc.edu.cn image URLs use the
     local image proxy.'
+  acceptance:
+    given: The imported description and participation notes contain script/iframe tags, event handlers
+      and a Young image.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Both rendered HTML fields remove executable tags and event handlers.
+    - Benign text remains and Young image URLs point to the local proxy.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.rich-text-sanitized
 - id: young-event.signup-state
   category: behavior
   rule: The upstream activity status label and code (status, activityStatusCode) are distinct from the
     signup phase code (signupStatusCode). requiresSignup reflects the upstream needApply flag. isActive
     identifies the source list and alone does not guarantee that registration is currently possible. The
     empty upstream registrationStatus key remains only in rawJson.
+  acceptance:
+    given: A source-active activity has different activity/signup codes, needApply=0 and an empty legacy
+      registrationStatus field.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Activity label/code, signup code and requiresSignup remain distinct even on a source-active record.
+    - The legacy registrationStatus exists only in rawJson.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.signup-state
 - id: young-event.image-proxy-cached
   category: consistency
   rule: Public Young image responses use the local proxy. Immutable cache entries must identify the poster
@@ -94,6 +146,16 @@ requirements:
   category: consistency
   rule: Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only
     range boundaries use Asia/Shanghai day boundaries.
+  acceptance:
+    given: Upstream activity times are timezone-less Shanghai local text.
+    when: The actual importer and all public transports return timestamps, then the catalog reads date-only
+      day ranges.
+    then:
+    - Returned instants carry the matching +08:00 local time.
+    - The matching Shanghai day includes the event and the previous day excludes it.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.shanghai-local-times
 - id: young-event.date-range-overlap
   category: consistency
   rule: Activity and registration date-range searches use the selected time basis and include intervals
