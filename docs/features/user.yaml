@@ -401,11 +401,39 @@ requirements:
     test:
       file: tests/e2e/src/app/account-policy/calendar-rotation.test.ts
       name: user.calendar-rotation-recent-auth
+- id: user.sign-in-identities-separate
+  category: presentation
+  rule: Settings separates linked sign-in identities on the Accounts page from delegated OAuth grants on
+    Authorized apps. Identity rows use connection controls; application rows use grant revocation controls.
+  acceptance:
+    given: An isolated user has a linked GitHub identity and a separate delegated application grant.
+    when: The browser opens Accounts and follows the Authorized apps tab.
+    then:
+    - Accounts shows the connected GitHub identity with a disconnect control and no application grant row.
+    - Authorized apps shows the granted client with a revoke control and no identity connection controls.
+    - Navigation preserves both the identity and grant records.
+    test:
+      file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
+      name: user.sign-in-identities-separate
 - id: user.oauth-authorization-management
-  category: behavior
-  rule: Settings presents linked sign-in identities separately from delegated application grants. Authorized-application
-    entries show safe client metadata and content-free 30-day usage; only the owning user may revoke a
-    grant. Explicit client trust does not follow from its display name or domain.
+  category: presentation
+  rule: Authorized application entries display escaped client name, client URI, granted permissions and
+    content-free usage totals for the current grant over the last 30 Shanghai calendar days, plus the
+    latest channel and feature. Visible content excludes client secrets, redirect URIs, session credentials,
+    internal grant/client identifiers and request metadata.
+  rationale: Grant mutation ownership is owned by oauth.authorization-reduction-ownership; explicit trust is owned
+    by oauth.trusted-clients-admin-backend. These controls apply independently of a client's displayed name or domain.
+  acceptance:
+    given: An isolated owner's grant has an HTML-like client name, private client metadata, current usage,
+      a row on the inclusive 30-day boundary, an older row and a previous-generation row.
+    when: Desktop and mobile browsers render Authorized apps.
+    then:
+    - The client name remains escaped text and the URI is displayed.
+    - Read, write and error counts include exactly the current grant's 30-day rows; latest channel and feature are labeled.
+    - No private metadata, credential, redirect URI or internal grant/client identifier appears in visible page content.
+    test:
+      file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
+      name: user.oauth-authorization-management
 - id: user.account-security-activity
   category: presentation
   rule: The session-only /account/settings/security page lists the owning user's sensitive account events
