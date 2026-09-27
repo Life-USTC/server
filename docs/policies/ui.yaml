@@ -330,6 +330,16 @@ requirements:
   category: presentation
   topic: detail-two-column-stream
   rule: Hash anchors scroll in-page.
+  acceptance:
+    given: Isolated course, teacher and section descriptions contain a rendered Markdown fragment link
+      to their discussion section below a long reading stream.
+    when: Mobile and desktop browsers click the actual rendered link.
+    then:
+    - The URL retains its route and gains the discussion fragment without a document or page-data navigation.
+    - The existing page or detail scroll container moves to the discussion target and brings it into the viewport.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-two-column-stream-7
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority

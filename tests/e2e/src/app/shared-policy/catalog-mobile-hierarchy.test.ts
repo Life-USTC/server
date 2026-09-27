@@ -131,6 +131,74 @@ function required(value: string | null) {
   return value;
 }
 
+test("ui.detail-two-column-stream-7", async ({ page }) => {
+  const fixture = await createFixture();
+  try {
+    await withE2ePrisma((db) =>
+      db.description.updateMany({
+        where: { lastEditedById: fixture.user.id },
+        data: {
+          content: `[Jump to discussion](#comments)\n\n${Array.from({ length: 35 }, (_, index) => `Reading paragraph ${index + 1}: public detail context remains in the same continuous reading stream.`).join("\n\n")}`,
+        },
+      }),
+    );
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const path of [
+        `/catalog/courses/${fixture.course.jwId}`,
+        `/catalog/teachers/${fixture.teacher.id}`,
+        `/catalog/sections/${fixture.section.jwId}`,
+      ]) {
+        await gotoAndWaitForReady(page, path);
+        const link = page
+          .locator("#introduction")
+          .getByRole("link", { name: "Jump to discussion", exact: true });
+        await expect(link).toHaveAttribute("href", "#comments");
+        const target = page.locator("#comments");
+        await expect(target).toHaveCount(1);
+        const before = await target.boundingBox();
+        expect(before?.y).toBeGreaterThan(844);
+        const scrollOffset = () =>
+          target.evaluate((element) => {
+            let offset = 0;
+            for (
+              let ancestor = element.parentElement;
+              ancestor;
+              ancestor = ancestor.parentElement
+            )
+              offset += ancestor.scrollTop;
+            return offset;
+          });
+        const initialScroll = await scrollOffset();
+        const navigation: string[] = [];
+        const observe = (request: import("@playwright/test").Request) => {
+          if (
+            request.isNavigationRequest() ||
+            new URL(request.url()).pathname.endsWith("/__data.json")
+          )
+            navigation.push(request.url());
+        };
+        page.on("request", observe);
+        await link.click();
+        await expect(page).toHaveURL(
+          `${new URL(path, page.url()).href}#comments`,
+        );
+        await expect
+          .poll(async () => {
+            const bounds = await target.boundingBox();
+            return bounds !== null && bounds.y >= 0 && bounds.y < 844;
+          })
+          .toBe(true);
+        expect(await scrollOffset()).toBeGreaterThan(initialScroll);
+        expect(navigation).toEqual([]);
+        page.off("request", observe);
+      }
+    }
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test("ui.detail-hero-4", async ({ page }) => {
   const fixture = await createFixture();
   const courseNames = {
