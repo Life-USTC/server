@@ -336,6 +336,15 @@ requirements:
   category: consistency
   rule: Viewer-independent route-search responses may be publicly cached only while their imported revision
     remains current.
+  acceptance:
+    given: The imported bus topology has a revision and route search has warmed its shared cache.
+    when: The actual public REST handler reads the same revision and then a newly imported revision.
+    then:
+    - Responses carry public CDN caching and the catalog cache tag without reading viewer preferences.
+    - The warm revision reuses its topology; a changed revision immediately reads the updated topology.
+    test:
+      file: tests/unit/features/bus/bus-timetable-data.test.ts
+      name: bus.route-search-public-cache
 - id: bus.stop-time-estimate-bounds
   category: consistency
   rule: Exact timetable stop times remain exact. A missing stop time is estimated by averaging the nearest

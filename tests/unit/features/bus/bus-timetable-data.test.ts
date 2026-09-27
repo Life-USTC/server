@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
 import { createDeferred } from "../../../shared/deferred";
 
@@ -85,6 +85,11 @@ const db = vi.hoisted(() => {
     oldVersion,
   };
 });
+
+vi.mock("@/lib/auth/api-auth", () => ({
+  resolveSessionUserId: vi.fn(),
+  requireAuth: vi.fn(),
+}));
 
 vi.mock("@/lib/site-url", () => ({
   getCanonicalOrigin: () => "https://life.example",
@@ -661,4 +666,53 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
     expect(versionLookupCount("expiry-a")).toBe(2);
   });
+});
+
+test("bus.route-search-public-cache", async () => {
+  const { getCatalogDetailCacheRevision } = await import(
+    "@/lib/catalog-detail-cache-revision"
+  );
+  const { getBusRoutesSearchRoute } = await import("@/lib/api/routes/bus");
+  const revision = vi.mocked(getCatalogDetailCacheRevision);
+  revision.mockResolvedValue("bus-revision-before");
+  const read = () =>
+    getBusRoutesSearchRoute(
+      new Request(
+        "https://life.example/api/catalog/bus/routes?versionKey=old-bus&originCampusId=1&destinationCampusId=2",
+      ),
+    );
+  try {
+    const first = await read();
+    expect(first.status).toBe(200);
+    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "public, max-age=3600, stale-while-revalidate=300",
+    );
+    expect(first.headers.get("Cache-Tag")).toBe("catalog");
+    const before = await first.json();
+    expect(before.routes[0].destinationCampus.namePrimary).toBe("西区");
+    const updated = structuredClone(db.oldPayload);
+    updated.campuses[1].name = "更新西区";
+    updated.routes[0].campuses[1].name = "更新西区";
+    db.busScheduleVersionFindUnique.mockImplementation(
+      async (args: unknown) => {
+        const where = (args as { where: { id?: number; key?: string } }).where;
+        return where.id === db.oldVersion.id
+          ? { rawJson: updated }
+          : { ...db.oldVersion, key: where.key };
+      },
+    );
+    const warm = await read();
+    expect(await warm.json()).toEqual(before);
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    revision.mockResolvedValue("bus-revision-after");
+    const after = await read();
+    expect(after.status).toBe(200);
+    expect((await after.json()).routes[0].destinationCampus.namePrimary).toBe(
+      "更新西区",
+    );
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(2);
+    expect(db.busPreferenceFindUnique).not.toHaveBeenCalled();
+  } finally {
+    revision.mockResolvedValue("test-revision");
+  }
 });
