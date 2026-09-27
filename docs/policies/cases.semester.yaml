@@ -54,10 +54,28 @@ requirements:
   category: behavior
   topic: cross-semester-browsing
   rule: Homework shown across semesters includes its section semester; missing semester data is labeled unknown.
+  acceptance:
+    given: An isolated user subscribes to sections in Spring 2026, Fall 2025, and no semester, each containing a published homework.
+    when: The browser selects All in workspace homework in both locales at desktop and mobile widths.
+    then:
+    - Every homework row or card displays its actual section semester.
+    - The missing-semester homework displays Unknown or 未知 without borrowing another section's term.
+    test:
+      file: tests/e2e/src/app/account-policy/task-semester-labels.test.ts
+      name: cases.semester.cross-semester-browsing-3
 - id: cases.semester.cross-semester-browsing-4
   category: behavior
   topic: cross-semester-browsing
   rule: Exams shown across semesters include their section semester; missing semester data is labeled unknown.
+  acceptance:
+    given: An isolated user subscribes to sections in Spring 2026, Fall 2025, and no semester, each containing a published written-exam fact.
+    when: The browser selects All in workspace exams in both locales at desktop and mobile widths.
+    then:
+    - Every exam row or card displays its actual section semester.
+    - The missing-semester exam displays Unknown or 未知 without borrowing another section's term.
+    test:
+      file: tests/e2e/src/app/account-policy/task-semester-labels.test.ts
+      name: cases.semester.cross-semester-browsing-4
 refs:
 - feature: overview
   capability: authenticated-overview

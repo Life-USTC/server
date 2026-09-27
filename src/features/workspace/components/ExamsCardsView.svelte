@@ -15,6 +15,7 @@ import type {
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let unknownSemesterLabel: string;
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
 export let hasExamRows: boolean;
@@ -50,7 +51,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
         >
           <span class="max-w-full break-words">
-            {exam.section.code ?? subscriptionsCopy.section}{#if exam.section.semester} · {namePrimary(exam.section.semester)}{/if}
+            {exam.section.code ?? subscriptionsCopy.section} · {namePrimary(exam.section.semester) || unknownSemesterLabel}
           </span>
           <span class="max-w-full break-words">
             {sectionCopy.examDate}: {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}

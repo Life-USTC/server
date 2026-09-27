@@ -9,11 +9,14 @@ import * as Table from "$lib/components/ui/table/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamsCopyProps,
+  NamePrimary,
   ExamTimeLabel,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let namePrimary: NamePrimary;
+export let unknownSemesterLabel: string;
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
 export let hasExamRows: boolean;
@@ -54,6 +57,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         </Table.Cell>
         <Table.Cell>
           {exam.section.code ?? subscriptionsCopy.section}
+          <span class="block text-muted-foreground text-sm">{namePrimary(exam.section.semester) || unknownSemesterLabel}</span>
         </Table.Cell>
         <Table.Cell>
           {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}

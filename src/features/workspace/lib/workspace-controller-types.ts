@@ -21,6 +21,7 @@ import type { MatchedSubscriptionSection } from "@/features/workspace/lib/subscr
 type WorkspaceRecord = Record<string, unknown>;
 
 export type WorkspaceCommonCopy = WorkspaceRecord & {
+  unknown: string;
   courses: string;
   next: string;
   previous: string;

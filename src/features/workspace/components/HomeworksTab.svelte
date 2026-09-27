@@ -133,6 +133,7 @@ $: ({
 
     <div class="md:hidden">
       <HomeworksCardsView
+        unknownSemesterLabel={commonCopy.unknown}
         {filteredHomeworkItems}
         {hasHomeworkItems}
         onClearFilter={clearHomeworkFilter}
@@ -150,6 +151,7 @@ $: ({
     </div>
     <div class="hidden min-w-0 overflow-x-auto md:block">
       <HomeworksListView
+        unknownSemesterLabel={commonCopy.unknown}
         {filteredHomeworkItems}
         {hasHomeworkItems}
         onClearFilter={clearHomeworkFilter}

@@ -70,6 +70,7 @@ function clearExamFilter() {
 
     <div class="md:hidden">
       <ExamsCardsView
+        unknownSemesterLabel={signedData.copy.common.unknown}
         {workspaceCopy}
         {workspaceTabHref}
         {examMetadataLabels}
@@ -85,6 +86,8 @@ function clearExamFilter() {
     </div>
     <div class="hidden min-w-0 overflow-x-auto md:block">
       <ExamsListView
+        unknownSemesterLabel={signedData.copy.common.unknown}
+        {namePrimary}
         {workspaceCopy}
         {workspaceTabHref}
         {examTimeLabel}

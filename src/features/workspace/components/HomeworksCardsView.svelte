@@ -18,6 +18,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
 export let onClearFilter: () => void;
@@ -82,6 +83,8 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               >
                 {homework.section?.courseName ?? homeworkCopy.section}
               </a>
+              <span aria-hidden="true">·</span>
+              <span class="max-w-full break-words">{homework.section?.semesterName ?? unknownSemesterLabel}</span>
               <span aria-hidden="true">·</span>
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span

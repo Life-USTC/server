@@ -20,6 +20,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
 export let hasHomeworkItems: boolean;
 export let onClearFilter: () => void;
@@ -75,6 +76,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
           >
             {homework.section?.courseName ?? homeworkCopy.section}
           </a>
+          <span class="block text-muted-foreground text-sm">{homework.section?.semesterName ?? unknownSemesterLabel}</span>
         </Table.Cell>
         <Table.Cell>
           <button
