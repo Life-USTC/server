@@ -190,3 +190,80 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
     });
   }
 });
+
+test("cases.semester.only-non-current-semester-subscriptions-1", async ({
+  page,
+}) => {
+  const marker = `past-term-${crypto.randomUUID()}`;
+  const user = await withE2ePrisma(async (db) => {
+    const user = await db.user.create({
+      data: {
+        name: "Past term user",
+        username: `pt${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
+        email: `${marker}@example.test`,
+      },
+    });
+    const section = await db.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.previousSection.jwId },
+    });
+    await db.userSectionSubscription.create({
+      data: { userId: user.id, sectionId: section.id },
+    });
+    return user;
+  });
+  try {
+    await page.context().addCookies([await createSignedSessionCookie(user.id)]);
+    for (const locale of ["en-us", "zh-cn"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/overview?snapshotAt=2026-04-29T08:00:00%2B08:00",
+      );
+      await expect(
+        page.getByRole("heading", {
+          name:
+            locale === "en-us"
+              ? "No current-term section subscriptions"
+              : "当前学期暂无教学班订阅",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(page.locator("#main-content")).toContainText(
+        locale === "en-us"
+          ? "You are only subscribed to past-term sections right now."
+          : "你目前只订阅了往期教学班。",
+      );
+      expect(await page.locator("#main-content").innerText()).not.toContain(
+        locale === "en-us"
+          ? "Current semester is unavailable."
+          : "暂无当前学期信息。",
+      );
+      await page
+        .getByRole("link", { name: /View Past Homework|查看往期作业/ })
+        .click();
+      const homework = page
+        .getByRole("row")
+        .filter({ hasText: DEV_SEED.homeworks.historicalTitle });
+      await expect(homework).toContainText(DEV_SEED.previousSemesterNameCn);
+      expect(await homework.innerText()).not.toContain(DEV_SEED.semesterNameCn);
+      await gotoAndWaitForReady(page, "/workspace/subscriptions");
+      await expect(page.locator("#main-content")).toContainText(
+        locale === "en-us" ? "Fall 2025" : DEV_SEED.previousSemesterNameCn,
+      );
+      await expect(
+        page.getByTestId("subscription-course-link").filter({ visible: true }),
+      ).toHaveCount(1);
+    }
+  } finally {
+    await withE2ePrisma(async (db) => {
+      await db.auditLog.deleteMany({ where: { userId: user.id } });
+      await db.user.delete({ where: { id: user.id } });
+    });
+  }
+});

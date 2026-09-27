@@ -36,6 +36,15 @@ requirements:
   topic: only-non-current-semester-subscriptions
   rule: When subscriptions exist only in other semesters, the workspace reports zero current-semester subscriptions
     and labels any historical work with its actual term instead of relabeling it current.
+  acceptance:
+    given: An isolated user subscribes only to a Fall 2025 section with historical homework while Spring 2026 is current at the explicit snapshot date.
+    when: The user opens the overview, historical homework, and section subscriptions in Chinese and English.
+    then:
+    - The overview reports no current-term subscriptions and explains the historical-only selection without claiming that current-semester data is unavailable.
+    - Historical homework retains its Fall 2025 label and the sole subscribed section remains in the Fall 2025 group.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.only-non-current-semester-subscriptions-1
 - id: cases.semester.only-non-current-semester-subscriptions-3
   category: behavior
   topic: only-non-current-semester-subscriptions
