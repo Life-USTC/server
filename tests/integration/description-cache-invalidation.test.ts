@@ -18,7 +18,7 @@ afterAll(async () => {
 });
 
 describe("description writes invalidate public representations", () => {
-  it("invalidates only after commit, retries unchanged writes, and covers moderation", async () => {
+  it("description.public-cache-invalidation", async () => {
     const marker = crypto.randomUUID();
     const user = await fixtures.user.create({
       data: {

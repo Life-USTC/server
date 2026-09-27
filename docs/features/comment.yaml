@@ -11,14 +11,6 @@ policy_refs:
 - rendering-and-cache
 - audit
 - cases.content-security
-access:
-  anon: Can read public comments but cannot create sign-in-required comments.
-  user: Can post, reply, react, edit, and delete their own comments; suspended users can read permitted
-    comments but cannot use comment write actions or upload comment attachments.
-  admin: Unsuspended admins can hide, delete, and moderate comments through moderation surfaces, and handle
-    suspensions.
-  agent: Can read visible comment lists, focused threads, and ordinary signed-in user comment write actions
-    through MCP with authenticated viewer context; no admin moderation capability is provided.
 requirements:
 - id: comment.attached-to-object
   category: behavior
@@ -33,38 +25,272 @@ requirements:
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
 - id: comment.server-rendered-markdown
   category: presentation
-  rule: Visible comment nodes include body as the source Markdown and renderedBody as sanitized server-rendered
-    HTML. Web read surfaces consume renderedBody without rerunning the Markdown pipeline during hydration;
-    REST and MCP full mode keep the shared serialized comment-node shape, while MCP compact modes omit
-    renderedBody to avoid repeating the source Markdown in AI context.
+  rule: Visible comment nodes retain source Markdown in body and provide sanitized server-rendered HTML
+    in renderedBody, including supported campus-reference links.
+  acceptance:
+    given: Markdown contains a campus reference and script markup.
+    when: The shared comment serializer builds the viewer projection.
+    then:
+    - Source Markdown is retained; rendered HTML contains the campus link and no executable script.
+    test:
+      file: tests/unit/features/comments/comment-serialization-permissions.test.ts
+      name: comment.server-rendered-markdown
 - id: comment.markdown-font-csp
   category: presentation
   rule: Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs
     so every required math glyph can load under the configured font-src Content Security Policy.
 - id: comment.visibility-modes
   category: authorization
-  rule: Comment audience and author anonymity are independent. public comments are readable anonymously;
-    logged_in_only comments require an authenticated viewer. isAnonymous hides author identity from ordinary
-    public and signed-in reads, including public contribution statistics. Only authorized administrator
-    governance reads may reveal the author for moderation.
+  rule: Public active comments are readable anonymously; logged_in_only comments require an authenticated
+    viewer. A softbanned comment is readable only by its author or an administrator; hidden ancestors
+    may appear only as privacy-inert structural placeholders.
+  acceptance:
+    given: Public, login-only, and differently owned softbanned roots coexist.
+    when: The production read model queries the restricted application database.
+    then:
+    - Anonymous reads exclude login-only and hidden root bodies.
+    - Signed-in owners see only their own softbanned comments; admins see all moderation states.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.visibility-modes
 - id: comment.shared-read-policy
   category: authorization
-  rule: Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility
-    filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must
-    not create durable comment targets and valid empty section-teacher targets load as empty threads.
+  rule: Web, REST, and MCP comment reads use the same target resolution, visibility filtering, author
+    masking, reactions, attachments, and viewer action projection.
 - id: comment.thread-pagination
   category: behavior
-  rule: Root/reply pages use viewer-safe createdAt/id order (hidden roots use earliest visible descendant
-    timestamp and root id). Each root has at most 10 preview descendants plus 20 ancestry levels. Missing
-    ancestors use privacy-inert isAncestryPlaceholder structural ids, preserving branches and one top-level
-    entry per root. repliesNextCursor is opaque; REST GET /api/community/comments/[id]/replies and MCP
-    community_comment_replies continue at most 20 descendants plus ancestry, preserving permissions/moderation.
+  rule: Root list pagination returns the exact viewer-visible root total independently of page size, including
+    one root for visible descendants under a hidden root.
+  acceptance:
+    given: Visible and hidden roots include a visible child under a hidden root.
+    when: The production read model queries the restricted application database.
+    then:
+    - The exact visible root total is two while the requested page contains one root.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-pagination
 - id: comment.interaction-gate
   category: authorization
   rule: Comment writes require an authenticated, unsuspended actor and an active visible target. Public
     editing and deletion additionally require ownership; replies and reactions do not confer ownership.
     Deleted or softbanned comments neither advertise nor accept ordinary edit, delete, reply, or reaction
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
+- id: comment.web-markdown-hydration
+  category: presentation
+  rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
+    during hydration.
+- id: comment.mcp-markdown-projection
+  category: presentation
+  rule: MCP full mode retains the shared serialized comment body and renderedBody. Compact modes omit
+    renderedBody while retaining source Markdown, including nested replies.
+- id: comment.anonymous-author-privacy
+  category: privacy
+  rule: Author anonymity is independent of audience. Anonymous comments conceal author identity in ordinary
+    public and signed-in reads, including public contribution statistics. Only authorized administrator
+    governance reads may reveal that identity.
+- id: comment.read-target-nonmutation
+  category: consistency
+  rule: Comment reads do not create durable targets. An existing section-teacher relationship without
+    a comment target loads as an empty thread.
+- id: comment.thread-ancestry-privacy
+  category: privacy
+  rule: Hidden or omitted ancestors preserve visible branches with one top-level entry per root. Their
+    isAncestryPlaceholder nodes contain no body, rendered HTML, author, attachments, reactions, or enabled
+    actions; status and visibility are inert public/active values.
+  acceptance:
+    given: Visible branches occur beneath both a hidden root and a hidden intermediate parent.
+    when: The production read model queries the restricted application database.
+    then:
+    - Each root occurs once and visible branches remain connected.
+    - Every hidden ancestor has an inert projection without content, identity, attachments, reactions,
+      or actions.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-ancestry-privacy
+- id: comment.thread-root-order
+  category: privacy
+  rule: Roots are ordered by viewer-safe createdAt and id. A hidden root takes its timestamp from its
+    earliest visible descendant so hidden creation dates cannot affect ordering or leak in the root projection.
+  acceptance:
+    given: A hidden root is older than another root, but its first visible reply is newer.
+    when: The production read model queries the restricted application database.
+    then:
+    - The visible root sorts first.
+    - The hidden root exposes its first visible descendant date and remains structural during continuation.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-root-order
+- id: comment.thread-preview-bound
+  category: behavior
+  rule: An initial root list includes at most 10 ranked visible descendants per root and a repliesNextCursor
+    when more remain. Ancestry needed to connect these descendants is additional structural context.
+  acceptance:
+    given: A public root has more than ten ordered direct replies.
+    when: The production read model queries the restricted application database.
+    then:
+    - The initial preview contains exactly the first ten replies and a continuation cursor.
+    - The eleventh reply is absent.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-preview-bound
+- id: comment.thread-continuation-bound
+  category: behavior
+  rule: Reply continuation returns at most 20 ranked visible descendants after its cursor, even when a
+    larger page is requested. Pages preserve createdAt/id order without duplicates and return a null next
+    cursor at exhaustion.
+  acceptance:
+    given: A public root has 45 ordered replies.
+    when: The read model continues after the ten-reply preview while an excessive page size is requested.
+    then:
+    - The next two pages contain 20 and 15 replies in order.
+    - All 45 IDs are unique across pages; the final cursor is null.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-continuation-bound
+- id: comment.thread-deleted-leaves
+  category: behavior
+  rule: Deleted reply leaves do not consume the reply preview budget. A deleted ancestor of visible replies
+    may remain as a privacy-inert structural placeholder.
+  acceptance:
+    given: Deleted leaves precede a deleted parent with a visible child and eleven visible descendants.
+    when: The production read model queries the restricted application database.
+    then:
+    - Deleted leaves are absent, while the deleted parent preserves its child structurally.
+    - Ten visible descendants consume the preview budget and the remainder continues once.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-deleted-leaves
+- id: comment.thread-focused-ancestry
+  category: behavior
+  rule: A focused thread includes the requested visible reply even outside the initial preview, and hydrates
+    at most 20 ancestor levels beyond it. Additional omitted ancestors are represented structurally so
+    the branch remains connected to one root.
+  acceptance:
+    given: A focused reply lies 32 levels below a public root.
+    when: The production read model queries the restricted application database.
+    then:
+    - The focus and root remain present.
+    - The ancestor outside the 20-level hydration budget is a placeholder and the branch remains connected.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.thread-focused-ancestry
+- id: comment.reply-cursor-validation
+  category: validation
+  rule: Reply continuations reject malformed cursors and cursors scoped to a different root; neither may
+    be used to read a different thread.
+  acceptance:
+    given: Two roots exist and a valid cursor is scoped to the other root.
+    when: The read model receives malformed and cross-thread cursors.
+    then:
+    - Both requests return invalid_cursor without returning thread data.
+    test:
+      file: tests/integration/comment-read-model-pagination.test.ts
+      name: comment.reply-cursor-validation
+- id: comment.attachment-action-projection
+  category: privacy
+  rule: Ordinary comment serialization omits attachment actions for unauthenticated viewers; eligible
+    signed-in viewers receive attachment metadata and actions. Download authorization remains separately
+    enforced.
+  acceptance:
+    given: A visible comment has an attachment.
+    when: The shared comment serializer builds the viewer projection.
+    then:
+    - The anonymous projection has no attachment action; the eligible signed-in projection includes it.
+    test:
+      file: tests/unit/features/comments/comment-serialization-permissions.test.ts
+      name: comment.attachment-action-projection
+- id: comment.owner-action-projection
+  category: presentation
+  rule: An unsuspended authenticated author of an active visible comment receives edit, delete, reply,
+    and reaction actions, without administrator moderation actions.
+  acceptance:
+    given: The viewer is the unsuspended author of an active public comment.
+    when: The shared comment serializer builds the viewer projection.
+    then:
+    - Edit, delete, reply and react are enabled; moderation is disabled.
+    test:
+      file: tests/unit/features/comments/comment-serialization-permissions.test.ts
+      name: comment.owner-action-projection
+- id: comment.suspended-action-projection
+  category: presentation
+  rule: Comment serialization disables all write and moderation actions for a suspended viewer, including
+    authors and administrators.
+  acceptance:
+    given: A suspended viewer is either the author or an administrator.
+    when: The shared serializer builds the projection.
+    then:
+    - Every ordinary write and moderation action is disabled.
+    test:
+      file: tests/unit/features/comments/comment-serialization-permissions.test.ts
+      name: comment.suspended-action-projection
+- id: comment.locked-action-projection
+  category: presentation
+  rule: Deleted and softbanned comments expose no ordinary edit, delete, reply, or reaction actions, including
+    to their authors and administrators.
+  acceptance:
+    given: Deleted and softbanned comments are viewed by their author and an administrator.
+    when: The shared serializer builds the projection.
+    then:
+    - Every ordinary write action is disabled in all cases.
+    test:
+      file: tests/unit/features/comments/comment-serialization-permissions.test.ts
+      name: comment.locked-action-projection
+- id: comment.target-identifiers
+  category: validation
+  rule: Comment reads and creates accept targetType with its canonical target identifier or documented
+    public identifier (sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, youngId). Young-event
+    targets require a validated public youngId and never resolve an arbitrary targetId.
+- id: comment.target-not-found
+  category: behavior
+  rule: Comment target reads return not_found when the attached target entity does not exist; REST maps
+    this result to 404.
+- id: comment.rest-pagination-parameters
+  category: validation
+  rule: Ordinary and moderation REST comment lists accept page and pageSize; the retired limit alias is
+    not accepted.
+- id: comment.visibility-input
+  category: validation
+  rule: Comment create and update inputs accept only public or logged_in_only visibility. The independent
+    isAnonymous flag controls identity hiding.
+- id: comment.public-id-validation
+  category: validation
+  rule: Provided sectionJwId and courseJwId inputs must be positive integers; malformed values return
+    400 even if targetId is supplied.
+- id: comment.attachment-ownership
+  category: authorization
+  rule: Comment creation rejects uploads that are missing, owned by another user, or already attached
+    to a comment. Editing rejects such uploads except those already attached to the comment being edited.
+    REST returns 400 Invalid attachments.
+- id: comment.batch-delete-limit
+  category: validation
+  rule: Batch comment deletion accepts at most 50 unique comment IDs.
+- id: comment.batch-delete-results
+  category: behavior
+  rule: Batch comment deletion returns stable per-item success, not_found, forbidden, or locked results
+    and continues after an item failure.
+- id: comment.batch-delete-shared-policy
+  category: consistency
+  rule: Every successful batch comment deletion uses the same ownership, suspension, interaction-lock,
+    transaction, and audit path as single-comment deletion.
+- id: comment.focused-read-errors
+  category: authorization
+  rule: A missing or row-security-hidden focused comment returns 404. A database-visible comment excluded
+    from the viewer-safe thread returns 403.
+- id: comment.reply-read-errors
+  category: authorization
+  rule: REST reply continuation maps invalid or cross-thread cursors to 400, missing or row-security-hidden
+    roots without visible descendants to 404, and database-visible inaccessible threads to 403.
+- id: comment.mcp-pagination-parameters
+  category: behavior
+  rule: The community_comment_list MCP tool accepts page and limit and returns the shared bounded root
+    previews and continuation cursors.
+- id: comment.mcp-write-audit-source
+  category: consistency
+  rule: Comment mutations through MCP record source=mcp in their audit metadata.
+- id: comment.moderation-default-status
+  category: behavior
+  rule: An omitted moderation comment status selects the active queue in both REST and the moderation
+    page.
 capabilities:
   object-comment-section:
     title: Object Comment Section
@@ -98,10 +324,10 @@ capabilities:
         mcp_equivalent: graphql_operation_run
         notes:
         - 'Registered operation id: community.comments.delete.v1.'
-        - Accepts up to 50 unique comment ids and returns stable per-item success, not_found, forbidden,
-          or locked results.
-        - Each successful item uses the same permission, suspension, interaction-lock, transaction, and
-          audit path as the single-comment delete operation.
+        requirement_refs:
+        - comment.batch-delete-limit
+        - comment.batch-delete-results
+        - comment.batch-delete-shared-policy
       - name: commentReactionAdd
         auth: user
         required_scopes:
@@ -117,58 +343,50 @@ capabilities:
     rest:
       routes:
       - path: /api/community/comments
-        notes:
-        - Accepts the canonical target identifier for the selected targetType or its documented public
-          identifier such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId.
-          Young-event targets require a validated public youngId.
-        - Returns 404 when the attached target entity does not exist.
-        - Accepts page and pageSize; the retired limit alias is not accepted.
+        requirement_refs:
+        - comment.target-identifiers
+        - comment.target-not-found
+        - comment.rest-pagination-parameters
       - path: /api/community/comments
         method: POST
         status: 201
         auth: user
-        notes:
-        - Accepts the canonical target identifier for the selected targetType or its documented public
-          identifier such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId.
-          Young-event targets require a validated public youngId.
-        - visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.
-        - Provided sectionJwId and courseJwId values must be valid positive integers; malformed values
-          return 400 even when targetId is also supplied.
-        - Returns 400 Invalid attachments when any requested upload is missing, owned by another user,
-          or already attached to a comment.
+        requirement_refs:
+        - comment.target-identifiers
+        - comment.visibility-input
+        - comment.public-id-validation
+        - comment.attachment-ownership
+        - comment.interaction-gate
       - path: /api/community/comments/[id]
         method: PATCH
         auth: user
-        notes:
-        - Only the comment owner may use the public edit endpoint; admins moderate through /api/admin/comments/[id].
-        - visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.
-        - Returns 400 Invalid attachments when any requested upload is missing, owned by another user,
-          or already attached to a different comment.
+        requirement_refs:
+        - comment.interaction-gate
+        - comment.visibility-input
+        - comment.attachment-ownership
       - path: /api/community/comments/[id]
         method: DELETE
         auth: user
       - path: /api/community/comments/batch
         method: DELETE
         auth: user
-        notes:
-        - Accepts up to 50 comment ids.
-        - Deletes each comment using the same owner/locked checks as DELETE /api/community/comments/[id].
-        - Returns per-item results; failures do not stop processing of other ids.
+        requirement_refs:
+        - comment.batch-delete-limit
+        - comment.batch-delete-results
+        - comment.batch-delete-shared-policy
       - path: /api/community/comments/[id]/reactions
         method: POST
         auth: user
       - path: /api/community/comments/[id]
-        notes:
-        - Returns 404 when the focused comment is missing or hidden by row security. Returns 403 only
-          when a database-visible comment cannot be included in the viewer-safe thread.
-        - The focused root is bounded to the same reply preview contract and exposes repliesNextCursor
-          when more descendants are available.
+        requirement_refs:
+        - comment.focused-read-errors
+        - comment.thread-focused-ancestry
+        - comment.thread-preview-bound
       - path: /api/community/comments/[id]/replies
-        notes:
-        - Pass repliesNextCursor from a root node to continue its reply preview; each response includes
-          the root, at most 20 ranked descendants, and bounded ancestry rows needed to connect them.
-        - The cursor is scoped to the root comment and invalid or cross-thread cursors return 400; roots
-          hidden by row security return 404, while database-visible but inaccessible threads return 403.
+        requirement_refs:
+        - comment.thread-continuation-bound
+        - comment.reply-cursor-validation
+        - comment.reply-read-errors
       - path: /api/community/comments/[id]/reactions
         method: DELETE
         auth: user
@@ -177,36 +395,38 @@ capabilities:
       - name: community_comment_list
         auth: user
         rest_equivalent: GET /api/community/comments
-        notes:
-        - Accepts page and limit; each paged root contains a bounded reply preview and repliesNextCursor
-          when continuation is available.
-        - Pass youngId when targetType is young-event; young-event target resolution never accepts an
-          arbitrary targetId.
+        requirement_refs:
+        - comment.mcp-pagination-parameters
+        - comment.target-identifiers
+        - comment.thread-preview-bound
       - name: community_comment_replies
         auth: user
         rest_equivalent: GET /api/community/comments/[id]/replies
-        notes:
-        - Passes repliesNextCursor from community_comment_list or an earlier continuation response and
-          caps each ranked reply page at 20 descendants plus bounded ancestry rows.
+        requirement_refs:
+        - comment.thread-continuation-bound
+        - comment.reply-cursor-validation
       - name: community_comment_get
         auth: user
         rest_equivalent: GET /api/community/comments/[id]
-        notes:
-        - Returns a bounded focused thread; the root exposes repliesNextCursor when more descendants are
-          available.
+        requirement_refs:
+        - comment.thread-focused-ancestry
+        - comment.thread-preview-bound
       - name: community_comment_create
         auth: user
         rest_equivalent: POST /api/community/comments
-        notes:
-        - Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and
-          attachment validation as REST; MCP audit metadata records source=mcp.
-        - Pass youngId when targetType is young-event; writes require an authenticated, unsuspended user.
+        requirement_refs:
+        - comment.target-identifiers
+        - comment.visibility-input
+        - comment.attachment-ownership
+        - comment.interaction-gate
+        - comment.mcp-write-audit-source
       - name: community_comment_update
         auth: user
         rest_equivalent: PATCH /api/community/comments/[id]
-        notes:
-        - Only the comment owner may edit through this ordinary-user MCP tool; visibility validation and
-          isAnonymous match REST, and moderation remains unavailable through MCP.
+        requirement_refs:
+        - comment.interaction-gate
+        - comment.visibility-input
+        - comment.anonymous-author-privacy
       - name: community_comment_delete
         auth: user
         rest_equivalent: DELETE /api/community/comments/[id]
@@ -234,6 +454,9 @@ capabilities:
       - comment.attachments[] filename/open action for signed-in viewers with attachment access
       - canReply/canReact/canEdit/canDelete/canModerate actions
       - Copy link action
+    requirement_refs:
+    - comment.interaction-gate
+    - comment.visibility-modes
   comment-governance:
     title: Comment Governance
     auth: admin
@@ -243,9 +466,9 @@ capabilities:
     rest:
       routes:
       - path: /api/admin/comments
-        notes:
-        - Omitted status defaults to the active moderation queue, matching /admin/moderation.
-        - Accepts page and pageSize; the retired limit alias is not accepted.
+        requirement_refs:
+        - comment.moderation-default-status
+        - comment.rest-pagination-parameters
       - path: /api/admin/comments/[id]
         method: PATCH
       - path: /api/admin/suspensions
@@ -264,6 +487,9 @@ capabilities:
       - Suspended filter
       - Status radio + confirm action
       - Suspension controls
+    requirement_refs:
+    - comment.interaction-gate
+    - comment.visibility-modes
   comment-auxiliary-pages:
     title: Comment Auxiliary Pages
     auth: anon
@@ -274,3 +500,6 @@ capabilities:
     presentation:
       items:
       - Comment guidelines/help pages
+    requirement_refs:
+    - comment.interaction-gate
+    - comment.visibility-modes

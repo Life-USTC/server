@@ -10,27 +10,31 @@ policy_refs:
 - permission-ui
 - rendering-and-cache
 - audit
-access:
-  anon: Can read public descriptions.
-  user: When signed in and not suspended, can maintain descriptions.
-  admin: Can review and maintain descriptions in the admin backend.
-  agent: Can read object descriptions through MCP and maintain them through GraphQL or MCP after authorization.
 requirements:
 - id: description.homework-calendar-invalidation
   category: consistency
-  rule: A committed homework description write enqueues a calendar export rebuild for its section. Unchanged
-    retries enqueue the same rebuild so a previously failed enqueue can recover. Failed transactions never
-    enqueue a rebuild.
+  rule: A committed homework description write enqueues a calendar export rebuild for its section after
+    the changed content is visible. Unchanged retries enqueue the same rebuild so a previously failed
+    enqueue can recover.
 - id: description.public-cache-invalidation
   category: consistency
-  rule: Successful description writes and administrator moderation invalidate cached public HTML and its
-    structured data after the transaction commits. Repeating an unchanged write also retries invalidation
-    after a previous purge failure.
+  rule: A committed course, section, or teacher description write invalidates its cached public HTML and
+    structured data only after the content is committed. Administrator moderation follows the same invalidation
+    contract.
+  acceptance:
+    given: Public teacher HTML is cached before an ordinary edit and an admin moderation edit.
+    when: The production write and moderation services commit and invoke the cache purge.
+    then:
+    - A separate database connection sees committed content before each purge.
+    - The next rendered representation reflects the committed write and moderation.
+    test:
+      file: tests/integration/description-cache-invalidation.test.ts
+      name: description.public-cache-invalidation
 - id: description.public-web-personal-overlay
   category: consistency
-  rule: Public course, teacher and section SSR retains description text and structured data with an anonymous
-    viewer. Hydration resolves current viewer permissions through the existing private descriptions API
-    before enabling edit or sign-in actions; a failed read remains retryable and cannot grant write access.
+  rule: Public course, teacher, and section SSR retains description text and structured data with an anonymous
+    viewer. Hydration obtains current viewer permissions from the private descriptions API; a failed read
+    remains retryable.
 - id: description.supplement-not-comment
   category: behavior
   rule: Object pages present the shared Markdown supplement separately from the comment thread. The supplement
@@ -49,10 +53,117 @@ requirements:
   rationale: A review or institutional-verification workflow is not currently part of this capability.
 - id: description.server-rendered-markdown
   category: presentation
-  rule: Description payloads include content as the source Markdown and renderedHtml as sanitized server-rendered
-    HTML. Web read surfaces consume renderedHtml without rerunning the Markdown pipeline during hydration;
-    REST and MCP full mode keep the shared description payload, while MCP compact modes omit renderedHtml
-    to avoid repeating the source Markdown in AI context.
+  rule: Description serialization retains source Markdown in content and provides sanitized server-rendered
+    HTML in renderedHtml, including supported campus-reference links.
+  acceptance:
+    given: Description source includes a campus reference and script markup.
+    when: The production description serializer renders the payload.
+    then:
+    - Source Markdown remains intact; rendered HTML includes the campus link and no executable script.
+    test:
+      file: tests/unit/features/markdown/markdown-renderer.test.ts
+      name: description.server-rendered-markdown
+- id: description.failed-write-invalidation
+  category: consistency
+  rule: A failed description transaction triggers neither public representation invalidation nor a homework
+    calendar rebuild.
+  acceptance:
+    given: The description transaction rejects.
+    when: Both public-object and homework description writes are attempted.
+    then:
+    - Neither public invalidation nor calendar enqueue runs.
+    test:
+      file: tests/unit/features/descriptions/description-upsert-service.test.ts
+      name: description.failed-write-invalidation
+- id: description.public-cache-retry
+  category: consistency
+  rule: An unchanged description write retries public cache invalidation after a previous purge failure
+    without creating another content edit.
+  acceptance:
+    given: The content transaction commits but the first purge fails.
+    when: The same content is submitted again.
+    then:
+    - The unchanged retry purges successfully without adding an edit.
+    test:
+      file: tests/unit/features/descriptions/description-upsert-service.test.ts
+      name: description.public-cache-retry
+- id: description.editor-permission-gate
+  category: presentation
+  rule: The description editor neither opens nor submits until current viewer permissions authorize editing.
+  acceptance:
+    given: The current permission state is unavailable or the viewer changes while a request is pending.
+    when: The production editor controller handles the action or delayed response.
+    then:
+    - Neither editor-open state nor a save request is produced.
+    test:
+      file: tests/unit/features/descriptions/description-card-controller.test.ts
+      name: description.editor-permission-gate
+- id: description.editor-stale-save
+  category: consistency
+  rule: A description save response belonging to an earlier viewer session cannot alter the current editor
+    state or trigger a success callback.
+  acceptance:
+    given: The current permission state is unavailable or the viewer changes while a request is pending.
+    when: The production editor controller handles the action or delayed response.
+    then:
+    - A stale save cannot refresh, close the current editor, or invoke success.
+    test:
+      file: tests/unit/features/descriptions/description-card-controller.test.ts
+      name: description.editor-stale-save
+- id: description.editor-stale-permissions
+  category: consistency
+  rule: A description permission refresh belonging to an earlier viewer session cannot update the current
+    viewer or description state.
+  acceptance:
+    given: The current permission state is unavailable or the viewer changes while a request is pending.
+    when: The production editor controller handles the action or delayed response.
+    then:
+    - Neither viewer nor description is updated from the stale result.
+    test:
+      file: tests/unit/features/descriptions/description-card-controller.test.ts
+      name: description.editor-stale-permissions
+- id: description.web-markdown-hydration
+  category: presentation
+  rule: Web description surfaces consume server-provided renderedHtml without rerunning Markdown rendering
+    during hydration.
+- id: description.mcp-markdown-projection
+  category: presentation
+  rule: MCP full mode retains the shared description payload including renderedHtml; compact modes omit
+    renderedHtml while retaining source Markdown.
+- id: description.unchanged-write-history
+  category: consistency
+  rule: An unchanged description write returns updated=false and adds neither DescriptionEdit history
+    nor a description_edit audit entry.
+  acceptance:
+    given: The submitted description equals stored content.
+    when: The description use case processes the write.
+    then:
+    - The result has updated=false; no edit history or audit entry is written.
+    test:
+      file: tests/unit/features/descriptions/description-upsert-service.test.ts
+      name: description.unchanged-write-history
+- id: description.target-identifiers
+  category: validation
+  rule: Description reads and writes accept targetType with targetId or the documented sectionJwId, courseJwId,
+    teacherId, or homeworkId public identifier.
+- id: description.target-not-found
+  category: behavior
+  rule: Description reads return not_found when the attached target entity does not exist; REST maps this
+    result to 404.
+- id: description.concurrent-first-write
+  category: consistency
+  rule: Concurrent first description writes to the same target resolve to one durable description with
+    a stable create/update result and preserve each successful DescriptionEdit operation. A previousContent
+    snapshot reflects the content observed by its transaction and need not represent a total order of
+    concurrent writes.
+- id: description.moderation-atomicity
+  category: consistency
+  rule: Administrator description moderation commits content, DescriptionEdit, and admin_description_moderate
+    audit entries atomically through the shared governance service.
+- id: description.rest-pagination-parameters
+  category: validation
+  rule: The REST description moderation list accepts page and pageSize; the retired limit alias is not
+    accepted.
 capabilities:
   object-description-section:
     title: Object Description Section
@@ -66,39 +177,30 @@ capabilities:
         - community.description:write
         rest_equivalent: POST /api/community/descriptions
         mcp_equivalent: community_description_set
-        notes:
-        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
-          teacherId, homeworkId.
+        requirement_refs:
+        - description.target-identifiers
     rest:
       routes:
       - path: /api/community/descriptions
-        notes:
-        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
-          teacherId, homeworkId.
-        - Returns 404 when the attached target entity does not exist.
+        requirement_refs:
+        - description.target-identifiers
+        - description.target-not-found
       - path: /api/community/descriptions
         method: POST
         auth: user
-        notes:
-        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
-          teacherId, homeworkId.
-        - Concurrent first writes to the same target must resolve to a stable create/update result while
-          preserving DescriptionEdit operation history; previousContent snapshots are best-effort under
-          concurrent writes.
+        requirement_refs:
+        - description.target-identifiers
+        - description.concurrent-first-write
     mcp:
       tools:
       - name: community_description_get
-        notes:
-        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
-          teacherId, homeworkId.
+        requirement_refs:
+        - description.target-identifiers
       - name: community_description_set
         auth: user
-        notes:
-        - Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId,
-          teacherId, homeworkId.
-        - Concurrent first writes to the same target must resolve to a stable create/update result while
-          preserving DescriptionEdit operation history; previousContent snapshots are best-effort under
-          concurrent writes.
+        requirement_refs:
+        - description.target-identifiers
+        - description.concurrent-first-write
     presentation:
       items:
       - description.content (markdown-rendered)
@@ -109,6 +211,9 @@ capabilities:
       - history count
       - history editor
       - previous/updated diff content
+    requirement_refs:
+    - description.platform-maintained
+    - description.attached-object-types
   description-governance:
     title: Description Governance
     auth: admin
@@ -118,13 +223,12 @@ capabilities:
     rest:
       routes:
       - path: /api/admin/descriptions
-        notes:
-        - Accepts page and pageSize; the retired limit alias is not accepted.
+        requirement_refs:
+        - description.rest-pagination-parameters
       - path: /api/admin/descriptions/[id]
         method: PATCH
-        notes:
-        - Shares the same admin moderation service as /admin/moderation description edits and commits
-          DescriptionEdit plus admin_description_moderate audit entries with the content update.
+        requirement_refs:
+        - description.moderation-atomicity
     mcp: unavailable
     presentation:
       items:
@@ -132,3 +236,6 @@ capabilities:
       - object target
       - lastEditedBy name
       - timestamp
+    requirement_refs:
+    - description.platform-maintained
+    - description.attached-object-types
