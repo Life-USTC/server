@@ -37,6 +37,15 @@ requirements:
 - id: section.source-lifecycle
   category: consistency
   rule: Static sync rejects incomplete snapshots before any database writes.
+  acceptance:
+    given: A real schema-6 SQLite snapshot records an unsuccessful required lesson fetch.
+    when: The complete importer validates the snapshot.
+    then:
+    - The import rejects the incomplete source.
+    - No semester, course, Section or import revision is written.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-lifecycle
 - id: section.retirement-preserves-data
   category: consistency
   rule: Section retirement preserves the Section, comments, description, homework, subscriptions, schedules,
@@ -76,6 +85,16 @@ requirements:
   rule: Student-facing section identity is the course display name plus teachers. Section code is secondary
     (monospace in lists, search descriptions, and the Basic Info Card) and must not dominate search titles
     or the detail hero.
+  acceptance:
+    given: Isolated Sections share a course; one has a teacher and the other has none.
+    when: A browser opens desktop and mobile lists, global search and the Section detail.
+    then:
+    - Course display names and available teachers identify the offering.
+    - Section codes use monospace in lists, search descriptions and Basic Info, stay out of search titles,
+      and remain smaller than the detail heading.
+    test:
+      file: tests/e2e/src/app/sections/student-identity.test.ts
+      name: section.student-identity-teachers
 - id: section.public-list-cache
   category: consistency
   rule: Public section list REST output depends on URL locale/filter/pagination values, not Cookie or
@@ -146,16 +165,56 @@ requirements:
   category: consistency
   rule: After successful snapshot validation, missing Sections become inactive and reappearing Sections
     become active.
+  acceptance:
+    given: A complete SQLite source contains a retired Section and omits an active Section in the covered
+      semester.
+    when: The full importer applies that snapshot, then a newer source includes the omitted upstream identity.
+    then:
+    - Missing Sections become retired and present Sections become active.
+    - A reappearing Section reuses its database identity and becomes active.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-section-presence
 - id: section.source-import-atomicity
   category: consistency
   rule: Imported data and its generated_at/SHA-256 revision commit together; a failed import does not
     advance the stored revision.
+  acceptance:
+    given: An existing completed import is followed by changed course and Section data, while a real database
+      trigger rejects the final revision write.
+    when: The complete importer fails, then retries successfully after the fault is removed.
+    then:
+    - Failure rolls back all imported changes and leaves the old generated_at, SHA-256 and transform revision
+      unchanged.
+    - Success commits the changed data with the exact new generated_at, SHA-256 and transform revision.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.source-import-atomicity
 - id: section.retirement-audit
   category: consistency
   rule: Each activation or retirement change records a Section-targeted audit row.
+  acceptance:
+    given: A complete SQLite snapshot reactivates one Section and retires another.
+    when: The complete importer commits the snapshot and later repeats the same presence set.
+    then:
+    - Each actual state transition produces one Section-targeted audit row with the committed snapshot
+      hash and time.
+    - An unchanged presence set adds no duplicate lifecycle audit rows.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.retirement-audit
 - id: section.retirement-report
   category: consistency
   rule: Import reports include missing, before/after, deactivated and reactivated counts.
+  acceptance:
+    given: A covered semester contains one active missing Section and one retired present Section.
+    when: The complete importer returns its report and processes a newer identical presence set.
+    then:
+    - The report gives exact missing, deactivated, reactivated and before/after counts.
+    - A subsequent unchanged presence set reports zero transitions and preserves totals.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: section.retirement-report
 - id: section.empty-semester-retirement
   category: consistency
   rule: Section retirement uses explicit complete source coverage. An explicitly fetched complete empty
@@ -179,6 +238,15 @@ requirements:
 - id: section.teacher-assignment-reference
   category: privacy
   rule: TeacherAssignment output links to teacherId without duplicating the nested Teacher payload.
+  acceptance:
+    given: A persisted Section has a teacher assignment and a related Teacher with private contact sentinels.
+    when: The actual restricted-role public detail service reads both locales.
+    then:
+    - The assignment exposes the exact teacherId and assignment facts without a nested Teacher.
+    - The shared teachers list resolves that identity and no private teacher contact appears.
+    test:
+      file: tests/integration/section-teacher-assignment-contract.test.ts
+      name: section.teacher-assignment-reference
 - id: section.retired-subscription-mutations
   category: consistency
   rule: New subscription add operations reject retired rows. Existing owners can remove retired subscriptions

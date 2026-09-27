@@ -17,6 +17,7 @@ import type {
   GlobalSearchResultGroupType,
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -114,9 +115,13 @@ $: showEmpty =
                       />
                     {/if}
                   </span>
-                  {#if item.description}
-                    <span class="block truncate text-muted-foreground text-sm">
-                      {item.description}
+                  {#if item.description || item.code}
+                    <span class="flex min-w-0 items-center gap-1 text-muted-foreground text-sm">
+                      {#if item.description}<span class="truncate">{item.description}</span>{/if}
+                      {#if item.code}
+                        {#if item.description}<span aria-hidden="true">·</span>{/if}
+                        <TruncatedCode text={item.code} />
+                      {/if}
                     </span>
                   {/if}
                 </span>

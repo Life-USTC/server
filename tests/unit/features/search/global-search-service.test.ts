@@ -453,7 +453,8 @@ describe("global search service", () => {
     expect(result.groups[0]?.items[0]).toEqual({
       id: "section:42",
       title: "数据结构 · 程艺",
-      description: "2026 春 · 东区 · 001",
+      description: "2026 春 · 东区",
+      code: "001",
       href: "/catalog/sections/42",
     });
   });
@@ -482,8 +483,9 @@ describe("global search service", () => {
 
     expect(result.groups[0]?.items[0]).toEqual({
       id: "section:7",
-      title: "数学分析 · 02",
-      description: "2026 秋 · 02",
+      title: "数学分析",
+      description: "2026 秋",
+      code: "02",
       href: "/catalog/sections/7",
     });
   });

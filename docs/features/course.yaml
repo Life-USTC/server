@@ -31,6 +31,16 @@ requirements:
   category: consistency
   rule: Each imported Section resolves the upstream Course jwId attached to its lesson parent. Static
     sync updates courseId on both insert and conflict update; missing Course jwId mappings abort the transaction.
+  acceptance:
+    given: A real complete SQLite snapshot links a lesson to one upstream course, then changes that course
+      identity or removes its parent mapping.
+    when: The complete importer runs through its own database connection and commits real transactions.
+    then:
+    - Insert and conflict update resolve the exact upstream course jwId.
+    - A missing parent mapping rejects the import without changing the prior Section or revision.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: course.static-section-course-link
 - id: course.jwid-url-only
   category: presentation
   rule: jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed
@@ -57,6 +67,16 @@ requirements:
   category: behavior
   rule: When a static snapshot has no classification source value, the imported course classification
     remains null; no classification is inferred from other metadata.
+  acceptance:
+    given: A real snapshot has a course category but no course classification; an existing course also
+      has an obsolete classification.
+    when: The complete importer inserts and then refreshes the course.
+    then:
+    - Classification remains null on insert and is cleared on refresh instead of being inferred from category
+      metadata.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: course.static-classification-unsupported
 - id: course.bounded-detail-history
   category: consistency
   rule: Web course history exposes all Section offerings, including retired offerings, through stable

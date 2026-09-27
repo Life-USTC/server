@@ -77,16 +77,17 @@ function toSectionItem(
   const title =
     teacherNames.length > 0
       ? `${courseName} · ${teacherNames.join(teacherSeparator)}`
-      : `${courseName} · ${section.code}`;
+      : courseName;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
     : unknownSemester;
   const campusName = section.campus ? catalogPrimaryName(section.campus) : null;
-  const description = [semesterName, campusName || null, section.code]
+  const description = [semesterName, campusName || null]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
   return {
     id: `section:${section.jwId}`,
+    code: section.code,
     title,
     description: description || null,
     href: `/catalog/sections/${section.jwId}`,
