@@ -453,8 +453,34 @@ requirements:
 - id: rendering-and-cache.cache-layers-and-invalidation-11
   category: consistency
   topic: cache-layers-and-invalidation
-  rule: A null or invalid catalog detail result is not retained in the public data cache. A cache read failure
-    may retrieve the origin result but does not bypass origin validation or authorization.
+  rule: Null public catalog detail results and results rejected by the configured domain validator are not
+    retained in isolate memory, the colo Cache API or KV. A later valid result can populate those caches.
+  acceptance:
+    given: The actual detail-cache wrapper and course/teacher validators, real isolate memory, and controlled
+      colo/KV storage boundaries with observed writes.
+    when: Read null and private-field-contaminated results twice, then replace the loader result with a valid core.
+    then:
+    - Both rejected-result reads invoke the loader and write neither colo nor KV; no rejected result survives
+      in isolate memory.
+    - The valid successor populates both persistent boundaries and serves the next read from isolate memory.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
+      name: rendering-and-cache.cache-layers-and-invalidation-11
+- id: rendering-and-cache.cache-origin-recovery
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: A public cache read failure still executes the original loader. Loader failures propagate unchanged,
+    are not cached, and can be retried; cache recovery cannot turn a loader rejection into successful data.
+  acceptance:
+    given: The production detail-cache wrapper with both colo and KV reads failing and a loader rejecting
+      with a specific error object.
+    when: Read twice, then allow the same loader to return a valid domain core.
+    then:
+    - Every failed attempt calls the original loader and propagates its exact rejection without cache writes.
+    - A subsequent valid result succeeds and is cached normally.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
+      name: rendering-and-cache.cache-origin-recovery
 - id: rendering-and-cache.contributor-notes-1
   category: consistency
   topic: contributor-notes
@@ -527,3 +553,8 @@ rationale:
 - Viewer-independent HTML means equivalent content and DOM relationships, not byte-identical generated
   accessibility identifiers. A one-to-one rename preserves every ID/reference relationship; text, ordinary
   attributes and user-bearing data cannot be removed or ignored when comparing those representations.
+- Cache-result eligibility and loader-error propagation are separate from transport and domain authority.
+  The original cache-11 authorization clause is owned by openapi.session-and-bearer,
+  graphql.scoped-query-auth, graphql.session-query-authority, mcp.public-catalog-access and
+  mcp.privacy-safe-default. Their real transport/database tests retain credential and ownership checks;
+  cache-origin-recovery only proves that the cache does not replace the loader or swallow its rejection.
