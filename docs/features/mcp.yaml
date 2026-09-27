@@ -378,17 +378,22 @@ requirements:
     test:
       file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
       name: mcp.tool-registry-completeness
-- id: mcp.room-maps
-  category: behavior
-  rule: catalog_rooms_map returns public room-map coverage and public image URLs for code and mode. It
-    is an anonymous public catalog tool; supplied credentials still undergo the MCP invalid-credential
-    gate.
 - id: mcp.subscription-kind-projection
   category: consistency
   rule: Personal subscription reads include membership kind in both default and full modes. workspace_subscription_kind_update
     changes only an existing subscription owned by the verified user.
   applies_to:
   - tool-groups
+  acceptance:
+    given: Two isolated authenticated MCP users and one public section.
+    when: The owner adds and changes membership kind; a nonmember tries to change it and both output modes
+      list memberships.
+    then:
+    - Only the existing owner membership changes to auditor.
+    - Adding the existing membership preserves its kind and default/full reads include auditor.
+    test:
+      file: tests/integration/mcp/workspace/subscription-kind.test.ts
+      name: mcp.subscription-kind-projection
 - id: mcp.tool-result-envelope
   category: consistency
   rule: All ordinary MCP tool results use the canonical result envelope. JSON-RPC protocol and transport
@@ -573,3 +578,6 @@ capabilities:
       - Input schema
       - Output schema
       - Preferred tool for common prompts
+
+rationale:
+- Public room-map projection and anonymous transport parity are owned by room-map.public; input normalization is owned by room-map.normalization.
