@@ -130,6 +130,17 @@ requirements:
   rule: The public Web detail annotates sanitized Markdown with plain-text image captions and revision
     image metadata, preserves the source body order, and displays structured author/reporter/editor/original-publisher
     attribution and attachment names. It never renders bodyText in place of unavailable bodyMarkdown.
+  acceptance:
+    given: Real publication revisions, Markdown and image objects in local R2, attribution fields, an attachment,
+      and a revision without Markdown.
+    when: Open both detail pages in desktop and mobile browsers.
+    then:
+    - Body blocks preserve source order; image metadata and captions render as plain text without active HTML.
+    - Structured attribution and the attachment name and object URL are visible.
+    - Missing Markdown never falls back to bodyText, and rendering raises no page errors.
+    test:
+      file: tests/e2e/src/app/news/presentation.test.ts
+      name: publications.markdown-presentation
 - id: publications.publication-images
   category: presentation
   rule: Ingestion registers image identities as the SHA-256 of the exact source URL, and detail exposes

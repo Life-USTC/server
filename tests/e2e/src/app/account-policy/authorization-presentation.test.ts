@@ -31,7 +31,7 @@ async function fixture(page: Page) {
   const grant = await createOAuthAuthorizationFixture({
     name,
     userId: user.id,
-    scopes: ["calendar:read", "profile"],
+    scopes: ["workspace.calendar:read", "profile"],
   });
   return {
     user,
@@ -162,6 +162,12 @@ test("user.oauth-authorization-management", async ({ page }) => {
         item.getByText(f.grant.clientUri, { exact: true }),
       ).toBeVisible();
       await expect(item.locator("img")).toHaveCount(0);
+      await expect(
+        item.getByText("Read your calendar", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        item.getByText("View your profile information", { exact: true }),
+      ).toBeVisible();
       for (const [label, value] of [
         ["reads", "17"],
         ["writes", "7"],

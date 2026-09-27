@@ -31,6 +31,15 @@ requirements:
   rule: 'Crawler publication ingestion is an explicit REST-only exception: its machine-secret-authenticated
     write routes are documented in the publications contract and must not be mirrored into Web, GraphQL,
     or MCP.'
+  acceptance:
+    given: The generated OpenAPI document, actual route modules, executable GraphQL schema and MCP tool registry.
+    when: Inspect the ingestion operations and their transport dependencies, GraphQL mutations and MCP discovery.
+    then:
+    - Exactly the three documented ingestion REST operations own crawler writes.
+    - No Web, GraphQL or MCP transport imports the ingestion services or exposes crawler operations.
+    test:
+      file: tests/unit/lib/openapi/openapi-transport-boundary.test.ts
+      name: openapi.crawler-ingestion-rest-only
 - id: openapi.security-schemes
   category: authorization
   rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, optional-bearer MCP transport with protected tool scope checks, bearer-only client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
