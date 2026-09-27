@@ -11,9 +11,17 @@ requirements:
 - id: interface-hierarchy.canonical-tree-2
   category: consistency
   topic: canonical-tree
-  rule: Canonical application-owned route segments, capability IDs, GraphQL business fields, MCP tools, and
-    CLI command paths do not use me, viewer, my, own, or dashboard as hierarchy names. This rule does not rename
-    third-party protocol fields or internal helper variables.
+  rule: Canonical product Web and business REST route segments, capability IDs, GraphQL business fields and MCP tools do not use me, viewer, my, own, or dashboard as hierarchy names. This rule does not rename
+    third-party protocol fields, private internal hydration routes or internal helper variables. CLI command naming is verified in its own repository.
+  acceptance:
+    given: The complete product route tree, executable GraphQL business fields, MCP scope registry and persisted-operation registry.
+    when: Inspect published hierarchy segments and operation identifiers.
+    then:
+    - No published product hierarchy uses me, viewer, my, own or dashboard as a segment.
+    - Dynamic parameters and internal-only hydration paths remain implementation details.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-tree-2
 - id: interface-hierarchy.surface-mapping-1
   category: consistency
   topic: surface-mapping
@@ -46,6 +54,15 @@ requirements:
   category: consistency
   topic: surface-mapping
   rule: A mutation's capability ID still contains its full scope.
+  acceptance:
+    given: The mutation capability document, executable persisted operations and MCP scope registry.
+    when: Resolve every mutation binding to its compiled operation and native or registered MCP entry.
+    then:
+    - Each mutation capability and its registered operation retain the same canonical scope.
+    - A generic GraphQL runner points to a scoped registered operation rather than defining an unscoped business capability.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.surface-mapping-3
 - id: interface-hierarchy.surface-mapping-4
   category: consistency
   topic: surface-mapping
@@ -58,11 +75,27 @@ requirements:
   topic: canonical-actions
   rule: Published capability action names do not use view, query, or by_id. Internal implementation helper
     names are outside this naming rule.
+  acceptance:
+    given: The actual MCP tool scope and GraphQL operation registries.
+    when: Inspect the published action component of every identifier.
+    then:
+    - Published actions do not end in view, query or by_id.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-actions-1
 - id: interface-hierarchy.canonical-actions-3
   category: consistency
   topic: canonical-actions
-  rule: 'Plural capability domains are reserved for genuinely batch operations: `workspace_todo_delete` is
-    single-item and `workspace_todos_delete` is batch.'
+  rule: 'Todo and comment record-deletion capabilities distinguish singular domains for single-item deletion from plural domains for batch deletion. Batch results and registered-runner support are explicit; collective state domains such as bus preferences do not imply batch semantics.'
+  acceptance:
+    given: Single and batch todo/comment deletion capabilities and compiled operation variable types.
+    when: Compare domain names, cardinality, result semantics and MCP transport mode.
+    then:
+    - Singular record deletion accepts a single identifier; plural deletion accepts a collection and per-item results.
+    - Native single-item calls and registered batch execution remain explicitly distinguished.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.canonical-actions-3
 - id: interface-hierarchy.canonical-actions-4
   category: consistency
   topic: canonical-actions
@@ -148,6 +181,15 @@ requirements:
   topic: semantic-parity
   rule: OAuth feature scopes use the complete canonical feature name, for example `community.comment:write`,
     `workspace.subscription:write`, and `workspace.upload:write`.
+  acceptance:
+    given: The canonical OAuth feature registry, compiled operations and complete MCP scope bindings.
+    when: Inspect every declared business scope.
+    then:
+    - Business scopes use the complete catalog, workspace, community or account feature name and a read/write action.
+    - GraphQL and MCP bindings reference registered scopes and never expose reserved admin scopes.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.semantic-parity-9
 - id: interface-hierarchy.semantic-parity-12
   category: consistency
   topic: semantic-parity
