@@ -394,6 +394,64 @@ it("interface-hierarchy.catalog-explicit-read-parity", async () => {
         0,
       );
     }
+    // Equal display keys must keep a stable unique order across page boundaries.
+    // Insert the larger JW IDs first so heap/insertion order cannot satisfy it.
+    const tieMarker = `${fixture.marker}-ties`;
+    const tied = {
+      course: [] as number[],
+      teacher: [] as number[],
+      section: [] as number[],
+    };
+    for (const offset of [15, 14, 13, 12, 11, 10]) {
+      const course = await db.course.create({
+        data: {
+          jwId: fixture.base + offset,
+          code: tieMarker,
+          nameCn: tieMarker,
+        },
+      });
+      const teacher = await db.teacher.create({
+        data: {
+          jwId: fixture.base + offset,
+          code: `${tieMarker}-${offset}`,
+          nameCn: tieMarker,
+        },
+      });
+      const section = await db.section.create({
+        data: {
+          jwId: fixture.base + offset,
+          code: tieMarker,
+          courseId: course.id,
+          semesterId: fixture.semester.id,
+        },
+      });
+      tied.course.unshift(course.id);
+      tied.teacher.unshift(teacher.id);
+      tied.section.unshift(section.id);
+    }
+    resetPublicRuntimeCacheForTest();
+    for (const kind of ["course", "teacher", "section"] as const) {
+      const searches =
+        kind === "section"
+          ? [
+              tieMarker,
+              `${tieMarker} sort:code order:asc`,
+              `${tieMarker} sort:code order:desc`,
+            ]
+          : [tieMarker];
+      for (const search of searches) {
+        for (const page of [1, 2, 3, 4]) {
+          await comparePage(
+            kind,
+            { search },
+            page,
+            2,
+            tied[kind].slice((page - 1) * 2, page * 2),
+            6,
+          );
+        }
+      }
+    }
   } finally {
     await cleanupCatalogContractFixture(db, fixture);
     await db.campus.delete({ where: { id: campus.id } });

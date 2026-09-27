@@ -564,6 +564,64 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
       );
     }
     for (const kind of kinds) await compare(kind, credentials[2], {}, []);
+    // Give the previously empty owner six equal-key records, physically inserted
+    // in descending identifier order, and traverse every two-item page.
+    await db.userSectionSubscription.create({
+      data: { userId: userIds[2], sectionId: sections[0].id },
+    });
+    const sectionId = sections[0].id;
+    const group = await db.scheduleGroup.findFirstOrThrow({
+      where: { sectionId },
+    });
+    await db.homework.deleteMany({ where: { sectionId } });
+    await db.schedule.deleteMany({ where: { sectionId } });
+    await db.exam.deleteMany({ where: { sectionId } });
+    const tied = {
+      todo: [] as Id[],
+      homework: [] as Id[],
+      schedule: [] as Id[],
+      exam: [] as Id[],
+    };
+    const at = new Date("2030-01-01T00:00:00Z");
+    for (const offset of [15, 14, 13, 12, 11, 10]) {
+      const id = `${fixture.marker}-tie-${offset}`;
+      const todo = await db.todo.create({
+        data: { id, title: id, userId: userIds[2], dueAt: at, createdAt: at },
+      });
+      const homework = await db.homework.create({
+        data: { id, title: id, sectionId, submissionDueAt: at, createdAt: at },
+      });
+      const schedule = await db.schedule.create({
+        data: {
+          id: fixture.base + offset,
+          sectionId,
+          scheduleGroupId: group.id,
+          date: at,
+          weekday: 2,
+          startTime: 800,
+          endTime: 900,
+          periods: 1,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 1,
+        },
+      });
+      const exam = await db.exam.create({
+        data: {
+          jwId: fixture.base + offset,
+          sectionId,
+          examDate: at,
+          startTime: 800,
+          endTime: 900,
+        },
+      });
+      tied.todo.unshift(todo.id);
+      tied.homework.unshift(homework.id);
+      tied.schedule.unshift(schedule.id);
+      tied.exam.unshift(exam.id);
+    }
+    for (const kind of kinds)
+      await compare(kind, credentials[2], {}, tied[kind]);
   } finally {
     await db.oAuthClient.deleteMany({ where: { clientId } });
     await db.user.deleteMany({ where: { id: { in: userIds } } });

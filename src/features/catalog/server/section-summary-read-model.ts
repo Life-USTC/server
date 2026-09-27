@@ -11,9 +11,10 @@ import {
   type SectionListFilters,
 } from "./course-section-query-filters";
 
-export const SECTION_SUMMARY_DEFAULT_ORDER_BY = {
-  semester: { jwId: "desc" },
-} satisfies Prisma.SectionOrderByWithRelationInput;
+export const SECTION_SUMMARY_DEFAULT_ORDER_BY = [
+  { semester: { jwId: "desc" } },
+  { jwId: "asc" },
+] satisfies Prisma.SectionOrderByWithRelationInput[];
 
 export async function listSectionSummaries({
   filters,
@@ -39,7 +40,7 @@ export async function listSectionSummaries({
         pagination.page,
         pagination.pageSize,
         where,
-        orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+        orderBy ? [orderBy, { jwId: "asc" }] : SECTION_SUMMARY_DEFAULT_ORDER_BY,
         locale,
       );
     },
@@ -70,7 +71,7 @@ export async function listSections({
         pagination.page,
         pagination.pageSize,
         where,
-        orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+        orderBy ? [orderBy, { jwId: "asc" }] : SECTION_SUMMARY_DEFAULT_ORDER_BY,
         locale,
       );
     },

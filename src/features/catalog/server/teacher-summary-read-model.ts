@@ -36,7 +36,7 @@ export function listTeacherSummaries({
         pagination.page,
         pagination.pageSize,
         buildTeacherWhere(filters),
-        { nameCn: "asc" },
+        [{ nameCn: "asc" }, { jwId: "asc" }],
         locale,
       ),
   });
