@@ -429,6 +429,15 @@ requirements:
   topic: contributor-notes
   rule: Application navigation configures route-code preload on hover and data preload on tap/click. Application
     links do not opt back into hover-triggered data preload.
+  acceptance:
+    given: The application HTML template and every Svelte/HTML component under src.
+    when: The Svelte compiler parses their element and attribute syntax trees.
+    then:
+    - The application body declares code preload on hover and data preload on tap.
+    - Every data preload override is tap or off; no component or element re-enables hover data preload.
+    test:
+      file: tests/unit/lib/navigation/navigation-preload-policy.test.ts
+      name: rendering-and-cache.contributor-notes-4
 cache_layers:
 - layer: Workers entrypoint (PublicSsr)
   content: Anonymous HTML before nonce rewriting
