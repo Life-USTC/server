@@ -51,7 +51,7 @@ export async function getSignedInCatalogLinksData(
     const pinRows = await tx.workspaceLinkPin.findMany({
       where: { userId: normalizedUserId },
       select: { slug: true },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ createdAt: "asc" }, { slug: "asc" }],
     });
     const clickStats: Record<string, number> = Object.fromEntries(
       clickRows.map((row) => [row.slug, row.count]),

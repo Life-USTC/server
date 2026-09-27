@@ -486,6 +486,7 @@ it("upload.pure-upload-reads", async () => {
 
 it("upload.paginated-upload-list", async () => {
   const uploads = [];
+  const tiedAt = new Date("2035-09-01T00:00:00.437Z");
   for (let index = 0; index < 5; index++)
     uploads.push(
       await fixturePrisma.upload.create({
@@ -494,7 +495,8 @@ it("upload.paginated-upload-list", async () => {
           filename: `${index}.txt`,
           key: crypto.randomUUID(),
           size: 10,
-          createdAt: new Date(Date.now() + index * 1000),
+          id: `upload-list-${userId}-${index}`,
+          createdAt: tiedAt,
         },
       }),
     );

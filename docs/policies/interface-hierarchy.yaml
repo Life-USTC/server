@@ -266,6 +266,57 @@ requirements:
     test:
       file: tests/integration/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
+- id: interface-hierarchy.public-profile-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public profile identifiers resolve a case-insensitive username or exact user ID after trimming.
+    REST and full MCP expose the same public profile and contribution hierarchy; GraphQL intentionally
+    exposes only public identity. No projection exposes email or admin status.
+  acceptance:
+    given: An isolated administrator has a distinct public username, UUID, avatar and millisecond creation timestamp.
+    when: REST and Yoga handlers and the registered native MCP tool resolve username, uppercase username,
+      surrounding whitespace, exact ID and a missing identifier against the same database.
+    then:
+    - Found profiles share exact public identity and creation instant; REST and full MCP payloads match including zero contributions and the heatmap.
+    - GraphQL returns only its five declared identity fields, private fields are absent, and missing identities retain each transport's not-found representation.
+    test:
+      file: tests/integration/profile-link-read-parity.test.ts
+      name: interface-hierarchy.public-profile-read-parity
+- id: interface-hierarchy.link-pin-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST and MCP link-pin lists and the Web read model return only the current owner's pins in
+    creation-time ascending order with slug ascending for ties. Mutation results and oldest-pin overflow
+    use that same order. GraphQL has no link-pin collection read.
+  acceptance:
+    given: Three isolated owners include reverse-inserted pins with equal timestamps, distinct pins and no pins.
+    when: Real session-authenticated REST reads, registered MCP tools with synthetic scoped AuthInfo,
+      and bilingual Web read models load each owner's pins, then pin and unpin change the first owner's collection.
+    then:
+    - All readers preserve the exact independent order and empty state, ignore a foreign userId query and report the four-pin bound.
+    - The Web overview starts with that owner's ordered pins and overflow removes the deterministically oldest pin.
+    test:
+      file: tests/integration/profile-link-read-parity.test.ts
+      name: interface-hierarchy.link-pin-read-parity
+- id: interface-hierarchy.overview-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: All overview transports preserve authenticated-owner counts for the same explicit instant and
+    default seven-day lookahead. GraphQL is counts-only and accepts only atTime. REST and MCP additionally
+    preserve ordered samples and complete counts across supported limit and window inputs; compact and
+    full projections retain the same identifiers and operational facts.
+  acceptance:
+    given: Three isolated owners include an empty workspace, tied deadlines, completed and deleted work,
+      multiple schedules and exams, and records exactly on millisecond window boundaries.
+    when: Signed REST and GraphQL handlers and registered native MCP tools read the same anchor instant,
+      then REST and MCP vary sample limits, lookahead windows and projections.
+    then:
+    - All three return the exact owner counts and default seven-day window; GraphQL preserves anchor milliseconds.
+    - REST and MCP return the independently expected ordered samples and equal full sample DTOs without truncating counts.
+    - One-millisecond boundary shifts, empty owners and a foreign userId query preserve the declared inclusion and ownership rules.
+    test:
+      file: tests/integration/mcp/workspace/overview-transport-contract.test.ts
+      name: interface-hierarchy.overview-read-parity
 - id: interface-hierarchy.young-public-read-parity
   category: consistency
   topic: semantic-parity
