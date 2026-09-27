@@ -176,3 +176,99 @@ test("ui.workspace-footer-policy-2", async ({ page }) => {
     await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
   }
 });
+
+test("ui.shell-layout-4", async ({ page }) => {
+  const user = await signIn(page);
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await gotoAndWaitForReady(page, "/workspace/todos");
+    const navigation = page.locator('[data-shell-navigation="mobile-primary"]');
+    const destinations = [
+      ["Today", "/workspace/overview"],
+      ["Calendar", "/workspace/calendar"],
+      ["Tasks", "/workspace/homeworks"],
+      ["Explore", "/catalog/courses"],
+    ];
+    await expect(navigation.getByRole("link")).toHaveText(
+      destinations.map(([label]) => label),
+    );
+    for (const [label, href] of destinations) {
+      const link = navigation.getByRole("link", { name: label, exact: true });
+      await expect(link).toHaveAttribute("href", href);
+      await link.focus();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(new RegExp(`${href}$`));
+      await expect(link).toHaveAttribute("aria-current", "page");
+    }
+    await gotoAndWaitForReady(page, "/terms");
+    const contentEnd = page.locator("[data-shell-scroll-container] p").last();
+    for (const inset of [0, 34]) {
+      await cdp.send("Emulation.setSafeAreaInsetsOverride", {
+        insets: { bottom: inset },
+      });
+      await expect
+        .poll(() =>
+          navigation.evaluate((element) =>
+            Number.parseFloat(getComputedStyle(element).paddingBottom),
+          ),
+        )
+        .toBe(inset);
+      const height = await navigation.evaluate(
+        (element) => element.getBoundingClientRect().height,
+      );
+      expect(height).toBe(57 + inset);
+      const padding = await page
+        .locator('[data-slot="sidebar-wrapper"]')
+        .evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).paddingBottom),
+        );
+      expect(padding).toBe(56 + inset);
+      await page.evaluate(() =>
+        window.scrollTo(0, document.documentElement.scrollHeight),
+      );
+      await expect(contentEnd).toBeInViewport();
+      const endBox = await contentEnd.boundingBox();
+      const navigationBox = await navigation.boundingBox();
+      expect(endBox).not.toBeNull();
+      expect(navigationBox).not.toBeNull();
+      if (!endBox || !navigationBox)
+        throw new Error("Missing mobile content or navigation bounds");
+      expect(endBox.y + endBox.height).toBeLessThanOrEqual(navigationBox.y);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
+    }
+  } finally {
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });
+    await cdp.detach();
+    await withE2ePrisma((db) => db.user.delete({ where: { id: user.id } }));
+  }
+});
+
+test("ui.navigation-landmarks-5", async ({ page }) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const [href, name] of [
+      ["/catalog/courses", /^(Courses|课程)$/],
+      ["/catalog/young-events", /^(Second Classroom|第二课堂)$/],
+      ["/news", /^(News & Notices|新闻公告)$/],
+    ] as const) {
+      await gotoAndWaitForReady(page, "/");
+      if (width < 768)
+        await page
+          .locator("[data-shell-topbar]")
+          .getByRole("button", { name: /^(Menu|菜单)$/ })
+          .click();
+      const navigation = page.locator(
+        `[data-shell-navigation="${width < 768 ? "secondary" : "desktop"}"]`,
+      );
+      const link = navigation.getByRole("link", { name });
+      await expect(link).toHaveCount(1);
+      await expect(link).toHaveAttribute("href", href);
+      await link.click();
+      await expect(page).toHaveURL(new RegExp(`${href}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    }
+  }
+});

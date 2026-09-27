@@ -365,6 +365,18 @@ requirements:
   topic: shell-layout
   rule: Signed-in mobile navigation exposes Today, Calendar, Tasks, and Explore. The content layout reserves
     navigation height and the device safe-area inset so the final content is not covered.
+  acceptance:
+    given: A signed-in user opens the mobile shell and a long public document.
+    when: The user activates every primary destination with the keyboard and the real browser emulates bottom
+      safe-area insets of zero and 34 pixels.
+    then:
+    - Today, Calendar, Tasks, and Explore reach their canonical routes and identify the active destination.
+    - Navigation padding and content reservation include the emulated safe-area inset.
+    - After scrolling to the document end, its final text is fully above the navigation bar with no horizontal
+      document overflow.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-4
 - id: ui.shell-layout-5
   category: presentation
   topic: shell-layout
@@ -789,6 +801,15 @@ requirements:
   topic: navigation-landmarks
   rule: Campus services navigation exposes distinct entries for the academic catalog, Young activities, and
     news, each linking to its canonical destination.
+  acceptance:
+    given: An anonymous visitor opens the desktop navigation or mobile navigation drawer.
+    when: The visitor separately activates Courses, Second Classroom, and News & Notices.
+    then:
+    - Each entry occurs once and links to its distinct canonical route.
+    - Each activation reaches that destination and exposes its main heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.navigation-landmarks-5
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
