@@ -17,10 +17,31 @@ requirements:
 - id: homework.no-subscription-required
   category: authorization
   rule: Creating homework does not require the user to be subscribed to the section first.
+  acceptance:
+    given: Two active temporary users have no section subscriptions.
+    when: Each uses the real homework creation service against an isolated public section.
+    then:
+    - Both creates persist shared homework with the actual creator identity.
+    - No section subscription is required or implicitly created.
+    test:
+      file: tests/integration/homework-state-contract.test.ts
+      name: homework.no-subscription-required
 - id: homework.entity-and-completion-separated
   category: consistency
   rule: Homework entity and homework completion state are strictly separated to prevent 'I completed it'
     from becoming 'the homework was modified'.
+  acceptance:
+    given: A shared homework has a description, description history and creation audit; another user has
+      no completion yet.
+    when: Real completion writes complete, reopen and re-complete it; the creator then updates the shared
+      title and description.
+    then:
+    - Completion changes do not modify any homework field, description/history row or entity audit record.
+    - An entity edit updates the shared fields while preserving the other user’s completion identity and
+      timestamp.
+    test:
+      file: tests/integration/homework-state-contract.test.ts
+      name: homework.entity-and-completion-separated
 - id: homework.completed-deadline-display
   category: presentation
   applies_to:
@@ -316,9 +337,33 @@ requirements:
 - id: homework.active-collaborator-write
   category: authorization
   rule: Signed-in unsuspended users can create and update section homework.
+  acceptance:
+    given: An isolated section has homework authored by one user, with another active user, an active
+      administrator and a suspended user.
+    when: The active actors create their own homework and update the first author’s homework; suspended,
+      empty and nonexistent identities attempt the same writes.
+    then:
+    - Active collaborators can create and update shared homework while preserving the original creator.
+    - Suspended and unauthenticated identities are rejected, leaving the stored homework rows unchanged.
+    test:
+      file: tests/integration/homework-state-contract.test.ts
+      name: homework.active-collaborator-write
 - id: homework.completion-owner
   category: authorization
   rule: Each user can only manage their own completion state.
+  acceptance:
+    given: One owner has completed a shared homework; another regular user and an administrator have no
+      completion.
+    when: Each foreign actor invokes their own completion service and attempts direct cross-owner reads,
+      updates, deletes and insertion in the actual RLS context.
+    then:
+    - Foreign reads return no rows, cross-owner updates/deletes affect zero rows and forged-owner insertion
+      fails.
+    - The owner’s original completion remains byte-for-byte unchanged, including its timestamp.
+    - Only the owner’s own uncomplete action removes that record.
+    test:
+      file: tests/integration/homework-state-contract.test.ts
+      name: homework.completion-owner
 - id: homework.oauth-write-gates
   category: authorization
   rule: Bearer-authenticated REST, GraphQL and MCP homework mutations require the action-specific OAuth
