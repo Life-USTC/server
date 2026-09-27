@@ -207,85 +207,79 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe.each(["course", "teacher"] as const)(
-  "%s detail history page validation",
-  (kind) => {
-    async function loadPage(value: string | null) {
-      const { loadCourseDetailPage, loadTeacherDetailPage } = await import(
-        "@/features/catalog/server/catalog-detail-page-server"
-      );
-      const path =
-        kind === "course"
-          ? `/catalog/courses/${course.jwId}`
-          : `/catalog/teachers/${teacher.id}`;
-      const url = new URL(path, "https://example.test");
-      if (value !== null) url.searchParams.set("sectionsPage", value);
-      const input = { locals: locals(), request: new Request(url), url };
-      return kind === "course"
-        ? loadCourseDetailPage({
-            ...input,
-            params: { jwId: String(course.jwId) },
-          })
-        : loadTeacherDetailPage({
-            ...input,
-            params: { id: String(teacher.id) },
-          });
-    }
+async function loadHistoryPage(
+  kind: "course" | "teacher",
+  value: string | null,
+) {
+  const { loadCourseDetailPage, loadTeacherDetailPage } = await import(
+    "@/features/catalog/server/catalog-detail-page-server"
+  );
+  const path =
+    kind === "course"
+      ? `/catalog/courses/${course.jwId}`
+      : `/catalog/teachers/${teacher.id}`;
+  const url = new URL(path, "https://example.test");
+  if (value !== null) url.searchParams.set("sectionsPage", value);
+  const input = { locals: locals(), request: new Request(url), url };
+  return kind === "course"
+    ? loadCourseDetailPage({
+        ...input,
+        params: { jwId: String(course.jwId) },
+      })
+    : loadTeacherDetailPage({
+        ...input,
+        params: { id: String(teacher.id) },
+      });
+}
 
-    async function rejectsInvalidPages() {
-      for (const value of [
-        "1e308",
-        String(Number.MAX_SAFE_INTEGER),
-        "450359962737051",
-        "0",
-        "-1",
-        "1.5",
-        "",
-        "01",
-        "+1",
-        " 1",
-        "1 ",
-      ]) {
-        await expect(
-          loadPage(value),
-          `sectionsPage=${JSON.stringify(value)}`,
-        ).rejects.toMatchObject({ status: 400 });
-        expect(getCoursePageMock).not.toHaveBeenCalled();
-        expect(getTeacherPageMock).not.toHaveBeenCalled();
-        expect(getViewerContextMock).not.toHaveBeenCalled();
-      }
-    }
+async function rejectsInvalidPages(kind: "course" | "teacher") {
+  for (const value of [
+    "1e308",
+    String(Number.MAX_SAFE_INTEGER),
+    "450359962737051",
+    "0",
+    "-1",
+    "1.5",
+    "",
+    "01",
+    "+1",
+    " 1",
+    "1 ",
+  ]) {
+    await expect(
+      loadHistoryPage(kind, value),
+      `sectionsPage=${JSON.stringify(value)}`,
+    ).rejects.toMatchObject({ status: 400 });
+    expect(getCoursePageMock).not.toHaveBeenCalled();
+    expect(getTeacherPageMock).not.toHaveBeenCalled();
+    expect(getViewerContextMock).not.toHaveBeenCalled();
+  }
+}
 
-    if (kind === "course") {
-      it("course.history-page-validation", rejectsInvalidPages);
-    } else {
-      it("teacher.history-page-validation", rejectsInvalidPages);
-    }
+async function acceptsValidPages(kind: "course" | "teacher") {
+  for (const { value, page } of [
+    { value: null, page: 1 },
+    { value: "1", page: 1 },
+    { value: "2", page: 2 },
+    { value: "107374184", page: 107374184 },
+    { value: "450359962737050", page: 450359962737050 },
+  ]) {
+    const result = await loadHistoryPage(kind, value);
+    const reader = kind === "course" ? getCoursePageMock : getTeacherPageMock;
+    expect(reader).toHaveBeenLastCalledWith(
+      kind === "course" ? course.jwId : teacher.id,
+      "en-us",
+      page,
+    );
+    expect(result.sectionsPagination.page).toBe(page);
+    expect(Number.isSafeInteger((page - 1) * 20)).toBe(true);
+  }
+}
 
-    async function acceptsValidPages() {
-      for (const { value, page } of [
-        { value: null, page: 1 },
-        { value: "1", page: 1 },
-        { value: "2", page: 2 },
-        { value: "107374184", page: 107374184 },
-        { value: "450359962737050", page: 450359962737050 },
-      ]) {
-        const result = await loadPage(value);
-        const reader =
-          kind === "course" ? getCoursePageMock : getTeacherPageMock;
-        expect(reader).toHaveBeenLastCalledWith(
-          kind === "course" ? course.jwId : teacher.id,
-          "en-us",
-          page,
-        );
-        expect(result.sectionsPagination.page).toBe(page);
-        expect(Number.isSafeInteger((page - 1) * 20)).toBe(true);
-      }
-    }
-    if (kind === "course") it("course.history-page-default", acceptsValidPages);
-    else it("teacher.history-page-default", acceptsValidPages);
-  },
-);
+it("course.history-page-validation", () => rejectsInvalidPages("course"));
+it("teacher.history-page-validation", () => rejectsInvalidPages("teacher"));
+it("course.history-page-default", () => acceptsValidPages("course"));
+it("teacher.history-page-default", () => acceptsValidPages("teacher"));
 
 describe("catalog detail loader critical path", () => {
   it("traces bounded course data-load phases without entity identifiers", async () => {

@@ -138,6 +138,22 @@ describe("specification structure and references", () => {
     ]).toEqual([]);
   });
 
+  it("rejects repeated or conditional registration while permitting input loops inside one test", () => {
+    expect([
+      ...declaredTestNames(`
+      for (const width of [390, 1280]) { test("loop", () => {}); }
+      ["en", "zh"].forEach(locale => test("callback", () => {}));
+      function register() { test("helper", () => {}); }
+      if (enabled) test("conditional", () => {});
+      enabled && test("short circuit", () => {});
+      describe.each([1, 2])("repeated suite", () => { test("suite child", () => {}); });
+      test.describe("one suite", () => {
+        test("one test", () => { for (const value of [1, 2]) expect(value).toBeTruthy(); });
+      });
+    `),
+    ]).toEqual(["one test"]);
+  });
+
   it("checks the reverse mapping and rejects orphan and duplicate canonical tests", async () => {
     const root = await mkdtemp(join(tmpdir(), "spec-bijection-"));
     directories.push(root);

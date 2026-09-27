@@ -262,6 +262,41 @@ export function declaredTestNames(text: string): Set<string> {
     return false;
   }
   function walk(node: ts.Node, disabled: boolean) {
+    // Canonical tests must be registered once, unconditionally. A literal title
+    // inside a loop, conditional or arbitrary callback is not a unique test.
+    disabled ||=
+      ts.isIterationStatement(node, false) ||
+      ts.isIfStatement(node) ||
+      ts.isSwitchStatement(node) ||
+      ts.isConditionalExpression(node) ||
+      (ts.isBinaryExpression(node) &&
+        [
+          ts.SyntaxKind.AmpersandAmpersandToken,
+          ts.SyntaxKind.BarBarToken,
+          ts.SyntaxKind.QuestionQuestionToken,
+        ].includes(node.operatorToken.kind));
+    if (
+      ts.isArrowFunction(node) ||
+      ts.isFunctionExpression(node) ||
+      ts.isFunctionDeclaration(node)
+    ) {
+      const parent = node.parent;
+      const parts = ts.isCallExpression(parent)
+        ? callParts(parent.expression)
+        : [];
+      const suiteParts =
+        parts[0] === "describe"
+          ? parts.slice(1)
+          : parts[0] === "test" && parts[1] === "describe"
+            ? parts.slice(2)
+            : undefined;
+      disabled ||=
+        !suiteParts?.every((part) =>
+          ["only", "concurrent", "sequential", "serial", "parallel"].includes(
+            part,
+          ),
+        );
+    }
     if (ts.isCallExpression(node)) {
       const parts = callParts(node.expression);
       const isTest = ["test", "it", "describe"].includes(parts[0]);

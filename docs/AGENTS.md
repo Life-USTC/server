@@ -49,6 +49,9 @@ names across files, disabled tests, and parameterized name templates. Split
 independent behaviors into requirements before assigning tests; a named test may
 exercise multiple inputs for one rule. Additional regression tests remain useful
 and do not need their own specification IDs.
+Register canonical tests unconditionally at module level or in an ordinary suite.
+Loops and parameterized suites belong inside the test body, so one requirement
+still produces exactly one runtime test.
 
 Feature test files stay in the appropriate runner's directory, grouped by domain.
 A browser test, a database test, and a unit test have different execution needs;
