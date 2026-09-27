@@ -8,9 +8,7 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 for (const locale of ["zh-CN", "en-US"]) {
   test.describe(locale, () => {
     test.use({ locale });
-    test("课程身份角标随订阅更新，并同时显示在日历和移动日程中", async ({
-      page,
-    }, testInfo) => {
+    test("calendar.subscription-badges", async ({ page }, testInfo) => {
       const url = `/workspace/calendar?calendarView=week&calendarWeek=${DEV_SEED_ANCHOR.date}`;
       await signInAsDebugUser(page, url);
       await ensureSeedSectionSubscription(page);
@@ -30,6 +28,7 @@ for (const locale of ["zh-CN", "en-US"]) {
       );
       expect(original).toBeDefined();
 
+      const originalTitles = new Map<boolean, string>();
       try {
         for (const [kind, label] of [
           ["regular", undefined],
@@ -54,6 +53,12 @@ for (const locale of ["zh-CN", "en-US"]) {
               .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`)
               .first();
             await expect(course).toBeVisible();
+            const title = await course
+              .locator('[data-slot="item-title"]')
+              .innerText();
+            expect(title.trim()).not.toBe("");
+            if (kind === "regular") originalTitles.set(mobile, title);
+            else expect(title).toBe(originalTitles.get(mobile));
             const badge = course.getByTestId("calendar-subscription-badge");
             if (label) {
               await expect(badge).toBeVisible();

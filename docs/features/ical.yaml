@@ -41,6 +41,15 @@ requirements:
   category: presentation
   rule: iCal links should be presented as copyable links rather than requiring users to manually construct
     them.
+  acceptance:
+    given: A signed-in user can open personal and public Section calendar export dialogs.
+    when: The browser copies each presented URL and retrieves it.
+    then:
+    - The clipboard contains the exact presented canonical personal or Section URL.
+    - Both copied URLs return a valid text/calendar response.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/test.ts
+      name: ical.copyable-links
 - id: ical.rfc5545-dtstamp-utc
   category: consistency
   rule: Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME

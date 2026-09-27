@@ -35,6 +35,16 @@ requirements:
   category: presentation
   rule: The section calendar presents meeting dates/times, teachers and available location context with
     links to the relevant public details.
+  acceptance:
+    given: A public Section has dated meetings with known teachers, room, building and campus.
+    when: The browser displays the Section timetable and resolves its teacher links.
+    then:
+    - Meeting date/start/end and available room/building/campus context are visible.
+    - Each teacher from the actual meeting appears with a working public identity link.
+    - Desktop and mobile timetable screenshots preserve readable meeting context.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/calendar.test.ts
+      name: schedule.schedule-as-context
 - id: schedule.public-rest-locale-cache
   category: consistency
   rule: 'Public schedule REST output is determined by URL parameters: omitted locale uses zh-cn and locale=en-us

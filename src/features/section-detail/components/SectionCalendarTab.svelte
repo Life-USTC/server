@@ -23,6 +23,7 @@ export let sectionCopy: {
   lectureNumber: string;
   location: string;
   time: string;
+  teacher: string;
   week: string;
 };
 export let unscheduledCalendarEvents: SectionCalendarEvent[];
@@ -81,7 +82,16 @@ $: classLectureNumberById = new Map(
     <Table.Body>
       {#each datedEvents as event (event.id)}
         <Table.Row>
-          <Table.Cell class="whitespace-nowrap">{lectureLabel(event)}</Table.Cell>
+          <Table.Cell>
+            <div class="whitespace-nowrap">{lectureLabel(event)}</div>
+            {#if event.teachers?.length}
+              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
+                {#each event.teachers as teacher (teacher.id)}
+                  <a class="whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                {/each}
+              </div>
+            {/if}
+          </Table.Cell>
           <Table.Cell class="whitespace-nowrap">
             {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
           </Table.Cell>
@@ -106,7 +116,16 @@ $: classLectureNumberById = new Map(
       {/each}
       {#each unscheduledCalendarEvents as event (event.id)}
         <Table.Row>
-          <Table.Cell class="whitespace-nowrap">{lectureLabel(event)}</Table.Cell>
+          <Table.Cell>
+            <div class="whitespace-nowrap">{lectureLabel(event)}</div>
+            {#if event.teachers?.length}
+              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
+                {#each event.teachers as teacher (teacher.id)}
+                  <a class="whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                {/each}
+              </div>
+            {/if}
+          </Table.Cell>
           <Table.Cell class="whitespace-nowrap">{sectionCopy.dateTBD}</Table.Cell>
           <Table.Cell class="whitespace-nowrap">
             {calendarEventDetail(event, sectionCopy.week, "—")}

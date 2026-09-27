@@ -751,112 +751,114 @@ test.describe("仪表盘教学班订阅", () => {
   });
 
   for (const width of [1280, 390]) {
-    test(`添加订阅仅在单个未订阅结果时自动勾选 ${width}`, async ({
-      page,
-    }, testInfo) => {
-      await page.setViewportSize({ width, height: 844 });
-      await signInAsDebugUser(page, "/workspace/subscriptions");
-      const matches = await resolveSeedSectionMatches(page);
-      const sectionIds = matches.map((section) => section.id);
-      expect(
-        (
-          await page.request.post("/api/workspace/subscriptions/batch", {
-            data: { action: "remove", sectionIds },
-          })
-        ).ok(),
-      ).toBe(true);
-      try {
-        await gotoAndWaitForReady(page, "/workspace/subscriptions");
-        const openDialog = async () => {
-          await page
-            .getByRole("button", { name: /添加订阅|Add Subscription/i })
-            .first()
-            .click();
-        };
-        const dialog = page.getByRole("dialog", {
-          name: /添加订阅|Add Subscription/i,
-        });
-        const search = async (query: string) => {
-          await dialog
-            .getByRole("textbox", {
-              name: /搜索课程或教师|Search courses or teachers/i,
+    test.describe(String(width), () => {
+      test("subscription.web-quick-add-selection", async ({
+        page,
+      }, testInfo) => {
+        await page.setViewportSize({ width, height: 844 });
+        await signInAsDebugUser(page, "/workspace/subscriptions");
+        const matches = await resolveSeedSectionMatches(page);
+        const sectionIds = matches.map((section) => section.id);
+        expect(
+          (
+            await page.request.post("/api/workspace/subscriptions/batch", {
+              data: { action: "remove", sectionIds },
             })
-            .fill(query);
-          const response = page.waitForResponse(
-            (response) =>
-              response.url().includes("/api/catalog/sections?") &&
-              response.request().method() === "GET",
+          ).ok(),
+        ).toBe(true);
+        try {
+          await gotoAndWaitForReady(page, "/workspace/subscriptions");
+          const openDialog = async () => {
+            await page
+              .getByRole("button", { name: /添加订阅|Add Subscription/i })
+              .first()
+              .click();
+          };
+          const dialog = page.getByRole("dialog", {
+            name: /添加订阅|Add Subscription/i,
+          });
+          const search = async (query: string) => {
+            await dialog
+              .getByRole("textbox", {
+                name: /搜索课程或教师|Search courses or teachers/i,
+              })
+              .fill(query);
+            const response = page.waitForResponse(
+              (response) =>
+                response.url().includes("/api/catalog/sections?") &&
+                response.request().method() === "GET",
+            );
+            await dialog
+              .getByRole("button", { name: /^(搜索|Search)$/i })
+              .click();
+            expect((await response).ok()).toBe(true);
+          };
+          const submit = dialog.getByRole("button", {
+            name: /订阅所选|Subscribe selected/i,
+          });
+          const first = dialog.getByRole("checkbox", {
+            name: new RegExp(escapeForRegExp(DEV_SEED.section.code), "i"),
+          });
+          const second = dialog.getByRole("checkbox", {
+            name: new RegExp(escapeForRegExp(DEV_SEED.sections[1].code), "i"),
+          });
+          await openDialog();
+          await search(scenario.teachers[1].nameCn);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+          await expect(first).not.toBeChecked();
+          await expect(second).not.toBeChecked();
+          await expect(submit).toBeDisabled();
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            `quick-add-multiple-unselected-${width}`,
           );
-          await dialog
-            .getByRole("button", { name: /^(搜索|Search)$/i })
-            .click();
-          expect((await response).ok()).toBe(true);
-        };
-        const submit = dialog.getByRole("button", {
-          name: /订阅所选|Subscribe selected/i,
-        });
-        const first = dialog.getByRole("checkbox", {
-          name: new RegExp(escapeForRegExp(DEV_SEED.section.code), "i"),
-        });
-        const second = dialog.getByRole("checkbox", {
-          name: new RegExp(escapeForRegExp(DEV_SEED.sections[1].code), "i"),
-        });
-        await openDialog();
-        await search(scenario.teachers[1].nameCn);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-        await expect(first).not.toBeChecked();
-        await expect(second).not.toBeChecked();
-        await expect(submit).toBeDisabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `quick-add-multiple-unselected-${width}`,
-        );
-        await first.click();
-        await expect(submit).toBeEnabled();
-        await search(DEV_SEED.section.code);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-        await expect(first).toBeChecked();
-        await expect(submit).toBeEnabled();
-        await search(scenario.teachers[1].nameCn);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-        await expect(first).not.toBeChecked();
-        await expect(second).not.toBeChecked();
-        await expect(submit).toBeDisabled();
-        await first.click();
-        const subscribed = page.waitForResponse(
-          (response) =>
-            response.url().includes("/api/workspace/subscriptions/batch") &&
-            response.request().method() === "POST",
-        );
-        await submit.click();
-        expect((await subscribed).ok()).toBe(true);
-        await expect(dialog).toBeHidden();
-        await gotoAndWaitForReady(page, "/workspace/subscriptions");
-        await openDialog();
-        await search(scenario.teachers[1].nameCn);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(2);
-        await expect(first).toBeChecked();
-        await expect(first).toBeDisabled();
-        await expect(second).not.toBeChecked();
-        await expect(submit).toBeDisabled();
-        await search(DEV_SEED.section.code);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-        await expect(first).toBeDisabled();
-        await expect(submit).toBeDisabled();
-        await search(DEV_SEED.sections[1].code);
-        await expect(dialog.getByRole("checkbox")).toHaveCount(1);
-        await expect(second).toBeChecked();
-        await expect(second).toBeEnabled();
-        await expect(submit).toBeEnabled();
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `quick-add-single-selected-${width}`,
-        );
-      } finally {
-        await ensureSeedSectionSubscription(page);
-      }
+          await first.click();
+          await expect(submit).toBeEnabled();
+          await search(DEV_SEED.section.code);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+          await expect(first).toBeChecked();
+          await expect(submit).toBeEnabled();
+          await search(scenario.teachers[1].nameCn);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+          await expect(first).not.toBeChecked();
+          await expect(second).not.toBeChecked();
+          await expect(submit).toBeDisabled();
+          await first.click();
+          const subscribed = page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/workspace/subscriptions/batch") &&
+              response.request().method() === "POST",
+          );
+          await submit.click();
+          expect((await subscribed).ok()).toBe(true);
+          await expect(dialog).toBeHidden();
+          await gotoAndWaitForReady(page, "/workspace/subscriptions");
+          await openDialog();
+          await search(scenario.teachers[1].nameCn);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(2);
+          await expect(first).toBeChecked();
+          await expect(first).toBeDisabled();
+          await expect(second).not.toBeChecked();
+          await expect(submit).toBeDisabled();
+          await search(DEV_SEED.section.code);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+          await expect(first).toBeDisabled();
+          await expect(submit).toBeDisabled();
+          await search(DEV_SEED.sections[1].code);
+          await expect(dialog.getByRole("checkbox")).toHaveCount(1);
+          await expect(second).toBeChecked();
+          await expect(second).toBeEnabled();
+          await expect(submit).toBeEnabled();
+          await captureStepScreenshot(
+            page,
+            testInfo,
+            `quick-add-single-selected-${width}`,
+          );
+        } finally {
+          await ensureSeedSectionSubscription(page);
+        }
+      });
     });
   }
 

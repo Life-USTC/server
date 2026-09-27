@@ -43,7 +43,7 @@ export type SectionDetailSchedule = {
   room?: SectionDetailScheduleRoom | null;
   startTime?: number | null;
   startUnit?: number | null;
-  teachers: SectionDetailNamed[];
+  teachers: SectionDetailTeacher[];
   weekIndex?: number | null;
 };
 

@@ -175,7 +175,7 @@ test.describe("仪表盘日历", () => {
     await captureStepScreenshot(page, testInfo, "calendar/week-view");
   });
 
-  test("复制日历链接生成有效的 iCal URL", async ({ page }) => {
+  test("ical.copyable-links", async ({ page }) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -201,11 +201,39 @@ test.describe("仪表盘日历", () => {
     expect(calendarResponse.headers()["content-type"]).toContain(
       "text/calendar",
     );
+    await page.keyboard.press("Escape");
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${DEV_SEED.section.jwId}`,
+    );
+    await page
+      .getByTestId("detail-pinned-summary")
+      .getByRole("button", { name: /添加到日历|Add to calendar/i })
+      .first()
+      .click();
+    const sectionDialog = page.getByRole("dialog");
+    const sectionUrl = await sectionDialog
+      .locator("#calendar-url")
+      .inputValue();
+    expect(sectionUrl).toContain(
+      `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+    );
+    await sectionDialog
+      .getByRole("button", { name: /复制|Copy/i })
+      .first()
+      .click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      sectionUrl,
+    );
+    const sectionResponse = await page.request.get(sectionUrl);
+    expect(sectionResponse.status()).toBe(200);
+    expect(sectionResponse.headers()["content-type"]).toContain(
+      "text/calendar",
+    );
+    expect(await sectionResponse.text()).toContain("BEGIN:VCALENDAR");
   });
 
-  test("移动端使用可读周日程且导航控件满足触控尺寸", async ({
-    page,
-  }, testInfo) => {
+  test("calendar.mobile-agenda-first", async ({ page }, testInfo) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -222,6 +250,18 @@ test.describe("仪表盘日历", () => {
     await expect(agenda).toBeVisible();
     await expect(agenda.locator("section")).toHaveCount(7);
     await expect(agenda.locator("a").first()).toBeVisible();
+    const courseEvent = agenda
+      .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`)
+      .first();
+    await expect(
+      courseEvent.locator('[data-slot="item-title"]'),
+    ).not.toHaveText("");
+    await expect(
+      courseEvent.locator('[data-slot="item-description"]'),
+    ).toContainText(/\d{1,2}:\d{2}/);
+    await expect(courseEvent).toContainText(
+      new RegExp(`${DEV_SEED.room.nameCn}|${DEV_SEED.room.nameEn}`),
+    );
     await expect(
       agenda.getByText(DEV_SEED.homeworks.overdueTitle).first(),
     ).toBeVisible();
@@ -270,5 +310,10 @@ test.describe("仪表盘日历", () => {
     ).toBe(true);
 
     await captureStepScreenshot(page, testInfo, "calendar/mobile-agenda");
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByTestId("workspace-calendar-grid")).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /日历|Calendar/i }),
+    ).toBeVisible();
   });
 });

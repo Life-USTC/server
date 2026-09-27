@@ -69,6 +69,10 @@ export function buildSectionClassCalendarEvents({
     date: schedule.date ?? null,
     dateKey: buildDateKey(schedule.date),
     roomCodes: schedule.room?.code ? [schedule.room.code] : [],
+    teachers: schedule.teachers.map((teacher) => ({
+      id: teacher.id,
+      name: primaryName(teacher),
+    })),
     title: sectionCopy.classEventTitle,
     meta: `${formatTime(schedule.startTime, notAvailable)}-${formatTime(schedule.endTime, notAvailable)} · ${roomLabel(schedule, sectionCopy)}`,
     badges: [

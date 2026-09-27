@@ -330,6 +330,15 @@ requirements:
 - id: homework.workspace-style-guide-omitted
   category: presentation
   rule: The workspace homework create form omits the section-context advisory guide.
+  acceptance:
+    given: A signed-in English-language user opens the workspace homework create dialog.
+    when: The form renders its title/details fields and submit action.
+    then:
+    - Useful title/details placeholders remain visible.
+    - The section-specific style-guide control and redundant dialog description are absent.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/creation.test.ts
+      name: homework.workspace-style-guide-omitted
 - id: homework.transport-creator-delete
   category: authorization
   rule: Ordinary homework deletion retains creator-only authority on REST, GraphQL and MCP; administrator

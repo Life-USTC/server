@@ -26,6 +26,17 @@ requirements:
   category: presentation
   rule: Quick-add auto-selects only when the entire result contains exactly one section and that section
     is not already subscribed.
+  acceptance:
+    given: Desktop and mobile quick-add searches return multiple matches, a single unsubscribed match
+      or a single subscribed match.
+    when: The viewer changes searches and subscribes to a selected result.
+    then:
+    - Multiple matches begin unselected; exactly one unsubscribed result is selected automatically.
+    - An already subscribed sole result remains disabled and cannot be submitted.
+    - Changing the search clears earlier manual selection.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/sections/test.ts
+      name: subscription.web-quick-add-selection
 - id: subscription.user-scoped
   category: authorization
   rule: Only the authenticated owner may read or change their section subscriptions. Personal academic
@@ -99,9 +110,6 @@ requirements:
 - id: subscription.kind-web-editor-location
   category: behavior
   rule: Web subscription-kind editing is available in workspace subscriptions.
-- id: subscription.ta-calendar-web-badge
-  category: presentation
-  rule: Web calendars use a teaching-assistant role badge without changing the course title.
 capabilities:
   subscribe-from-section:
     title: Subscribe from Section Detail
@@ -269,3 +277,6 @@ capabilities:
       items:
       - Auditor/teaching-assistant badge on subscribed sections; regular has no badge
       - Subscription kind editor in workspace subscriptions only
+rationale:
+- Personal Web role badges and unchanged course titles are canonically owned by calendar.subscription-badges;
+  teaching-assistant ICS prefixes remain owned by subscription.ta-calendar-label.

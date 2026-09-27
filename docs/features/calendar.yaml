@@ -40,6 +40,16 @@ requirements:
     with time, title, type, and available location context. Previous week, today, next week, and iCal
     actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable
     grid views.
+  acceptance:
+    given: A signed-in subscriber opens a selected week on a 390px screen.
+    when: The browser reads the agenda, uses its iCal action and navigates to the next week.
+    then:
+    - Seven vertical day groups and real events are visible.
+    - Week/today/actions controls have at least 44px touch bounds and copied iCal links are usable.
+    - Week navigation preserves the agenda without page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/test.ts
+      name: calendar.mobile-agenda-first
 - id: calendar.week-starts-sunday
   category: presentation
   rule: Existing academic grids start on Sunday; activity calendars use Monday-start weeks.
@@ -50,6 +60,16 @@ requirements:
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
     grids and mobile agendas. Regular subscriptions show no badge. Web course titles and public calendar
     content remain unchanged.
+  acceptance:
+    given: A subscribed course cycles through regular, teaching assistant and auditor in Chinese and English.
+    when: The actual personal calendar is rendered at desktop and mobile widths after each update.
+    then:
+    - Only non-regular roles render the correct localized badge on course cards.
+    - Course titles remain identical to regular-role titles and badges stay within card bounds.
+    - No viewport gains page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/subscription-badge.test.ts
+      name: calendar.subscription-badges
 - id: calendar.event-card-types
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
