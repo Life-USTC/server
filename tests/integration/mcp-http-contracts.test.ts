@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/routes/mcp";
 import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
 import { createFixturePrisma } from "../shared/prisma";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 
 const db = createFixturePrisma();
 const marker = crypto.randomUUID();
@@ -20,6 +21,9 @@ const scopes = [
   "workspace.todo:write",
   "account.profile:read",
   "workspace.upload:write",
+  "workspace.overview:read",
+  "workspace.schedule:read",
+  "workspace.calendar:read",
 ];
 let server: Server;
 let origin: string;
@@ -481,5 +485,130 @@ it("mcp.upload-put-resource-isolation", async () => {
     expect(await db.upload.findUnique({ where: { key } })).toBeNull();
   } finally {
     await db.uploadPending.deleteMany({ where: { id: pending.id } });
+  }
+});
+
+it("mcp.time-override", { timeout: 30_000 }, async () => {
+  const section = await db.section.findUniqueOrThrow({
+    where: { jwId: DEV_SEED.section.jwId },
+    select: { id: true },
+  });
+  await db.userSectionSubscription.create({
+    data: { userId, sectionId: section.id },
+  });
+  const dueAt = `${DEV_SEED_ANCHOR.date}T18:00:00+08:00`;
+  const todo = await db.todo.create({
+    data: {
+      userId,
+      title: "[integration-test] product clock",
+      dueAt: new Date(dueAt),
+    },
+  });
+  const expired = await sign({ expired: true });
+  const limited = await sign({ scopes: ["workspace.todo:read"] });
+  const tools: Array<[string, Record<string, unknown>]> = [
+    ["workspace_snapshot_get", {}],
+    ["workspace_schedule_next", {}],
+    ["workspace_calendar_timeline_get", {}],
+    ["workspace_deadline_list", {}],
+    ["workspace_overview_get", {}],
+    [
+      "catalog_bus_departure_next",
+      {
+        originCampusId: DEV_SEED.bus.originCampusId,
+        destinationCampusId: DEV_SEED.bus.destinationCampusId,
+      },
+    ],
+  ];
+  async function invoke(
+    name: string,
+    args: Record<string, unknown>,
+    atTime: string,
+  ) {
+    const response = await post(
+      call(name, { ...args, atTime, mode: "full" }),
+      `Bearer ${token}`,
+    );
+    expect(response.status, name).toBe(200);
+    const body = await payload(response);
+    expect(body.result.isError, name).not.toBe(true);
+    expect(body.result.structuredContent.success, name).toBe(true);
+    return body.result.structuredContent;
+  }
+  try {
+    const before = Object.fromEntries(
+      await Promise.all(
+        tools.map(async ([name, args]) => [
+          name,
+          await invoke(name, args, DEV_SEED_ANCHOR.recommendedAtTime),
+        ]),
+      ),
+    );
+    const after = Object.fromEntries(
+      await Promise.all(
+        tools.map(async ([name, args]) => [
+          name,
+          await invoke(name, args, "2099-01-01T08:00:00+08:00"),
+        ]),
+      ),
+    );
+    for (const name of ["workspace_snapshot_get", "workspace_schedule_next"]) {
+      expect(before[name].nextClass.at).toMatch(
+        new RegExp(`^${DEV_SEED_ANCHOR.date}`),
+      );
+      expect(after[name].nextClass).toBeNull();
+    }
+    expect(before.workspace_calendar_timeline_get.range.from).toBe(
+      `${DEV_SEED_ANCHOR.date}T00:00:00+08:00`,
+    );
+    expect(after.workspace_calendar_timeline_get.range.from).toBe(
+      "2099-01-01T00:00:00+08:00",
+    );
+    expect(before.workspace_deadline_list.deadlines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "todo_due",
+          at: dueAt,
+          payload: expect.objectContaining({ id: todo.id }),
+        }),
+      ]),
+    );
+    expect(after.workspace_deadline_list.deadlines).toEqual([]);
+    expect(
+      before.workspace_overview_get.overview.todaySchedulesCount,
+    ).toBeGreaterThan(0);
+    expect(after.workspace_overview_get.overview.todaySchedulesCount).toBe(0);
+    expect(
+      new Date(before.catalog_bus_departure_next.atTime).toISOString(),
+    ).toBe(new Date(DEV_SEED_ANCHOR.recommendedAtTime).toISOString());
+    expect(
+      new Date(after.catalog_bus_departure_next.atTime).toISOString(),
+    ).toBe("2099-01-01T00:00:00.000Z");
+    for (const [name, args] of tools) {
+      for (const atTime of [
+        DEV_SEED_ANCHOR.recommendedAtTime,
+        "2099-01-01T08:00:00+08:00",
+      ]) {
+        const rejected = await post(
+          call(name, { ...args, atTime }),
+          `Bearer ${expired}`,
+        );
+        expect(rejected.status, name).toBe(401);
+        expect((await payload(rejected)).result).toBeUndefined();
+        if (name.startsWith("workspace_")) {
+          const denied = await post(
+            call(name, { ...args, atTime }),
+            `Bearer ${limited}`,
+          );
+          expect(denied.status, name).toBe(403);
+          expect((await payload(denied)).result).toBeUndefined();
+        }
+      }
+    }
+  } finally {
+    await db.todo.delete({ where: { id: todo.id } });
+    await db.userSectionSubscription.delete({
+      where: { userId_sectionId: { userId, sectionId: section.id } },
+    });
   }
 });

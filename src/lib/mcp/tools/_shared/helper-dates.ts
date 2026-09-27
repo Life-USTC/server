@@ -1,9 +1,5 @@
-import { parseRequiredDateInput } from "@/lib/time/date-time-from-hhmm";
 import { parseDateInput } from "@/lib/time/parse-date-input";
-import {
-  formatShanghaiDate,
-  startOfShanghaiDay,
-} from "@/lib/time/shanghai-format";
+import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
 import { jsonToolResult } from "./helper-results";
 
 const MCP_DATE_FILTER_USAGE = "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.";
@@ -51,7 +47,7 @@ export type McpDateRange =
 
 export function getTodayBounds(atTime?: Date) {
   const now = atTime ?? new Date();
-  const todayStart = parseRequiredDateInput(formatShanghaiDate(now));
+  const todayStart = startOfShanghaiDay(now);
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   return { now, todayStart, tomorrowStart };
 }

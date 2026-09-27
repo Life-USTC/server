@@ -26,8 +26,7 @@ export async function getMySevenDaysTimelineAction(
     return atTimeDate.result;
   }
   const { todayStart } = getTodayBounds(atTimeDate.value);
-  const windowEnd = new Date(todayStart);
-  windowEnd.setDate(windowEnd.getDate() + 7);
+  const windowEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
   const events = await listUserCalendarEvents(userId, {
     locale,
     dateFrom: todayStart,

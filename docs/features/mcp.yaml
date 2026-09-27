@@ -430,6 +430,19 @@ requirements:
     workspace_overview_get, and catalog_bus_departure_next accept atTime to anchor their product query
     clock. atTime never changes credential expiration, suspension status, ownership, or rate-limit authorization
     clocks.
+  acceptance:
+    given: An isolated subscribed user, a due todo, real signed tokens, public JWKS verification, and
+      the Node HTTP adapter for the production MCP route.
+    when: Call all six time-sensitive tools at the seed date and in 2099, then repeat with expired and
+      insufficient-scope tokens.
+    then:
+    - Snapshot/next-class, deadline, overview, timeline, and bus results use the requested product time.
+    - The timeline begins at Shanghai midnight; the seeded todo appears only in its deadline window.
+    - Expired credentials reject 401 at both product times, including for the public bus tool; insufficient
+      workspace scopes reject 403.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.time-override
 - id: mcp.openai-compatible-descriptors
   category: consistency
   rule: Every tool advertises a nonempty title, a closed object outputSchema with required boolean success,
@@ -547,6 +560,18 @@ requirements:
   category: consistency
   rule: All ordinary MCP tool results use the canonical result envelope. JSON-RPC protocol and transport
     errors retain their protocol-specific error shapes.
+  acceptance:
+    given: The production MCP registration wrapper and a real SDK client/server connection.
+    when: Registered callbacks return canonical object/error/array/scalar/null results or malformed envelopes;
+      a client also calls an unknown tool.
+    then:
+    - Canonical text and structured JSON reach the client unchanged.
+    - Missing status/structured content, non-JSON text, empty content, and conflicting text/structured
+      values fail at the registration boundary.
+    - SDK-generated failures retain isError and text without fabricating a successful domain envelope.
+    test:
+      file: tests/unit/lib/mcp/mcp-tool-descriptors.test.ts
+      name: mcp.tool-result-envelope
 - id: mcp.http-methods
   category: behavior
   rule: MCP uses POST for JSON-RPC and OPTIONS for trusted-origin CORS preflight. GET returns405. DELETE
