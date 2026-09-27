@@ -90,7 +90,7 @@ describe("catalog child-record query count", () => {
         schedules: expect.objectContaining({
           where: { date: { gte: dateFrom, lte: dateTo } },
           take: 5,
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
+          orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
           include: expect.objectContaining({ section: expect.any(Object) }),
         }),
       }),
