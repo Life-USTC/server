@@ -13,14 +13,22 @@ import * as Table from "$lib/components/ui/table/index.js";
 import { cn } from "$lib/utils.js";
 
 export let busNextTripHighlightKey: string | null;
-export let route: BusApplicableRoute;
+export let routes: BusApplicableRoute[];
+export let label: string;
 
 let canScrollLeft = false;
 let canScrollRight = false;
 let tableRegion: HTMLDivElement;
 
-$: stopColumns = busRouteSegmentStopColumns(route);
-$: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
+$: routeGroups = routes.map((route) => ({
+  route,
+  stopColumns: busRouteSegmentStopColumns(route),
+}));
+$: columnCount = Math.max(
+  1,
+  ...routeGroups.map(({ stopColumns }) => stopColumns.length),
+);
+$: tableMinWidth = `${Math.max(16, columnCount * 4.25)}rem`;
 
 onMount(() => {
   const scroller = tableRegion.querySelector<HTMLElement>(
@@ -48,10 +56,7 @@ onMount(() => {
 });
 </script>
 
-<section class="grid min-w-0 gap-3" data-testid="bus-route-section">
-  <h3 class="min-w-0 font-medium text-sm">
-    <BusRouteDescription description={route.route.descriptionPrimary} />
-  </h3>
+<section class="min-w-0">
   <div
     bind:this={tableRegion}
     class="relative min-w-0"
@@ -59,50 +64,51 @@ onMount(() => {
     style="--table-min-width: {tableMinWidth}"
   >
     <Table.Root class="min-w-[var(--table-min-width)]">
-      <Table.Header>
-        <Table.Row>
-          {#each stopColumns as stop, index}
-            <Table.Head
-              class={index === 0
-                ? "text-left"
-                : index === stopColumns.length - 1
-                  ? "text-right"
-                  : "text-center"}
-            >
-              {stop.label}
+      <Table.Caption class="sr-only">{label}</Table.Caption>
+      {#each routeGroups as { route, stopColumns } (route.route.id)}
+        <Table.Body data-testid="bus-route-section">
+          <Table.Row>
+            <Table.Head colspan={columnCount} scope="rowgroup">
+              <h3 class="min-w-0 font-medium text-sm">
+                <BusRouteDescription description={route.route.descriptionPrimary} />
+              </h3>
             </Table.Head>
-          {/each}
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {#each route.visibleTrips as trip}
-          {@const tripKey = `${route.route.id}:${trip.trip.id}`}
-          {@const isNextTrip = tripKey === busNextTripHighlightKey}
-          <Table.Row
-            class={cn(
-              trip.status === "departed" ? "opacity-60" : undefined,
-              isNextTrip ? "bg-muted/70 hover:bg-muted" : undefined,
-            )}
-          >
+          </Table.Row>
+          <Table.Row>
             {#each stopColumns as stop, index}
-              {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
-              <Table.Cell
-                class={cn(
-                  index === 0
-                    ? "text-left"
-                    : index === stopColumns.length - 1
-                      ? "text-right"
-                      : "text-center",
-                )}
+              <Table.Head
+                id={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
+                scope="col"
+                colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
+                class={index === 0 ? "text-left" : index === stopColumns.length - 1 ? "text-right" : "text-center"}
               >
-                <span class="font-mono tabular-nums">
-                  {busStopTimeLabel(stopTime)}
-                </span>
-              </Table.Cell>
+                {stop.label}
+              </Table.Head>
             {/each}
           </Table.Row>
-        {/each}
-      </Table.Body>
+          {#each route.visibleTrips as trip}
+            {@const tripKey = `${route.route.id}:${trip.trip.id}`}
+            {@const isNextTrip = tripKey === busNextTripHighlightKey}
+            <Table.Row
+              class={cn(
+                trip.status === "departed" ? "opacity-60" : undefined,
+                isNextTrip ? "bg-muted/70 hover:bg-muted" : undefined,
+              )}
+            >
+              {#each stopColumns as stop, index}
+                {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
+                <Table.Cell
+                  headers={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
+                  colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
+                  class={index === 0 ? "text-left" : index === stopColumns.length - 1 ? "text-right" : "text-center"}
+                >
+                  <span class="font-mono tabular-nums">{busStopTimeLabel(stopTime)}</span>
+                </Table.Cell>
+              {/each}
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      {/each}
     </Table.Root>
     {#if canScrollLeft}
       <div

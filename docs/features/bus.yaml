@@ -62,10 +62,27 @@ requirements:
   rule: The bus planner exposes departure campus, arrival campus, direction reversal, day type and show-departed
     controls. On mobile, route controls may use progressive disclosure while the next departure remains
     directly visible.
+  acceptance:
+    given: An anonymous viewer opens the planner on desktop and mobile.
+    when: The browser changes departure and arrival, reverses direction, selects every day type and toggles departed trips.
+    then:
+    - All required controls are available and change the selected route or visible timetable as requested.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.core-filters-only
 - id: bus.visual-priority
   category: presentation
   rule: The bus planner presents the next boardable departure together with the selected origin, destination
     and route before secondary route details and decorative content.
+  acceptance:
+    given: A fixed weekday reference time has a known next departure on the selected route.
+    when: Desktop and mobile planners render their primary departure presentation.
+    then:
+    - Mobile leads with a large next-departure time and origin/destination/route before the full timetable.
+    - Desktop highlights the first boardable trip in the first applicable route beside the selected stop controls.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.visual-priority
 - id: bus.public-responsive-planner
   category: presentation
   rule: Desktop bus planning presents route controls alongside a complete grouped timetable.
@@ -97,6 +114,14 @@ requirements:
   rule: The signed-in workspace and the public /catalog/bus default timetable use a single merged large
     table to display all applicable routes, grouped into table sections by route; each section shows the
     visible trips for that route.
+  acceptance:
+    given: The default stop pair has multiple applicable routes for anonymous and isolated signed-in viewers.
+    when: Actual desktop and mobile planners render the complete timetable.
+    then:
+    - One visible table contains all applicable route groups, each with its own route heading, stop columns and visible trip rows.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.merged-table-grouped-by-route
 - id: bus.raw-data-returned
   category: behavior
   rule: GET /api/catalog/bus and full mode of catalog_bus_timetable_get return the selected version's
@@ -164,6 +189,14 @@ requirements:
 - id: bus.responsive-route-surfaces
   category: presentation
   rule: Bus planner and transit-map content fit narrow viewports without page-level horizontal overflow.
+  acceptance:
+    given: The planner and transit map render at 280, 320, 390 and 1280 CSS pixels.
+    when: The viewer opens route controls and visits the actual map.
+    then:
+    - Neither route surface introduces page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.responsive-route-surfaces
 - id: bus.canonical-compact-mode
   category: presentation
   rule: The default catalog_bus_timetable_get response contains counts, route/campus summaries and relevant
@@ -193,6 +226,15 @@ requirements:
   category: privacy
   rule: Web preference writes remain disabled until the private preference read succeeds. Authentication
     or read failures never overwrite stored preferences.
+  acceptance:
+    given: An isolated owner has saved preferences, and its real private read is held or replaced with a 401 or 503 response.
+    when: The browser changes the planner and advances beyond the autosave debounce before hydration, after errors and after successful hydration.
+    then:
+    - Pending or failed reads produce no preference writes and leave persisted preferences unchanged.
+    - A successful read preserves the in-progress route choice; only a subsequent explicit edit writes the new preference.
+    test:
+      file: tests/e2e/src/app/bus/preferences-contract.test.ts
+      name: bus.preference-hydration-write-gate
 - id: bus.request-time-planning
   category: consistency
   rule: Bus planner and map results reflect their request reference time rather than a previously rendered
@@ -210,6 +252,15 @@ requirements:
 - id: bus.mobile-next-departures
   category: presentation
   rule: On mobile, the bus planner leads with the next boardable departure and at most two following departures.
+  acceptance:
+    given: A weekday route has at least four upcoming departures.
+    when: Actual 280px and 390px planners render the next-departure summary.
+    then:
+    - The primary departure and exactly two following departures appear with route context; the fourth is omitted from the summary.
+    - The summary appears before route controls.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.mobile-next-departures
 - id: bus.mobile-full-timetable
   category: presentation
   rule: On mobile, route controls use progressive disclosure and the complete grouped timetable is initially
@@ -227,6 +278,15 @@ requirements:
   category: presentation
   rule: A valid recently selected local route is reused when no signed-in route preference is available;
     signed-in preferences take precedence.
+  acceptance:
+    given: Local storage has a valid recent route while an isolated owner has a different saved preference.
+    when: Anonymous and authenticated browsers load the planner, followed by an invalid local route.
+    then:
+    - The anonymous planner restores the valid recent route; the signed-in preference takes precedence without overwriting local storage.
+    - Invalid local route IDs are ignored and the valid default route is selected.
+    test:
+      file: tests/e2e/src/app/bus/preferences-contract.test.ts
+      name: bus.recent-route-precedence
 - id: bus.primary-route-action-size
   category: presentation
   rule: Primary bus route actions are at least 44 CSS pixels high.
@@ -242,9 +302,25 @@ requirements:
 - id: bus.stop-label-wrapping
   category: presentation
   rule: Route stop sequences wrap only between complete arrow-and-stop tokens.
+  acceptance:
+    given: Actual route descriptions render in narrow 280px and 390px planners.
+    when: The browser examines each visible route token.
+    then:
+    - Every stop after the first shares one non-wrapping token with its arrow, and each token occupies one client rectangle.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.stop-label-wrapping
 - id: bus.map-label-legibility
   category: presentation
   rule: Campus map labels remain legible where they intersect route strokes.
+  acceptance:
+    given: The actual transit map renders on mobile and desktop.
+    when: The browser inspects the rendered campus labels and their computed paint styles.
+    then:
+    - Every label has visible geometry, a contrasting background-colored stroke and stroke-before-fill paint order that separates text from route lines.
+    test:
+      file: tests/e2e/src/app/bus/presentation-contract.test.ts
+      name: bus.map-label-legibility
 - id: bus.next-departures-uncached
   category: consistency
   rule: Time-sensitive next-departure responses are private and uncached.
