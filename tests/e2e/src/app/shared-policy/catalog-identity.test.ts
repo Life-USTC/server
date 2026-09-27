@@ -165,6 +165,45 @@ test("ui.global-search-results-4", async ({ page }, testInfo) => {
   }
 });
 
+test("ui.data-table-cells-3", async ({ page }) => {
+  const fixture = await createFixture();
+  try {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [path, code] of [
+        [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
+        [
+          `/catalog/sections?search=${fixture.section.code}`,
+          fixture.section.code,
+        ],
+        [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
+        [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+        [`/catalog/sections/${fixture.section.jwId}`, fixture.section.code],
+        [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
+      ]) {
+        await gotoAndWaitForReady(page, path);
+        const label = page
+          .locator("#main-content")
+          .getByText(code, { exact: true })
+          .filter({ visible: true });
+        await expect(label.first()).toBeVisible();
+        const presentations = await label.evaluateAll((elements) =>
+          elements.map((element) => ({
+            family: getComputedStyle(element).fontFamily,
+            inBadge: element.closest('[data-slot="badge"]') !== null,
+          })),
+        );
+        for (const presentation of presentations) {
+          expect(presentation.family).toMatch(/monospace|mono/i);
+          expect(presentation.inBadge).toBe(false);
+        }
+      }
+    }
+  } finally {
+    await cleanup(fixture);
+  }
+});
+
 test("permission-ui.identity-4", async ({ page }) => {
   const fixture = await createFixture();
   const { course, teacher, section, user } = fixture;

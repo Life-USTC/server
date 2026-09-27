@@ -133,6 +133,16 @@ requirements:
   category: presentation
   topic: data-table-cells
   rule: Course and section codes use plain monospace text, never badge styling.
+  acceptance:
+    given: An isolated course, teaching section, and teacher expose public codes in catalog lists, detail headers,
+      and teaching-section history.
+    when: A browser opens those surfaces at desktop and mobile widths.
+    then:
+    - Every visible occurrence of each public course or section code uses a computed monospace font.
+    - None of those code labels is rendered inside a badge.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.data-table-cells-3
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
