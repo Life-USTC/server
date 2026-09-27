@@ -177,7 +177,7 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
       await expect(match).toBeEnabled();
       await match.click();
       const dialog = page.getByRole("dialog", {
-        name: /Confirm .*section subscriptions|确认订阅/,
+        name: /Confirm .*section subscriptions?|确认订阅/,
       });
       await expect(dialog).toContainText(fixture.section.code);
       await expect(dialog).toContainText(

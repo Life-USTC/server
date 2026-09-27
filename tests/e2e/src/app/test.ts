@@ -825,7 +825,7 @@ test("cases.semester.only-non-current-semester-subscriptions-3", async ({
 
     await expect(
       page.getByText(
-        /往期班级、作业和课表仍然保留|past sections, homework, and schedules are still available/i,
+        /往期教学班、作业、课表和考试仍然保留|past sections, homework, schedules, and exams are still available/i,
       ),
     ).toBeVisible();
     await expect(

@@ -82,7 +82,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
       titleClass="text-2xl leading-tight sm:text-3xl"
     >
       {#snippet titleExtra()}
-        {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)} <span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
+        {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
       {/snippet}
     </PageHeader>
   {/snippet}
