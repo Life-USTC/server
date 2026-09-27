@@ -387,9 +387,21 @@ requirements:
 - id: ui.detail-two-column-stream-4
   category: presentation
   topic: detail-two-column-stream
-  rule: Each catalog detail sidebar contains that feature’s structured facts and applicable actions. Section
-    detail includes teachers and section subscription/calendar actions; course and teacher pages do not invent
-    section-specific actions without a selected section.
+  rule: Catalog detail information regions contain feature-specific structured facts. Section detail includes
+    teacher links, with subscription and calendar actions reachable in the desktop header and mobile fixed action bar.
+    Course and teacher pages do not offer section-specific actions before a section is selected.
+  rationale: Identity and remaining facts share the desktop information column and follow the mobile detail hierarchy.
+    Section primary actions stay in the header or fixed mobile bar so they remain reachable without duplication in the facts region.
+  acceptance:
+    given: Isolated catalog fixtures contain course classifications, teacher contact and affiliation facts, section counts and an authenticated viewer.
+    when: Section, course and teacher detail pages are opened at 1280, 390 and 320 pixels.
+    then:
+    - Structured facts render in the information regions, sharing the right column on desktop and remaining reachable on mobile.
+    - Section teacher links navigate to the matching teacher; header or mobile actions open the matching calendar URL and persist subscribe/unsubscribe changes.
+    - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-detail-facts.test.ts
+      name: ui.detail-two-column-stream-4
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
