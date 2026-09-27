@@ -16,7 +16,7 @@ function formatModernShanghaiTimestamp(input: Date) {
   if (!Number.isFinite(time) || time < MODERN_SHANGHAI_START_MS) return null;
   return `${new Date(time + MODERN_SHANGHAI_OFFSET_MS)
     .toISOString()
-    .slice(0, 19)}+08:00`;
+    .slice(0, input.getUTCMilliseconds() === 0 ? 19 : 23)}+08:00`;
 }
 
 export function formatShanghaiTimestamp(input: ConfigType): string {
@@ -24,7 +24,12 @@ export function formatShanghaiTimestamp(input: ConfigType): string {
     const fastTimestamp = formatModernShanghaiTimestamp(input);
     if (fastTimestamp) return fastTimestamp;
   }
-  return shanghaiDayjs(input).format(APP_TIMESTAMP_FORMAT);
+  const date = shanghaiDayjs(input);
+  return date.format(
+    date.millisecond() === 0
+      ? APP_TIMESTAMP_FORMAT
+      : "YYYY-MM-DDTHH:mm:ss.SSSZ",
+  );
 }
 
 export function formatShanghaiDate(input: ConfigType): string {

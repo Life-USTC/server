@@ -29,4 +29,20 @@ describe("serialize-date-output", () => {
       },
     });
   });
+  test("preserves fractional seconds for Date, string and historical timestamps", () => {
+    for (const iso of [
+      "2026-04-30T15:59:59.999Z",
+      "2026-04-21T16:00:00.001Z",
+      "1990-07-01T00:00:00.123Z",
+    ]) {
+      for (const input of [iso, new Date(iso)]) {
+        const output = toShanghaiIsoString(input);
+        expect(Date.parse(output)).toBe(Date.parse(iso));
+        expect(output).toMatch(/\.\d{3}\+0[89]:00$/);
+      }
+      expect(serializeDatesDeep({ value: new Date(iso) })).toEqual({
+        value: toShanghaiIsoString(iso),
+      });
+    }
+  });
 });

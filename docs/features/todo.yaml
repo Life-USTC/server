@@ -459,6 +459,22 @@ requirements:
     test:
       file: tests/integration/calendar-commit-contract.test.ts
       name: todo.delete-calendar-after-commit
+- id: todo.batch-result-replay
+  category: consistency
+  rule: REST and GraphQL todo completion and deletion batches return one ordered result per input target.
+    Missing and foreign-owner targets fail as not_found without undoing successful owned targets. Repeating
+    completion preserves the requested state; repeating deletion preserves absence but reports not_found
+    for the already deleted target. Per-item success is not an all-or-nothing batch guarantee.
+  acceptance:
+    given: Each transport receives foreign, owned and nonexistent todo IDs in that order.
+    when: The real REST and GraphQL handlers complete the batch twice and delete it twice.
+    then:
+    - Both transports preserve input result order and independently commit the owned target despite adjacent failures.
+    - Completion replay retains completed state; deletion replay changes the owned target result to not_found.
+    - The foreign row remains exactly unchanged throughout every request.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: todo.batch-result-replay
 capabilities:
   todo-list:
     title: Todo List & Filter

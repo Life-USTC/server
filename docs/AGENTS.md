@@ -53,6 +53,10 @@ Register canonical tests unconditionally at module level or in an ordinary suite
 Loops and parameterized suites belong inside the test body, so one requirement
 still produces exactly one runtime test.
 
+Policy topics may use `requirement_refs` to index the actual owners of cross-feature contracts.
+A topic reference does not create another requirement or count as execution evidence; avoid
+duplicating an umbrella requirement when every obligation already has a specific owner.
+
 Feature test files stay in the appropriate runner's directory, grouped by domain.
 A browser test, a database test, and a unit test have different execution needs;
 the atomic requirement ID is the correspondence across these layers. Choose the

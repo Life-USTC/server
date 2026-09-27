@@ -183,15 +183,45 @@ requirements:
   rule: Each surface declares bounded pagination and default ordering. Equivalent explicit filter, ordering,
     and page inputs select equivalent records; intentionally different defaults are tested on their respective
     bindings.
+- id: interface-hierarchy.catalog-explicit-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Course, section and teacher discovery through REST, GraphQL and MCP selects the same ordered
+    identities and total for equivalent explicit common filters and page bounds. REST pageSize, GraphQL
+    PageInput.pageSize and MCP limit express the same requested page size. Course/section detail keys
+    are upstream JW IDs; teacher detail keys are database IDs. Only declared shared filters and ordering
+    controls participate in this equivalence; transport-specific inputs and defaults remain explicit.
+  acceptance:
+    given: The same isolated catalog contains distinct row/JW IDs, multiple courses, sections, teachers and filter relationships.
+    when: Actual REST, GraphQL and MCP reads apply equivalent explicit common filters, pages and supported Section search ordering.
+    then:
+    - All three transports return the same ordered IDs and matching total on every page, including empty results.
+    - Equivalent detail keys resolve the same entity; row IDs are never silently substituted for course or section JW IDs.
+    test:
+      file: tests/integration/catalog-semantic-parity.test.ts
+      name: interface-hierarchy.catalog-explicit-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity
-  rule: Every supported surface of a capability must agree on Asia/Shanghai date boundaries and output timezone.
-- id: interface-hierarchy.semantic-parity-5
-  category: consistency
-  topic: semantic-parity
-  rule: Corresponding single or batch mutation forms preserve declared atomicity, per-item results, and idempotency.
-    Repeated single-item tool calls do not claim the atomicity of a batch operation.
+  rule: REST, GraphQL and native MCP personal-calendar ranges interpret date-only and timezone-less bounds
+    in Asia/Shanghai and explicit-offset bounds as their represented instants. Equivalent bounds include the
+    same events at both inclusive endpoints and exclude events one millisecond outside. Timestamp strings
+    include an offset and represent equal instants; their literal offset spelling need not be identical.
+  rationale: This requirement owns cross-transport calendar boundary equivalence across all five event kinds.
+    Domain-specific time rules remain owned by semester.current-semester-by-rules, exam.completion-time-zone,
+    exam.rest-date-semester-filters, graphql.calendar-date-filter-normalization, young-event.shanghai-local-times,
+    young-event.date-range-overlap, bus.shanghai-time-interpretation, bus.weekday-by-shanghai-time,
+    weather.location-provider-mapping and ical.rfc5545-dtstamp-utc. UTC and +08:00 are equivalent timestamp
+    encodings, so enforcing the same textual offset across every protocol would add no user-visible correctness.
+  acceptance:
+    given: An isolated owner has schedule, exam, homework, todo and activity events plus todos exactly at and one millisecond outside the Shanghai window boundaries.
+    when: Real REST, GraphQL and MCP default/full requests read equivalent date-only, Shanghai-local, explicit +08:00 and UTC windows.
+    then:
+    - All transports return the same seven events and exact start/end instants with explicit timestamp offsets.
+    - Both endpoints are inclusive and the two outside records are absent.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/time-boundaries.test.ts
+      name: interface-hierarchy.semantic-parity-4
 - id: interface-hierarchy.semantic-parity-6
   category: consistency
   topic: semantic-parity
@@ -671,6 +701,26 @@ topics:
   title: Transport-Specific Exceptions
 - id: semantic-parity
   title: Semantic Parity
+- id: mutation-result-contracts
+  title: Mutation atomicity, ordered results and retries
+  requirement_refs:
+  - interface-hierarchy.canonical-actions-3
+  - interface-hierarchy.canonical-actions-4
+  - todo.batch-result-replay
+  - graphql.todo-batch-results
+  - graphql.homework-batch-results
+  - homework.completion-set-idempotency
+  - graphql.subscription-batch-results
+  - subscription.duplicate-input-semantics
+  - subscription.membership-atomicity
+  - interface-hierarchy.semantic-parity-15
+  - graphql.pin-batch-order
+  - graphql.pin-batch-failure
+  - graphql.comment-batch-results
+  - comment.batch-delete-results
+  - comment.batch-delete-shared-policy
+  - openapi.rest-batch-unique-targets
+  - graphql.mutation-timeout-ambiguity
 - id: locale-caching-and-seo
   title: Locale, Caching, and SEO
 rationale:
@@ -710,3 +760,8 @@ rationale:
 
 - Locale-varying public data cache identity is owned by rendering-and-cache.cache-layers-and-invalidation-10. Delivered HTML privacy is owned by rendering-and-cache.cache-layers-and-invalidation-1; private HTTP CDN enforcement and public API opt-in are owned by rendering-and-cache.personal-overlays-10 and rendering-and-cache.personal-overlays-9. These are separate from the internal HTML locale-key contract.
 - Code-based subscription matching is canonically owned by cases.mcp-assistant-workflows.preview-before-write-1; preview and import resolve within the selected semester, with the current semester as the documented omitted-input default.
+
+- The former semantic-parity-5 combined independent batch transaction, result ordering and retry obligations.
+  Their canonical owners are the structured mutation-result-contracts topic and the per-capability batch_contract
+  entries in mutation-capabilities. Native single-item calls retain single-item effects; registered GraphQL batch
+  calls retain the selected batch contract. A successful prefix and a lost response never imply whole-batch rollback.
