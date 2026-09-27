@@ -602,7 +602,7 @@ describe("OAuth consent 操作", () => {
       }),
     ).rejects.toMatchObject({
       status: 303,
-      location: "/error?error=consent_failed",
+      location: "/error?error=recent_auth_required",
     });
 
     await expect(

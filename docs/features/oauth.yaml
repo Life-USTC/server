@@ -166,6 +166,21 @@ requirements:
     guidance without issuing a code.
   applies_to:
   - authorization-management
+  acceptance:
+    given: Real registered clients, correctly signed consent requests, real signed session cookies, and
+      isolated production-role session and consent rows for new grants and scope expansions.
+    when: Submit approval with fresh, stale, exact 15-minute-old, future-created, revoked, or expired
+      sessions, after priming the request session cache.
+    then:
+    - Only the fresh session creates an authorization code and persists the approved scopes.
+    - All other sessions return the recent_auth_required sign-in guidance target, leave the grant unchanged,
+      and issue no code.
+    - Identified stale, boundary, and future-created sessions persist one denied audit event with the
+      appropriate grant or update action.
+    - The sign-in guidance is available in English and Chinese.
+    test:
+      file: tests/integration/oauth-consent-recent-auth.test.ts
+      name: oauth.authorization-management.recent-auth-for-consent
 - id: oauth.authorization-management.ownership-scoped-transaction
   category: authorization
   rule: Grant revocation atomically removes the selected user-client pair's consents, access-token rows,

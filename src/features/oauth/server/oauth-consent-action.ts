@@ -505,9 +505,10 @@ export async function submitOAuthConsentAction({
       verifyOAuthProviderSignedQueryState(oauthQuery),
       getOAuthSession(authCore.authApi, request.headers),
     ]);
-    if (!signedState || !session) {
+    if (!signedState) {
       throw new Error("Invalid OAuth consent state");
     }
+    if (!session) throw new OAuthRecentAuthRequiredError();
     const { issuedAt, postLoginClearedForSession } = signedState;
     const authorizeQuery = signedState.query;
     const prompts = new Set(
