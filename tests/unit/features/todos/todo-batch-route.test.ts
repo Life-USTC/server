@@ -51,6 +51,8 @@ describe("patchTodoBatchRoute", () => {
       "todo.rest-batch-patch-bounds",
       "collection_input",
     );
+    expect(rule.surface).toBe("rest");
+    expect(rule.operation).toBe("PATCH /api/workspace/todos/batch");
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     updateOwnedTodoMock.mockResolvedValue({ ok: true, todo: sampleTodo });
     const { patchTodoBatchRoute } = await import(
@@ -256,6 +258,8 @@ describe("deleteTodoBatchRoute", () => {
       "todo.rest-batch-delete-bounds",
       "collection_input",
     );
+    expect(rule.surface).toBe("rest");
+    expect(rule.operation).toBe("DELETE /api/workspace/todos/batch");
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     deleteOwnedTodoMock.mockResolvedValue({ ok: true });
     const { deleteTodoBatchRoute } = await import(

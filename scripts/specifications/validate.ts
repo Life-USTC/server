@@ -216,15 +216,41 @@ export function declaredTestNames(text: string): Set<string> {
     true,
   );
   const names = new Set<string>();
+  function unsafeOptions(node: ts.CallExpression): boolean {
+    // A callback plus dynamic/spread options cannot establish an enabled test.
+    // Both current (name, options, fn) and older (name, fn, options) orderings
+    // can hide expected-failure or skip flags from property-access inspection.
+    if (node.arguments.length < 3) return false;
+    const options =
+      ts.isArrowFunction(node.arguments[1]) ||
+      ts.isFunctionExpression(node.arguments[1])
+        ? node.arguments[2]
+        : node.arguments[1];
+    if (!ts.isObjectLiteralExpression(options)) return true;
+    for (const property of options.properties) {
+      if (!ts.isPropertyAssignment(property)) return true;
+      if (!ts.isIdentifier(property.name) && !ts.isStringLiteral(property.name))
+        return true;
+      const key = property.name.text;
+      if (
+        ["fails", "skip", "todo"].includes(key) &&
+        property.initializer.kind !== ts.SyntaxKind.FalseKeyword
+      )
+        return true;
+      if (["skipIf", "runIf"].includes(key)) return true;
+    }
+    return false;
+  }
   function walk(node: ts.Node, disabled: boolean) {
     if (ts.isCallExpression(node)) {
       const parts = callParts(node.expression);
       const isTest = ["test", "it", "describe"].includes(parts[0]);
       disabled ||=
         isTest &&
-        parts.some((part) =>
+        (parts.some((part) =>
           ["skip", "todo", "fails", "skipIf", "runIf"].includes(part),
-        );
+        ) ||
+          unsafeOptions(node));
       const first = node.arguments[0];
       if (
         !disabled &&

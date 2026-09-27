@@ -28,6 +28,8 @@ describe("Todo specification input behavior", () => {
 
   it("enforces rest todo list limits and default", async () => {
     const rule = await todoExpectation("todo.rest-list-limit", "numeric_input");
+    expect(rule.surface).toBe("rest");
+    expect(rule.operation).toBe("GET /api/workspace/todos");
     const { getTodosRoute } = await import("@/lib/api/routes/todos");
     const [method, path] = rule.operation.split(" ");
     const request = (limit?: number) =>
@@ -43,17 +45,21 @@ describe("Todo specification input behavior", () => {
       );
     }
     findMany.mockClear();
+    queryRaw.mockClear();
     for (const limit of [rule.minimum - 1, rule.maximum + 1]) {
       expect((await getTodosRoute(request(limit))).status).toBe(400);
     }
     expect(findMany).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
     const fractionalResponse = await getTodosRoute(request(rule.minimum + 0.5));
     expect(fractionalResponse.status).toBe(rule.integer ? 400 : 200);
     expect(findMany).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
+    expect(queryRaw).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
   });
 
   it("enforces mcp todo list limits and default", async () => {
     const rule = await todoExpectation("todo.mcp-list-limit", "numeric_input");
+    expect(rule.surface).toBe("mcp");
     const { listMyTodosInputSchema } = await import(
       "@/lib/mcp/tools/workspace/profile-tool-helpers"
     );

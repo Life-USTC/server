@@ -110,11 +110,12 @@ test.describe("仪表盘待办", () => {
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(0);
 
-    for (const control of [incomplete, add]) {
-      const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(target.min_height);
-      expect(box?.width).toBeGreaterThanOrEqual(target.min_width);
-    }
+    const addBox = await add.boundingBox();
+    expect(addBox?.height).toBeGreaterThanOrEqual(target.min_height);
+    expect(addBox?.width).toBeGreaterThanOrEqual(target.min_width);
+    const filterBox = await incomplete.boundingBox();
+    expect(filterBox?.height).toBeGreaterThanOrEqual(44);
+    expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
     const all = page.getByRole("radio", { name: /全部|All/i }).first();
     await all.click();

@@ -9,15 +9,20 @@ policy_refs:
 - permission-ui
 - rendering-and-cache
 - cases.mcp-assistant-workflows
-access:
-  anon: Cannot read or write personal todos.
-  user: Can read and create their own todos; ordinary mutation authorization is specified by the per-operation
-    requirements.
-  admin: Reads and creation remain personal; ordinary mutation authorization is specified by the per-operation
-    requirements.
-  agent: After authorization, can only read and write the current user's own todos; both REST and MCP
-    currently provide this capability.
 requirements:
+- id: todo.personal-ownership
+  category: authorization
+  surfaces:
+  - web
+  - rest
+  - graphql
+  - mcp
+  applies_to:
+  - todo-list
+  - todo-edit
+  rule: Anonymous callers cannot read or write personal todos. Authenticated users can only read and
+    manage their own todos on every surface, including through OAuth-authorized clients. Administrator
+    status never grants ordinary access to another user's todos.
 - id: todo.calendar-write-commit
   category: consistency
   rule: Todo creates, updates, completion changes and deletes enqueue personal calendar export rebuilds
