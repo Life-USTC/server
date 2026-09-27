@@ -219,12 +219,6 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: rendering-and-cache.cacheable-public-pages-14
-- id: rendering-and-cache.personal-overlays-2
-  category: privacy
-  topic: personal-overlays
-  rule: Personal mutation controls remain disabled while required viewer or feature-permission state is unresolved.
-    A failed load exposes retry or sign-in guidance, and the server rechecks authority when the mutation is
-    submitted.
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
@@ -554,6 +548,18 @@ topics:
 - id: personal-overlays
   title: Personal overlays
   requirement_refs:
+  - comment.public-permission-recovery
+  - comment.interaction-gate
+  - description.editor-authorization
+  - section.personal-deep-link-gate
+  - subscription.user-scoped
+  - homework.completion-owner
+  - catalog-link.pin-write-gate
+  - catalog-link.pin-owner-state
+  - bus.preference-hydration-write-gate
+  - bus.preference-owner-state
+  - young-event.subscription-write-gate
+  - young-workspace.ownership
   - user.shell-viewer
   - section.private-section-projection
   - description.public-web-personal-overlay
@@ -603,3 +609,11 @@ rationale:
   description.public-web-personal-overlay across course, teacher and section; link pins and visits by
   catalog-link.public-web-personal-overlay; saved bus preferences by bus.public-web-personal-overlay.
   Each owner retains its actual session and anonymous HTTP/browser assertions; these references add no execution evidence.
+- The former personal-overlays-2 repeats concrete permission-loading and server-write contracts. Catalog
+  comment recovery is owned by comment.public-permission-recovery and server interaction-gate; description
+  recovery by public-web-personal-overlay and editor-authorization; section deep-link and ordinary projection
+  by personal-deep-link-gate and private-section-projection, with subscription.user-scoped and
+  homework.completion-owner enforcing writes. Campus links, bus preferences and Young follow/subscription
+  controls each retain their explicit loading gates and independent real transport owner-state tests.
+  Private workspace pages begin with an authenticated SSR projection under personal-overlays-5;
+  topic references do not stand in for the canonical tests or their runtime evidence.

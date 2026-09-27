@@ -12,6 +12,19 @@ policy_refs:
 - audit
 - cases.content-security
 requirements:
+- id: comment.public-permission-recovery
+  category: authorization
+  rule: Public course, section and teacher comment composers wait for their private viewer projection. Failed initial reads expose retry without enabling publication or assuming the viewer is anonymous. A successful retry does not publish; a rejected submission preserves the draft and committed comments.
+  acceptance:
+    given: An authenticated browser visits each public catalog comment surface, with its initial comment read held and then failed.
+    when: The viewer retries the read, submits with its session removed at the HTTP boundary, then retries with a valid session.
+    then:
+    - No publication control is enabled before viewer resolution; the failed read exposes a usable retry.
+    - Reading and retrying send zero writes. The server rejects the cookie-less write with 401 while the draft and stored comments remain unchanged.
+    - A valid submission creates exactly one comment and renders its committed body.
+    test:
+      file: tests/e2e/src/app/shared-policy/comment-permission-recovery.test.ts
+      name: comment.public-permission-recovery
 - id: comment.single-delete-replay
   category: consistency
   rule: Ordinary single-comment deletion retains a deleted tombstone and writes one deletion audit event. Repeating the delete returns locked, preserving the original tombstone and audit event. REST and GraphQL use 403/FORBIDDEN; MCP retains locked.

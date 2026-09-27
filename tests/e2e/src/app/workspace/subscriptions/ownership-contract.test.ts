@@ -195,6 +195,14 @@ test("subscription.user-scoped", async ({ page, request }) => {
     }),
   );
   try {
+    await withE2ePrisma((db) =>
+      db.userSuspension.create({
+        data: {
+          userId: fixtures[1].users[0].id,
+          reason: "Private subscription authority",
+        },
+      }),
+    );
     const anon = await request.get("/workspace/subscriptions", {
       maxRedirects: 0,
     });
