@@ -1,3 +1,10 @@
+# [1.122.0](https://github.com/Life-USTC/server/compare/v1.121.7...v1.122.0) (2026-09-27)
+
+
+### Features
+
+* **specs:** enforce typed requirements with execution evidence ([#1139](https://github.com/Life-USTC/server/issues/1139)) ([10e066e](https://github.com/Life-USTC/server/commit/10e066ecd7ff8d04403ed5b0397f3f4c4c3bc06b))
+
 ## [1.121.7](https://github.com/Life-USTC/server/compare/v1.121.6...v1.121.7) (2026-09-26)
 
 
