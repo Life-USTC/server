@@ -202,4 +202,109 @@ it("cases.account.sign-in-method-removal-atomic", async () => {
     });
     expect(remaining.accounts.length + remaining.passkeys.length).toBe(1);
   }
+
+  const { getBetterAuthInstance } = await import("@/lib/auth/core");
+  const { adapter } = await getBetterAuthInstance().$context;
+  // Transaction adapters must apply the same guard to both method types.
+  const accountOnly = await userWithMethods(["github"], 0);
+  const passkeyOnly = await userWithMethods([], 1);
+  for (const [model, id] of [
+    ["account", accountOnly.accounts[0].id],
+    ["passkey", passkeyOnly.passkeys[0].id],
+  ]) {
+    await expect(
+      adapter.transaction((tx) =>
+        tx.delete({
+          model,
+          where: [{ field: "id", value: id }],
+        }),
+      ),
+    ).rejects.toMatchObject({
+      body: { code: "FAILED_TO_UNLINK_LAST_ACCOUNT" },
+    });
+  }
+  expect(
+    await fixture.account.count({ where: { userId: accountOnly.id } }),
+  ).toBe(1);
+  expect(
+    await fixture.passkey.count({ where: { userId: passkeyOnly.id } }),
+  ).toBe(1);
+
+  const rollback = await userWithMethods(["github"], 1);
+  await fixture.verifiedEmail.create({
+    data: {
+      userId: rollback.id,
+      provider: "github",
+      email: rollback.email,
+    },
+  });
+  const sentinel = new Error("Rollback sign-in method deletion");
+  await expect(
+    adapter.transaction(async (tx) => {
+      // Hold the same User lock the deletion function needs. A separate Prisma
+      // connection here would deadlock instead of joining this transaction.
+      await tx.update({
+        model: "user",
+        where: [{ field: "id", value: rollback.id }],
+        update: { name: "Uncommitted name" },
+      });
+      await tx.delete({
+        model: "account",
+        where: [{ field: "id", value: rollback.accounts[0].id }],
+      });
+      expect(
+        await tx.findOne({
+          model: "account",
+          where: [{ field: "id", value: rollback.accounts[0].id }],
+        }),
+      ).toBeNull();
+      expect(
+        await fixture.account.count({ where: { userId: rollback.id } }),
+      ).toBe(1);
+      expect(
+        await fixture.verifiedEmail.count({ where: { userId: rollback.id } }),
+      ).toBe(1);
+      throw sentinel;
+    }),
+  ).rejects.toBe(sentinel);
+  expect(await fixture.account.count({ where: { userId: rollback.id } })).toBe(
+    1,
+  );
+  expect(
+    await fixture.verifiedEmail.count({ where: { userId: rollback.id } }),
+  ).toBe(1);
+  expect(
+    (await fixture.user.findUniqueOrThrow({ where: { id: rollback.id } })).name,
+  ).toBe(rollback.name);
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const concurrent = await userWithMethods(["github"], 1);
+    const outcomes = await Promise.allSettled([
+      adapter.transaction((tx) =>
+        tx.delete({
+          model: "account",
+          where: [{ field: "id", value: concurrent.accounts[0].id }],
+        }),
+      ),
+      adapter.transaction((tx) =>
+        tx.delete({
+          model: "passkey",
+          where: [{ field: "id", value: concurrent.passkeys[0].id }],
+        }),
+      ),
+    ]);
+    expect(outcomes.map((result) => result.status).sort()).toEqual([
+      "fulfilled",
+      "rejected",
+    ]);
+    const rejected = outcomes.find((result) => result.status === "rejected");
+    expect(rejected).toMatchObject({
+      reason: { body: { code: "FAILED_TO_UNLINK_LAST_ACCOUNT" } },
+    });
+    const remaining = await fixture.user.findUniqueOrThrow({
+      where: { id: concurrent.id },
+      include: { accounts: true, passkeys: true },
+    });
+    expect(remaining.accounts.length + remaining.passkeys.length).toBe(1);
+  }
 });

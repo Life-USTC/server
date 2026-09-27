@@ -1,6 +1,6 @@
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { removeSignInMethod } from "./sign-in-methods";
 
 function isOAuthRefreshTokenLookup(input: {
@@ -25,35 +25,21 @@ export function createBetterAuthPrismaAdapter(prisma: PrismaClient) {
   return (options: Parameters<typeof createAdapter>[0]) => {
     const adapter = createAdapter(options);
     const transaction: typeof adapter.transaction = (callback) =>
-      adapter.transaction((transaction) =>
-        callback(hideRevokedRefreshToken(transaction)),
-      );
-    const remove: typeof adapter.delete = async (input) => {
-      const model = input.model.toLowerCase();
-      if (model !== "account" && model !== "passkey")
-        return adapter.delete(input);
-      const row = await adapter.findOne<{ id: string; userId: string }>(input);
-      if (!row) return;
-      const result = await removeSignInMethod(
-        prisma,
-        row.userId,
-        model,
-        row.id,
-      );
-      if (result === "last_account") {
-        throw new APIError("BAD_REQUEST", {
-          code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
-          message: "Cannot remove the last usable sign-in method",
-        });
-      }
-    };
-    return { ...hideRevokedRefreshToken(adapter), transaction, delete: remove };
+      prisma.$transaction((client) => {
+        const transactionAdapter = prismaAdapter(client, {
+          provider: "postgresql",
+          transaction: false,
+        })(options);
+        return callback(wrapAuthAdapter(transactionAdapter, client));
+      });
+    return { ...wrapAuthAdapter(adapter, prisma), transaction };
   };
 }
 
 type AuthAdapter = ReturnType<ReturnType<typeof prismaAdapter>>;
-function hideRevokedRefreshToken<T extends Pick<AuthAdapter, "findOne">>(
+function wrapAuthAdapter<T extends Pick<AuthAdapter, "findOne" | "delete">>(
   adapter: T,
+  client: Pick<Prisma.TransactionClient, "$queryRaw">,
 ): T {
   const findOne: typeof adapter.findOne = async <T>(
     input: Parameters<typeof adapter.findOne>[0],
@@ -73,8 +59,23 @@ function hideRevokedRefreshToken<T extends Pick<AuthAdapter, "findOne">>(
     }
     return row;
   };
+  const remove: typeof adapter.delete = async (input) => {
+    const model = input.model.toLowerCase();
+    if (model !== "account" && model !== "passkey")
+      return adapter.delete(input);
+    const row = await adapter.findOne<{ id: string; userId: string }>(input);
+    if (!row) return;
+    const result = await removeSignInMethod(client, row.userId, model, row.id);
+    if (result === "last_account") {
+      throw new APIError("BAD_REQUEST", {
+        code: "FAILED_TO_UNLINK_LAST_ACCOUNT",
+        message: "Cannot remove the last usable sign-in method",
+      });
+    }
+  };
   return {
     ...adapter,
     findOne,
+    delete: remove,
   };
 }

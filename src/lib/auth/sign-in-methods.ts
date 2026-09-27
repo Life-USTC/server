@@ -3,7 +3,7 @@ import {
   createOAuthAccountIssuer,
 } from "@better-auth/core/db";
 import { google } from "@better-auth/core/social-providers";
-import { Prisma, type PrismaClient } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { allowDebugAuth } from "./auth-config";
 import { getBetterAuthOptionEnv } from "./better-auth-option-env";
 import { buildBetterAuthSocialProviders } from "./better-auth-social-providers";
@@ -42,7 +42,7 @@ export function hasUsableAccount(
 }
 
 export async function removeSignInMethod(
-  prisma: PrismaClient,
+  prisma: Pick<Prisma.TransactionClient, "$queryRaw">,
   userId: string,
   kind: "provider" | "account" | "passkey",
   key: string,

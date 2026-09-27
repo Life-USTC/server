@@ -98,7 +98,13 @@ it("preserves revoked refresh-token filtering in transaction adapters", async ()
   const { createBetterAuthPrismaAdapter } = await import(
     "@/lib/auth/better-auth-prisma-adapter"
   );
-  const adapter = createBetterAuthPrismaAdapter({} as never)({} as never);
+  const client = {};
+  const prisma = {
+    $transaction: vi.fn(async (callback: (tx: object) => Promise<unknown>) =>
+      callback(client),
+    ),
+  };
+  const adapter = createBetterAuthPrismaAdapter(prisma as never)({} as never);
   findOneMock.mockResolvedValue({ id: "revoked", revoked: new Date() });
   await expect(
     adapter.transaction((tx) =>
@@ -108,4 +114,8 @@ it("preserves revoked refresh-token filtering in transaction adapters", async ()
       }),
     ),
   ).resolves.toBeNull();
+  expect(prismaAdapterMock).toHaveBeenLastCalledWith(client, {
+    provider: "postgresql",
+    transaction: false,
+  });
 });
