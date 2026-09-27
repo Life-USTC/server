@@ -299,7 +299,10 @@ describe("requirement coverage", () => {
     files[0].data.capabilities = {
       list: {
         notes: ["At most 100"],
-        presentation: { items: ["Hide if empty"] },
+        presentation: {
+          items: ["Hide if empty"],
+          requirement_refs: ["example.ownership"],
+        },
       },
     };
     const report = buildEvidenceReport(files);
@@ -327,6 +330,7 @@ describe("workflow provenance", () => {
     const manifest = {
       ...run,
       root,
+      outcome: "success",
       reports: [{ runner: "vitest", file: "vitest-123.json" }],
     };
     expect(validateEvidenceManifest(manifest, run)).toEqual(manifest);
@@ -371,12 +375,91 @@ describe("workflow provenance", () => {
     vi.stubEnv("GITHUB_SHA", run.sha);
     vi.stubEnv("GITHUB_RUN_ID", run.run);
     vi.stubEnv("GITHUB_RUN_ATTEMPT", run.attempt);
+    vi.stubEnv("SPEC_EVIDENCE_OUTCOME", "success");
     await captureEvidence(artifact, root);
-    expect(await loadEvidence(directory, run)).toHaveLength(1);
+    expect((await loadEvidence(directory, run)).observations).toHaveLength(1);
     expect(
-      await loadEvidence(directory, { ...run, attempt: "2" }),
+      (await loadEvidence(directory, { ...run, attempt: "2" })).observations,
     ).toHaveLength(1);
   });
+  test("rejects manifests without an explicit phase outcome", () => {
+    const manifest = { ...run, root, reports: [] };
+    expect(() => validateEvidenceManifest(manifest, run)).toThrow();
+    expect(() =>
+      validateEvidenceManifest({ ...manifest, outcome: "passed" }, run),
+    ).toThrow();
+  });
+  test.each(["success", "failure", "cancelled", "skipped"] as const)(
+    "keeps %s phase outcome even when native Vitest reports every assertion passed",
+    async (outcome) => {
+      const directory = await mkdtemp(join(tmpdir(), "spec-evidence-"));
+      directories.push(directory);
+      const artifact = join(directory, "spec-evidence-unit");
+      await mkdir(artifact);
+      // Vitest's native JSON can report success:true despite an unhandled
+      // rejection that makes the process exit 1. The phase is authoritative.
+      const native = vitest();
+      expect(parseNativeReport(native, "vitest", root)[0].status).toBe(
+        "passed",
+      );
+      await writeFile(join(artifact, "vitest-1.json"), JSON.stringify(native));
+      vi.stubEnv("GITHUB_SHA", run.sha);
+      vi.stubEnv("GITHUB_RUN_ID", run.run);
+      vi.stubEnv("GITHUB_RUN_ATTEMPT", run.attempt);
+      vi.stubEnv("SPEC_EVIDENCE_OUTCOME", outcome);
+      await captureEvidence(artifact, root);
+      const evidence = await loadEvidence(directory, run);
+      const report = buildEvidenceReport(
+        specifications(),
+        evidence.observations,
+        evidence.executions,
+      );
+      expect(report.gatePassed).toBe(outcome === "success");
+      expect(report.requirements[0].status).toBe(
+        outcome === "success" ? "passed" : "failed",
+      );
+      expect(report.executionFailures).toHaveLength(
+        outcome === "success" ? 0 : 1,
+      );
+      expect(report.executions[0]).toEqual({
+        ...run,
+        artifact: "spec-evidence-unit",
+        outcome,
+      });
+      expect(report.provenance[0]).toMatchObject({
+        ...run,
+        outcome,
+        report: "vitest-1.json",
+      });
+    },
+  );
+  test.each(["failure", "cancelled", "skipped"] as const)(
+    "an empty %s phase invalidates evidence even when all bound tests pass elsewhere",
+    async (outcome) => {
+      const directory = await mkdtemp(join(tmpdir(), "spec-evidence-"));
+      directories.push(directory);
+      const artifact = join(directory, "spec-evidence-integration");
+      await mkdir(artifact);
+      await writeFile(
+        join(artifact, "manifest.json"),
+        JSON.stringify({ ...run, root, outcome, reports: [] }),
+      );
+      const evidence = await loadEvidence(directory, run);
+      const passed = parseNativeReport(vitest(), "vitest", root);
+      const report = buildEvidenceReport(
+        specifications(),
+        passed,
+        evidence.executions,
+      );
+      expect(report.requirements[0].status).toBe("passed");
+      expect(report.gatePassed).toBe(false);
+      expect(report.summary.unsuccessfulExecutions).toBe(1);
+      expect(report.executionFailures[0]).toMatchObject({
+        artifact: "spec-evidence-integration",
+        outcome,
+      });
+    },
+  );
   test("empty downloads cannot become passing evidence", async () => {
     const directory = await mkdtemp(join(tmpdir(), "spec-evidence-"));
     directories.push(directory);

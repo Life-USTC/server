@@ -139,6 +139,7 @@ jobs:
           path: ${{ inputs.download-artifact-path }}
 
       - name: Run job phase
+        id: run-phase
         shell: bash
         env:
           E2E_SHARD: ${{ inputs.e2e-shard }}
@@ -253,6 +254,8 @@ jobs:
 
       - name: Stamp test execution evidence
         if: ${{ always() && inputs.job-phase != 'ci:visual-regression' }}
+        env:
+          SPEC_EVIDENCE_OUTCOME: ${{ steps.run-phase.outcome }}
         run: bun run scripts/specifications/evidence.ts capture spec-evidence
 
       - name: Upload test execution evidence

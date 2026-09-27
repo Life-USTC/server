@@ -96,6 +96,7 @@ jobs:
           path: downloaded-spec-evidence
 
       - name: Run job phase
+        id: run-phase
         shell: bash
         env:
           JOB_PHASE: ${{ inputs.job-phase }}
@@ -151,6 +152,8 @@ jobs:
 
       - name: Stamp unit execution evidence
         if: ${{ always() && inputs.job-phase == 'ci:unit' }}
+        env:
+          SPEC_EVIDENCE_OUTCOME: ${{ steps.run-phase.outcome }}
         run: bun run scripts/specifications/evidence.ts capture spec-evidence
 
       - name: Upload unit execution evidence

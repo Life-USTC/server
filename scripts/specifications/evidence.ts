@@ -16,15 +16,17 @@ export type EvidenceStatus =
   | "skipped"
   | "failed"
   | "passed";
+export type ExecutionOutcome = "success" | "failure" | "cancelled" | "skipped";
+export type EvidenceExecution = {
+  artifact: string;
+  sha: string;
+  run: string;
+  attempt: string;
+  outcome: ExecutionOutcome;
+};
 export type TestObservation = TestReference & {
   identity: string;
-  source?: {
-    artifact: string;
-    report: string;
-    sha: string;
-    run: string;
-    attempt: string;
-  };
+  source?: EvidenceExecution & { report: string };
   project: string;
   ambiguous?: boolean;
   status: "not-run" | "skipped" | "failed" | "passed";
@@ -241,7 +243,11 @@ export function matchTest(
     };
   return {
     ...reference,
-    status: combinedStatus(matches.map((test) => test.status)),
+    status: matches.some(
+      (test) => test.source && test.source.outcome !== "success",
+    )
+      ? ("failed" as EvidenceStatus)
+      : combinedStatus(matches.map((test) => test.status)),
     executions: matches.length,
     results: matches.map(({ project, status, source }) => ({
       project,
@@ -263,17 +269,20 @@ function residualTextLocations(
     );
   if (!value || typeof value !== "object") return [];
   return Object.entries(value).flatMap(([key, item]) =>
-    residualTextLocations(
-      item,
-      `${path}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`,
-      selected || ["access", "notes", "presentation"].includes(key),
-    ),
+    key === "requirement_refs"
+      ? []
+      : residualTextLocations(
+          item,
+          `${path}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`,
+          selected || ["access", "notes", "presentation"].includes(key),
+        ),
   );
 }
 
 export function buildEvidenceReport(
   files: SpecificationFile[],
   observations: TestObservation[] = [],
+  executions: EvidenceExecution[] = [],
 ) {
   const requirements = files.flatMap(({ path, data }) =>
     collectRequirements(data).map((requirement) => {
@@ -313,6 +322,9 @@ export function buildEvidenceReport(
         .map((test) => [JSON.stringify(test.source), test.source]),
     ).values(),
   ];
+  const executionFailures = executions.filter(
+    (execution) => execution.outcome !== "success",
+  );
   const counts = Object.fromEntries(
     precedence.map((status) => [
       status,
@@ -329,10 +341,13 @@ export function buildEvidenceReport(
     inventoryCompleteness:
       "Residual text candidates are locations for review, not a count of additional atomic requirements.",
     provenance,
+    executions,
+    executionFailures,
     unstructuredTextCandidates,
     requirements,
     summary: {
       total: requirements.length,
+      unsuccessfulExecutions: executionFailures.length,
       unstructuredTextCandidates: unstructuredTextCandidates.length,
       structured: structured.length,
       unstructured: requirements.length - structured.length,
@@ -341,6 +356,7 @@ export function buildEvidenceReport(
     // No typed requirements is not an evidence pass. Legacy prose gaps remain
     // visible without pretending that their conversion has already happened.
     gatePassed:
+      executionFailures.length === 0 &&
       structured.length > 0 &&
       structured.every((requirement) => requirement.status === "passed"),
   };
@@ -351,8 +367,10 @@ const runIdentity = z.object({
   run: z.string().regex(/^[1-9][0-9]*$/),
   attempt: z.string().regex(/^[1-9][0-9]*$/),
 });
+const executionOutcome = z.enum(["success", "failure", "cancelled", "skipped"]);
 const manifestSchema = runIdentity.extend({
   root: nonempty,
+  outcome: executionOutcome,
   reports: z.array(
     z.object({ file: nonempty, runner: z.enum(["vitest", "playwright"]) }),
   ),
@@ -399,7 +417,12 @@ export async function captureEvidence(
     const match = /^(vitest|playwright)-[a-zA-Z0-9-]+\.json$/.exec(file);
     return match ? [{ file, runner: match[1] as "vitest" | "playwright" }] : [];
   });
-  const manifest = { ...currentRunIdentity(), root, reports };
+  const manifest = {
+    ...currentRunIdentity(),
+    root,
+    outcome: executionOutcome.parse(process.env.SPEC_EVIDENCE_OUTCOME),
+    reports,
+  };
   await writeFile(
     join(directory, "manifest.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,
@@ -410,6 +433,7 @@ export async function loadEvidence(
   expected = currentRunIdentity(),
 ) {
   const observations: TestObservation[] = [];
+  const executions: EvidenceExecution[] = [];
   // download-artifact keeps one directory per job artifact. No cross-run
   // artifact IDs, external URLs, or persisted evidence database are accepted.
   const artifacts = (await readdir(directory, { withFileTypes: true })).filter(
@@ -423,6 +447,14 @@ export async function loadEvidence(
       JSON.parse(await readFile(join(base, "manifest.json"), "utf8")),
       expected,
     );
+    const execution: EvidenceExecution = {
+      artifact: artifact.name,
+      sha: manifest.sha,
+      run: manifest.run,
+      attempt: manifest.attempt,
+      outcome: manifest.outcome,
+    };
+    executions.push(execution);
     for (const report of manifest.reports)
       observations.push(
         ...parseNativeReport(
@@ -432,16 +464,13 @@ export async function loadEvidence(
         ).map((observation) => ({
           ...observation,
           source: {
-            artifact: artifact.name,
+            ...execution,
             report: report.file,
-            sha: manifest.sha,
-            run: manifest.run,
-            attempt: manifest.attempt,
           },
         })),
       );
   }
-  return observations;
+  return { observations, executions };
 }
 
 export async function runEvidenceCoverage(
@@ -463,9 +492,13 @@ export async function runEvidenceCoverage(
     } else throw new Error(`Unknown evidence option: ${arg}`);
   }
   await checkSpecifications(root);
+  const evidence = results
+    ? await loadEvidence(results)
+    : { observations: [], executions: [] };
   const report = buildEvidenceReport(
     await readSpecifications(root),
-    results ? await loadEvidence(results) : [],
+    evidence.observations,
+    evidence.executions,
   );
   const json = `${JSON.stringify(report, null, 2)}\n`;
   if (output) {
@@ -475,7 +508,7 @@ export async function runEvidenceCoverage(
   } else process.stdout.write(json);
   if (enforce && !report.gatePassed)
     throw new Error(
-      "Structured requirements lack successful execution evidence; inspect requirement/scenario statuses in the report",
+      "Specification evidence gate failed; inspect executionFailures and requirement/scenario statuses in the report",
     );
   return report;
 }
