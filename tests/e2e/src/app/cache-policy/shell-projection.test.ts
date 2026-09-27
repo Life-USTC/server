@@ -1,4 +1,5 @@
 import { type APIResponse, expect, test } from "@playwright/test";
+import { unflatten } from "devalue";
 import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -288,6 +289,136 @@ test("rendering-and-cache.personal-overlays-7", async ({ page, context }) => {
       expect(localStorageAfter).not.toContain(user.id);
       expect(localStorageAfter).not.toContain(user.name);
       expect(localStorageAfter).not.toContain(user.email);
+    }
+  } finally {
+    await cleanup(users);
+  }
+});
+
+test("rendering-and-cache.web-rendering-and-cache-1", async ({ browser }) => {
+  const users = await createUsers();
+  const teacher = await withE2ePrisma((db) =>
+    db.teacher.findFirstOrThrow({
+      where: { code: DEV_SEED.teacher.code },
+      select: { id: true },
+    }),
+  );
+  try {
+    for (const locale of ["zh-cn", "en-us"]) {
+      const anonymous = await browser.newContext({
+        baseURL: PLAYWRIGHT_BASE_URL,
+      });
+      const signed = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
+      const otherSigned = await browser.newContext({
+        baseURL: PLAYWRIGHT_BASE_URL,
+      });
+      try {
+        await anonymous.addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+        ]);
+        await signed.addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+          await createSignedSessionCookie(users[0].id),
+        ]);
+        await otherSigned.addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+          await createSignedSessionCookie(users[1].id),
+        ]);
+        for (const path of [
+          "/catalog/courses",
+          `/catalog/courses/${DEV_SEED.course.jwId}`,
+          "/catalog/sections",
+          `/catalog/sections/${DEV_SEED.section.jwId}`,
+          "/catalog/teachers",
+          `/catalog/teachers/${teacher.id}`,
+        ]) {
+          for (const transport of [
+            signed.request,
+            anonymous.request,
+            otherSigned.request,
+          ]) {
+            const document = await transport.get(path, {
+              headers: { accept: "text/html" },
+            });
+            expect(document.status(), path).toBe(200);
+            const html = await document.text();
+            for (const user of users) {
+              expect(html, path).not.toContain(user.id);
+              expect(html, path).not.toContain(user.name);
+              expect(html, path).not.toContain(user.email);
+            }
+            const dataResponse = await transport.get(`${path}/__data.json`);
+            expect(dataResponse.status(), path).toBe(200);
+            const body = await dataResponse.json();
+            expect(body.type, path).toBe("data");
+            const data = Object.assign(
+              {},
+              ...body.nodes
+                .filter((node: { type: string }) => node?.type === "data")
+                .map((node: { data: unknown[] }) => unflatten(node.data)),
+            );
+            expect(data.user, path).toBeNull();
+            expect(data.resolveViewerOnClient, path).toBe(true);
+            expect(data.navStats, path).toBeUndefined();
+            if (data.descriptionData)
+              expect(data.descriptionData.viewer).toMatchObject({
+                userId: null,
+                isAuthenticated: false,
+              });
+            if (data.viewer)
+              expect(data.viewer).toMatchObject({
+                signedIn: false,
+                isSubscribed: false,
+              });
+            if (data.homeworkData)
+              expect(data.homeworkData.viewer).toMatchObject({
+                userId: null,
+                isAuthenticated: false,
+              });
+            const serialized = JSON.stringify(data);
+            for (const user of users) {
+              expect(serialized, path).not.toContain(user.id);
+              expect(serialized, path).not.toContain(user.name);
+              expect(serialized, path).not.toContain(user.email);
+            }
+          }
+        }
+        const page = await signed.newPage();
+        await gotoAndWaitForReady(page, "/workspace/todos");
+        await expect(page.locator("#app-user-menu")).toContainText(
+          users[0].name,
+        );
+        const catalogData = page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/catalog/courses/__data.json",
+        );
+        await page
+          .locator(
+            '[data-shell-navigation="desktop"] a[href="/catalog/courses"]',
+          )
+          .click();
+        expect((await catalogData).status()).toBe(200);
+        await expect(page).toHaveURL(/\/catalog\/courses$/);
+        await expect(page.locator("#app-user-menu")).toContainText(
+          users[0].name,
+        );
+        await page
+          .locator(
+            `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+          )
+          .first()
+          .click();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}$`),
+        );
+        await expect(page.locator("#app-user-menu")).toContainText(
+          users[0].name,
+        );
+      } finally {
+        await anonymous.close();
+        await signed.close();
+        await otherSigned.close();
+      }
     }
   } finally {
     await cleanup(users);

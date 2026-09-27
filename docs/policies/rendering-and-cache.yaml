@@ -8,6 +8,19 @@ requirements:
   rule: Shared public course, section, and teacher HTML and page-data payloads contain only viewer-independent
     public facts and anonymous viewer identity. Locale can select a separate public representation; authenticated
     identity, permissions, and personal state cannot affect the shared payload.
+  acceptance:
+    given: Two isolated session viewers have distinct private identities, tasks and subscriptions; public
+      course, section and teacher lists and details are available in Chinese and English.
+    when: Anonymous and both authenticated clients request actual HTML and decoded SvelteKit page-data;
+      one viewer navigates from the workspace through a catalog list to a detail page.
+    then:
+    - Public HTML and page-data contain neither viewer's identity or private navigation state; description,
+      homework and section projections retain anonymous permissions and subscription state.
+    - Page-data explicitly resolves the viewer through the private client shell, and client navigation
+      preserves the current authenticated shell without embedding it in public data.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.web-rendering-and-cache-1
 - id: rendering-and-cache.web-rendering-and-cache-2
   category: consistency
   topic: web-rendering-and-cache

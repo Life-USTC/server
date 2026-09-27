@@ -1,3 +1,4 @@
+import { isViewerIndependentPublicPath } from "@/lib/cloudflare/public-ssr-gateway";
 import {
   buildLayoutCopy,
   layoutUserSummary,
@@ -7,6 +8,8 @@ import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
   const copy = buildLayoutCopy(locals.locale);
+  const resolveViewerOnClient =
+    locals.publicSsr || isViewerIndependentPublicPath(url.pathname);
 
   return {
     locale: locals.locale,
@@ -19,7 +22,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
       origin: url.origin,
       title: copy.metadata.title,
     }),
-    user: layoutUserSummary(locals.authUser),
-    resolveViewerOnClient: locals.publicSsr,
+    user: resolveViewerOnClient ? null : layoutUserSummary(locals.authUser),
+    resolveViewerOnClient,
   };
 };
