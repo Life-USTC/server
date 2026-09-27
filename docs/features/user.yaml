@@ -37,13 +37,15 @@ requirements:
   category: behavior
   rule: "The root layout owns client viewer state and issues at most one shell bootstrap request per mount. Public controls and navigation reuse that state rather than issuing duplicate identity requests."
   acceptance:
-    given: "A real signed-in user enters a public catalog page from the workspace."
-    when: "The browser loads the shell, reads navigation badges and follows a public course detail link."
+    given: An isolated signed-in owner opens academic details, links, bus, Young event/organizer details,
+      a dated Young calendar and the workspace calendar.
+    when: Real browser requests load feature-specific private projections and navigate from the workspace into a section detail through the retained root layout.
     then:
-    - "Exactly one private bootstrap request supplies the viewer and navigation."
-    - "Badges match the returned counts and client navigation does not issue another bootstrap."
+    - Each public full-page load makes exactly one shell-bootstrap request, returns the matching viewer and successfully reads its feature projection.
+    - No page duplicates identity reads through profile or session endpoints.
+    - Workspace SSR and subsequent client navigation reuse the existing viewer without another shell-bootstrap request.
     test:
-      file: tests/e2e/src/app/workspace/test.ts
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: user.shell-viewer
 - id: user.sign-in-providers
   category: behavior

@@ -266,6 +266,26 @@ requirements:
     test:
       file: tests/integration/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
+- id: interface-hierarchy.young-public-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public Young event and organizer REST, GraphQL and native MCP reads select equivalent ordered
+    identities and complete page totals for the same supported filters. Event filters distinguish source-active
+    membership from signup-open state and preserve activity versus registration date semantics, including unknown dates.
+  rationale: Events use active/start-date/unique-ID ordering by default and ascending selected time/ID for
+    date ranges. Organizer APIs use name/ID ordering; Web active-first grouping is a separate declared presentation.
+  acceptance:
+    given: An isolated database has events and organizers inserted in reverse order under tied sort keys,
+      independent source-active flags, both time bases and missing dates, accessed by the restricted app role.
+    when: Real REST handlers, the actual Yoga request handler and native MCP JSON-RPC handlers combine
+      category, module, level, search, organizer, date and unknown-date filters and exhaust two-item pages.
+    then:
+    - Single-character taxonomy values select the same rows on all surfaces; combinations and mismatched IDs retain exact meaning.
+    - Ordered IDs, complete totals, unknownDateCount and exhausted empty pages match the independently arranged fixture.
+    - Both date bases retain Shanghai overlap boundaries and missing-date records without guessing times.
+    test:
+      file: tests/integration/young-public-semantic-parity.test.ts
+      name: interface-hierarchy.young-public-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity

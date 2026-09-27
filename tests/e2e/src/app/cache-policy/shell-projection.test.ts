@@ -695,3 +695,179 @@ test("rendering-and-cache.web-rendering-and-cache-2", async ({
     await cleanup(users);
   }
 });
+
+test("user.shell-viewer", async ({ browser }) => {
+  const users = await createUsers();
+  const fixtures = await withE2ePrisma(async (db) => {
+    const marker = crypto.randomUUID();
+    const teacher = await db.teacher.findFirstOrThrow({
+      where: { code: DEV_SEED.teacher.code },
+    });
+    const organizer = await db.youngOrganizer.create({
+      data: { name: `Shell club ${marker}`, normalizedName: `shell-${marker}` },
+    });
+    const event = await db.youngEvent.create({
+      data: {
+        youngId: `shell-${marker}`,
+        name: `Shell activity ${marker}`,
+        isActive: true,
+        organizerId: organizer.id,
+        startAt: new Date("2035-09-10T06:00:00Z"),
+        endAt: new Date("2035-09-10T07:00:00Z"),
+        rawJson: {},
+      },
+    });
+    return { teacher, organizer, event };
+  });
+  const context = await browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL });
+  try {
+    await context.addCookies([await createSignedSessionCookie(users[0].id)]);
+    const page = await context.newPage();
+    const identities: string[] = [];
+    const identityPaths = new Set([
+      "/_internal/shell-bootstrap",
+      "/api/account/profile",
+      "/api/auth/get-session",
+    ]);
+    page.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (identityPaths.has(path)) identities.push(path);
+    });
+    const cases = [
+      {
+        path: `/catalog/courses/${DEV_SEED.course.jwId}`,
+        projection: "/api/community/descriptions",
+      },
+      {
+        path: `/catalog/teachers/${fixtures.teacher.id}`,
+        projection: "/api/community/descriptions",
+      },
+      {
+        path: `/catalog/sections/${DEV_SEED.section.jwId}`,
+        projection: `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
+      },
+      { path: "/catalog/links", projection: "/_internal/catalog/links/viewer" },
+      { path: "/catalog/bus", projection: "/api/workspace/bus-preferences" },
+      {
+        path: `/catalog/young-events/${fixtures.event.youngId}`,
+        projection: `/api/workspace/young-event-subscriptions/${fixtures.event.youngId}`,
+      },
+      {
+        path: `/catalog/young-events/organizers/${fixtures.organizer.id}`,
+        projection: `/api/workspace/young-organizer-subscriptions/${fixtures.organizer.id}`,
+      },
+      {
+        path: "/catalog/young-events/calendar?view=day&date=2035-09-10",
+        projection: "/api/workspace/calendar/events",
+      },
+    ];
+    for (const item of cases) {
+      identities.length = 0;
+      const projection = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === item.projection &&
+          response.request().method() === "GET",
+      );
+      const bootstrap = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+      );
+      await gotoAndWaitForReady(page, item.path);
+      const [personal, shell] = await Promise.all([projection, bootstrap]);
+      expect(personal.status(), item.path).toBe(200);
+      expect((await shell.json()).viewer.id, item.path).toBe(users[0].id);
+      await expect(page.locator("#app-user-menu")).toContainText(
+        users[0].name ?? "",
+      );
+      expect(identities, item.path).toEqual(["/_internal/shell-bootstrap"]);
+    }
+    identities.length = 0;
+    await gotoAndWaitForReady(page, "/workspace/calendar");
+    await expect(page.locator("#app-user-menu")).toContainText(
+      users[0].name ?? "",
+    );
+    expect(identities).toEqual([]);
+    await gotoAndWaitForReady(page, "/workspace/subscriptions");
+    expect(identities).toEqual([]);
+    const destination = `/catalog/sections/${DEV_SEED.section.jwId}`;
+    // The real subscribed-section link retains the root-layout viewer.
+    const projected = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+        `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`,
+    );
+    await page
+      .getByRole("main")
+      .locator(`a[href="${destination}"]:visible`)
+      .first()
+      .click();
+    expect((await projected).status()).toBe(200);
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    await expect(page.locator("#app-user-menu")).toContainText(
+      users[0].name ?? "",
+    );
+    expect(identities).toEqual([]);
+  } finally {
+    await context.close();
+    await cleanup(users);
+    await withE2ePrisma(async (db) => {
+      await db.youngEvent.delete({ where: { id: fixtures.event.id } });
+      await db.youngOrganizer.delete({ where: { id: fixtures.organizer.id } });
+    });
+  }
+});
+
+test("overview.public-html-viewer-independent", async ({
+  browser,
+  request,
+}) => {
+  const users = await createUsers();
+  try {
+    for (const user of users) {
+      const context = await browser.newContext({
+        baseURL: PLAYWRIGHT_BASE_URL,
+        javaScriptEnabled: false,
+      });
+      try {
+        await context.addCookies([await createSignedSessionCookie(user.id)]);
+        const response = await context.request.get("/", { maxRedirects: 0 });
+        expect(response.status()).toBe(303);
+        expect(response.headers().location).toBe("/workspace/overview");
+        expect(await response.text()).not.toContain(user.id);
+      } finally {
+        await context.close();
+      }
+      for (const locale of ["zh-cn", "en-us"]) {
+        const response = await request.get("/", {
+          headers: { "Accept-Language": locale },
+        });
+        expect(response.status()).toBe(200);
+        const html = await response.text();
+        for (const owner of users) {
+          expect(html).not.toContain(owner.id);
+          expect(html).not.toContain(owner.email);
+          expect(html).not.toContain(owner.name);
+        }
+        expect(html).not.toContain("Shell task");
+        const dataResponse = await request.get("/__data.json", {
+          headers: { "Accept-Language": locale },
+        });
+        expect(dataResponse.status()).toBe(200);
+        const envelope = await dataResponse.json();
+        const projection = Object.assign(
+          {},
+          ...envelope.nodes
+            .filter((node: { type: string } | null) => node?.type === "data")
+            .map((node: { data: unknown[] }) => unflatten(node.data)),
+        );
+        expect(projection.user).toBeNull();
+        expect(projection.navStats).toBeUndefined();
+        for (const owner of users)
+          expect(JSON.stringify(projection)).not.toContain(owner.id);
+        expect(JSON.stringify(projection)).not.toContain("Shell task");
+      }
+    }
+  } finally {
+    await cleanup(users);
+  }
+});

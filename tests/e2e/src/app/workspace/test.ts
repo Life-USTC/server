@@ -145,7 +145,9 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-navigate-homeworks");
   });
 
-  test("user.shell-viewer", async ({ page }, testInfo) => {
+  test("navigation badges retain the bootstrap counts across catalog navigation", async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     let bootstrapRequestCount = 0;
     page.on("request", (request) => {

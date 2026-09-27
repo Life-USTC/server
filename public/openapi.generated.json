@@ -2046,14 +2046,14 @@
             "in": "query",
             "name": "active",
             "schema": {
-              "description": "Filter by signup-open (active) events.",
+              "description": "Filter by source-active list membership, independently of the current signup window.",
               "type": "string",
               "enum": [
                 "true",
                 "false"
               ]
             },
-            "description": "Filter by signup-open (active) events."
+            "description": "Filter by source-active list membership, independently of the current signup window."
           },
           {
             "in": "query",

@@ -267,11 +267,6 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: rendering-and-cache.personal-overlays-5
-- id: rendering-and-cache.personal-overlays-6
-  category: privacy
-  topic: personal-overlays
-  rule: Feature components reuse the root layout in-memory viewer identity. They request their own feature-specific
-    private data without making duplicate identity requests or fetching the complete shell projection.
 - id: rendering-and-cache.personal-overlays-7
   category: privacy
   topic: personal-overlays
@@ -547,6 +542,8 @@ topics:
   title: Cacheable public pages
 - id: personal-overlays
   title: Personal overlays
+  requirement_refs:
+  - user.shell-viewer
 - id: cache-layers-and-invalidation
   title: Cache layers and invalidation
 - id: contributor-notes
@@ -582,3 +579,6 @@ rationale:
   graphql.scoped-query-auth, graphql.session-query-authority, mcp.public-catalog-access and
   mcp.privacy-safe-default. Their real transport/database tests retain credential and ownership checks;
   cache-origin-recovery only proves that the cache does not replace the loader or swallow its rejection.
+- The former rendering-and-cache.personal-overlays-6 repeats user.shell-viewer. Its canonical acceptance now
+  exercises all current feature-specific viewer consumers and retained-root navigation; sidebar badge counts
+  retain their additional browser regression without a duplicate requirement.

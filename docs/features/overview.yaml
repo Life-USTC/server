@@ -145,7 +145,17 @@ requirements:
       name: overview.workspace-card-priority
 - id: overview.public-html-viewer-independent
   category: privacy
-  rule: Public HTML contains no viewer identity, personal counts or other private workspace state.
+  rule: Public homepage HTML and page data contain no viewer identity, personal counts or private workspace
+    state. Authenticated homepage requests redirect to their workspace instead of embedding private state in public discovery.
+  acceptance:
+    given: Two isolated session owners have different task and subscription state.
+    when: Their homepage requests are followed by anonymous Chinese and English HTML and decoded page-data requests with no browser JavaScript.
+    then:
+    - Signed-in requests redirect without including viewer identity in the response body.
+    - Anonymous homepage HTML and page-data expose neither owner's identity or task titles and contain no personal navigation projection.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: overview.public-html-viewer-independent
 - id: overview.personal-next-action-page
   category: presentation
   rule: The authenticated workspace overview prioritizes the next personal learning action rather than
