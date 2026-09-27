@@ -86,13 +86,23 @@ requirements:
     test:
       file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
       name: cases.content-security.destructive-actions-3
+- id: cases.content-security.deletion-confirmation
+  category: presentation
+  topic: destructive-actions
+  rule: Web account, comment, and upload deletion opens a warning confirmation dialog with explicit confirm
+    and cancel actions. Opening or cancelling the dialog does not send the deletion request or remove the
+    item; only confirmation submits deletion. Account deletion additionally follows the exact-word check
+    owned by cases.account.account-deletion-1.
 refs:
 - feature: comment
   capability: object-comment-section
 - feature: upload
   capability: comment-attachment-download
-- feature: security
-  capability: destructive-action-confirmation
+- feature: upload
+  capability: upload-manage
+- feature: user
+  capability: settings
+- feature: admin
 topics:
 - id: suspended-user
   title: Suspended user
@@ -100,3 +110,17 @@ topics:
   title: Upload attachment download
 - id: destructive-actions
   title: Destructive actions
+
+rationale:
+- Security is a cross-feature concern rather than an independent feature. The former security.anonymous-and-traceable
+  umbrella is owned by comment.anonymous-author-privacy, user.public-comment-contribution-privacy,
+  user.public-upload-contribution-privacy, and comment.governance-anonymous-author-access. Ordinary reads conceal
+  anonymous identity even from the author and administrators; dedicated governance requires an authenticated,
+  unsuspended administrator and obeys comment.governance-anonymous-author-audit and its fail-closed audit-failure rule.
+- The former security.upload-download-both-checked umbrella is owned by upload.permission-and-quota,
+  upload.write-auth-unsuspended, upload.download-delivery, and cases.content-security.upload-attachment-download-1.
+  Upload authorization, ownership, and quota do not confer download authority; each request independently
+  checks current owner or attachment visibility. These owners remain mandatory even where acceptance is still unbound.
+- Account confirmation-word validation remains owned by cases.account.account-deletion-1. Shared warning,
+  confirmation, and cancellation behavior is retained in cases.content-security.deletion-confirmation;
+  removing the former security grouping does not waive the declared upload-management web confirmation flow.
