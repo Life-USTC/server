@@ -453,7 +453,7 @@ describe("用户 iCal 导出缓存", () => {
     expect(enqueued[0]).toEqual({ type: "user", userId: "user-1" });
   });
 
-  it("stale enqueue 失败时仍立即返回并暴露失败指标", async () => {
+  it("calendar.feed-enqueue-retry", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const namespace = kvNamespace();

@@ -343,14 +343,20 @@ requirements:
 - id: todo.completed-not-urgent
   category: presentation
   rule: Completed todos do not appear in urgent overview or calendar information.
-- id: todo.create-calendar-after-commit
-  category: consistency
-  rule: A successful todo create requests an owner calendar rebuild only after commit; a rolled-back create
-    requests none.
 - id: todo.delete-calendar-after-commit
   category: consistency
   rule: A successful todo delete requests an owner calendar rebuild only after commit; a rolled-back delete
     requests none.
+  acceptance:
+    given: The owner has a todo and a rebuild sender reads that row through a separate database connection.
+    when: The actual delete service succeeds, then a second delete is rejected by a deferred constraint
+      trigger at commit.
+    then:
+    - The successful rebuild observes that deletion has committed.
+    - The failed deletion preserves the todo and emits no rebuild.
+    test:
+      file: tests/integration/calendar-commit-contract.test.ts
+      name: todo.delete-calendar-after-commit
 capabilities:
   todo-list:
     title: Todo List & Filter
@@ -509,3 +515,6 @@ capabilities:
     - todo.rest-batch-delete-bounds
     - todo.rest-patch-ownership
     - todo.rest-delete-ownership
+rationale:
+- Todo create commit/rebuild ordering and rollback exclusion are canonically covered by the cross-source
+  ical.committed-write-rebuilds contract.

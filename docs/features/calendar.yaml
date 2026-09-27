@@ -142,6 +142,16 @@ requirements:
 - id: calendar.feed-enqueue-retry
   category: consistency
   rule: A failed refresh enqueue remains retryable on subsequent reads.
+  acceptance:
+    given: A stale private export exists and its refresh queue sender fails.
+    when: The actual cache returns the stale export, then the sender recovers and another read occurs.
+    then:
+    - The failed enqueue is observed without blocking the stale response.
+    - The subsequent read retries enqueue successfully rather than remaining suppressed by the failed
+      attempt.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-enqueue-retry
 - id: calendar.feed-write-rebuild-independent
   category: consistency
   rule: A source write requests a rebuild independently of stale-read refresh coalescing.
