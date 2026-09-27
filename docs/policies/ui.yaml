@@ -74,13 +74,13 @@ requirements:
   rule: SearchField owns the application search-shortcut handler; collection pages do not register a competing
     handler for the same shortcut.
   acceptance:
-    given: Every application TypeScript module and parsed Svelte component script and template.
-    when: Inspect imports, actual helper calls and global keyboard registrations through compiler ASTs.
+    given: Every application TypeScript module and parsed Svelte component script, plus the actual page/global
+      shortcut predicates.
+    when: Inspect registration-helper imports and calls through compiler ASTs and evaluate Ctrl/Command K
+      with and without Shift.
     then:
     - SearchField is the sole importer and caller of the page-search registration helper.
-    - Global keyboard registration belongs only to that helper, AppShell global search and the sidebar's
-      separate non-K shortcut; feature pages cannot install competing window/document handlers or import
-      the page matcher directly.
+    - The current page and global search handlers recognize disjoint Shift and non-Shift key combinations.
     test:
       file: tests/unit/lib/browser/search-shortcut-ownership.test.ts
       name: ui.list-table-2
