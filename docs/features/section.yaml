@@ -80,6 +80,16 @@ requirements:
   category: behavior
   rule: Opaque Section jwId values remain routing/API identifiers and are not displayed as ordinary student-facing
     section labels.
+  acceptance:
+    given: An isolated Section has an opaque upstream jwId distinct from its visible name and code.
+    when: A browser opens desktop and mobile Section discovery and follows its detail link.
+    then:
+    - Links use the exact upstream jwId.
+    - Rendered list and detail text use course identity and Section code without displaying the opaque
+      jwId.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.jwid-url-only
 - id: section.student-identity-teachers
   category: presentation
   rule: Student-facing section identity is the course display name plus teachers. Section code is secondary
@@ -101,6 +111,17 @@ requirements:
     Accept-Language. Omitted locale uses zh-cn and locale=en-us selects English.
   rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
     topology is an architecture choice; revision freshness and locale separation remain required.
+  acceptance:
+    given: Two isolated section records have distinct Chinese and English names and supported filters.
+    when: Anonymous and signed-in HTTP callers vary URL locale, filters and pages while sending conflicting
+      Cookie and Accept-Language headers.
+    then:
+    - Omitted locale stays Chinese and explicit en-us selects English.
+    - Cookie and Accept-Language do not change the same URL response or its public cache policy.
+    - Different pages and supported filters return the correct isolated records and totals.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.public-list-cache
 - id: section.mobile-detail-actions
   category: presentation
   rule: Mobile section detail presents readable course identity, teachers and concise metadata.
@@ -108,32 +129,105 @@ requirements:
   category: behavior
   rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional hash anchors identify content
     within that page.
+  acceptance:
+    given: An isolated Section has a persisted upstream jwId.
+    when: A browser opens its entity URL with an extra query and hash.
+    then:
+    - The detail renders the course name.
+    - The canonical URL is the Section entity root while the optional page hash remains usable.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.detail-canonical-url
 - id: section.public-teacher-reference
   category: privacy
   rule: Embedded Section teachers expose only public identity and localized names, plus department/title
     where needed. Contact and source-private columns never appear in nested references.
+  acceptance:
+    given: A Section references a Teacher with department/title context, contact and source-private sentinels.
+    when: The restricted-role public Section detail reader serializes its nested teachers.
+    then:
+    - Public identity, localized names and the available department/title context remain.
+    - Contact, age, postcode, QQ and WeChat are excluded from the payload.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.public-teacher-reference
 - id: section.public-detail-cache
   category: consistency
   rule: Public section detail reads never mix different entity IDs, locales, include shapes or imported
     revisions. A missing entity is re-evaluated after an import.
   rationale: A shared runtime cache is an implementation option; this requirement constrains observable
     identity, shape and freshness.
+  acceptance:
+    given: Two persisted section records are read under multiple locales and API/page shapes with real
+      runtime caches.
+    when: The database commits updated source data and a new StaticImportState revision, also adding an
+      identity previously missing.
+    then:
+    - Entity identities, languages and requested shapes never mix in cached responses.
+    - Before the revision advances, the already cached immutable representation stays stable.
+    - The new committed revision refreshes API and page data and makes the previously missing identity
+      readable.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.public-detail-cache
 - id: section.relational-course-filter
   category: validation
   rule: When courseId and courseJwId are both supplied, Section discovery applies both filters; mismatched
     identifiers return an empty page and total.
+  acceptance:
+    given: Two courses each own a persisted active Section.
+    when: The public Section service receives matching and mismatched courseId/courseJwId combinations.
+    then:
+    - Matching identifiers return the correct Section and total.
+    - Mismatched identifiers return an empty page with total zero.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.relational-course-filter
 - id: section.bounded-related-sections
   category: validation
   rule: Section detail shows at most 20 newest active offerings of the same Course, excluding the current
     Section, and reports the complete matching count. Equal sort values use a stable unique tie-breaker.
+  acceptance:
+    given: A course has 25 newer active offerings with equal semester/code values inserted in reverse
+      jwId order, one older active offering and two retired offerings.
+    when: The actual public Section page reader loads its related-offering preview.
+    then:
+    - The complete count is 26 but only the 20 newest active other offerings are returned.
+    - A unique jwId tie-breaker selects the same ordered preview independently of insertion order.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: section.bounded-related-sections
 - id: section.private-section-projection
   category: consistency
   rule: After hydration, a session-only private, no-store projection supplies the viewer's subscription,
     homework completion and permissions without exposing a new public API capability.
+  acceptance:
+    given: A session owner subscribes to a Section and completes one homework while an anonymous viewer
+      has neither state.
+    when: A hydrated page fetches its private projection and HTTP callers attempt anonymous, session and
+      Bearer reads.
+    then:
+    - The session projection supplies that owner’s subscription, completion and viewer permissions.
+    - Responses are private no-store; anonymous reads cannot select a user through query parameters and
+      Bearer is rejected.
+    - No viewer projection is published in OpenAPI.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.private-section-projection
 - id: section.personal-deep-link-gate
   category: consistency
   rule: homeworkId and subscribe=1 Web deep links wait for successful personal-state resolution; unresolved
     or failed state never enables subscription writes.
+  acceptance:
+    given: A fully registered session opens subscribe=1 and homeworkId deep links.
+    when: The browser holds the actual personal projection pending, then permits success, then simulates
+      an unavailable projection.
+    then:
+    - Pending or failed personal state exposes no subscription dialog or write form and creates no subscription.
+    - Only successful personal-state resolution enables the subscription confirmation.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: section.personal-deep-link-gate
 - id: section.source-future-clock-bound
   category: consistency
   rule: Static sync rejects snapshot generated_at more than 15 minutes after the import reference time

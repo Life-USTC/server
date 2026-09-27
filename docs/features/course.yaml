@@ -45,6 +45,15 @@ requirements:
   category: presentation
   rule: jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed
     in ordinary course UI.
+  acceptance:
+    given: An isolated course has an opaque upstream jwId distinct from its visible name and code.
+    when: A browser opens desktop and mobile course discovery and follows its detail link.
+    then:
+    - Links use the exact upstream jwId.
+    - Rendered list and detail text use course names and codes without displaying the opaque jwId.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: course.jwid-url-only
 - id: course.education-level-display-casing
   category: presentation
   rule: English education-level filter labels preserve source acronyms and readable localized casing;
@@ -55,6 +64,17 @@ requirements:
     Omitted locale uses zh-cn and locale=en-us selects English.
   rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
     topology is an architecture choice; revision freshness and locale separation remain required.
+  acceptance:
+    given: Two isolated course records have distinct Chinese and English names and supported filters.
+    when: Anonymous and signed-in HTTP callers vary URL locale, filters and pages while sending conflicting
+      Cookie and Accept-Language headers.
+    then:
+    - Omitted locale stays Chinese and explicit en-us selects English.
+    - Cookie and Accept-Language do not change the same URL response or its public cache policy.
+    - Different pages and supported filters return the correct isolated records and totals.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: course.public-list-cache
 - id: course.mobile-detail-hierarchy
   category: presentation
   rule: At mobile widths, course detail shows the public course code and localized name prominently, with
@@ -63,6 +83,15 @@ requirements:
   category: behavior
   rule: The canonical course detail URL is /catalog/courses/[jwId]. Optional hash anchors identify content
     within that page.
+  acceptance:
+    given: An isolated course has a persisted upstream jwId.
+    when: A browser opens its entity URL with an extra query and hash.
+    then:
+    - The detail renders the course name.
+    - The canonical URL is the course entity root while the optional page hash remains usable.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: course.detail-canonical-url
 - id: course.static-classification-unsupported
   category: behavior
   rule: When a static snapshot has no classification source value, the imported course classification
@@ -114,12 +143,34 @@ requirements:
   category: privacy
   rule: Nested teacher references expose only public identity and localized names; never contact or private
     source columns.
+  acceptance:
+    given: A course offering references a Teacher whose row contains contact and source-private sentinels.
+    when: The restricted-role public course detail reader serializes its nested teachers.
+    then:
+    - The reference retains public identity and localized name.
+    - Contact, age, postcode, QQ and WeChat are excluded from the payload.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: course.public-detail-fields
 - id: course.public-detail-cache
   category: consistency
   rule: Public course detail reads never mix different entity IDs, locales, include shapes or imported
     revisions. A missing entity is re-evaluated after an import.
   rationale: A shared runtime cache is an implementation option; this requirement constrains observable
     identity, shape and freshness.
+  acceptance:
+    given: Two persisted course records are read under multiple locales and API/page shapes with real
+      runtime caches.
+    when: The database commits updated source data and a new StaticImportState revision, also adding an
+      identity previously missing.
+    then:
+    - Entity identities, languages and requested shapes never mix in cached responses.
+    - Before the revision advances, the already cached immutable representation stays stable.
+    - The new committed revision refreshes API and page data and makes the previously missing identity
+      readable.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: course.public-detail-cache
 - id: course.history-cache-page-isolation
   category: consistency
   rule: Course history page-core cache entries distinguish pages and retain the complete historical relation

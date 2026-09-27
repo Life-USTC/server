@@ -19,16 +19,45 @@ requirements:
   category: presentation
   rule: Teacher names are the primary display labels. Teachers with equal names remain distinct records
     and display available department/title context for disambiguation.
+  acceptance:
+    given: Two persisted Teachers have identical localized names and distinct departments and titles.
+    when: A browser displays their desktop rows and mobile cards.
+    then:
+    - Both remain independently linked records under their names.
+    - Each record displays its own available department and title context.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.identified-by-name
 - id: teacher.section-code-auxiliary
   category: presentation
   rule: Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching
     section list.
+  acceptance:
+    given: A Teacher has a persisted offering with a distinct course name and Section code.
+    when: A browser opens desktop and mobile Teacher detail.
+    then:
+    - The Teacher name remains the page heading.
+    - The teaching history displays the course name and a monospace auxiliary Section code.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.section-code-auxiliary
 - id: teacher.public-list-cache
   category: consistency
   rule: Public teacher list REST output depends on URL locale/filter/pagination values, not Cookie or
     Accept-Language. Omitted locale uses zh-cn and locale=en-us selects English.
   rationale: Revision-scoped caches may share these viewer-independent reads across transports. Cache
     topology is an architecture choice; revision freshness and locale separation remain required.
+  acceptance:
+    given: Two isolated teacher records have distinct Chinese and English names and supported filters.
+    when: Anonymous and signed-in HTTP callers vary URL locale, filters and pages while sending conflicting
+      Cookie and Accept-Language headers.
+    then:
+    - Omitted locale stays Chinese and explicit en-us selects English.
+    - Cookie and Accept-Language do not change the same URL response or its public cache policy.
+    - Different pages and supported filters return the correct isolated records and totals.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.public-list-cache
 - id: teacher.mobile-detail-hierarchy
   category: presentation
   rule: At mobile widths, teacher detail presents a readable localized name and directly reachable public
@@ -37,6 +66,15 @@ requirements:
   category: behavior
   rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content
     within that page.
+  acceptance:
+    given: An isolated Teacher has a persisted database id.
+    when: A browser opens its entity URL with an extra query and hash.
+    then:
+    - The detail renders the Teacher name.
+    - The canonical URL uses the Teacher database id and omits the extra query and hash.
+    test:
+      file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
+      name: teacher.detail-canonical-url
 - id: teacher.bounded-detail-history
   category: consistency
   rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
@@ -74,12 +112,34 @@ requirements:
   rationale: 'Product decision required: define exact public list, nested-reference and detail allowlists,
     including whether email, telephone, mobile and address are approved for public publication. Existing
     field selections do not establish approval.'
+  acceptance:
+    given: A persisted Teacher has source-only age, postcode, QQ and WeChat values alongside public identity.
+    when: The restricted-role public Teacher detail reader serializes both locales.
+    then:
+    - Identity and the requested localized name remain intact.
+    - Source-only age, postcode, QQ and WeChat never appear in the public payload.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: teacher.public-detail-fields
 - id: teacher.public-detail-cache
   category: consistency
   rule: Public teacher detail reads never mix different entity IDs, locales, include shapes or imported
     revisions. A missing entity is re-evaluated after an import.
   rationale: A shared runtime cache is an implementation option; this requirement constrains observable
     identity, shape and freshness.
+  acceptance:
+    given: Two persisted teacher records are read under multiple locales and API/page shapes with real
+      runtime caches.
+    when: The database commits updated source data and a new StaticImportState revision, also adding an
+      identity previously missing.
+    then:
+    - Entity identities, languages and requested shapes never mix in cached responses.
+    - Before the revision advances, the already cached immutable representation stays stable.
+    - The new committed revision refreshes API and page data and makes the previously missing identity
+      readable.
+    test:
+      file: tests/integration/catalog-public-read-contracts.test.ts
+      name: teacher.public-detail-cache
 - id: teacher.history-page-default
   category: behavior
   rule: Omitting sectionsPage opens the first teacher-history page. Valid decimal pages through 450359962737050
