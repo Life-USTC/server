@@ -71,9 +71,9 @@ requirements:
   topic: actions
   rule: User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
   acceptance:
-    given: An isolated authenticated MCP user with real persisted target/comment data.
-    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
-      operation.
+    given: An authenticated MCP user has a persisted course target and no comment from this operation.
+    when: The user invokes the create-comment tool with private fixture content, then the test reads the persisted
+      comment and audit event.
     then:
     - User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
     - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
@@ -86,9 +86,9 @@ requirements:
   topic: actions
   rule: User edits their own comment. MCP-originated writes include metadata.source=mcp.
   acceptance:
-    given: An isolated authenticated MCP user with real persisted target/comment data.
-    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
-      operation.
+    given: An authenticated MCP user owns a persisted active comment on a course.
+    when: The user invokes the edit-comment tool with replacement private content, then the test reads the changed
+      comment and audit event.
     then:
     - User edits their own comment. MCP-originated writes include metadata.source=mcp.
     - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
@@ -101,9 +101,9 @@ requirements:
   topic: actions
   rule: User deletes their own comment. Transport-originated writes include safe metadata.source where available.
   acceptance:
-    given: An isolated authenticated MCP user with real persisted target/comment data.
-    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
-      operation.
+    given: An authenticated MCP user owns a persisted active comment on a course.
+    when: The user invokes the delete-comment tool, then the test reads the deleted comment state and audit
+      event.
     then:
     - User deletes their own comment. Transport-originated writes include safe metadata.source where available.
     - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
@@ -116,9 +116,9 @@ requirements:
   topic: actions
   rule: User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
   acceptance:
-    given: An isolated authenticated MCP user with real persisted target/comment data.
-    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
-      operation.
+    given: An authenticated MCP user can view an active comment and has no reaction on it.
+    when: The user adds a reaction twice and removes it twice through MCP, reading persisted reaction and audit
+      rows after each operation.
     then:
     - User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
     - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
@@ -133,9 +133,10 @@ requirements:
   rule: User updates an object description (content changed). The description row, edit history, and audit
     row are committed together.
   acceptance:
-    given: An isolated authenticated MCP user with real persisted target/comment data.
-    when: A real database constraint rejects the audit insertion, then the user retries the production MCP
-      description mutation with the constraint removed.
+    given: An authenticated MCP user can edit a persisted course whose description and edit history are initially
+      unchanged.
+    when: A database constraint rejects the audit insertion for a description edit; the user retries after that
+      constraint is removed and then repeats the identical content.
     then:
     - Audit insertion failure rolls back description and edit-history writes.
     - A successful change persists the description, one edit-history row, and one content-free audit event;
@@ -236,8 +237,9 @@ requirements:
   topic: actions
   rule: Records successful sign-out after the session transaction commits.
   acceptance:
-    given: An isolated real account and a valid authenticated session with private fixture values.
-    when: The production Better Auth handler commits the specified account operation.
+    given: An isolated account has a valid persisted session and signed session cookie.
+    when: The production Better Auth sign-out endpoint handles that cookie, after which the test reads the session
+      and account-sign-out audit rows.
     then:
     - Records successful sign-out after the session transaction commits.
     - Exactly one successful persisted audit row identifies the actor and target without copying private field
@@ -251,8 +253,9 @@ requirements:
   rule: Records successful profile changes with an allowlisted changed-field list, never field values or request
     bodies.
   acceptance:
-    given: An isolated real account and a valid authenticated session with private fixture values.
-    when: The production Better Auth handler commits the specified account operation.
+    given: An isolated account has a valid session and an existing display name.
+    when: The production Better Auth update-user endpoint receives a new private display name, after which the
+      test reads the user and profile-update audit rows.
     then:
     - Records successful profile changes with an allowlisted changed-field list, never field values or request
       bodies.
@@ -276,8 +279,10 @@ requirements:
   topic: actions
   rule: Records successful provider unlinking after commit, excluding provider credentials and tokens.
   acceptance:
-    given: An isolated real account and a valid authenticated session with private fixture values.
-    when: The production Better Auth handler commits the specified account operation.
+    given: An isolated account has two linked providers and a valid session; the provider being removed has
+      a private access token.
+    when: The production Better Auth unlink-account endpoint receives that provider account ID, after which
+      the test reads the provider and unlink audit rows.
     then:
     - Records successful provider unlinking after commit, excluding provider credentials and tokens.
     - Exactly one successful persisted audit row identifies the actor and target without copying private field

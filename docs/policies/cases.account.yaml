@@ -8,9 +8,9 @@ requirements:
   rule: After a successful username change, resolving the old username does not return the renamed user. The
     new username resolves to that user immediately; no old-name compatibility redirect is created.
   acceptance:
-    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
-    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
-      confirmations.
+    given: An authenticated user has an existing username and a public profile at that username.
+    when: The user saves a different valid username in profile settings, then requests both the old and new
+      public profile URLs and APIs.
     then:
     - After a successful username change, resolving the old username does not return the renamed user. The
       new username resolves to that user immediately; no old-name compatibility redirect is created.
@@ -35,9 +35,9 @@ requirements:
   rule: The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
     it submits the deletion request.
   acceptance:
-    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
-    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
-      confirmations.
+    given: An authenticated user has opened the deletion confirmation dialog in danger settings.
+    when: The user enters empty text, DEL, lowercase delete, and DELETE with leading or trailing spaces, presses
+      Enter, then enters exact DELETE and cancels.
     then:
     - The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
       it submits the deletion request.
@@ -50,9 +50,8 @@ requirements:
   rule: After successful account deletion, the browser clears its authenticated viewer state and leaves settings
     for a public page.
   acceptance:
-    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
-    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
-      confirmations.
+    given: An authenticated user has opened danger settings and still exists in the database.
+    when: The user opens deletion confirmation, enters exact DELETE, and submits the deletion.
     then:
     - After successful account deletion, the browser clears its authenticated viewer state and leaves settings
       for a public page.
@@ -65,9 +64,9 @@ requirements:
   rule: Successful account deletion revokes the deleted user’s active sessions; a previously valid session
     cannot authorize subsequent account or workspace requests.
   acceptance:
-    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
-    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
-      confirmations.
+    given: One account has two valid persisted sessions, one in the browser and one in a separate request context.
+    when: The browser deletes the account; the second context replays its original cookie against session lookup,
+      the todos API, and a workspace page.
     then:
     - Successful account deletion revokes the deleted user’s active sessions; a previously valid session cannot
       authorize subsequent account or workspace requests.

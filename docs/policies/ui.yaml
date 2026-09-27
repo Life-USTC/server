@@ -8,9 +8,10 @@ requirements:
   rule: Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
     and comments in the main reading column.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: Public course, section, and teacher details have introductions and comments; the section also has
+      homework.
+    when: An anonymous browser opens each detail at 1280 pixels and measures the reading sections relative to
+      the facts sidebar.
     then:
     - Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
       and comments in the main reading column.
@@ -23,9 +24,9 @@ requirements:
   rule: Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
     sidebar.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: Public course, section, and teacher details have structured overview facts.
+    when: An anonymous browser opens each detail at 1280 pixels and measures the visible facts sidebar relative
+      to the introduction.
     then:
     - Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
       sidebar.
@@ -130,9 +131,9 @@ requirements:
   rule: A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
     without requiring browser history.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: An anonymous user directly opens a course, section, or teacher detail at 1280 and 390 pixels.
+    when: The user opens the mobile menu when needed and activates the shell link to that entity type’s owning
+      collection.
     then:
     - A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
       without requiring browser history.
@@ -144,9 +145,9 @@ requirements:
   topic: detail-hero
   rule: h1 uses the primary display name of the current object, not an internal ID.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A seeded course, section, and teacher have Chinese and English display names.
+    when: An anonymous browser selects Chinese and then English and loads each detail to read its level-one
+      heading.
     then:
     - h1 uses the primary display name of the current object, not an internal ID.
     test:
@@ -164,8 +165,8 @@ requirements:
   rule: Course codes live in the title region, in plain monospace text before the name; the localized name
     remains the dominant h1.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: An anonymous user opens a course detail with a public code at a 390-by-844 viewport.
+    when: The browser measures the title, code, and document width, then follows the comments fragment.
     then:
     - Course codes live in the title region, in plain monospace text before the name; the localized name remains
       the dominant h1.
@@ -191,9 +192,8 @@ requirements:
     - homework
     - comments
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A public section detail contains introduction, calendar, exams, homework, and comments sections.
+    when: The browser loads the detail at 1280 and 390 pixels and reads the section DOM order and vertical geometry.
     then:
     - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
     test:
@@ -213,9 +213,9 @@ requirements:
     - sections
     - comments
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: Public course and teacher details contain introduction, teaching-section, and comments sections.
+    when: The browser loads both details at 1280 and 390 pixels and reads the section DOM order and vertical
+      geometry.
     then:
     - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
     test:
@@ -311,8 +311,9 @@ requirements:
   rule: Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
     use distinct expandable groups, and admin entries are visible only to an authorized administrator.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
+    when: The browser inspects the visible primary navigation, its current-page link, and the expanded campus-services
+      group.
     then:
     - Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
       use distinct expandable groups, and admin entries are visible only to an authorized administrator.
@@ -352,8 +353,9 @@ requirements:
   applies_to:
   - shell
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in administrator opens workspace todos at the viewport declared by the target-size expectation.
+    when: The browser measures the mobile primary links and menu, language, and theme controls, then opens the
+      navigation drawer.
     then:
     - Rendered mobile topbar and primary-navigation hit targets meet the declared width and height at the declared
       viewport.
@@ -366,8 +368,10 @@ requirements:
   rule: A stored light/dark preference is applied to the document before application hydration, using a bootstrap
     script authorized by the response CSP.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: The browser saves a dark theme preference while the operating-system color scheme is light, and application
+      hydration scripts are blocked.
+    when: The anonymous home document loads and the browser inspects its initial theme and the bootstrap script’s
+      CSP nonce.
     then:
     - A stored light/dark preference is applied to the document before application hydration, using a bootstrap
       script authorized by the response CSP.
@@ -398,9 +402,10 @@ requirements:
     results, and completing the last pending task. Only an explicit selection or clear action changes the applied
     filter.
   acceptance:
-    given: Real homework, todo, and exam pages with isolated task fixtures or a blocked hydration script.
-    when: The browser repeatedly selects filters, using empty/nonempty results, completion, keyboard activation,
-      and an offline connection as applicable.
+    given: An isolated signed-in user has completed task records and, in a second case, one pending record,
+      on each homework, todo, and exam page at desktop and mobile widths.
+    when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
+      completes the last pending record and clears the resulting filter-empty state.
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
       results, and completing the last pending task. Only an explicit selection or clear action changes the
@@ -414,9 +419,10 @@ requirements:
   rule: Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
     visual and accessible state without waiting for the results request to finish.
   acceptance:
-    given: Real homework, todo, and exam pages with isolated task fixtures or a blocked hydration script.
-    when: The browser repeatedly selects filters, using empty/nonempty results, completion, keyboard activation,
-      and an offline connection as applicable.
+    given: A signed-in browser opens each homework, todo, and exam page while its application hydration scripts
+      are held.
+    when: The browser checks all three filter controls before releasing the scripts, then switches among all,
+      completed, and incomplete while offline.
     then:
     - Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
       visual and accessible state without waiting for the results request to finish.
@@ -430,8 +436,9 @@ requirements:
     or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
     the explanation.
   acceptance:
-    given: An isolated user has completed homework, todo, and exam rows but no pending rows.
-    when: The browser loads the default pending filter and inspects the empty state or activates Clear filter.
+    given: An isolated user has completed homework, todo, and exam records and no pending records.
+    when: The browser loads each page’s pending filter at desktop and mobile widths and inspects empty-state
+      geometry, colors, icon, action, and table header visibility.
     then:
     - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
       or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
@@ -444,8 +451,8 @@ requirements:
   topic: workspace-filters-and-empty-states
   rule: Filter-empty results explain the selection and offer clear-filter.
   acceptance:
-    given: An isolated user has completed homework, todo, and exam rows but no pending rows.
-    when: The browser loads the default pending filter and inspects the empty state or activates Clear filter.
+    given: An isolated user has completed homework, todo, and exam records and no pending records.
+    when: The browser reads each pending-filter explanation and activates Clear filter.
     then:
     - Filter-empty results explain the selection and offer clear-filter.
     test:
@@ -462,8 +469,9 @@ requirements:
   rule: Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
     settings destination with localized labels.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in user opens the default profile-settings page at 390 pixels.
+    when: The browser measures the mobile navigation and panel, then reloads settings at 1280 pixels and measures
+      their desktop placement.
     then:
     - Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
       settings destination with localized labels.
@@ -476,8 +484,8 @@ requirements:
   rule: The default settings destination is /account/settings/profile. Canonical settings navigation does not
     depend on legacy tab query inputs.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in user requests the settings root without a subsection or tab query.
+    when: The browser follows the root redirect and inspects the resulting profile form.
     then:
     - The default settings destination is /account/settings/profile. Canonical settings navigation does not
       depend on legacy tab query inputs.
@@ -500,8 +508,9 @@ requirements:
   rule: Within settings navigation, exactly one link identifies the active page with aria-current=page, and
     that link is visible in the mobile scroll region after navigation.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in user selects Chinese and directly opens danger settings.
+    when: The browser reloads danger settings at 280, 320, and 375 pixels and measures the current link within
+      the horizontally scrollable navigation and edge fades.
     then:
     - Within settings navigation, exactly one link identifies the active page with aria-current=page, and that
       link is visible in the mobile scroll region after navigation.
@@ -528,9 +537,9 @@ requirements:
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
+      and reads each level-one heading.
     then:
     - Every signed-in workspace branch exposes exactly one localized level-one heading.
     test:
@@ -541,9 +550,9 @@ requirements:
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
+      and reads the accessible name of each main landmark.
     then:
     - The main content landmark uses the same localized branch label.
     test:
@@ -554,9 +563,9 @@ requirements:
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and reads
+      each document title.
     then:
     - The document title identifies the active branch before the Life@USTC suffix.
     test:
@@ -573,8 +582,9 @@ requirements:
   rule: Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
     within a layout that does not overflow the viewport horizontally.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A signed-in user opens the workspace overview at a 390-by-844 viewport.
+    when: The browser measures the next-action section against the website-shortcuts section and the document
+      against the viewport width.
     then:
     - Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
       within a layout that does not overflow the viewport horizontally.
@@ -659,9 +669,9 @@ requirements:
   topic: navigation-landmarks
   rule: The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: An anonymous browser uses a 1280-pixel viewport.
+    when: The browser opens the public course list in Chinese and English and locates the primary navigation
+      by its localized accessible name.
     then:
     - The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
     test:
@@ -672,9 +682,9 @@ requirements:
   topic: navigation-landmarks
   rule: 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A signed-in user opens the workspace overview at 390 pixels in Chinese and English.
+    when: The browser reads the visible mobile primary navigation, opens the menu, and reads the secondary navigation’s
+      accessible name.
     then:
     - 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
     test:
@@ -686,9 +696,10 @@ requirements:
   rule: Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
     navigation landmarks may each identify their own active destination.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: A signed-in user visits workspace todos, the public course list, and preference settings at 1280
+      and 390 pixels.
+    when: The browser opens the mobile menu when needed and counts current-page links separately within every
+      navigation landmark.
     then:
     - Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
       navigation landmarks may each identify their own active destination.
@@ -700,8 +711,8 @@ requirements:
   topic: navigation-landmarks
   rule: The first focusable shell control is a localized skip link that moves keyboard focus to main content.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: An anonymous home page has loaded and no control has keyboard focus.
+    when: The user presses Tab once to reach the skip link and then presses Enter.
     then:
     - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
     test:
@@ -733,8 +744,9 @@ requirements:
   rule: Selecting light, dark, or system updates the displayed theme and saved preference. While system is
     selected, a subsequent OS color-scheme change updates the displayed theme.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: An anonymous user has loaded the home page with its theme selector available.
+    when: The user selects light, dark, and system in sequence; while system is selected, the emulated operating-system
+      scheme changes from dark to light.
     then:
     - Selecting light, dark, or system updates the displayed theme and saved preference. While system is selected,
       a subsequent OS color-scheme change updates the displayed theme.
@@ -747,8 +759,9 @@ requirements:
   rule: With JavaScript disabled, the page remains readable and its CSS follows the operating-system color
     scheme.
   acceptance:
-    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
-    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    given: A browser context disables JavaScript and requests the dark operating-system color scheme.
+    when: The browser loads the anonymous home document and reads main-content visibility and the root computed
+      color scheme.
     then:
     - With JavaScript disabled, the page remains readable and its CSS follows the operating-system color scheme.
     test:
@@ -759,9 +772,9 @@ requirements:
   topic: navigation-landmarks
   rule: Public footer links are contained in a distinct navigation landmark.
   acceptance:
-    given: The actual Worker serves the seeded catalog or signed-in workspace in the locales and viewports
-      exercised by the test.
-    when: The browser directly loads each declared route and inspects or activates its rendered content.
+    given: An anonymous browser opens the course list, Terms, and Privacy pages.
+    when: The browser locates each visible footer and compares its links with those inside its named navigation
+      landmark.
     then:
     - Public footer links are contained in a distinct navigation landmark.
     test:
