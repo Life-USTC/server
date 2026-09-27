@@ -221,6 +221,60 @@ test("bus.raw-data-returned", async ({ page, request }) => {
     expect(full.routes).toEqual(anonymous.routes);
     expect(full.trips).toEqual(anonymous.trips);
     expect(full.campuses).toEqual(anonymous.campuses);
+    for (const route of fixture.routes) {
+      for (const pageNumber of [1, 2, 3]) {
+        const response = await page.request.post("/api/graphql", {
+          headers: { Origin: PLAYWRIGHT_BASE_URL },
+          data: {
+            query: `query($route:Int!,$version:String!,$page:PageInput!){catalog{busTimetable(routeId:$route,versionKey:$version,page:$page){route{id stops{campusId}} weekday{position stopTimes{time}} saturday{position stopTimes{time}} sunday{position stopTimes{time}} weekdayPageInfo{page pageSize total totalPages} saturdayPageInfo{page pageSize total totalPages} sundayPageInfo{page pageSize total totalPages}}}}`,
+            variables: {
+              route: route.id,
+              version: fixture.version.key,
+              page: { page: pageNumber, pageSize: 1 },
+            },
+          },
+        });
+        expect(response.status()).toBe(200);
+        const graph = await response.json();
+        expect(graph.errors).toBeUndefined();
+        const timetable = graph.data.catalog.busTimetable;
+        expect(timetable.route.id).toBe(route.id);
+        expect(
+          timetable.route.stops.map(
+            (stop: { campusId: number }) => stop.campusId,
+          ),
+        ).toEqual(route.campuses.map((campus) => campus.id));
+        for (const day of ["weekday", "saturday", "sunday"] as const) {
+          const trips = anonymous.trips.filter(
+            (trip) => trip.routeId === route.id && trip.dayType === day,
+          );
+          expect(timetable[`${day}PageInfo`]).toEqual({
+            page: pageNumber,
+            pageSize: 1,
+            total: trips.length,
+            totalPages: Math.max(1, trips.length),
+          });
+          expect(
+            timetable[day].map(
+              (trip: {
+                position: number;
+                stopTimes: { time: string | null }[];
+              }) => ({
+                position: trip.position,
+                times: trip.stopTimes.map((stop) => stop.time),
+              }),
+            ),
+          ).toEqual(
+            trips
+              .slice(pageNumber - 1, pageNumber)
+              .map((trip) => ({
+                position: trip.position,
+                times: trip.stopTimes.map((stop) => stop.time),
+              })),
+          );
+        }
+      }
+    }
     for (const index of [0, 1]) {
       await page.context().clearCookies();
       await page
@@ -309,11 +363,41 @@ test("bus.current-version-only", async ({ page, request }) => {
       "catalog_bus_route_list",
       { locale: "en-us" },
     );
-    expect(listed.routes.map(({ id }) => id).sort((a, b) => a - b)).toEqual(
-      current.routes.map(({ id }) => id).sort((a, b) => a - b),
+    expect(listed.routes.map(({ id }) => id)).toEqual(
+      current.routes.map(({ id }) => id),
     );
     for (const route of fixture.routes)
       expect(listed.routes.map(({ id }) => id)).not.toContain(route.id);
+    const collected: number[] = [];
+    const totalPages = Math.max(1, Math.ceil(current.routes.length / 2));
+    for (let pageNumber = 1; pageNumber <= totalPages + 1; pageNumber++) {
+      const response = await page.request.post("/api/graphql", {
+        headers: { Origin: PLAYWRIGHT_BASE_URL },
+        data: {
+          query:
+            "query($page:PageInput!){catalog{busRoutes(page:$page){items{id} pageInfo{page pageSize total totalPages}}}}",
+          variables: { page: { page: pageNumber, pageSize: 2 } },
+        },
+      });
+      expect(response.status()).toBe(200);
+      const graph = await response.json();
+      expect(graph.errors).toBeUndefined();
+      const result = graph.data.catalog.busRoutes;
+      expect(result.pageInfo).toEqual({
+        page: pageNumber,
+        pageSize: 2,
+        total: current.routes.length,
+        totalPages,
+      });
+      const ids = result.items.map((route: { id: number }) => route.id);
+      expect(ids).toEqual(
+        current.routes
+          .slice((pageNumber - 1) * 2, pageNumber * 2)
+          .map((route) => route.id),
+      );
+      collected.push(...ids);
+    }
+    expect(collected).toEqual(listed.routes.map((route) => route.id));
     const historical = await call<BusTimetableData>(
       client,
       "catalog_bus_timetable_get",
