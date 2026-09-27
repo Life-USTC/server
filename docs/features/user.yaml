@@ -51,10 +51,18 @@ requirements:
     due to security and maintenance cost.
 - id: user.passkey-server-boundary
   category: authorization
-  rule: Passkey registration, rename, and deletion require an authoritative recent session under the account
-    action policy. The RP ID is derived from the canonical configured origin, and only explicitly trusted
-    origins on that RP ID or its subdomains may complete ceremonies. localhost and 127.0.0.1 are separate
-    relying parties.
+  rule: The passkey plugin requires an explicit production origin, derives its RP ID from the canonical hostname and permits only explicitly configured HTTPS origins on that hostname or its subdomains. Local loopback configuration uses localhost as the RP and allowed browser origin; it does not authorize ceremonies from an IP-literal browser origin.
+  rationale: Credential mutation freshness is owned by user.sensitive-account-recent-auth; usable last-credential protection belongs to the account sign-in-method policy. The local RP behavior avoids defining IP addresses as independent relying parties.
+  acceptance:
+    given: Production, explicit preview, unsafe unrelated origin and local loopback configurations.
+    when: The actual passkey plugin factory builds its options.
+    then:
+    - Production requires a configured origin and permits only compatible explicitly trusted origins.
+    - Insecure nonlocal or unrelated origins are rejected before plugin registration.
+    - Loopback configuration emits only localhost origins and requires a session for registration.
+    test:
+      file: tests/unit/lib/auth/better-auth-passkey-plugin.test.ts
+      name: user.passkey-server-boundary
 - id: user.passkey-user-flow
   category: presentation
   rule: "Supported browsers offer passkey sign-in. Linked-account settings let users register, list, rename and delete their own passkeys, with an explicit empty state after deleting the last passkey when another usable sign-in method remains."
@@ -86,20 +94,90 @@ requirements:
     session creation directly, without losing state due to proxy wrapping or container-internal host differences.
 - id: user.welcome-flow-required
   category: behavior
-  rule: New users who have not set a name or username on first login must complete the welcome flow before
-    proceeding.
+  rule: A signed-in user missing either name or username must complete profile entry before proceeding to ordinary pages or later welcome steps. Anonymous users must sign in first.
+  acceptance:
+    given: Anonymous visitors and isolated users missing name, username or both.
+    when: They request an ordinary private page and try the subscriptions or finish welcome URL directly.
+    then:
+    - Anonymous access redirects to sign-in.
+    - Every incomplete profile displays required profile inputs and cannot reach a later step.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-flow-required
 - id: user.welcome-staged-steps
   category: presentation
-  rule: 'Welcome renders one URL step at a time: required profile, skippable subscriptions, then orientation.
-    Incomplete profiles always land on profile; completed ones never return to it. Only the last step
-    leaves for the callback. Welcome hides sidebar, search, and mobile primary nav. Subscriptions cannot
-    read official enrollment; they inline undergraduate and graduate academic-system links and match pasted
-    course codes.'
+  rule: Welcome renders only the current profile, subscriptions or orientation step. Completing profile persists its fields and advances to skippable subscriptions; skipping advances to orientation. A completed profile revisiting the profile URL leaves welcome for its safe callback.
+  acceptance:
+    given: An isolated user has an incomplete profile and a private page callback.
+    when: The browser completes profile, skips subscriptions and navigates back from orientation.
+    then:
+    - Only the current step is rendered and the URL tracks each transition.
+    - Profile fields persist; back navigation restores subscriptions.
+    - Revisiting profile after completion returns to the callback.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-staged-steps
+- id: user.welcome-shell-isolation
+  category: presentation
+  rule: Every welcome step hides the application sidebar, global search and mobile primary navigation.
+  acceptance:
+    given: An isolated user visits each welcome step at desktop and mobile widths.
+    when: The step has rendered.
+    then:
+    - Sidebar, global search trigger and mobile primary navigation are absent.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-shell-isolation
+- id: user.welcome-subscription-guidance
+  category: presentation
+  rule: The optional subscription step explains that official enrollment cannot be read automatically, provides undergraduate and graduate academic-system links, and exposes a pasted-course-code import form with the current semester selected.
+  rationale: Actual code matching, import mutations and membership semantics belong to the subscription feature.
+  acceptance:
+    given: A signed-in user visits the subscriptions welcome step.
+    when: Its import guidance and form render.
+    then:
+    - Both academic-system links and the automatic-import limitation are visible.
+    - The pasted-code import control and current-semester selection are visible.
+    test:
+      file: tests/e2e/src/app/welcome/test.ts
+      name: user.welcome-subscription-guidance
 - id: user.welcome-avatar-upload
+  category: validation
+  rule: The avatar processing boundary accepts nonempty JPG, PNG, WebP or AVIF files of at most 5 MiB (5242880 bytes). Unsupported types, empty files and oversized files are rejected before image processing or storage.
+  acceptance:
+    given: Each supported MIME type at one byte and the exact byte limit, plus empty, oversized and unsupported inputs.
+    when: The actual avatar service validates each file.
+    then:
+    - Accepted inputs reach image processing and storage.
+    - Invalid inputs have a specific failure reason and never reach either dependency.
+    test:
+      file: tests/unit/features/profile/profile-avatar-service.test.ts
+      name: user.welcome-avatar-upload
+- id: user.avatar-transform-request
   category: behavior
-  rule: During welcome, signed-in users may upload a JPG, PNG, WebP, or AVIF avatar up to 5 MB. The Worker
-    uses the Cloudflare Images binding to auto-crop it to a 256-by-256 WebP before storing it in private
-    R2; public avatar delivery is limited to URLs currently referenced by that user's profile.
+  rule: Valid avatar uploads request Cloudflare Images auto-cropping to 256-by-256 WebP, then store the returned stream as image/webp under an owner-specific private R2 key.
+  rationale: The adapter contract is verified using a controlled Images response and storage sink. Pixel-level correctness of the remote Images service is not established by this test.
+  acceptance:
+    given: A valid image file and controlled successful Images binding response.
+    when: The real processing adapter handles the upload.
+    then:
+    - It requests width/height 256, cover fit and auto gravity, followed by WebP encoding.
+    - It sends the returned stream and WebP MIME to the owner-specific object key.
+    test:
+      file: tests/unit/features/profile/profile-avatar-service.test.ts
+      name: user.avatar-transform-request
+- id: user.avatar-current-reference
+  category: authorization
+  rule: Public avatar delivery checks the owning profile's current image or available picture references on every request. Removed references, missing/deleted owners, malformed avatar IDs and missing objects return 404; responses must not allow stale cached delivery to bypass that check.
+  acceptance:
+    given: Persisted owner and unrelated profiles with a controlled object-storage response.
+    when: The actual public route serves current/available images, then receives invalid owners/IDs, removed references and missing objects.
+    then:
+    - Referenced images return their stored bytes with no-store caching.
+    - All invalid requests return 404; requests failing profile/ID checks never read object storage.
+    test:
+      file: tests/integration/profile-avatar-contract.test.ts
+      name: user.avatar-current-reference
 - id: user.welcome-oauth-refresh
   category: consistency
   rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing profile
@@ -107,8 +185,16 @@ requirements:
     does not authorize a third-party application to use Life@USTC APIs.
 - id: user.welcome-completion-resume
   category: consistency
-  rule: If the welcome flow was reached from an app-relative callbackUrl, successful completion returns
-    to that page; otherwise completion returns home.
+  rule: The final welcome action returns to a safe app-relative callback including its query and fragment. Missing, external, encoded authority, backslash and recursive welcome callbacks fall back through home to the signed-in workspace overview.
+  acceptance:
+    given: A complete-profile user visits orientation with safe, absent and unsafe callbacks.
+    when: The browser follows the final welcome link.
+    then:
+    - The safe destination retains its query and fragment.
+    - Every unsafe or absent callback resolves to the workspace overview without leaving the application.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-completion-resume
 - id: user.auth-callback-not-intercepted
   category: behavior
   rule: "Authorization continuation URLs carrying OAuth code/error and state bypass the incomplete-profile welcome redirect; a state-only ordinary URL does not."

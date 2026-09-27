@@ -15,6 +15,7 @@ async function cases() {
     const teacher = await db.teacher.findFirstOrThrow({
       where: { code: DEV_SEED.teacher.code },
     });
+    if (!teacher.code) throw new Error("Seed teacher requires a public code");
     const courseFilters = {
       educationLevelId: String(course.educationLevelId),
       categoryId: String(course.categoryId),

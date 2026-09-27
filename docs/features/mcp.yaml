@@ -334,7 +334,7 @@ requirements:
     test:
       file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
       name: mcp.mutation-rate-limits
-  rationale: The shared Cloudflare60-write/10-batch-write configuration is canonical in openapi.authenticated-mutation-rate-limits;
+  rationale: The shared Cloudflare60-write/10-batch-write configuration is canonical in openapi.rate-limit-production-budgets;
     this requirement owns the MCP transport mapping and preflight boundary.
 - id: mcp.rate-limit-accuracy-boundary
   category: consistency

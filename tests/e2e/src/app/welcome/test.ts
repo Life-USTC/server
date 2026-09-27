@@ -345,7 +345,7 @@ test("/account/welcome 可选择已上传头像并保存", async ({ page }) => {
   }
 });
 
-test("/account/welcome 订阅步骤说明教务导入并提供粘贴入口", async ({
+test("user.welcome-subscription-guidance", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
