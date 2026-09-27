@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect, type Page, test } from "@playwright/test";
 import { hashPassword } from "better-auth/crypto";
@@ -391,6 +393,101 @@ test("audit.action-account-sign-in", async ({ page }) => {
     });
     expect(JSON.stringify(rows)).not.toContain(sessions[0].sessionToken);
     expect(JSON.stringify(rows)).not.toContain("Private registration name");
+  });
+});
+
+test("audit.auth-hook-failure-isolation", async ({ page }) => {
+  await withPasskey(page, async (fixture) => {
+    expect(
+      (
+        await page.request.post("/api/auth/sign-out", {
+          data: {},
+          headers: { origin: PLAYWRIGHT_BASE_URL },
+        })
+      ).status(),
+    ).toBe(200);
+    const constraint = `auth_audit_${crypto.randomUUID().replaceAll("-", "")}`;
+    await withE2ePrisma((db) =>
+      db.$executeRawUnsafe(
+        `ALTER TABLE "AuditLog" ADD CONSTRAINT "${constraint}" CHECK ("userId" IS DISTINCT FROM '${fixture.user.id.replaceAll("'", "''")}' OR "action" <> 'account_sign_in') NOT VALID`,
+      ),
+    );
+    const logPath = join(
+      process.env.E2E_WORKER_ARTIFACT_DIR ??
+        join(process.env.E2E_REPORT_ROOT ?? "playwright-report", "worker"),
+      "wrangler.log",
+    );
+    let signInSessionId: string | undefined;
+    try {
+      const offset = (await readFile(logPath, "utf8")).length;
+      await gotoAndWaitForReady(
+        page,
+        "/account/sign-in?callbackUrl=%2Faccount%2Fsettings%2Faccounts",
+      );
+      await page
+        .getByRole("button", {
+          name: /使用通行密钥登录|Sign in with a passkey/i,
+        })
+        .click();
+      await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
+      const sessions = await withE2ePrisma((db) =>
+        db.session.findMany({ where: { userId: fixture.user.id } }),
+      );
+      expect(sessions).toHaveLength(1);
+      signInSessionId = sessions[0].id;
+      const sessionResponse = await page.request.get("/api/auth/get-session");
+      expect(sessionResponse.status()).toBe(200);
+      expect(await sessionResponse.json()).toMatchObject({
+        user: { id: fixture.user.id },
+        session: { id: sessions[0].id },
+      });
+      const diagnostics = async () =>
+        (await readFile(logPath, "utf8")).slice(offset);
+      await expect
+        .poll(async () =>
+          (await diagnostics()).includes("audit-log-write.retry"),
+        )
+        .toBe(true);
+      const log = await diagnostics();
+      expect(log).toContain("account_sign_in");
+      expect(log).toContain("database_write_failed");
+      expect(log).toContain(constraint);
+      for (const secret of [
+        sessions[0].sessionToken,
+        fixture.cookie.value,
+        "Private registration name",
+        fixture.user.email,
+        fixture.user.name,
+      ])
+        expect(log).not.toContain(secret);
+      expect(await rowsFor(fixture.user.id, "account_sign_in")).toHaveLength(0);
+      expect(
+        await withE2ePrisma((db) =>
+          db.session.findUnique({ where: { id: sessions[0].id } }),
+        ),
+      ).toEqual(sessions[0]);
+    } finally {
+      await withE2ePrisma((db) =>
+        db.$executeRawUnsafe(
+          `ALTER TABLE "AuditLog" DROP CONSTRAINT "${constraint}"`,
+        ),
+      );
+      if (signInSessionId) {
+        await expect
+          .poll(
+            async () =>
+              (await rowsFor(fixture.user.id, "account_sign_in")).length,
+          )
+          .toBe(1);
+        expect(
+          (await rowsFor(fixture.user.id, "account_sign_in"))[0],
+        ).toMatchObject({
+          sessionId: signInSessionId,
+          outcome: "success",
+          channel: "auth",
+        });
+      }
+    }
   });
 });
 

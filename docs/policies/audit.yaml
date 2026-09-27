@@ -47,6 +47,19 @@ requirements:
   rule: Authentication lifecycle hooks write audit events after the authentication transaction commits. An
     audit logging failure is contained and produces a safe operational diagnostic without rolling back an already
     committed sign-in or leaking credentials.
+  acceptance:
+    given: A registered passkey user signs out and a user-scoped database constraint rejects their next sign-in
+      audit insert.
+    when: The real browser completes passkey sign-in while the Worker audit queue encounters the database failure.
+    then:
+    - Sign-in reaches the account page and creates one persistent session that the authenticated session endpoint
+      accepts, while the audit row remains absent during failure.
+    - Actual Worker diagnostics identify an audit database-write retry without session credentials, passkey
+      names, or user profile values.
+    - Removing the constraint lets the real queue persist one successful audit for that same session.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.auth-hook-failure-isolation
 - id: audit.retention-maintenance-cadence
   category: privacy
   topic: writer
