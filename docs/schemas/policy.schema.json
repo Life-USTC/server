@@ -371,7 +371,8 @@
           "requirements": {
             "type": "array",
             "maxItems": 0
-          }
+          },
+          "guidance": true
         },
         "required": ["guidance"]
       },
