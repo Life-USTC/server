@@ -306,10 +306,6 @@ requirements:
   topic: model-property-priority-primary
   rule: Each declared list, card, detail, and assistant projection puts its primary identity in that view’s
     title or leading summary slot; task-critical time and status remain available in its primary content.
-- id: ui.model-property-priority-primary-3
-  category: presentation
-  topic: model-property-priority-primary
-  rule: For teaching sections, student-facing primary identity is course name plus teachers, not section code.
 - id: ui.model-property-priority-secondary-2
   category: presentation
   topic: model-property-priority-secondary
@@ -750,11 +746,6 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/test.ts
       name: ui.workspace-mobile-priority-1
-- id: ui.workspace-mobile-priority-2
-  category: presentation
-  topic: workspace-mobile-priority
-  rule: Mobile workspace calendar presents events as a date-grouped agenda with event title and available time/location
-    context. Desktop retains the declared semester, month, and week grid views.
 - id: ui.workspace-mobile-priority-3
   category: presentation
   topic: workspace-mobile-priority
@@ -1053,3 +1044,7 @@ rationale:
   here would create a second acceptance owner.'
 - Detail orientation requires recognizable entity identity and a route back to its owning collection. Persistent
   navigation or an explicit parent link can provide this; breadcrumb styling is not required.
+- The former ui.workspace-mobile-priority-2 duplicates calendar.mobile-agenda-first for mobile date-grouped
+  agendas and calendar.views for the declared desktop grids; those feature requirements own their acceptance.
+- The former ui.model-property-priority-primary-3 duplicates section.student-identity-teachers, which retains
+  course name plus teachers as primary identity and section code as secondary across student-facing views.

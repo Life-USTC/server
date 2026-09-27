@@ -5,8 +5,9 @@ requirements:
 - id: rendering-and-cache.web-rendering-and-cache-1
   category: consistency
   topic: web-rendering-and-cache
-  rule: Shared public catalog payloads contain only viewer-independent facts. Locale can select a separate
-    public representation; identity, permissions, and personal state cannot affect the shared payload.
+  rule: Shared public course, section, and teacher HTML and page-data payloads contain only viewer-independent
+    public facts and anonymous viewer identity. Locale can select a separate public representation; authenticated
+    identity, permissions, and personal state cannot affect the shared payload.
 - id: rendering-and-cache.web-rendering-and-cache-2
   category: consistency
   topic: web-rendering-and-cache
@@ -165,11 +166,6 @@ requirements:
   rule: Personal mutation controls remain disabled while required viewer or feature-permission state is unresolved.
     A failed load exposes retry or sign-in guidance, and the server rechecks authority when the mutation is
     submitted.
-- id: rendering-and-cache.personal-overlays-3
-  category: privacy
-  topic: personal-overlays
-  rule: The publicly readable description remains in the HTML and structured data; its editing permissions
-    are resolved separately.
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
@@ -412,3 +408,10 @@ rationale:
 - Authentication variants, write/read invalidation, purge failure recovery, and revision changes are separate
   sources of cache regressions; their acceptance evidence belongs to the corresponding behavioral requirements.
 - Description commit ordering, moderation and failed-purge retry are owned by description.public-cache-invalidation.
+- The former course.public-web-personal-overlay and teacher.public-web-personal-overlay are owned by
+  rendering-and-cache.web-rendering-and-cache-1 for shared HTML and page-data privacy,
+  rendering-and-cache.web-rendering-and-cache-2 for equivalent anonymous and signed-in HTML,
+  description.public-web-personal-overlay for description SSR and private permissions, and
+  ui.detail-two-column-stream-6 for privately loaded comments. These remain separate acceptance obligations.
+- The former rendering-and-cache.personal-overlays-3 duplicates description.public-web-personal-overlay,
+  which retains public description text and structured data in SSR and privately resolves editing permissions.

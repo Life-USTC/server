@@ -15,11 +15,6 @@ access:
   admin: Can browse course information. Does not directly modify course facts through ordinary pages.
   agent: Can read course search and detail capabilities.
 requirements:
-- id: course.public-web-personal-overlay
-  category: consistency
-  rule: Course detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in
-    requests. Public description content and structured data remain in SSR; description permissions and
-    comments are resolved through private client requests.
 - id: course.static-course-identity
   category: consistency
   rule: Static ingestion preserves upstream Course id as Course.jwId; code, names and classifications

@@ -15,11 +15,6 @@ access:
   agent: Can directly read teacher lists and details; also indirectly consumes teacher information in
     course and section results.
 requirements:
-- id: teacher.public-web-personal-overlay
-  category: consistency
-  rule: Teacher detail HTML and page-data payloads are viewer-independent for both anonymous and signed-in
-    requests. Public description content remains in SSR; description permissions and comments are resolved
-    through private client requests.
 - id: teacher.identified-by-name
   category: presentation
   rule: Teacher names are the primary display labels. Teachers with equal names remain distinct records
