@@ -186,6 +186,25 @@ describe("Better Auth security audit hooks", () => {
     },
   );
 
+  it("accepts only the half-open recent authentication interval", async () => {
+    for (const ageMs of [-1, 0, 899_999, 900_000]) {
+      const session = {
+        session: { createdAt: new Date(Date.now() - ageMs), id: "session-1" },
+        user: { id: "user-1" },
+      };
+      const result = enforceBetterAuthRecentSession(
+        endpointContext("/link-social"),
+        async () => session as never,
+      );
+      if (ageMs >= 0 && ageMs < 900_000)
+        await expect(result).resolves.toEqual({ context: { session } });
+      else
+        await expect(result).rejects.toMatchObject({
+          body: { code: "SESSION_NOT_FRESH" },
+        });
+    }
+  });
+
   it("requires a recent session before linking another sign-in method", async () => {
     await expect(
       enforceBetterAuthRecentSession(

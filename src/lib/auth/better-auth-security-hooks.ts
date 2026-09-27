@@ -441,10 +441,12 @@ export async function enforceBetterAuthRecentSession(
   }
   const createdAt = session?.session?.createdAt;
   const createdAtMs = createdAt ? new Date(createdAt).getTime() : Number.NaN;
+  const ageMs = Date.now() - createdAtMs;
   const isFresh =
     session?.session &&
     Number.isFinite(createdAtMs) &&
-    Date.now() - createdAtMs < RECENT_AUTH_MAX_AGE_SECONDS * 1000;
+    ageMs >= 0 &&
+    ageMs < RECENT_AUTH_MAX_AGE_SECONDS * 1000;
   if (isFresh) return { context: { session } };
 
   const action = actionForPath(context.path);

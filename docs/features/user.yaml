@@ -366,11 +366,41 @@ requirements:
       name: user.account-deletion-last-admin
 - id: user.sensitive-account-recent-auth
   category: authorization
-  rule: Adding credentials or linked accounts, expanding OAuth grants, changing passwords or email, deleting
-    an account, and rotating calendar feed credentials require an authoritative session created within
-    the last 15 minutes. Stale authority-expanding actions provide explicit sign-in guidance.
-  rationale: 'Revocation and scope reduction have their own valid-session requirements: reducing existing
-    authority does not require a new sign-in.'
+  rule: Credential mutation endpoints (provider linking/unlinking, passkey registration/rename/deletion,
+    password and email changes) require a valid authoritative server-side session whose age is at least
+    zero and strictly less than 15 minutes. Missing, revoked or expired sessions cannot authorize changes;
+    future-dated and stale sessions return SESSION_NOT_FRESH before mutation processing.
+  rationale: OAuth approval is owned by oauth.authorization-management.recent-auth-for-consent; account
+    deletion by user.account-deletion-session-authority; calendar rotation by user.calendar-rotation-recent-auth.
+    Password and email mutation availability remains governed by the configured sign-in policy; freshness
+    alone does not enable disabled endpoints. Revocation of application grants is distinct from removing a sign-in credential.
+  acceptance:
+    given: An isolated account has a persisted passkey and signed cookies referencing stale, future, expired,
+      revoked and recent sessions.
+    when: Actual authentication HTTP endpoints process each invalid session, then a recent session renames
+      the passkey.
+    then:
+    - Every invalid-authority request is rejected before changing the user, passkey or linked accounts.
+    - Missing, expired and revoked sessions return401; stale and future sessions return403 SESSION_NOT_FRESH.
+    - A valid recent session successfully renames the persisted passkey.
+    test:
+      file: tests/integration/credential-freshness-contract.test.ts
+      name: user.sensitive-account-recent-auth
+- id: user.calendar-rotation-recent-auth
+  category: authorization
+  rule: Rotating a calendar feed credential requires the owning user's valid authoritative session created
+    at least zero and strictly less than 15 minutes ago. Rejected attempts leave the feed credential unchanged;
+    the settings page explains that the user must sign in again for a stale session.
+  acceptance:
+    given: An isolated owner has an existing calendar feed token and persisted sessions with different validity and ages.
+    when: The settings action receives stale, future, expired, revoked and missing sessions, followed by stale and recent browser submissions.
+    then:
+    - Invalid authority leaves the existing token unchanged and cannot rotate it.
+    - A stale browser submission visibly asks the user to sign out and sign in again.
+    - A recent session rotates the token, the previous feed returns410, and the new feed returns valid iCalendar data.
+    test:
+      file: tests/e2e/src/app/account-policy/calendar-rotation.test.ts
+      name: user.calendar-rotation-recent-auth
 - id: user.oauth-authorization-management
   category: behavior
   rule: Settings presents linked sign-in identities separately from delegated application grants. Authorized-application
