@@ -48,22 +48,21 @@ function updateOverflow() {
   );
 }
 
+function revealLink(node: HTMLElement) {
+  if (!scrollViewport) return;
+  const viewportBox = scrollViewport.getBoundingClientRect();
+  const nodeBox = node.getBoundingClientRect();
+  scrollViewport.scrollLeft +=
+    nodeBox.left +
+    nodeBox.width / 2 -
+    (viewportBox.left + viewportBox.width / 2);
+  updateOverflow();
+}
+
 function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
-    if (isActive) {
-      void tick().then(() => {
-        if (!scrollViewport) return;
-        const viewportBox = scrollViewport.getBoundingClientRect();
-        const nodeBox = node.getBoundingClientRect();
-        scrollViewport.scrollLeft +=
-          nodeBox.left +
-          nodeBox.width / 2 -
-          (viewportBox.left + viewportBox.width / 2);
-        updateOverflow();
-      });
-    }
+    if (isActive) void tick().then(() => revealLink(node));
   }
-
   reveal(active);
   return { update: reveal };
 }
@@ -129,6 +128,7 @@ onMount(() => {
                       data-sveltekit-preload-data="off"
                       use:revealActive={active}
                       href={item.href}
+                      onfocus={(event) => revealLink(event.currentTarget)}
                       aria-current={active ? "page" : undefined}
                       onclick={(event) => {
                         if (!onSelect || !item.key) return;

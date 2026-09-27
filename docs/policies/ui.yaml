@@ -421,8 +421,21 @@ requirements:
 - id: ui.context-tabs-3
   category: presentation
   topic: context-tabs
-  rule: Context navigation uses a scrollable horizontal row on mobile and a vertical rail on desktop. The active
-    destination has aria-current=page and is scrolled into view; overflow does not make destinations unreachable.
+  rule: Contextual section navigation, currently used by account settings, uses a scrollable horizontal row
+    on mobile and a vertical rail on desktop. The active destination has aria-current=page and is scrolled
+    into view; keyboard-focused destinations remain fully visible and reachable through overflow.
+  rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
+    separate browse-navigation component; they are not contextual section rails.
+  acceptance:
+    given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.
+    when: The actual navigation reveals the active destination and the user visits every settings section with Tab and Enter.
+    then:
+    - Desktop links form a vertical rail; mobile links occupy one horizontally scrollable row without document overflow.
+    - The directly opened active link and every keyboard-focused destination are fully inside the navigation viewport.
+    - Each activated route renders its panel and has exactly one aria-current=page link.
+    test:
+      file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
+      name: ui.context-tabs-3
 - id: ui.global-search-results-1
   category: presentation
   topic: global-search-results
@@ -1090,8 +1103,18 @@ requirements:
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
-  rule: Public notices and private activity reminders are separate navigation destinations. A user’s reminder
+  rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
     badge counts only unread, unexpired notifications belonging to that user.
+  acceptance:
+    given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
+    when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+    then:
+    - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
+    - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
+    - Marking a notice read updates the badge and removes the badge at zero.
+    test:
+      file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
+      name: ui.navigation-landmarks-6
 - id: ui.navigation-landmarks-7
   category: presentation
   topic: navigation-landmarks
