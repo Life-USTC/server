@@ -30,6 +30,7 @@ function routeEvent(
       locale: "en-us",
     },
     params: options.tab ? { tab: options.tab } : {},
+    parent: async () => ({}),
     request: new Request(url, { method: options.method }),
     url: new URL(url),
   };

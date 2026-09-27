@@ -16,6 +16,18 @@ access:
   agent: Can read the complete personal date-range calendar through REST, GraphQL and MCP with workspace.calendar:read.
     REST/GraphQL use pagination.
 requirements:
+- id: calendar.activity-owner-transition
+  category: privacy
+  rule: Academic and activity-only calendars bind private page data, activity requests and rendered state to the shell owner. Account changes reload private page data, clear previous-owner records, fetch new-owner activities even for the same date range and locale, and ignore previous-owner responses that settle later.
+  acceptance:
+    given: Two isolated owners have different subscribed activities in the same date range, with or without academic subscriptions.
+    when: The browser changes owners through same-route client navigation while the previous activity response is already displayed or still held in flight.
+    then:
+    - Both calendar variants fetch and display only the new owner's activities without a document reload; academic course records also change owners.
+    - Previous-owner course and activity records never render together with the new owner's shell identity, including after the held response settles.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/activity-owner.test.ts
+      name: calendar.activity-owner-transition
 - id: calendar.personal-feed-http-cache
   category: privacy
   rule: Personal calendar HTTP responses and revoked-credential errors use private, no-store.

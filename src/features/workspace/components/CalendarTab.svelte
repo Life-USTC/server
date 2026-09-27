@@ -14,6 +14,7 @@ import {
   personalItemsForDay,
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { browser } from "$app/environment";
 import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
@@ -103,10 +104,15 @@ $: baseCalendarGridWeeks =
         weekStart: calendarWeekStart,
       })
     : [];
+const shellViewer = getShellViewer();
 let youngItems: PersonalCalendarItem[] = [];
 let youngFailed = false;
+let youngLoading = true;
+let youngOwnerId = "";
 let youngController: AbortController | undefined;
 let requestedRange = "";
+$: ownerId = $shellViewer.viewer?.id ?? "";
+$: visibleYoungItems = youngOwnerId === ownerId ? youngItems : [];
 $: activityCopy = getWorkspacePageCopy(
   signedData.locale === "en-us" ? "en-us" : "zh-cn",
 );
@@ -114,26 +120,47 @@ $: rangeKeys = [
   ...baseCalendarGridWeeks.flatMap((week) => week.days.map((day) => day.key)),
   ...baseAgendaDays.map((day) => day.key),
 ].sort();
-$: if (
-  browser &&
-  rangeKeys.length &&
-  `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}` !== requestedRange
-) {
-  requestedRange = `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`;
-  void loadYoung(rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
-}
-async function loadYoung(from: string, to: string) {
+$: requestKey =
+  signedData.navStats.user.id === ownerId &&
+  hasWorkspaceSubscriptions(signedData) &&
+  rangeKeys.length
+    ? `${ownerId}:${signedData.locale}:${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`
+    : "";
+$: if (browser && requestKey !== requestedRange) {
+  requestedRange = requestKey;
   youngController?.abort();
+  youngItems = [];
+  youngFailed = false;
+  youngLoading = Boolean(requestKey);
+  if (requestKey)
+    void loadYoung(ownerId, rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
+}
+async function loadYoung(requestOwnerId: string, from: string, to: string) {
   const controller = new AbortController();
   youngController = controller;
-  youngFailed = false;
-  youngItems = [];
+  youngOwnerId = requestOwnerId;
   try {
     const items = await fetchPersonalCalendar(from, to, controller.signal);
-    if (!controller.signal.aborted)
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
       youngItems = items.filter((item) => item.type === "young_event");
   } catch {
-    if (!controller.signal.aborted) youngFailed = true;
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
+      youngFailed = true;
+  } finally {
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
+      youngLoading = false;
   }
 }
 onDestroy(() => youngController?.abort());
@@ -141,22 +168,26 @@ $: calendarGridWeeks = baseCalendarGridWeeks.map((week) => ({
   ...week,
   days: week.days.map((day) => ({
     ...day,
-    events: [...day.events, ...personalItemsForDay(youngItems, day.key)],
+    events: [...day.events, ...personalItemsForDay(visibleYoungItems, day.key)],
   })),
 }));
 $: agendaDays = baseAgendaDays.map((day) => ({
   ...day,
-  events: [...day.events, ...personalItemsForDay(youngItems, day.key)].sort(
-    (a, b) => a.sort - b.sort,
-  ),
+  events: [
+    ...day.events,
+    ...personalItemsForDay(visibleYoungItems, day.key),
+  ].sort((a, b) => a.sort - b.sort),
 }));
 </script>
 
 <section class="grid gap-4">
-  {#if !hasWorkspaceSubscriptions(signedData)}
-    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} />
+  {#if signedData.navStats.user.id !== ownerId}
+    <p role="status">{activityCopy.youngEvents.workspace.loading}</p>
+  {:else if !hasWorkspaceSubscriptions(signedData)}
+    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} {ownerId} />
   {:else}
     <Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="link">{activityCopy.youngEvents.workspace.manage}</Button>
+    {#if youngLoading}<p role="status">{activityCopy.youngEvents.workspace.loading}</p>{/if}
     {#if youngFailed}<p role="alert">{activityCopy.youngEvents.workspace.failed}</p><Button variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>{/if}
     <CalendarTabToolbar
       {addDays}
