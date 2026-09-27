@@ -58,6 +58,16 @@ requirements:
   category: presentation
   rule: English education-level filter labels preserve source acronyms and readable localized casing;
     non-English labels are not case-transformed.
+  acceptance:
+    given: Localized course education-level metadata contains lowercase English labels, mixed-case and uppercase acronyms, and Chinese source names.
+    when: The production course filter view-model constructs the labels and values used by the filter controls.
+    then:
+    - English prose receives a readable initial capital without lowercasing PhD, MBA or MSc.
+    - Acronyms inside a longer label retain their source case.
+    - Chinese labels remain unchanged and each option retains the exact education-level identifier.
+    test:
+      file: tests/unit/features/catalog/courses-page-view-model.test.ts
+      name: course.education-level-display-casing
 - id: course.public-list-cache
   category: consistency
   rule: Public course list REST output depends on URL locale/filter/pagination values, not Cookie or Accept-Language.
