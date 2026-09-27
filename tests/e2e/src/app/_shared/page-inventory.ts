@@ -1137,7 +1137,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "calendar-feed-copy",
         e2eSpec: E2E.workspaceSubscriptions,
-        evidence: "ical.copyable-links",
+        evidence: "复制日历链接生成有效的 iCal URL",
       },
     ],
   },

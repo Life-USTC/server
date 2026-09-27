@@ -69,10 +69,6 @@ requirements:
   category: validation
   rule: PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return
     404 when the target record is not found.
-- id: admin.suspension-retention
-  category: consistency
-  rule: Suspension history is retained when an admin account is deleted; creator and lifter actor references
-    may be null after account deletion.
 - id: admin.primary-admin-navigation
   category: presentation
   rule: The global shell groups users, moderation, OAuth clients, and bus management under Admin tools.
@@ -230,3 +226,6 @@ capabilities:
       - effective range
       - enabled status
       - 'Actions: import, activate, delete'
+
+rationale:
+- Suspension history and nullified deleted-admin actor references are canonically owned and verified by user.account-deletion-retention.
