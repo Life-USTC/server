@@ -232,6 +232,15 @@ requirements:
   category: privacy
   topic: actions
   rule: Records successful sign-in after the session transaction commits without copying the session token.
+  acceptance:
+    given: An isolated user registered a real browser passkey, then signed out with no remaining sessions.
+    when: The browser completes passkey sign-in and the test reads its new committed session and audit event.
+    then:
+    - Exactly one successful sign-in event names the user and the new persisted session.
+    - The event contains neither the session token nor the private passkey name.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-sign-in
 - id: audit.action-account-sign-out
   category: privacy
   topic: actions
@@ -269,6 +278,15 @@ requirements:
   topic: actions
   rule: Records successful credential changes with changed-field names only; password and token values are
     excluded.
+  acceptance:
+    given: An isolated signed-in user has a valid password account and a recent session.
+    when: The production change-password endpoint replaces its password; subsequent real sign-in attempts use the old and new passwords.
+    then:
+    - The persisted password hash changes; the old password fails with 401 and the new password succeeds.
+    - One successful credential-update event records only changedFields=password, omitting passwords, hashes, and the session cookie.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-credential-update
 - id: audit.action-account-link
   category: privacy
   topic: actions
@@ -300,26 +318,80 @@ requirements:
   topic: actions
   rule: Records committed passkey registration from the final endpoint result, excluding attestation, credential
     material, and request bodies.
+  acceptance:
+    given: An isolated signed-in user has no passkeys and a real browser virtual WebAuthn authenticator.
+    when: The account settings form completes WebAuthn registration and the test reads the committed passkey and audit rows.
+    then:
+    - One successful registration event identifies the user and committed passkey.
+    - Audit rows omit the public key, credential ID, private name, session cookie, and email.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-passkey-create
 - id: audit.action-account-passkey-update
   category: privacy
   topic: actions
   rule: Records committed passkey updates using only the passkey identifier and safe request context.
+  acceptance:
+    given: An isolated signed-in user has a real browser-registered passkey and recent session.
+    when: The production passkey update endpoint receives a new private name and the test reads the persisted passkey and audit row.
+    then:
+    - The committed name changes and one successful audit event identifies the passkey and user.
+    - Audit rows omit the name, key material, credential ID, session cookie, and email.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-passkey-update
 - id: audit.action-account-passkey-delete
   category: privacy
   topic: actions
   rule: Records committed passkey deletion using only the passkey identifier and safe request context.
+  acceptance:
+    given: An isolated signed-in user has a real browser-registered passkey and a usable password account that permits removal.
+    when: The production passkey deletion endpoint removes the key and the test reads the passkey table and audit row.
+    then:
+    - The key is absent and one successful deletion event identifies the removed passkey and user.
+    - Audit rows omit the name, key material, credential ID, session cookie, and email.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-passkey-delete
 - id: audit.action-account-session-revoke
   category: privacy
   topic: actions
   rule: Records successful current-user session revocation after commit without copying session tokens.
+  acceptance:
+    given: An isolated signed-in user has one active browser session and a second persisted session.
+    when: The production revoke-session endpoint receives the second session token.
+    then:
+    - Only the selected session is removed and one successful audit event names its ID and user.
+    - Neither session token nor the signed cookie appears in the audit rows.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-session-revoke
 - id: audit.action-account-calendar-token-create
   category: privacy
   topic: actions
   rule: Records successful token creation without storing the calendar feed token value.
+  acceptance:
+    given: An isolated signed-in user has a null calendar-feed token and a recent session.
+    when: Two real workspace subscription page requests request the private feed and the test reads the persisted token and audit events.
+    then:
+    - A token is persisted and exactly one successful creation event names the actor and calendar-feed target.
+    - Repeated reads do not add creation events; token values, session cookies, and email are absent from the audit rows.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-calendar-token-create
 - id: audit.action-account-calendar-token-rotate
   category: privacy
   topic: actions
   rule: Records denied, failed, and successful rotation without storing old or new token values.
+  acceptance:
+    given: An isolated signed-in user has an existing calendar token and a persisted session.
+    when: The real settings action runs with an old session, then a fresh session while a database CHECK rejects token writes, then after the constraint is removed.
+    then:
+    - The three attempts return 403, 500, and 303 with denied, failure, and success audit outcomes.
+    - Refused and failed attempts retain the old token; success changes it. Neither token, session cookie, email, nor private request body appears in audit rows.
+    test:
+      file: tests/e2e/src/app/account-policy/audit.test.ts
+      name: audit.action-account-calendar-token-rotate
 - id: audit.action-oauth-authorization-grant
   category: privacy
   topic: actions
