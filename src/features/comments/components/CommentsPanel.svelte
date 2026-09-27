@@ -487,7 +487,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
 <section class="grid min-w-0 gap-4">
-  {#if _message}<Alert.Root variant={_messageVariant}><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
+  {#if _message && !_deleteTarget}<Alert.Root variant={_messageVariant}><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
   {#if _viewer.isSuspended}
     <CommentsPanelSuspensionAlert
       commentCopy={_commentCopy}
@@ -589,6 +589,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
   close={_closeDeleteDialog}
   commentCopy={_commentCopy}
   deleting={_deleting}
+  error={_message}
   deleteComment={() => {
     void _deleteComment();
   }}

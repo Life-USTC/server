@@ -39,16 +39,53 @@ requirements:
   topic: destructive-actions
   rule: The deletion UI announces success, permission refusal, or request failure to assistive technology.
     Failed deletion keeps the item visible and does not announce success.
+  acceptance:
+    given: A signed-in comment owner has opened the comment deletion confirmation dialog.
+    when: A newly persisted suspension refuses deletion, a retry loses its network connection, and a later
+      retry succeeds after suspension is lifted.
+    then:
+    - Both failures expose an alert inside the open confirmation dialog, keep the comment and persisted active
+      status, and emit no success announcement.
+    - Successful deletion closes the dialog, removes the comment from the rendered thread, persists deleted
+      status, and announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-1
 - id: cases.content-security.destructive-actions-2
   category: presentation
   topic: destructive-actions
   rule: The suspension UI announces success, permission refusal, or request failure to assistive technology
     and updates the displayed suspension state only after success.
+  acceptance:
+    given: An administrator is managing an unsuspended isolated user in the suspension dialog.
+    when: Administrator permission is revoked before submission, a restored administrator encounters a network
+      failure, and a final request is held pending before reaching the real service.
+    then:
+    - Permission and network failures produce dialog alerts without a success message or any persisted suspension.
+    - The pending request disables submission without presenting a completed suspension.
+    - Success persists exactly one suspension with the submitted reason, updates the visible suspension controls,
+      and announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-2
 - id: cases.content-security.destructive-actions-3
   category: presentation
   topic: destructive-actions
   rule: The moderation-hide UI announces success, permission refusal, or request failure to assistive technology
     and changes the displayed visibility only after success.
+  acceptance:
+    given: An administrator has selected Private for an active comment in the moderation dialog.
+    when: Administrator permission is revoked before submission, a restored administrator encounters a network
+      failure, and a final request is held pending before reaching the real service.
+    then:
+    - Permission and network failures produce dialog alerts while the list row and persisted comment remain
+      active and no success message is announced.
+    - Pending submission is disabled and leaves the current visibility unchanged.
+    - Successful moderation persists softbanned status, updates the row to Private, closes the dialog, and
+      announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-3
 refs:
 - feature: comment
   capability: object-comment-section
