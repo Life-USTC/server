@@ -243,3 +243,68 @@ test("ui.data-table-cells-5", async ({ page, baseURL }) => {
     await cleanup(fixture);
   }
 });
+
+test("ui.data-table-cells-6", async ({ page, baseURL }) => {
+  const fixture = await createFixture(page, baseURL);
+  try {
+    const columns: Record<string, number[]> = {
+      bus: [2, 5],
+      comments: [4],
+      suspensions: [3],
+      users: [3, 4],
+    };
+    for (const matrix of matrices(fixture)) {
+      await gotoAndWaitForReady(page, matrix.path);
+      const row = fixtureRow(page, matrix.labels[0]);
+      await expect(row).toHaveCount(1);
+      for (const index of columns[matrix.name]) {
+        const cell = row.locator("td").nth(index);
+        await expect(cell).toHaveText(/\S/);
+        await expect(cell.locator("[title]")).toHaveCount(0);
+        await cell.hover();
+        await expect(
+          page.locator('[data-slot="tooltip-content"]:visible'),
+        ).toHaveCount(0);
+        for (const text of await cell
+          .locator('[data-slot="truncated-text"]')
+          .all()) {
+          const geometry = await text.evaluate((node) => ({
+            width: node.clientWidth,
+            scrollWidth: node.scrollWidth,
+            height: node.clientHeight,
+            scrollHeight: node.scrollHeight,
+          }));
+          expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.width);
+          expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.height);
+          await text.hover();
+          await expect(
+            page.locator('[data-slot="tooltip-content"]:visible'),
+          ).toHaveCount(0);
+          await text.focus();
+          await expect(
+            page.locator('[data-slot="tooltip-content"]:visible'),
+          ).toHaveCount(0);
+          await text.blur();
+        }
+      }
+      const actions = row.getByRole("button");
+      expect(await actions.count()).toBeGreaterThan(0);
+      for (const action of await actions.all()) {
+        await expect(
+          action.locator('[data-slot="truncated-text"]'),
+        ).toHaveCount(0);
+        expect(await action.getAttribute("title")).toBeNull();
+        const label = await action.getAttribute("aria-label");
+        if (!label) throw new Error("Expected an explicit action label");
+        await action.focus();
+        await expect(
+          page.locator('[data-slot="tooltip-content"]:visible'),
+        ).toHaveText(label);
+        await page.keyboard.press("Escape");
+        await action.blur();
+      }
+    }
+  } finally {
+    await cleanup(fixture);
+  }
+});
