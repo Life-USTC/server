@@ -40,6 +40,15 @@ requirements:
 - id: comment.rich-content
   category: presentation
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
+  acceptance:
+    given: A real comment contains bold Markdown, an emoji, a math formula and a table.
+    when: Create it through REST, reply and react as another user, then fetch the focused thread.
+    then:
+    - The server preserves Markdown source and produces bold, emoji, KaTeX and table HTML.
+    - The thread contains the real reply and reaction count.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: comment.rich-content
 - id: comment.server-rendered-markdown
   category: presentation
   rule: Visible comment nodes retain source Markdown in body and provide sanitized server-rendered HTML
@@ -56,6 +65,16 @@ requirements:
   category: presentation
   rule: Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs
     so every required math glyph can load under the configured font-src Content Security Policy.
+  acceptance:
+    given: The production Worker serves the Markdown guide under its actual CSP.
+    when: Render math, inspect emitted CSS font URLs, and explicitly load every declared KaTeX face in
+      Chromium.
+    then:
+    - Every font URL is same-origin rather than a data URI.
+    - All declared KaTeX faces load without font CSP errors, including Size3.
+    test:
+      file: tests/e2e/src/app/guides/markdown-support/test.ts
+      name: comment.markdown-font-csp
 - id: comment.visibility-modes
   category: authorization
   rule: Public active comments are readable anonymously; logged_in_only comments require an authenticated
@@ -125,6 +144,15 @@ requirements:
   category: presentation
   rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
     during hydration.
+  acceptance:
+    given: The real comment API response is intercepted only to give source Markdown and renderedBody
+      deliberately distinct content.
+    when: Hydrate the production teacher comment surface in Chromium.
+    then:
+    - The visible comment uses the supplied renderedBody marker rather than rerendering the source Markdown.
+    test:
+      file: tests/e2e/src/app/community/presentation-contracts.test.ts
+      name: comment.web-markdown-hydration
 - id: comment.mcp-markdown-projection
   category: presentation
   rule: MCP full mode retains the shared serialized comment body and renderedBody. Compact modes omit

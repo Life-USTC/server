@@ -3,12 +3,15 @@ import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { deleteOwnCommentsBatch } from "@/features/comments/server/comment-batch-delete";
 import { deleteOwnComment } from "@/features/comments/server/comment-mutations";
 import { patchAdminCommentRoute } from "@/lib/api/routes/admin-comment-update-route";
+import { patchAdminDescriptionRoute } from "@/lib/api/routes/admin-description-update-route";
 import { deleteCommentBatchRoute } from "@/lib/api/routes/comment-batch-route";
 import { postCommentReactionRoute } from "@/lib/api/routes/comment-reaction-create-route";
 import { deleteCommentReactionRoute } from "@/lib/api/routes/comment-reaction-delete-route";
 import { postCommentRoute } from "@/lib/api/routes/comments-create-route";
 import { deleteCommentRoute } from "@/lib/api/routes/comments-delete-route";
+import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
+import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
 import * as audit from "@/lib/audit/write-audit-log";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { prisma as runtimePrisma, withUserDbContext } from "@/lib/db/prisma";
@@ -495,4 +498,110 @@ it("comment.reply-moderation-lock", { timeout: 30000 }, async () => {
       }),
     ),
   ).toEqual({ count: 0 });
+});
+
+it("comment.rich-content", async () => {
+  const markdown =
+    "**Bold content** 😀\n\n$x^2$\n\n| Header | Value |\n| --- | --- |\n| Row | Cell |";
+  const created = await postCommentRoute(
+    request(createInput({ body: markdown })),
+  );
+  expect(created.status).toBe(201);
+  const { id } = await created.json();
+  expect(
+    (
+      await postCommentRoute(
+        request(createInput({ parentId: id, body: "A reply" }), "POST", other),
+      )
+    ).status,
+  ).toBe(201);
+  expect(
+    (
+      await postCommentReactionRoute(
+        request({ type: "heart" }, "POST", other),
+        { id },
+      )
+    ).status,
+  ).toBe(200);
+  const response = await getCommentRoute(request(undefined, "GET"), { id });
+  expect(response.status).toBe(200);
+  const { thread } = await response.json();
+  expect(thread[0].body).toBe(markdown);
+  expect(thread[0].renderedBody).toContain("<strong>Bold content</strong>");
+  expect(thread[0].renderedBody).toContain("😀");
+  expect(thread[0].renderedBody).toContain('class="katex"');
+  expect(thread[0].renderedBody).toContain("<table>");
+  expect(thread[0].replies).toEqual([
+    expect.objectContaining({
+      body: "A reply",
+      renderedBody: "<p>A reply</p>",
+    }),
+  ]);
+  expect(thread[0].reactions).toEqual([
+    expect.objectContaining({ type: "heart", count: 1 }),
+  ]);
+});
+
+it("description.editor-authorization", async () => {
+  const body = {
+    targetType: "teacher",
+    teacherId,
+    content: "Collaborative supplement",
+  };
+  expect((await postDescriptionRoute(request(body, "POST", null))).status).toBe(
+    401,
+  );
+  expect(
+    (await postDescriptionRoute(request(body, "POST", suspended))).status,
+  ).toBe(403);
+  const created = await postDescriptionRoute(request(body));
+  expect(created.status, await created.clone().text()).toBe(200);
+  const { id } = await created.json();
+  const changed = await postDescriptionRoute(
+    request({ ...body, content: "Another editor" }, "POST", other),
+  );
+  expect(changed.status).toBe(200);
+  expect(await db.description.findUnique({ where: { id } })).toMatchObject({
+    content: "Another editor",
+    lastEditedById: other,
+  });
+  for (const [viewer, expected] of [
+    [owner, 401],
+    [suspended, 403],
+  ] as const) {
+    expect(
+      (
+        await patchAdminDescriptionRoute(
+          request({ content: "Blocked" }, "PATCH", viewer),
+          { id },
+        )
+      ).status,
+    ).toBe(expected);
+  }
+  expect(
+    (
+      await patchAdminDescriptionRoute(
+        request({ content: "Moderated" }, "PATCH", admin),
+        { id },
+      )
+    ).status,
+  ).toBe(200);
+  expect(await db.description.findUnique({ where: { id } })).toMatchObject({
+    content: "Moderated",
+    lastEditedById: admin,
+  });
+  expect(
+    await db.auditLog.count({
+      where: { targetId: id, action: "description_edit" },
+    }),
+  ).toBe(2);
+  expect(
+    await db.auditLog.count({
+      where: {
+        targetId: id,
+        action: "admin_description_moderate",
+        userId: admin,
+      },
+    }),
+  ).toBe(1);
 });

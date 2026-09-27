@@ -45,12 +45,33 @@ requirements:
   rule: Public course, teacher, and section SSR retains description text and structured data with an anonymous
     viewer. Hydration obtains current viewer permissions from the private descriptions API; a failed read
     remains retryable.
+  acceptance:
+    given: Real course, section and teacher descriptions exist in the production Worker database.
+    when: Load each page without JavaScript or authentication, then sign in and fail the first private
+      permission read before retrying.
+    then:
+    - Anonymous SSR retains description text and valid structured data; the anonymous API viewer has no
+      authentication or admin authority.
+    - A failed private permission read preserves public text and offers retry without editing controls.
+    - Retry reads current authenticated permissions and enables the editor.
+    test:
+      file: tests/e2e/src/app/community/presentation-contracts.test.ts
+      name: description.public-web-personal-overlay
 - id: description.supplement-not-comment
   category: behavior
   rule: Object pages present the shared Markdown supplement separately from the comment thread. The supplement
     displays its last editor and edit time.
   rationale: Descriptions organize collaboratively maintained information; comments express individual
     discussion and experience.
+  acceptance:
+    given: Each real course, section and teacher page has distinct supplement and discussion content.
+    when: Render and hydrate every object page in Chromium.
+    then:
+    - The introduction and comment thread display their own content in separate sections.
+    - The supplement displays its real last editor and edit date.
+    test:
+      file: tests/e2e/src/app/community/presentation-contracts.test.ts
+      name: description.supplement-not-comment
 - id: description.attached-object-types
   category: behavior
   rule: Descriptions attach only to courses, sections, teachers, and homework. The target must resolve
@@ -69,9 +90,17 @@ requirements:
 - id: description.platform-maintained
   category: authorization
   rule: Descriptions are collaboratively maintained supplements. The interface identifies the last editor
-    and edit history and must not present ordinary user edits as university-verified information. Unsuspended
-    users may edit; administrators moderate through the governance surface.
+    and edit history and must not present ordinary user edits as university-verified information.
   rationale: A review or institutional-verification workflow is not currently part of this capability.
+  acceptance:
+    given: A real collaboratively edited supplement has a named editor and persisted edit history.
+    when: View its production page as a signed-in user and open its history tab.
+    then:
+    - The interface identifies the editor, previous content and updated content.
+    - It exposes no university-verified or official-approval label for the ordinary edit.
+    test:
+      file: tests/e2e/src/app/community/presentation-contracts.test.ts
+      name: description.platform-maintained
 - id: description.server-rendered-markdown
   category: presentation
   rule: Description serialization retains source Markdown in content and provides sanitized server-rendered
@@ -135,6 +164,16 @@ requirements:
   category: presentation
   rule: Web description surfaces consume server-provided renderedHtml without rerunning Markdown rendering
     during hydration.
+  acceptance:
+    given: The real description API response is intercepted only to give source Markdown and renderedHtml
+      deliberately distinct content.
+    when: Hydrate the production description surface and switch away from and back to its content tab.
+    then:
+    - The visible supplement uses renderedHtml rather than rerendering its source, including after the
+      tab switch.
+    test:
+      file: tests/e2e/src/app/community/presentation-contracts.test.ts
+      name: description.web-markdown-hydration
 - id: description.mcp-markdown-projection
   category: presentation
   rule: MCP full mode retains the shared description payload including renderedHtml; compact modes omit
@@ -228,6 +267,22 @@ requirements:
     test:
       file: tests/integration/comment-read-contracts.test.ts
       name: description.rest-pagination-parameters
+- id: description.editor-authorization
+  category: authorization
+  rule: Authenticated unsuspended users may collaboratively edit descriptions. Missing or suspended actors
+    cannot write. Administrator moderation requires an unsuspended administrator using the governance
+    surface and records the moderation audit action.
+  acceptance:
+    given: Ordinary users, a suspended user and an administrator have real signed sessions.
+    when: Write through the real description REST route and moderate through the governance REST route.
+    then:
+    - Unauthenticated writes return 401 and suspended writes return 403.
+    - Different ordinary users can collaboratively edit and update editor attribution.
+    - Only an unsuspended administrator can moderate; ordinary and moderation writes record their respective
+      audit actions.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: description.editor-authorization
 capabilities:
   object-description-section:
     title: Object Description Section
@@ -278,6 +333,7 @@ capabilities:
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types
+    - description.editor-authorization
   description-governance:
     title: Description Governance
     auth: admin
@@ -303,6 +359,7 @@ capabilities:
     requirement_refs:
     - description.platform-maintained
     - description.attached-object-types
+    - description.editor-authorization
 
 rationale:
 - The former description.public-cache-retry is part of description.public-cache-invalidation, whose real database acceptance verifies post-commit invalidation and unchanged-content retry without duplicate edit history.
