@@ -805,7 +805,7 @@ requirements:
   rule: Contribution history uses a horizontally scrollable heatmap region when its date range exceeds the
     available width. Scrolling exposes all dates without causing horizontal document overflow.
   acceptance:
-    given: An isolated public profile has three uploads on one Shanghai calendar date and zero contributions on all other days.
+    given: An isolated public profile has three public attributed comments on one Shanghai calendar date and zero contributions on all other days.
     when: The browser scrolls every rendered date into the heatmap viewport at 320, 390 and 1280 pixels.
     then:
     - Every unique day is reachable inside the local scroll region and the document never overflows horizontally.
@@ -818,7 +818,7 @@ requirements:
   rule: Each contribution day exposes its localized date/count to keyboard, touch, and assistive-technology
     users.
   acceptance:
-    given: An isolated public profile has three uploads on one Shanghai calendar date and zero contributions on all other days.
+    given: An isolated public profile has three public attributed comments on one Shanghai calendar date and zero contributions on all other days.
     when: Chinese and English touch-capable browsers inspect all day labels, navigate with arrows and Home/End, and tap empty and populated days.
     then:
     - Every day exposes the expected localized date and database-backed count; keyboard and touch selection update the accessible live detail.

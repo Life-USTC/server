@@ -12,13 +12,19 @@ async function createProfile() {
         email: `heatmap-${suffix}@example.test`,
       },
     });
+    const section = await db.section.findFirstOrThrow({
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
     const now = new Date();
-    await db.upload.createMany({
+    await db.comment.createMany({
       data: Array.from({ length: 3 }, (_, index) => ({
         userId: user.id,
-        key: `heatmap/${suffix}/${index}`,
-        filename: `${index}.txt`,
-        size: 1,
+        sectionId: section.id,
+        body: `Heatmap contribution ${suffix}/${index}`,
+        visibility: "public",
+        status: "active",
+        isAnonymous: false,
         createdAt: now,
       })),
     });
@@ -36,7 +42,7 @@ async function createProfile() {
 
 async function deleteProfile(id: string) {
   await withE2ePrisma(async (db) => {
-    await db.upload.deleteMany({ where: { userId: id } });
+    await db.comment.deleteMany({ where: { userId: id } });
     await db.user.delete({ where: { id } });
   });
 }
