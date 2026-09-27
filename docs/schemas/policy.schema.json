@@ -251,72 +251,61 @@
       },
       "required": ["query", "mutation_prefixes"]
     },
-    "cache_layers": {
+    "cache_contracts": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "layer": {
-            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          "id": {
+            "$ref": "defs.schema.json#/$defs/id"
           },
-          "content": {
-            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          "representations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cacheRepresentation"
+            },
+            "minItems": 1,
+            "uniqueItems": true
           },
-          "invalidation": {
+          "layers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cacheLayer"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "invalidators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cacheInvalidator"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "requirement_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "defs.schema.json#/$defs/nonEmptyString"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "rationale": {
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
           }
         },
-        "required": ["layer", "content", "invalidation"]
-      },
-      "minItems": 1,
-      "uniqueItems": true
-    },
-    "cache_contracts": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
         "required": [
           "id",
           "representations",
           "layers",
-          "freshness",
           "invalidators",
-          "clock",
           "requirement_refs"
-        ],
-        "properties": {
-          "id": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
-          "representations": {
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
-          },
-          "layers": {
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
-          },
-          "freshness": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
-          "invalidators": {
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
-          },
-          "clock": { "$ref": "defs.schema.json#/$defs/nonEmptyString" },
-          "requirement_refs": {
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": { "$ref": "defs.schema.json#/$defs/nonEmptyString" }
-          }
-        }
-      }
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
     },
     "enforcement": {
       "enum": ["advisory"]
@@ -437,5 +426,438 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "cacheFreshness": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ttl"
+            },
+            "fresh_seconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stale_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Additional permitted age after fresh_seconds; maximum total age is their sum."
+            },
+            "stale_use": {
+              "enum": [
+                "none",
+                "while_revalidate",
+                "async_rebuild",
+                "refresh_contention"
+              ]
+            },
+            "age_from": {
+              "enum": [
+                "cache_entry",
+                "http_response",
+                "snapshot_fetched_at",
+                "export_generated_at",
+                "metric_collected_at"
+              ]
+            },
+            "expires_when": {
+              "enum": ["gte", "gt"],
+              "description": "Comparison of age to each boundary: fresh_seconds for freshness, and fresh_seconds plus stale_seconds for final eligibility."
+            }
+          },
+          "required": [
+            "kind",
+            "fresh_seconds",
+            "stale_seconds",
+            "stale_use",
+            "age_from",
+            "expires_when"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "stale_seconds": {
+                    "const": 0
+                  }
+                },
+                "required": ["stale_seconds"]
+              },
+              "then": {
+                "properties": {
+                  "stale_use": {
+                    "const": "none"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "stale_use": {
+                    "enum": [
+                      "while_revalidate",
+                      "async_rebuild",
+                      "refresh_contention"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "request",
+                "build",
+                "retained",
+                "no_store",
+                "must_revalidate",
+                "until_clock_boundary"
+              ]
+            }
+          },
+          "required": ["kind"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "immutable"
+            },
+            "fresh_seconds": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["kind", "fresh_seconds"]
+        }
+      ]
+    },
+    "cacheClockBoundary": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "shanghai_midnight"
+            },
+            "timezone": {
+              "const": "Asia/Shanghai"
+            },
+            "effect": {
+              "const": "key_change"
+            }
+          },
+          "required": ["kind", "timezone", "effect"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "shanghai_midnight"
+            },
+            "timezone": {
+              "const": "Asia/Shanghai"
+            },
+            "effect": {
+              "const": "expire"
+            },
+            "rounding": {
+              "const": "floor"
+            },
+            "minimum_seconds": {
+              "const": 1
+            }
+          },
+          "required": [
+            "kind",
+            "timezone",
+            "effect",
+            "rounding",
+            "minimum_seconds"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "render_crosses_midnight"
+            },
+            "timezone": {
+              "const": "Asia/Shanghai"
+            },
+            "effect": {
+              "const": "no_store"
+            }
+          },
+          "required": ["kind", "timezone", "effect"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "request_time"
+            },
+            "effect": {
+              "const": "recompute"
+            }
+          },
+          "required": ["kind", "effect"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "periodic_revalidation",
+                "storage_expiry",
+                "refresh_coalescing"
+              ]
+            },
+            "seconds": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["kind", "seconds"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": ["invalid_timestamp", "future_timestamp"]
+            },
+            "effect": {
+              "const": "refresh"
+            }
+          },
+          "required": ["kind", "effect"]
+        }
+      ]
+    },
+    "cacheLayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/cacheLayerKind"
+        },
+        "representations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cacheRepresentation"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "freshness": {
+          "$ref": "#/$defs/cacheFreshness"
+        },
+        "key_dimensions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "accept_language",
+              "asset_url",
+              "avatar_id",
+              "build",
+              "cookie",
+              "entity",
+              "feed_credential",
+              "filters",
+              "import_revision",
+              "limit",
+              "locale",
+              "location",
+              "media_url_hash",
+              "metric_snapshot",
+              "normalized_query",
+              "object_key",
+              "origin",
+              "owner",
+              "page",
+              "poster_path",
+              "publication",
+              "request",
+              "revision",
+              "room_code",
+              "service_date",
+              "shanghai_date",
+              "shape",
+              "timetable_version",
+              "url",
+              "viewer"
+            ]
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "clock_boundaries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cacheClockBoundary"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "kind",
+        "representations",
+        "freshness",
+        "key_dimensions",
+        "clock_boundaries"
+      ]
+    },
+    "cacheInvalidator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {
+          "enum": [
+            "account_delete",
+            "avatar_reference_removal",
+            "calendar_source_commit",
+            "community_commit",
+            "deployment",
+            "description_commit",
+            "description_moderation",
+            "external_asset_update",
+            "feed_credential_rotation",
+            "media_url_change",
+            "metric_refresh",
+            "owner_state_commit",
+            "poster_path_change",
+            "profile_update",
+            "publication_ingest",
+            "publication_withdrawal",
+            "static_import_commit",
+            "weather_refresh"
+          ]
+        },
+        "effect": {
+          "enum": [
+            "deny_before_cache",
+            "enqueue_rebuild",
+            "key_change",
+            "next_request",
+            "purge",
+            "refetch_after_expiry",
+            "replace_value"
+          ]
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cacheLayerKind"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "representations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cacheRepresentation"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["trigger", "effect", "layers", "representations"]
+    },
+    "cacheLayerKind": {
+      "enum": [
+        "application_build",
+        "browser",
+        "calendar_kv",
+        "catalog_kv",
+        "colo_cache_api",
+        "database_metric_cache",
+        "graphql_dataloader",
+        "isolate_memory",
+        "object_storage",
+        "request_authorization",
+        "request_database",
+        "request_projection",
+        "serving_process",
+        "weather_kv",
+        "workers_entrypoint",
+        "zone_cdn"
+      ]
+    },
+    "cacheRepresentation": {
+      "enum": [
+        "academic_detail_cores",
+        "academic_json",
+        "academic_list_and_course_teacher_html",
+        "academic_list_facts",
+        "academic_metadata_json",
+        "attachment_metadata",
+        "avatar_bytes",
+        "building_image_rules",
+        "bus_page_departures",
+        "bus_route_search_json",
+        "bus_timetable_facts",
+        "campus_link_definitions",
+        "campus_links_html",
+        "comments",
+        "current_semester",
+        "description_history",
+        "descriptions",
+        "graphql_entities",
+        "location_coordinates",
+        "next_departures",
+        "openapi_document",
+        "owner_workspace",
+        "personal_ics",
+        "private_subscribed_homework_search",
+        "private_todo_search",
+        "profile_contributions",
+        "prometheus_gauges",
+        "public_contributions",
+        "public_profile",
+        "public_search_groups",
+        "publication_detail_json",
+        "publication_image",
+        "publication_list_json",
+        "publication_object",
+        "reactions",
+        "room_map_json",
+        "room_map_manifest",
+        "schedule_facts",
+        "section_detail_html",
+        "semester_list_json",
+        "shared_homework",
+        "shell_identity_counts",
+        "sign_in_html",
+        "sitemap_xml",
+        "static_guide_content",
+        "static_guides_html",
+        "timetable_date_projection",
+        "weather_hourly_projection",
+        "weather_snapshot",
+        "young_calendar_html",
+        "young_clock_projection",
+        "young_event_facts",
+        "young_html",
+        "young_json",
+        "young_organizer_facts",
+        "young_poster_bytes",
+        "young_poster_redirect"
+      ]
+    }
+  }
 }

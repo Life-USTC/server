@@ -581,163 +581,812 @@ requirements:
     test:
       file: tests/unit/lib/navigation/navigation-preload-policy.test.ts
       name: rendering-and-cache.contributor-notes-4
-cache_layers:
-- layer: Workers entrypoint (PublicSsr)
-  content: Anonymous HTML before nonce rewriting
-  invalidation: RPC into PublicSsr calls cache.purge()
-- layer: Zone/CDN and Cache API
-  content: Eligible public API responses / public data
-  invalidation: Zone purge by catalog tag; revision-scoped data keys
-- layer: Isolate L1 / KV
-  content: Public catalog data
-  invalidation: Revision-scoped keys
 cache_contracts:
 - id: public-html
-  representations: [academic lists and details, campus links, static guides and sign-in shell, Young lists and details and organizers and calendar]
-  layers: [Workers PublicSsr entrypoint]
-  freshness: Ordinary admitted HTML is fresh for 86400 seconds; Young HTML for at most 60 seconds. Delivered browser/CDN HTML is private no-store.
-  invalidators: [committed static import purges zone and entrypoint, committed description edits or moderation purge affected HTML, application deployment replaces build representations]
-  clock: Young calendar HTML also expires at the next Shanghai midnight; other Young HTML never exceeds 60 seconds. Render duration consumes the available lifetime.
+  representations:
+    [
+      academic_list_and_course_teacher_html,
+      campus_links_html,
+      static_guides_html,
+      sign_in_html,
+      young_html,
+      young_calendar_html,
+      section_detail_html
+    ]
+  layers:
+  - kind: workers_entrypoint
+    representations: [academic_list_and_course_teacher_html, campus_links_html, static_guides_html, sign_in_html]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 300, stale_use: while_revalidate, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries: []
+  - kind: workers_entrypoint
+    representations: [young_html, young_calendar_html]
+    freshness: {kind: ttl, fresh_seconds: 60, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+    - {kind: render_crosses_midnight, effect: no_store, timezone: Asia/Shanghai}
+  - kind: workers_entrypoint
+    representations: [section_detail_html]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [build, url, locale]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+    - {kind: render_crosses_midnight, effect: no_store, timezone: Asia/Shanghai}
+  - kind: browser
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: purge
+    layers: [workers_entrypoint, zone_cdn]
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
+  - trigger: description_commit
+    effect: purge
+    layers: [workers_entrypoint]
+    representations: [academic_list_and_course_teacher_html, section_detail_html]
+  - trigger: description_moderation
+    effect: purge
+    layers: [workers_entrypoint]
+    representations: [academic_list_and_course_teacher_html, section_detail_html]
+  - trigger: deployment
+    effect: key_change
+    layers: [workers_entrypoint]
+    representations:
+      [
+        academic_list_and_course_teacher_html,
+        campus_links_html,
+        static_guides_html,
+        sign_in_html,
+        young_html,
+        young_calendar_html,
+        section_detail_html
+      ]
   requirement_refs:
-  - rendering-and-cache.cache-layers-and-invalidation-1
-  - rendering-and-cache.cache-layers-and-invalidation-3
-  - rendering-and-cache.cache-layers-and-invalidation-4
-  - rendering-and-cache.cache-layers-and-invalidation-5
-  - rendering-and-cache.cache-layers-and-invalidation-6
-  - rendering-and-cache.cache-layers-and-invalidation-9
-  - description.public-cache-invalidation
+    [
+      rendering-and-cache.cache-layers-and-invalidation-1,
+      rendering-and-cache.cache-layers-and-invalidation-3,
+      rendering-and-cache.cache-layers-and-invalidation-4,
+      rendering-and-cache.cache-layers-and-invalidation-5,
+      rendering-and-cache.cache-layers-and-invalidation-6,
+      rendering-and-cache.cache-layers-and-invalidation-9,
+      description.public-cache-invalidation
+    ]
+  rationale: Only admitted routes and query forms share HTML; delivered responses remain private. Build is the entrypoint deployment
+    partition, not a client query parameter.
 - id: imported-public-facts
-  representations: [course and section and teacher lists and detail cores, schedules, Young events and organizers, bus timetable facts]
-  layers: [isolate memory, colo Cache API, catalog KV]
-  freshness: Revision-scoped public facts use a 24-hour catalog runtime lifetime; caller identity never enters their values. Keys include locale and actual entity/filter/page/shape inputs.
-  invalidators: [committed static import revision changes the key on the next request, catalog zone purge removes HTTP representations]
-  clock: Runtime entries have finite expiry independently of revision. Young source-age and upcoming/history projections use the current request clock over cached facts.
+  representations:
+    [
+      academic_list_facts,
+      academic_detail_cores,
+      schedule_facts,
+      young_event_facts,
+      young_organizer_facts,
+      bus_timetable_facts,
+      young_clock_projection
+    ]
+  layers:
+  - kind: isolate_memory
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [academic_list_facts, schedule_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, filters, page, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [academic_detail_cores]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, entity, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [young_event_facts, young_organizer_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, entity, filters, page, shape]
+    clock_boundaries: []
+  - kind: isolate_memory
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [bus_timetable_facts]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, timetable_version, shape]
+    clock_boundaries: []
+  - kind: request_projection
+    representations: [young_clock_projection]
+    freshness: {kind: request}
+    key_dimensions: [entity, filters]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [academic_list_facts, academic_detail_cores, schedule_facts, young_event_facts, young_organizer_facts, bus_timetable_facts]
   requirement_refs:
-  - course.public-detail-cache
-  - section.public-detail-cache
-  - teacher.public-detail-cache
-  - course.public-list-cache
-  - section.public-list-cache
-  - teacher.public-list-cache
-  - course.history-cache-page-isolation
-  - rendering-and-cache.cache-layers-and-invalidation-7
-  - rendering-and-cache.cache-layers-and-invalidation-10
-  - rendering-and-cache.cache-layers-and-invalidation-11
-  - rendering-and-cache.cache-origin-recovery
-  - young-event.shared-public-cache
-  - bus.route-search-public-cache
+    [
+      course.public-detail-cache,
+      section.public-detail-cache,
+      teacher.public-detail-cache,
+      course.public-list-cache,
+      section.public-list-cache,
+      teacher.public-list-cache,
+      course.history-cache-page-isolation,
+      rendering-and-cache.cache-layers-and-invalidation-7,
+      rendering-and-cache.cache-layers-and-invalidation-10,
+      rendering-and-cache.cache-layers-and-invalidation-11,
+      rendering-and-cache.cache-origin-recovery,
+      young-event.shared-public-cache,
+      bus.route-search-public-cache
+    ]
+  rationale: Key dimensions are the applicable union across list/detail/directory readers within a representation family. Young facts are
+    locale-neutral; viewer identity is excluded from all shared values.
 - id: public-catalog-http
-  representations: [academic lists and details and metadata and semester lists, public Young event and organizer JSON, bus route-search JSON]
-  layers: [public REST response, zone CDN]
-  freshness: Catalog JSON uses browser max-age zero and CDN max-age 86400 with 300 seconds stale-while-revalidate. Bus route-search uses CDN max-age 3600 with 300 seconds stale-while-revalidate. Workspace, bus timetable and current-departure reads retain their separate private policies.
-  invalidators: [committed import purges catalog-tagged public responses]
-  clock: These response lifetimes bound reuse independently of revision. A cached Young JSON response may retain the clock projection made at its origin read; service-level current-clock evaluation does not promise an uncached REST response.
-  requirement_refs: [rendering-and-cache.personal-overlays-9, rendering-and-cache.cache-layers-and-invalidation-5, bus.route-search-public-cache, schedule.public-rest-locale-cache]
-- id: public-description-and-community
-  representations: [public descriptions and edit history, comments and reactions and attachment metadata, shared homework and public contributions]
-  layers: [request reads, description text in public HTML]
-  freshness: Mutable community projections are request reads; descriptions embedded in shared HTML additionally require committed-write purge. They are excluded from immutable academic detail cores.
-  invalidators: [description commit or moderation purges HTML, comment and reaction and homework commits are observed by the next authorized read, account deletion removes public identity links]
-  clock: No shared community response TTL; per-request authority and visibility apply. Description HTML retains the ordinary entrypoint expiry as an additional bound.
+  representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
+  layers:
+  - kind: browser
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [bus_route_search_json]
+    freshness: {kind: ttl, fresh_seconds: 3600, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale, accept_language, cookie]
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [academic_json, academic_metadata_json, semester_list_json, young_json, bus_route_search_json]
   requirement_refs:
-  - description.public-cache-invalidation
-  - description.editor-authorization
-  - comment.interaction-gate
-  - homework.active-collaborator-write
-  - user.public-comment-contribution-privacy
-  - user.public-upload-contribution-privacy
-  - rendering-and-cache.personal-overlays-10
+    [
+      rendering-and-cache.personal-overlays-9,
+      rendering-and-cache.cache-layers-and-invalidation-5,
+      bus.route-search-public-cache,
+      schedule.public-rest-locale-cache
+    ]
+  rationale: A cached Young JSON response retains its origin-time projection. Current-clock evaluation in the service does not imply an
+    uncached REST response. Catalog HTTP entries carry the catalog purge tag.
+- id: public-description-and-community
+  representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+  layers:
+  - kind: request_database
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: request}
+    key_dimensions: [entity, viewer, filters, page]
+    clock_boundaries: []
+  - kind: browser
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: description_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions, description_history]
+  - trigger: description_moderation
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions]
+  - trigger: community_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [descriptions, description_history, comments, reactions, attachment_metadata, shared_homework, public_contributions]
+  - trigger: account_delete
+    effect: next_request
+    layers: [request_database]
+    representations: [public_contributions]
+  requirement_refs:
+    [
+      description.public-cache-invalidation,
+      description.editor-authorization,
+      comment.interaction-gate,
+      homework.active-collaborator-write,
+      user.public-comment-contribution-privacy,
+      user.public-upload-contribution-privacy,
+      rendering-and-cache.personal-overlays-10
+    ]
+  rationale: Mutable descriptions are excluded from academic detail cores. Their embedded HTML policy is indexed separately by public-html;
+    these request reads enforce current visibility and authorization.
 - id: global-search
-  representations: [shared public search groups, per-owner todos and subscribed homework search]
-  layers: [isolate memory, colo Cache API, catalog KV, public REST response, private request composition]
-  freshness: Public groups expire after 300 seconds in every runtime tier; public REST responses separately use 120 seconds fresh plus 300 seconds stale-while-revalidate. Private groups are never shared and are read for every request.
-  invalidators: [import revision replaces public search keys, todo and homework and subscription commits affect the next private search]
-  clock: All public tiers reject the entry at exactly 300 seconds independently of static revisions.
+  representations: [public_search_groups, private_todo_search, private_subscribed_homework_search]
+  layers:
+  - kind: isolate_memory
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, locale, normalized_query, limit, shape]
+    clock_boundaries: []
+  - kind: browser
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [public_search_groups]
+    freshness: {kind: ttl, fresh_seconds: 120, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, locale]
+    clock_boundaries: []
+  - kind: request_database
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: request}
+    key_dimensions: [owner, normalized_query, limit]
+    clock_boundaries: []
+  - kind: browser
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [private_todo_search, private_subscribed_homework_search]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [public_search_groups]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [public_search_groups]
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [private_todo_search, private_subscribed_homework_search]
+  - trigger: community_commit
+    effect: next_request
+    layers: [request_database]
+    representations: [private_subscribed_homework_search]
   requirement_refs: [rendering-and-cache.global-search-freshness, rendering-and-cache.cacheable-public-pages-13]
 - id: sitemap
-  representations: [public sitemap XML and ETag]
-  layers: [isolate memory, colo Cache API, catalog KV, zone CDN]
-  freshness: Origin XML has a 24-hour revision-scoped lifetime; browser revalidates and CDN has 3600 seconds fresh plus 21600 seconds stale-while-revalidate.
-  invalidators: [import revision regenerates XML and ETag, committed import purges catalog-tagged CDN response]
-  clock: Origin entries expire at 24 hours without a new revision. CDN response lifetime is a separate layer and may compose with origin age.
+  representations: [sitemap_xml]
+  layers:
+  - kind: isolate_memory
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape]
+    clock_boundaries: []
+  - kind: colo_cache_api
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape, origin]
+    clock_boundaries: []
+  - kind: catalog_kv
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shape]
+    clock_boundaries: []
+  - kind: browser
+    representations: [sitemap_xml]
+    freshness: {kind: must_revalidate}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [sitemap_xml]
+    freshness: {kind: ttl, fresh_seconds: 3600, stale_seconds: 21600, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [sitemap_xml]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [sitemap_xml]
   requirement_refs: [rendering-and-cache.sitemap-freshness, rendering-and-cache.cache-layers-and-invalidation-5]
+  rationale: The ETag identifies XML content; matching conditional requests return an empty 304. Retired sections and inactive Young events
+    are excluded on regeneration.
 - id: current-semester
-  representations: [current semester selection]
-  layers: [runtime read-model cache, public REST response]
-  freshness: Selection is keyed by Shanghai date and committed import revision, including a null selection. REST CDN lifetime ends at the next Shanghai midnight.
-  invalidators: [committed semester import revision replaces selection key]
-  clock: The next Shanghai date changes the key without waiting for an import.
+  representations: [current_semester]
+  layers:
+  - kind: isolate_memory
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: colo_cache_api
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: catalog_kv
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [import_revision, shanghai_date, shape]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: key_change}
+  - kind: browser
+    representations: [current_semester]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [current_semester]
+    freshness: {kind: until_clock_boundary}
+    key_dimensions: [url]
+    clock_boundaries:
+    - {kind: shanghai_midnight, timezone: Asia/Shanghai, effect: expire, rounding: floor, minimum_seconds: 1}
+  invalidators:
+  - trigger: static_import_commit
+    effect: key_change
+    layers: [isolate_memory, colo_cache_api, catalog_kv]
+    representations: [current_semester]
+  - trigger: static_import_commit
+    effect: purge
+    layers: [zone_cdn]
+    representations: [current_semester]
   requirement_refs: [semester.current-semester-cache-invalidation]
+  rationale: A null selection is cacheable.
 - id: bus-clock-projections
-  representations: [next departures, timetable date projections, bus page current departure display]
-  layers: [request projection over cached timetable facts]
-  freshness: Recalculate time-dependent outputs on each request; private saved preferences are composed separately.
-  invalidators: [import revision replaces timetable facts, saved preference commit affects owner composition]
-  clock: Request time selects the service date and departure window; a static revision never freezes current departures.
-  requirement_refs: [bus.next-departures-uncached, bus.cache-boundaries, rendering-and-cache.cacheable-public-pages-11, rendering-and-cache.cacheable-public-pages-12]
+  representations: [next_departures, timetable_date_projection, bus_page_departures]
+  layers:
+  - kind: request_projection
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: request}
+    key_dimensions: [owner, filters, service_date]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  - kind: browser
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: static_import_commit
+    effect: next_request
+    layers: [request_projection]
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_projection]
+    representations: [next_departures, timetable_date_projection, bus_page_departures]
+  requirement_refs:
+    [
+      bus.next-departures-uncached,
+      bus.cache-boundaries,
+      rendering-and-cache.cacheable-public-pages-11,
+      rendering-and-cache.cacheable-public-pages-12
+    ]
+  rationale: The projection reads separately cached timetable facts and composes current owner preferences.
 - id: external-location-assets
-  representations: [room-map manifest, building overview rules, location coordinates]
-  layers: [serving-process loaders, public room-map HTTP response]
-  freshness: Each mutable external JSON loader expires after 300 seconds. The room-map HTTP response has its own 300-second cache lifetime.
-  invalidators: [external static provider replaces files at their stable URLs and next expired loader refetches]
-  clock: Process expiry is independent of catalog import revisions; downstream HTTP age can add to loader age.
+  representations: [room_map_manifest, building_image_rules, location_coordinates, room_map_json]
+  layers:
+  - kind: serving_process
+    representations: [room_map_manifest, building_image_rules, location_coordinates]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [asset_url]
+    clock_boundaries: []
+  - kind: browser
+    representations: [room_map_json]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, room_code]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [room_map_json]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, room_code]
+    clock_boundaries: []
+  invalidators:
+  - trigger: external_asset_update
+    effect: refetch_after_expiry
+    layers: [serving_process]
+    representations: [room_map_manifest, building_image_rules, location_coordinates]
   requirement_refs: [rendering-and-cache.static-location-freshness, room-map.public]
+  rationale: Provider files are mutable stable URLs. HTTP room-map age can add to loader age; these lifetimes are not an end-to-end freshness
+    guarantee.
 - id: weather
-  representations: [weather snapshots, hourly forecast projection]
-  layers: [weather KV, current-clock service projection]
-  freshness: A snapshot is usable for less than 15 minutes; invalid or future timestamps force refresh and an unavailable refresh does not revive expired data.
-  invalidators: [scheduled provider refresh replaces snapshots and writes observation history, expired read requests provider refresh]
-  clock: Snapshot age expires independently of catalog imports; past hourly entries disappear under the request clock even in an otherwise fresh snapshot.
+  representations: [weather_snapshot, weather_hourly_projection]
+  layers:
+  - kind: weather_kv
+    representations: [weather_snapshot]
+    freshness: {kind: ttl, fresh_seconds: 900, stale_seconds: 0, stale_use: none, age_from: cache_entry, expires_when: gte}
+    key_dimensions: [location, shape]
+    clock_boundaries:
+    - {kind: storage_expiry, seconds: 3600}
+  - kind: request_projection
+    representations: [weather_snapshot]
+    freshness: {kind: ttl, fresh_seconds: 900, stale_seconds: 0, stale_use: none, age_from: snapshot_fetched_at, expires_when: gte}
+    key_dimensions: [location]
+    clock_boundaries:
+    - {kind: invalid_timestamp, effect: refresh}
+    - {kind: future_timestamp, effect: refresh}
+  - kind: request_projection
+    representations: [weather_hourly_projection]
+    freshness: {kind: request}
+    key_dimensions: [location]
+    clock_boundaries:
+    - {kind: request_time, effect: recompute}
+  invalidators:
+  - trigger: weather_refresh
+    effect: replace_value
+    layers: [weather_kv]
+    representations: [weather_snapshot]
   requirement_refs: [weather.cache-and-history, weather.hourly-forecast-expiry]
+  rationale: Expired, invalid or future-dated snapshots trigger provider refresh. A failed refresh cannot revive an expired snapshot. Hourly
+    output uses the current request window.
 - id: publication-metadata
-  representations: [publication list and detail JSON]
-  layers: [zone CDN]
-  freshness: Browser max-age is zero; shared responses are fresh for 120 seconds with 300 seconds of stale-while-revalidate. Missing/error responses are no-store.
-  invalidators: [publication ingestion or tombstone becomes visible when the bounded response cache revalidates]
-  clock: HTTP lifetime bounds reuse independently of catalog revision.
+  representations: [publication_list_json, publication_detail_json]
+  layers:
+  - kind: browser
+    representations: [publication_list_json, publication_detail_json]
+    freshness: {kind: ttl, fresh_seconds: 0, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_list_json, publication_detail_json]
+    freshness: {kind: ttl, fresh_seconds: 120, stale_seconds: 300, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  invalidators:
+  - trigger: publication_ingest
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [publication_list_json, publication_detail_json]
+  - trigger: publication_withdrawal
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [publication_list_json, publication_detail_json]
   requirement_refs: [publications.public-cache, publications.tombstones]
+  rationale: Missing and error responses use no-store; success lifetimes do not apply to them.
 - id: publication-objects-and-media
-  representations: [publication object bytes, archived publication images]
-  layers: [object storage, conditional HTTP object responses, finite HTTP image cache]
-  freshness: Objects recheck current public eligibility before conditional responses and disable CDN reuse; archived validated images retain their own finite response policy.
-  invalidators: [publication withdrawal removes object access on the next request, changed media URLs identify different image archive keys]
-  clock: Object access never relies on an immutable year-long response. Image responses use finite freshness and stale periods; archive bytes remain stored by their URL-hash identity.
+  representations: [publication_object, publication_image]
+  layers:
+  - kind: object_storage
+    representations: [publication_object, publication_image]
+    freshness: {kind: retained}
+    key_dimensions: [object_key]
+    clock_boundaries: []
+  - kind: request_database
+    representations: [publication_object]
+    freshness: {kind: request}
+    key_dimensions: [publication, revision, object_key]
+    clock_boundaries: []
+  - kind: browser
+    representations: [publication_object]
+    freshness: {kind: must_revalidate}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_object]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: browser
+    representations: [publication_image]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 604800, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, media_url_hash]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [publication_image]
+    freshness: {kind: ttl, fresh_seconds: 86400, stale_seconds: 604800, stale_use: while_revalidate, age_from: http_response, expires_when: gte}
+    key_dimensions: [url, media_url_hash]
+    clock_boundaries: []
+  invalidators:
+  - trigger: publication_withdrawal
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [publication_object]
+  - trigger: media_url_change
+    effect: key_change
+    layers: [object_storage, browser, zone_cdn]
+    representations: [publication_image]
   requirement_refs: [publications.object-cache-revalidation, publications.image-archive]
+  rationale: Stored bytes do not grant public access. Object eligibility is checked before ETag/304 handling. Image archives retain validated
+    bytes under URL-hash identities.
 - id: public-profile-and-avatar
-  representations: [public profile identity and contributions, profile avatar bytes]
-  layers: [request database reads, object storage]
-  freshness: Current profile visibility and avatar references are rechecked per request; avatar responses are no-store even though individual object IDs are stable.
-  invalidators: [profile update or removed avatar reference affects the next request, account deletion removes the owner]
-  clock: No positive shared-cache lifetime can bypass current reference checks.
-  requirement_refs: [user.avatar-current-reference, user.public-profile-id-addressability, user.public-comment-contribution-privacy, user.public-upload-contribution-privacy]
+  representations: [public_profile, profile_contributions, avatar_bytes]
+  layers:
+  - kind: request_database
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: request}
+    key_dimensions: [owner, entity]
+    clock_boundaries: []
+  - kind: object_storage
+    representations: [avatar_bytes]
+    freshness: {kind: retained}
+    key_dimensions: [owner, avatar_id]
+    clock_boundaries: []
+  - kind: browser
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [public_profile, profile_contributions, avatar_bytes]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: profile_update
+    effect: next_request
+    layers: [request_database]
+    representations: [public_profile, profile_contributions, avatar_bytes]
+  - trigger: avatar_reference_removal
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [avatar_bytes]
+  - trigger: account_delete
+    effect: deny_before_cache
+    layers: [request_database]
+    representations: [public_profile, profile_contributions, avatar_bytes]
+  requirement_refs:
+    [
+      user.avatar-current-reference,
+      user.public-profile-id-addressability,
+      user.public-comment-contribution-privacy,
+      user.public-upload-contribution-privacy
+    ]
+  rationale: Avatar delivery checks the current image or available-picture reference before reading object bytes.
 - id: young-posters
-  representations: [current event poster redirect, immutable poster representation bytes]
-  layers: [request redirect, object storage, HTTP immutable representation cache]
-  freshness: Mutable event image URLs redirect without caching; immutable representation URLs include poster identity and reuse matching bytes and ETag.
-  invalidators: [changed event poster path selects a different representation URL]
-  clock: Immutable representation lifetime is one year; it does not freeze the mutable event-to-poster mapping.
+  representations: [young_poster_redirect, young_poster_bytes]
+  layers:
+  - kind: request_projection
+    representations: [young_poster_redirect]
+    freshness: {kind: request}
+    key_dimensions: [entity]
+    clock_boundaries: []
+  - kind: browser
+    representations: [young_poster_redirect]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [young_poster_redirect]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: object_storage
+    representations: [young_poster_bytes]
+    freshness: {kind: retained}
+    key_dimensions: [poster_path]
+    clock_boundaries: []
+  - kind: browser
+    representations: [young_poster_bytes]
+    freshness: {kind: immutable, fresh_seconds: 31536000}
+    key_dimensions: [url, poster_path]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [young_poster_bytes]
+    freshness: {kind: immutable, fresh_seconds: 31536000}
+    key_dimensions: [url, poster_path]
+    clock_boundaries: []
+  invalidators:
+  - trigger: poster_path_change
+    effect: key_change
+    layers: [request_projection, object_storage, browser, zone_cdn]
+    representations: [young_poster_redirect, young_poster_bytes]
   requirement_refs: [young-event.image-proxy-cached]
+  rationale: Immutable representation URLs identify poster bytes; the mutable event image route redirects without caching. Missing-image and
+    origin-error responses have separate finite policies.
 - id: private-workspace
-  representations: [todos and subscriptions and completion state, notifications and follows, saved bus preferences and pins and visits, shell identity and counts, GraphQL request entities]
-  layers: [private request reads, GraphQL request-local DataLoaders]
-  freshness: Owner reads and private overlays never share positive HTTP/CDN caches. GraphQL loaders live for one request only.
-  invalidators: [committed owner writes are observed on subsequent requests, identity and authorization are resolved for the current request]
-  clock: No shared cache expiry applies; a new request constructs fresh request-local entity loaders.
-  requirement_refs: [graphql.request-cache, rendering-and-cache.personal-overlays-8, rendering-and-cache.personal-overlays-10, young-workspace.private-response-cache, bus.preference-owner-state, catalog-link.pin-owner-state]
+  representations: [owner_workspace, shell_identity_counts, graphql_entities]
+  layers:
+  - kind: request_database
+    representations: [owner_workspace, shell_identity_counts]
+    freshness: {kind: request}
+    key_dimensions: [owner, entity, filters, page]
+    clock_boundaries: []
+  - kind: graphql_dataloader
+    representations: [graphql_entities]
+    freshness: {kind: request}
+    key_dimensions: [request, entity]
+    clock_boundaries: []
+  - kind: browser
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: owner_state_commit
+    effect: next_request
+    layers: [request_database, graphql_dataloader]
+    representations: [owner_workspace, shell_identity_counts, graphql_entities]
+  requirement_refs:
+    [
+      graphql.request-cache,
+      rendering-and-cache.personal-overlays-8,
+      rendering-and-cache.personal-overlays-10,
+      young-workspace.private-response-cache,
+      bus.preference-owner-state,
+      catalog-link.pin-owner-state
+    ]
+  rationale: Identity and current authorization are resolved per request. Each GraphQL request receives new DataLoaders.
 - id: personal-calendar
-  representations: [authorized personal ICS export and ETag]
-  layers: [owner-keyed isolate memory, calendar KV, private conditional HTTP]
-  freshness: Exports are fresh for 30 minutes and reusable stale for up to 24 hours during asynchronous refresh; serving instances reread shared storage after 60 seconds.
-  invalidators: [committed calendar-source writes enqueue rebuild after commit, token rotation or revocation rejects access before any cached read or ETag response]
-  clock: Stale reads enqueue bounded/coalesced refresh independently of static revisions; failed enqueue remains retryable and source writes do not depend on stale-read coalescing.
-  requirement_refs: [calendar.feed-cache-refresh, calendar.feed-refresh-visible, calendar.feed-refresh-coalescing, calendar.feed-enqueue-retry, calendar.feed-write-rebuild-independent, calendar.feed-auth-before-cache, ical.committed-write-rebuilds]
+  representations: [personal_ics]
+  layers:
+  - kind: isolate_memory
+    representations: [personal_ics]
+    freshness: {kind: ttl, fresh_seconds: 1800, stale_seconds: 84600, stale_use: async_rebuild, age_from: export_generated_at, expires_when: gt}
+    key_dimensions: [owner, shape]
+    clock_boundaries:
+    - {kind: periodic_revalidation, seconds: 60}
+    - {kind: refresh_coalescing, seconds: 60}
+  - kind: calendar_kv
+    representations: [personal_ics]
+    freshness: {kind: ttl, fresh_seconds: 1800, stale_seconds: 84600, stale_use: async_rebuild, age_from: export_generated_at, expires_when: gt}
+    key_dimensions: [owner, shape]
+    clock_boundaries:
+    - {kind: periodic_revalidation, seconds: 60}
+    - {kind: storage_expiry, seconds: 86400}
+  - kind: request_authorization
+    representations: [personal_ics]
+    freshness: {kind: request}
+    key_dimensions: [owner, feed_credential]
+    clock_boundaries: []
+  - kind: browser
+    representations: [personal_ics]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [personal_ics]
+    freshness: {kind: no_store}
+    key_dimensions: []
+    clock_boundaries: []
+  invalidators:
+  - trigger: calendar_source_commit
+    effect: enqueue_rebuild
+    layers: [isolate_memory, calendar_kv]
+    representations: [personal_ics]
+  - trigger: feed_credential_rotation
+    effect: deny_before_cache
+    layers: [request_authorization]
+    representations: [personal_ics]
+  requirement_refs:
+    [
+      calendar.feed-cache-refresh,
+      calendar.feed-refresh-visible,
+      calendar.feed-refresh-coalescing,
+      calendar.feed-enqueue-retry,
+      calendar.feed-write-rebuild-independent,
+      calendar.feed-auth-before-cache,
+      ical.committed-write-rebuilds
+    ]
+  rationale: Total allowed export age is fresh_seconds plus stale_seconds. Credential authorization precedes internal cache and ETag reads
+    despite no-store HTTP delivery. A failed enqueue remains retryable; committed source writes bypass stale-read coalescing.
 - id: operational-and-build-representations
-  representations: [Prometheus activity gauges, generated OpenAPI document, bundled campus-link definitions and static guide content]
-  layers: [database metric cache, HTTP document cache, application build]
-  freshness: Gauges are fresh for 60 seconds and at most 120 seconds old during refresh contention; generated OpenAPI responses cache for 300 seconds. Bundled definitions change with deployment.
-  invalidators: [metric collector replaces gauge snapshot, application deployment replaces generated and bundled content]
-  clock: Gauge contention cannot extend stale data beyond 120 seconds; empty or older snapshots fail until recovery. OpenAPI response TTL is independent of catalog revisions.
+  representations: [prometheus_gauges, openapi_document, campus_link_definitions, static_guide_content]
+  layers:
+  - kind: database_metric_cache
+    representations: [prometheus_gauges]
+    freshness: {kind: ttl, fresh_seconds: 60, stale_seconds: 60, stale_use: refresh_contention, age_from: metric_collected_at, expires_when: gt}
+    key_dimensions: [metric_snapshot]
+    clock_boundaries: []
+  - kind: browser
+    representations: [openapi_document]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: zone_cdn
+    representations: [openapi_document]
+    freshness: {kind: ttl, fresh_seconds: 300, stale_seconds: 0, stale_use: none, age_from: http_response, expires_when: gte}
+    key_dimensions: [url]
+    clock_boundaries: []
+  - kind: application_build
+    representations: [openapi_document, campus_link_definitions, static_guide_content]
+    freshness: {kind: build}
+    key_dimensions: [build]
+    clock_boundaries: []
+  invalidators:
+  - trigger: metric_refresh
+    effect: replace_value
+    layers: [database_metric_cache]
+    representations: [prometheus_gauges]
+  - trigger: deployment
+    effect: key_change
+    layers: [application_build]
+    representations: [openapi_document, campus_link_definitions, static_guide_content]
+  - trigger: deployment
+    effect: refetch_after_expiry
+    layers: [browser, zone_cdn]
+    representations: [openapi_document]
   requirement_refs: [admin.prometheus-gauge-cache, openapi.openapi-document-cache, rendering-and-cache.cache-layers-and-invalidation-9]
+  rationale: Empty or over-age metric snapshots fail promptly during refresh contention. HTTP document lifetime is separate from build identity.
 policy_refs:
 - interface-hierarchy
 topics:
