@@ -114,17 +114,15 @@ export async function assertNoStandaloneInternalText(
   value: string,
 ) {
   expect(
-    await scope
-      .getByText(value, { exact: true })
-      .evaluateAll(
-        (elements) =>
-          elements.filter((element) =>
-            element.checkVisibility({
-              opacityProperty: true,
-              visibilityProperty: true,
-            }),
-          ).length,
-      ),
+    await scope.getByText(value, { exact: true }).evaluateAll(
+      (elements) =>
+        elements.filter((element) =>
+          element.checkVisibility({
+            opacityProperty: true,
+            visibilityProperty: true,
+          }),
+        ).length,
+    ),
   ).toBe(0);
 }
 

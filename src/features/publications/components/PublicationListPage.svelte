@@ -101,10 +101,10 @@ const activeFilters = $derived([
     : []),
 ]);
 const resultsCount = $derived(
-  (data.publications.pagination.total === 1 ? copy.resultsCountOne : copy.resultsCount).replace(
-    "{count}",
-    String(data.publications.pagination.total),
-  ),
+  (data.publications.pagination.total === 1
+    ? copy.resultsCountOne
+    : copy.resultsCount
+  ).replace("{count}", String(data.publications.pagination.total)),
 );
 
 function changeType(value: string) {

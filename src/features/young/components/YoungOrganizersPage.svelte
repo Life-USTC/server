@@ -59,7 +59,10 @@ function formatSourceDate(value: string | null) {
 }
 
 const summary = $derived(
-  (pagination.total === 1 ? youngCopy.organizersShowingOne : youngCopy.organizersShowing)
+  (pagination.total === 1
+    ? youngCopy.organizersShowingOne
+    : youngCopy.organizersShowing
+  )
     .replace("{count}", String(data.length))
     .replace("{total}", String(pagination.total)),
 );

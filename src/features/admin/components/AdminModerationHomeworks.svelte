@@ -33,7 +33,11 @@ export let homeworks: AdminModerationHomework[];
 export let onDelete: (homework: AdminModerationHomework) => void;
 
 function creatorLabel(homework: AdminModerationHomework) {
-  return homework.createdBy?.name ?? homework.createdBy?.username ?? copy.notAvailable;
+  return (
+    homework.createdBy?.name ??
+    homework.createdBy?.username ??
+    copy.notAvailable
+  );
 }
 </script>
 

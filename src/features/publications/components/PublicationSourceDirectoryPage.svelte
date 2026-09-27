@@ -40,10 +40,26 @@ function formatLastPublished(value: Date | string | null) {
   return value ? formatShanghaiDate(value) : copy.neverPublished;
 }
 
-function countSummary(template: string, sourceCount: number, publicationCount: number) {
+function countSummary(
+  template: string,
+  sourceCount: number,
+  publicationCount: number,
+) {
   return template
-    .replace("{sources}", (sourceCount === 1 ? copy.sourceCountOne : copy.sourceCountOther).replace("{count}", String(sourceCount)))
-    .replace("{publications}", (publicationCount === 1 ? copy.publicationCountOne : copy.publicationCountOther).replace("{count}", String(publicationCount)));
+    .replace(
+      "{sources}",
+      (sourceCount === 1 ? copy.sourceCountOne : copy.sourceCountOther).replace(
+        "{count}",
+        String(sourceCount),
+      ),
+    )
+    .replace(
+      "{publications}",
+      (publicationCount === 1
+        ? copy.publicationCountOne
+        : copy.publicationCountOther
+      ).replace("{count}", String(publicationCount)),
+    );
 }
 
 function groupSummary(sourceCount: number, publicationCount: number) {
@@ -51,7 +67,11 @@ function groupSummary(sourceCount: number, publicationCount: number) {
 }
 
 function totalsSummary() {
-  return countSummary(copy.sourcesTotals, data.directory.totals.sourceCount, data.directory.totals.publicationCount);
+  return countSummary(
+    copy.sourcesTotals,
+    data.directory.totals.sourceCount,
+    data.directory.totals.publicationCount,
+  );
 }
 
 // The service already returns groups in the registry's display order, so the

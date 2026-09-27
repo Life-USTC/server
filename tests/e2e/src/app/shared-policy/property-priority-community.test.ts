@@ -374,7 +374,8 @@ test("ui.model-property-priority-community-views", async ({
               },
               "user._count.uploads": {
                 ...stat(m.publicProfile.stats.uploads),
-                expected: "1",
+                // The fixture attachment belongs to a restricted comment.
+                expected: "0",
               },
               "user._count.homeworksCreated": stat(
                 m.publicProfile.stats.homeworks,
@@ -383,7 +384,7 @@ test("ui.model-property-priority-community-views", async ({
               "weeks.count": field(profile, dayLabel),
               totalContributions: field(
                 profile,
-                m.publicProfile.contribution.title.replace("{count}", "3"),
+                m.publicProfile.contribution.title.replace("{count}", "1"),
               ),
             },
             tertiary: { "user.id": { value: f.author.id } },
