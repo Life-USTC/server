@@ -165,12 +165,6 @@ requirements:
     test:
       file: tests/integration/graphql-mcp-resources.test.ts
       name: interface-hierarchy.transport-specific-exceptions-11
-- id: interface-hierarchy.semantic-parity-1
-  category: consistency
-  topic: semantic-parity
-  rule: For equivalent authenticated subjects, every supported surface enforces the same business ownership
-    and suspension rules. Anonymous availability, session requirements, token audience, and OAuth scopes follow
-    the explicit per-surface authorization matrix.
 - id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
@@ -401,11 +395,27 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/calendar/time-boundaries.test.ts
       name: interface-hierarchy.semantic-parity-4
-- id: interface-hierarchy.semantic-parity-6
+- id: interface-hierarchy.public-detail-not-found-parity
   category: consistency
-  topic: semantic-parity
-  rule: Equivalent failures preserve the same domain error meaning and ownership-hiding behavior. HTTP status,
-    GraphQL errors, and MCP error encoding follow their transport-specific contracts.
+  topic: domain-errors
+  rule: Missing public course, section, teacher, activity, organizer and user detail records return REST
+    404, a nullable GraphQL field and native MCP not_found without inventing a record. Missing bus-route
+    detail likewise returns GraphQL null and native MCP not_found; REST exposes a complete timetable
+    rather than a per-route detail counterpart. Native public-user reads retain their declared bearer gate.
+  acceptance:
+    given: Isolated public catalog, activity, organizer and user records have known existing and missing
+      identifiers; real services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests read each existing and missing
+      detail, with a resource-bound community.user read bearer for native profiles, then request an unknown bus route.
+    then:
+    - Existing detail controls succeed on all supported transports.
+    - Missing details return REST 404 and a not-found error, GraphQL 200 with null and no errors, or
+      native MCP 200 with success false and not_found; optional native found flags are false.
+    - Unknown bus-route detail is null in GraphQL and not_found with hasData false in native MCP.
+    - The reads leave the fixture's shared domain rows, completions, reactions, attachments and audit state unchanged.
+    test:
+      file: tests/integration/public-detail-error-parity.test.ts
+      name: interface-hierarchy.public-detail-not-found-parity
 - id: interface-hierarchy.private-delete-error-parity
   category: authorization
   topic: semantic-parity
@@ -951,6 +961,97 @@ topics:
   - bus.version-key-boundary
   - bus.raw-data-returned
   - bus.current-version-only
+- id: ownership-and-permissions
+  title: Ownership, suspension and per-surface authorization
+  requirement_refs:
+  - graphql.anonymous-roots
+  - graphql.session-query-authority
+  - graphql.scoped-query-auth
+  - graphql.workspace-ownership
+  - graphql.scoped-mutations
+  - oauth.rest-bearer-scopes
+  - oauth.authorization-management.active-user-grant-enforcement
+  - mcp.public-catalog-access
+  - mcp.invalid-credentials-no-downgrade
+  - mcp.resource-bound-access-token
+  - mcp.complete-batch-scope-enforcement
+  - mcp.graphql-authorization
+  - openapi.session-and-bearer
+  - todo.personal-ownership
+  - subscription.user-scoped
+  - subscription.kind-owner-existing-only
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - young-workspace.ownership
+  - homework.completion-owner
+  - homework.active-collaborator-write
+  - homework.oauth-write-gates
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - description.editor-authorization
+  - upload.write-auth-unsuspended
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - user.oauth-client-activity-isolation
+  - user.account-profile-oauth-projection
+  - user.public-comment-contribution-privacy
+  - user.public-upload-contribution-privacy
+  - user.private-workspace-profile-exclusion
+  - user.session-revocation-ownership
+  - user.account-deletion-session-authority
+  - user.sensitive-account-recent-auth
+  - oauth.authorization-reduction-ownership
+  - calendar.revoked-feed-access
+  - calendar.feed-auth-before-cache
+  - admin.admin-rest-session-only
+  - admin.suspended-admin-write-gate
+  - graphql.registered-operation-coverage
+  - mcp.personal-workspace-focus
+  - publications.public-read
+  - publications.public-object-read
+  - publications.service-auth
+- id: domain-errors
+  title: Domain failures and transport-specific error encoding
+  requirement_refs:
+  - interface-hierarchy.public-detail-not-found-parity
+  - interface-hierarchy.private-delete-error-parity
+  - interface-hierarchy.shared-delete-error-parity
+  - interface-hierarchy.suspended-delete-error-parity
+  - interface-hierarchy.comment-read-parity
+  - interface-hierarchy.public-homework-read-parity
+  - interface-hierarchy.description-read-parity
+  - todo.personal-ownership
+  - todo.single-delete-replay
+  - subscription.kind-owner-existing-only
+  - young-workspace.ownership
+  - bus.preference-owner-state
+  - catalog-link.pin-owner-state
+  - catalog-link.pin-error-clear
+  - homework.completion-owner
+  - homework.active-collaborator-write
+  - comment.interaction-gate
+  - comment.attachment-ownership
+  - comment.focused-read-errors
+  - comment.reply-read-errors
+  - description.editor-authorization
+  - upload.write-auth-unsuspended
+  - upload.storage-delete-retry
+  - graphql.safe-errors
+  - mcp.actionable-errors
+  - mcp.error-classification-shape
+  - room-map.public
+  - weather.location-key-boundary
+  - bus.version-key-boundary
+  - admin.admin-mutation-not-found
+  - openapi.unknown-api-json-errors
+  - openapi.rate-limit-rejection
+  - openapi.rate-limit-unavailable
+  - graphql.todo-batch-results
+  - graphql.homework-batch-results
+  - graphql.comment-batch-results
+  - graphql.subscription-batch-results
+  - graphql.pin-batch-failure
 - id: mutation-result-contracts
   title: Mutation atomicity, ordered results and retries
   requirement_refs:
@@ -1025,3 +1126,22 @@ rationale:
   metadata directories, admin collections, ancillary academic collections and Web collection layouts do not
   acquire fictional GraphQL/MCP equivalents. These topic references neither change supported inputs and
   defaults nor count as behavioral evidence; their existing canonical tests remain the acceptance owners.
+
+- The former semantic-parity-1 and semantic-parity-6 are indexed by ownership-and-permissions and
+  domain-errors. Their finite owners cover private todos, section and activity subscriptions, follows,
+  notifications, bus preferences, pins, homework completion, shared comments and attachments,
+  descriptions, shared homework, uploads, selected-field reads, public detail absence and protocol errors.
+  Private state remains owner-managed during suspension; collaborative and upload writes retain their
+  explicit suspension gates. Different authentication requirements never imply different business ownership.
+- The complete native MCP inventory has an HTTP anonymous-authorization boundary test. A public tool
+  reaching SDK parameter validation is evidence of passing that boundary, not evidence of a successful
+  domain read; each domain's own canonical covers successful data. Community public profiles, comments,
+  descriptions and homework retain authenticated native MCP access even where REST reads are anonymous.
+- Public nullable GraphQL details preserve absence as null, while equivalent REST and native MCP use
+  their declared not-found envelopes. Private foreign IDs retain ownership-hiding errors; visible shared
+  foreign records may report forbidden. Known domain failures are distinct from SDK input errors and
+  masked unexpected server faults. An in-memory tool test is not HTTP token or scope evidence.
+- Account credentials, sessions, grant management, calendar feed credentials, raw upload bytes, publication
+  ingestion and governance keep their explicit transport and threat-model boundaries. Their cited feature
+  owners remain authoritative; no missing GraphQL or native MCP equivalent is implied. Bot and CLI
+  command authorization and presentation remain verified in their own repositories.

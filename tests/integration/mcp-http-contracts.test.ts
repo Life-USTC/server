@@ -205,6 +205,132 @@ afterAll(async () => {
 });
 
 it("mcp.public-catalog-access", async () => {
+  const publicTools = [
+    "catalog_section_calendar_feed_get",
+    "catalog_link_list",
+    "catalog_bus_timetable_get",
+    "catalog_bus_route_list",
+    "catalog_bus_route_get",
+    "catalog_bus_route_search",
+    "catalog_bus_departure_next",
+    "catalog_weather_get",
+    "catalog_rooms_map",
+    "catalog_young_event_list",
+    "catalog_young_event_get",
+    "catalog_young_organizer_list",
+    "catalog_young_organizer_get",
+    "catalog_course_search",
+    "catalog_course_get",
+    "catalog_semester_list",
+    "catalog_semester_current",
+    "catalog_section_get",
+    "catalog_section_search",
+    "catalog_section_match_preview",
+    "catalog_teacher_search",
+    "catalog_teacher_get",
+    "catalog_schedule_list",
+    "catalog_section_schedule_list",
+    "catalog_section_exam_list",
+  ];
+  const protectedTools = [
+    "graphql_operation_run",
+    "account_profile_get",
+    "account_client_activity_list",
+    "community_user_get",
+    "workspace_todo_list",
+    "workspace_todo_create",
+    "workspace_todo_update",
+    "workspace_todo_delete",
+    "workspace_homework_list",
+    "workspace_homework_completion_set",
+    "community_section_homework_list",
+    "community_section_homework_create",
+    "community_section_homework_update",
+    "community_section_homework_delete",
+    "workspace_young_event_subscription_list",
+    "workspace_young_event_subscription_get",
+    "workspace_young_event_subscription_set",
+    "workspace_young_organizer_subscription_list",
+    "workspace_young_organizer_subscription_set",
+    "workspace_young_notification_list",
+    "workspace_young_notification_read",
+    "workspace_young_organizer_subscription_get",
+    "workspace_calendar_feed_get",
+    "workspace_subscription_list",
+    "workspace_subscription_add",
+    "workspace_subscription_kind_update",
+    "workspace_subscription_remove",
+    "workspace_subscription_import",
+    "workspace_calendar_event_list",
+    "workspace_calendar_timeline_get",
+    "community_comment_list",
+    "community_comment_get",
+    "community_comment_replies",
+    "community_comment_create",
+    "community_comment_update",
+    "community_comment_delete",
+    "community_comment_reaction_add",
+    "community_comment_reaction_remove",
+    "community_description_get",
+    "community_description_set",
+    "workspace_upload_list",
+    "workspace_upload_rename",
+    "workspace_upload_delete",
+    "workspace_snapshot_get",
+    "workspace_link_pin_list",
+    "workspace_link_pin_set",
+    "workspace_deadline_list",
+    "workspace_overview_get",
+    "workspace_schedule_next",
+    "workspace_bus_preferences_get",
+    "workspace_bus_preferences_set",
+    "workspace_schedule_list",
+    "workspace_exam_list",
+  ];
+  const discovery = await post({ jsonrpc: "2.0", id: 1, method: "tools/list" });
+  expect(discovery.status).toBe(200);
+  expect(
+    (await payload(discovery)).result.tools
+      .map((tool: { name: string }) => tool.name)
+      .sort(),
+  ).toEqual([...publicTools, ...protectedTools].sort());
+  // The boundary admits every public tool. Tools that declare mode reject its
+  // invalid type in SDK validation; tools without mode may execute a public read.
+  for (const name of publicTools) {
+    const response = await post(call(name, { mode: 17 }));
+    expect(response.status, name).toBe(200);
+    expect(response.headers.get("www-authenticate"), name).toBeNull();
+    const result = await payload(response);
+    expect(result.error, name).toBeUndefined();
+    if (result.result.isError) {
+      expect(JSON.stringify(result.result), name).toMatch(
+        /validation|invalid|expected/i,
+      );
+    } else {
+      const content =
+        result.result.structuredContent ??
+        JSON.parse(
+          result.result.content.find(
+            (item: { type: string }) => item.type === "text",
+          ).text,
+        );
+      expect(typeof content.success, name).toBe("boolean");
+      expect(String(content.error ?? ""), name).not.toMatch(
+        /unauth|forbidden|scope/i,
+      );
+    }
+  }
+  for (const name of protectedTools) {
+    const response = await post(call(name));
+    expect(response.status, name).toBe(401);
+    expect(response.headers.get("www-authenticate"), name).toContain(
+      'scope="account.profile:read"',
+    );
+    const result = await payload(response);
+    expect(result.error.code, name).toBe(-32000);
+    expect(result.result, name).toBeUndefined();
+  }
+
   for (const body of [
     { jsonrpc: "2.0", id: 1, method: "tools/list" },
     call("catalog_semester_list"),

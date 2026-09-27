@@ -8,6 +8,9 @@ import {
   runWithCloudflareRuntimeEnv,
   setCloudflareCatalogInvalidator,
 } from "@/lib/adapters/cloudflare-runtime";
+import { getCourseDetailRoute } from "@/lib/api/routes/academic-course-routes";
+import { getSectionDetailRoute } from "@/lib/api/routes/academic-section-routes";
+import { getTeacherDetailRoute } from "@/lib/api/routes/academic-teacher-routes";
 import { postBusPreferencesRoute } from "@/lib/api/routes/bus";
 import { postCommentReactionRoute } from "@/lib/api/routes/comment-reaction-create-route";
 import { deleteCommentReactionRoute } from "@/lib/api/routes/comment-reaction-delete-route";
@@ -20,8 +23,13 @@ import {
   postHomeworkRoute,
 } from "@/lib/api/routes/homework-mutation-routes";
 import { mcpPostRoute } from "@/lib/api/routes/mcp";
+import { getCommunityUserRoute } from "@/lib/api/routes/public-user-profile";
 import { patchSubscriptionKindRoute } from "@/lib/api/routes/subscription-kind-route";
 import { postWorkspaceLinkPinRoute } from "@/lib/api/routes/workspace-link-pin-route";
+import {
+  getYoungEventDetailRoute,
+  getYoungOrganizerDetailRoute,
+} from "@/lib/api/routes/young-event-routes";
 import {
   postYoungNotificationReadRoute,
   putYoungSubscriptionRoute,
@@ -110,6 +118,26 @@ export async function createWriteTransportHarness(features: string[]) {
               requestId: fixture.marker,
             },
           } as unknown as RequestEvent);
+        const publicDetail = path.match(
+          /^\/api\/(catalog\/(courses|sections|teachers|young-events|young-organizers)|community\/users)\/([^/]+)$/,
+        );
+        if (publicDetail) {
+          const id = decodeURIComponent(publicDetail[3]);
+          switch (publicDetail[2]) {
+            case "courses":
+              return getCourseDetailRoute(request, { jwId: id });
+            case "sections":
+              return getSectionDetailRoute(request, { jwId: id });
+            case "teachers":
+              return getTeacherDetailRoute(request, { id });
+            case "young-events":
+              return getYoungEventDetailRoute(request, { youngId: id });
+            case "young-organizers":
+              return getYoungOrganizerDetailRoute(request, { organizerId: id });
+            default:
+              return getCommunityUserRoute(id);
+          }
+        }
         if (path === "/api/workspace/bus-preferences")
           return postBusPreferencesRoute(request);
         if (path === "/api/workspace/link-pins")
@@ -418,6 +446,7 @@ export async function createWriteTransportHarness(features: string[]) {
     };
   }
   return {
+    origin,
     db,
     fixture,
     section,

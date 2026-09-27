@@ -206,10 +206,15 @@ requirements:
   rule: MCP discovery and public catalog calls allow anonymous access. Personal tools require authenticated
     user context; absence of credentials rejects before private business execution.
   acceptance:
-    given: The real HTTP MCP transport, public catalog data and a private tool.
-    when: Anonymous requests list tools, read semesters and request private todos.
+    given: The real loopback HTTP MCP transport and the complete explicit public/protected tool inventory.
+    when: Anonymous discovery is compared against that inventory, every public tool receives a malformed
+      mode input, every protected tool receives a call, and a valid semester read supplies a positive control.
     then:
-    - Discovery and catalog calls succeed; private calls return401 and a bootstrap resource-metadata challenge.
+    - Discovery contains exactly the inventoried tools and the valid public semester read succeeds.
+    - Every public tool passes HTTP authorization without an authentication challenge, then reaches SDK
+      input validation or its public handler when that tool does not declare mode.
+    - Every protected tool, including public-data community tools and the GraphQL runner, returns 401
+      with the bootstrap resource-metadata challenge before private business execution.
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.public-catalog-access
