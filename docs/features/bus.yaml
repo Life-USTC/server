@@ -16,6 +16,25 @@ access:
   admin: Can maintain bus data.
   agent: Can read bus timetable capabilities and manage own bus preferences.
 requirements:
+- id: bus.preference-owner-state
+  category: authorization
+  rule: Bus preferences belong to the authenticated owner. REST, GraphQL and native MCP require the
+    declared write authority and reject unknown non-null campus IDs without changing stored preferences.
+    A suspended owner may continue saving and resetting these private preferences.
+  acceptance:
+    given: Two isolated owners have independent preference rows and resource-bound OAuth credentials;
+      the real services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests save null-campus preferences and
+      toggle the departed-trip setting, attempt anonymous or read-scope writes and unknown origin or
+      destination IDs, then repeat successful writes during an active suspension.
+    then:
+    - Successful writes change only the authenticated owner's row, including during suspension.
+    - Anonymous and insufficient-scope writes are rejected before persistence.
+    - Unknown campuses retain both owners' exact rows and produce REST 400, GraphQL BAD_USER_INPUT
+      or native MCP invalid_bus_preference according to the declared transport error shape.
+    test:
+      file: tests/integration/personal-setting-authority.test.ts
+      name: bus.preference-owner-state
 - id: bus.public-web-personal-overlay
   category: privacy
   rule: Public bus HTML contains public timetable data without saved user preferences.

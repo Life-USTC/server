@@ -16,6 +16,24 @@ access:
   agent: Can list/search catalog links and manage the authenticated user's link-pin state through MCP;
     visit redirects remain browser/REST navigation.
 requirements:
+- id: catalog-link.pin-owner-state
+  category: authorization
+  rule: Link pins belong to the authenticated owner. REST, GraphQL and native MCP require the declared
+    write authority and reject unknown slugs without changing persisted pins. Suspended owners may
+    continue managing these private preferences; successful responses contain the final ordered pin set.
+  acceptance:
+    given: Two isolated owners have independent pins and resource-bound OAuth credentials; the real
+      services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests pin and unpin known links, attempt
+      anonymous or read-scope writes and unknown slugs for both actions, then repeat writes during suspension.
+    then:
+    - Each owner's successful response matches their exact ordered persisted pins and leaves foreign rows unchanged.
+    - Anonymous and insufficient-scope writes are rejected; suspended owners may still pin and unpin.
+    - Unknown slugs return REST 400 invalid_slug, GraphQL BAD_USER_INPUT or native MCP invalid_slug,
+      preserve both owners' exact rows and retain the current ordered pins in REST and native MCP errors.
+    test:
+      file: tests/integration/personal-setting-authority.test.ts
+      name: catalog-link.pin-owner-state
 - id: catalog-link.transport-list-search-parity
   category: consistency
   rule: Public link lists preserve configured slug order and localized title, description and URL.
@@ -89,13 +107,14 @@ requirements:
   rule: A failed pin/unpin write returns an error and does not report successful state. The Web interface
     retains the last confirmed state and displays a localized failure message.
   acceptance:
-    given: An isolated-owner database trigger rejects actual pin and unpin persistence while another owner's
-      state exists.
-    when: The real browser submits both actions in Chinese and English, then retries after the database
-      failure is removed.
+    given: An isolated-owner database trigger can reject pin and unpin persistence while another owner's
+      state exists; a stale catalog can submit an unknown slug.
+    when: The real browser submits pin and unpin in Chinese and English, first with the persistence
+      failure and then with an unknown slug processed by the actual server, and retries valid writes.
     then:
-    - Every failed write returns HTTP 500 with an error, retains both owners' exact pin/click state and
-      displays a localized failure heading.
+    - Persistence failures return HTTP 500 and unknown slugs return HTTP 400 invalid_slug with the
+      owner's actual current pins; both display a localized failure heading.
+    - Both owners' exact persisted pin/click state and the last confirmed pin controls remain unchanged.
     - The buttons recover from pending state and a successful retry updates the pin and clears the error.
     test:
       file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts

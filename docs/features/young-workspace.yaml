@@ -29,18 +29,25 @@ requirements:
 - id: young-workspace.ownership
   category: authorization
   rule: User identity for activity subscriptions, organizer follows and notifications comes only from
-    the authenticated principal; only the owner may read or mutate personal state.
+    the authenticated principal; only the owner may read or mutate personal state. Suspended owners
+    retain these private capabilities. Missing targets and foreign notifications retain the declared
+    domain error meaning across REST, GraphQL and native MCP.
   acceptance:
     given: Two authenticated owners have different activity subscriptions, organizer follows and unread
-      notifications.
-    when: Both owners use signed REST and GraphQL requests and registered MCP tools to list state and
-      target the other owner’s resources; an anonymous client also requests personal state.
+      notifications; resource-bound OAuth credentials exercise restricted application database services.
+    when: Signed REST and GraphQL requests and registered MCP tools list state, then actual loopback
+      REST, GraphQL and native MCP HTTP requests mutate personal state, target foreign or missing
+      resources, omit write authority and repeat successful owner writes during suspension.
     then:
-    - Every list contains only the authenticated owner’s rows, even with a foreign userId query parameter.
-    - A foreign userId in a REST mutation body is rejected; unsubscribing a foreign-only activity or organizer
-      never removes the other owner’s subscription.
-    - Reading the other owner’s notification fails without changing its read state.
-    - Anonymous REST and MCP reads are rejected; GraphQL returns no workspace. Anonymous REST subscription writes are rejected.
+    - Every list contains only the authenticated owner's rows, even with a foreign userId query parameter;
+      a foreign userId in a REST mutation body is rejected.
+    - Each owner may subscribe/unsubscribe and follow/unfollow independently, including while suspended;
+      foreign subscription rows remain exactly unchanged and only owned notifications can be marked read.
+    - Foreign and missing notifications both return REST 404 or GraphQL/native MCP success false without
+      changing the notification; missing activity/organizer targets return REST 404, GraphQL NOT_FOUND
+      or a structured native MCP not_found error, retaining each protocol's HTTP status convention.
+    - Anonymous REST and MCP reads are rejected and GraphQL returns no workspace; anonymous and
+      read-scope writes across all three HTTP transports are rejected before changing stored state.
     test:
       file: tests/integration/mcp/workspace/young-transport-contract.test.ts
       name: young-workspace.ownership

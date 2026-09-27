@@ -174,14 +174,20 @@ requirements:
       name: subscription.quick-add-result-bound
 - id: subscription.kind-owner-existing-only
   category: behavior
-  rule: Only the owner of an existing subscription may change its kind to regular, auditor or teaching_assistant.
+  rule: Only the authenticated owner of an existing subscription may change its kind to regular,
+    auditor or teaching_assistant. This private setting remains available during suspension and never
+    creates an absent membership or changes another owner's row.
   acceptance:
-    given: Two users exist and only one owns a Section subscription.
-    when: The actual kind service updates the owner membership, an absent/foreign membership and an invalid
-      enum.
+    given: Two isolated owners exist, only one owns a Section subscription, and public JW and internal
+      row IDs differ; resource-bound OAuth requests use restricted application database services.
+    when: Actual REST, GraphQL and native MCP HTTP requests change all supported kinds, target absent
+      or foreign membership and substitute a row ID for the JW ID, attempt anonymous/read-scope writes,
+      and update the owning user's kind during an active suspension; the service also receives an invalid enum.
     then:
-    - Only the existing owner membership can be changed.
-    - Absent ownership returns null and an invalid kind is rejected.
+    - Only the existing authenticated owner's membership changes and suspended owner writes succeed.
+    - Missing ownership and row-ID substitution preserve all memberships and retain declared not-found
+      error meaning; the service returns null for missing ownership and rejects an invalid kind.
+    - Anonymous and insufficient-scope writes are rejected without persistence.
     test:
       file: tests/integration/subscription-kind.test.ts
       name: subscription.kind-owner-existing-only
