@@ -83,6 +83,15 @@ requirements:
   rule: 'OAuth discovery metadata advertises only user-delegated grants: authorization_code, refresh_token,
     and the custom device_code grant. It must not advertise client_credentials unless a real service-account
     authority model is introduced.'
+  acceptance:
+    given: The installed provider behind each authorization-server and OpenID metadata route.
+    when: Read grant_types_supported and device_authorization_endpoint over HTTP.
+    then:
+    - Only authorization_code, refresh_token, and the custom device_code grant are advertised; the device
+      endpoint points to the local authorization server.
+    test:
+      file: tests/integration/oauth-discovery-contracts.test.ts
+      name: oauth.user-delegated-grants-only
 - id: oauth.client-validation-from-provider
   category: consistency
   rule: Administrator-created clients use the same redirect URI and client metadata validation as other
@@ -141,9 +150,24 @@ requirements:
 - id: oauth.canonical-discovery-paths
   category: consistency
   rule: Canonical metadata is available at /.well-known/oauth-authorization-server/api/auth, /api/auth/.well-known/openid-configuration,
-    /.well-known/openid-configuration/api/auth, and /.well-known/oauth-protected-resource/api/mcp. MCP
-    protected-resource metadata supports GET and bodyless HEAD. Retired root and MCP-relative discovery
+    /.well-known/openid-configuration/api/auth, /.well-known/oauth-protected-resource/api/mcp, and /.well-known/oauth-protected-resource/api/graphql.
+    MCP protected-resource metadata supports GET and bodyless HEAD. Extra root and MCP-relative discovery
     aliases are not supported.
+  acceptance:
+    given: The actual mounted discovery route modules and installed Better Auth metadata provider, served
+      over local HTTP.
+    when: GET all five issuer/resource-derived metadata addresses, HEAD MCP metadata, and request seven
+      retired aliases.
+    then:
+    - The canonical metadata responses identify the configured issuer or exact MCP/GraphQL resource.
+    - MCP HEAD is bodyless and extra root/MCP-relative aliases return 404.
+    test:
+      file: tests/integration/oauth-discovery-contracts.test.ts
+      name: oauth.canonical-discovery-paths
+  rationale: 'The issuer is /api/auth: RFC 8414 inserts well-known before its path, while OIDC Discovery
+    appends openid-configuration to it; both supported issuer-derived forms remain. RFC 9728 inserts well-known
+    before each resource path, /api/mcp or /api/graphql. Removed aliases describe neither the configured
+    issuer nor a resource metadata address.'
 - id: oauth.protected-resource-scope-advertisement
   category: consistency
   rule: Canonical MCP protected-resource metadata is produced by the upstream @better-auth/mcp plugin
@@ -151,12 +175,32 @@ requirements:
     non-admin feature:action scopes and removes DPoP metadata because the MCP transport remains Bearer-only.
     account.client-activity is an explicit read-only feature and no :write scope is generated, registered,
     or advertised.
+  acceptance:
+    given: The actual upstream MCP plugin behind the production metadata facade.
+    when: Read MCP protected-resource metadata over HTTP.
+    then:
+    - It identifies the exact MCP resource and issuer and accepts Bearer via header.
+    - Every scope is a canonical public feature:action scope; administrator, legacy mcp:tools, and client-activity
+      write scopes are absent.
+    - DPoP metadata is absent.
+    test:
+      file: tests/integration/oauth-discovery-contracts.test.ts
+      name: oauth.protected-resource-scope-advertisement
 - id: oauth.discovery-cors
   category: behavior
   rule: 'Discovery metadata should support cross-origin reading; at minimum return Access-Control-Allow-Origin:
     * for OpenID discovery, and keep the CORS behavior of authorization server metadata and protected
     resource metadata consistent, reducing compatibility risks for browser-type clients and debugging
     tools.'
+  acceptance:
+    given: All five actual discovery route modules behind local HTTP.
+    when: Make GET and OPTIONS requests with an unrelated browser Origin.
+    then:
+    - Metadata GET succeeds and OPTIONS returns 204; both provide wildcard origin and consistent discovery
+      methods/headers.
+    test:
+      file: tests/integration/oauth-discovery-contracts.test.ts
+      name: oauth.discovery-cors
 - id: oauth.transport-cors
   category: behavior
   rule: 'The MCP transport endpoint /api/mcp should also support browser-based clients and debugging tools

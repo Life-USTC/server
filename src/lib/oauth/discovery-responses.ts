@@ -19,16 +19,6 @@ export function getDiscoveryOptionsResponse() {
   });
 }
 
-export function getDiscoveryRedirectResponse(url: URL | string, status = 307) {
-  const response = Response.redirect(url, status);
-  const headers = withDiscoveryCorsHeaders(response.headers);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   const headers = withDiscoveryCorsHeaders(init.headers);
   if (!headers.has("Content-Type")) {
