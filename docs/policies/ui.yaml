@@ -360,6 +360,17 @@ requirements:
   category: presentation
   topic: shell-layout
   rule: A destination row is either a link or a disclosure, never both.
+  acceptance:
+    given: The public desktop navigation and mobile drawer contain the expanded campus-services group.
+    when: The user toggles the group with the keyboard and then activates the Shuttle Bus destination.
+    then:
+    - The group is a disclosure button without a URL; toggling it changes expanded state and child visibility
+      without navigating.
+    - Destination controls are anchors with URLs and no disclosure state, with no nested button-and-link controls.
+    - Activating the destination reaches the canonical bus page rather than toggling a submenu.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-3
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout

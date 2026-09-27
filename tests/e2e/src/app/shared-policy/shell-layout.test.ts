@@ -272,3 +272,53 @@ test("ui.navigation-landmarks-5", async ({ page }) => {
     }
   }
 });
+
+test("ui.shell-layout-3", async ({ page }) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoAndWaitForReady(page, "/");
+    if (width < 768)
+      await page
+        .locator("[data-shell-topbar]")
+        .getByRole("button", { name: /^(Menu|菜单)$/ })
+        .click();
+    const navigation = page.locator(
+      `[data-shell-navigation="${width < 768 ? "secondary" : "desktop"}"]`,
+    );
+    const campusGroup = navigation.getByRole("button", {
+      name: /^(Campus services|校园服务)$/i,
+    });
+    const courses = navigation.getByRole("link", { name: /^(Courses|课程)$/ });
+    await expect(campusGroup).toHaveAttribute("aria-expanded", "true");
+    expect(await campusGroup.getAttribute("href")).toBeNull();
+    await campusGroup.focus();
+    await page.keyboard.press("Enter");
+    await expect(campusGroup).toHaveAttribute("aria-expanded", "false");
+    await expect(courses).toBeHidden();
+    await expect(page).toHaveURL(/\/$/);
+    await page.keyboard.press("Enter");
+    await expect(campusGroup).toHaveAttribute("aria-expanded", "true");
+    await expect(courses).toBeVisible();
+    const rows = await navigation
+      .locator('[data-sidebar="menu-button"]')
+      .evaluateAll((elements) =>
+        elements.map((element) => ({
+          tag: element.tagName,
+          href: element.getAttribute("href"),
+          expanded: element.getAttribute("aria-expanded"),
+        })),
+      );
+    expect(rows.length).toBeGreaterThan(10);
+    for (const row of rows) {
+      expect(row.tag).toBe("A");
+      expect(row.href).toMatch(/^\//);
+      expect(row.expanded).toBeNull();
+    }
+    await expect(navigation.locator("a button, button a")).toHaveCount(0);
+    const bus = navigation.getByRole("link", { name: /^(Shuttle Bus|校车)$/ });
+    await bus.focus();
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/catalog\/bus$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
+});
