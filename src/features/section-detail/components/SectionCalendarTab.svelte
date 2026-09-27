@@ -92,7 +92,7 @@ $: classLectureNumberById = new Map(
               </div>
             {/if}
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
+          <Table.Cell class="whitespace-nowrap font-semibold">
             {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap">

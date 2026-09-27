@@ -52,7 +52,7 @@ export let sectionCopy: SectionExamCopy;
             <Table.Cell class="whitespace-nowrap">
               {calendarEventDetail(event, sectionCopy.examBatch, "—")}
             </Table.Cell>
-            <Table.Cell class="whitespace-nowrap">
+            <Table.Cell class="whitespace-nowrap font-medium">
               {#if event.date}{fmtDate(event.date)}{:else}{sectionCopy.dateTBD}{/if}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap">

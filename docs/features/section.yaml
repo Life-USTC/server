@@ -580,7 +580,8 @@ capabilities:
           primary:
           - calendar.url
           secondary:
-          - calendar.format
+          # The Web dialog explains feed scope; iCalendar format is a protocol obligation.
+          - calendar.description
           tertiary: []
         mcp-catalog-section-calendar-feed-get:
           primary:

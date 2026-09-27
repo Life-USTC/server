@@ -82,7 +82,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
         </Table.Cell>
         <Table.Cell>
           <button
-            class="block min-h-11 min-w-0 max-w-full text-left hover:underline"
+            class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
             type="button"
             onclick={() => {
               selectedHomework = homework;

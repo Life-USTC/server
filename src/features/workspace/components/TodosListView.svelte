@@ -46,7 +46,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       <Table.Row class="group">
         <Table.Cell>
           <button
-            class="block min-h-11 min-w-0 max-w-full text-left hover:underline"
+            class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
             class:line-through={todo.completed}
             type="button"
             onclick={() => {

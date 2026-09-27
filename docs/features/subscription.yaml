@@ -378,12 +378,14 @@ capabilities:
           - section.campus.namePrimary
           - section.isSubscribed
           tertiary: []
+        # Confirmation identifies the matched course; the pasted code and semester
+        # distinguish the match without making users decode a code as its title.
         web-import:
           primary:
-          - section.code
-          secondary:
-          - semester.nameCn
           - section.course.namePrimary
+          secondary:
+          - section.code
+          - semester.nameCn
           - section.teachers.namePrimary
           - unmatched.code
           tertiary: []

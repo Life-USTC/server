@@ -285,7 +285,8 @@ capabilities:
           secondary:
           - event.location
           - event.teachers
-          - section.semester.nameCn
+          # Day/week/month views identify events by their actual dates. Semester
+          # selection belongs to semester navigation, not every event card.
           tertiary:
           - event.id
         mcp-workspace-calendar-event-list:

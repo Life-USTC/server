@@ -93,6 +93,7 @@ function clearExamFilter() {
     </div>
     <div class={cn("min-w-0 overflow-x-auto md:block", mobileView !== "list" && "hidden")}>
       <ExamsListView
+        {examMetadataLabels}
         {locale}
         unknownSemesterLabel={signedData.copy.common.unknown}
         {namePrimary}
