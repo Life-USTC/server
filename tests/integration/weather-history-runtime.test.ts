@@ -1,5 +1,5 @@
-import { afterAll, describe, expect, it } from "vitest";
-import { writeWeatherHistory } from "@/features/weather/server/weather-history";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { refreshWeatherSnapshot } from "@/features/weather/server/weather-service";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { prisma } from "@/lib/db/prisma";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
@@ -18,6 +18,15 @@ const snapshot: WeatherSnapshot = {
 };
 const where = { locationKey: snapshot.location.key, observedAt };
 
+vi.mock("@/features/weather/server/weather-cache", () => ({
+  writeWeatherCache: vi.fn(),
+}));
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
+
 describe("weather history under deployment runtime grants", () => {
   afterAll(async () => {
     await fixturePrisma.weatherObservation.deleteMany({ where });
@@ -27,21 +36,31 @@ describe("weather history under deployment runtime grants", () => {
     ]);
   });
 
-  it("persists one hourly snapshot through the real writer and denies runtime deletion", async () => {
+  it("weather.weather-observation-history", async () => {
     await fixturePrisma.weatherObservation.deleteMany({ where });
-    const providerBlobs = { openMeteo: { temperature: 20 } };
-    // Exercise the application connection, with no privileged client injection.
-    await writeWeatherHistory(snapshot, providerBlobs);
-    await writeWeatherHistory(
-      { ...snapshot, current: { ...snapshot.current, temperature: 21 } },
-      providerBlobs,
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(snapshot.fetchedAt));
+    vi.stubEnv("AMAP_API_KEY", "");
+    let temperature = 20;
+    const raw = () => ({
+      current: { temperature_2m: temperature, weather_code: 0 },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json(raw())),
     );
+    const providerBlobs = { openMeteo: raw() };
+    const first = await refreshWeatherSnapshot("ustc-main");
+    expect(first?.current.temperature).toBe(20);
+    temperature = 21;
+    const second = await refreshWeatherSnapshot("ustc-main");
+    expect(second?.current.temperature).toBe(21);
 
     const stored = await fixturePrisma.weatherObservation.findMany({
       where,
       select: { mergedSnapshot: true, providerBlobs: true },
     });
-    expect(stored).toEqual([{ mergedSnapshot: snapshot, providerBlobs }]);
+    expect(stored).toEqual([{ mergedSnapshot: first, providerBlobs }]);
     await expect(
       prisma.weatherObservation.findMany({ where }),
     ).resolves.toHaveLength(1);

@@ -7,7 +7,10 @@ import enUsMessages from "../../../messages/en-us.json" with { type: "json" };
 import zhCnMessages from "../../../messages/zh-cn.json" with { type: "json" };
 import { gotoAndWaitForReady } from "./page-ready";
 
-export async function showWeatherFixture(page: Page) {
+export async function showWeatherFixture(
+  page: Page,
+  currentTemperature: number | null = 24,
+) {
   const start = new Date(Date.now() + 3_600_000);
   start.setUTCMinutes(0, 0, 0);
   const temperatures = [
@@ -28,7 +31,7 @@ export async function showWeatherFixture(page: Page) {
       fetchedAt: new Date().toISOString(),
       providers: ["amap", "open-meteo"],
       current: {
-        temperature: 24,
+        temperature: currentTemperature,
         humidity: 63,
         windDirection: "东北",
         windSpeed: 3,

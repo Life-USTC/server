@@ -18,33 +18,31 @@ export function mergeWeatherSnapshots(
   openMeteo: ProviderResult<OpenMeteoWeatherData>,
 ): WeatherSnapshot {
   const now = new Date().toISOString();
-  const providers: WeatherSnapshot["providers"] = [];
-  if (amap.ok) providers.push("amap");
-  if (openMeteo.ok) providers.push("open-meteo");
-
-  const current: WeatherCurrent = amap.ok
+  const amapCurrent = amap.ok ? amap.data.current : undefined;
+  const openMeteoCurrent = openMeteo.ok ? openMeteo.data.current : undefined;
+  const current: WeatherCurrent = amapCurrent
     ? {
-        temperature: amap.data.current?.temperature ?? 0,
-        feelsLike: amap.data.current?.feelsLike,
-        humidity: amap.data.current?.humidity,
-        windDirection: amap.data.current?.windDirection,
-        windSpeed: amap.data.current?.windSpeed,
-        pressure: amap.data.current?.pressure,
-        visibility: amap.data.current?.visibility,
+        temperature: amapCurrent.temperature,
+        feelsLike: amapCurrent.feelsLike,
+        humidity: amapCurrent.humidity,
+        windDirection: amapCurrent.windDirection,
+        windSpeed: amapCurrent.windSpeed,
+        pressure: amapCurrent.pressure,
+        visibility: amapCurrent.visibility,
         condition: normalizeAmapCondition(
-          amap.data.current?.weather,
-          amap.data.current?.weatherCode,
+          amapCurrent.weather,
+          amapCurrent.weatherCode,
         ),
       }
-    : openMeteo.ok
+    : openMeteoCurrent
       ? {
-          temperature: openMeteo.data.current?.temperature_2m ?? 0,
-          humidity: openMeteo.data.current?.relative_humidity_2m,
+          temperature: openMeteoCurrent.temperature_2m,
+          humidity: openMeteoCurrent.relative_humidity_2m,
           condition: normalizeOpenMeteoCondition(
-            openMeteo.data.current?.weather_code ?? -1,
+            openMeteoCurrent.weather_code ?? -1,
           ),
         }
-      : { temperature: 0, condition: { text: "未知", icon: "unknown" } };
+      : { temperature: null, condition: { text: "未知", icon: "unknown" } };
 
   const hourlySource = openMeteo.ok ? openMeteo.data.hourly : undefined;
   const hourly: WeatherHourly[] = (hourlySource?.time ?? []).map((time, i) => ({
@@ -77,6 +75,15 @@ export function mergeWeatherSnapshots(
             }));
           })()
         : [];
+
+  const providers: WeatherSnapshot["providers"] = [];
+  if (amapCurrent || amapDaily.length > 0) providers.push("amap");
+  if (
+    (!amapCurrent && openMeteoCurrent) ||
+    hourly.length > 0 ||
+    (amapDaily.length === 0 && daily.length > 0)
+  )
+    providers.push("open-meteo");
 
   return {
     location: {

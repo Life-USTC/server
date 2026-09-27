@@ -407,7 +407,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   type WeatherCurrent {
-    temperature: Float!
+    temperature: Float
     feelsLike: Float
     humidity: Float
     windDirection: String

@@ -115,3 +115,12 @@ for (const width of [1280, 390]) {
     }
   });
 }
+
+test("weather.missing-current-display", async ({ page }, testInfo) => {
+  await showWeatherFixture(page, null);
+  await page.screenshot({
+    path: testInfo.outputPath("weather-missing-current.png"),
+    fullPage: true,
+  });
+  await expect(page.getByTestId("weather-temperature").first()).toHaveText("—");
+});

@@ -3,7 +3,7 @@ import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
 
 describe("weather merge", () => {
-  it("retains all seven days with aligned hourly fields for cached rolling reads", () => {
+  it("weather.hourly-provider-supplement", () => {
     const time = Array.from({ length: 168 }, (_, i) =>
       new Date(
         Date.parse("2026-09-15T00:00:00+08:00") + i * 3_600_000,
@@ -36,7 +36,7 @@ describe("weather merge", () => {
     });
   });
 
-  it("prefers Amap current over Open-Meteo", () => {
+  it("weather.amap-primary", () => {
     const location = getWeatherLocation("ustc-main");
     const amap = {
       ok: true as const,
@@ -74,10 +74,30 @@ describe("weather merge", () => {
     expect(snapshot.current.temperature).toBe(28);
     expect(snapshot.current.condition.text).toBe("多云");
     expect(snapshot.providers).toContain("amap");
-    expect(snapshot.providers).toContain("open-meteo");
+    expect(snapshot.providers).not.toContain("open-meteo");
+    const fallback = mergeWeatherSnapshots(
+      location,
+      { ...amap, data: { ...amap.data, current: undefined } },
+      openMeteo,
+    );
+    expect(fallback.current).toMatchObject({
+      temperature: 25,
+      condition: { text: "晴", icon: "wmo-0" },
+    });
+    expect(fallback.providers).toEqual(["open-meteo"]);
+    const missing = mergeWeatherSnapshots(
+      location,
+      { ...amap, data: {} },
+      { ...openMeteo, data: {} },
+    );
+    expect(missing.current).toEqual({
+      temperature: null,
+      condition: { text: "未知", icon: "unknown" },
+    });
+    expect(missing.providers).toEqual([]);
   });
 
-  it("falls back to Open-Meteo daily when Amap returns no casts", () => {
+  it("weather.daily-provider-fallback", () => {
     const location = getWeatherLocation("ustc-main");
     const amap = {
       ok: true as const,
@@ -119,6 +139,30 @@ describe("weather merge", () => {
       temperatureHigh: 29,
       temperatureLow: 23,
     });
+    const preferred = mergeWeatherSnapshots(
+      location,
+      {
+        ...amap,
+        data: {
+          ...amap.data,
+          daily: [
+            {
+              date: "2026-09-01",
+              temperatureHigh: 35,
+              temperatureLow: 19,
+              weather: "晴",
+            },
+          ],
+        },
+      },
+      openMeteo,
+    );
+    expect(preferred.daily[0]).toEqual({
+      date: "2026-09-01",
+      temperatureHigh: 35,
+      temperatureLow: 19,
+      condition: { text: "晴", icon: "unknown" },
+    });
   });
 
   it("falls back to Open-Meteo when Amap fails", () => {
@@ -154,4 +198,47 @@ describe("weather merge", () => {
     expect(snapshot.hourly).toHaveLength(1);
     expect(snapshot.daily).toHaveLength(1);
   });
+});
+
+it("weather.provider-attribution", () => {
+  const location = getWeatherLocation("ustc-main");
+  const empty = { ok: true as const, data: {}, raw: {} };
+  const amapCurrent = {
+    ...empty,
+    data: { current: { temperature: 20, weather: "晴" } },
+  };
+  const openCurrent = {
+    ...empty,
+    data: { current: { temperature_2m: 21, weather_code: 0 } },
+  };
+  expect(mergeWeatherSnapshots(location, empty, empty).providers).toEqual([]);
+  expect(
+    mergeWeatherSnapshots(location, amapCurrent, openCurrent).providers,
+  ).toEqual(["amap"]);
+  expect(mergeWeatherSnapshots(location, empty, openCurrent).providers).toEqual(
+    ["open-meteo"],
+  );
+  const complementary = {
+    ...empty,
+    data: {
+      ...openCurrent.data,
+      hourly: {
+        time: ["2026-09-15T08:00:00+08:00"],
+        temperature_2m: [20],
+        weather_code: [0],
+      },
+    },
+  };
+  expect(
+    mergeWeatherSnapshots(location, amapCurrent, complementary).providers,
+  ).toEqual(["amap", "open-meteo"]);
+  const amapDaily = {
+    ...empty,
+    data: {
+      daily: [{ date: "2026-09-15", temperatureHigh: 25, temperatureLow: 18 }],
+    },
+  };
+  expect(
+    mergeWeatherSnapshots(location, amapDaily, openCurrent).providers,
+  ).toEqual(["amap", "open-meteo"]);
 });

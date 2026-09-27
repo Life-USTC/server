@@ -16,15 +16,35 @@ access:
 requirements:
 - id: weather.public-no-signin
   category: authorization
-  rule: Weather is public campus life information; sign-in should not be a prerequisite.
+  rule: REST and GraphQL weather reads are anonymous; the MCP weather tool is viewer-independent under
+    the platform MCP endpoint authentication policy.
+  acceptance:
+    given: Fresh cached weather exists for both supported campuses and no viewer is authenticated.
+    when: Anonymous REST/GraphQL and the viewer-independent registered MCP tool read each campus.
+    then:
+    - Each transport returns the current weather successfully without user context.
+    test:
+      file: tests/integration/mcp/catalog/weather.test.ts
+      name: weather.public-no-signin
 - id: weather.two-locations-only
   category: behavior
   rule: Campus weather supports ustc-main for the closely clustered main campuses and ustc-gaoxin for
     Gaoxin.
 - id: weather.amap-primary
   category: behavior
-  rule: Amap (高德) is the primary provider; Open-Meteo supplements hourly forecast, precipitation probability,
-    and other fields Amap does not return. The merged snapshot lists which providers contributed.
+  rule: Current conditions prefer an available Amap current observation and otherwise use an available
+    Open-Meteo current observation. If neither exists, current.temperature is null and condition is unknown;
+    successful forecast-only responses never imply 0°C current weather.
+  acceptance:
+    given: Both providers, only Open-Meteo or neither provider supplies current observations.
+    when: The real weather merge selects current weather.
+    then:
+    - Amap current takes precedence when present.
+    - Missing Amap current falls back to actual Open-Meteo current; missing observations from both yield
+      null temperature and unknown condition.
+    test:
+      file: tests/unit/features/weather/weather-merge.test.ts
+      name: weather.amap-primary
 - id: weather.rolling-hourly-forecast
   category: behavior
   rule: The shared weather service returns available hourly points in [request time, request time + 24
@@ -75,10 +95,27 @@ requirements:
   category: consistency
   rule: REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin;
     unknown keys are rejected as bad input.
+  acceptance:
+    given: A client supplies an empty, unknown, uppercase or whitespace-padded campus key.
+    when: The real REST, GraphQL and registered MCP boundaries parse the key.
+    then:
+    - Every boundary rejects the key as bad input before reading the weather cache.
+    test:
+      file: tests/integration/mcp/catalog/weather.test.ts
+      name: weather.location-key-boundary
 - id: weather.location-provider-mapping
   category: behavior
-  rule: Weather provider location mappings use the approved main-campus and Gaoxin forecast regions without
-    substituting an unrelated administrative region.
+  rule: Amap requests use adcode 340100 for main campuses and 340104 for Gaoxin; Open-Meteo uses coordinates
+    (31.826,117.27) and (31.839,117.094), respectively. Forecast times use Asia/Shanghai.
+  acceptance:
+    given: The main and Gaoxin campus mappings are configured.
+    when: The real Amap and Open-Meteo adapters issue requests to stubbed HTTP providers.
+    then:
+    - Main requests adcode 340100 and coordinates 31.826,117.27; Gaoxin requests 340104 and 31.839,117.094.
+    - Open-Meteo requests Asia/Shanghai and its unzoned hourly times receive +08:00.
+    test:
+      file: tests/unit/features/weather/weather-adapters.test.ts
+      name: weather.location-provider-mapping
 - id: weather.hourly-forecast-expiry
   category: behavior
   rule: Unavailable or expired hourly data is empty; past hourly points never masquerade as the current
@@ -93,10 +130,66 @@ requirements:
       name: weather.hourly-forecast-expiry
 - id: weather.weather-observation-history
   category: consistency
-  rule: Successful refreshes persist timestamped WeatherObservation history for their location.
+  rule: Successful refreshes persist the first merged snapshot and provider payloads for each campus and
+    fetchedAt hour; later refreshes in that hour leave the existing observation intact.
+  acceptance:
+    given: Two successful provider refreshes occur in one hour for the same campus.
+    when: The real refresh service merges HTTP responses and writes through the application database role.
+    then:
+    - The first timestamped snapshot and raw provider payload persist once for that campus/hour.
+    - A later refresh returns new data without rewriting the historical observation.
+    test:
+      file: tests/integration/weather-history-runtime.test.ts
+      name: weather.weather-observation-history
 - id: weather.weather-refresh-budget
   category: consistency
   rule: Scheduled refreshes cover both locations within the configured provider quota.
+- id: weather.hourly-provider-supplement
+  category: behavior
+  rule: Hourly forecasts and precipitation fields come from Open-Meteo and remain aligned with their timestamps.
+  acceptance:
+    given: Open-Meteo supplies seven days of hourly values including precipitation.
+    when: The real merge normalizes hourly points.
+    then:
+    - Every timestamp remains aligned with its temperature, condition, precipitation probability and amount.
+    test:
+      file: tests/unit/features/weather/weather-merge.test.ts
+      name: weather.hourly-provider-supplement
+- id: weather.daily-provider-fallback
+  category: behavior
+  rule: Daily forecasts prefer nonempty Amap casts; if Amap has no casts, available Open-Meteo daily forecasts
+    are used.
+  acceptance:
+    given: Amap current exists with and without daily casts; Open-Meteo also supplies daily data.
+    when: The real merge selects daily forecasts.
+    then:
+    - Nonempty Amap daily data wins; absent Amap casts fall back to Open-Meteo daily values.
+    test:
+      file: tests/unit/features/weather/weather-merge.test.ts
+      name: weather.daily-provider-fallback
+- id: weather.provider-attribution
+  category: behavior
+  rule: The snapshot providers list includes only providers contributing selected current, hourly or daily
+    data; provider request success alone does not count.
+  acceptance:
+    given: Providers return overlapping, complementary or empty successful responses.
+    when: The real merge computes source attribution.
+    then:
+    - Only providers supplying selected current, hourly or daily values appear.
+    test:
+      file: tests/unit/features/weather/weather-merge.test.ts
+      name: weather.provider-attribution
+- id: weather.missing-current-display
+  category: presentation
+  rule: The weather page displays an em dash for unknown current temperature rather than a numeric zero.
+  acceptance:
+    given: The weather page receives a valid snapshot whose current temperature is null.
+    when: The real weather component renders the campus panel.
+    then:
+    - The temperature is displayed as an em dash.
+    test:
+      file: tests/e2e/src/app/weather/test.ts
+      name: weather.missing-current-display
 capabilities:
   weather:
     title: Campus Weather

@@ -7,7 +7,7 @@ const weatherConditionSchema = z.strictObject({
 });
 
 const weatherCurrentSchema = z.strictObject({
-  temperature: z.number(),
+  temperature: z.number().nullable(),
   feelsLike: z.number().optional(),
   humidity: z.number().optional(),
   windDirection: z.string().optional(),

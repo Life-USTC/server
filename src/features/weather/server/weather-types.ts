@@ -39,7 +39,7 @@ export type WeatherCondition = {
 };
 
 export type WeatherCurrent = {
-  temperature: number;
+  temperature: number | null;
   feelsLike?: number;
   humidity?: number;
   windDirection?: string;

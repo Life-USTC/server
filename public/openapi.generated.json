@@ -15850,6 +15850,7 @@
             "type": "object",
             "properties": {
               "temperature": {
+                "nullable": true,
                 "type": "number"
               },
               "feelsLike": {

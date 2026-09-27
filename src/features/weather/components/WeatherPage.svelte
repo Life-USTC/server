@@ -50,8 +50,8 @@ function formatTemplate(template: string, values: Record<string, string>) {
   );
 }
 
-function formatTemperature(value: number) {
-  return `${Math.round(value)}°`;
+function formatTemperature(value: number | null) {
+  return value === null ? "—" : `${Math.round(value)}°`;
 }
 </script>
 
