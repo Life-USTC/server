@@ -19,11 +19,6 @@ function canonicalize(params: URLSearchParams) {
   );
 }
 
-async function sign(params: URLSearchParams) {
-  params.set("sig", await makeSignature(params.toString(), SECRET));
-  return params.toString();
-}
-
 async function signCanonical(params: URLSearchParams) {
   params.delete("ba_param");
   for (const name of [...new Set([...params.keys(), "ba_param"])].sort()) {
@@ -56,7 +51,10 @@ describe("signed OAuth query", () => {
       ba_pl: "session-1",
     });
 
-    const verified = await verifySignedOAuthQuery(await sign(query), SECRET);
+    const verified = await verifySignedOAuthQuery(
+      await signCanonical(query),
+      SECRET,
+    );
 
     expect(Object.fromEntries(verified?.entries() ?? [])).toEqual({
       response_type: "code",
@@ -76,7 +74,7 @@ describe("signed OAuth query", () => {
     });
 
     const verified = await verifySignedOAuthQueryState(
-      await sign(query),
+      await signCanonical(query),
       SECRET,
     );
 
@@ -147,7 +145,7 @@ describe("signed OAuth query", () => {
         client_id: "client-1",
         exp: kind === "expired" ? "1799999999" : "1800000600",
       });
-      const signed = new URLSearchParams(await sign(query));
+      const signed = new URLSearchParams(await signCanonical(query));
       if (kind === "tampered") signed.set("client_id", "client-2");
       if (kind === "duplicate-signature") signed.append("sig", "duplicate");
 

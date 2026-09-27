@@ -25,7 +25,7 @@ function canonicalizeOAuthQueryParams(params: URLSearchParams) {
 
 function hasValidSignedParameterNames(params: URLSearchParams) {
   const declaredNames = params.getAll("ba_param");
-  if (declaredNames.length === 0) return true;
+  if (declaredNames.length === 0) return false;
   const declaredNameSet = new Set(declaredNames);
   if (declaredNameSet.size !== declaredNames.length) return false;
   const actualNameSet = new Set(params.keys());
@@ -69,17 +69,7 @@ export async function verifySignedOAuthQueryState(
     canonicalizeOAuthQueryParams(params).toString(),
     secret,
   );
-  const validCanonicalSignature =
-    !!signature && constantTimeEqual(signature, expected);
-  const validLegacySignature =
-    !validCanonicalSignature &&
-    !params.has("ba_param") &&
-    !!signature &&
-    constantTimeEqual(
-      signature,
-      await makeSignature(params.toString(), secret),
-    );
-  if (!validCanonicalSignature && !validLegacySignature) return null;
+  if (!signature || !constantTimeEqual(signature, expected)) return null;
 
   const issuedAtValue = issuedAtValues[0];
   const issuedAtMs = issuedAtValue ? Number(issuedAtValue) : Number.NaN;

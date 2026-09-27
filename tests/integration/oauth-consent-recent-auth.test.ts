@@ -200,3 +200,129 @@ it(
     expect(getOAuthCopy("zh-cn").errorRecentAuthRequired).toContain("重新登录");
   },
 );
+
+it("oauth.signed-consent-integrity", async () => {
+  const f = await fixture(false);
+  await db.oAuthClient.update({
+    where: { clientId: f.clientId },
+    data: { scopes: ["openid", "profile", "email"] },
+  });
+  const submitted = await f.request.clone().formData();
+  const authorize = new URLSearchParams(String(submitted.get("oauthQuery")));
+  for (const field of ["sig", "exp", "ba_iat", "ba_pl", "ba_param"])
+    authorize.delete(field);
+  authorize.set("scope", "openid profile email");
+  authorize.set("claims", JSON.stringify({ userinfo: { name: null } }));
+  authorize.set("resource", `${origin}/api/mcp`);
+  const provider = await getBetterAuthInstance().handler(
+    new Request(`${origin}/api/auth/oauth2/authorize?${authorize}`, {
+      headers: f.request.headers,
+    }),
+  );
+  expect(provider.status).toBe(302);
+  const location = new URL(provider.headers.get("location")!);
+  expect(location.toString()).toContain("/oauth/authorize?");
+  const signed = location.searchParams;
+  expect(signed.getAll("ba_param").length).toBeGreaterThan(0);
+  const context = await getBetterAuthInstance().$context;
+  async function submit(query: URLSearchParams, scope = "openid profile") {
+    return submitOAuthConsentAction({
+      request: new Request(`${origin}/oauth/authorize`, {
+        method: "POST",
+        headers: f.request.headers,
+        body: new URLSearchParams({
+          accept: "true",
+          oauthQuery: query.toString(),
+          scope,
+        }),
+      }),
+    }).catch((error: unknown) => error);
+  }
+  for (const kind of [
+    "legacy",
+    "missing-name",
+    "duplicate-name",
+    "extra-name",
+    "tampered-scope",
+    "tampered-resource",
+    "tampered-claims",
+    "expired",
+    "bad-signature",
+  ] as const) {
+    const query = new URLSearchParams(signed);
+    query.delete("sig");
+    if (kind === "legacy") query.delete("ba_param");
+    if (kind === "missing-name") {
+      const names = query.getAll("ba_param").filter((name) => name !== "scope");
+      query.delete("ba_param");
+      for (const name of names) query.append("ba_param", name);
+    }
+    if (kind === "duplicate-name") query.append("ba_param", "scope");
+    if (kind === "extra-name") query.append("ba_param", "undeclared");
+    if (kind === "expired") query.set("exp", "1");
+    const canonical = new URLSearchParams(
+      [...query.entries()].sort(([ak, av], [bk, bv]) =>
+        ak < bk ? -1 : ak > bk ? 1 : av < bv ? -1 : av > bv ? 1 : 0,
+      ),
+    );
+    query.set(
+      "sig",
+      await makeSignature(
+        kind === "legacy" ? query.toString() : canonical.toString(),
+        context.secret,
+      ),
+    );
+    if (kind === "tampered-scope")
+      query.set("scope", "profile email admin:write");
+    if (kind === "tampered-resource")
+      query.set("resource", `${origin}/api/graphql`);
+    if (kind === "tampered-claims")
+      query.set("claims", JSON.stringify({ userinfo: { email: null } }));
+    if (kind === "bad-signature") query.set("sig", "invalid");
+    expect(await submit(query), kind).toMatchObject({
+      status: 303,
+      location: "/error?error=consent_failed",
+    });
+    expect(
+      await db.oAuthConsent.count({ where: { clientId: f.clientId } }),
+    ).toBe(0);
+    expect(
+      await db.verificationToken.count({
+        where: { token: { contains: f.clientId } },
+      }),
+    ).toBe(0);
+  }
+  expect(await submit(signed, "profile admin:write")).toMatchObject({
+    status: 303,
+    location: "/error?error=consent_failed",
+  });
+  expect(await db.oAuthConsent.count({ where: { clientId: f.clientId } })).toBe(
+    0,
+  );
+  const approval = await submit(signed);
+  expect(approval).toMatchObject({
+    status: 303,
+    location: expect.stringContaining("https://client.example/callback?code="),
+  });
+  const consent = await db.oAuthConsent.findUniqueOrThrow({
+    where: { clientId_userId: { clientId: f.clientId, userId: f.userId } },
+  });
+  expect(consent).toMatchObject({
+    scopes: ["openid", "profile"],
+    resources: [`${origin}/api/mcp`],
+    requestedUserInfoClaims: ["name"],
+  });
+  const codes = await db.verificationToken.findMany({
+    where: { token: { contains: f.clientId } },
+  });
+  expect(codes).toHaveLength(1);
+  expect(JSON.parse(codes[0].token)).toMatchObject({
+    userId: f.userId,
+    referenceId: consent.grantId,
+    query: {
+      scope: "openid profile",
+      resource: `${origin}/api/mcp`,
+      claims: authorize.get("claims"),
+    },
+  });
+});
