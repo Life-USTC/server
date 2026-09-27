@@ -50,7 +50,6 @@ const PROTECTED_MUTATIONS = [
 const EXPECTED_STORAGE_FAILURES = [
   ["get", "/api/publications/images/{hash}"],
   ["get", "/api/publications/objects/{kind}/{sha256}"],
-  ["get", "/api/catalog/young-events/{youngId}/image"],
   ["get", "/api/catalog/young-events/images/{path}"],
   ["get", "/api/catalog/weather"],
 ] as const;
@@ -65,6 +64,14 @@ type Operation = {
 const paths = openApi.paths as Record<string, Record<string, Operation>>;
 
 describe("OpenAPI rate-limit response contract", () => {
+  it("documents the current-poster resolver as an uncached redirect, without storage retry responses", () => {
+    const responses =
+      paths["/api/catalog/young-events/{youngId}/image"]?.get?.responses;
+    expect(responses).toHaveProperty("302");
+    expect(responses).toHaveProperty("404");
+    expect(responses).not.toHaveProperty("503");
+  });
+
   it("documents 429/503 on protected mutations and dependency failures on reads", () => {
     const expected = new Set(
       [

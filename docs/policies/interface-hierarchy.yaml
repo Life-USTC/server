@@ -225,6 +225,47 @@ requirements:
     test:
       file: tests/integration/workspace-semantic-parity.test.ts
       name: interface-hierarchy.workspace-explicit-read-parity
+- id: interface-hierarchy.public-schedule-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: Public REST and native MCP schedule discovery interpret shared section, teacher, room, weekday
+    and date filters identically and return the same date/start-time/row-ID ordered pages and totals.
+    Section-specific schedule reads use the external section JW ID and return the same requested prefix.
+  rationale: Numeric database IDs and public JW IDs remain distinct inputs; simultaneous selectors constrain
+    the same record. Section-specific reads expose a limit rather than paginated metadata.
+  acceptance:
+    given: An isolated catalog has separate row/JW IDs, teachers, rooms and schedules inserted in reverse
+      row-ID order with tied dates/start times, accessed through the restricted application database role.
+    when: Real anonymous loopback REST and MCP HTTP requests combine shared filters, exhaust two-item
+      pages, submit conflicting selectors and read section-JW-specific date ranges with explicit limits.
+    then:
+    - Both transports select exactly the expected ordered rows and totals, including empty/exhausted pages.
+    - Conflicting identifiers and row/JW substitutions select no rows; tied sort keys use ascending row IDs.
+    - Section-specific results retain the selected section JW identity and requested ordered prefix.
+    test:
+      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      name: interface-hierarchy.public-schedule-read-parity
+- id: interface-hierarchy.subscription-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST current-subscription and native MCP subscription-list reads return the complete owning user's
+    cross-semester section membership, including retired sections and each membership kind. GraphQL
+    subscribedSections pages select slices of that same sequence ordered by descending semester JW ID,
+    ascending section code and ascending unique section JW ID.
+  rationale: REST and MCP expose the complete set without page inputs; GraphQL declares page bounds and totals.
+    Current in the REST route names the user's current membership, not only the current semester.
+  acceptance:
+    given: Three isolated owners have distinct or empty membership, multiple semesters, retired records and
+      reverse-inserted sections with tied semester/code values, plus audience-bound OAuth credentials.
+    when: Real loopback REST, GraphQL and MCP HTTP reads use the restricted application database role;
+      REST also receives a forged userId selector and GraphQL exhausts two-item pages.
+    then:
+    - Every owner receives exactly their ordered section IDs, JW IDs and membership kinds across transports.
+    - GraphQL totals and exhausted pages match the complete REST/MCP sequence, including same-key boundaries.
+    - The empty owner receives no records and forged query identity cannot select another user's membership.
+    test:
+      file: tests/integration/schedule-subscription-semantic-parity.test.ts
+      name: interface-hierarchy.subscription-read-parity
 - id: interface-hierarchy.semantic-parity-4
   category: consistency
   topic: semantic-parity

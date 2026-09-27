@@ -95,7 +95,7 @@ describe("feature transport bindings", () => {
         for (const route of routes) {
           if (route.status === "planned" || route.status === "unavailable")
             continue;
-          const path = route.path.replace(/\[([^\]]+)\]/g, "{$1}");
+          const path = route.path.replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}");
           const operation = `${route.method ?? "GET"} ${path}`;
           expect(
             operations.has(operation) ||
@@ -124,7 +124,7 @@ describe("feature transport bindings", () => {
           )
             continue;
           const operation = field.rest_equivalent
-            .replace(/\[([^\]]+)\]/g, "{$1}")
+            .replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}")
             .replace(/:([A-Za-z][A-Za-z0-9_]*)/g, "{$1}");
           expect(
             operations.has(operation),
