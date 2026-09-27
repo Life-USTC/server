@@ -20,6 +20,7 @@ import {
   getOAuthGraphqlResourceUrl,
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
+import { assertYoungWriteTransportAuthority } from "../../../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../../../shared/prisma";
 import {
   createAnonymousMcpHarness,
@@ -250,6 +251,7 @@ const expectedOwned = (index: number) =>
   index === 0 ? youngIds.slice(0, 3) : youngIds.slice(3);
 
 it("young-workspace.ownership", async () => {
+  await assertYoungWriteTransportAuthority();
   for (const index of [0, 1]) {
     const foreign = 1 - index;
     const expected = expectedOwned(index).sort();

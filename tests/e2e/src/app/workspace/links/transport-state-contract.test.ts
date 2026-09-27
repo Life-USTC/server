@@ -309,6 +309,43 @@ test("catalog-link.pin-error-clear", async ({ page }) => {
       await expect(target.getByRole("button")).toBeEnabled();
       expect(await state()).toEqual(before);
     }
+    // A stale client catalog sends a slug no longer present in the current catalog.
+    await page.route("**/api/workspace/link-pins", async (route) => {
+      await route.continue({
+        headers: {
+          ...route.request().headers(),
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        postData: new URLSearchParams({
+          slug: "unknown-test-link",
+          action: "pin",
+          returnTo: "/catalog/links",
+        }).toString(),
+      });
+    });
+    const response = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === pinPath &&
+        response.request().method() === "POST",
+    );
+    await form(page, "vlab").getByRole("button").click();
+    const failed = await response;
+    expect(failed.status()).toBe(400);
+    expect(await failed.json()).toMatchObject({
+      error: "invalid_slug",
+      pinnedSlugs: ["jw"],
+    });
+    await expect(page.getByRole("alert")).toContainText(
+      language === "zh-cn" ? "置顶更新失败" : "Pin update failed",
+    );
+    await expect(form(page, "jw").locator('input[name="action"]')).toHaveValue(
+      "unpin",
+    );
+    await expect(
+      form(page, "vlab").locator('input[name="action"]'),
+    ).toHaveValue("pin");
+    expect(await state()).toEqual(before);
+    await page.unroute("**/api/workspace/link-pins");
   }
   await removeFailureTrigger();
   await form(page, "vlab").getByRole("button").click();

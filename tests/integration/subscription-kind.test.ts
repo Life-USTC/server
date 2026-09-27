@@ -12,6 +12,7 @@ import {
   batchUpdateUserSectionSubscriptions,
   importUserSectionSubscriptionsByCodes,
 } from "@/features/subscriptions/server/subscription-write-model";
+import { assertSubscriptionKindTransportAuthority } from "../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
@@ -54,6 +55,7 @@ afterAll(async () => {
 
 describe("personal subscription kinds", () => {
   it("subscription.kind-owner-existing-only", async () => {
+    await assertSubscriptionKindTransportAuthority();
     expect(
       await updateSubscriptionKind({
         userId: userIds[0],
