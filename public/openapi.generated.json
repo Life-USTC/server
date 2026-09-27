@@ -9318,14 +9318,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Array response",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
+                  "$ref": "#/components/schemas/scheduleGroupsResponseSchema"
                 }
               }
             }
@@ -9403,14 +9400,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Array response",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
+                  "$ref": "#/components/schemas/sectionSchedulesResponseSchema"
                 }
               }
             }
@@ -40892,6 +40886,752 @@
           "sourceImageUrl"
         ],
         "additionalProperties": false
+      },
+      "scheduleGroupsResponseSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "jwId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "no": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "limitCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "stdCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "actualPeriods": {
+              "type": "number"
+            },
+            "isDefault": {
+              "type": "boolean"
+            },
+            "sectionId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "schedules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "periods": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "weekday": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "startTime": {
+                    "type": "string"
+                  },
+                  "endTime": {
+                    "type": "string"
+                  },
+                  "experiment": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "customPlace": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "lessonType": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "weekIndex": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "exerciseClass": {
+                    "nullable": true,
+                    "type": "boolean"
+                  },
+                  "startUnit": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "endUnit": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "roomId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "sectionId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "scheduleGroupId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "id",
+                  "periods",
+                  "date",
+                  "weekday",
+                  "startTime",
+                  "endTime",
+                  "experiment",
+                  "customPlace",
+                  "lessonType",
+                  "weekIndex",
+                  "exerciseClass",
+                  "startUnit",
+                  "endUnit",
+                  "roomId",
+                  "sectionId",
+                  "scheduleGroupId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "id",
+            "jwId",
+            "no",
+            "limitCount",
+            "stdCount",
+            "actualPeriods",
+            "isDefault",
+            "sectionId",
+            "schedules"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "sectionSchedulesResponseSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "periods": {
+              "type": "number"
+            },
+            "date": {
+              "nullable": true,
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "weekday": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "startTime": {
+              "type": "string"
+            },
+            "endTime": {
+              "type": "string"
+            },
+            "experiment": {
+              "nullable": true,
+              "type": "string"
+            },
+            "customPlace": {
+              "nullable": true,
+              "type": "string"
+            },
+            "lessonType": {
+              "nullable": true,
+              "type": "string"
+            },
+            "weekIndex": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "exerciseClass": {
+              "nullable": true,
+              "type": "boolean"
+            },
+            "startUnit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "endUnit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "roomId": {
+              "nullable": true,
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "sectionId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "scheduleGroupId": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "room": {
+              "nullable": true,
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "nameCn": {
+                  "type": "string"
+                },
+                "nameEn": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "floor": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "virtual": {
+                  "type": "boolean"
+                },
+                "seatsForSection": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "remark": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "seats": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "buildingId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "roomTypeId": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "building": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "campusId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "campus": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "code": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "jwId",
+                        "nameCn",
+                        "nameEn",
+                        "code",
+                        "namePrimary",
+                        "nameSecondary"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "campusId",
+                    "namePrimary",
+                    "nameSecondary",
+                    "campus"
+                  ],
+                  "additionalProperties": false
+                },
+                "roomType": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "jwId",
+                    "nameCn",
+                    "nameEn",
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "nameCn",
+                "nameEn",
+                "code",
+                "floor",
+                "virtual",
+                "seatsForSection",
+                "remark",
+                "seats",
+                "buildingId",
+                "roomTypeId",
+                "namePrimary",
+                "nameSecondary",
+                "building",
+                "roomType"
+              ],
+              "additionalProperties": false
+            },
+            "teachers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "jwId": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "personId": {
+                    "nullable": true,
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "code": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "nameCn": {
+                    "type": "string"
+                  },
+                  "nameEn": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "namePrimary": {
+                    "type": "string"
+                  },
+                  "nameSecondary": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "department": {
+                    "nullable": true,
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "isCollege": {
+                        "nullable": true,
+                        "type": "boolean"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "code",
+                      "nameCn",
+                      "nameEn",
+                      "isCollege",
+                      "namePrimary",
+                      "nameSecondary"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "jwId",
+                  "personId",
+                  "code",
+                  "nameCn",
+                  "nameEn",
+                  "namePrimary",
+                  "nameSecondary",
+                  "department"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "teacherParticipations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "teacher": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "jwId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "personId": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "code": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "nameCn": {
+                        "type": "string"
+                      },
+                      "nameEn": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "department": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "isCollege": {
+                            "nullable": true,
+                            "type": "boolean"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "isCollege",
+                          "namePrimary",
+                          "nameSecondary"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "jwId",
+                      "personId",
+                      "code",
+                      "nameCn",
+                      "nameEn",
+                      "namePrimary",
+                      "nameSecondary",
+                      "department"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "periods": {
+                    "nullable": true,
+                    "type": "number"
+                  },
+                  "exerciseClass": {
+                    "nullable": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "teacher",
+                  "periods",
+                  "exerciseClass"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "scheduleGroup": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "jwId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "no": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "limitCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "stdCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "actualPeriods": {
+                  "type": "number"
+                },
+                "isDefault": {
+                  "type": "boolean"
+                },
+                "sectionId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "jwId",
+                "no",
+                "limitCount",
+                "stdCount",
+                "actualPeriods",
+                "isDefault",
+                "sectionId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "periods",
+            "date",
+            "weekday",
+            "startTime",
+            "endTime",
+            "experiment",
+            "customPlace",
+            "lessonType",
+            "weekIndex",
+            "exerciseClass",
+            "startUnit",
+            "endUnit",
+            "roomId",
+            "sectionId",
+            "scheduleGroupId",
+            "room",
+            "teachers",
+            "teacherParticipations",
+            "scheduleGroup"
+          ],
+          "additionalProperties": false
+        }
       },
       "commentReactionRequestSchema": {
         "type": "object",

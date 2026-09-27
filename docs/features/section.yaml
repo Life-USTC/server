@@ -208,6 +208,23 @@ requirements:
     test:
       file: tests/e2e/src/app/sections/[jwId]/subscribe.test.ts
       name: section.retired-detail-presentation
+- id: section.schedule-response-schema
+  category: consistency
+  rule: Section schedules and schedule groups publish named OpenAPI response schemas shared with runtime
+    validation. Generated clients retain typed nested schedule, group, teacher and participation fields
+    without changing the public response shape.
+  acceptance:
+    given: An isolated public Section has a persisted schedule group, schedule and teacher participation
+      with full public identity and private contact sentinels.
+    when: Anonymous HTTP callers retrieve OpenAPI and localized schedules and schedule groups.
+    then:
+    - OpenAPI references the shared named array schemas with typed nested fields.
+    - Both localized HTTP responses satisfy the exact runtime schemas and preserve schedule, group, teacher
+      identity and participation facts.
+    - Private teacher contact values never appear.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/schedule-schema.test.ts
+      name: section.schedule-response-schema
 capabilities:
   section-list:
     title: Section List & Filter
