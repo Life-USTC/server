@@ -83,7 +83,7 @@ describe("GraphQL MCP operations", () => {
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 
-  it("injects schema-aware GraphQL planning guidance through MCP", async () => {
+  it("graphql.graphql-operation-prompt", async () => {
     expect(isolated.client.getInstructions()).toContain(
       GRAPHQL_OPERATION_PROMPT_NAME,
     );
@@ -115,6 +115,29 @@ describe("GraphQL MCP operations", () => {
     expect(guidance.text).not.toContain("run_graphql_operation");
     expect(guidance.text).toContain("confirmed=true");
     expect(guidance.text).toContain("insufficient_scope");
+    expect(guidance.text).toContain("exactly once");
+    expect(guidance.text).toContain("explicit bounded pagination");
+    expect(guidance.text).toContain("request only the listed scopes");
+    expect(guidance.text).toContain("REQUEST_TIMEOUT or REQUEST_CANCELLED");
+    expect(guidance.text).toContain(
+      "inspect current state instead of blindly retrying",
+    );
+    for (const message of prompt.messages) {
+      if (message.content.type !== "resource") continue;
+      const resource = message.content.resource;
+      if (!("text" in resource))
+        throw new Error("Expected embedded text resource");
+      if (resource.uri === GRAPHQL_SCHEMA_RESOURCE_URI) {
+        const { graphqlSchemaSdl } = await import("@/lib/graphql/resources");
+        expect(resource.text).toBe(graphqlSchemaSdl);
+      } else if (resource.uri === GRAPHQL_OPERATIONS_RESOURCE_URI) {
+        const { graphqlOperationsManifest } = await import(
+          "@/lib/graphql/resources"
+        );
+        expect(resource.text).toBe(graphqlOperationsManifest);
+        expect(resource.text).not.toContain('"document"');
+      }
+    }
     expect(prompt.messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

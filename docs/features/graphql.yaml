@@ -29,6 +29,14 @@ requirements:
 - id: graphql.single-endpoint
   category: behavior
   rule: GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.
+  acceptance:
+    given: The real GraphQL route exports and anonymous metadata query.
+    when: GET, POST and OPTIONS invoke the exported HTTP route.
+    then:
+    - GET and POST execute the query at /api/graphql; OPTIONS returns a successful preflight.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.single-endpoint
 - id: graphql.production-discovery
   category: behavior
   rule: The GraphiQL interactive IDE is available in development only and is not served by the production
@@ -65,6 +73,16 @@ requirements:
   rule: MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation
     manifest and guides one bounded graphql_operation_run call, including minimum scopes, explicit mutation
     confirmation, and timeout-safe retry behavior.
+  acceptance:
+    given: A real MCP client connected to the application server.
+    when: The client requests the registered GraphQL planning prompt.
+    then:
+    - The prompt embeds the exact canonical SDL and document-free manifest.
+    - Guidance requires one bounded call, minimum challenged scopes, explicit mutation confirmation and
+      state inspection after timeout or cancellation.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.graphql-operation-prompt
 - id: graphql.mutation-timeout-ambiguity
   category: consistency
   rule: A GraphQL timeout or caller cancellation stops waiting for the result but cannot guarantee rollback
@@ -77,6 +95,15 @@ requirements:
     governance, upload byte transfer, GraphQL subscriptions, and introspection are excluded.
   rationale: Registered operations are current discoverability and call-construction conveniences, not
     a promise to preserve retired operations.
+  acceptance:
+    given: The executable schema and compiled registered-operation definitions.
+    when: Every Query, Mutation, Workspace and Account field is compared with the registry.
+    then:
+    - All supported fields have a registered operation and excluded protocol/governance/byte-transfer/subscription
+      capabilities remain absent.
+    test:
+      file: tests/unit/lib/graphql/graphql-operations.test.ts
+      name: graphql.registered-operation-coverage
 - id: graphql.upload-workflow-boundary
   category: privacy
   rule: Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit,
@@ -133,10 +160,18 @@ requirements:
     variables, credentials, argument values, and error details are excluded.
 - id: graphql.scoped-query-auth
   category: authorization
-  rule: Anonymous requests receive null for Query.account and Query.workspace. Public catalog and community
-    roots remain anonymously readable. Each protected child field independently checks its required OAuth
-    feature scope for bearer principals; trusted-origin cookie sessions use their first-party user authority.
-    Ownership remains enforced by the feature service.
+  rule: Each protected Workspace and Account child field independently checks its required OAuth feature
+    scope for bearer principals. A missing feature scope returns the exact required scope without granting
+    partial authority to another feature.
+  acceptance:
+    given: Real GraphQL bearer grants with matching, missing-profile, and incomplete multi-field scopes.
+    when: The HTTP handler executes selected protected child fields.
+    then:
+    - Matching fields return the authenticated data; every missing feature produces a 403 with its exact
+      required scope.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.scoped-query-auth
 - id: graphql.workspace-ownership
   category: authorization
   rule: Workspace collections derive ownership from the authenticated user relation in feature services
@@ -176,6 +211,15 @@ requirements:
   category: behavior
   rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,
     or unavailable status.'
+  acceptance:
+    given: Highlighted, overview, and unavailable results from the feature-owned room-map lookup.
+    when: An anonymous query selects all RoomMap fields.
+    then:
+    - The GraphQL result preserves the status, public URLs, nullable metadata and requested code for each
+      supported outcome.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.room-maps
 - id: graphql.subscription-kind
   category: behavior
   rule: Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate
@@ -195,11 +239,21 @@ requirements:
 - id: graphql.scoped-queries.community-read-boundary
   category: authorization
   rule: Community exposes user profiles only; comment and shared-description reads are unavailable in
-    GraphQL. After an ambiguous write, inspect /api/community/comments or /api/community/descriptions
-    using a session or a REST-audience token with the required read scope; MCP callers may use native
-    read tools. A GraphQL token is not a REST token. Do not blindly retry.
+    GraphQL.
   applies_to:
   - scoped-queries
+  rationale: Ambiguous community writes can be inspected using native MCP reads or /api/community/comments
+    and /api/community/descriptions. Those REST requests remain subject to oauth.rest-bearer-scopes; a
+    GraphQL token is not a REST token. graphql.graphql-operation-prompt owns the state-inspection and
+    no-blind-retry guidance.
+  acceptance:
+    given: The current executable Community schema.
+    when: Authenticated callers request comment or description reads.
+    then:
+    - Community has only the user field and rejects either unavailable read before execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.scoped-queries.community-read-boundary
 - id: graphql.request-single-operation
   category: validation
   rule: GraphQL HTTP accepts one operation request per HTTP call and rejects JSON arrays of batched operation
@@ -339,6 +393,15 @@ requirements:
   category: consistency
   rule: Schedule and exam DateTime filters normalize to the Asia/Shanghai calendar day before querying
     date-only database columns.
+  acceptance:
+    given: Equivalent zoned instants and an instant across Shanghai midnight.
+    when: The executable GraphQL schedule and exam resolvers process DateTime variables.
+    then:
+    - Both feature services receive the Shanghai day as UTC midnight, together with the authenticated
+      user ID.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.calendar-date-filter-normalization
 - id: graphql.registered-operation-timeout
   category: validation
   rule: Registered GraphQL operation execution through MCP stops waiting after a five-second deadline
@@ -351,6 +414,30 @@ requirements:
     test:
       file: tests/unit/lib/graphql/graphql-operation-runner.test.ts
       name: graphql.registered-operation-timeout
+- id: graphql.anonymous-roots
+  category: authorization
+  rule: Anonymous requests receive null for Query.account and Query.workspace; public catalog and community
+    roots remain readable.
+  acceptance:
+    given: Real production-role data and the relevant anonymous or signed-session principal.
+    when: The HTTP handler evaluates protected and public root fields.
+    then:
+    - The response respects the principal boundary and returns only the permitted root data.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.anonymous-roots
+- id: graphql.session-query-authority
+  category: authorization
+  rule: Trusted-origin cookie sessions use their authenticated first-party authority to read Account and
+    Workspace fields without OAuth scopes.
+  acceptance:
+    given: Real production-role data and the relevant anonymous or signed-session principal.
+    when: The HTTP handler evaluates protected and public root fields.
+    then:
+    - The response respects the principal boundary and returns only the permitted root data.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.session-query-authority
 capabilities:
   public-query-endpoint:
     title: Public Queries and Scoped Personal Mutations

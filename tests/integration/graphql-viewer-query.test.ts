@@ -252,17 +252,25 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     ]);
   });
 
-  it("returns account=null to anonymous callers and marks the response no-store", async () => {
+  it("graphql.anonymous-roots", async () => {
     const { response, payload } = await execute({
-      query: "{ account { profile { id } } }",
+      query:
+        "{ account { profile { id } } workspace { todos { pageInfo { total } } } catalog { __typename } community { __typename } }",
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(payload).toEqual({ data: { account: null } });
+    expect(payload).toEqual({
+      data: {
+        account: null,
+        workspace: null,
+        catalog: { __typename: "Catalog" },
+        community: { __typename: "Community" },
+      },
+    });
   });
 
-  it("serves account and workspace fields through a trusted-Origin session", async () => {
+  it("graphql.session-query-authority", async () => {
     const shanghaiMidnightInstant = new Date(
       firstScheduleDate.getTime() - 8 * 60 * 60 * 1000,
     ).toISOString();
@@ -765,7 +773,7 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     }
   });
 
-  it("accepts a GraphQL-only bearer and enforces each selected field scope", async () => {
+  it("graphql.scoped-query-auth", async () => {
     const authorized = await execute(
       {
         query: /* GraphQL */ `
