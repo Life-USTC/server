@@ -50,8 +50,16 @@ it("ui.basic-info-card-2", async () => {
           expect(source, filename).not.toMatch(
             /(?:comments|homeworks|workspace)\//,
           );
-          if (source.startsWith(".") && source.endsWith(".svelte"))
-            pending.push(path.posix.join(path.posix.dirname(filename), source));
+          if (source.endsWith(".svelte")) {
+            const resolved = source.startsWith(".")
+              ? path.posix.join(path.posix.dirname(filename), source)
+              : source.startsWith("@/")
+                ? `src/${source.slice(2)}`
+                : source.startsWith("$lib/")
+                  ? `src/lib/${source.slice(5)}`
+                  : null;
+            if (resolved?.startsWith("src/features/")) pending.push(resolved);
+          }
         }
         if (node.type === "RegularElement" || node.type === "Component") {
           if (node.name) tags.add(node.name);

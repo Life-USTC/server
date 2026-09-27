@@ -363,10 +363,10 @@ requirements:
   category: presentation
   topic: basic-info-card
   rule: Course, teacher and section basic-information components render structured facts. Comment and homework interaction components remain outside their component dependency trees.
-  rationale: This is a component responsibility boundary. Public field allowlists are owned by course.public-detail-fields, teacher.public-detail-fields and section.public-teacher-reference; the visible localized identity facts are owned by ui.layout-principles-3.
+  rationale: This is a feature-component responsibility boundary; generic shared UI primitives are external leaves, and the current fact components do not re-export children through barrels. Public field allowlists are owned by course.public-detail-fields, teacher.public-detail-fields and section.public-teacher-reference; the visible localized identity facts are owned by ui.layout-principles-3.
   acceptance:
     given: The three catalog basic-information roots and all their composed local Svelte children.
-    when: The Svelte compiler parses their component dependency trees and element attributes.
+    when: The Svelte compiler parses their feature-component dependency trees through relative and aliased Svelte imports and inspects element attributes.
     then:
     - Each tree contains definition-list fields and contains no comment/homework component imports, mutation forms, input controls or interaction handlers.
     test:
