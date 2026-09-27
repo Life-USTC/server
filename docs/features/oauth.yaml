@@ -232,6 +232,18 @@ requirements:
   rule: Protected REST and GraphQL endpoints accept OAuth bearer tokens only with the endpoint audience
     and explicit feature:action authority; shared verification rejects any DPoP-bound cnf.jkt token presented
     as Bearer. Browser cookie sessions continue to use normal signed-in user semantics without OAuth scopes.
+  acceptance:
+    given: A real user, todo, browser session, approved grant, and provider-signed JWTs with varied audiences,
+      scopes, and confirmation claims.
+    when: Call the actual protected REST todo route and GraphQL todo operation with each bearer token
+      and then a browser cookie.
+    then:
+    - Only the exact endpoint audience and explicit todo read authority returns the user record; missing,
+      identity-only, unrelated scopes, other resource audiences, and DPoP-bound Bearer presentations fail.
+    - A valid browser session accesses the same user data without OAuth scope requirements.
+    test:
+      file: tests/integration/oauth-access-contracts.test.ts
+      name: oauth.rest-bearer-scopes
 - id: oauth.mcp-refresh-resource-binding
   category: authorization
   rule: Omitted-resource refresh requests map to canonical MCP only when the stored grant approves exactly
