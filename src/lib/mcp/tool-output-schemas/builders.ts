@@ -52,7 +52,7 @@ export const COMMON_OUTPUT_SHAPE = {
   message: z.string().nullable().optional(),
   reason: z.string().nullable().optional(),
   hint: z.string().optional(),
-  result: z.unknown().optional(),
+  result: z.json().optional(),
 } satisfies OutputShape;
 
 export const STRUCTURED_CONTENT_OUTPUT_SCHEMA = z
@@ -80,18 +80,8 @@ export function objectOutputSchemaFromApi(schema: { shape: OutputShape }) {
   return objectOutputSchema(schema.shape);
 }
 
-export function topLevelOutputSchema(keys: string[]) {
-  return objectOutputSchema(
-    Object.fromEntries(keys.map((key) => [key, z.unknown()])) as OutputShape,
-  );
-}
-
 export function collectionOutputSchema(itemSchema: z.ZodType) {
   return z.array(itemSchema);
-}
-
-export function compactObjectSchema(shape: OutputShape) {
-  return z.object(optionalizeShape(shape)).catchall(z.unknown());
 }
 
 export const compactUserSchema = z.strictObject({

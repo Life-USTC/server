@@ -56,7 +56,6 @@ import {
   teacherDetailMcpSchema,
   teacherDetailSchema,
   teacherListSchema,
-  topLevelOutputSchema,
 } from "./shared";
 
 export const weatherNoDataSchema = z.strictObject({
@@ -356,12 +355,21 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     calendarPath: z.string(),
     calendarUrl: z.string(),
   }),
-  catalog_link_list: topLevelOutputSchema([
-    "query",
-    "total",
-    "returned",
-    "links",
-  ]),
+  catalog_link_list: objectOutputSchema({
+    query: z.string().nullable(),
+    total: z.number().int().nonnegative(),
+    returned: z.number().int().nonnegative(),
+    links: z.array(
+      z.strictObject({
+        slug: z.string(),
+        title: z.string(),
+        url: z.string(),
+        description: z.string(),
+        icon: z.string(),
+        group: z.string(),
+      }),
+    ),
+  }),
   catalog_weather_get: objectOutputSchema({
     ...weatherSnapshotResponseSchema.shape,
     locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),

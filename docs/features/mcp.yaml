@@ -400,10 +400,22 @@ requirements:
   category: consistency
   rule: Every known MCP output field outside the separately specified community and bus domains has an
     explicit value schema; known fields must not silently become unconstrained unknown values.
-  rationale: Community and bus field schemas are independently canonical in mcp.typed-community-output-fields
-    and mcp.typed-bus-output-fields. Generic serializer result and selection-dependent GraphQL data are
-    open JSON containers, not fixed domain projections. Remaining unconstrained domain fields are still
-    an implementation gap.
+  rationale: Community and bus field schemas have their own canonical tests. The generic serializer result,
+    selection-dependent GraphQL data/extensions, Young rawJson and weather provider extensions intentionally
+    retain arbitrary JSON; these are constrained to JSON values rather than misrepresented as normalized
+    domain records. Known workspace, catalog and account fields use explicit field types. Optional card
+    fields reflect the actual documented projections, not arbitrary extra keys.
+  acceptance:
+    given: Actual account/catalog/workspace/GraphQL tool descriptors and the production field validators.
+    when: Every known schema field, collection item and union branch is traversed; representative aggregate
+      fields receive valid and invalid values.
+    then:
+    - No known output field is an unconstrained unknown schema.
+    - Valid completions, calendar events, counts, pins and catalog links pass; incorrect types fail.
+    - Generic and explicitly raw/dynamic values have a recursive JSON value schema.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-output-fields
 - id: mcp.typed-bus-output-fields
   category: consistency
   rule: All seven bus tools advertise explicit schemas for routes, stops, timetable slots, departures

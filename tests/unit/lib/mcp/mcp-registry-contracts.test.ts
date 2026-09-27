@@ -187,11 +187,14 @@ function inspect(schema: unknown, path: string): void {
   for (const [key, field] of Object.entries(
     (node.properties ?? {}) as Record<string, unknown>,
   )) {
-    // result is the generic non-object serializer envelope; it is not a domain field.
-    if (path.endsWith("output") && key === "result") continue;
     inspect(field, `${path}.${key}`);
   }
   if (node.items) inspect(node.items, `${path}[]`);
+  if (
+    node.additionalProperties &&
+    typeof node.additionalProperties === "object"
+  )
+    inspect(node.additionalProperties, `${path}.*`);
   for (const union of ["anyOf", "oneOf", "allOf"]) {
     if (Array.isArray(node[union]))
       for (const [index, variant] of node[union].entries())
@@ -340,5 +343,80 @@ it("mcp.typed-bus-output-fields", () => {
     expect(field.safeParse(invalid).success, `${name}.${key} invalid`).toBe(
       false,
     );
+  }
+});
+
+it("mcp.typed-output-fields", () => {
+  const other = tools.filter(
+    (tool) =>
+      !tool.name.startsWith("community_") &&
+      !/^(catalog|workspace)_bus_/.test(tool.name),
+  );
+  expect(other.length).toBeGreaterThan(0);
+  for (const tool of other) inspect(tool.outputSchema, `${tool.name}.output`);
+  for (const [name, key, valid, invalid] of [
+    [
+      "workspace_homework_completion_set",
+      "completion",
+      { homeworkId: "homework", completed: false, completedAt: null },
+      { completed: "false" },
+    ],
+    ["workspace_link_pin_list", "pinnedSlugs", ["library"], [3]],
+    [
+      "workspace_calendar_event_list",
+      "events",
+      [
+        {
+          type: "todo_due",
+          at: "2026-09-01T08:00:00+08:00",
+          payload: { id: "todo", title: "Task", completed: false },
+        },
+      ],
+      [
+        {
+          type: "todo_due",
+          at: "2026-09-01T08:00:00+08:00",
+          payload: { completed: "no" },
+        },
+      ],
+    ],
+    [
+      "workspace_overview_get",
+      "overview",
+      {
+        pendingTodosCount: 1,
+        pendingHomeworksCount: 2,
+        todaySchedulesCount: 3,
+        upcomingExamsCount: 4,
+      },
+      { pendingTodosCount: "1" },
+    ],
+    [
+      "catalog_link_list",
+      "links",
+      [
+        {
+          slug: "library",
+          title: "Library",
+          url: "https://library.example",
+          description: "Library",
+          icon: "book",
+          group: "study",
+        },
+      ],
+      [{ slug: false }],
+    ],
+  ] as const) {
+    const output = getMcpToolOutputSchema(name);
+    if (!(output instanceof z.ZodObject))
+      throw new Error(`Expected object schema for ${name}`);
+    expect(
+      output.shape[key].safeParse(valid).success,
+      `${name}.${key} valid`,
+    ).toBe(true);
+    expect(
+      output.shape[key].safeParse(invalid).success,
+      `${name}.${key} invalid`,
+    ).toBe(false);
   }
 });

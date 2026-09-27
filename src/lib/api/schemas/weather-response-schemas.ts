@@ -52,7 +52,8 @@ export const weatherSnapshotResponseSchema = z.strictObject({
   daily: z.array(weatherDailySchema),
   alerts: z.array(weatherAlertSchema),
   extensions: z.strictObject({
-    amap: z.unknown().optional(),
-    openMeteo: z.unknown().optional(),
+    // Provider extensions preserve raw JSON; normalized weather fields above are typed separately.
+    amap: z.json().optional(),
+    openMeteo: z.json().optional(),
   }),
 });

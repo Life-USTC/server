@@ -86,7 +86,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     operationId: z.string(),
     operationName: z.string(),
     operationType: z.enum(["mutation", "query"]),
-    data: z.record(z.string(), z.unknown()).nullable(),
+    data: z.record(z.string(), z.json()).nullable(),
     errors: z.array(
       z
         .object({
@@ -100,7 +100,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
             )
             .optional(),
           path: z.array(z.union([z.string(), z.number().int()])).optional(),
-          extensions: z.record(z.string(), z.unknown()).optional(),
+          extensions: z.record(z.string(), z.json()).optional(),
         })
         .strict(),
     ),

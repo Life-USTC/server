@@ -153,7 +153,7 @@ export const youngEventSummarySchema = z.strictObject({
 export const youngEventDetailSchema = youngEventSummarySchema.extend({
   description: z.string().nullable(),
   participationNotes: z.string().nullable(),
-  rawJson: z.unknown(),
+  rawJson: z.json(),
 });
 
 export const youngEventListMetadataSchema = z.strictObject({

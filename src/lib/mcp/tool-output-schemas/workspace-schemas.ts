@@ -109,7 +109,7 @@ export const compactTodoSchema = todoItemSchema
     content: todoItemSchema.shape.content.optional(),
   })
   .partial()
-  .catchall(z.unknown());
+  .strict();
 
 export const compactWorkspaceHomeworkSchema = compactHomeworkSchema
   .omit({ createdBy: true, updatedBy: true, deletedBy: true })
