@@ -35,10 +35,32 @@ requirements:
   category: consistency
   rule: A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It
     never infers cancellation. Incomplete snapshots leave existing rows unchanged.
+  acceptance:
+    given: Two previously observed published events exist and a later source is incomplete, complete with
+      one event, empty, or reintroduces an absent event.
+    when: The real snapshot gate and Young importer reconcile these sources in a database transaction.
+    then:
+    - Incomplete snapshots leave rows unchanged.
+    - Complete missing and empty sources retain rows with sourceMissing=true and prior lastSeenAt, without
+      inferring cancellation.
+    - Observed and reappearing events update lastSeenAt and clear sourceMissing.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.snapshot-authoritative
 - id: young-event.organizer-identity
   category: consistency
   rule: Organizer names use Unicode NFKC, trim, whitespace collapse, and lowercase. Exact normalized names
     resolve to stable local YoungOrganizer IDs; matching never uses fuzzy similarity.
+  acceptance:
+    given: Source organizer labels vary by full-width Unicode, whitespace and case; a similar but unequal
+      name and a blank label also occur.
+    when: The actual Young importer runs repeatedly against a real database.
+    then:
+    - Exactly normalized names share one stable local organizer ID across imports.
+    - A merely similar name remains distinct, and a blank label creates no organizer.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.organizer-identity
 - id: young-event.raw-payload-preserved
   category: consistency
   rule: Curated columns cover the high-value upstream fields, including the rich-text description and
@@ -74,8 +96,20 @@ requirements:
     range boundaries use Asia/Shanghai day boundaries.
 - id: young-event.date-range-overlap
   category: consistency
-  rule: Activity date-range searches include intervals overlapping the selected activity or registration
-    time basis; a known start with no end is treated as a point.
+  rule: Activity and registration date-range searches use the selected time basis and include intervals
+    overlapping the requested Shanghai days. Interval ends are exclusive; a known start with no end is
+    treated as a point.
+  acceptance:
+    given: Persisted events span midnight, end exactly at day start, have only a start, or have registration
+      timing distinct from activity timing.
+    when: The actual catalog service queries one Shanghai day using activity and registration time bases.
+    then:
+    - Overlapping and known-start-only events are included; intervals ending exactly at the day start
+      are excluded.
+    - Registration filtering uses registration timing independently of activity timing.
+    test:
+      file: tests/integration/young-catalog.test.ts
+      name: young-event.date-range-overlap
 - id: young-event.read-only
   category: authorization
   rule: Events are imported facts; no transport exposes writes.
@@ -83,10 +117,30 @@ requirements:
   category: behavior
   rule: Source category/module/form/level, organization, tag and signup-scope codes remain opaque and
     separate from labels and local organizer identity.
+  acceptance:
+    given: An upstream record has distinct category/module/form/level labels and codes plus source organization,
+      tag and audience IDs.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Published fields preserve opaque codes separately from labels.
+    - Source identity arrays retain stable deduplicated order and remain distinct from local organizer
+      identity.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.structured-participation
 - id: young-event.display-known-values
   category: presentation
   rule: Published registration requirements, meeting information, accepted attachment formats and external
     sponsor are shown when supplied.
+  acceptance:
+    given: A persisted activity provides registration requirements, accepted attachments, online meeting
+      information and an external sponsor.
+    when: The actual detail page renders at desktop and mobile widths.
+    then:
+    - Every supplied participation fact is visible.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.display-known-values
 - id: young-event.web-browse-context
   category: presentation
   rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
@@ -122,26 +176,90 @@ requirements:
   category: consistency
   rule: Rows lacking the selected start time contribute to unknownDateCount and are available through
     paginated dateUnknown results.
+  acceptance:
+    given: Five real events have one unknown activity start and four unknown registration starts.
+    when: The actual catalog service queries date-bounded and dateUnknown pages for both time bases.
+    then:
+    - unknownDateCount reflects the selected start field.
+    - Unknown-date pages report complete stable totals and jointly return every matching record exactly
+      once.
+    test:
+      file: tests/integration/young-catalog.test.ts
+      name: young-event.unknown-date-results
 - id: young-event.participation-flag-normalization
   category: behavior
   rule: Participation signup-info and online flags use strict binary source interpretation; missing arrays
     serialize as empty arrays.
+  acceptance:
+    given: Source binary flags are 1/0 numbers or strings, invalid values or missing, with absent arrays.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Only exact binary source values become booleans; missing and invalid flags are null.
+    - Absent identity/tag/attachment arrays serialize as empty arrays.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.participation-flag-normalization
 - id: young-event.participation-sponsor-normalization
   category: behavior
   rule: Blank or placeholder sponsor values serialize as null; attachment extensions are normalized without
     inventing unsupported formats.
+  acceptance:
+    given: Source sponsor values are blank, placeholders or a real label; extensions include mixed case,
+      dots, duplicates and invalid separators.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Blank/placeholder sponsors serialize as null and a real sponsor is trimmed.
+    - Allowed extensions normalize to stable unique lowercase names without inventing extra formats.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.participation-sponsor-normalization
 - id: young-event.online-option-uncertainty
   category: presentation
   rule: isOnline describes the upstream online-meeting option; false does not imply in-person attendance.
+  acceptance:
+    given: Persisted activities have true, false and missing online-meeting flags.
+    when: Their actual detail pages render at desktop and mobile widths.
+    then:
+    - Only true displays the online-meeting option.
+    - False and missing do not claim in-person attendance.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.online-option-uncertainty
 - id: young-event.occupancy-uncertainty
   category: presentation
   rule: Unknown activity occupancy is displayed as unknown rather than zero.
+  acceptance:
+    given: Persisted activities have unknown or explicitly zero registrations and capacity 20.
+    when: The detail pages render on desktop/mobile, then the desktop catalog table renders.
+    then:
+    - Unknown counts are omitted from detail facts and shown as unknown in the catalog.
+    - A known zero remains an explicit zero.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.occupancy-uncertainty
 - id: young-event.partial-time-uncertainty
   category: presentation
   rule: Partial time ranges label the known endpoint in Asia/Shanghai.
+  acceptance:
+    given: Persisted activities have only a start or only an end timestamp.
+    when: Their actual detail summaries render on desktop and mobile.
+    then:
+    - Each summary labels the known endpoint and formats its instant in Shanghai time.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.partial-time-uncertainty
 - id: young-event.scope-uncertainty
   category: presentation
   rule: Unknown signup-scope codes are never translated into eligibility claims.
+  acceptance:
+    given: A persisted activity has an unrecognized signup-scope code and opaque source department identity.
+    when: The actual detail page renders on desktop and mobile.
+    then:
+    - The page directs viewers to the official eligibility source.
+    - It does not invent an eligibility claim or present opaque IDs as audience labels.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.scope-uncertainty
 capabilities:
   young-event:
     title: Second-Classroom Events
