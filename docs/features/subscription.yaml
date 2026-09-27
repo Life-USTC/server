@@ -337,6 +337,7 @@ capabilities:
     mcp:
       tools:
       - name: catalog_section_match_preview
+        auth: anon
         identifier_inputs:
           semesterId: Semester.id
         rest_equivalent: POST /api/catalog/sections/match-codes

@@ -219,11 +219,6 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: rendering-and-cache.cacheable-public-pages-14
-- id: rendering-and-cache.personal-overlays-1
-  category: privacy
-  topic: personal-overlays
-  rule: Public SSR never includes subscription state, homework completion, edit permissions, link pins/visits,
-    or bus preferences.
 - id: rendering-and-cache.personal-overlays-2
   category: privacy
   topic: personal-overlays
@@ -503,7 +498,23 @@ requirements:
 - id: rendering-and-cache.contributor-notes-1
   category: consistency
   topic: contributor-notes
-  rule: Keep public data and viewer projections separate in feature services.
+  rule: Shared academic, Young, bus and campus-link public fact reader interfaces exclude viewer identity,
+    authentication context and saved preferences. Separate private projection or composition functions take
+    explicit user identity; public readers do not directly call those private readers.
+  rationale: This is an architectural interface constraint. Runtime privacy, cache eligibility and server
+    authorization remain independently verified by the feature-specific public/private boundary requirements.
+    Page loaders may receive a framework request context; the shared fact reader beneath them must not.
+  acceptance:
+    given: The actual TypeScript public fact readers for academic lists/details, semesters, Young events and
+      organizers, static bus timetables and campus links, plus their owner-aware composition functions.
+    when: The TypeScript compiler resolves each exported reader's parameter types and call expressions.
+    then:
+    - Public reader parameters expose no userId, viewer, authentication, session or preference fields and are not untyped.
+    - Public function bodies do not directly invoke the private projection or identity readers.
+    - Private Section, link, bus and Young compositions require an explicit userId parameter or field.
+    test:
+      file: tests/unit/policies/public-reader-boundaries.test.ts
+      name: rendering-and-cache.contributor-notes-1
 - id: rendering-and-cache.contributor-notes-3
   category: consistency
   topic: contributor-notes
@@ -544,6 +555,10 @@ topics:
   title: Personal overlays
   requirement_refs:
   - user.shell-viewer
+  - section.private-section-projection
+  - description.public-web-personal-overlay
+  - catalog-link.public-web-personal-overlay
+  - bus.public-web-personal-overlay
 - id: cache-layers-and-invalidation
   title: Cache layers and invalidation
 - id: contributor-notes
@@ -582,3 +597,9 @@ rationale:
 - The former rendering-and-cache.personal-overlays-6 repeats user.shell-viewer. Its canonical acceptance now
   exercises all current feature-specific viewer consumers and retained-root navigation; sidebar badge counts
   retain their additional browser regression without a duplicate requirement.
+- The former personal-overlays-1 is an index of four concrete public/private boundaries. Section subscription
+  and homework completion are owned by section.private-section-projection, whose acceptance now reads public
+  HTML and decoded page data before private hydration. Description editing authority is owned by
+  description.public-web-personal-overlay across course, teacher and section; link pins and visits by
+  catalog-link.public-web-personal-overlay; saved bus preferences by bus.public-web-personal-overlay.
+  Each owner retains its actual session and anonymous HTTP/browser assertions; these references add no execution evidence.

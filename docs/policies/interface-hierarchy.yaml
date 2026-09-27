@@ -171,18 +171,6 @@ requirements:
   rule: For equivalent authenticated subjects, every supported surface enforces the same business ownership
     and suspension rules. Anonymous availability, session requirements, token audience, and OAuth scopes follow
     the explicit per-surface authorization matrix.
-- id: interface-hierarchy.semantic-parity-2
-  category: consistency
-  topic: semantic-parity
-  rule: Identifiers and filters keep the same domain meaning across surfaces. Any difference in accepted identifier
-    form or available filter is declared on the feature binding; a database row ID is never silently interpreted
-    as a public JW ID.
-- id: interface-hierarchy.semantic-parity-3
-  category: consistency
-  topic: semantic-parity
-  rule: Each surface declares bounded pagination and default ordering. Equivalent explicit filter, ordering,
-    and page inputs select equivalent records; intentionally different defaults are tested on their respective
-    bindings.
 - id: interface-hierarchy.catalog-explicit-read-parity
   category: consistency
   topic: semantic-parity
@@ -266,6 +254,24 @@ requirements:
     test:
       file: tests/integration/schedule-subscription-semantic-parity.test.ts
       name: interface-hierarchy.subscription-read-parity
+- id: interface-hierarchy.comment-read-parity
+  category: consistency
+  topic: semantic-parity
+  rule: REST and MCP comments use the same target meaning, stable root order, root pagination and
+    continuation cursors. Ten-reply previews and twenty-reply continuation batches retain required ancestors;
+    focus and permissions are viewer-specific. Internal targetId is distinct from sectionJwId.
+  acceptance:
+    given: Two isolated viewers read six equal-time roots and 36 equal-time replies inserted in reverse
+      order, with nested descendants, private roots and distinct row/JW identifiers.
+    when: Real loopback REST session and native MCP resource-bound bearer requests exhaust root pages,
+      exchange continuation cursors, focus nested replies and attempt malformed, foreign-root and missing keys.
+    then:
+    - Exact ordered root pages and totals, ten-reply previews and subsequent batches agree across both transports.
+    - Nested focus and reply-as-anchor retain required ancestors and root identity; complete DTOs and action authority match for each viewer.
+    - Anonymous REST hides logged-in-only roots; malformed cursors and missing targets retain declared HTTP and MCP error meanings.
+    test:
+      file: tests/integration/community-read-semantic-parity.test.ts
+      name: interface-hierarchy.comment-read-parity
 - id: interface-hierarchy.public-homework-read-parity
   category: consistency
   topic: semantic-parity
@@ -913,6 +919,38 @@ topics:
   title: Transport-Specific Exceptions
 - id: semantic-parity
   title: Semantic Parity
+  requirement_refs:
+  - interface-hierarchy.catalog-explicit-read-parity
+  - interface-hierarchy.workspace-explicit-read-parity
+  - interface-hierarchy.public-schedule-read-parity
+  - interface-hierarchy.subscription-read-parity
+  - interface-hierarchy.public-profile-read-parity
+  - interface-hierarchy.link-pin-read-parity
+  - interface-hierarchy.overview-read-parity
+  - interface-hierarchy.young-public-read-parity
+  - interface-hierarchy.public-homework-read-parity
+  - interface-hierarchy.description-read-parity
+  - interface-hierarchy.comment-read-parity
+  - semester.list-order-pagination
+  - catalog-link.transport-list-search-parity
+  - young-workspace.list-transport-pagination
+  - young-workspace.calendar-transport-pagination
+  - user.oauth-client-activity-isolation
+  - upload.paginated-upload-list
+  - comment.target-identifiers
+  - comment.rest-pagination-parameters
+  - comment.mcp-pagination-parameters
+  - publications.public-list-filters
+  - publications.read-transport-boundary
+  - admin.paginated-moderation-lists
+  - exam.owned-page-completeness
+  - exam.graphql-page-completeness
+  - exam.rest-date-semester-filters
+  - room-map.public
+  - weather.location-key-boundary
+  - bus.version-key-boundary
+  - bus.raw-data-returned
+  - bus.current-version-only
 - id: mutation-result-contracts
   title: Mutation atomicity, ordered results and retries
   requirement_refs:
@@ -977,3 +1015,13 @@ rationale:
   Their canonical owners are the structured mutation-result-contracts topic and the per-capability batch_contract
   entries in mutation-capabilities. Native single-item calls retain single-item effects; registered GraphQL batch
   calls retain the selected batch contract. A successful prefix and a lost response never imply whole-batch rollback.
+- The former semantic-parity-2 and semantic-parity-3 duplicate the indexed domain read contracts.
+  Common-filter, target-identifier, stable-order and explicit-page equivalence is verified separately for
+  academic catalog, public schedules, owner workspace, subscriptions, overview, public profile, pins,
+  public/private Young data, public homework, descriptions, comments, semesters, campus links and uploads.
+  Each binding retains its actual pagination or prefix-list behavior; GraphQL overview remains counts-only,
+  MCP public homework has no pagination, and description history is a fixed latest-20 window.
+- Single-surface and intentionally different bindings retain their own feature requirements for publications,
+  metadata directories, admin collections, ancillary academic collections and Web collection layouts do not
+  acquire fictional GraphQL/MCP equivalents. These topic references neither change supported inputs and
+  defaults nor count as behavioral evidence; their existing canonical tests remain the acceptance owners.

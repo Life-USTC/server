@@ -28,6 +28,22 @@ requirements:
     test:
       file: tests/unit/features/young/young-event-service.test.ts
       name: young-event.shared-public-cache
+- id: young-event.subscription-write-gate
+  category: authorization
+  rule: Public event subscription and organizer-follow controls cannot write until their private state
+    loads successfully. Failed reads expose retry; a successful read alone never writes. Every submitted
+    write rechecks server authentication and a rejected write preserves the last confirmed subscription.
+  acceptance:
+    given: An isolated viewer subscribes to an event and follows an organizer.
+    when: Each actual browser control waits on a held read, receives a read failure, retries, then submits
+      once without the session cookie and once with the valid session.
+    then:
+    - Pending controls are disabled, failed reads expose retry without mutation controls, and both stages send zero writes.
+    - Retry enables the real action without changing state; the real server rejects the cookie-less write with 401 and retains the subscribed state.
+    - One subsequent authenticated write removes only the intended subscription and updates the control.
+    test:
+      file: tests/e2e/src/app/young-events/subscription-write-gate.test.ts
+      name: young-event.subscription-write-gate
 - id: young-event.private-client-overlays
   category: privacy
   rule: Private event subscription and conflict APIs are requested with no-store only for signed-in viewers;

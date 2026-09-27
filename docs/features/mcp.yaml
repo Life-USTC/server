@@ -13,6 +13,20 @@ access:
   agent: MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the
     web by default while enforcing resource-bound bearer tokens with canonical feature:action scopes.
 requirements:
+- id: mcp.declared-tool-authentication
+  category: consistency
+  rule: Every declared MCP tool binding resolves to the same anonymous-versus-authenticated boundary as
+    the production transport registry. A tool-specific auth value overrides the capability default;
+    public catalog reads must not inherit the authentication requirement of a neighboring write.
+  acceptance:
+    given: All feature specifications and the actual production MCP public-tool classifier.
+    when: Resolve every tool's explicit or inherited authentication declaration.
+    then:
+    - Every declaration permits anonymous access exactly when the transport classifies that tool as public.
+    - Private preference and community tools do not inherit anonymous access from a public page capability.
+    test:
+      file: tests/unit/lib/mcp/mcp-spec-authentication.test.ts
+      name: mcp.declared-tool-authentication
 - id: mcp.personal-workspace-focus
   category: behavior
   rule: MCP exposes the listed public-information and ordinary user workspace/community capabilities.

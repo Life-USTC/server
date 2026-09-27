@@ -26,11 +26,7 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
 import { createFixturePrisma } from "../../../shared/prisma";
-import {
-  createAnonymousMcpHarness,
-  createMcpHarness,
-  type McpHarness,
-} from "../_harness/client";
+import { createMcpHarness, type McpHarness } from "../_harness/client";
 
 const db = createFixturePrisma();
 const users = Array.from({ length: 3 }, () => crypto.randomUUID());
@@ -40,7 +36,6 @@ const completionWrite = "workspace.homework:write";
 const scopes = [communityWrite, completionWrite];
 const grants: string[] = [];
 const clients: McpHarness[] = [];
-let anonymous: McpHarness;
 let onlyCommunity: Client;
 let onlyCompletion: Client;
 let sectionId: number;
@@ -72,7 +67,6 @@ beforeAll(async () => {
     );
     clients.push(await createMcpHarness(userId, scopes));
   }
-  anonymous = await createAnonymousMcpHarness();
   vi.stubGlobal(
     "fetch",
     async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -107,7 +101,6 @@ afterAll(async () => {
   setCalendarExportRebuildSenderForTest();
   await Promise.all([
     ...clients.map((client) => client.close()),
-    anonymous?.close(),
     onlyCommunity?.close(),
     onlyCompletion?.close(),
   ]);
@@ -253,12 +246,25 @@ it("homework.public-section-read", async () => {
       description: { content: "Public assignment details" },
     },
   });
-  const mcp = await anonymous.call<{
-    homeworks: { id: string; title: string; completion: unknown }[];
-  }>("community_section_homework_list", { sectionJwId, mode: "full" });
-  expect(mcp.homeworks).toMatchObject([
-    { id: publicId, title, completion: null },
-  ]);
+  const denied = await handleMcpRequest(
+    new Request(getOAuthMcpResourceUrl(), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: "community_section_homework_list",
+          arguments: { sectionJwId, mode: "full" },
+        },
+      }),
+    }),
+  );
+  expect(denied.status).toBe(401);
   expect(
     await db.homeworkCompletion.count({ where: { homeworkId: publicId } }),
   ).toBe(1);

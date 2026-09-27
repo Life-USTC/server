@@ -429,10 +429,12 @@ capabilities:
         - Single-route raw timetable tool; use catalog_bus_departure_next when the caller only needs the
           next few departures.
       - name: workspace_bus_preferences_get
+        auth: user
         rest_equivalent: GET /api/workspace/bus-preferences
         notes:
         - Returns the authenticated caller's saved bus preferences or the default null-campus preference.
       - name: workspace_bus_preferences_set
+        auth: user
         rest_equivalent: POST /api/workspace/bus-preferences
         notes:
         - preferredOriginCampusId and preferredDestinationCampusId may be null to reset saved campuses.

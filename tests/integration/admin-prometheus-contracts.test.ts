@@ -273,9 +273,19 @@ it("admin.prometheus-windows", async () => {
       expect(line).toMatch(
         /^life_ustc_(?:active_users|feature_active_users|oauth_active_clients)\{/,
       );
-    if (line.startsWith("life_ustc_feature_operation_duration_seconds"))
-      expect(line).toMatch(
-        /\{feature="catalog.teacher"(?:,le="[^"]+")?,operation="get",protocol="(?:rest|graphql)"\}/,
+    if (line.startsWith("life_ustc_feature_operation_duration_seconds")) {
+      // Earlier tests legitimately leave durable counters for other features.
+      // The contract constrains label dimensions, not the database's feature set.
+      const labels = line.match(/\{([^}]+)\}/)?.[1];
+      expect(labels).toBeDefined();
+      const keys = [...(labels ?? "").matchAll(/(?:^|,)([a-z_]+)="/g)].map(
+        (match) => match[1],
       );
+      expect(keys).toEqual(
+        line.startsWith("life_ustc_feature_operation_duration_seconds_bucket{")
+          ? ["feature", "le", "operation", "protocol"]
+          : ["feature", "operation", "protocol"],
+      );
+    }
   }
 });

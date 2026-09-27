@@ -273,11 +273,12 @@ requirements:
     cannot write. Administrator moderation requires an unsuspended administrator using the governance
     surface and records the moderation audit action.
   acceptance:
-    given: Ordinary users, a suspended user and an administrator have real signed sessions.
-    when: Write through the real description REST route and moderate through the governance REST route.
+    given: Two ordinary editors, a suspended user and an administrator have real sessions and resource-bound OAuth grants.
+    when: Write through actual loopback REST, GraphQL and native MCP and moderate through governance REST.
     then:
     - Unauthenticated writes return 401 and suspended writes return 403.
-    - Different ordinary users can collaboratively edit and update editor attribution.
+    - Different ordinary users collaboratively edit the same description ID and append precisely attributed history through all three business transports.
+    - Read-only scopes, missing actors and missing targets fail without changing descriptions, history, business audits or cache invalidation state.
     - Only an unsuspended administrator can moderate; ordinary and moderation writes record their respective
       audit actions.
     test:
@@ -313,6 +314,7 @@ capabilities:
     mcp:
       tools:
       - name: community_description_get
+        auth: user
         requirement_refs:
         - description.target-identifiers
       - name: community_description_set

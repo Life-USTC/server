@@ -786,6 +786,7 @@ capabilities:
         auth: user
         rest_equivalent: GET /api/account/profile
       - name: community_user_get
+        auth: user
         rest_equivalent: GET /api/community/users/:identifier
         notes:
         - 'Accepts exactly one lookup key: identifier (username or user ID).'

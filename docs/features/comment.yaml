@@ -142,12 +142,14 @@ requirements:
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
   acceptance:
     given: Signed ordinary, foreign, administrator and suspended actors access active and locked comments.
-    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes.
+    when: Exercise actual REST create, edit, delete, reply, reaction and moderation routes, plus loopback
+      GraphQL and native MCP edits, replies and reactions with signed OAuth credentials and supported sessions.
     then:
     - Anonymous requests return 401 and suspended actors return 403 for ordinary mutations.
     - Replies and reactions to another author's public active comment succeed without conferring edit/delete
       ownership.
-    - Deleted and softbanned comments reject ordinary mutations.
+    - Deleted and softbanned comments reject ordinary mutations across all business transports.
+    - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or cache invalidation state.
     - Only an unsuspended administrator can moderate through the governance route.
     test:
       file: tests/integration/comment-write-contracts.test.ts
