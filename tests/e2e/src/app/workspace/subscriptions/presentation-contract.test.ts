@@ -144,6 +144,11 @@ test("subscribed-sections.section-codes-promoted", async ({
       await expect(link).toContainText(DEV_SEED.course.nameCn);
       await expect(item).toContainText(DEV_SEED.teacher.nameCn);
       await expect(item.getByText(section.code, { exact: true })).toBeVisible();
+      expect(
+        await item
+          .getByText(section.code, { exact: true })
+          .evaluate((code) => getComputedStyle(code).fontFamily),
+      ).toContain("monospace");
     }
     expect(
       await page.evaluate(
