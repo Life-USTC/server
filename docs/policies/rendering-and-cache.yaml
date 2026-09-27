@@ -206,6 +206,19 @@ requirements:
   category: privacy
   topic: personal-overlays
   rule: Public APIs opt into caching explicitly and must remain independent of session/Bearer identity.
+  acceptance:
+    given: Two isolated users have different private profiles and todos, and only one subscribes to the seeded
+      section. Each user has a valid session and a resource-bound bearer token issued through approved device
+      authorization; the account-profile endpoint verifies all four identities.
+    when: Anonymous, session, and bearer requests read the same Chinese course, section, teacher, schedule,
+      semester, metadata, links, Young-event, organizer, and bus-route API representations.
+    then:
+    - Every response opts into public browser and CDN caching explicitly.
+    - All authenticated bodies and cache headers equal the anonymous representation, no response sets a session
+      cookie, and none includes either viewer's private identity or todo content.
+    test:
+      file: tests/e2e/src/app/cache-policy/test.ts
+      name: rendering-and-cache.personal-overlays-9
 - id: rendering-and-cache.personal-overlays-10
   category: privacy
   topic: personal-overlays
