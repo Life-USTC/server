@@ -3,7 +3,7 @@ import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-co
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
 import { referenceDate } from "./overview-dates";
-import { filterTodos, sortTodosByDueDistance } from "./todos";
+import { filterTodos, sortTodosByDeadline } from "./todos";
 import { workspaceExamRows } from "./workspace-controller-display";
 import {
   type CalendarData,
@@ -94,9 +94,8 @@ export function buildWorkspaceControllerDerivedState(input: {
     catalogLinkItems,
     examRows,
     filteredExamRows: filterExamRows(examRows, input.examFilter),
-    filteredTodos: sortTodosByDueDistance(
+    filteredTodos: sortTodosByDeadline(
       filterTodos(todoItems, input.todoFilter),
-      referenceDate(signedData?.referenceNow),
     ),
     homeworkItems,
     overviewLinkItems,

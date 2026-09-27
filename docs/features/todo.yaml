@@ -55,22 +55,15 @@ requirements:
       name: todo.web-list-state
 - id: todo.web-due-order
   category: presentation
-  rule: The Web todo list puts undated items first, then orders dated items by absolute distance from
-    the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This
-    order applies to every completion filter and updates after edits.
-  rationale: 'Product decision required: Undated first and absolute-distance sorting can hide severely
-    overdue urgent work; no product rationale establishes why old overdue tasks should fall behind future
-    tasks.'
+  rule: The Web todo list orders dated tasks by deadline ascending, followed by undated tasks. This order applies to every completion filter and updates after edits; equal deadlines preserve the existing list order.
+  rationale: Earliest deadlines keep overdue work ahead of future work. Undated tasks remain visible after dated tasks. Sorting does not depend on a moving page-reference time and agrees with the server's deadline ordering.
   acceptance:
-    given: The owner has undated, long-overdue, next-day and equally distant past/future todos.
-    when: Desktop and mobile Web lists select every completion filter, complete the fixtures and edit
-      a deadline through the actual form.
+    given: The owner has undated, long-overdue, near-past, near-future and next-day todos.
+    when: Desktop and mobile Web lists select every completion filter, complete the fixtures and edit a deadline through the actual form.
     then:
-    - Undated items come first, followed by absolute deadline distance, with the earlier deadline first
-      for an exact tie.
-    - Incomplete, completed and All filters preserve the required order.
-    - A successful edit recalculates the order using the refreshed page reference time and the changed
-      deadline.
+    - Earlier deadlines appear first and undated tasks appear last.
+    - Incomplete, completed and All filters preserve deadline order.
+    - Editing the oldest deadline to a future time moves the task to its new chronological position.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
       name: todo.web-due-order

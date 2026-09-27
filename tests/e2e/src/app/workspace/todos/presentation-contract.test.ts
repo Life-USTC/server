@@ -197,7 +197,7 @@ test("todo.web-due-order", async ({ page }) => {
     { title: `${prefix}-undated`, dueAt: null },
   ];
   const ids: string[] = [];
-  const expected = [4, 3, 2, 1, 0].map((index) => inputs[index].title);
+  const expected = [0, 3, 2, 1, 4].map((index) => inputs[index].title);
   try {
     for (const data of inputs) {
       const response = await page.request.post("/api/workspace/todos", {
@@ -216,10 +216,7 @@ test("todo.web-due-order", async ({ page }) => {
           ).ok(),
         ).toBe(true);
       await page.setViewportSize({ width, height: 844 });
-      await gotoAndWaitForReady(
-        page,
-        `/workspace/todos?snapshotAt=${encodeURIComponent(anchor.toISOString())}`,
-      );
+      await gotoAndWaitForReady(page, "/workspace/todos");
       const list = surface(page, width);
       const titles = list.getByRole("button").filter({ hasText: prefix });
       for (const label of [/^(全部|All)$/i, /^(未完成|Incomplete)$/i]) {
@@ -259,9 +256,8 @@ test("todo.web-due-order", async ({ page }) => {
         .getByRole("button", { name: /保存修改|Save Changes/i })
         .click();
       await expect(editor).toBeHidden();
-      // The successful server action navigates back to the ordinary page,
-      // establishing a new reference time after the initial exact tie.
-      const reordered = [4, 0, 2, 3, 1].map((index) => inputs[index].title);
+      // Editing the oldest deadline moves it between the adjacent deadlines.
+      const reordered = [3, 0, 2, 1, 4].map((index) => inputs[index].title);
       await expect(titles).toHaveText(reordered);
       await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
       await expect(titles).toHaveText(reordered);

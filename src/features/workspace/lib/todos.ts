@@ -10,7 +10,7 @@ export {
 export {
   filterTodos,
   replaceTodoById,
-  sortTodosByDueDistance,
+  sortTodosByDeadline,
 } from "./todo-list-state";
 export {
   createTodoSubmitAction,
