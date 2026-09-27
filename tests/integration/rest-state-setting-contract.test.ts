@@ -5,6 +5,7 @@ import { makeSignature } from "better-auth/crypto";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { USTC_CATALOG_LINKS } from "@/features/catalog-links/lib/catalog-links";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma } from "@/lib/db/prisma";
@@ -32,6 +33,8 @@ const routes = Object.entries(modules)
   .sort((a, b) => a.names.length - b.names.length);
 let origin: string;
 let server: Server;
+let rateLimitMode: "limited" | "unavailable" | undefined;
+const budgetCalls: string[] = [];
 beforeAll(async () => {
   setCalendarExportRebuildSenderForTest(async () => {});
   server = createServer(async (incoming, outgoing) => {
@@ -46,14 +49,37 @@ beforeAll(async () => {
         route.names.map((name, i) => [name, match[i + 1]]),
       );
       const handler = (await route.load())[request.method];
-      await setResponse(
-        outgoing,
-        await handler({
+      const invoke = () =>
+        handler({
           request,
           url,
           params,
           locals: { locale: "en-us" },
-        } as unknown as RequestEvent),
+        } as unknown as RequestEvent);
+      await setResponse(
+        outgoing,
+        await (rateLimitMode
+          ? runWithCloudflareRuntimeEnv(
+              {
+                APP_PUBLIC_ORIGIN: "http://localhost:3000",
+                DATABASE_URL: process.env.DATABASE_URL,
+                HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
+                HYPERDRIVE_AUTH: {
+                  connectionString: process.env.AUTH_DATABASE_URL,
+                },
+                NODE_ENV: "test",
+                USER_WRITE_RATE_LIMITER: {
+                  limit: async ({ key }: { key: string }) => {
+                    budgetCalls.push(key);
+                    if (rateLimitMode === "unavailable")
+                      throw new Error("Fixture limiter unavailable");
+                    return { success: false };
+                  },
+                },
+              },
+              invoke,
+            )
+          : invoke()),
       );
     } catch (error) {
       outgoing.statusCode = 500;
@@ -65,6 +91,92 @@ beforeAll(async () => {
   if (!address || typeof address === "string")
     throw new Error("Missing server address");
   origin = `http://127.0.0.1:${address.port}`;
+});
+
+it("openapi.rate-limit-accuracy-boundary", async () => {
+  const user = await db.user.create({
+    data: { email: `${crypto.randomUUID()}@limiter.test` },
+  });
+  const token = crypto.randomUUID();
+  await db.session.create({
+    data: {
+      userId: user.id,
+      sessionToken: token,
+      expires: new Date(Date.now() + 3600_000),
+    },
+  });
+  const context = await getBetterAuthInstance().$context;
+  const cookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`;
+  try {
+    for (const mode of ["limited", "unavailable"] as const) {
+      rateLimitMode = mode;
+      budgetCalls.length = 0;
+      const denied = await fetch(`${origin}/api/workspace/todos`, {
+        method: "POST",
+        headers: { cookie, origin, "content-type": "application/json" },
+        body: JSON.stringify({ title: "Do not persist this mutation" }),
+      });
+      expect(denied.status).toBe(mode === "limited" ? 429 : 503);
+      expect(denied.headers.get("retry-after")).toBe("60");
+      for (const name of denied.headers.keys())
+        expect(name).not.toMatch(
+          /(?:rate.?limit.*(?:remaining|reset|quota)|quota)/i,
+        );
+      expect(Object.keys(await denied.json())).toEqual(["error"]);
+      expect(budgetCalls).toHaveLength(1);
+      expect(await db.todo.count({ where: { userId: user.id } })).toBe(0);
+
+      // HTTP POST does not imply a domain mutation: these utility reads and
+      // browser preference cookies are independent of the authenticated budget.
+      const section = await db.section.findFirstOrThrow({
+        where: { semesterId: { not: null }, retiredAt: null },
+      });
+      const utilities = [
+        {
+          path: "/api/account/preferences",
+          body: { locale: "en-us" },
+          authenticated: false,
+        },
+        {
+          path: "/api/catalog/sections/match-codes",
+          body: { codes: [section.code], semesterId: section.semesterId },
+          authenticated: false,
+        },
+        {
+          path: "/api/workspace/subscriptions/query",
+          body: { sectionIds: [section.id], semesterId: section.semesterId },
+          authenticated: true,
+        },
+      ];
+      for (const utility of utilities) {
+        budgetCalls.length = 0;
+        const response = await fetch(`${origin}${utility.path}`, {
+          method: "POST",
+          headers: {
+            ...(utility.authenticated ? { cookie } : {}),
+            origin,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(utility.body),
+        });
+        const body = await response.text();
+        expect(response.status, `${utility.path}: ${body}`).toBe(200);
+        expect(budgetCalls).toEqual([]);
+      }
+      budgetCalls.length = 0;
+      const session = await fetch(`${origin}/api/auth/get-session`, {
+        headers: { cookie },
+      });
+      expect(session.status, await session.clone().text()).toBe(200);
+      expect((await session.json()).user.id).toBe(user.id);
+      expect(budgetCalls).toEqual([]);
+    }
+    const auth = await getBetterAuthInstance().$context;
+    expect(auth.options.rateLimit?.enabled).not.toBe(false);
+  } finally {
+    rateLimitMode = undefined;
+    await db.user.delete({ where: { id: user.id } });
+  }
 });
 afterAll(async () => {
   setCalendarExportRebuildSenderForTest();

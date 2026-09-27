@@ -231,6 +231,17 @@ requirements:
     permissive, and eventually consistent. Contracts do not promise a global exact quota, remaining count,
     or reset timestamp. OAuth/provider endpoints retain Better Auth''s separate limiter, and anonymous/read-only
     POST utilities are outside the authenticated mutation budget.'
+  acceptance:
+    given: A real session and REST server with rejecting or throwing mutation budget bindings.
+    when: Submit a todo mutation, anonymous utility POSTs, a scoped read-only subscription query and a provider
+      session read under both failure modes.
+    then:
+    - Mutation failures contain only the standard error and retry delay, without quota/remaining/reset promises.
+    - Utility and provider requests succeed without consuming the authenticated mutation budget.
+    - Better Auth keeps its independently enabled provider limiter.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: openapi.rate-limit-accuracy-boundary
 - id: openapi.unknown-api-json-errors
   category: validation
   rule: Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of
