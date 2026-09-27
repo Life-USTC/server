@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   getSectionForCalendar,
   getUserCalendarRecord,
@@ -7,21 +7,33 @@ import { buildUserCalendarExport } from "@/features/calendar/server/calendar-exp
 import { createSectionCalendar } from "@/features/calendar/server/ical";
 import { getUserCalendarSubscription } from "@/features/subscriptions/server/subscription-calendar-read-model";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
-import { appendUserSectionSubscriptions } from "@/features/subscriptions/server/subscription-write-model";
+import {
+  appendUserSectionSubscriptions,
+  batchUpdateUserSectionSubscriptions,
+  importUserSectionSubscriptionsByCodes,
+} from "@/features/subscriptions/server/subscription-write-model";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
 const userIds = [crypto.randomUUID(), crypto.randomUUID()];
 let sectionId: number;
 let sectionJwId: number;
+let sectionCode: string;
+let semesterId: number;
 
 beforeAll(async () => {
   const section = await db.section.findFirstOrThrow({
-    where: { retiredAt: null, schedules: { some: {} } },
-    select: { id: true, jwId: true },
+    where: {
+      retiredAt: null,
+      semesterId: { not: null },
+      schedules: { some: {} },
+    },
+    select: { id: true, jwId: true, code: true, semesterId: true },
   });
   sectionId = section.id;
   sectionJwId = section.jwId;
+  sectionCode = section.code;
+  semesterId = section.semesterId as number;
   await db.user.createMany({
     data: userIds.map((id) => ({
       id,
@@ -30,13 +42,18 @@ beforeAll(async () => {
     })),
   });
 });
+beforeEach(async () => {
+  await db.userSectionSubscription.deleteMany({
+    where: { userId: { in: userIds } },
+  });
+});
 afterAll(async () => {
   await db.user.deleteMany({ where: { id: { in: userIds } } });
   await db.$disconnect();
 });
 
 describe("personal subscription kinds", () => {
-  it("only updates existing owner subscriptions and preserves kinds on repeated additions", async () => {
+  it("subscription.kind-owner-existing-only", async () => {
     expect(
       await updateSubscriptionKind({
         userId: userIds[0],
@@ -71,6 +88,14 @@ describe("personal subscription kinds", () => {
     expect(
       (await getUserCalendarSubscription(userIds[0]))?.sections,
     ).toMatchObject([{ kind: "teaching_assistant" }]);
+    for (const kind of ["regular", "auditor", "teaching_assistant"] as const) {
+      expect(
+        await updateSubscriptionKind({ userId: userIds[0], sectionJwId, kind }),
+      ).toEqual({ sectionJwId, kind });
+      expect(
+        (await getUserCalendarSubscription(userIds[0]))?.sections[0].kind,
+      ).toBe(kind);
+    }
     await expect(
       updateSubscriptionKind({
         userId: userIds[0],
@@ -80,7 +105,7 @@ describe("personal subscription kinds", () => {
     ).rejects.toThrow();
   });
 
-  it("prefixes personal TA calendar events without altering public names or event IDs", async () => {
+  it("subscription.ta-calendar", async () => {
     await appendUserSectionSubscriptions({
       userId: userIds[0],
       sectionIds: [sectionId],
@@ -107,6 +132,7 @@ describe("personal subscription kinds", () => {
       [...text.matchAll(/^UID:(.*)$/gm)]
         .map((match) => match[1])
         .filter((uid) => /\/(schedule|exam)\//.test(uid));
+    expect(courseEventIds(regular.text).length).toBeGreaterThan(0);
     expect(courseEventIds(ta.text)).toEqual(courseEventIds(regular.text));
     const section = await getSectionForCalendar(sectionJwId);
     if (!section) throw new Error("Expected test section");
@@ -117,4 +143,57 @@ describe("personal subscription kinds", () => {
       taRecord?.sectionSubscriptions[0].section.course.nameCn,
     ).not.toContain("[TA]");
   });
+});
+
+it("subscription.personal-kind", async () => {
+  await appendUserSectionSubscriptions({
+    userId: userIds[0],
+    sectionIds: [sectionId],
+  });
+  expect(
+    await db.userSectionSubscription.findUnique({
+      where: { userId_sectionId: { userId: userIds[0], sectionId } },
+      select: { kind: true },
+    }),
+  ).toEqual({ kind: "regular" });
+  expect(
+    (await getUserCalendarSubscription(userIds[0]))?.sections.map(
+      (section) => section.kind,
+    ),
+  ).toEqual(["regular"]);
+});
+
+it("subscription.import-preserves-kind", async () => {
+  await appendUserSectionSubscriptions({
+    userId: userIds[0],
+    sectionIds: [sectionId],
+  });
+  for (const kind of ["auditor", "teaching_assistant"] as const) {
+    await updateSubscriptionKind({ userId: userIds[0], sectionJwId, kind });
+    await appendUserSectionSubscriptions({
+      userId: userIds[0],
+      sectionIds: [sectionId, sectionId],
+    });
+    await batchUpdateUserSectionSubscriptions({
+      userId: userIds[0],
+      sectionIds: [sectionId],
+      action: "add",
+    });
+    await importUserSectionSubscriptionsByCodes({
+      userId: userIds[0],
+      semesterId,
+      codes: [sectionCode],
+    });
+    expect(
+      await db.userSectionSubscription.findUnique({
+        where: { userId_sectionId: { userId: userIds[0], sectionId } },
+        select: { kind: true },
+      }),
+    ).toEqual({ kind });
+    expect(
+      await db.userSectionSubscription.count({
+        where: { userId: userIds[0], sectionId },
+      }),
+    ).toBe(1);
+  }
 });

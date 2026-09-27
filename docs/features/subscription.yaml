@@ -38,11 +38,30 @@ requirements:
 - id: subscription.personal-kind
   category: behavior
   rule: New section subscriptions default to regular.
+  acceptance:
+    given: A user has no subscription to an active Section.
+    when: The actual add service persists the membership and the public-to-owner subscription serializer
+      reads it.
+    then:
+    - Both stored and serialized kind default to regular.
+    test:
+      file: tests/integration/subscription-kind.test.ts
+      name: subscription.personal-kind
 - id: subscription.ta-calendar
   category: consistency
   rule: Personal iCalendar course event names for teaching_assistant subscriptions use the [TA] prefix.
-    Public calendar exports remain unpersonalized; Web calendars use the role badge without changing the
-    course title.
+    Public calendar exports and persisted course names remain unpersonalized, and the role does not change
+    calendar event IDs.
+  acceptance:
+    given: An owner subscribes to a Section with scheduled course events.
+    when: Real personal ICS exports run before and after changing kind to teaching_assistant, and a public
+      Section export runs.
+    then:
+    - Personal course events gain the [TA] prefix while public names and persisted names remain unchanged.
+    - Nonempty course event ID sets remain identical across the change.
+    test:
+      file: tests/integration/subscription-kind.test.ts
+      name: subscription.ta-calendar
 - id: subscription.quick-add-selection-reset
   category: presentation
   rule: A new quick-add search clears selection; multiple matching sections initially remain unselected.
@@ -56,12 +75,33 @@ requirements:
 - id: subscription.kind-owner-existing-only
   category: behavior
   rule: Only the owner of an existing subscription may change its kind to regular, auditor or teaching_assistant.
+  acceptance:
+    given: Two users exist and only one owns a Section subscription.
+    when: The actual kind service updates the owner membership, an absent/foreign membership and an invalid
+      enum.
+    then:
+    - Only the existing owner membership can be changed.
+    - Absent ownership returns null and an invalid kind is rejected.
+    test:
+      file: tests/integration/subscription-kind.test.ts
+      name: subscription.kind-owner-existing-only
 - id: subscription.import-preserves-kind
   category: behavior
   rule: Adding or importing an already-subscribed section preserves its existing kind.
+  acceptance:
+    given: An existing subscription has auditor or teaching_assistant kind.
+    when: The actual add, batch add and code-import services repeatedly target it.
+    then:
+    - Every path preserves the existing kind and avoids duplicate memberships.
+    test:
+      file: tests/integration/subscription-kind.test.ts
+      name: subscription.import-preserves-kind
 - id: subscription.kind-web-editor-location
   category: behavior
   rule: Web subscription-kind editing is available in workspace subscriptions.
+- id: subscription.ta-calendar-web-badge
+  category: presentation
+  rule: Web calendars use a teaching-assistant role badge without changing the course title.
 capabilities:
   subscribe-from-section:
     title: Subscribe from Section Detail
