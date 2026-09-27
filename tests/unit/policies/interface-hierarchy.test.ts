@@ -413,3 +413,34 @@ test("interface-hierarchy.transport-specific-exceptions-4", async () => {
   expect(routes).not.toContain("/workspace/schedules");
   expect(routes).toContain("/workspace/uploads");
 });
+
+test("interface-hierarchy.locale-caching-and-seo-1", async () => {
+  const { APP_LOCALES } = await import("@/i18n/config");
+  const { buildSocialMetadata } = await import("@/lib/social-metadata");
+  const { PAGE_INVENTORY } = await import(
+    "../../e2e/src/app/_shared/page-inventory"
+  );
+  for (const route of await pageRoutes()) {
+    expect(route).not.toMatch(/^\/(en(?:-us)?|zh(?:-cn)?)(?:\/|$)/i);
+    expect(route).not.toMatch(/\[(?:\[)?(?:locale|lang)(?:\])?\]/i);
+  }
+  for (const entry of PAGE_INVENTORY) {
+    const canonical = new URL(entry.samplePath, "https://life.example.edu");
+    expect(canonical.pathname).not.toMatch(
+      /^\/(en(?:-us)?|zh(?:-cn)?)(?:\/|$)/i,
+    );
+    for (const locale of APP_LOCALES) {
+      const metadata = buildSocialMetadata({
+        canonicalPath: `${canonical.pathname}?locale=${locale}&lang=${locale}&utm_source=test#details`,
+        description: "Public metadata",
+        imageAlt: "Life@USTC",
+        locale,
+        origin: canonical.origin,
+        title: "Page identity",
+      });
+      expect(metadata.canonicalUrl, `${entry.routeId}:${locale}`).toBe(
+        `${canonical.origin}${canonical.pathname}`,
+      );
+    }
+  }
+});

@@ -241,6 +241,79 @@ describe("Worker routing entrypoint", () => {
     expect(cancel).toHaveBeenCalledExactlyOnceWith("request body released");
   });
 
+  it("interface-hierarchy.locale-caching-and-seo-5", async () => {
+    const dispatches: Array<{ key: string; locale: string | null }> = [];
+    const publicSsrFetch = vi.fn(
+      async (request: Request, options: { cf: { cacheKey: string } }) => {
+        dispatches.push({
+          key: options.cf.cacheKey,
+          locale: request.headers.get("x-life-public-ssr-locale"),
+        });
+        return new Response("public", {
+          headers: { "content-type": "text/html" },
+        });
+      },
+    );
+    const context = {
+      exports: {
+        PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetch })),
+      },
+      waitUntil: vi.fn(),
+    };
+    for (const path of [
+      "/catalog/courses",
+      "/catalog/sections/159446",
+      "/catalog/young-events",
+    ]) {
+      const keys = new Map<string, string>();
+      const scenarios: Array<{
+        headers: Record<string, string>;
+        locale: string;
+      }> = [
+        { headers: {}, locale: "zh-cn" },
+        { headers: { "accept-language": "en-GB,en;q=0.9" }, locale: "en-us" },
+        {
+          headers: {
+            cookie: "NEXT_LOCALE=zh-cn; better-auth.session_token=private",
+            "accept-language": "en-US",
+          },
+          locale: "zh-cn",
+        },
+        {
+          headers: {
+            cookie: "NEXT_LOCALE=en-us; better-auth.session_token=other",
+            "accept-language": "zh-CN",
+          },
+          locale: "en-us",
+        },
+      ];
+      for (const scenario of scenarios) {
+        const headers = new Headers(scenario.headers);
+        headers.set("accept", "text/html");
+        const response = await withHtmlRewriter(() =>
+          worker.fetch(
+            new Request(`https://life-ustc.test${path}`, { headers }),
+            {},
+            context,
+          ),
+        );
+        expect(response.status).toBe(200);
+        const dispatched = dispatches.at(-1);
+        expect(dispatched?.locale).toBe(scenario.locale);
+        expect(dispatched?.key).toBe(
+          `${path}?__life_locale=${scenario.locale}&__life_mode=page`,
+        );
+        const prior = keys.get(scenario.locale);
+        if (prior) expect(dispatched?.key).toBe(prior);
+        keys.set(scenario.locale, dispatched?.key ?? "");
+      }
+      expect(keys.size).toBe(2);
+      expect(new Set(keys.values()).size).toBe(2);
+    }
+    expect(appFetchMock).not.toHaveBeenCalled();
+    expect(publicSsrFetch).toHaveBeenCalledTimes(12);
+  });
+
   it("records exactly one completion for a public SSR response", async () => {
     const publicSsrFetchMock = vi.fn().mockResolvedValue(
       new Response("public", {

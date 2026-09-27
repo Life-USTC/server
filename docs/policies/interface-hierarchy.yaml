@@ -226,6 +226,15 @@ requirements:
   category: consistency
   topic: semantic-parity
   rule: Public course/section lookups and subscription-kind updates use `jwId` at external boundaries.
+  acceptance:
+    given: Two isolated courses and sections have crossed row IDs and public JW IDs, and one user subscribes to both sections.
+    when: Real REST, GraphQL and native MCP read each record and update one subscription kind using the public ID.
+    then:
+    - Each lookup returns the record whose JW ID matches, even when another record has that numeric row ID.
+    - Each kind update changes only the section selected by its public JW ID.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.semantic-parity-12
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
   topic: semantic-parity
@@ -239,17 +248,41 @@ requirements:
 - id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency
   topic: locale-caching-and-seo
-  rule: Canonical product URLs have no locale prefix or locale query segment.
+  rule: Canonical product Web URLs have no locale prefix or locale query segment. Explicit REST locale parameters are request inputs, not separate Web document identities.
+  acceptance:
+    given: The actual Web page route tree, complete concrete page inventory and production social metadata builder.
+    when: Inspect locale route segments and generate canonical metadata for each page in every supported locale with locale and tracking queries.
+    then:
+    - All locales retain the same path identity and canonical metadata strips locale, tracking and fragment state.
+    test:
+      file: tests/unit/policies/interface-hierarchy.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-1
 - id: interface-hierarchy.locale-caching-and-seo-3
   category: consistency
   topic: locale-caching-and-seo
   rule: Shared public URLs use Chinese as their canonical indexable representation; English adapts presentation
     on the same URL without creating a second locale-prefixed document identity.
+  acceptance:
+    given: Anonymous real course, section and teacher collection pages without a locale preference.
+    when: Read their default SSR HTML, then switch to Chinese and English and compare full raw social metadata on the same URLs.
+    then:
+    - Default HTML is Chinese and indexable; translated presentation retains the identical canonical URL without locale-prefixed alternatives.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-3
 - id: interface-hierarchy.locale-caching-and-seo-5
   category: consistency
   topic: locale-caching-and-seo
-  rule: A cached locale-varying public representation includes the resolved locale in its cache identity. Any
-    localized response outside that explicit cache policy is private and no-store.
+  rule: The internal shared public HTML entrypoint includes the resolved locale in its cache identity. Equivalent locale choices share a key regardless of preference source; Chinese and English representations never share one key.
+  acceptance:
+    given: Real Worker requests target public catalog list, detail and activity pages with default, language-header and cookie locale preferences.
+    when: The Worker dispatches them to its cached public HTML entrypoint.
+    then:
+    - Each forwarded cache key contains the resolved locale and representation mode.
+    - Equivalent cookie and language-header choices share a key while different locales use disjoint keys.
+    test:
+      file: tests/unit/lib/misc/worker-routing-entrypoint.test.ts
+      name: interface-hierarchy.locale-caching-and-seo-5
 scopes:
 - id: catalog
   owns: Public academic and transit facts
@@ -657,3 +690,5 @@ rationale:
 - Cross-surface conformance is split into the atomic semantic-parity requirements below this policy; the former umbrella statement did not define an independent testable obligation.
 - Anonymous GraphQL catalog/community access is owned by graphql.anonymous-roots. MCP public access and authorization are owned by mcp.public-catalog-access, mcp.resource-bound-access-token and mcp.complete-batch-scope-enforcement; these transports intentionally have separate authentication contracts.
 - Administration uses declared Web and session-only REST bindings (admin.admin-rest-session-only and openapi.session-and-bearer). GraphQL and MCP governance exclusion belong to graphql.registered-operation-coverage and mcp.personal-workspace-focus. CLI does not expose session-only governance commands; cli.admin-session-boundary is verified in the CLI repository.
+
+- Locale-varying public data cache identity is owned by rendering-and-cache.cache-layers-and-invalidation-10. Delivered HTML privacy is owned by rendering-and-cache.cache-layers-and-invalidation-1; private HTTP CDN enforcement and public API opt-in are owned by rendering-and-cache.personal-overlays-10 and rendering-and-cache.personal-overlays-9. These are separate from the internal HTML locale-key contract.

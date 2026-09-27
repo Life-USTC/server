@@ -177,7 +177,33 @@ test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", asyn
   }
 });
 
-test("课程、班级与教师列表页输出本地化 SSR 分享元数据", async ({ page }) => {
+test("interface-hierarchy.locale-caching-and-seo-3", async ({
+  page,
+  context,
+}) => {
+  await context.clearCookies();
+  await context.setExtraHTTPHeaders({ "accept-language": "*" });
+  for (const path of [
+    "/catalog/courses",
+    "/catalog/sections",
+    "/catalog/teachers",
+  ]) {
+    const response = await page.request.get(path);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["x-robots-tag"] ?? "").not.toContain("noindex");
+    const markup = await response.text();
+    const robots = await page.evaluate((html) => {
+      const document = new DOMParser().parseFromString(html, "text/html");
+      return Array.from(document.querySelectorAll('meta[name="robots"]'))
+        .map((element) => element.getAttribute("content") ?? "")
+        .join(" ");
+    }, markup);
+    expect(robots).not.toContain("noindex");
+    const metadata = await readRawSocialMetadata(page, path);
+    expect(metadata.htmlLang).toBe("zh-cn");
+    expect(metadata.values.canonical).toEqual([`${metadata.origin}${path}`]);
+  }
+
   const cases = [
     {
       locale: "zh-cn" as const,
