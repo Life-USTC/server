@@ -641,6 +641,28 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
       name: ui.model-property-priority-discovery-views
+- id: ui.model-property-priority-workspace-views
+  category: presentation
+  topic: model-property-priority
+  rule: Workspace field views visibly present the declared task or section identity and task-critical
+    values, retain supporting context with subordinate emphasis, and keep reconstruction identifiers out
+    of ordinary content.
+  rationale: Import confirmation identifies the matched course, with its code and semester as disambiguation.
+    Calendar agendas, desktop grids and overview strips have distinct space and interaction constraints;
+    each must be checked in its actual rendered state rather than borrowing another view's evidence.
+  acceptance:
+    given: Isolated tasks, homework, exams, schedules, section subscriptions, feed links and sidebar state
+      supply all declared workspace field groups.
+    when: Exercise the finite workspace view inventory in both locales at desktop and mobile widths,
+      and check desktop-only grid modes with their actual hover details and mobile agenda alternatives.
+    then:
+    - All assigned views and declared fields are observed in their applicable visible state, including
+      primary task identity, deadlines, completion, subscription choices and feed scope.
+    - Secondary fields remain readable and subordinate to the actual title or date identity, and internal
+      identifiers and raw numeric enums are absent from ordinary text and visible form values.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
+      name: ui.model-property-priority-workspace-views
 - id: ui.model-property-priority-primary-2
   category: presentation
   topic: model-property-priority-primary
