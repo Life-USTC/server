@@ -27,8 +27,18 @@ requirements:
     and other fields Amap does not return. The merged snapshot lists which providers contributed.
 - id: weather.rolling-hourly-forecast
   category: behavior
-  rule: Web, REST, GraphQL and MCP expose available hourly forecast points in the half-open interval from
-    request time through request time plus 24 hours, including the next day.
+  rule: The shared weather service returns available hourly points in [request time, request time + 24
+    hours), including points on the following Shanghai day. Every weather surface consumes this projected
+    snapshot.
+  acceptance:
+    given: A fresh cached forecast contains several days of hourly points.
+    when: The real weather service reads around hour and Shanghai midnight transitions.
+    then:
+    - Exactly the points in the next half-open 24-hour window are returned.
+    - The cached full series is not mutated and no provider call is needed.
+    test:
+      file: tests/unit/features/weather/weather-service.test.ts
+      name: weather.rolling-hourly-forecast
 - id: weather.raw-extensions-preserved
   category: behavior
   rule: Provider payloads are merged into a canonical snapshot and the raw Amap/Open-Meteo responses stay
@@ -37,7 +47,30 @@ requirements:
     without student-facing need; separate debugging/admin source retention from public full output.'
 - id: weather.cache-and-history
   category: consistency
-  rule: Campus weather snapshots have a 15-minute freshness interval per location.
+  expectation:
+    kind: cache_freshness
+    surface: service
+    operation: getWeatherSnapshot
+    timestamp: fetchedAt
+    max_age_seconds: 900
+    expires_at_boundary: true
+    invalid_timestamps: refresh
+    future_timestamps: refresh
+    refresh_failure: unavailable
+  applies_to:
+  - weather
+  rationale: The age is measured from snapshot fetchedAt, not the upstream observation timestamp. KV edge
+    cache lifetimes and scheduled refresh cadence do not establish data freshness.
+  acceptance:
+    given: A cache hit has a valid, expired, invalid or future fetchedAt timestamp.
+    when: The real weather service reads the snapshot around its declared age boundary.
+    then:
+    - Fresh hits are reused without provider calls.
+    - Expired or invalid/future hits refresh through providers.
+    - A failed refresh returns unavailable rather than relabeling the stale snapshot.
+    test:
+      file: tests/unit/features/weather/weather-freshness-specification.test.ts
+      name: weather.cache-and-history
 - id: weather.location-key-boundary
   category: consistency
   rule: REST, GraphQL, and MCP accept only the canonical locationKey values ustc-main and ustc-gaoxin;
@@ -50,6 +83,14 @@ requirements:
   category: behavior
   rule: Unavailable or expired hourly data is empty; past hourly points never masquerade as the current
     forecast window.
+  acceptance:
+    given: A freshly fetched snapshot has only past hourly points or no hourly data.
+    when: The real weather service selects its current hourly window.
+    then:
+    - No past hourly point appears in the result.
+    test:
+      file: tests/unit/features/weather/weather-freshness-specification.test.ts
+      name: weather.hourly-forecast-expiry
 - id: weather.weather-observation-history
   category: consistency
   rule: Successful refreshes persist timestamped WeatherObservation history for their location.
