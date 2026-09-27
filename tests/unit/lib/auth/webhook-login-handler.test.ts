@@ -89,7 +89,7 @@ describe("webhook login hardening", () => {
     expect(createSessionMock).not.toHaveBeenCalled();
   });
 
-  it("sets a session cookie and omits sessionToken from the body", async () => {
+  it("webhook-login.no-session-in-body", async () => {
     envMap({ WEBHOOK_SECRET: "expected-secret" });
     findFirstMock.mockResolvedValue({
       id: "user-1",

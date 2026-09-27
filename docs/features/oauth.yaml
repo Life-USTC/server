@@ -23,39 +23,40 @@ requirements:
     redirects warn that the callback returns to a local application.
 - id: oauth.user-consent-framing
   category: presentation
-  rule: Users see 'what this app wants and whether I allow it', not protocol details. Users may approve
-    a subset of requested scopes, and the allow action cannot grant scopes outside the signed authorize
-    request. Stored consent binds scopes, resources, and supported UserInfo claims. Consent state accepts
-    Better Auth 1.7 canonical ba_param signatures plus legacy no-ba_param signatures during rollout, validates
-    the declared signed-name set, and strips signing metadata before delegation.
+  rule: Consent describes the requesting application and permissions in user-facing terms. The user may
+    approve a subset of the signed request; approval cannot add scopes, resources, or UserInfo claims
+    outside that request. Only the current canonical signed-parameter format is accepted; invalid or incomplete
+    signed-name sets fail before a grant or code is issued.
 - id: oauth.dcr-via-provider
   category: consistency
-  rule: Dynamic client registration remains enabled as a compatibility fallback on the standard /oauth2/register
-    path owned by the upstream @better-auth/mcp plugin, which wraps the Better Auth OAuth provider and
-    returns HTTP 201 Created; the project does not maintain parallel hand-written DCR persistence. Registrations
-    that require DPoP-bound tokens are rejected because the exposed resource servers are Bearer-only.
+  rule: Dynamic client registration is supported at the provider registration endpoint and returns 201
+    Created. Registration shares the configured OAuth provider validation and persistence. A client requiring
+    DPoP-bound tokens is rejected because the exposed resource servers accept Bearer tokens only.
+  rationale: DCR is a supported current client-registration protocol, not a fallback for obsolete registration
+    paths.
 - id: oauth.dcr-device-only-no-redirect
   category: validation
   rule: Dynamic client registration for a device-only client may omit redirect_uris; any provider-adapter
     placeholder redirect URI must not be persisted or returned as registered client metadata.
 - id: oauth.dcr-rules-from-provider
   category: consistency
-  rule: Provider configuration owns DCR defaults, allowed scopes, client restrictions, PKCE, resources,
-    and zero-second refresh-token reuse. Public DCR advertises only public scopes; admin scopes require
-    admin-created clients. Only canonical feature:action scopes are accepted; REST resource servers enforce
-    audience, active grants, and scopes.
+  rule: Dynamic registration accepts explicitly allowlisted standard identity scopes and public feature:action
+    scopes. It cannot grant administrator governance. Public clients require PKCE, issued tokens are resource-bound,
+    and reuse of a rotated refresh token is rejected. Provider configuration is the shared source of registration
+    defaults and validation.
 - id: oauth.llm-platform-oauth-compatibility
   category: consistency
-  rule: Remote MCP clients use discovery, CIMD, authorization code + PKCE, /api/mcp resource indicators,
-    and protected-resource metadata; DCR remains a fallback. CIMD requires HTTPS URL IDs with exact client_id,
-    non-empty client_name, and redirect_uris. Fetches fail closed unless all A/AAAA answers are public;
-    upstream limits timeout, size, and redirects, while Workers enforce global_fetch_strictly_public.
-    Unsupported grants are filtered; DPoP-only metadata is rejected.
+  rule: Remote MCP clients may use discovery, CIMD, authorization code with PKCE, /api/mcp resource indicators,
+    and protected-resource metadata. CIMD requires an HTTPS URL client ID, matching client_id, nonempty
+    client_name, and redirect_uris. Metadata retrieval fails closed for nonpublic DNS answers, disallowed
+    redirects, exceeded size or timeout limits, unsupported grant requirements, and DPoP-only clients.
 - id: oauth.trusted-clients-admin-backend
   category: authorization
-  rule: First-party / internal applications prefer using trusted OAuth clients created in the admin backend;
-    such clients can skip consent and can further be incorporated into the Better Auth provider's trusted
-    / cached client scheme when needed, rather than relying on public DCR.
+  rule: Only an explicit persisted administrator-controlled trust marker or configured allowlist establishes
+    a trusted OAuth client. A name, domain, upstream identity, or registration method cannot establish
+    trust. Client trust does not confer administrator role or ownership of user resources.
+  rationale: The supported trusted-client consent treatment is a separate explicit authorization policy;
+    no additional cached-client or implicit trust mechanism is promised.
 - id: oauth.public-clients-pkce
   category: authorization
   rule: Public MCP / CLI / native clients use public + PKCE mode and token_endpoint_auth_method=none stores
@@ -68,29 +69,22 @@ requirements:
     authority model is introduced.'
 - id: oauth.client-validation-from-provider
   category: consistency
-  rule: When creating clients in the admin backend, redirect URI and client metadata validation should
-    reuse Better Auth provider rules rather than a local fork. The 1.7 migration backfills account issuers
-    and keys linked accounts by issuer plus provider subject; a nondefault AUTH_OIDC_ISSUER requires deployment-time
-    reconciliation.
+  rule: Administrator-created clients use the same redirect URI and client metadata validation as other
+    supported registrations. Linked sign-in account identity is keyed by issuer and provider subject;
+    matching subject values from different issuers do not identify the same external account.
 - id: oauth.loopback-redirect-tolerance
   category: validation
-  rule: For public native clients with loopback redirect URIs, the server should accommodate the hostname
-    alias difference between 127.0.0.1 and localhost to avoid DCR registration and authorization requests
-    failing solely due to these two local loopback representations; beyond this, strict matching is maintained
-    for path, query, scheme, and non-loopback host rules.
-- id: oauth.rest-resource-origin-alias
-  category: consistency
-  rule: For compatibility with older CLI and Bot clients, a REST OAuth resource indicator equal to the
-    public site origin may be normalized to the canonical REST issuer resource at /api/auth during authorization,
-    token, device authorization, and refresh-resource validation. The server should still mint and persist
-    tokens against the canonical /api/auth audience, not the bare origin.
+  rule: A native client callback must use its registered loopback host, scheme, path, and query. localhost
+    and 127.0.0.1 are distinct registered hostnames; the authorization server does not substitute one
+    for the other. Any permitted ephemeral-port behavior is limited to the registered native loopback
+    client pattern.
 - id: oauth.device-grant-custom
   category: behavior
-  rule: The device authorization flow remains custom because @better-auth/oauth-provider 1.7.0-rc.2 does
-    not yet export the upstream device grant used by later documentation. It is limited to enabled public
-    clients registered with device_code, and approved resource parameters mint provider-compatible JWT
-    access tokens for REST/MCP audiences. DPoP-bound clients and DPoP proofs fail closed because this
-    custom grant does not verify RFC 9449 proofs.
+  rule: Device authorization is available only to enabled public clients registered for the device-code
+    grant. Approved scopes and resources bind issued access tokens to the intended REST, GraphQL, or MCP
+    resource. DPoP-bound clients and DPoP proofs are rejected.
+  rationale: The implementation belongs to the shared provider adapter; package-version limitations are
+    not product requirements.
 - id: oauth.rest-bearer-scopes
   category: authorization
   rule: Protected REST and GraphQL endpoints accept OAuth bearer tokens only with the endpoint audience
@@ -118,10 +112,10 @@ requirements:
     deployment.
 - id: oauth.canonical-discovery-paths
   category: consistency
-  rule: 'Path-bearing issuers and resources expose metadata at canonical path-aware locations: authorization
-    server metadata at /.well-known/oauth-authorization-server/api/auth, OIDC discovery at /api/auth/.well-known/openid-configuration
-    (plus its RFC 8414 path), and MCP protected-resource metadata at /.well-known/oauth-protected-resource/api/mcp.
-    Root-level entries are compatibility redirects; canonical MCP metadata supports GET and bodyless HEAD.'
+  rule: Canonical metadata is available at /.well-known/oauth-authorization-server/api/auth, /api/auth/.well-known/openid-configuration,
+    /.well-known/openid-configuration/api/auth, and /.well-known/oauth-protected-resource/api/mcp. MCP
+    protected-resource metadata supports GET and bodyless HEAD. Retired root and MCP-relative discovery
+    aliases are not supported.
 - id: oauth.protected-resource-scope-advertisement
   category: consistency
   rule: Canonical MCP protected-resource metadata is produced by the upstream @better-auth/mcp plugin
@@ -129,16 +123,6 @@ requirements:
     non-admin feature:action scopes and removes DPoP metadata because the MCP transport remains Bearer-only.
     account.client-activity is an explicit read-only feature and no :write scope is generated, registered,
     or advertised.
-- id: oauth.mcp-discovery-compatibility-aliases
-  category: consistency
-  rule: Because some MCP clients probe resource-relative or issuer-style well-known paths before settling
-    on canonical metadata, /api/mcp/.well-known/oauth-authorization-server, /.well-known/oauth-authorization-server/api/mcp,
-    /api/mcp/.well-known/openid-configuration, and /.well-known/openid-configuration/api/mcp should redirect
-    to the issuer metadata used by the MCP protected resource.
-- id: oauth.discovery-alias-routing
-  category: consistency
-  rule: Compatibility aliases redirect to canonical metadata instead of returning inconsistent JSON. A
-    shared route-target table keeps canonical responses and alias redirects aligned as paths change.
 - id: oauth.discovery-cors
   category: behavior
   rule: 'Discovery metadata should support cross-origin reading; at minimum return Access-Control-Allow-Origin:
@@ -165,16 +149,18 @@ requirements:
   - authorization-management
 - id: oauth.authorization-management.recent-auth-for-consent
   category: authorization
-  rule: Approving a new grant or extending an existing authorization requires an authoritative server-side
-    session created within the last 15 minutes. A stale attempt records a denied audit event and returns
-    explicit sign-out/sign-in guidance without issuing a code.
+  rule: Approving a new grant or expanding an existing grant requires an authoritative session created
+    within the last 15 minutes. A stale attempt emits a denied audit event and sign-in guidance without
+    issuing a code. Reducing or revoking existing authority requires a valid authoritative session and
+    the same ownership and origin checks, without a recent-authentication requirement.
   applies_to:
   - authorization-management
 - id: oauth.authorization-management.ownership-scoped-transaction
   category: authorization
-  rule: Revocation requires an authoritative server-side session created within the last 15 minutes, then
-    transactionally removes every consent, access-token row, refresh-token row, approved or pending device-code
-    row, and usage aggregate for the signed-in user and client together with its audit event.
+  rule: A signed-in user may revoke only their own client grant through a trusted-origin request using
+    a valid authoritative session. Revocation atomically removes that user-client pair's consents, token
+    rows, pending or approved device codes, and usage aggregates together with its audit event. A stale
+    but valid session does not prevent revocation.
   applies_to:
   - authorization-management
 - id: oauth.authorization-management.active-user-grant-enforcement
@@ -203,9 +189,10 @@ requirements:
   - authorization-management
 - id: oauth.authorization-management.consent-mutations
   category: behavior
-  rule: The provider update-consent and delete-consent routes are intercepted and reimplemented with ownership
-    checks, trusted-origin enforcement, token cleanup, and grant-generation rotation. Direct provider
-    consent mutation is unavailable; the authorization page is the only consent entry point.
+  rule: Every consent mutation enforces the authenticated owner and trusted origin. Scope reduction and
+    revocation invalidate affected token generations; authority expansion requires recent authentication.
+    Settings revocation and authorization-page consent use these same rules, and direct provider routes
+    cannot bypass them.
   applies_to:
   - authorization-management
 capabilities:
@@ -256,21 +243,6 @@ capabilities:
       - path: /api/auth/.well-known/openid-configuration
         method: OPTIONS
         auth: anon
-      - path: /.well-known/oauth-authorization-server
-        auth: anon
-      - path: /.well-known/oauth-authorization-server
-        method: OPTIONS
-        auth: anon
-      - path: /.well-known/openid-configuration
-        auth: anon
-      - path: /.well-known/openid-configuration
-        method: OPTIONS
-        auth: anon
-      - path: /.well-known/oauth-protected-resource
-        auth: anon
-      - path: /.well-known/oauth-protected-resource
-        method: OPTIONS
-        auth: anon
       - path: /api/auth/{auth}
         method: POST
         auth: anon
@@ -279,34 +251,14 @@ capabilities:
       - path: /.well-known/oauth-authorization-server/api/auth
         method: OPTIONS
         auth: anon
-      - path: /.well-known/oauth-authorization-server/api/mcp
-        auth: anon
-      - path: /.well-known/oauth-authorization-server/api/mcp
-        method: OPTIONS
-        auth: anon
       - path: /.well-known/openid-configuration/api/auth
         auth: anon
       - path: /.well-known/openid-configuration/api/auth
         method: OPTIONS
         auth: anon
-      - path: /.well-known/openid-configuration/api/mcp
-        auth: anon
-      - path: /.well-known/openid-configuration/api/mcp
-        method: OPTIONS
-        auth: anon
       - path: /.well-known/oauth-protected-resource/api/mcp
         auth: anon
       - path: /.well-known/oauth-protected-resource/api/mcp
-        method: OPTIONS
-        auth: anon
-      - path: /api/mcp/.well-known/oauth-authorization-server
-        auth: anon
-      - path: /api/mcp/.well-known/oauth-authorization-server
-        method: OPTIONS
-        auth: anon
-      - path: /api/mcp/.well-known/openid-configuration
-        auth: anon
-      - path: /api/mcp/.well-known/openid-configuration
         method: OPTIONS
         auth: anon
     mcp: unavailable
@@ -315,7 +267,7 @@ capabilities:
       - 'Single client inventory: name/id, single-line trust/type/status badges, single-line scopes summary
         with full-value overflow tooltip, created time, confirmed delete'
       - client.name (required text input)
-      - client.redirectUris[] (required explicit multi-input)
+      - client.redirectUris[] (explicit inputs for redirect-based client patterns)
       - client.scopes[] (allowlisted checkboxes)
       - One of three fixed client patterns that derives token auth, PKCE, consent, and end-session settings
       - Register button and one-time post-create credentials dialog

@@ -35,8 +35,8 @@ requirements:
     tokens.
 - id: admin.paginated-moderation-lists
   category: behavior
-  rule: Admin comments, descriptions, homeworks, and users use the shared { data, pagination } list envelope
-    and accept page/pageSize with the deprecated limit alias.
+  rule: Admin comments, descriptions, homeworks, and users accept page and pageSize and return the shared
+    { data, pagination } envelope. The retired limit parameter is not accepted.
 - id: admin.suspended-admin-write-gate
   category: authorization
   rule: Admins with an active suspension may load read-only admin pages and list endpoints, but admin
@@ -44,8 +44,21 @@ requirements:
     is lifted.
 - id: admin.suspension-expiration-validation
   category: validation
-  rule: Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty
-    date strings.
+  rule: Suspension expiration is either permanent or a valid date-time. Omitted, null, and empty form
+    values represent a permanent suspension; invalid non-empty input, including impossible calendar dates,
+    is rejected.
+  rationale: The three empty representations accommodate an omitted API property, explicit clearing, and
+    an empty HTML form field; they are not alternate dated-suspension formats.
+  acceptance:
+    given: Suspension input may be permanent, valid dated, or malformed.
+    when: The declared request schema and empty-form normalizer parse the boundary cases.
+    then:
+    - Omitted, null and blank inputs are accepted as permanent representations.
+    - Malformed and impossible dates are rejected.
+    - A valid explicit timezone date-time is accepted.
+    test:
+      file: tests/unit/features/admin/admin-suspension-expiration.test.ts
+      name: admin.suspension-expiration-validation
 - id: admin.single-open-suspension
   category: consistency
   rule: Each user can have at most one open suspension. Creating a new suspension closes any previous
@@ -61,8 +74,8 @@ requirements:
     may be null after account deletion.
 - id: admin.primary-admin-navigation
   category: presentation
-  rule: The global shell exposes each admin tool (users, moderation, OAuth, and bus) under Admin tools.
-    /admin redirects to /admin/users; resource URLs remain stable.
+  rule: The global shell groups users, moderation, OAuth clients, and bus management under Admin tools.
+    /admin redirects to /admin/users.
 - id: admin.feature-experience-telemetry
   category: behavior
   rule: PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded
@@ -75,15 +88,16 @@ requirements:
     identified error. They contribute to usage but not issue samples or warning logs.
 - id: admin.feature-experience-retention
   category: consistency
-  rule: Background writes retain at most 256 events per request and use independent PostgreSQL transactions.
-    Overflow, process termination or database failure can lose records; missing history is not zero. Records
-    are cleaned in bounded batches after 90 days, without historical backfill. No Analytics Engine API,
-    token or binding is required.
+  rule: Observation capture is best effort and is bounded to 256 events per request. Records older than
+    90 days are removed in bounded batches. Overflow, process termination, and storage failure may lose
+    observations; missing history must not be presented as zero activity.
+  rationale: Raw-observation retention and aggregate metrics are separate from the security audit history.
+    Observation writes do not participate in business transactions.
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin management pages share a lightweight workspace order of page identity, optional feedback
-    or filters, then records; desktop tables retain their density while existing compact record views
-    remain the mobile presentation.
+  rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
+    shows tabular records; mobile presents compact records containing the same primary identity and available
+    actions.
 - id: admin.platform-runtime-logs
   category: privacy
   rule: Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary

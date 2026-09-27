@@ -21,7 +21,7 @@ describe("上传文件名工具函数", () => {
     );
   });
 
-  it("构建不含无效头部字符的 Content-Disposition", () => {
+  it("upload.download-filename-header", () => {
     const header = buildContentDisposition('课程\r\n"final".txt');
 
     expect(header).toContain('filename="__ _final_.txt"');

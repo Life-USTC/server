@@ -25,8 +25,9 @@ requirements:
   rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
 - id: comment.attached-object-types
   category: behavior
-  rule: Attached objects include courses, sections, teachers, homework, section-teacher relationships,
-    and young events.
+  rule: A comment target is exactly one course, section, teacher, homework, section-teacher relationship,
+    or young event. Unsupported target types and nonexistent target entities cannot be used to create
+    comments.
 - id: comment.rich-content
   category: presentation
   rule: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
@@ -42,8 +43,10 @@ requirements:
     so every required math glyph can load under the configured font-src Content Security Policy.
 - id: comment.visibility-modes
   category: authorization
-  rule: Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous
-    and hides identity from regular users while remaining traceable by admins in governance scenarios.
+  rule: Comment audience and author anonymity are independent. public comments are readable anonymously;
+    logged_in_only comments require an authenticated viewer. isAnonymous hides author identity from ordinary
+    public and signed-in reads, including public contribution statistics. Only authorized administrator
+    governance reads may reveal the author for moderation.
 - id: comment.shared-read-policy
   category: authorization
   rule: Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility
@@ -58,9 +61,10 @@ requirements:
     community_comment_replies continue at most 20 descendants plus ancestry, preserving permissions/moderation.
 - id: comment.interaction-gate
   category: authorization
-  rule: Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and
-    an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact
-    or accept those write actions. Admin moderation affordances require an unsuspended admin.
+  rule: Comment writes require an authenticated, unsuspended actor and an active visible target. Public
+    editing and deletion additionally require ownership; replies and reactions do not confer ownership.
+    Deleted or softbanned comments neither advertise nor accept ordinary edit, delete, reply, or reaction
+    actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
 capabilities:
   object-comment-section:
     title: Object Comment Section
@@ -114,19 +118,19 @@ capabilities:
       routes:
       - path: /api/community/comments
         notes:
-        - Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers
-          such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event
-          targets require a validated public youngId.
+        - Accepts the canonical target identifier for the selected targetType or its documented public
+          identifier such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId.
+          Young-event targets require a validated public youngId.
         - Returns 404 when the attached target entity does not exist.
-        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+        - Accepts page and pageSize; the retired limit alias is not accepted.
       - path: /api/community/comments
         method: POST
         status: 201
         auth: user
         notes:
-        - Accepts REST-compatible internal targetId for legacy catalog targets plus public identifiers
-          such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId. Young-event
-          targets require a validated public youngId.
+        - Accepts the canonical target identifier for the selected targetType or its documented public
+          identifier such as sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, and youngId.
+          Young-event targets require a validated public youngId.
         - visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.
         - Provided sectionJwId and courseJwId values must be valid positive integers; malformed values
           return 400 even when targetId is also supplied.
@@ -241,7 +245,7 @@ capabilities:
       - path: /api/admin/comments
         notes:
         - Omitted status defaults to the active moderation queue, matching /admin/moderation.
-        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+        - Accepts page and pageSize; the retired limit alias is not accepted.
       - path: /api/admin/comments/[id]
         method: PATCH
       - path: /api/admin/suspensions

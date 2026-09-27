@@ -33,15 +33,20 @@ requirements:
     before enabling edit or sign-in actions; a failed read remains retryable and cannot grant write access.
 - id: description.supplement-not-comment
   category: behavior
-  rule: Description is a Markdown supplement on an object, not equivalent to comments expressing personal
-    opinions.
+  rule: Object pages present the shared Markdown supplement separately from the comment thread. The supplement
+    displays its last editor and edit time.
+  rationale: Descriptions organize collaboratively maintained information; comments express individual
+    discussion and experience.
 - id: description.attached-object-types
   category: behavior
-  rule: Attached objects include courses, sections, teachers, homework, and similar.
+  rule: Descriptions attach only to courses, sections, teachers, and homework. The target must resolve
+    to an existing entity before a description is created or updated.
 - id: description.platform-maintained
   category: authorization
-  rule: When descriptions conflict with personal experiences in comments, descriptions are treated as
-    platform-maintained information by default.
+  rule: Descriptions are collaboratively maintained supplements. The interface identifies the last editor
+    and edit history and must not present ordinary user edits as university-verified information. Unsuspended
+    users may edit; administrators moderate through the governance surface.
+  rationale: A review or institutional-verification workflow is not currently part of this capability.
 - id: description.server-rendered-markdown
   category: presentation
   rule: Description payloads include content as the source Markdown and renderedHtml as sanitized server-rendered
@@ -114,7 +119,7 @@ capabilities:
       routes:
       - path: /api/admin/descriptions
         notes:
-        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+        - Accepts page and pageSize; the retired limit alias is not accepted.
       - path: /api/admin/descriptions/[id]
         method: PATCH
         notes:

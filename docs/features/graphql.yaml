@@ -12,8 +12,8 @@ access:
   admin: Uses the same Account, Workspace, Catalog, Community, and ordinary mutation surfaces as a regular
     user; GraphQL exposes no admin governance fields or mutations.
   agent: Direct GraphQL HTTP callers use a bearer token issued for the GraphQL resource and matching feature
-    scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or compatible
-    registered operations through the shared schema and resolver-level feature scopes.
+    scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or registered
+    operations through the shared schema and resolver-level feature scopes.
 requirements:
 - id: graphql.scoped-mutations
   category: authorization
@@ -39,9 +39,9 @@ requirements:
     selection by its effective pageSize, including values supplied through variables.
 - id: graphql.graphql-operation-runner
   category: behavior
-  rule: MCP accepts exactly one arbitrary document or compatible registered operation ID. Arbitrary documents
-    pass through the production Yoga validation, introspection, depth, alias, directive, token, top-level-field,
-    cost, timeout, error-masking, and resolver scope pipeline. Every selected mutation requires confirmed=true.
+  rule: MCP accepts exactly one GraphQL document or registered operation ID. Execution uses the same production
+    validation, request budgets, error projection, and resolver authorization as HTTP GraphQL. Every mutation
+    requires confirmed=true before execution.
 - id: graphql.graphql-operation-prompt
   category: presentation
   rule: MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation
@@ -54,10 +54,11 @@ requirements:
     state and must not blindly retry a mutation.
 - id: graphql.registered-operation-coverage
   category: consistency
-  rule: The compatibility manifest covers every current public Query root field, each Workspace or Account
-    field, and every ordinary business Mutation root field. Authentication and OAuth protocol operations,
-    admin governance, upload raw-byte transfer, GraphQL subscriptions, and introspection remain outside
-    the MCP runner.
+  rule: The registered-operation manifest covers current public Query root fields, each Workspace or Account
+    field, and ordinary business Mutation root fields. Authentication and OAuth protocol operations, administrator
+    governance, upload byte transfer, GraphQL subscriptions, and introspection are excluded.
+  rationale: Registered operations are current discoverability and call-construction conveniences, not
+    a promise to preserve retired operations.
 - id: graphql.upload-workflow-boundary
   category: privacy
   rule: Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit,
@@ -96,9 +97,10 @@ requirements:
     variables, credentials, argument values, and error details are excluded.
 - id: graphql.scoped-query-auth
   category: authorization
-  rule: Query.account and Query.workspace return null for an anonymous caller. Their child fields independently
-    enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing
-    user authority.
+  rule: Anonymous requests receive null for Query.account and Query.workspace. Public catalog and community
+    roots remain anonymously readable. Each protected child field independently checks its required OAuth
+    feature scope for bearer principals; trusted-origin cookie sessions use their first-party user authority.
+    Ownership remains enforced by the feature service.
 - id: graphql.workspace-ownership
   category: authorization
   rule: Workspace collections derive ownership from the authenticated user relation in feature services
@@ -115,9 +117,9 @@ requirements:
     to their Asia/Shanghai calendar day before querying @db.Date columns.
 - id: graphql.schema-evolution
   category: consistency
-  rule: CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base
-    schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label
-    is present; approval skips only that base-compatibility comparison.
+  rule: CI compares the canonical SDL snapshot with the current executable schema and fails on drift.
+    Intentional changes update the snapshot and affected current clients together; historical schema compatibility
+    is not a requirement.
 - id: graphql.room-maps
   category: behavior
   rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,
@@ -168,11 +170,13 @@ capabilities:
     graphql:
       queries:
       - name: catalog
+        auth: anon
       - name: workspace
         notes:
         - Returns null for anonymous requests; each selected child field enforces its exact feature read
           scope.
       - name: community
+        auth: anon
       - name: account
         notes:
         - Returns null for anonymous requests; each selected child field enforces its exact account read
@@ -215,11 +219,11 @@ capabilities:
     mcp:
       tools:
       - name: graphql_operation_run
-        description: Executes exactly one arbitrary document or compatible operationId. Every mutation
+        description: Executes exactly one arbitrary document or registered operationId. Every mutation
           requires confirmed=true.
         notes:
-        - The schema resource is canonical for arbitrary documents; the operation manifest remains a stable
-          compatibility and discovery surface.
+        - The schema resource is canonical for documents; the operation manifest provides current registered
+          operations for discovery.
         - The static tool descriptor is conservative because selected fields determine scopes and safety;
           exact authorization is enforced by the same resolvers as /api/graphql.
         - Authorization headers and cookies are never copied into the in-process GraphQL context.

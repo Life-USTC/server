@@ -30,17 +30,18 @@ requirements:
     intersect.
 - id: publications.reprint-folding
   category: presentation
-  rule: news.ustc.edu.cn republishes one article under multiple section canonical URLs, each a distinct
-    legitimate Publication row. The list accepts an opt-in fold=1 parameter that groups rows by (normalized
-    title, published date in Asia/Shanghai) and returns one representative per group, preferring a university
-    organizationLevel source, else the most recently seen copy, then the lowest id. Folding defaults to
-    off; making it the list default is an open product question.
+  rule: Publication lists default to unfolded rows. Explicit fold=1 groups matching normalized titles
+    on the same Asia/Shanghai published day and chooses a university source first, then the most recently
+    observed copy, then the lowest ID.
+  rationale: Title-and-day folding is a discovery heuristic, not proof that two sources published identical
+    content. Changing the default or equivalence criteria requires a product decision.
 - id: publications.reprint-fold-title-normalization
   category: consistency
-  rule: 'Fold grouping keys on a normalized title: NFKC normalization, invisible-character stripping,
-    whitespace collapsing and lowercasing, implemented by normalizePublicationTitle() in src/features/publications/lib/publication-title-normalization.ts
-    and mirrored by a Postgres generated column so grouping runs in SQL rather than in application memory.
-    The helper and the column must change together.'
+  rule: Reprint grouping uses NFKC-normalized titles with the configured invisible characters removed,
+    whitespace collapsed, and text lowercased. Application and database grouping produce identical keys
+    for the same title.
+  rationale: SQL grouping avoids loading the full publication list into application memory; implementation
+    paths are not part of the wire contract.
 - id: publications.reprint-sibling-exposure
   category: presentation
   rule: A folded row representing two or more members carries foldGroup.siblingCount; an unfolded request
@@ -49,10 +50,11 @@ requirements:
     the other sections.
 - id: publications.public-object-read
   category: authorization
-  rule: A private R2 object is readable only when its content-addressed key is tied to a linked or verified
-    object and an object link on a non-tombstone revision of a non-deleted news or notice publication.
-    The Worker checks this relationship before reading R2; missing objects return not found and metadata
-    reads do not fail ingestion.
+  rule: Object reads require a verified or linked object associated with the current non-tombstone revision
+    of a non-deleted news or notice publication. The server derives its content-addressed key, checks
+    that relationship, and returns not found when the permitted object or bytes are missing.
+  rationale: Public cache lifetime and removal freshness require a consistent delivery policy; historical
+    revision links do not independently authorize a fresh origin read.
 - id: publications.publication-markdown
   category: presentation
   rule: Detail loads a verified body_markdown object from R2 and returns bodyMarkdown or null, never substituting
@@ -126,11 +128,10 @@ requirements:
     is likewise scoped by principalKey.
 - id: publications.batch-size
   category: validation
-  rule: A publication ingestion batch accepts 1-100 items and a body of at most 8 MiB. The item count
-    alone does not bound memory — one item may carry megabytes of bodyText — so the byte budget is what
-    keeps a batch inside the Worker isolate memory ceiling. Too many items is rejected by the request
-    schema with 400; too many bytes with 413 while the body is still streaming. An oversized batch is
-    refused whole, never partially ingested, and must be split by the crawler.
+  rule: A publication ingestion request body is at most 8 MiB. An oversized body returns 413 while streaming
+    and the batch is refused whole without ingestion writes.
+  rationale: The body-byte budget bounds memory independently of the per-batch item count; clients split
+    oversized batches.
 - id: publications.partial-item-rejection
   category: consistency
   rule: A source or item validation error is returned as a per-item rejected result and does not roll
@@ -138,10 +139,11 @@ requirements:
     errors.
 - id: publications.objects
   category: consistency
-  rule: The server generates content-addressed keys; clients cannot choose keys or metadata. Manifests
-    are at most 32 MiB. Metadata ingestion may precede the R2 object. Planning verifies size, content
-    type, kind, SHA-256 metadata, and bytes (or a provider checksum), and immediately links an already-present
-    object. An uploaded object must be verified and linked through complete.
+  rule: The server generates content-addressed object keys from registered manifests. Metadata may arrive
+    before bytes. Planning permits only claims belonging to the accepted caller batch and distinguishes
+    already verified objects from objects requiring upload. An authenticated Worker PUT verifies the declared
+    size, content type and SHA-256 before linking the uploaded object; there is no separate completion
+    endpoint.
 - id: publications.unchanged-objects
   category: consistency
   rule: An unchanged item still re-registers its object claims against the current batch so a redelivery
@@ -156,15 +158,15 @@ requirements:
     a real publisher exists.
 - id: publications.content-type
   category: validation
-  rule: Manifests require bare MIME types (for example text/html or image/png); parameters such as charset
-    are rejected. For each (kind, sha256), the first PublicationObject contentType is canonical. Later
-    manifests with the same kind, sha256, and size may use a MIME alias; r2Key and size stay strict. Batch
-    claims, upload plans, presigned PUTs, and completion checks use canonical contentType. Revision replay
-    compares object identity, size, role/order, and alt text, ignoring MIME aliases.
+  rule: The first accepted content type for an object kind and SHA-256 is canonical. Later equivalent
+    MIME labels cannot change its key, size, canonical delivery type, or revision identity. Plans, authenticated
+    PUT validation, and object reads use the canonical content type; revision equality also includes object
+    order and revision-specific media metadata.
 - id: publications.required-upload-headers
   category: validation
-  rule: An upload plan returns the exact required Content-Type, x-amz-meta-kind, and x-amz-meta-sha256
-    headers. Presigned URLs are short-lived and no R2 credentials are returned.
+  rule: An upload plan returns the authenticated on-site Worker PUT URL and its required Content-Type
+    header. The registered manifest determines object kind, SHA-256 and storage key; callers cannot override
+    them through metadata headers. Upload plans never return R2 credentials or presigned URLs.
 - id: publications.source-registry
   category: behavior
   rule: PublicationSource is the registry of who publishes. organizationLevel is a closed enum (university,
@@ -173,6 +175,45 @@ requirements:
     so ingestion normalizes an unrecognized or absent level to unknown instead of rejecting the batch.
     The directory lists enabled, non-discovery-only sources, including one that has published nothing
     yet.
+- id: publications.object-size-limit
+  category: validation
+  rule: Each object manifest declares at most 32 MiB of object bytes. The bound is inclusive and is separate
+    from the ingestion JSON body limit.
+  acceptance:
+    given: An otherwise valid ingestion item has an object manifest.
+    when: The actual request schema parses a 32 MiB object size and one byte more.
+    then:
+    - Exactly 32 MiB is accepted.
+    - 32 MiB plus one byte is rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.object-size-limit
+- id: publications.batch-item-count
+  category: validation
+  rule: An ingestion batch contains 1 through 100 items; empty and larger batches are rejected by the
+    input schema.
+  acceptance:
+    given: An ingestion batch otherwise satisfies its source and item schema.
+    when: The declared request schema parses empty, 100-item and 101-item batches.
+    then:
+    - The empty batch is rejected.
+    - 100 items are accepted.
+    - 101 items are rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.batch-item-count
+- id: publications.manifest-content-type
+  category: validation
+  rule: Object manifests require a bare MIME type. MIME parameters such as charset are rejected.
+  acceptance:
+    given: A valid object manifest uses text/html.
+    when: The input parser receives the bare MIME value and text/html with a charset parameter.
+    then:
+    - The bare MIME value is accepted.
+    - The parameterized value is rejected.
+    test:
+      file: tests/unit/features/publications/publication-ingestion-contract.test.ts
+      name: publications.manifest-content-type
 capabilities:
   publication-read:
     title: Public publication list, detail, and verified object read
@@ -219,7 +260,7 @@ capabilities:
       items:
       - source name and organization level
       - news/notice type
-      - current revision title, summary, bodyText, and source URL
+      - current revision title, summary, and source URL
       - current bodyMarkdown loaded from the body_markdown R2 object
       - verified media and attachment links
   publication-source-directory:
@@ -240,9 +281,8 @@ capabilities:
           crawler tuning stay internal.
         - The registry is bounded (~80 sources), so the directory is returned whole rather than paginated,
           under the same cache headers as the list read.
-        - organizationLevel is published as a closed enum here only. The long-standing list and detail
-          responses keep it an open string, because narrowing a shipped response property to an enum hands
-          generated clients an exhaustive type that a later registry level would break.
+        - organizationLevel uses the same documented registry vocabulary in directory, list, and detail
+          responses; unknown upstream values normalize to unknown.
     presentation:
       items:
       - organization level group with its source and publication counts

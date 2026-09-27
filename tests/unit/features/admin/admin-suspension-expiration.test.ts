@@ -3,6 +3,36 @@ import { suspensionExpiresAt } from "@/features/admin/lib/suspension-expiration"
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 
 describe("admin 封禁过期时间输入", () => {
+  it("admin.suspension-expiration-validation", () => {
+    for (const expiresAt of [undefined, null, "", "   "]) {
+      const input = { userId: "user-1", expiresAt };
+      expect(adminCreateSuspensionRequestSchema.safeParse(input).success).toBe(
+        true,
+      );
+    }
+    for (const expiresAt of [
+      "not-a-date",
+      "2026-02-31",
+      "2026-13-01",
+      "2026-02-31T12:00:00Z",
+    ]) {
+      expect(
+        adminCreateSuspensionRequestSchema.safeParse({
+          userId: "user-1",
+          expiresAt,
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      adminCreateSuspensionRequestSchema.safeParse({
+        userId: "user-1",
+        expiresAt: "2026-10-01T15:30:00+08:00",
+      }).success,
+    ).toBe(true);
+    expect(suspensionExpiresAt("permanent", "")).toBeUndefined();
+    expect(suspensionExpiresAt("custom", " ")).toBeUndefined();
+  });
+
   it("将省略、null 和空过期值视为永久", () => {
     const base = { userId: "user-1" };
 

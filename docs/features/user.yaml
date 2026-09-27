@@ -34,11 +34,10 @@ requirements:
     due to security and maintenance cost.
 - id: user.passkey-server-boundary
   category: authorization
-  rule: Better Auth passkey registration, rename, and deletion require an authoritative server-side session
-    created within the last 15 minutes. Its RP ID comes from the configured canonical origin; verification
-    accepts only explicitly configured canonical/public origins whose host is the RP ID or its subdomain.
-    Localhost and 127.0.0.1 are separate RPs and are not mixed. The legacy Authenticator table is not
-    reused.
+  rule: Passkey registration, rename, and deletion require an authoritative recent session under the account
+    action policy. The RP ID is derived from the canonical configured origin, and only explicitly trusted
+    origins on that RP ID or its subdomains may complete ceremonies. localhost and 127.0.0.1 are separate
+    relying parties.
 - id: user.passkey-user-flow
   category: presentation
   rule: The sign-in page offers a WebAuthn passkey ceremony when supported. Signed-in users list, add,
@@ -71,9 +70,9 @@ requirements:
     R2; public avatar delivery is limited to URLs currently referenced by that user's profile.
 - id: user.welcome-oauth-refresh
   category: consistency
-  rule: A user may reauthorize an already linked OAuth provider during welcome to fetch current upstream
-    name and avatar options. Refreshed upstream values fill missing data and add avatar choices without
-    overwriting profile values the user entered.
+  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing profile
+    values may be filled and new avatar choices added, but user-entered values are preserved. This refresh
+    does not authorize a third-party application to use Life@USTC APIs.
 - id: user.welcome-completion-resume
   category: consistency
   rule: If the welcome flow was reached from an app-relative callbackUrl, successful completion returns
@@ -87,10 +86,6 @@ requirements:
   category: behavior
   rule: After successful login, the user should be redirected back to the originally requested app-relative
     page whenever possible; unsafe external callbacks fall back to the home page.
-- id: user.legacy-sign-in-redirect
-  category: behavior
-  rule: The retired /signin page permanently redirects (308) to /account/sign-in, preserving the query
-    string such as callbackUrl.
 - id: user.oauth-login-resume
   category: behavior
   rule: If an OAuth authorization request lands on /account/sign-in with raw authorization query parameters
@@ -103,12 +98,15 @@ requirements:
     the original authorization query and complete the redirect back to the registered loopback callback.
 - id: user.public-identity-display
   category: presentation
-  rule: Public identity defaults to displaying name or username, not internal identifiers.
+  rule: Public identity uses the display name, then username, then a non-identifying localized fallback.
+    Internal user IDs may locate a profile but are never its primary display label. Anonymous comments
+    use the anonymous label regardless of the author's profile.
 - id: user.public-profile-canonical-route
   category: behavior
-  rule: When a profile has a username, /community/users/$identifier permanently redirects to the canonical
-    /community/users/$identifier page. Profiles without a username remain reachable by ID without rendering
-    the raw ID as primary metadata.
+  rule: An ID-based or noncanonical-case profile URL redirects to the current username URL when the user
+    has a username. The already-canonical username URL does not redirect. Profiles without usernames remain
+    addressable by ID without displaying the ID as primary metadata. After a rename the old username no
+    longer identifies that user.
 - id: user.account-deletion-retention
   category: consistency
   rule: Settings account deletion requires an authoritative session created within the last 15 minutes.
@@ -117,15 +115,16 @@ requirements:
     one other admin remains.
 - id: user.sensitive-account-recent-auth
   category: authorization
-  rule: Passkey registration/rename/deletion, linked-account addition/removal, OAuth authorization grant/expansion/revocation
-    or scope reduction, session revocation, password or email changes, account deletion, and calendar
-    feed token rotation require an authoritative server-side session created within the last 15 minutes.
-    Stale settings actions return explicit sign-out/sign-in guidance.
+  rule: Adding credentials or linked accounts, expanding OAuth grants, changing passwords or email, deleting
+    an account, and rotating calendar feed credentials require an authoritative session created within
+    the last 15 minutes. Revoking grants or sessions and reducing scopes require a valid authoritative
+    session, ownership and origin checks, but no new recent-authentication barrier. Stale authority-expanding
+    actions provide explicit sign-in guidance.
 - id: user.oauth-authorization-management
   category: behavior
-  rule: Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the
-    user's behalf. The canonical /account/settings/authorizations page lists safe client metadata, a content-free
-    30-day usage summary, and lets only the owning signed-in user revoke a grant.
+  rule: Settings presents linked sign-in identities separately from delegated application grants. Authorized-application
+    entries show safe client metadata and content-free 30-day usage; only the owning user may revoke a
+    grant. Explicit client trust does not follow from its display name or domain.
 - id: user.account-security-activity
   category: presentation
   rule: The session-only /account/settings/security page lists the owning user's sensitive account events
@@ -140,6 +139,19 @@ requirements:
   category: privacy
   rule: Cookie sessions receive their full private account profile. OAuth account.profile:read returns
     email only when the standard email scope is also granted and never discloses administrative status.
+- id: user.public-comment-contribution-privacy
+  category: privacy
+  rule: Named public profile comment totals and contribution dates include only active, public, non-anonymous
+    comments. Login-only, anonymous, hidden and deleted comments do not change those public values.
+- id: user.public-upload-contribution-privacy
+  category: privacy
+  rule: Named public profile upload totals and contribution dates include only uploads attached to active,
+    public, non-anonymous comments. Unattached uploads and attachments of invisible or anonymous comments
+    do not change those public values.
+- id: user.private-workspace-profile-exclusion
+  category: privacy
+  rule: Public profiles do not expose private section subscription counts or homework completion state.
+    Private workspace actions do not change public contribution totals or date cells.
 capabilities:
   sign-in:
     title: Sign In
@@ -243,7 +255,6 @@ capabilities:
       - user.name (Display name)
       - user.username (@username)
       - user.createdAt (Join date)
-      - sectionCount (Subscribed sections)
       - user._count.comments (Total comments)
       - user._count.uploads (Total uploads)
       - user._count.homeworksCreated (Homeworks created)
@@ -251,8 +262,8 @@ capabilities:
       - weeks[].count (Contribution count)
       - totalContributions (Aggregate)
       - Keyboard- and touch-accessible horizontally scrollable contribution history
-      - Public contribution counts include active and softbanned comments, public upload activity, and
-        homework records created; private homework completion state is excluded
+      - Public contribution counts and dates follow user.public-comment-contribution-privacy, user.public-upload-contribution-privacy,
+        and user.private-workspace-profile-exclusion
   settings:
     title: Settings
     auth: user
@@ -278,7 +289,7 @@ capabilities:
       - user.accounts[].provider (github, google, oidc)
       - user passkeys with add, rename, and delete controls
       - Fresh-session and WebAuthn support states for passkey registration
-      - canDisconnect (Boolean - requires min 2 accounts)
+      - Disconnect control reflects whether another supported sign-in method remains
       - 'Security activity: sensitive action, outcome, channel, masked network, coarse device, client
         display name, and cursor pagination'
       - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last

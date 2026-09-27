@@ -11,13 +11,19 @@ access:
   admin: Internal ops only when explicitly enabled in a private environment.
   agent: Not applicable.
 requirements:
-- id: webhook-login.not-product
-  category: behavior
-  rule: Webhook login is an internal debugging aid, not a Life@USTC product capability. Do not document
-    enablement flags, paths, or rate limits in public materials.
 - id: webhook-login.no-session-in-body
   category: privacy
   rule: When used, the session token must never appear in JSON response bodies.
+  acceptance:
+    given: The internal session adapter returns a session containing a secret token.
+    when: The enabled debug-login handler creates its response.
+    then:
+    - The response has exactly the safe identity/expiry fields.
+    - The session token is absent from the JSON body.
+    - Session-cookie establishment is delegated to the auth cookie helper.
+    test:
+      file: tests/unit/lib/auth/webhook-login-handler.test.ts
+      name: webhook-login.no-session-in-body
 capabilities:
   webhook-login:
     title: Webhook Login
@@ -30,3 +36,6 @@ capabilities:
       items:
       - Internal debugging aid only
       - Session established via cookie; never returned in JSON bodies
+rationale:
+- Webhook login is an internal debugging aid, not a Life@USTC product capability. Do not document enablement
+  flags, paths, or rate limits in public materials.

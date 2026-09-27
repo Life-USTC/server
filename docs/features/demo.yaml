@@ -16,15 +16,15 @@ access:
 requirements:
 - id: demo.planned-only
   category: behavior
-  rule: Demo authentication is a planned product experiment. Implementation details, bootstrap URLs, kill
-    switches, and overlay formats stay out of public docs until the feature ships.
+  rule: Demo mode has no public authentication entry point or supported REST, GraphQL, or MCP capability.
+  rationale: Demo mode is an unshipped product experiment. A future design requires a separate product
+    decision before any public surface is added.
 - id: demo.no-live-writes
   category: authorization
-  rule: Any future demo mode must not write business rows or impersonate real users.
-- id: demo.ordinary-principals-unchanged
-  category: authorization
-  rule: Anonymous, authenticated, admin, GraphQL, REST, OAuth, and MCP behavior outside an explicit demo
-    principal remains unchanged.
+  rule: Ordinary authenticated sessions cannot be converted into demo principals, and public inputs cannot
+    impersonate a real user through a demo identity.
+  rationale: Any future demo must isolate simulated state from durable business data; no such write capability
+    is currently supported.
 capabilities:
   demo-bootstrap:
     title: Demo Bootstrap
@@ -35,6 +35,4 @@ capabilities:
     mcp: unavailable
     presentation:
       items:
-      - Persistent demo-mode banner when active
-      - Clear exit-demo action
-      - No demo credential on the sign-in page
+      - Demo mode unavailable

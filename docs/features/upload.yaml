@@ -20,7 +20,9 @@ access:
 requirements:
 - id: upload.comment-attachments-only
   category: behavior
-  rule: Uploads serve only comment attachments; they are not an independent file space.
+  rule: This upload capability manages comment attachment drafts and their completed attachments. It is
+    not an independent public file-sharing space. Profile avatars and publication ingestion use their
+    separate feature-owned workflows.
 - id: upload.permission-and-quota
   category: authorization
   rule: Permission and quota checks are required before upload.
@@ -33,52 +35,47 @@ requirements:
     to a dedicated storage lifecycle workflow.
 - id: upload.paginated-upload-list
   category: consistency
-  rule: Completed uploads use the shared { data, pagination, meta } list envelope. REST accepts page/pageSize
-    with deprecated limit compatibility, MCP accepts page/limit, and quota plus file-size metadata lives
-    under meta.
+  rule: Completed uploads use { data, pagination, meta }. REST accepts page/pageSize and MCP accepts page/limit;
+    REST does not accept the retired limit alias. meta contains the owner's quota and file-size limits.
 - id: upload.write-auth-unsuspended
   category: authorization
-  rule: Upload write routes require an unsuspended signed-in user; suspended users receive 403 before
-    upload metadata or object state changes.
+  rule: Every upload write requires an unsuspended verified user and the relevant ownership permission.
+    Cookie sessions use first-party authority; OAuth callers also need the receiving resource audience
+    and workspace.upload:write. Denied requests cannot change upload metadata or object state.
 - id: upload.three-step-upload
   category: behavior
   rule: Web comment attachment uploads follow a three-step flow — create upload session on-site → browser
     PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.
 - id: upload.exclusive-completion
   category: consistency
-  rule: Completion atomically claims an uploaded reservation before inspecting R2, preventing replacement
-    PUTs until settlement. Object inspection runs outside database transactions. A short serializable
-    settlement rechecks the reservation expiry and the unique completion lease before charging the inspected
-    size.
+  rule: Completion prevents a replacement PUT from changing the inspected object until quota settlement
+    finishes. The completed metadata and charged usage match the inspected object size, and storage inspection
+    occurs outside the user database transaction.
   acceptance:
-  - id: upload.exclusive-completion.put-during-inspection
-    given: An owned uploaded reservation has a 10-byte R2 object and completion is paused during HEAD.
-    when: A replacement PUT attempts to store a 1024-byte object before completion settles.
+    given: An owned uploaded reservation contains a 10-byte object.
+    when: Completion pauses during object inspection while a 1024-byte replacement PUT is attempted.
     then:
     - The replacement PUT is rejected.
-    - The committed upload size and charged usage both match the original 10-byte stored object.
-    - Object inspection occurs outside the user database transaction.
-    tests:
-    - file: tests/integration/upload-finalization.test.ts
-      name: prevents a PUT from replacing the object between HEAD and quota settlement
+    - Stored size and charged usage remain 10 bytes.
+    - Object inspection runs outside the user database transaction.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.exclusive-completion
 - id: upload.completion-retry
   category: consistency
-  rule: Failed inspection or settlement releases only that attempt's lease. An abandoned completion can
-    be reclaimed after its 30-second lease expires while the reservation remains valid. Stale requests
-    cannot overwrite reclaimed attempts or storage cleanup. Concurrent completions return the existing
-    upload-session error until a committed upload can be returned idempotently. A rejected oversized PUT
-    rolls back its lease claim.
+  rule: A concurrent completion fails while another attempt owns completion. Once the first completion
+    commits, retry returns that exact committed upload without changing its filename or inspecting the
+    object again.
   acceptance:
-  - id: upload.completion-retry.concurrent-completion
-    given: One completion request owns the lease and is paused during object inspection.
-    when: Another completion is attempted, then retried after the first request commits.
+    given: One completion owns the reservation lease and is paused in object inspection.
+    when: A concurrent completion runs, then retries after the first commit.
     then:
-    - The concurrent attempt fails with the upload-session error.
-    - The later retry returns the committed upload without replacing its filename or inspecting storage
-      again.
-    tests:
-    - file: tests/integration/upload-finalization.test.ts
-      name: rejects concurrent completion then returns the committed upload on retry
+    - The concurrent completion is rejected.
+    - The retry returns the original committed upload and filename.
+    - Only one object inspection occurs.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-retry
 - id: upload.r2-backend
   category: behavior
   rule: Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime
@@ -89,11 +86,7 @@ requirements:
     user IDs in logs or metrics.
 - id: upload.safe-filenames
   category: validation
-  rule: Upload create, completion, and rename requests reject ASCII control characters in filenames; download
-    responses use a safe Content-Disposition filename fallback with an encoded UTF-8 filename parameter.
-- id: upload.e2e-r2
-  category: behavior
-  rule: E2E upload coverage should exercise the same Workers upload object route used in production.
+  rule: Upload create, completion, and rename request schemas reject ASCII control characters in filenames.
 - id: upload.one-upload-one-comment
   category: consistency
   rule: A completed upload can be attached to at most one comment. Reusing an upload id across comments
@@ -112,6 +105,115 @@ requirements:
     or returns raw object bytes; PUT and download delivery remain R2-backed HTTP surfaces. MCP-resource
     bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session
     or separately authorized REST upload token.
+- id: upload.completion-failure-release
+  category: consistency
+  rule: When object inspection fails because the object is missing, unavailable, or oversized, completion
+    releases its own lease without creating upload metadata, so the owner may correct the object and retry.
+  acceptance:
+    given: An uploaded reservation has a missing, unavailable, or oversized object.
+    when: Completion fails and the owner corrects the object and retries.
+    then:
+    - Failure creates no completed upload and releases the attempt lease.
+    - The corrected object completes with its actual size charged.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-failure-release
+- id: upload.completion-stale-attempt
+  category: consistency
+  rule: After an expired completion lease is reclaimed, the stale attempt cannot release or settle the
+    successor's lease, whether stale inspection succeeds or fails.
+  acceptance:
+    given: An old completion pauses during inspection and a successor reclaims the expired lease.
+    when: The old inspection succeeds or fails before the successor settles.
+    then:
+    - The old attempt cannot change the successor lease.
+    - The successor commits the current filename and size.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-stale-attempt
+- id: upload.completion-expiry
+  category: consistency
+  rule: Completion cannot settle if either the reservation or its completion lease expires during object
+    inspection.
+  acceptance:
+    given: An uploaded reservation begins completion.
+    when: Its reservation or completion lease expires during inspection.
+    then:
+    - Completion rejects and creates no completed upload.
+    - The object remains available and the lease is released.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-expiry
+- id: upload.completion-cleanup-fence
+  category: consistency
+  rule: If cleanup has claimed an expired completion reservation, the in-flight completion cannot create
+    completed metadata.
+  acceptance:
+    given: An in-flight completion has an expired lease.
+    when: Cleanup claims its reservation before completion settles.
+    then:
+    - Completion cannot create upload metadata.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-cleanup-fence
+- id: upload.completion-quota-rejection
+  category: consistency
+  rule: A quota-rejected completion expires its reservation and releases the completion lease without
+    creating completed upload metadata or deleting the object.
+  acceptance:
+    given: A valid uploaded reservation exists and the owner has exhausted the upload quota.
+    when: The owner attempts completion.
+    then:
+    - Completion fails with Quota exceeded.
+    - The reservation is expired and its completion lease cleared.
+    - No completed metadata is created and the uploaded object remains.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-quota-rejection
+- id: upload.oversized-put-retry
+  category: consistency
+  rule: A PUT exceeding the reservation limit rolls back its claim so a corrected PUT can proceed without
+    waiting for lease expiry.
+  acceptance:
+    given: An owner has a valid upload reservation.
+    when: An oversized PUT is rejected and a corrected PUT is attempted.
+    then:
+    - The failed claim is released.
+    - The corrected PUT can complete.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.oversized-put-retry
+- id: upload.completion-phase-gate
+  category: consistency
+  rule: Only a completed object upload may enter completion. Reserved, uploading, and cleaning reservations
+    are rejected before storage inspection and create no completed metadata.
+  acceptance:
+    given: An owned reservation is in reserved, uploading, or cleaning phase.
+    when: Completion is requested for each phase.
+    then:
+    - Each request is rejected before object inspection.
+    - No completed upload row is created.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-phase-gate
+- id: upload.completion-lease-duration
+  category: consistency
+  rule: A completion lease expires after 30 seconds. A valid reservation may be reclaimed after that expiry;
+    only the current attempt may settle or release it.
+- id: upload.download-filename-header
+  category: privacy
+  rule: Attachment Content-Disposition contains a safe ASCII filename and an encoded UTF-8 filename parameter,
+    with no header control characters.
+  acceptance:
+    given: A filename contains Unicode characters, quotes and CRLF.
+    when: The real attachment Content-Disposition builder serializes it.
+    then:
+    - The ASCII filename is safe.
+    - The UTF-8 filename is percent encoded.
+    - The header contains no control characters and is accepted by Headers.
+    test:
+      file: tests/unit/features/uploads/upload-utils.test.ts
+      name: upload.download-filename-header
 capabilities:
   upload-list:
     title: Upload List
@@ -123,7 +225,7 @@ capabilities:
         notes:
         - The same path currently handles both 'read upload quota / history' and 'create upload session'
           capabilities.
-        - Accepts page and pageSize; deprecated limit remains an alias for pageSize.
+        - Accepts page and pageSize; the retired limit alias is not accepted.
     mcp:
       tools:
       - name: workspace_upload_list
@@ -278,3 +380,5 @@ capabilities:
       - Rename action
       - Delete action
       - Per-upload feedback state
+rationale:
+- E2E upload coverage should exercise the same Workers upload object route used in production.

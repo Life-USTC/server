@@ -104,7 +104,7 @@ afterEach(async () => {
 afterAll(() => fixturePrisma.$disconnect());
 
 describe("upload finalization ownership", () => {
-  it("prevents a PUT from replacing the object between HEAD and quota settlement", async () => {
+  it("upload.exclusive-completion", async () => {
     const key = await upload();
     const headStarted = createDeferred<void>();
     const releaseHead = createDeferred<void>();
@@ -131,9 +131,8 @@ describe("upload finalization ownership", () => {
     expect(stored.size).toBe(10);
   });
 
-  it.each(["reserved", "uploading", "cleaning"] as const)(
-    "rejects %s reservations before inspecting storage",
-    async (phase) => {
+  it("upload.completion-phase-gate", async () => {
+    for (const phase of ["reserved", "uploading", "cleaning"] as const) {
       const key = await upload();
       await fixturePrisma.uploadPending.update({
         where: { key },
@@ -144,10 +143,10 @@ describe("upload finalization ownership", () => {
       });
       expect(bucket.headCalls).toBe(0);
       expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
-    },
-  );
+    }
+  });
 
-  it("rejects concurrent completion then returns the committed upload on retry", async () => {
+  it("upload.completion-retry", async () => {
     const key = await upload();
     const headStarted = createDeferred<void>();
     const releaseHead = createDeferred<void>();
@@ -168,9 +167,8 @@ describe("upload finalization ownership", () => {
     expect(bucket.headCalls).toBe(1);
   });
 
-  it.each(["missing", "unavailable", "oversized"])(
-    "releases a completion with a %s object so the owner can retry",
-    async (failure) => {
+  it("upload.completion-failure-release", async () => {
+    for (const failure of ["missing", "unavailable", "oversized"]) {
       const key = await upload();
       if (failure === "missing") bucket.objects.delete(key);
       if (failure === "oversized") {
@@ -193,12 +191,12 @@ describe("upload finalization ownership", () => {
       const result = await complete(key);
       expect(result.upload.size).toBe(20);
       expect(result.usedBytes).toBe(20);
-    },
-  );
+      await fixturePrisma.upload.delete({ where: { key } });
+    }
+  });
 
-  it.each(["failed", "successful"])(
-    "does not let a stale %s HEAD release or settle a successor's lease",
-    async (outcome) => {
+  it("upload.completion-stale-attempt", async () => {
+    for (const outcome of ["failed", "successful"]) {
       const key = await upload();
       const firstStarted = createDeferred<void>();
       const releaseFirst = createDeferred<void>();
@@ -243,12 +241,12 @@ describe("upload finalization ownership", () => {
       });
       expect(result.upload.filename).toBe("current.txt");
       expect(result.usedBytes).toBe(10);
-    },
-  );
+      await fixturePrisma.upload.delete({ where: { key } });
+    }
+  });
 
-  it.each(["reservation", "lease"])(
-    "does not settle after %s expiry during HEAD",
-    async (expired) => {
+  it("upload.completion-expiry", async () => {
+    for (const expired of ["reservation", "lease"]) {
       const key = await upload();
       bucket.beforeHead = async () => {
         await fixturePrisma.uploadPending.update({
@@ -271,10 +269,10 @@ describe("upload finalization ownership", () => {
         bucket.beforeHead = undefined;
         expect((await complete(key)).upload.size).toBe(10);
       }
-    },
-  );
+    }
+  });
 
-  it("does not create metadata after cleanup takes an expired completion lease", async () => {
+  it("upload.completion-cleanup-fence", async () => {
     const key = await upload();
     bucket.beforeHead = async () => {
       await fixturePrisma.uploadPending.update({
@@ -291,7 +289,7 @@ describe("upload finalization ownership", () => {
     expect(await fixturePrisma.uploadPending.count({ where: { key } })).toBe(0);
   });
 
-  it("expires a quota-rejected reservation without leaving a completion lease", async () => {
+  it("upload.completion-quota-rejection", async () => {
     const key = await upload();
     await fixturePrisma.upload.create({
       data: {
@@ -314,7 +312,7 @@ describe("upload finalization ownership", () => {
     expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
   });
 
-  it("rolls back an oversized PUT claim so a corrected PUT can proceed", async () => {
+  it("upload.oversized-put-retry", async () => {
     const key = await upload();
     await expect(put(key, 2048)).rejects.toMatchObject({
       code: "File too large",

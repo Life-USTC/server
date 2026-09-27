@@ -26,23 +26,17 @@ requirements:
     Only explicitly viewer-independent public responses may opt into HTTP caching. The HTTP boundary also
     disables CDN storage for private responses; cookies or bearer identity must never personalize a publicly
     cacheable payload.
-- id: openapi.aligned-with-web
-  category: consistency
-  rule: The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional
-    product layer.
-- id: openapi.no-developer-model
-  category: behavior
-  rule: Public documentation helps callers understand the existing product capability boundaries, not
-    to introduce a separate developer-specific business model.
 - id: openapi.session-and-bearer
   category: authorization
-  rule: Current user-side business REST endpoints support both in-site session from the request cookie
-    and OAuth bearer tokens; bearer-token access requires a REST audience plus matching feature:read/feature:write
-    scopes.
+  rule: Ordinary user business REST capabilities explicitly declare session-cookie and resource-bound
+    OAuth bearer alternatives. Bearer access also requires the matching feature scope and owner permission.
+    Administrator governance and sensitive account management are session-only; current OAuth-client activity
+    is bearer-only; ingestion uses its dedicated service credential.
 - id: openapi.rest-mcp-consistent
   category: consistency
-  rule: The same abstract endpoint currently maintains the same core fields, state information, and action
-    results in both REST and MCP; differences mainly appear in interaction form and serialization level.
+  rule: Equivalent REST and MCP capabilities agree on authorized domain values, state transitions, ownership,
+    and operation outcomes. Each capability declares its transport-specific projection, pagination inputs,
+    and omissions; compact MCP output never weakens a privacy restriction.
 - id: openapi.crawler-ingestion-rest-only
   category: behavior
   rule: 'Crawler publication ingestion is an explicit REST-only exception: its machine-secret-authenticated
@@ -50,21 +44,23 @@ requirements:
     or MCP.'
 - id: openapi.security-schemes
   category: authorization
-  rule: 'Generated OpenAPI derives operation security from contract route auth: user REST operations use
-    scoped bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only
-    auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also
-    allows feed tokens.'
+  rule: 'Generated OpenAPI reflects each operation''s explicit authentication mechanism and scopes, not
+    only its actor role: ordinary user business routes declare scoped Bearer/session alternatives, administrator
+    routes session only, MCP and OAuth-client activity Bearer only, ingestion its dedicated header secret,
+    and personal calendar feed export its approved feed-token alternative.'
 - id: openapi.generated-client-required
   category: consistency
-  rule: CLI and Bot business calls must use generated OpenAPI clients and generated request/response types
-    whenever the server OpenAPI covers the endpoint. Allowed exceptions are explicit raw request escape
-    hatches, presigned upload object PUTs, OAuth protocol plumbing, external school/QQ/NapCat APIs, and
-    documented non-OpenAPI endpoints such as OAuth userinfo fallback.
+  rule: CLI and Bot use generated OpenAPI request/response types and clients for covered business operations.
+    Explicit raw-request commands, OAuth protocol exchange, external provider APIs, and documented operations
+    outside OpenAPI are separate transport responsibilities.
+  rationale: Client usage is verified in the corresponding client repository; server schema generation
+    alone does not establish client behavior.
 - id: openapi.openapi-drift-gate
   category: consistency
-  rule: After server OpenAPI changes, regenerate public/openapi.generated.json and sync api/openapi.json
-    plus generated Go clients in CLI and Bot before publishing. Cross-repo CI should fail if copied OpenAPI
-    files drift from the server-generated contract.
+  rule: Before publishing a changed server contract with its clients, regenerate the server OpenAPI artifact
+    and the CLI/Bot copies and generated clients from that current document. Each repository verifies
+    its own generated artifacts and client behavior; intentional contract changes do not retain obsolete
+    endpoints for compatibility.
 - id: openapi.openapi-document-cache
   category: consistency
   rule: GET /api/openapi serves one build-time serialized document per Worker isolate and allows public
@@ -95,11 +91,20 @@ requirements:
   category: validation
   rule: Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of
     falling through to the HTML application error page.
+  acceptance:
+    given: An unknown API path reaches the API catch-all handler.
+    when: The real handler returns its response.
+    then:
+    - Status is 404.
+    - Content type is application/json; charset=utf-8.
+    - 'The exact body is { error: Not found }.'
+    test:
+      file: tests/unit/lib/api/api-unknown-route.test.ts
+      name: openapi.unknown-api-json-errors
 - id: openapi.pagination-query-parameter
   category: validation
-  rule: Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit
-    alias remains accepted during migration, and pageSize takes precedence when both are supplied. Public
-    catalog list routes accept page between 1 and 100, bounding the largest allowed offset to 9900 rows.
+  rule: Paginated REST endpoints accept page and pageSize. The retired limit alias is not accepted. Public
+    catalog lists bound both page and pageSize to 1 through 100.
 - id: openapi.public-catalog-query-boundaries
   category: validation
   rule: Public catalog REST search strings accept 2-200 characters. Omitted locale deterministically means
@@ -227,3 +232,8 @@ capabilities:
       - Health endpoint
       - OAuth/provider catch-all endpoints
       - Webhook endpoint via Better Auth catch-all
+rationale:
+- The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional
+  product layer.
+- Public documentation helps callers understand the existing product capability boundaries, not to introduce
+  a separate developer-specific business model.

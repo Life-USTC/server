@@ -159,3 +159,24 @@ describe("jsonToolResult canonical structured output", () => {
     });
   });
 });
+
+it("mcp.text-formatted-json", () => {
+  const cases = [
+    { input: { title: "Item" }, expected: { title: "Item", success: true } },
+    {
+      input: { success: false, error: "not_found" },
+      expected: { success: false, error: "not_found" },
+    },
+    { input: [{ id: 1 }], expected: { success: true, result: [{ id: 1 }] } },
+    { input: "plain", expected: { success: true, result: "plain" } },
+    { input: 42, expected: { success: true, result: 42 } },
+    { input: null, expected: { success: true, result: null } },
+  ];
+  for (const mode of ["default", "full"] as const) {
+    for (const { input, expected } of cases) {
+      const result = jsonToolResult(input, { mode });
+      expect(result.structuredContent).toEqual(expected);
+      expect(parseToolText(result)).toEqual(expected);
+    }
+  }
+});

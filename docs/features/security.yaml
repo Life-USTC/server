@@ -20,11 +20,15 @@ access:
 requirements:
 - id: security.anonymous-and-traceable
   category: privacy
-  rule: Anonymous capability and traceability capability coexist; this is not an either-or design.
+  rule: Ordinary reads of anonymous comments and their public activity projections hide the author's identity.
+    Authorized administrator governance may identify the author for moderation, with the access limited
+    to governance permissions.
+  rationale: Audience visibility, author anonymity, and administrator traceability are independent controls.
 - id: security.upload-download-both-checked
   category: authorization
-  rule: Both uploads and downloads require permission checks; the security boundary must not apply only
-    to the upload entry point.
+  rule: Upload permission never grants unrestricted download access. Every upload mutation enforces the
+    verified actor, ownership and quota rules; every download request independently checks ownership or
+    access through its currently visible comment attachment.
 capabilities:
   anonymous-comment-visibility:
     title: Anonymous Comment Visibility
