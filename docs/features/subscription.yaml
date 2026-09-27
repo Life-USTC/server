@@ -225,11 +225,15 @@ capabilities:
     graphql:
       mutations:
       - name: subscriptionAdd
+        identifier_inputs:
+          jwId: Section.jwId
         auth: user
         required_scopes:
         - workspace.subscription:write
         mcp_equivalent: workspace_subscription_add
       - name: subscriptionRemove
+        identifier_inputs:
+          jwId: Section.jwId
         auth: user
         required_scopes:
         - workspace.subscription:write
@@ -238,12 +242,16 @@ capabilities:
     mcp:
       tools:
       - name: workspace_subscription_add
+        identifier_inputs:
+          jwId: Section.jwId
         notes:
         - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
         - Default mode return a compact subscription update result instead of the full subscribed section
           list.
         - Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[].
       - name: workspace_subscription_remove
+        identifier_inputs:
+          jwId: Section.jwId
         notes:
         - 'Missing section jwId returns { success: false, action: "not_found", subscription: null }.'
         - Default mode return a compact subscription update result instead of the full subscribed section
@@ -267,6 +275,8 @@ capabilities:
     graphql:
       mutations:
       - name: subscriptionsImport
+        identifier_inputs:
+          input.semesterId: Semester.id
         auth: user
         required_scopes:
         - workspace.subscription:write
@@ -280,12 +290,18 @@ capabilities:
     rest:
       routes:
       - path: /api/workspace/subscriptions/query
+        identifier_inputs:
+          sectionIds: Section.id
+          semesterId: Semester.id
         method: POST
         notes:
         - Preferred batch query endpoint for calendar subscription picker flows.
         - Accepts sectionIds plus mixed section/course codes through codes[].
         - Code matching is semester-scoped; omitted semesterId uses the current semester.
       - path: /api/workspace/subscriptions/batch
+        identifier_inputs:
+          sectionIds: Section.id
+          semesterId: Semester.id
         method: POST
         notes:
         - Preferred mutation endpoint for batch subscribe and unsubscribe flows.
@@ -293,9 +309,13 @@ capabilities:
         - ADD appends matched active sections and skips sections already subscribed; REMOVE removes only
           matched sections.
       - path: /api/catalog/sections/match-codes
+        identifier_inputs:
+          semesterId: Semester.id
         method: POST
         auth: anon
       - path: /api/workspace/subscriptions
+        identifier_inputs:
+          sectionIds: Section.id
         method: PATCH
         notes:
         - ID-only append endpoint for callers that already resolved section IDs; appends selected IDs
@@ -305,6 +325,8 @@ capabilities:
         - Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.
         - Already-subscribed selected sections are counted but not duplicated.
       - path: /api/workspace/subscriptions
+        identifier_inputs:
+          sectionIds: Section.id
         method: DELETE
         notes:
         - ID-only remove endpoint for callers that already resolved section IDs.
@@ -315,6 +337,8 @@ capabilities:
     mcp:
       tools:
       - name: catalog_section_match_preview
+        identifier_inputs:
+          semesterId: Semester.id
         rest_equivalent: POST /api/catalog/sections/match-codes
         notes:
         - Returns suggestions for unmatched inputs when close section codes in the selected semester share
@@ -324,6 +348,8 @@ capabilities:
         - MCP callers that need per-section selection can subscribe selected preview results by calling
           workspace_subscription_add with each section.jwId.
       - name: workspace_subscription_import
+        identifier_inputs:
+          semesterId: Semester.id
         rest_equivalent: POST /api/workspace/subscriptions/batch
         notes:
         - Convenience mutation that combines matching with subscription update.
@@ -360,10 +386,14 @@ capabilities:
     rest:
       routes:
       - path: /api/workspace/subscriptions/{jwId}
+        identifier_inputs:
+          jwId: Section.jwId
         method: PATCH
     graphql:
       mutations:
       - name: subscriptionKindUpdate
+        identifier_inputs:
+          jwId: Section.jwId
         auth: user
         required_scopes:
         - workspace.subscription:write
@@ -372,6 +402,8 @@ capabilities:
     mcp:
       tools:
       - name: workspace_subscription_kind_update
+        identifier_inputs:
+          jwId: Section.jwId
     presentation:
       items:
       - Auditor/teaching-assistant badge on subscribed sections; regular has no badge

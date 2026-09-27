@@ -159,10 +159,14 @@ test("upload.web-list", async ({ page, request }, testInfo) => {
     await page.goto("/workspace/uploads?page=900");
     await expect(page).toHaveURL(/page=2$/);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/workspace/overview");
+    await gotoAndWaitForReady(page, "/workspace/overview");
     await page.getByRole("button", { name: "Menu", exact: true }).click();
     await page.getByRole("link", { name: "My Uploads", exact: true }).click();
     await expect(page).toHaveURL(/\/workspace\/uploads$/);
+    await assertPageContract(page, {
+      routePath: "/workspace/uploads",
+      testInfo,
+    });
     await expect(
       page.getByRole("listitem").filter({ hasText: "material-20.txt" }),
     ).toBeVisible();
@@ -451,6 +455,62 @@ test("cases.content-security.deletion-confirmation", async ({ page }) => {
     expect(
       await withE2ePrisma((db) =>
         db.user.count({ where: { id: owned.user.id } }),
+      ),
+    ).toBe(0);
+  } finally {
+    await owned.cleanup();
+  }
+});
+
+test("upload.comment-attachments-only", async ({ page, request }) => {
+  const owned = await fixture(page);
+  try {
+    const uploadId = await owned.upload("comment-draft.txt");
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/workspace/uploads");
+      const main = page.locator("#main-content");
+      await expect(main).toContainText(
+        "Manage files uploaded through comment attachments.",
+      );
+      await expect(main.locator('input[type="file"]')).toHaveCount(0);
+      await expect(
+        main.getByRole("button", {
+          name: /^(Upload|Share|Create public link)/i,
+        }),
+      ).toHaveCount(0);
+      const download = main
+        .getByRole("link", { name: "Open comment-draft.txt", exact: true })
+        .filter({ visible: true });
+      await expect(download).toHaveAttribute(
+        "href",
+        `/api/workspace/uploads/${uploadId}/download`,
+      );
+    }
+    const anonymousDownload = await request.get(
+      `/api/workspace/uploads/${uploadId}/download`,
+    );
+    expect(anonymousDownload.status()).toBe(401);
+    const ownerDownload = await page.request.get(
+      `/api/workspace/uploads/${uploadId}/download`,
+    );
+    expect(ownerDownload.status()).toBe(200);
+    expect(await ownerDownload.text()).toBe("Learning material");
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${DEV_SEED.section.jwId}#comments`,
+    );
+    const comments = page.locator("#comments");
+    await comments
+      .getByRole("button", { name: "Post comment", exact: true })
+      .click();
+    await expect(comments.locator('input[type="file"]')).toHaveCount(1);
+    await expect(
+      comments.getByRole("button", { name: /Upload file|Upload attachment/i }),
+    ).toBeVisible();
+    expect(
+      await withE2ePrisma((db) =>
+        db.commentAttachment.count({ where: { uploadId } }),
       ),
     ).toBe(0);
   } finally {

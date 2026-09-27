@@ -238,13 +238,30 @@ requirements:
 - id: interface-hierarchy.semantic-parity-13
   category: consistency
   topic: semantic-parity
-  rule: A subscription binding that accepts numeric section identifiers states whether they are public JW IDs
-    or internal row IDs. Clients do not guess the identifier type from its value.
+  rule: Subscription bindings declare every numeric identifier input in identifier_inputs using its exact
+    model field, including section row IDs, section JW IDs and semester row IDs. Nested GraphQL inputs use dotted paths.
+  acceptance:
+    given: The subscription specification, generated REST schemas, executable GraphQL schema and real MCP tool registry.
+    when: Inspect the numeric identifier inputs of every supported subscription operation.
+    then:
+    - Every input has one unambiguous structured model-field declaration matching its actual wire name.
+    - REST row-ID collection operations remain distinct from JW-ID single-section operations; semester selectors use Semester.id.
+    test:
+      file: tests/unit/contracts/subscription-identifier-bindings.test.ts
+      name: interface-hierarchy.semantic-parity-13
 - id: interface-hierarchy.semantic-parity-15
   category: consistency
   topic: semantic-parity
-  rule: GraphQL and native MCP subscription add/remove accept public section JW IDs. Code-based clients resolve
-    section/course codes within an explicit semester before executing the corresponding subscription change.
+  rule: GraphQL and native MCP single-section subscription add/remove resolve only public section JW IDs.
+    An equal-valued internal row ID of another section cannot redirect the membership change.
+  acceptance:
+    given: Two isolated sections have crossed internal row IDs and public JW IDs; the owner already subscribes to the witness section.
+    when: Actual GraphQL HTTP and native MCP add then remove the target using its JW ID.
+    then:
+    - Only the target membership changes; the complete witness membership, including its kind and timestamps, stays unchanged.
+    test:
+      file: tests/integration/rest-subscription-kind-contract.test.ts
+      name: interface-hierarchy.semantic-parity-15
 - id: interface-hierarchy.locale-caching-and-seo-1
   category: consistency
   topic: locale-caching-and-seo
@@ -692,3 +709,4 @@ rationale:
 - Administration uses declared Web and session-only REST bindings (admin.admin-rest-session-only and openapi.session-and-bearer). GraphQL and MCP governance exclusion belong to graphql.registered-operation-coverage and mcp.personal-workspace-focus. CLI does not expose session-only governance commands; cli.admin-session-boundary is verified in the CLI repository.
 
 - Locale-varying public data cache identity is owned by rendering-and-cache.cache-layers-and-invalidation-10. Delivered HTML privacy is owned by rendering-and-cache.cache-layers-and-invalidation-1; private HTTP CDN enforcement and public API opt-in are owned by rendering-and-cache.personal-overlays-10 and rendering-and-cache.personal-overlays-9. These are separate from the internal HTML locale-key contract.
+- Code-based subscription matching is canonically owned by cases.mcp-assistant-workflows.preview-before-write-1; preview and import resolve within the selected semester, with the current semester as the documented omitted-input default.

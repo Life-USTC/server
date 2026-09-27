@@ -137,6 +137,9 @@
         },
         "requirement_refs": {
           "$ref": "#/$defs/requirementRefs"
+        },
+        "identifier_inputs": {
+          "$ref": "#/$defs/identifierInputs"
         }
       },
       "if": {
@@ -154,7 +157,8 @@
           "status": false,
           "auth": false,
           "notes": false,
-          "requirement_refs": false
+          "requirement_refs": false,
+          "identifier_inputs": false
         }
       }
     },
@@ -185,6 +189,9 @@
         },
         "requirement_refs": {
           "$ref": "#/$defs/requirementRefs"
+        },
+        "identifier_inputs": {
+          "$ref": "#/$defs/identifierInputs"
         }
       },
       "if": {
@@ -406,6 +413,9 @@
         },
         "requirement_refs": {
           "$ref": "#/$defs/requirementRefs"
+        },
+        "identifier_inputs": {
+          "$ref": "#/$defs/identifierInputs"
         }
       }
     },
@@ -722,6 +732,18 @@
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/id"
+      }
+    },
+    "identifierInputs": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["Section.id", "Section.jwId", "Semester.id"]
       }
     }
   }
