@@ -60,9 +60,19 @@ requirements:
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
-  rule: Homework and todo detail overlays use one scrollable content column with a visible sticky title. Their
-    content order is due date/time, relative urgency, remaining facts, reading content, then discussion when
-    available. Primary content and actions remain reachable within that column without a second facts/status rail.
+  rule: Homework and todo detail overlays use one scrollable content column with a title that stays visible.
+    Their content order is due date/time, relative urgency, remaining facts, reading content, then discussion
+    when available. Primary content and actions remain reachable without a second facts/status rail.
+  acceptance:
+    given: An isolated owner has homework and a todo with a known future deadline and long reading content.
+    when: Each actual detail overlay opens at 1280, 390 and 320 pixels, and the user scrolls to its reading end and discussion where available.
+    then:
+    - Due date, relative urgency, facts and reading content have one column in the required order, followed by homework discussion.
+    - Exactly one content viewport scrolls; the title remains visible at the same position while the reading content moves.
+    - Bottom actions remain visible, enabled and keyboard-focusable without horizontal overflow.
+    test:
+      file: tests/e2e/src/app/shared-policy/task-overlay-layout.test.ts
+      name: ui.layout-principles-5
 - id: ui.list-table-1
   category: presentation
   topic: list-table
@@ -936,12 +946,6 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/test.ts
       name: ui.workspace-mobile-priority-1
-- id: ui.workspace-mobile-priority-3
-  category: presentation
-  topic: workspace-mobile-priority
-  rule: Mobile homework, todo, and exam toolbars keep status filters directly available. Where card/list modes
-    exist, an accessible overflow menu changes display mode; primary control hit targets are at least 44 by
-    44 CSS pixels.
 - id: ui.social-sharing-metadata-1
   category: presentation
   topic: social-sharing-metadata
@@ -1240,6 +1244,13 @@ topics:
   title: Workspace Page Identity
 - id: workspace-mobile-priority
   title: Workspace Mobile Priority
+  requirement_refs:
+  - homework.mobile-status-controls
+  - homework.responsive-workspace-view
+  - todo.mobile-toolbar-priority
+  - exam.mobile-toolbar-priority
+  - exam.mobile-display-overflow
+  - exam.mobile-toolbar-targets
 - id: social-sharing-metadata
   title: Social Sharing Metadata
 - id: localized-count-copy

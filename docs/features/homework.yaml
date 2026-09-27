@@ -105,6 +105,20 @@ requirements:
     test:
       file: tests/unit/features/homeworks/homework-completion-state.test.ts
       name: homework.teaching-assistant-completion
+- id: homework.mobile-status-controls
+  category: presentation
+  rule: Mobile homework completion filters and the create action are directly reachable within the viewport
+    with at least 44 by 44 CSS pixel targets. Filters select the owner's actual incomplete, completed or combined results.
+  acceptance:
+    given: An isolated user subscribes to a section with one incomplete and one completed homework.
+    when: The actual mobile workspace renders at 320 and 390 pixels and the user selects each completion filter.
+    then:
+    - Each filter displays exactly the expected fixture homework records.
+    - Every direct filter and create control has a target at least 44 by 44 pixels, within a page without horizontal overflow.
+    - Homework uses its responsive card surface without a view-mode menu.
+    test:
+      file: tests/e2e/src/app/shared-policy/task-overlay-layout.test.ts
+      name: homework.mobile-status-controls
 - id: homework.mobile-toolbar-priority
   category: presentation
   applies_to:

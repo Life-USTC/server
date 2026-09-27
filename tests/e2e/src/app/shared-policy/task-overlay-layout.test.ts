@@ -1,0 +1,215 @@
+import { expect, type Locator, type Page, test } from "@playwright/test";
+import { createCalendarContractFixture } from "../../../utils/calendar-contract";
+import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
+import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { cleanupHomeworksForE2e } from "../../../utils/homeworks";
+import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+
+async function fixture(page: Page) {
+  const data = await createCalendarContractFixture();
+  await page.context().clearCookies();
+  await page
+    .context()
+    .addCookies([
+      await createSignedSessionCookie(data.users[0].id),
+      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+    ]);
+  const content = `${Array.from(
+    { length: 35 },
+    (_, i) =>
+      `Reading paragraph ${i}: independently verifiable task instructions.`,
+  ).join("\n\n")}\n\nReading end marker.`;
+  const complete = await withE2ePrisma(async (db) => {
+    await db.homework.update({
+      where: { id: data.homework.id },
+      data: {
+        publishedAt: new Date("2026-01-01T09:10:00+08:00"),
+        submissionStartAt: new Date("2026-01-02T10:20:00+08:00"),
+        submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
+        description: { create: { content } },
+      },
+    });
+    await db.todo.update({
+      where: { id: data.todo.id },
+      data: { content, dueAt: new Date("2099-01-03T12:30:00+08:00") },
+    });
+    const complete = await db.homework.create({
+      data: {
+        sectionId: data.section.id,
+        title: `Completed ${data.homework.title}`,
+        submissionDueAt: new Date("2099-01-03T12:30:00+08:00"),
+        homeworkCompletions: { create: { userId: data.users[0].id } },
+      },
+    });
+    return complete;
+  });
+  return {
+    ...data,
+    complete,
+    cleanupAll: async () => {
+      await cleanupHomeworksForE2e([complete.id]);
+      await data.cleanup();
+    },
+  };
+}
+async function bounds(locator: Locator) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("Expected visible task layout bounds");
+  return box;
+}
+
+test("homework.mobile-status-controls", async ({ page }) => {
+  const data = await fixture(page);
+  try {
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("/workspace/homeworks");
+      const cards = page.getByTestId("workspace-homeworks-cards");
+      for (const [label, expected] of [
+        ["Incomplete", [data.homework.title]],
+        ["Completed", [data.complete.title]],
+        ["All", [data.homework.title, data.complete.title]],
+      ] as const) {
+        const filter = page.getByRole("radio", { name: label, exact: true });
+        await expect(filter).toBeVisible();
+        const box = await bounds(filter);
+        expect(box.width).toBeGreaterThanOrEqual(44);
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
+        await filter.click();
+        await expect(filter).toBeChecked();
+        for (const title of [data.homework.title, data.complete.title]) {
+          const button = cards.getByRole("button", {
+            name: title,
+            exact: true,
+          });
+          if ((expected as readonly string[]).includes(title))
+            await expect(button).toBeVisible();
+          else await expect(button).toHaveCount(0);
+        }
+      }
+      const create = page.getByTestId("workspace-homeworks-add");
+      await expect(create).toBeEnabled();
+      const box = await bounds(create);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      await expect(
+        page.getByTestId("workspace-homeworks-view-menu"),
+      ).toHaveCount(0);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+    }
+  } finally {
+    await data.cleanupAll();
+  }
+});
+
+test("ui.layout-principles-5", async ({ page }) => {
+  const data = await fixture(page);
+  try {
+    for (const width of [1280, 390, 320]) {
+      await page.setViewportSize({ width, height: 700 });
+      for (const kind of ["homework", "todo"] as const) {
+        const title =
+          kind === "homework" ? data.homework.title : data.todo.title;
+        await page.goto(
+          kind === "homework" ? "/workspace/homeworks" : "/workspace/todos",
+        );
+        const surface =
+          kind === "homework"
+            ? page.getByTestId(
+                width >= 768
+                  ? "workspace-homeworks-list"
+                  : "workspace-homeworks-cards",
+              )
+            : width >= 768
+              ? page.getByRole("table")
+              : page.getByTestId("workspace-todos-cards");
+        await surface.getByRole("button", { name: title, exact: true }).click();
+        const dialog = page.getByRole("dialog", { name: title, exact: true });
+        await expect(dialog).toBeVisible();
+        const heading = dialog.getByRole("heading", {
+          name: title,
+          exact: true,
+        });
+        const scroll = dialog.locator('[data-slot="scroll-area-viewport"]');
+        await expect(scroll).toHaveCount(1);
+        const summary = dialog.getByTestId(
+          kind === "homework"
+            ? "homework-deadline-summary"
+            : "todo-detail-summary",
+        );
+        const due = summary.locator(":scope > p").nth(1);
+        const relative = summary.locator(":scope > p").nth(2);
+        const facts =
+          kind === "homework"
+            ? dialog.getByTestId("homework-secondary-details")
+            : summary.getByRole("table");
+        const reading = dialog.getByText(
+          "Reading paragraph 0: independently verifiable task instructions.",
+          { exact: true },
+        );
+        await expect(due).toHaveText(
+          kind === "homework" ? "1/3/99, 12:30 PM" : "Jan 3, 2099, 12:30 PM",
+        );
+        await expect(relative).toContainText(/left/);
+        const parts = await Promise.all(
+          [due, relative, facts, reading].map(bounds),
+        );
+        for (let index = 1; index < parts.length; index++) {
+          expect(parts[index].y).toBeGreaterThanOrEqual(
+            parts[index - 1].y + parts[index - 1].height - 1,
+          );
+          expect(Math.abs(parts[index].x - parts[0].x)).toBeLessThanOrEqual(1);
+        }
+        const initialHeading = await bounds(heading);
+        const footer = dialog.locator('[data-slot="dialog-footer"]');
+        await expect(heading).toBeInViewport();
+        await expect(footer).toBeInViewport();
+        expect(
+          await scroll.evaluate(
+            (node) => node.scrollHeight - node.clientHeight,
+          ),
+        ).toBeGreaterThan(500);
+        await scroll.hover();
+        await page.mouse.wheel(0, 1200);
+        await expect
+          .poll(() => scroll.evaluate((node) => node.scrollTop))
+          .toBeGreaterThan(500);
+        await expect(heading).toBeInViewport();
+        expect((await bounds(heading)).y).toBe(initialHeading.y);
+        const end = dialog.getByText("Reading end marker.", { exact: true });
+        await end.scrollIntoViewIfNeeded();
+        await expect(end).toBeInViewport();
+        if (kind === "homework") {
+          const discussion = dialog
+            .getByTestId("homework-discussion")
+            .getByRole("heading", { name: "Homework discussion", exact: true });
+          await discussion.scrollIntoViewIfNeeded();
+          await expect(discussion).toBeInViewport();
+          expect((await bounds(discussion)).y).toBeGreaterThan(
+            (await bounds(end)).y,
+          );
+        }
+        await expect(heading).toBeInViewport();
+        expect((await bounds(heading)).y).toBe(initialHeading.y);
+        await expect(footer).toBeInViewport();
+        for (const action of await footer.getByRole("button").all()) {
+          await expect(action).toBeEnabled();
+          await action.focus();
+          await expect(action).toBeFocused();
+          await expect(action).toBeInViewport();
+        }
+        expect(
+          await dialog.evaluate((node) => node.scrollWidth <= node.clientWidth),
+        ).toBe(true);
+        await page.keyboard.press("Escape");
+        await expect(dialog).toBeHidden();
+      }
+    }
+  } finally {
+    await data.cleanupAll();
+  }
+});
