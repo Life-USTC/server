@@ -8,6 +8,7 @@ import {
   mcpOptionsRoute,
   mcpPostRoute,
 } from "@/lib/api/routes/mcp";
+import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
@@ -18,6 +19,7 @@ const scopes = [
   "workspace.todo:read",
   "workspace.todo:write",
   "account.profile:read",
+  "workspace.upload:write",
 ];
 let server: Server;
 let origin: string;
@@ -84,6 +86,10 @@ beforeAll(async () => {
         publicJwksRequests++;
         const { getBetterAuthInstance } = await import("@/lib/auth/core");
         response = await getBetterAuthInstance().handler(request);
+      } else if (
+        new URL(request.url).pathname === "/api/workspace/uploads/object"
+      ) {
+        response = await putUploadObjectRoute(request);
       } else {
         response = await (
           {
@@ -410,5 +416,70 @@ it("mcp.catalog-pagination", async () => {
         );
       }
     }
+  }
+});
+
+it("mcp.graphql-authorization", async () => {
+  const credential = await sign({ scopes: ["workspace.todo:read"] });
+  for (const args of [
+    { operationId: "account.profile.get.v1" },
+    {
+      document:
+        "query PrivateAlias { hidden: account { ...Profile } } fragment Profile on Account { profile { id email } }",
+    },
+  ]) {
+    const response = await post(
+      call("graphql_operation_run", args),
+      `Bearer ${credential}`,
+    );
+    expect(response.status).toBe(200);
+    const result = await payload(response);
+    expect(result.result.isError).toBe(true);
+    expect(result.result._meta["mcp/www_authenticate"]).toEqual([
+      expect.stringContaining('scope="account.profile:read"'),
+    ]);
+    expect(result.result._meta["mcp/www_authenticate"][0]).toContain(
+      'error="insufficient_scope"',
+    );
+    expect(JSON.stringify(result.result.structuredContent)).not.toContain(
+      `${userId}@example.test`,
+    );
+  }
+});
+
+it("mcp.upload-put-resource-isolation", async () => {
+  const credential = await sign({ scopes: ["workspace.upload:write"] });
+  const key = `uploads/${userId}/${crypto.randomUUID()}`;
+  const pending = await db.uploadPending.create({
+    data: {
+      key,
+      userId,
+      filename: "private.txt",
+      size: 1,
+      attemptId: crypto.randomUUID(),
+      expiresAt: new Date(Date.now() + 300_000),
+      phase: "reserved",
+    },
+  });
+  try {
+    const response = await fetch(
+      `${origin}/api/workspace/uploads/object?key=${encodeURIComponent(key)}`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: `Bearer ${credential}`,
+          "content-type": "text/plain",
+        },
+        body: "x",
+      },
+    );
+    expect(response.status).toBe(401);
+    await response.text();
+    expect(
+      await db.uploadPending.findUnique({ where: { id: pending.id } }),
+    ).toEqual(pending);
+    expect(await db.upload.findUnique({ where: { key } })).toBeNull();
+  } finally {
+    await db.uploadPending.deleteMany({ where: { id: pending.id } });
   }
 });

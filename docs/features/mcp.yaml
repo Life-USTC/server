@@ -221,27 +221,37 @@ requirements:
       name: mcp.safe-auth-challenges
 - id: mcp.graphql-authorization
   category: authorization
-  rule: graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or registered
-    operation. Arbitrary aliases and fragments cannot bypass authorization because selected Workspace
-    and Account fields and mutations enforce their feature scopes in the shared resolvers. Missing scopes
-    return an insufficient_scope WWW-Authenticate challenge for incremental authorization.
-- id: mcp.graphql-planning-prompt
-  category: presentation
-  rule: plan_graphql_operation embeds the canonical GraphQL SDL and document-free operation manifest into
-    the requested prompt, then instructs clients to use one bounded named operation, request only challenged
-    scopes, confirm mutations explicitly, and inspect state rather than blindly retry after an ambiguous
-    timeout.
-- id: mcp.registered-graphql-timeout-ambiguity
-  category: consistency
-  rule: graphql_operation_run stops waiting after five seconds or caller cancellation, including for serial
-    GraphQL mutations. A mutation already in progress may still commit, so clients must inspect current
-    state and must not blindly retry after REQUEST_TIMEOUT or REQUEST_CANCELLED.
-- id: mcp.registered-upload-boundary
-  category: privacy
-  rule: GraphQL upload mutations expose quota reservation, on-site authenticated PUT workflow metadata,
-    completion of an already-uploaded object, rename, and delete. Although the runner accepts a GraphQL
-    document, it never accepts or proxies R2 object bytes. Its MCP bearer remains resource-bound to /api/mcp
-    and is not replayable at the REST PUT URL.
+  rule: The MCP GraphQL runner returns exact insufficient_scope tool-result challenges for missing selected-field
+    scopes in both arbitrary documents and registered operations; aliases and fragments cannot hide the
+    required feature scope.
+  rationale: MCP audience/grant verification is canonical in mcp.resource-bound-access-token. Exactly-one
+    source selection is graphql.graphql-operation-runner; prompt SDL/manifest and client retry guidance
+    are graphql.graphql-operation-prompt; five-second timeout is graphql.registered-operation-timeout;
+    cancellation and mutation commit ambiguity are graphql.mutation-timeout-ambiguity.
+  acceptance:
+    given: A real HTTP client has only todo-read scope and requests an account profile through a registered
+      operation and an aliased document with a fragment.
+    when: The actual MCP transport invokes the shared GraphQL runner.
+    then:
+    - Both return isError with insufficient_scope and only account.profile:read in the tool-result challenge.
+    - No private account email is disclosed.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.graphql-authorization
+- id: mcp.upload-put-resource-isolation
+  category: authorization
+  rule: An MCP-resource bearer cannot be replayed to the REST upload object PUT endpoint, even with workspace.upload:write
+    scope and an owned valid reservation.
+  rationale: Quota/metadata/lease/completion/rename/delete and the prohibition on raw bytes in GraphQL
+    or MCP are canonical in graphql.upload-workflow-boundary and the individual graphql.upload-* invariants.
+  acceptance:
+    given: A real MCP-resource JWT with upload-write scope and an owned pending upload.
+    when: The client sends bytes to the actual REST PUT route over HTTP using that JWT.
+    then:
+    - The request returns401 and leaves the reservation unchanged with no completed upload row.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.upload-put-resource-isolation
 - id: mcp.request-body-limit
   category: validation
   rule: All MCP JSON request bodies have an inclusive64KiB byte limit before optional authentication or
