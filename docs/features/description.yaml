@@ -16,6 +16,15 @@ requirements:
   rule: A committed homework description write enqueues a calendar export rebuild for its section after
     the changed content is visible. Unchanged retries enqueue the same rebuild so a previously failed
     enqueue can recover.
+  acceptance:
+    given: A subscribed section has a homework description that is created, changed, and submitted unchanged.
+    when: The production description use case writes and schedules calendar rebuilds.
+    then:
+    - Each request schedules the correct section.
+    - A separate database read observes committed content before the rebuild callback.
+    test:
+      file: tests/integration/calendar-write-state.test.ts
+      name: description.homework-calendar-invalidation
 - id: description.public-cache-invalidation
   category: consistency
   rule: A committed course, section, or teacher description write invalidates its cached public HTML and
@@ -45,6 +54,17 @@ requirements:
   category: behavior
   rule: Descriptions attach only to courses, sections, teachers, and homework. The target must resolve
     to an existing entity before a description is created or updated.
+  acceptance:
+    given: Description references use canonical or documented public identifiers for the four supported
+      object types.
+    when: The declared request schema and production target resolver process valid references and nonexistent
+      targets.
+    then:
+    - Supported references resolve to the matching target.
+    - Unsupported types fail validation and nonexistent entities cannot resolve as valid targets.
+    test:
+      file: tests/unit/features/descriptions/description-target-contract.test.ts
+      name: description.attached-object-types
 - id: description.platform-maintained
   category: authorization
   rule: Descriptions are collaboratively maintained supplements. The interface identifies the last editor
@@ -146,20 +166,57 @@ requirements:
   category: validation
   rule: Description reads and writes accept targetType with targetId or the documented sectionJwId, courseJwId,
     teacherId, or homeworkId public identifier.
+  acceptance:
+    given: Description references use canonical or documented public identifiers for the four supported
+      object types.
+    when: The declared request schema and production target resolver process valid references and nonexistent
+      targets.
+    then:
+    - Canonical and public identifiers resolve to the same database target.
+    - Public course and section identifiers use their JW lookup.
+    test:
+      file: tests/unit/features/descriptions/description-target-contract.test.ts
+      name: description.target-identifiers
 - id: description.target-not-found
   category: behavior
   rule: Description reads return not_found when the attached target entity does not exist; REST maps this
     result to 404.
+  acceptance:
+    given: Each supported target type refers to a nonexistent entity.
+    when: The real REST description-read handler resolves public identifiers.
+    then:
+    - Each response has status 404 and the standard Target not found JSON error.
+    test:
+      file: tests/integration/description-write-contract.test.ts
+      name: description.target-not-found
 - id: description.concurrent-first-write
   category: consistency
   rule: Concurrent first description writes to the same target resolve to one durable description with
     a stable create/update result and preserve each successful DescriptionEdit operation. A previousContent
     snapshot reflects the content observed by its transaction and need not represent a total order of
     concurrent writes.
+  acceptance:
+    given: Two editors submit different contents for a target with no description.
+    when: Both production writes execute concurrently against the real database.
+    then:
+    - Exactly one description exists.
+    - Both successful writes preserve their edit history and audit records.
+    test:
+      file: tests/integration/description-write-contract.test.ts
+      name: description.concurrent-first-write
 - id: description.moderation-atomicity
   category: consistency
   rule: Administrator description moderation commits content, DescriptionEdit, and admin_description_moderate
     audit entries atomically through the shared governance service.
+  acceptance:
+    given: An administrator edits an existing description with a failing audit write, then retries normally.
+    when: The production moderation service runs its transaction.
+    then:
+    - Audit failure leaves content and edit history unchanged.
+    - Success commits content, editor, history, and moderation audit together.
+    test:
+      file: tests/integration/description-write-contract.test.ts
+      name: description.moderation-atomicity
 - id: description.rest-pagination-parameters
   category: validation
   rule: The REST description moderation list accepts page and pageSize; the retired limit alias is not

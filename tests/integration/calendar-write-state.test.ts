@@ -55,7 +55,7 @@ afterAll(async () => {
 });
 
 describe("calendar write state", () => {
-  it("rebuilds homework descriptions only after the committed content is visible", async () => {
+  it("description.homework-calendar-invalidation", async () => {
     const reads: Promise<string | undefined>[] = [];
     const messages: unknown[] = [];
     setCalendarExportRebuildSenderForTest(async (message) => {

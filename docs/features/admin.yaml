@@ -12,8 +12,8 @@ policy_refs:
 access:
   anon: Cannot access the admin backend.
   user: Cannot access the admin backend.
-  admin: Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block admin
-    mutations but not read-only admin pages/list endpoints.
+  admin: Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block mutations
+    and anonymous-comment identity revelation; other read-only governance access follows admin.suspended-admin-write-gate.
   agent: No admin tools are currently provided.
 requirements:
 - id: admin.divided-by-responsibility
@@ -39,9 +39,10 @@ requirements:
     { data, pagination } envelope. The retired limit parameter is not accepted.
 - id: admin.suspended-admin-write-gate
   category: authorization
-  rule: Admins with an active suspension may load read-only admin pages and list endpoints, but admin
-    REST mutations and page actions are blocked with the standard suspended 403 response until the suspension
-    is lifted.
+  rule: Admins with an active suspension may load read-only admin pages and list endpoints that do not
+    reveal anonymous comment identities. Admin REST mutations and page actions are blocked with the standard
+    suspended 403 response until suspension is lifted. Anonymous-comment governance reads additionally
+    enforce comment.governance-anonymous-author-access.
 - id: admin.suspension-expiration-validation
   category: validation
   rule: Suspension expiration is either permanent or a valid date-time. Omitted, null, and empty form
