@@ -28,9 +28,7 @@ import {
 } from "./_helpers";
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("移动端新建与编辑作业显示同一份中文填写规范", async ({
-    page,
-  }, testInfo) => {
+  test("homework.section-style-guide", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, SECTION_URL);
     const localeResponse = await page.request.post("/api/account/preferences", {
@@ -67,6 +65,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const createGuide = createDialog.getByTestId(
       "section-create-homework-style-guide-content",
     );
+    await expect(createGuide).toBeVisible();
+    await createTrigger.click();
+    await expect(createGuide).toBeHidden();
+    await createTrigger.click();
     await expect(createGuide).toBeVisible();
     await expect(createGuide).toContainText("第{N}次作业");
     await expect(createGuide).toContainText("{主题}作业");
@@ -112,6 +114,10 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     const editGuide = detailDialog.getByTestId(
       "section-edit-homework-style-guide-content",
     );
+    await expect(editGuide).toBeVisible();
+    await editTrigger.click();
+    await expect(editGuide).toBeHidden();
+    await editTrigger.click();
     await expect(editGuide).toBeVisible();
     await expect(editGuide).toContainText("第{N}次作业");
     await expect(editGuide.locator("pre")).toContainText("- 题目：...");
@@ -570,4 +576,71 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await cleanupHomeworksForE2e([homeworkId]);
     }
   });
+});
+
+test("homework.section-completed-deadline-display", async ({ page }) => {
+  await signInAsDebugUser(page, SECTION_URL);
+  const title = `section-completion-${crypto.randomUUID()}`;
+  let id: string | undefined;
+  try {
+    const response = await page.request.post(
+      "/api/community/section-homeworks",
+      {
+        data: {
+          sectionJwId: DEV_SEED.section.jwId,
+          title,
+          isMajor: true,
+          requiresTeam: true,
+          submissionDueAt: "2099-01-03T12:30:00+08:00",
+        },
+      },
+    );
+    expect(response.status()).toBe(201);
+    id = (await response.json()).id;
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoAndWaitForReady(page, "/workspace/homeworks");
+      await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
+      const list = page.getByTestId(
+        width >= 768 ? "section-homeworks-list" : "section-homeworks-items",
+      );
+      const summary =
+        width >= 768
+          ? list.getByRole("row").filter({ hasText: title })
+          : list.locator('[data-slot="item"]').filter({ hasText: title });
+      await expect(summary).toContainText("12:30");
+      await expect(summary).toContainText(/重要|大作业|Major/i);
+      await expect(summary).toContainText(/组队|团队|Team/i);
+      await summary.getByRole("button", { name: title, exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: title, exact: true });
+      const deadline = dialog.getByTestId("homework-deadline-summary");
+      const reminder = deadline.getByText(/还剩|left/i);
+      await expect(reminder).toBeVisible();
+      await dialog
+        .getByRole("button", { name: /标记为完成|Mark as complete/i })
+        .click();
+      await expect(
+        dialog.getByRole("button", { name: /取消完成|Mark as incomplete/i }),
+      ).toBeEnabled();
+      await expect(deadline).toContainText("12:30");
+      await expect(reminder).toHaveCount(0);
+      const state = dialog.getByTestId("homework-secondary-details");
+      await expect(state).toContainText(/已完成|Completed/i);
+      await expect(state).toContainText(/大作业|Major/i);
+      await expect(state).toContainText(/组队|Team/i);
+      await page.keyboard.press("Escape");
+      await expect(summary).toContainText("12:30");
+      await expect(summary).toContainText(/重要|大作业|Major/i);
+      await expect(summary).toContainText(/组队|团队|Team/i);
+      await summary.getByRole("button", { name: title, exact: true }).click();
+      await expect(reminder).toHaveCount(0);
+      await dialog
+        .getByRole("button", { name: /取消完成|Mark as incomplete/i })
+        .click();
+      await expect(reminder).toBeVisible();
+      await page.keyboard.press("Escape");
+    }
+  } finally {
+    await cleanupHomeworksForE2e([id]);
+  }
 });

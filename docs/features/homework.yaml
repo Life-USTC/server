@@ -99,6 +99,16 @@ requirements:
   category: presentation
   rule: Default homework cards/lists show title, useful course subtitle, non-default major/team badges,
     due date, relative due label and completion action. Standard/default homework has no redundant badge.
+  acceptance:
+    given: A subscribed section has default homework and homework marked both major and team-required.
+    when: The actual workspace renders desktop lists and mobile cards.
+    then:
+    - Both summaries show the title, course context, due datetime, relative deadline and completion action.
+    - Major/team badges appear only for the corresponding non-default flags.
+    - Default records have no redundant standard/default badge and compact summaries omit the full description.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
+      name: homework.compact-card-list-surface
 - id: homework.homework-style-guide-advisory
   category: presentation
   rule: Homework naming/description guidance is advisory on every surface and never rejects otherwise
@@ -317,16 +327,56 @@ requirements:
   category: presentation
   rule: Workspace homework displays cards on mobile and lists on desktop, with directly available completion
     filters and no view-mode control.
+  acceptance:
+    given: An authenticated owner subscribes to a section with actual homework records.
+    when: The workspace renders at desktop and mobile widths and the viewer selects every completion filter.
+    then:
+    - Desktop displays the homework list and mobile displays cards.
+    - Completion filters stay directly visible and selection works.
+    - There is no display-mode selector or menu and no horizontal page overflow.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
+      name: homework.responsive-workspace-view
 - id: homework.detail-secondary-content
   category: presentation
   rule: Homework description, additional timestamps, discussion and secondary actions are available in
     the detail dialog rather than crowded into compact cards.
+  acceptance:
+    given: A homework has a description, publication and submission-opening timestamps and a future deadline.
+    when: The owner opens it from desktop and mobile workspace summaries.
+    then:
+    - Compact summaries omit description, extra timestamps and discussion content.
+    - The detail displays the actual description and both timestamp values, plus the homework discussion.
+    - The detail offers the corresponding public section link for further context and actions.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
+      name: homework.detail-secondary-content
 - id: homework.detail-dialog-dismissal
   category: presentation
-  rule: Homework details open in a centered dialog and can be closed using Escape or an outside click.
+  rule: Homework detail uses a centered desktop dialog with Escape and outside-click dismissal. On mobile
+    it fills the viewport and supports Escape and the visible close control.
+  acceptance:
+    given: An authenticated owner can open a homework from desktop and mobile workspace summaries.
+    when: The viewer opens the detail, checks its bounds and closes/reopens it using the available controls.
+    then:
+    - Desktop detail is centered in the modal backdrop and outside click closes it.
+    - Mobile detail fills the viewport and its close control dismisses it.
+    - Escape closes the reopened detail at both widths.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
+      name: homework.detail-dialog-dismissal
 - id: homework.section-style-guide
   category: presentation
   rule: Section homework create/edit forms expose the collapsible homework-naming guide.
+  acceptance:
+    given: A signed-in Chinese-language viewer opens section homework create and edit forms on mobile.
+    when: The viewer inspects, collapses and expands each naming guide.
+    then:
+    - Both forms expose the same title and description guidance with advisory wording.
+    - The guide is collapsible and the relevant create/save action remains accessible.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/homeworks.test.ts
+      name: homework.section-style-guide
 - id: homework.workspace-style-guide-omitted
   category: presentation
   rule: The workspace homework create form omits the section-context advisory guide.
@@ -349,6 +399,19 @@ requirements:
   - section-homework-tab
   rule: Completed homework in a personal section view retains due datetime, completion state and non-default
     major/team badges while hiding the deadline reminder; reopening restores the reminder.
+  acceptance:
+    given: A personal section view contains an incomplete, dated major homework requiring a team.
+    when: On desktop and mobile the owner completes it in the detail dialog, closes/reopens the detail
+      and marks it incomplete.
+    then:
+    - Completion preserves the due datetime, completion status and major/team details while removing the
+      deadline reminder.
+    - The section summary continues to show the due datetime and non-default badges.
+    - Reopening the detail preserves the completed state and changing it back to incomplete restores the
+      reminder.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/homeworks.test.ts
+      name: homework.section-completed-deadline-display
 capabilities:
   cross-section-homework-summary:
     title: Cross-Section Homework Summary
