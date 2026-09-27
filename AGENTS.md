@@ -3,32 +3,16 @@
 Start here instead of grepping the whole tree. Nested `AGENTS.md` files go
 deeper on one area (closest file wins). Shared names live in
 `docs/policies/interface-hierarchy.yaml` and `docs/features/`. To add or change behavior,
-use `$life-ustc-implement`.
+use the workspace-level `$life-ustc-implement` skill in
+`Life-USTC/.agents/skills/`; this repository owns server-specific guidance.
 
-## How the system fits together
+## Architecture
 
-```text
-Clients:  Web · CLI · Bot · iOS · MCP agents
-    │
-    ▼
-SvelteKit Worker (Cloudflare) + Node tools (migrate, static loader, CLI scripts)
-    │
-    ├── REST      /api/...
-    ├── GraphQL   /api/graphql
-    ├── MCP       /api/mcp
-    ├── OAuth     /oauth, /api/auth, device flows
-    └── Pages     /catalog/*, /workspace/*, /account/*, /admin/*, …
-    │
-    ▼
-src/features/<domain>/server   ← shared use-cases (REST/GraphQL/MCP/Web call here)
-    │
-    ▼
-Prisma (PostgreSQL) · R2 uploads · Better Auth
-```
-
-Upstream data comes from the **static** repo; the Docker **static loader** here
-imports it. Production app deploys via Cloudflare Git (`wrangler.jsonc`).
-Secrets and environment bindings live in the Cloudflare Dashboard — not in docs.
+Web, REST, GraphQL, and MCP call shared `src/features/<domain>/server` use-cases.
+The app runs on a SvelteKit Cloudflare Worker with Prisma/PostgreSQL, R2, and
+Better Auth. Node entrypoints handle migrations and the static loader, which
+imports upstream snapshots from the **static** repo. Production deploys through
+Cloudflare Git; secrets and bindings live in the Cloudflare Dashboard.
 
 ## Where code lives
 
@@ -53,7 +37,6 @@ docs/schemas/            Strict JSON Schemas for specification data
 docs/graphql/            Generated SDL snapshot
 docs/reference/          Structured interface reference data
 tests/unit|integration|e2e
-.agents/skills/          Project skills (how to implement changes)
 .github/workflows/       CI phases in bun-job.yml / db-backed-bun-job.yml
 ```
 
@@ -75,23 +58,8 @@ docker compose -f docker-compose.dev.yml up -d
 bun run app:prepare && bun run db:migrate:deploy && bunx prisma db seed
 bun run dev            # http://127.0.0.1:3000
 
-# Default checks (what you usually run before handoff)
-bun run app:prepare
-bunx wrangler types --include-runtime=false --check
-bunx biome check
-bunx svelte-check --tsconfig ./tsconfig.json
-bunx tsc --noEmit -p tsconfig.typecheck.json
-bunx tsc --noEmit -p tsconfig.typecheck.tests.json
-bunx tsc --noEmit -p tsconfig.typecheck.operational.json
-bunx vitest run
-bun run specs:check
-bun run openapi:check
-bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
-
-# CI ci:verify also runs these shell guards — run if you touch them or CI fails there
-# bash tests/ci/retry.test.sh
-# bash tests/ci/seed-guard.test.sh
-# bash tests/ci/e2e-full-suite-parity.test.sh
+# Local static, unit, type, specification, and schema checks
+bun run check
 
 # Integration (same shape as CI ci:integration), in Bash
 export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test"
@@ -115,24 +83,23 @@ CI phases live in `.github/workflows/bun-job.yml` (static, unit, build) and
 E2E/Worker flows use Wrangler local `R2_UPLOADS` — don't add MinIO unless you're
 specifically testing object storage.
 
-## Where things live
+## Delivery gate
 
-| Concern | Where |
-|---------|--------|
-| Product / API contract | `docs/features/<feature>.yaml` |
-| Shared naming | `docs/policies/interface-hierarchy.yaml` |
-| Use-case | `src/features/<domain>/server/` |
-| Web | `src/routes/...` + `src/features/<domain>/components/` |
-| REST | `src/routes/api/**/+server.ts` → `src/lib/api/routes/` → feature |
-| GraphQL | `src/lib/graphql/` (`catalog` / `workspace` / `community` / `account`) |
-| MCP | `src/lib/mcp/tools/<domain>/` — tool name matches the contract id |
-| Copy | `messages/zh-cn.json`, `messages/en-us.json` |
-| Schema | `prisma/schema.prisma` + migration |
-| Unit / integration / E2E | `tests/unit/`, `tests/integration/`, `tests/e2e/` |
+Before opening a PR, run local checks and the complete CI workflow on the
+pushed branch with `gh workflow run ci.yml --ref <branch>`. Verify the run's
+head SHA and every mandatory job: static checks, unit coverage, build/client
+budget, static-loader image, RLS, all integration/REST/E2E shards, and
+specification execution evidence. `bun run check` alone is insufficient.
+Visual changes also require the visual suite and matched before/after evidence.
 
+After review changes, revalidate the current head. Merge only when main's
+required checks pass and review conversations are resolved; never bypass
+protection. Releases publish tags and GitHub release notes without committing
+back to main.
+
+MCP tool names match each capability's `mcp.tools[].name`, not its contract ID.
 Fixtures: `tests/e2e/fixtures/scenario.json` feeds `tests/fixtures/dev-seed.ts`
-(`DEV_SEED_ANCHOR`). `prisma/seed.sql` is the executable DB seed (kept in sync
-with that scenario; not auto-generated in-repo).
+(`DEV_SEED_ANCHOR`). Keep `prisma/seed.sql` aligned with that scenario.
 
 ## Web and auth
 
@@ -173,7 +140,7 @@ Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
 - Put domain logic in `src/features/*/server`; keep routes / MCP / GraphQL thin.
 - When behavior changes, update the matching contracts and REST/GraphQL/MCP/Web
   (`$life-ustc-implement`).
-- Run the local checks that cover what you touched.
+- Complete the delivery gate before opening and merging a PR.
 - Keep secrets, tokens, cookies, and upload URLs out of logs and commits.
 
 **Ask first**
@@ -194,12 +161,6 @@ Bearer-capable routes, and `resolveSessionUserId` for session-only reads.
 
 ## Deeper guides
 
-| Area | File |
-|------|------|
-| Doc index | `docs/index.md` |
-| Contracts | `docs/AGENTS.md` |
-| Features / lib / GraphQL / MCP / components | `src/**/AGENTS.md` |
-| Prisma | `prisma/AGENTS.md` |
-| Tests | `tests/**/AGENTS.md` |
-| CI workflows | `.github/workflows/AGENTS.md` |
-| Public SSR cache notes | `docs/policies/rendering-and-cache.yaml` |
+Read `docs/AGENTS.md` for contracts, `prisma/AGENTS.md` for schema work,
+`src/**/AGENTS.md` for implementation, `tests/**/AGENTS.md` for harnesses, and
+`.github/workflows/AGENTS.md` for CI. `docs/index.md` indexes specifications.

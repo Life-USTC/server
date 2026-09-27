@@ -14,6 +14,5 @@ bun run specs:show homework
 bun run specs:check
 ```
 
-For code layout and local checks, read [AGENTS.md](AGENTS.md). For an end-to-end
-behavior change, use [life-ustc-implement](.agents/skills/life-ustc-implement/SKILL.md).
+For code layout, implementation, checks, and delivery, read [AGENTS.md](AGENTS.md).
 Production monitoring and deploy runbooks are kept out of the public tree.

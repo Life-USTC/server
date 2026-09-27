@@ -2,13 +2,13 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI (`ci.yml`) | push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
+| CI (`ci.yml`) | manual branch run, push main, PRs | Check, integration, RLS tests, E2E artifacts/shards, optional visual regression, report publish |
 | OpenAPI compatibility | PRs | Block breaking changes unless `api-breaking-approved` is present |
 | GraphQL compatibility | PRs | Keep the canonical SDL exact and block base incompatibility unless `graphql-breaking-approved` is present |
 | Bun job | workflow_call | Reusable non-DB Bun job for static checks, unit coverage, and builds |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | `prisma/**` on main, or manual | Production migrate deploy |
-| Release | successful CI on main | Semantic release |
+| Release | successful CI on main | Tags and GitHub release notes; no main-branch commits |
 | Copilot Setup Steps | manual / setup changes | Copilot bootstrap validation |
 
 Scheduled maintenance workflows may also exist for static sync. Treat their
