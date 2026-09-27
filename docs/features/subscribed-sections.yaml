@@ -19,14 +19,41 @@ requirements:
 - id: subscribed-sections.grouped-by-semester
   category: presentation
   rule: The list is grouped by semester rather than presented as a single flat list.
+  acceptance:
+    given: An isolated owner subscribes to two offerings in one semester and one offering in another.
+    when: The actual subscriptions workspace renders at desktop and mobile widths.
+    then:
+    - Two separate semester groups display their exact labels and counts.
+    - Every subscribed offering appears only under its own semester.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscribed-sections.grouped-by-semester
 - id: subscribed-sections.section-codes-promoted
   category: presentation
   rule: Subscribed-section management shows the section code alongside course name and teachers so multiple
     offerings of the same course can be distinguished.
+  acceptance:
+    given: An isolated owner subscribes to distinct offerings of the same course with the same teachers.
+    when: The actual subscriptions table and mobile cards render.
+    then:
+    - Every offering shows its distinct section code alongside the course name and teachers.
+    - Both widths fit the viewport without horizontal page overflow.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscribed-sections.section-codes-promoted
 - id: subscribed-sections.sidebar-summary-only
   category: presentation
   rule: The shell exposes one Section Subscriptions destination and an optional count badge; it must not
     mirror subscribed sections as dynamic child navigation.
+  acceptance:
+    given: An isolated owner has three real section subscriptions.
+    when: The desktop sidebar and opened mobile sidebar render the subscriptions destination.
+    then:
+    - Exactly one active Section Subscriptions link is visible in each sidebar.
+    - No per-section links or section-code child navigation mirror the subscribed offerings.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
+      name: subscribed-sections.sidebar-summary-only
 capabilities:
   subscribed-sections-tab:
     title: Subscribed Sections Tab

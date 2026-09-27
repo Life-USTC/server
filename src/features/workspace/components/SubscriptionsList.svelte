@@ -160,6 +160,9 @@ function handleRemoveDialogOpenChange(open: boolean) {
                       <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                     {/if}
                     </div>
+                    <p class="text-muted-foreground text-xs break-words">
+                      {section.code}
+                    </p>
                   </Table.Cell>
                   <Table.Cell>
                     {teacherNames(section)}

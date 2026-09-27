@@ -58,6 +58,7 @@ function courseName(section: SubscriptionSection) {
           <Item.Description
             class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
           >
+            <span class="w-full break-words">{section.code}</span>
             <span class="max-w-full break-words">{teacherNames(section)}</span>
             <Badge variant="outline">
               {section.credits ?? workspaceCopy.notAvailable}
