@@ -1,6 +1,6 @@
 <script lang="ts">
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {
@@ -39,11 +39,7 @@ export let users: AdminUserRow[];
   </div>
 
   {#if users.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.noResults}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.noResults} />
   {:else}
     <AdminUsersMobileList
       {copy}

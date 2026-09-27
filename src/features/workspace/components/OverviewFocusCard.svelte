@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { WorkspaceFocusItem } from "@/features/workspace/lib/workspace-agenda";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 
 export let copy: {
@@ -40,10 +40,6 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
       </p>
     </a>
   {:else}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.noUpcoming}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.noUpcoming} />
   {/if}
 </OverviewSection>

@@ -1,20 +1,6 @@
 import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 
-type ModerationTab = "comments" | "descriptions" | "homeworks" | "suspensions";
-
 type ModerationCopy = Record<string, string>;
-
-export function buildModerationTabs(
-  copy: ModerationCopy,
-  counts: Record<ModerationTab, number>,
-) {
-  return [
-    ["comments", copy.commentsTab, counts.comments],
-    ["descriptions", copy.descriptionsTab, counts.descriptions],
-    ["homeworks", copy.homeworksTab, counts.homeworks],
-    ["suspensions", copy.suspensionsTab, counts.suspensions],
-  ] satisfies Array<readonly [ModerationTab, string, number]>;
-}
 
 export function buildCommentStatusOptions(copy: ModerationCopy) {
   return [

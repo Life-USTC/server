@@ -573,6 +573,12 @@
     "oauthDescription": "OAuth apps",
     "busTitle": "Bus Management",
     "busDescription": "Bus timetables",
+    "queues": {
+      "comments": "Comments",
+      "descriptions": "Descriptions",
+      "homeworks": "Homeworks",
+      "suspensions": "Suspensions"
+    },
     "workspace": {
       "active": "active",
       "deleted": "deleted",

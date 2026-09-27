@@ -87,7 +87,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     ).toBeVisible();
   });
 
-  test("筛选面板保值并在日历与详情之间保留上下文", async ({ page }) => {
+  test("筛选面板保值，详情可返回，边栏进入日历", async ({ page }) => {
     const search = encodeURIComponent(DEV_SEED.youngEvent.name);
     await gotoAndWaitForReady(
       page,
@@ -123,16 +123,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       .click();
     await expect(page).toHaveURL(browseUrl);
     await page
-      .getByTestId("young-browse-nav")
-      .getByRole("link", { name: /^(日历|Calendar)$/ })
+      .locator('[data-shell-navigation="desktop"]')
+      .getByRole("link", { name: /活动日历|Event calendar/ })
       .click();
-    await expect(page).toHaveURL(/calendar\?/);
-    expect(new URL(page.url()).searchParams.get("search")).toBe(
-      DEV_SEED.youngEvent.name,
-    );
-    expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
-      "dev-scenario-young-organizer",
-    );
+    await expect(page).toHaveURL(/\/catalog\/young-events\/calendar$/);
   });
 
   test("手机日历从所选日期开始并可展开此前日期", async ({ page }) => {

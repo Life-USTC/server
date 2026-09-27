@@ -351,13 +351,10 @@ function buildShellNavGroups(
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
-        {
-          ariaLabel: copy.nav.activityNotifications,
-          badge: workspaceNavigation?.unreadActivityNotificationsCount,
-          href: "/workspace/subscriptions/activities?view=notifications",
-          icon: BellIcon,
-          label: copy.nav.activityNotifications,
-        },
+        activityNotificationLink(
+          copy,
+          workspaceNavigation?.unreadActivityNotificationsCount,
+        ),
         {
           ariaLabel: copy.nav.subscriptions,
           badge: workspaceNavigation?.subscribedSectionCount,
@@ -389,6 +386,34 @@ function buildShellNavGroups(
   ];
 }
 
+function activityNotificationLink(
+  copy: LayoutCopy,
+  badge?: number | null,
+): ShellLink {
+  const root = "/workspace/subscriptions/activities";
+  return {
+    ariaLabel: copy.nav.activityNotifications,
+    badge,
+    href: `${root}?view=notifications`,
+    icon: BellIcon,
+    label: copy.nav.activityNotifications,
+    items: [
+      {
+        href: `${root}?view=events`,
+        label: copy.nav.activityViews.events,
+      },
+      {
+        href: `${root}?view=organizers`,
+        label: copy.nav.activityViews.organizers,
+      },
+      {
+        href: `${root}?view=notifications`,
+        label: copy.nav.activityViews.notifications,
+      },
+    ],
+  };
+}
+
 function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
   return [
     {
@@ -400,6 +425,24 @@ function buildAdminShellLinks(copy: LayoutCopy): ShellLink[] {
       href: "/admin/moderation",
       icon: GavelIcon,
       label: copy.nav.admin.moderation,
+      items: [
+        {
+          href: "/admin/moderation?tab=comments",
+          label: copy.nav.admin.queues.comments,
+        },
+        {
+          href: "/admin/moderation?tab=descriptions",
+          label: copy.nav.admin.queues.descriptions,
+        },
+        {
+          href: "/admin/moderation?tab=homeworks",
+          label: copy.nav.admin.queues.homeworks,
+        },
+        {
+          href: "/admin/moderation?tab=suspensions",
+          label: copy.nav.admin.queues.suspensions,
+        },
+      ],
     },
     {
       href: "/admin/oauth",
@@ -439,13 +482,10 @@ function buildMobileSecondaryNavGroups(
       icon: GraduationCapIcon,
       label: copy.nav.exams,
     },
-    {
-      ariaLabel: copy.nav.activityNotifications,
-      badge: workspaceNavigation?.unreadActivityNotificationsCount,
-      href: "/workspace/subscriptions/activities?view=notifications",
-      icon: BellIcon,
-      label: copy.nav.activityNotifications,
-    },
+    activityNotificationLink(
+      copy,
+      workspaceNavigation?.unreadActivityNotificationsCount,
+    ),
     {
       ariaLabel: copy.nav.subscriptions,
       badge: workspaceNavigation?.subscribedSectionCount,
@@ -583,10 +623,39 @@ function buildMobilePrimaryLinks(copy: LayoutCopy): ShellLink[] {
   ];
 }
 
+function queryLinkMatches(target: URL) {
+  if (target.searchParams.size === 0) return false;
+  if ($page.url.pathname !== target.pathname) return false;
+  for (const [key, value] of target.searchParams) {
+    const actual = $page.url.searchParams.get(key);
+    if (actual === value) continue;
+    if (
+      actual == null &&
+      key === "tab" &&
+      value === "comments" &&
+      target.pathname === "/admin/moderation"
+    ) {
+      continue;
+    }
+    if (
+      actual == null &&
+      key === "view" &&
+      value === "events" &&
+      target.pathname === "/workspace/subscriptions/activities"
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 function isActiveLink(link: ShellLink) {
   if (!link.href.startsWith("/")) return false;
   const target = new URL(link.href, $page.url.origin);
   const pathname = $page.url.pathname;
+
+  if (target.searchParams.size > 0) return queryLinkMatches(target);
 
   if (target.pathname === "/workspace/overview") {
     return pathname === "/workspace" || pathname === "/workspace/overview";
@@ -606,6 +675,8 @@ function isActiveLink(link: ShellLink) {
       "/catalog/sections",
       "/catalog/teachers",
       "/catalog/rooms",
+      "/catalog/young-events",
+      "/catalog/young-events/organizers",
     ].includes(target.pathname)
   ) {
     return (

@@ -16,6 +16,7 @@ import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
 import { Checkbox } from "$lib/components/ui/checkbox";
@@ -147,9 +148,9 @@ function changeType(value: string) {
               {#each data.filters.source ?? [] as source (source)}<input type="hidden" name="source" value={source} />{/each}
               {#each data.filters.organizationLevel ?? [] as level (level)}<input type="hidden" name="organizationLevel" value={level} />{/each}
               {#if data.filters.fold}<input type="hidden" name="fold" value="1" />{/if}
-              <Field.Field orientation="horizontal" class="min-w-0 items-end gap-2">
+              <Field.Field orientation="horizontal" class="min-w-0 items-center gap-2">
                 <SearchField id="publication-query" name="query" label={copy.search} bind:value={query} placeholder={copy.searchPlaceholder} maxlength={200} />
-                <Button type="submit" class="h-11"><SearchIcon data-icon="inline-start" aria-hidden="true" />{copy.search}</Button>
+                <Button type="submit" class={toolbarControlClass}><SearchIcon data-icon="inline-start" aria-hidden="true" />{copy.search}</Button>
               </Field.Field>
             </form>
           {/snippet}

@@ -1,6 +1,10 @@
 <script lang="ts">
 import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import {
+  toolbarControlClass,
+  toolbarSelectClass,
+} from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
@@ -53,7 +57,7 @@ $: searchPlaceholder =
               {copy.descriptionTarget}
             </Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-description-target"
               name="descriptionTarget"
               value={filters.descriptionTarget ?? "all"}
@@ -70,7 +74,7 @@ $: searchPlaceholder =
               {copy.descriptionContent}
             </Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-description-content"
               name="descriptionContent"
               value={filters.descriptionContent ?? "all"}
@@ -87,7 +91,7 @@ $: searchPlaceholder =
           <Field.Field>
             <Field.Label for="admin-moderation-status">{copy.status}</Field.Label>
             <NativeSelect.Root
-              class="w-full [&_select]:h-11"
+              class="w-full {toolbarSelectClass}"
               id="admin-moderation-status"
               name="status"
               value={filters.status ?? "all"}
@@ -111,7 +115,7 @@ $: searchPlaceholder =
           />
         {/if}
         <SearchField id="admin-moderation-search" name="search" label={searchPlaceholder} placeholder={searchPlaceholder} bind:value={searchQuery} />
-        <Button class="h-11 w-full md:w-auto" type="submit">
+        <Button class="{toolbarControlClass} w-full md:w-auto" type="submit">
           {copy.filterAction}
         </Button>
       </Field.Group>

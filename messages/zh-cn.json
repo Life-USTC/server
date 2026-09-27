@@ -573,6 +573,12 @@
     "oauthDescription": "OAuth 应用",
     "busTitle": "校车管理",
     "busDescription": "校车时刻表",
+    "queues": {
+      "comments": "评论",
+      "descriptions": "课程简介",
+      "homeworks": "作业",
+      "suspensions": "封禁"
+    },
     "workspace": {
       "active": "活跃",
       "deleted": "已删除",

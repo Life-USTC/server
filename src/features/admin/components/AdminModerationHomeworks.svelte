@@ -1,11 +1,11 @@
 <script lang="ts">
 import Trash2 from "@lucide/svelte/icons/trash-2";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import AdminListShell from "./AdminListShell.svelte";
@@ -45,11 +45,7 @@ export let onDelete: (homework: ModerationHomework) => void;
 
 <section class="grid gap-3">
   {#if homeworks.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.noHomeworks}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.noHomeworks} />
   {:else}
     <AdminListShell class="xl:hidden">
       <Item.Group class="gap-0">

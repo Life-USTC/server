@@ -23,7 +23,6 @@ import {
   youngDateTime,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
 import YoungEventFilters from "./YoungEventFilters.svelte";
 
 type Props = {
@@ -79,7 +78,6 @@ const summary = $derived(
 
 <PageLayout>
   {#snippet header()}<PageHeader title={youngCopy.title} description={youngCopy.description} />{/snippet}
-  <YoungBrowseNav current="events" copy={youngCopy} />
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}

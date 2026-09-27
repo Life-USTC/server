@@ -67,7 +67,8 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: Route tabs use PageSectionNav; settings retains DetailSectionNav.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations
+    as page tabs. PageSectionNav is only for in-page anchors. Settings retains DetailSectionNav.
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells

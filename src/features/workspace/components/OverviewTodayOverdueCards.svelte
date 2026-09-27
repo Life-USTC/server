@@ -10,8 +10,8 @@ import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 import OverviewTodayCard from "./OverviewTodayCard.svelte";
@@ -66,11 +66,7 @@ $: overdueEmpty = overdueHomeworks.length === 0 && overdueTodos.length === 0;
     viewAllVisible={showOverdueViewAll}
   >
     {#if overdueEmpty}
-      <Empty.Root class="min-h-20 border-0 px-2 py-6">
-        <Empty.Header>
-          <Empty.Description>{workspaceCopy.overdue.empty}</Empty.Description>
-        </Empty.Header>
-      </Empty.Root>
+      <CompactEmpty description={workspaceCopy.overdue.empty} />
     {:else}
       <Item.Group class="gap-0">
         {#each overdueHomeworkPreview as homework, index (homework.id)}

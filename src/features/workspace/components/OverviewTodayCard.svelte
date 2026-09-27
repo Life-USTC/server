@@ -7,7 +7,7 @@ import type {
   WorkspaceSessionItem,
   WorkspaceTodoItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
@@ -33,11 +33,7 @@ $: isEmpty =
   title={workspaceCopy.today.title}
 >
   {#if isEmpty}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{workspaceCopy.today.empty}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={workspaceCopy.today.empty} />
   {:else}
     <Item.Group class="gap-0">
       {#each todaySessions as session, index (session.id)}

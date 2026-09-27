@@ -100,6 +100,12 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         users: messages.admin.usersTitle,
         oauth: messages.admin.oauthTitle,
         bus: messages.admin.busTitle,
+        queues: messages.admin.queues,
+      },
+      activityViews: {
+        events: messages.youngEvents.workspace.events,
+        organizers: messages.youngEvents.workspace.organizers,
+        notifications: messages.youngEvents.workspace.notifications,
       },
     },
     menu: {

@@ -8,7 +8,6 @@ import { page } from "$app/stores";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageLayout from "$lib/components/PageLayout.svelte";
-import PageSectionNav from "$lib/components/PageSectionNav.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
@@ -101,11 +100,6 @@ function pageHref(number: number) {
       {/snippet}
     </PageHeader>
   {/snippet}
-  <PageSectionNav ariaLabel={copy.manage} items={[
-    { href: "?view=events", label: copy.events, current: Boolean(data.events) },
-    { href: "?view=organizers", label: copy.organizers, current: Boolean(data.organizers) },
-    { href: "?view=notifications", label: copy.notifications, current: Boolean(data.notifications) },
-  ]} />
   <Panel header={data.events || data.notifications ? filtersHeader : undefined} footer={result && result.pagination.totalPages > 1 ? paginationFooter : undefined}>
 
     <div class="grid gap-3">

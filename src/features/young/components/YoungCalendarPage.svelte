@@ -19,7 +19,6 @@ import PageLayout from "$lib/components/PageLayout.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
 import YoungEventFilters from "./YoungEventFilters.svelte";
 
 type Props = {
@@ -152,7 +151,6 @@ const calendarLabels = $derived({
 
 <PageLayout>
   {#snippet header()}<PageHeader title={youngCopy.calendarTitle} description={youngCopy.calendarDescription} />{/snippet}
-  <YoungBrowseNav current="calendar" copy={youngCopy} />
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}

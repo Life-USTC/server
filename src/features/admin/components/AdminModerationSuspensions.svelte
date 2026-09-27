@@ -2,13 +2,13 @@
 import Unlock from "@lucide/svelte/icons/unlock";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -84,11 +84,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
 
 <section class="grid gap-3">
   {#if suspensions.length === 0}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{copy.noSuspensions}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={copy.noSuspensions} />
   {:else}
     <AdminListShell class="xl:hidden">
       <Item.Group class="gap-0">

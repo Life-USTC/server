@@ -17,7 +17,10 @@ test("活动、主办方订阅和提醒入口可用", async ({ page }, testInfo)
   });
   await gotoAndWaitForReady(page, "/workspace/subscriptions/activities");
   for (const view of ["events", "organizers", "notifications"]) {
-    await page.locator(`nav a[href="?view=${view}"]`).click();
+    await page
+      .locator('[data-shell-navigation="desktop"]')
+      .locator(`a[href="/workspace/subscriptions/activities?view=${view}"]`)
+      .click();
     await expect(page).toHaveURL(new RegExp(`view=${view}`));
     await expect(page.locator("main")).toBeVisible();
   }

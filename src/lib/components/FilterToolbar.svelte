@@ -2,6 +2,7 @@
 import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import type { Snippet } from "svelte";
 import { afterNavigate } from "$app/navigation";
+import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
 import * as Sheet from "$lib/components/ui/sheet";
@@ -30,13 +31,13 @@ afterNavigate(() => {
 </script>
 
 <div class="grid min-w-0 gap-3" data-slot="filter-toolbar">
-  <div class="flex min-w-0 flex-wrap items-end gap-2">
+  <div class="flex min-w-0 flex-wrap items-center gap-2">
     <div class="min-w-0 basis-full sm:basis-64 sm:flex-1">{@render primary()}</div>
     {#if advanced}
       <Sheet.Root bind:open>
         <Sheet.Trigger>
           {#snippet child({ props })}
-            <Button {...props} type="button" variant="outline" class="h-11" aria-label={activeCount ? `${filterTitle} (${activeCount})` : filterTitle}>
+            <Button {...props} type="button" variant="outline" class={toolbarControlClass} aria-label={activeCount ? `${filterTitle} (${activeCount})` : filterTitle}>
               <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />
               {filterTitle}
               {#if activeCount}<Badge variant="secondary">{activeCount}</Badge>{/if}

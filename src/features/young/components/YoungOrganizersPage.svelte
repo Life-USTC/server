@@ -15,12 +15,12 @@ import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
+import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { removeYoungFilter } from "../lib/young-navigation";
-import YoungBrowseNav from "./YoungBrowseNav.svelte";
 
 type Props = {
   copy: AppPageCopy;
@@ -81,7 +81,6 @@ const summary = $derived(
 
 <PageLayout>
   {#snippet header()}<PageHeader title={youngCopy.organizersTitle} description={youngCopy.organizersDescription} />{/snippet}
-  <YoungBrowseNav current="organizers" copy={youngCopy} />
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
     <span class="text-muted-foreground">
       {#if source.status === "fresh"}
@@ -101,9 +100,9 @@ const summary = $derived(
       <FilterToolbar>
         {#snippet primary()}
           <form action="/catalog/young-events/organizers" method="get">
-            <Field.FieldGroup class="flex-row flex-wrap items-end gap-3">
+            <Field.FieldGroup class="flex-row flex-wrap items-center gap-3">
             <div class="min-w-48 flex-1"><SearchField id="young-organizer-search" label={commonLabels.search} name="search" placeholder={youngCopy.organizerSearchPlaceholder} value={search ?? ""} /></div>
-            <Button type="submit" class="h-11">{commonLabels.search}</Button>
+            <Button type="submit" class={toolbarControlClass}>{commonLabels.search}</Button>
             </Field.FieldGroup>
           </form>
         {/snippet}

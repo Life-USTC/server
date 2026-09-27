@@ -4,6 +4,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
+import { detailColumnsClass } from "$lib/components/detail-layout";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
@@ -143,7 +144,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </Alert.Root>
     {/if}
 
-    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start lg:gap-10">
+    <div class={detailColumnsClass}>
       <div class="grid min-w-0 grid-cols-1 gap-10">
         <section id="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}

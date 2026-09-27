@@ -6,7 +6,7 @@ import type {
   WorkspaceLinkPinAction,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import * as Empty from "$lib/components/ui/empty/index.js";
+import CompactEmpty from "$lib/components/CompactEmpty.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
 import OverviewSection from "./OverviewSection.svelte";
 import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-types";
@@ -83,10 +83,6 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
       {/each}
     </div>
   {:else}
-    <Empty.Root class="min-h-20 border-0 px-2 py-6">
-      <Empty.Header>
-        <Empty.Description>{workspaceCopy.linkHub.empty}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CompactEmpty description={workspaceCopy.linkHub.empty} />
   {/if}
 </OverviewSection>
