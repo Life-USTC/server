@@ -321,11 +321,37 @@ requirements:
       name: oauth.mcp-refresh-resource-binding
 - id: oauth.token-endpoint-observability
   category: privacy
-  rule: OAuth token handling exports whole-request and fixed-stage durations to separate provider, grant
-    validation, request preparation, and response checks. Better Auth solely owns idempotent resource
-    initialization; the token route does not repeat it. Configured resource policies use the provider's
-    write-invalidated cache, never an application token cache. Telemetry never includes token values,
-    authorization codes, refresh tokens, client secrets, cookies, raw errors, or resource values.
+  rule: OAuth token handling exports whole-request, provider, and fixed-stage durations for grant validation,
+    request preparation, and response checks. Telemetry never includes token values, authorization codes,
+    refresh tokens, client secrets, cookies, raw errors, or resource values.
+  acceptance:
+    given: The real token route and installed provider with a real client and Analytics Engine output
+      capture.
+    when: Exchange a rejected grant containing credential and resource markers.
+    then:
+    - The emitted points separately contain provider, whole-request, and fixed-stage nonnegative durations.
+    - No client identifier, resource value, cookie, token, code, verifier, secret, or raw error content
+      appears in exported telemetry.
+    test:
+      file: tests/integration/oauth-observability-contracts.test.ts
+      name: oauth.token-endpoint-observability
+- id: oauth.provider-resource-policy-cache
+  category: consistency
+  rule: Better Auth solely owns idempotent resource initialization; the token route does not repeat it.
+    Configured resource policies use the provider-owned cache, invalidated by provider resource writes.
+    Disabling a resource takes effect on the next authorization; enabling it restores admission.
+  acceptance:
+    given: The actual provider, configured resource, signed administrator session, and pass-through spies
+      on its real adapter.
+    when: Warm authorization policy, authorize again, disable/re-enable via the provider API, and repeat
+      token exchanges.
+    then:
+    - Warm policy reads use the provider cache without repeated resource database reads or creation.
+    - Provider writes invalidate the policy immediately; repeated token route handling leaves the initialized
+      rows unchanged.
+    test:
+      file: tests/integration/oauth-observability-contracts.test.ts
+      name: oauth.provider-resource-policy-cache
 - id: oauth.oauth-proxy-for-dev
   category: behavior
   rule: Local development and preview deployments may reuse the production registered provider callback
