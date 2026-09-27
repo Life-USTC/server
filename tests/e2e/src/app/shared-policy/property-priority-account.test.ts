@@ -349,7 +349,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           capability: "settings",
           view: "web-accounts",
           scope: main,
-          identity: account.locator('[data-slot="item-title"]'),
+          identity: passkey.locator("input"),
           primary: {
             "account.provider": text(
               account.locator('[data-slot="item-title"]'),
@@ -602,7 +602,7 @@ async function checkOAuthViews(
     capability: "device-authorization-grant",
     view: "web-approval",
     scope: main,
-    identity: main.getByRole("heading", { level: 2 }),
+    identity: main.locator("strong"),
     primary: {
       "client.name": text(main.locator("strong"), fixture.client.name ?? ""),
       "scopes.name": text(
@@ -652,23 +652,32 @@ async function checkOAuthViews(
   await dialog
     .locator("#admin-oauth-redirect-uris")
     .fill("https://priority-register.example.test/return");
+  await dialog
+    .getByRole("radio", { name: copy.strategyPublicTitle, exact: true })
+    .click();
+  await expect(
+    dialog.locator('input[name="tokenEndpointAuthMethod"]'),
+  ).toHaveValue("none");
+  await expect(dialog.locator("#admin-oauth-scope-profile")).toBeChecked();
   await audit.check({
     feature: "oauth",
     capability: "client-registration",
     view: "web",
     scope: dialog,
-    identity: dialog.getByRole("heading"),
+    identity: dialog.locator("#admin-oauth-client-name"),
     primary: {
       "client.name": input(
         dialog.locator("#admin-oauth-client-name"),
         "Priority registered application",
       ),
       "client.pattern": text(
-        dialog.locator('[data-slot="toggle-group-item"][data-state="on"]'),
-        /\S/,
+        dialog.getByRole("radio", {
+          name: copy.strategyPublicTitle,
+          exact: true,
+          checked: true,
+        }),
+        copy.strategyPublicTitle,
       ),
-    },
-    secondary: {
       "client.redirectUris": input(
         dialog.locator("#admin-oauth-redirect-uris"),
         "https://priority-register.example.test/return",
@@ -678,6 +687,7 @@ async function checkOAuthViews(
         oauthScopeLabel(locale, "profile"),
       ),
     },
+    secondary: {},
     tertiary: {},
   });
   await page.keyboard.press("Escape");

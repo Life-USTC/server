@@ -15,6 +15,9 @@ rationale:
   instructions orient the user; only the result view presents the actual authorization outcome as device.status.
 - Authorized application identity and permissions support the decision to retain or revoke access. Recent usage
   counts support that decision as secondary metadata and must not visually dominate the application name.
+- Client registration is a data-entry form. Name, client pattern, redirect destinations and permission scope
+  jointly define the new client. They are peer primary controls, not secondary descriptive metadata; security
+  boundaries must remain as readable as the name field.
 access:
   anon: When accessing the authorization page, will first be guided to sign in.
   user: Can only approve or reject third-party client authorization requests.
@@ -864,9 +867,9 @@ capabilities:
           primary:
           - client.name
           - client.pattern
-          secondary:
           - client.redirectUris
           - client.scopes
+          secondary: []
           tertiary: []
       items:
       - 'Single client inventory: name/id, single-line trust/type/status badges, single-line scopes summary with full-value
