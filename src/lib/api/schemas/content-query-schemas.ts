@@ -7,7 +7,6 @@ import {
 } from "@/features/homeworks/lib/homework-list-bounds";
 import {
   booleanQuerySchema,
-  deprecatedPaginationLimitParam,
   descriptionTargetTypeSchema,
   integerStringRangeSchema,
   integerStringSchema,
@@ -59,7 +58,6 @@ const homeworkSectionIdsSchema = z
 export const commentsQuerySchema = commentTargetQueryInputSchema.extend({
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(publicPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(publicPageSizeSchema),
 });
 
 export const commentRepliesQuerySchema = z.object({
@@ -76,7 +74,6 @@ export const commentRepliesQuerySchema = z.object({
 export const uploadsQuerySchema = z.object({
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(publicPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(publicPageSizeSchema),
 });
 
 export const descriptionsQuerySchema = z.object({

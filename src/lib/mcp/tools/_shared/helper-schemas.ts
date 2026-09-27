@@ -19,13 +19,13 @@ export const flexDateInputSchema = z
 
 export { sectionCodeSchema, todoPrioritySchema };
 
-export const mcpModeSchema = z.enum(["summary", "default", "full"]);
+export const mcpModeSchema = z.enum(["default", "full"]);
 export type McpModeInput = z.infer<typeof mcpModeSchema>;
 export const mcpModeInputSchema = mcpModeSchema
   .default("default")
   .describe(
     "Output verbosity. default=compact structured data with stable field names (recommended). " +
-      "summary is a deprecated alias for default. full adds complete raw record fields without changing the top-level shape.",
+      "full adds explicitly permitted record fields without changing the top-level shape.",
   );
 
 export const mcpLocaleInputSchema = localeSchema

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { mcpModeInputSchema } from "@/lib/mcp/tools/_shared/helper-schemas";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(),
@@ -18,7 +20,25 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
 }
 
 describe("jsonToolResult canonical structured output", () => {
-  it("treats summary as a shape-compatible alias for default", () => {
+  it("mcp.output-mode-input", async () => {
+    const spec = await readSpecification<{
+      requirements: {
+        id: string;
+        expectation?: { values: string[]; default: string };
+      }[];
+    }>("docs/features/mcp.yaml");
+    const expectation = spec.requirements.find(
+      (rule) => rule.id === "mcp.output-mode-input",
+    )?.expectation;
+    if (!expectation) throw new Error("Missing MCP mode input expectation");
+    expect(mcpModeInputSchema.parse(undefined)).toBe(expectation.default);
+    for (const value of expectation.values)
+      expect(mcpModeInputSchema.parse(value)).toBe(value);
+    for (const value of ["summary", "", "DEFAULT", " full ", null, 0, {}]) {
+      expect(mcpModeInputSchema.safeParse(value).success).toBe(false);
+    }
+  });
+  it("preserves canonical pagination and collection fields in default mode", () => {
     const rawResult = jsonToolResult(
       {
         data: Array.from({ length: 12 }, (_, index) => ({
@@ -32,7 +52,7 @@ describe("jsonToolResult canonical structured output", () => {
           totalPages: 5,
         },
       },
-      { mode: "summary" },
+      { mode: "default" },
     );
     const result = parseToolText(rawResult);
 
@@ -52,7 +72,7 @@ describe("jsonToolResult canonical structured output", () => {
     );
   });
 
-  it("keeps collection fields as arrays in summary compatibility mode", () => {
+  it("keeps collection fields as arrays in default mode", () => {
     const result = parseToolText(
       jsonToolResult(
         {
@@ -61,7 +81,7 @@ describe("jsonToolResult canonical structured output", () => {
             title: `Homework ${index + 1}`,
           })),
         },
-        { mode: "summary" },
+        { mode: "default" },
       ),
     );
 

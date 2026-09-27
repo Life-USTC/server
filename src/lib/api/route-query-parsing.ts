@@ -52,14 +52,12 @@ export function parseRouteQuery<TSchema extends z.ZodObject>(
   }
 
   const pageSizeParam = options?.pagination?.pageSizeParam ?? "pageSize";
-  const pageSizeAliasParam = options?.pagination?.pageSizeAliasParam ?? "limit";
 
   return {
     query,
     pagination: normalizePagination({
       page: searchParams.get(options?.pagination?.pageParam ?? "page"),
-      pageSize:
-        searchParams.get(pageSizeParam) ?? searchParams.get(pageSizeAliasParam),
+      pageSize: searchParams.get(pageSizeParam),
       defaultPage: options?.pagination?.defaultPage,
       defaultPageSize: options?.pagination?.defaultPageSize,
       maxPageSize: options?.pagination?.maxPageSize,

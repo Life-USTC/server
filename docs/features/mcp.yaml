@@ -33,10 +33,32 @@ requirements:
     test:
       file: tests/unit/lib/mcp/mcp-tool-helpers.test.ts
       name: mcp.text-formatted-json
+- id: mcp.output-mode-input
+  category: validation
+  applies_to:
+  - protocol-endpoint
+  expectation:
+    kind: enum_input
+    surface: service
+    operation: mcpModeInputSchema
+    input: mode
+    values:
+    - default
+    - full
+    default: default
+  acceptance:
+    given: MCP output mode is absent, one of the supported values, or an unsupported input.
+    when: The shared production MCP input schema parses each value.
+    then:
+    - An omitted mode uses the specified default.
+    - Only the declared modes are accepted; retired summary and malformed inputs fail validation.
+    test:
+      file: tests/unit/lib/mcp/mcp-tool-helpers.test.ts
+      name: mcp.output-mode-input
 - id: mcp.output-modes
   category: presentation
-  rule: MCP supports default and full modes. Both use the same top-level collection and key types; full
-    mode adds only explicitly permitted fields. The retired summary mode is not accepted.
+  rule: Default and full outputs preserve top-level collection and key types; full adds only fields permitted
+    by the corresponding domain projection.
 - id: mcp.coverage
   category: behavior
   rule: The checked tool list below is the MCP contract surface; implementation parity is enforced through

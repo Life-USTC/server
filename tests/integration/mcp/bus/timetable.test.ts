@@ -70,7 +70,7 @@ describe("catalog_bus_timetable_get", () => {
       nextDeparturesMessage?: string | null;
     }>("catalog_bus_timetable_get", {
       locale: "zh-cn",
-      mode: "summary",
+      mode: "default",
     });
 
     expect(result.locale).toBe("zh-cn");

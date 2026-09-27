@@ -63,6 +63,13 @@ function validateExpectation(
   if (!value) return [];
   const errors: string[] = [];
   const { kind } = value;
+  if (
+    kind === "enum_input" &&
+    Array.isArray(value.values) &&
+    !value.values.includes(value.default)
+  ) {
+    errors.push("enum default must be one of its declared values");
+  }
   if (kind === "numeric_input" || kind === "collection_input") {
     const minimum = Number(
       kind === "numeric_input" ? value.minimum : value.min_items,

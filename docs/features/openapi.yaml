@@ -103,8 +103,17 @@ requirements:
       name: openapi.unknown-api-json-errors
 - id: openapi.pagination-query-parameter
   category: validation
-  rule: Paginated REST endpoints accept page and pageSize. The retired limit alias is not accepted. Public
-    catalog lists bound both page and pageSize to 1 through 100.
+  rule: The shared REST page parser uses page and pageSize; an undeclared limit query parameter has no
+    pagination alias semantics. Endpoints with a native limit input keep their separately declared contract.
+  acceptance:
+    given: Page requests contain pageSize, an undeclared limit parameter, both, or neither.
+    when: The production route query parser resolves pagination.
+    then:
+    - pageSize alone selects the requested size; the former alias does not affect the default or override
+      pageSize.
+    test:
+      file: tests/unit/lib/api/api-route-query-validation.test.ts
+      name: openapi.pagination-query-parameter
 - id: openapi.public-catalog-query-boundaries
   category: validation
   rule: Public catalog REST search strings accept 2-200 characters. Omitted locale deterministically means
@@ -140,6 +149,9 @@ requirements:
   category: behavior
   rule: PATCH /api/workspace/subscriptions/{jwId} updates the current user subscription kind; returns
     404 for missing subscriptions. Personal subscription read objects include kind.
+- id: openapi.public-catalog-pagination-bounds
+  category: validation
+  rule: Public catalog list page and pageSize inputs are integers from 1 through 100.
 capabilities:
   api-docs-page:
     title: API Docs Page

@@ -408,6 +408,9 @@
         },
         {
           "$ref": "#/$defs/cache_freshness"
+        },
+        {
+          "$ref": "#/$defs/enum_input"
         }
       ]
     },
@@ -453,6 +456,45 @@
         },
         "refresh_failure": {
           "const": "unavailable"
+        }
+      }
+    },
+    "enum_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "input",
+        "values",
+        "default"
+      ],
+      "properties": {
+        "kind": {
+          "const": "enum_input"
+        },
+        "surface": {
+          "const": "service"
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "input": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

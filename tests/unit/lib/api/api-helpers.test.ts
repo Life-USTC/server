@@ -209,7 +209,7 @@ describe("API 辅助函数", () => {
     });
   });
 
-  it("在 pageSize 缺失时接受废弃的 limit 别名", () => {
+  it("在 pageSize 缺失时忽略旧 limit 并使用默认分页", () => {
     const result = parseRouteQuery(
       new URLSearchParams("page=3&limit=250"),
       z.object({
@@ -224,7 +224,7 @@ describe("API 辅助函数", () => {
     expect(result).not.toBeInstanceOf(Response);
     expect(result).toEqual({
       query: { page: "3", pageSize: undefined, limit: "250" },
-      pagination: { page: 3, pageSize: 100, skip: 200 },
+      pagination: { page: 3, pageSize: 20, skip: 40 },
     });
   });
 

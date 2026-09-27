@@ -59,6 +59,22 @@ function numeric() {
 }
 
 describe("typed specification expectations", () => {
+  it("rejects enum defaults outside the allowed input values", async () => {
+    const value = {
+      kind: "enum_input",
+      surface: "service",
+      operation: "parseMode",
+      input: "mode",
+      values: ["default", "full"],
+      default: "summary",
+    };
+    const result = await validateSpecificationReferences([
+      specification(value),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "enum default must be one of its declared values",
+    );
+  });
   it("accepts finite cache freshness rules and rejects ambiguous or invalid expiry policies", async () => {
     const validators = await loadSpecificationValidators();
     const value = {

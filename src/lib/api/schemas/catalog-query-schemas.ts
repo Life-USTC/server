@@ -8,7 +8,6 @@ import { APP_LOCALES, DEFAULT_LOCALE } from "@/i18n/config";
 import {
   booleanQuerySchema,
   dateQuerySchema,
-  deprecatedPaginationLimitParam,
   integerQueryRangeSchema,
   integerQuerySchema,
   integerStringRangeSchema,
@@ -72,7 +71,6 @@ export const sectionsQuerySchema = catalogLocaleQuerySchema.extend({
   jwIds: z.string().trim().optional(),
   page: catalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const schedulesQuerySchema = catalogLocaleQuerySchema.extend({
@@ -88,7 +86,6 @@ export const schedulesQuerySchema = catalogLocaleQuerySchema.extend({
   dateTo: dateQuerySchema().optional(),
   page: catalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema.extend({
@@ -108,7 +105,6 @@ export const teachersQuerySchema = catalogLocaleQuerySchema.extend({
   search: catalogSearchSchema.optional(),
   page: catalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const coursesQuerySchema = catalogLocaleQuerySchema.extend({
@@ -118,5 +114,4 @@ export const coursesQuerySchema = catalogLocaleQuerySchema.extend({
   classTypeId: catalogIdSchema.optional(),
   page: catalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });

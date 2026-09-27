@@ -1,7 +1,6 @@
 import * as z from "zod";
 import { ADMIN_COMMENT_STATUS_FILTERS } from "@/features/admin/lib/admin-moderation-filters";
 import {
-  deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   integerStringSchema,
   paginationPageSizeParam,
@@ -23,14 +22,12 @@ export const adminUsersQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminUsersPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminUsersPageSizeSchema),
 });
 
 export const adminCommentsQuerySchema = z.object({
   status: z.enum(ADMIN_COMMENT_STATUS_FILTERS).optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });
 
 export const adminHomeworksQuerySchema = z.object({
@@ -38,7 +35,6 @@ export const adminHomeworksQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });
 
 export const adminDescriptionsQuerySchema = z.object({
@@ -49,5 +45,4 @@ export const adminDescriptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });

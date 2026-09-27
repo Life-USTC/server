@@ -577,7 +577,7 @@ describe("MCP tool descriptors", () => {
     ).toBe(true);
   });
 
-  it("validates canonical collection output schemas across compatibility modes", async () => {
+  it("validates canonical collection output schemas in default mode", async () => {
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
     const mcpServer = new McpServer({
@@ -624,14 +624,6 @@ describe("MCP tool descriptors", () => {
       async () => jsonToolResult(todoPayload, { mode: "default" }),
     );
     mcpServer.registerTool(
-      "return_todos_summary",
-      {
-        description: "Return summary todo payload through the shared helper.",
-        outputSchema: getMcpToolOutputSchema("workspace_todo_list"),
-      },
-      async () => jsonToolResult(todoPayload, { mode: "summary" }),
-    );
-    mcpServer.registerTool(
       "return_next_buses_default",
       {
         description: "Return default next-bus payload with a nullable message.",
@@ -652,10 +644,6 @@ describe("MCP tool descriptors", () => {
         name: "return_todos_default",
         arguments: {},
       });
-      const summaryResult = await client.callTool({
-        name: "return_todos_summary",
-        arguments: {},
-      });
       const busResult = await client.callTool({
         name: "return_next_buses_default",
         arguments: {},
@@ -663,11 +651,6 @@ describe("MCP tool descriptors", () => {
 
       expect(defaultResult.structuredContent).toMatchObject({
         counts: todoPayload.counts,
-        todos: [expect.objectContaining({ id: "todo-1" })],
-      });
-      expect(summaryResult.structuredContent).toMatchObject({
-        counts: todoPayload.counts,
-        success: true,
         todos: [expect.objectContaining({ id: "todo-1" })],
       });
       expect(busResult.structuredContent).toMatchObject({

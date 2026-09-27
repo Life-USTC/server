@@ -908,18 +908,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1021,18 +1009,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1120,18 +1096,6 @@
               "maximum": 200
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 200
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1365,18 +1329,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1614,18 +1566,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1828,18 +1768,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1993,18 +1921,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2059,18 +1975,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2154,18 +2058,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2398,18 +2290,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2473,18 +2353,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2616,18 +2484,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -4429,18 +4285,6 @@
               "maximum": 100
             },
             "description": "Number of items per page."
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "maximum": 100
-            },
-            "deprecated": true,
-            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
