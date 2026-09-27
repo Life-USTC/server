@@ -112,7 +112,11 @@ export async function listSectionHomeworkItems({
         ...(includeDeleted ? {} : { deletedAt: null }),
       },
       select: homeworkItemSummarySelect(),
-      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+      orderBy: [
+        { submissionDueAt: "asc" },
+        { createdAt: "desc" },
+        { id: "asc" },
+      ],
     });
 
   if (!viewerUserId) {
@@ -165,7 +169,11 @@ export async function listSectionHomeworkPage({
       client.homework.findMany({
         where,
         select: homeworkItemSummarySelect(),
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+        orderBy: [
+          { submissionDueAt: "asc" },
+          { createdAt: "desc" },
+          { id: "asc" },
+        ],
         skip,
         take,
       }),
