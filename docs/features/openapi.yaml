@@ -384,6 +384,18 @@ requirements:
     validated and converted once by their declared Zod schemas. Route handlers consume those typed results
     and return validation responses without re-wrapping them; pagination and comma-separated ID lists
     keep their dedicated normalizers.
+  acceptance:
+    given: The production REST handlers, declared Zod schemas and query parsers, with domain reads observed
+      at their boundary.
+    when: Supply valid date, integer and boolean query values and invalid variants to bus, schedule,
+      subscribed schedule, overview, todo and homework reads.
+    then:
+    - Each request runs its declared schema exactly once and forwards converted values to the domain read.
+    - Invalid input returns the parser's original400 Response without calling the domain read.
+    - Dedicated pagination and homework ID-list normalization remain separate from scalar conversion.
+    test:
+      file: tests/unit/lib/api/query-consumption-contract.test.ts
+      name: openapi.schema-query-parsing
 - id: openapi.api-docs-mobile-navigation
   category: presentation
   rule: At 390x844, the selected API reference begins within the first viewport while the complete route navigation remains available in a labeled, closable mobile sheet. Following a sheet link changes the route and closes the sheet.
