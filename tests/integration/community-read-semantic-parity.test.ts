@@ -2,8 +2,13 @@ import { createServer, type Server } from "node:http";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { makeSignature } from "better-auth/crypto";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { encodeCommentReplyCursor } from "@/features/comments/server/comment-reply-pagination";
+import type { CommentNode } from "@/features/comments/server/comment-types";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
+import { getCommentRepliesRoute } from "@/lib/api/routes/comments-replies-route";
+import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
 import { getDescriptionRoute } from "@/lib/api/routes/description-read-route";
 import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
 import { mcpPostRoute } from "@/lib/api/routes/mcp";
@@ -36,7 +41,18 @@ beforeAll(async () => {
     try {
       const request = await getRequest({ request: incoming, base: origin });
       const response = await runtime(async () => {
-        switch (new URL(request.url).pathname) {
+        const path = new URL(request.url).pathname;
+        const comment = path.match(
+          /^\/api\/community\/comments\/([^/]+)(\/replies)?$/,
+        );
+        if (comment) {
+          return comment[2]
+            ? getCommentRepliesRoute(request, { id: comment[1] })
+            : getCommentRoute(request, { id: comment[1] });
+        }
+        switch (path) {
+          case "/api/community/comments":
+            return getCommentsRoute(request);
           case "/api/auth/jwks":
             return getBetterAuthInstance().handler(request);
           case "/api/mcp":
@@ -481,6 +497,271 @@ it("interface-hierarchy.description-read-parity", async () => {
   } finally {
     await cleanupCatalogContractFixture(db, fixture);
     await cleanupReaders([reader]);
+    resetPublicRuntimeCacheForTest();
+  }
+});
+
+it("interface-hierarchy.comment-read-parity", async () => {
+  const fixture = await createCatalogContractFixture(db);
+  const readers = [
+    await createReader(`${fixture.marker}-comment-owner`),
+    await createReader(`${fixture.marker}-comment-other`),
+  ];
+  const section = fixture.sections[0];
+  const path = "/api/community/comments";
+  const rootIds = Array.from(
+    { length: 6 },
+    (_, i) => `${fixture.marker}-root-${i}`,
+  );
+  const replyIds = Array.from(
+    { length: 36 },
+    (_, i) => `${fixture.marker}-reply-${String(i).padStart(2, "0")}`,
+  );
+  const createdAt = new Date("2035-01-01T00:00:00.437Z");
+  const target = { targetType: "section", sectionJwId: section.jwId };
+  function project({ success, found, ...payload }: Record<string, unknown>) {
+    expect(success).toBe(true);
+    expect(found).toBe(true);
+    return payload;
+  }
+  const ids = (nodes: CommentNode[]) => nodes.map((node) => node.id);
+  try {
+    for (const id of [...rootIds].reverse()) {
+      await db.comment.create({
+        data: {
+          id,
+          sectionId: section.id,
+          userId: readers[0].id,
+          body: `**${id}**`,
+          createdAt,
+          updatedAt: createdAt,
+          visibility: id === rootIds[5] ? "logged_in_only" : "public",
+        },
+      });
+      await db.comment.update({
+        where: { id },
+        data: { rootId: id, updatedAt: createdAt },
+      });
+    }
+    for (const id of replyIds.slice(0, 35).reverse()) {
+      await db.comment.create({
+        data: {
+          id,
+          sectionId: section.id,
+          userId: readers[0].id,
+          body: `**${id}**`,
+          createdAt,
+          updatedAt: createdAt,
+          rootId: rootIds[0],
+          parentId: rootIds[0],
+        },
+      });
+    }
+    await db.comment.create({
+      data: {
+        id: replyIds[35],
+        sectionId: section.id,
+        userId: readers[0].id,
+        body: "Nested continuation reply",
+        createdAt,
+        updatedAt: createdAt,
+        rootId: rootIds[0],
+        parentId: replyIds[0],
+      },
+    });
+    for (const reader of readers) {
+      for (let page = 1; page <= 4; page++) {
+        const result = await rest(
+          path,
+          { ...target, page, pageSize: 2 },
+          reader,
+        );
+        expect(
+          project(
+            await mcp(
+              "community_comment_list",
+              { ...target, page, limit: 2 },
+              reader,
+            ),
+          ),
+        ).toEqual(result);
+        expect(ids(result.data)).toEqual(
+          rootIds.slice((page - 1) * 2, page * 2),
+        );
+        expect(result.pagination).toMatchObject({
+          page,
+          pageSize: 2,
+          total: 6,
+          totalPages: 3,
+        });
+      }
+      const result = await rest(path, target, reader);
+      expect(
+        project(await mcp("community_comment_list", target, reader)),
+      ).toEqual(result);
+      expect(result.pagination.pageSize).toBe(20);
+      expect(ids(result.data)).toEqual(rootIds);
+      for (const alias of [
+        { targetId: section.id },
+        { sectionJwId: section.jwId },
+      ]) {
+        const filter = { targetType: "section", ...alias };
+        expect(await rest(path, filter, reader)).toEqual(result);
+        expect(
+          project(await mcp("community_comment_list", filter, reader)),
+        ).toEqual(result);
+      }
+      const root: CommentNode = result.data[0];
+      expect(root.isAuthor).toBe(reader.id === readers[0].id);
+      expect(root.canEdit).toBe(reader.id === readers[0].id);
+      expect(ids(root.replies)).toEqual(replyIds.slice(0, 10));
+      expect(root.repliesNextCursor).toEqual(expect.any(String));
+      if (!root.repliesNextCursor) throw new Error("Missing preview cursor");
+      // Feed each transport the other transport's cursor; both include identical ancestry.
+      const firstTools = await mcp("community_comment_list", target, reader);
+      const nextRest = await rest(
+        `${path}/${root.id}/replies`,
+        { cursor: firstTools.data[0].repliesNextCursor },
+        reader,
+      );
+      const nextTools = await mcp(
+        "community_comment_replies",
+        { commentId: root.id, cursor: root.repliesNextCursor },
+        reader,
+      );
+      expect(project(nextTools)).toEqual(nextRest);
+      expect(ids(nextRest.thread[0].replies)).toEqual(replyIds.slice(10, 30));
+      expect(nextRest.rootId).toBe(root.id);
+      expect(nextRest.nextCursor).toEqual(expect.any(String));
+      const tailRest = await rest(
+        `${path}/${replyIds[0]}/replies`,
+        { cursor: nextTools.nextCursor, pageSize: 20 },
+        reader,
+      );
+      const tailTools = await mcp(
+        "community_comment_replies",
+        { commentId: replyIds[0], cursor: nextRest.nextCursor, pageSize: 20 },
+        reader,
+      );
+      expect(project(tailTools)).toEqual(tailRest);
+      expect(ids(tailRest.thread[0].replies)).toEqual([
+        replyIds[0],
+        ...replyIds.slice(30, 35),
+      ]);
+      expect(ids(tailRest.thread[0].replies[0].replies)).toEqual([
+        replyIds[35],
+      ]);
+      expect(tailRest.nextCursor).toBeNull();
+      expect(tailRest.rootId).toBe(root.id);
+      const smallRest = await rest(
+        `${path}/${root.id}/replies`,
+        { cursor: root.repliesNextCursor, pageSize: 2 },
+        reader,
+      );
+      expect(
+        project(
+          await mcp(
+            "community_comment_replies",
+            {
+              commentId: root.id,
+              cursor: root.repliesNextCursor,
+              pageSize: 2,
+            },
+            reader,
+          ),
+        ),
+      ).toEqual(smallRest);
+      expect(ids(smallRest.thread[0].replies)).toEqual(replyIds.slice(10, 12));
+      const exhaustedCursor = encodeCommentReplyCursor({
+        createdAt: createdAt.toISOString(),
+        id: replyIds[35],
+        rootId: root.id,
+      });
+      const exhausted = await rest(
+        `${path}/${root.id}/replies`,
+        { cursor: exhaustedCursor },
+        reader,
+      );
+      expect(
+        project(
+          await mcp(
+            "community_comment_replies",
+            { commentId: root.id, cursor: exhaustedCursor },
+            reader,
+          ),
+        ),
+      ).toEqual(exhausted);
+      expect(exhausted.thread[0].replies).toEqual([]);
+      expect(exhausted.nextCursor).toBeNull();
+      const focus = await rest(`${path}/${replyIds[35]}`, {}, reader);
+      expect(
+        project(
+          await mcp(
+            "community_comment_get",
+            { commentId: replyIds[35] },
+            reader,
+          ),
+        ),
+      ).toEqual(focus);
+      expect(focus.focusId).toBe(replyIds[35]);
+      expect(focus.thread[0].id).toBe(root.id);
+      expect(ids(focus.thread[0].replies)).toEqual(replyIds.slice(0, 10));
+      expect(ids(focus.thread[0].replies[0].replies)).toEqual([replyIds[35]]);
+      for (const cursor of [
+        "malformed",
+        encodeCommentReplyCursor({
+          createdAt: createdAt.toISOString(),
+          id: replyIds[0],
+          rootId: rootIds[1],
+        }),
+      ]) {
+        expect(
+          (await response(`${path}/${root.id}/replies`, { cursor }, reader))
+            .status,
+        ).toBe(400);
+        expect(
+          await mcp(
+            "community_comment_replies",
+            { commentId: root.id, cursor },
+            reader,
+          ),
+        ).toMatchObject({
+          success: false,
+          found: true,
+          error: "invalid_cursor",
+        });
+      }
+      const missingId = `${fixture.marker}-missing`;
+      for (const suffix of ["", "/replies"]) {
+        expect(
+          (await response(`${path}/${missingId}${suffix}`, {}, reader)).status,
+        ).toBe(404);
+        expect(
+          await mcp(
+            suffix ? "community_comment_replies" : "community_comment_get",
+            { commentId: missingId },
+            reader,
+          ),
+        ).toMatchObject({ success: false, found: false, error: "not_found" });
+      }
+      const wrongTarget = { targetType: "section", sectionJwId: section.id };
+      expect((await response(path, wrongTarget, reader)).status).toBe(404);
+      expect(
+        await mcp("community_comment_list", wrongTarget, reader),
+      ).toMatchObject({
+        success: false,
+        found: false,
+        error: "target_not_found",
+      });
+    }
+    const anonymous = await rest(path, target);
+    expect(ids(anonymous.data)).toEqual(rootIds.slice(0, 5));
+    expect(anonymous.meta.viewer.isAuthenticated).toBe(false);
+    expect(anonymous.data[0].canEdit).toBe(false);
+  } finally {
+    await db.comment.deleteMany({ where: { sectionId: section.id } });
+    await cleanupCatalogContractFixture(db, fixture);
+    await cleanupReaders(readers);
     resetPublicRuntimeCacheForTest();
   }
 });
