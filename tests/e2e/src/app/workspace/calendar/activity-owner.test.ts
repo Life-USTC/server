@@ -161,7 +161,11 @@ test("calendar.activity-owner-transition", async ({ page }) => {
           fixtures[0].young.name,
         );
         await page.screenshot({
-          path: `/tmp/life-spec-business-calendar-owner-after-${ownerIndex}-${pending}.png`,
+          path: test
+            .info()
+            .outputPath(
+              `life-spec-business-calendar-owner-after-${ownerIndex}-${pending}.png`,
+            ),
           fullPage: true,
         });
         expect(

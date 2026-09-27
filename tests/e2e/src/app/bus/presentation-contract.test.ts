@@ -102,7 +102,11 @@ test("bus.merged-table-grouped-by-route", async ({ page }) => {
         const routes = page.getByTestId("bus-route-section");
         expect(await routes.count()).toBeGreaterThanOrEqual(2);
         await page.screenshot({
-          path: `/tmp/life-spec-business-bus-merged-${signedIn}-${width}.png`,
+          path: test
+            .info()
+            .outputPath(
+              `life-spec-business-bus-merged-${signedIn}-${width}.png`,
+            ),
           fullPage: true,
         });
         await expect

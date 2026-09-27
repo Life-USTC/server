@@ -96,13 +96,17 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
             ).toBeVisible();
           } catch (error) {
             await page.screenshot({
-              path: `/tmp/life-spec-business-history-calendar-${width}.png`,
+              path: test
+                .info()
+                .outputPath(`life-spec-business-history-calendar-${width}.png`),
               fullPage: true,
             });
             throw error;
           }
           await page.screenshot({
-            path: `/tmp/life-spec-business-history-calendar-${width}.png`,
+            path: test
+              .info()
+              .outputPath(`life-spec-business-history-calendar-${width}.png`),
             fullPage: true,
           });
         }

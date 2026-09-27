@@ -76,7 +76,11 @@ test("overview.current-semester-priority", async ({ page }) => {
             );
             if (!mixed && time.includes("09:30"))
               await page.screenshot({
-                path: `/tmp/life-spec-business-overview-current-term-${locale}-${width}.png`,
+                path: test
+                  .info()
+                  .outputPath(
+                    `life-spec-business-overview-current-term-${locale}-${width}.png`,
+                  ),
                 fullPage: true,
               });
             const focus = page.getByTestId("workspace-overview-focus");

@@ -227,7 +227,11 @@ test("overview.workspace-card-disambiguation", async ({ page }) => {
         await expect(focus).toContainText(String(fixture.course.nameEn));
         await expect(focus).toContainText(String(campus.nameEn));
         await page.screenshot({
-          path: `/tmp/life-spec-business-overview-context-${width}-${time.replace(":", "")}.png`,
+          path: test
+            .info()
+            .outputPath(
+              `life-spec-business-overview-context-${width}-${time.replace(":", "")}.png`,
+            ),
           fullPage: true,
         });
         await expect(focus).toContainText(String(section.code));

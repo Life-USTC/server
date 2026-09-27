@@ -83,6 +83,16 @@ async function open(
       .getByRole("radio", { name: "All", exact: true }),
   ).toBeEnabled();
 }
+async function waitForMenuAutofocus(page: Page) {
+  // Bits UI schedules opening autofocus across animation frames. Let it settle
+  // so a late opening callback cannot reset focus after keyboard navigation.
+  await page.getByRole("menu").evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
 const filters = (page: Page) =>
   page.getByRole("group", { name: "Exams", exact: true });
 const visibleRows = (page: Page, width: number) =>
@@ -133,7 +143,9 @@ test("exam.semester-required", async ({ page }) => {
         .getByRole("radio", { name: "All", exact: true })
         .click();
       await page.screenshot({
-        path: `/tmp/life-spec-business-exam-semester-${width}.png`,
+        path: test
+          .info()
+          .outputPath(`life-spec-business-exam-semester-${width}.png`),
         fullPage: true,
       });
       for (const [section, semester] of [
@@ -225,7 +237,7 @@ test("exam.mobile-display-overflow", async ({ page }) => {
       .getByRole("radio", { name: "All", exact: true })
       .click();
     await page.screenshot({
-      path: "/tmp/life-spec-business-exam-overflow.png",
+      path: test.info().outputPath("life-spec-business-exam-overflow.png"),
       fullPage: true,
     });
     const trigger = page.getByTestId("workspace-exams-view-menu");
@@ -239,6 +251,7 @@ test("exam.mobile-display-overflow", async ({ page }) => {
         page.evaluate(() => document.activeElement?.getAttribute("role")),
       )
       .toBe("menuitemradio");
+    await waitForMenuAutofocus(page);
     await page.keyboard.press("End");
     await expect(list).toBeFocused();
     await page.keyboard.press("Enter");
@@ -246,7 +259,7 @@ test("exam.mobile-display-overflow", async ({ page }) => {
     await expect(page.getByTestId("workspace-exams-cards")).toBeHidden();
     await expect(trigger).toBeFocused();
     await page.screenshot({
-      path: "/tmp/life-spec-business-exam-list-after.png",
+      path: test.info().outputPath("life-spec-business-exam-list-after.png"),
       fullPage: true,
     });
     await page.keyboard.press("Enter");
@@ -260,6 +273,7 @@ test("exam.mobile-display-overflow", async ({ page }) => {
         page.evaluate(() => document.activeElement?.getAttribute("role")),
       )
       .toBe("menuitemradio");
+    await waitForMenuAutofocus(page);
     await page.keyboard.press("Home");
     await expect(cards).toBeFocused();
     await page.keyboard.press("Enter");
@@ -267,7 +281,9 @@ test("exam.mobile-display-overflow", async ({ page }) => {
     await expect(page.getByRole("table")).toBeHidden();
     await expect(trigger).toBeFocused();
     await page.screenshot({
-      path: "/tmp/life-spec-business-exam-overflow-after.png",
+      path: test
+        .info()
+        .outputPath("life-spec-business-exam-overflow-after.png"),
       fullPage: true,
     });
     expect(

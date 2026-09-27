@@ -199,7 +199,9 @@ test("ui.context-tabs-3", async ({ page }) => {
           await insideHorizontalViewport(next, viewport);
           if (width === 390 && index === 1)
             await page.screenshot({
-              path: "/tmp/life-spec-business-context-nav-after390.png",
+              path: test
+                .info()
+                .outputPath("life-spec-business-context-nav-after390.png"),
               fullPage: true,
             });
           await page.keyboard.press("Enter");

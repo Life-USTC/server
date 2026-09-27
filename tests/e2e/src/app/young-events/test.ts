@@ -348,7 +348,7 @@ for (const width of [1280, 390]) {
         ),
       ).toBe(true);
       await page.screenshot({
-        path: `/tmp/young-calendar-${width}.png`,
+        path: test.info().outputPath(`young-calendar-${width}.png`),
         fullPage: true,
       });
       expect(errors).toEqual([]);

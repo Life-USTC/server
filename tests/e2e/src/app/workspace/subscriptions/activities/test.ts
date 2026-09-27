@@ -89,7 +89,9 @@ for (const viewport of [
         page.getByRole("button", { name: /^(取消订阅|Unsubscribe)$/ }),
       ).toBeEnabled();
       await page.screenshot({
-        path: `/tmp/young-subscriptions-${viewport.width}.png`,
+        path: test
+          .info()
+          .outputPath(`young-subscriptions-${viewport.width}.png`),
         fullPage: true,
       });
       await page
@@ -148,7 +150,10 @@ test("activity detail posts comments to the public youngId and preserves them on
     await expect(
       page.locator("#comments").getByText(body, { exact: true }),
     ).toBeVisible();
-    await page.screenshot({ path: "/tmp/young-comments.png", fullPage: true });
+    await page.screenshot({
+      path: test.info().outputPath("young-comments.png"),
+      fullPage: true,
+    });
   } finally {
     await cleanupCommentsForE2e([id]);
   }
