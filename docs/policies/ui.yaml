@@ -590,8 +590,8 @@ requirements:
     or an unavailable feature. Field views declare separate primary, secondary and tertiary property-path arrays
     for each implemented Web or assistant view; a property belongs to exactly one group in a view.
   rationale: This requirement owns the declaration format. Actual visibility, priority, disambiguation and compact
-    projection behavior remain independently required by the view-specific feature rules and the primary,
-    secondary, tertiary and MCP output requirements. JSON object key order is not a presentation contract.
+    projection behavior remain independently required by the six browser view-family owners, view-specific
+    feature rules and MCP output requirements. JSON object key order is not a presentation contract.
   acceptance:
     given: All repository feature presentation declarations and the production specification schema validator.
     when: The validator loads every declaration and checks malformed field arrays, missing kinds or view groups,
@@ -685,19 +685,6 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
       name: ui.model-property-priority-workspace-views
-- id: ui.model-property-priority-primary-2
-  category: presentation
-  topic: model-property-priority-primary
-  rule: Each declared list, card, detail, and assistant projection puts its primary identity in that view’s
-    title or leading summary slot; task-critical time and status remain available in its primary content.
-- id: ui.model-property-priority-secondary-2
-  category: presentation
-  topic: model-property-priority-secondary
-  rule: Secondary metadata uses shared secondary-text styling without hiding required disambiguation.
-- id: ui.model-property-priority-tertiary-2
-  category: presentation
-  topic: model-property-priority-tertiary
-  rule: Ordinary UI de-emphasizes internal reconstruction metadata.
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
@@ -1534,12 +1521,44 @@ topics:
   title: Model Property Priority
 - id: model-property-priority-primary
   title: Model Property Priority - Primary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.property-priority-parity
 - id: model-property-priority-secondary
   title: Model Property Priority - Secondary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.property-priority-parity
 - id: model-property-priority-tertiary
   title: Model Property Priority - Tertiary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.output-modes
+  - mcp.privacy-safe-default
 - id: model-property-priority-surfaces
   title: Model Property Priority - Surfaces
+  requirement_refs:
+  - mcp.output-mode-input
+  - mcp.output-modes
+  - mcp.openai-compatible-descriptors
+  - mcp.typed-output-fields
+  - mcp.typed-bus-output-fields
+  - mcp.typed-community-output-fields
 - id: basic-info-card
   title: Basic Info Card
 - id: context-tabs
@@ -1609,5 +1628,8 @@ rationale:
   of summary, mcp.property-priority-parity for compact identity and disambiguation, mcp.output-modes for
   mode shape and allowed projections, mcp.openai-compatible-descriptors plus mcp.typed-output-fields,
   mcp.typed-bus-output-fields and mcp.typed-community-output-fields for explicit per-tool output fields,
-  and mcp.privacy-safe-default for identical privacy restrictions in default and full mode. The independent
-  UI treatment of reconstruction metadata remains ui.model-property-priority-tertiary-2.
+  and mcp.privacy-safe-default for identical privacy restrictions in default and full mode.
+- The former primary, secondary and tertiary priority umbrellas are indexed by topics rather than repeated
+  as separate requirements. Six browser view-family owners now check every declared Web field view against
+  actual visible identities, supporting metadata and internal values. The finite inventory rejects omitted
+  views; state-specific declarations distinguish agenda, grids, upload stages and history from their siblings.
