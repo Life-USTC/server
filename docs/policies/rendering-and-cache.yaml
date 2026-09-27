@@ -171,10 +171,33 @@ requirements:
   topic: personal-overlays
   rule: The shell viewer and workspace navigation projection is obtained through the session-only /_internal/shell-bootstrap
     endpoint. OAuth bearer identity is not used as ambient shell identity.
+  acceptance:
+    given: Anonymous requests and two isolated session users with distinct navigation counts; each user
+      also authorizes a valid profile-reading OAuth bearer.
+    when: The real shell bootstrap endpoint is requested anonymously, with each session, with bearer only,
+      and with both session and bearer.
+    then:
+    - Anonymous responses contain null viewer/navigation; session responses contain only the matching
+      allowlisted viewer and navigation counts, without email or another user's identity.
+    - Valid bearer-only and combined bearer/session requests receive 401 instead of shell identity.
+    - Every response is private, no-store and varies on Cookie.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-4
 - id: rendering-and-cache.personal-overlays-5
   category: privacy
   topic: personal-overlays
   rule: Workspace SSR seeds the same projection directly.
+  acceptance:
+    given: Two isolated users have distinct pending todo and section subscription counts.
+    when: Each user opens workspace todos first without JavaScript and then with hydration enabled,
+      and independently reads the private shell projection.
+    then:
+    - Server-rendered viewer identity and all workspace navigation badges match the private projection.
+    - Hydration preserves those values without requesting shell bootstrap.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.personal-overlays-5
 - id: rendering-and-cache.personal-overlays-6
   category: privacy
   topic: personal-overlays
