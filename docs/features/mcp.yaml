@@ -185,6 +185,17 @@ requirements:
   rule: Local insufficient_scope challenges drive incremental authorization. WWW-Authenticate values escape
     quotes/backslashes and reject control characters; descriptions never reflect request-controlled tool
     names and required scope values come from the registry.
+  acceptance:
+    given: Challenge parameters contain quotes, backslashes and control characters; an under-scoped batch
+      also contains a malicious unknown tool name.
+    when: The real challenge formatter and fixed-tool scope authorizer produce headers.
+    then:
+    - Quotes/backslashes are escaped and all control characters reject.
+    - The challenge includes the registered read/write scopes and insufficient_scope without reflecting
+      the malicious tool name.
+    test:
+      file: tests/unit/lib/mcp/mcp-auth.test.ts
+      name: mcp.safe-auth-challenges
 - id: mcp.graphql-authorization
   category: authorization
   rule: graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or registered
