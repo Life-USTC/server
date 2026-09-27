@@ -123,13 +123,6 @@ requirements:
   category: consistency
   rule: A completed upload can be attached to at most one comment. Reusing an upload id across comments
     is rejected instead of treated as implicit file sharing.
-- id: upload.download-auth-required
-  category: authorization
-  rule: Downloads must not bypass authorization by obtaining a direct link.
-- id: upload.download-delivery
-  category: authorization
-  rule: /api/workspace/uploads/[id]/download validates owner access or visible comment-attachment access
-    before streaming the object from the R2 binding.
 - id: upload.mcp-transfer-boundary
   category: privacy
   rule: MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow
@@ -412,5 +405,10 @@ capabilities:
       - Rename action
       - Delete action
       - Per-upload feedback state
+
 rationale:
 - E2E upload coverage should exercise the same Workers upload object route used in production.
+- Download authorization is owned by cases.content-security.upload-attachment-download-1, including the authenticated
+  REST byte/preview route, current owner or visible-parent access, retained-URL rechecks, and R2-backed streaming.
+  The former upload.download-auth-required and upload.download-delivery rules duplicated this boundary.
+  The storage implementation remains independently owned by upload.r2-backend.

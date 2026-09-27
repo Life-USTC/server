@@ -20,9 +20,9 @@ requirements:
 - id: cases.content-security.upload-attachment-download-1
   category: authorization
   topic: upload-attachment-download
-  rule: Each attachment-byte request checks the current upload and parent-content authorization before returning
-    bytes. A previously issued attachment URL does not bypass ownership, visibility, moderation, or deletion
-    checks.
+  rule: Each /api/workspace/uploads/[id]/download byte or preview request requires authentication and checks
+    current owner access or access through a visible comment attachment before streaming the object from R2.
+    A previously issued attachment URL does not bypass ownership, visibility, moderation, or deletion checks.
   acceptance:
     given: An isolated owner uploads real object bytes, retains its download URL, and later attaches it to a section comment; separate viewer, administrator, and anonymous principals reuse that same URL and preview URL.
     when: The comment changes from public to logged-in-only, is moderation-hidden, restored, and deleted, then its owner deletes the upload.
@@ -118,7 +118,7 @@ rationale:
   anonymous identity even from the author and administrators; dedicated governance requires an authenticated,
   unsuspended administrator and obeys comment.governance-anonymous-author-audit and its fail-closed audit-failure rule.
 - The former security.upload-download-both-checked umbrella is owned by upload.permission-and-quota,
-  upload.write-auth-unsuspended, upload.download-delivery, and cases.content-security.upload-attachment-download-1.
+  upload.write-auth-unsuspended, upload.r2-backend, and cases.content-security.upload-attachment-download-1.
   Upload authorization, ownership, and quota do not confer download authority; each request independently
   checks current owner or attachment visibility. These owners remain mandatory even where acceptance is still unbound.
 - Account confirmation-word validation remains owned by cases.account.account-deletion-1. Shared warning,
