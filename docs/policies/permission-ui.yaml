@@ -8,14 +8,15 @@ requirements:
   rule: Ordinary page headings and metadata do not display database row IDs. Public JW IDs remain valid API
     retrieval identifiers but do not replace localized names or public course/section codes in ordinary UI.
   acceptance:
-    given: A seeded public course has a localized name, public course code, and a distinct JW retrieval ID.
-    when: An anonymous browser opens the course detail and reads its visible main content.
+    given: Isolated course, teacher, and section records have distinct large row IDs and JW IDs, bilingual names, public codes, and a signed-in profile with a private user ID.
+    when: The browser reads all three catalog detail pages in both locales and the user profile and settings pages, then retrieves the course and section APIs by JW ID.
     then:
-    - Ordinary page headings and metadata do not display database row IDs. Public JW IDs remain valid API retrieval
-      identifiers but do not replace localized names or public course/section codes in ordinary UI.
+    - Visible main content and document titles contain names and public course/section codes without exposing any internal row ID or substituting a JW ID for the name.
+    - Public course and section APIs still resolve their JW IDs to the correct records.
     test:
-      file: tests/e2e/src/app/courses/[jwId]/test.ts
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
       name: permission-ui.identity-4
+
 applies_to:
 - id: list-page
   title: List Page

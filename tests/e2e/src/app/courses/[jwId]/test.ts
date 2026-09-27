@@ -180,13 +180,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/sections-table");
   });
 
-  test("permission-ui.identity-4", async ({ page }) => {
-    await gotoAndWaitForReady(page, COURSE_URL);
-    const content = await page.locator("#main-content").innerText();
-    // Raw jwId should not appear as visible text
-    expect(content).not.toMatch(new RegExp(`\\b${DEV_SEED.course.jwId}\\b`));
-  });
-
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {

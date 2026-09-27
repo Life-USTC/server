@@ -8,6 +8,16 @@ requirements:
   rule: A section with a missing teacher, location, or exam relation keeps the section visible and displays
     a localized unknown or not-provided state for the missing fact. Missing source data is not presented as
     a confirmed cancellation.
+  acceptance:
+    given: An isolated section has no teachers, campus, schedules, or exams and retains a named parent course.
+    when: An anonymous browser opens the section in Chinese and English and retrieves its public detail API.
+    then:
+    - The named section remains visible and its API returns the section with empty relation arrays.
+    - Teachers, campus, calendar, and exams show their localized unavailable states without cancellation wording.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.section-missing-teacher-location-or-exam-1
+
 - id: cases.missing-data.homework-no-due-date-1
   category: behavior
   topic: homework-no-due-date
