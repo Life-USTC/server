@@ -7,6 +7,16 @@ requirements:
   topic: suspended-user
   rule: A suspended user cannot create a comment through any supported mutation surface, even when the caller
     otherwise has the comment-write OAuth scope.
+  acceptance:
+    given: An isolated active user has a browser session and separately authorized resource-bound REST, GraphQL, and MCP OAuth grants containing community.comment:write.
+    when: The user creates one comment through each of the four principals, is suspended, repeats every mutation, and opens the section composer in English and Chinese.
+    then:
+    - All four initial writes succeed; after suspension the REST principals return 403 Suspended, GraphQL returns 403 FORBIDDEN, and MCP returns its suspended domain error.
+    - The browser shows the localized suspension heading and disables its comment editor.
+    - Exactly the four initial comments remain persisted while the write scope is still granted.
+    test:
+      file: tests/e2e/src/app/account-policy/comment-security.test.ts
+      name: cases.content-security.suspended-user-1
 - id: cases.content-security.upload-attachment-download-1
   category: authorization
   topic: upload-attachment-download

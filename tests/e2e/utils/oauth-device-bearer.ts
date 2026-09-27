@@ -6,8 +6,9 @@ export async function authorizeDeviceBearer(
   request: APIRequestContext,
   clientId: string,
   scope: string,
+  resourcePath: "/api/auth" | "/api/graphql" | "/api/mcp" = "/api/auth",
 ) {
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+  const resource = `${PLAYWRIGHT_BASE_URL}${resourcePath}`;
   const response = await request.post("/api/auth/oauth2/device-authorization", {
     form: {
       client_id: clientId,
