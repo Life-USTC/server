@@ -33,7 +33,7 @@ requirements:
     or MCP.'
 - id: openapi.security-schemes
   category: authorization
-  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, bearer-only MCP and client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
+  rule: Generated OpenAPI distinguishes scoped session-or-bearer business operations, session-only admin operations, optional-bearer MCP transport with protected tool scope checks, bearer-only client activity, ingestion-secret writes, and session-or-feed-token calendar exports. A feed endpoint does not advertise bearer access it does not accept.
   acceptance:
     given: Current business, admin, MCP, ingestion and calendar-feed routes declare their authentication.
     when: The real generator builds the complete document.
@@ -89,6 +89,16 @@ requirements:
 - id: openapi.authenticated-mutation-rate-limits
   category: authorization
   rule: Every authenticated end-user and admin REST mutation checks the shared mutation rate limit after authentication and before its write. REST and MCP use the same canonical feature action for equivalent operations.
+  acceptance:
+    given: Every declared business write and admin mutation, a real signed session, a resource-bound OAuth grant and rejecting limiter bindings.
+    when: Each actual REST entry point receives anonymous and authorized requests, using both session and bearer alternatives where supported.
+    then:
+    - Anonymous requests return 401 without consuming a budget.
+    - Authorized requests return 429 with Retry-After 60 before consuming the write body.
+    - Exactly one appropriate standard or batch binding receives the canonical feature action, deployment host and authenticated user ID.
+    test:
+      file: tests/integration/rest-mutation-rate-limit.test.ts
+      name: openapi.authenticated-mutation-rate-limits
 - id: openapi.rate-limit-production-budgets
   category: validation
   applies_to:

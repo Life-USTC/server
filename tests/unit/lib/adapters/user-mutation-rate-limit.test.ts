@@ -49,7 +49,7 @@ describe("user mutation rate limits", () => {
     });
 
     await checkUserMutationRateLimit({
-      action: "subscription:batch-write",
+      action: "workspace.subscription:batch-write",
       host: "life.example",
       tier: "batch",
       userId: "user-1",

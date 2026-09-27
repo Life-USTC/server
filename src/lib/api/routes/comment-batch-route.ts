@@ -13,7 +13,7 @@ import { requireAuthPrincipal } from "@/lib/auth/api-auth";
 export async function deleteCommentBatchRoute(request: Request) {
   const auth = await requireAuthPrincipal(request, {
     bearerScope: { feature: "community.comment", action: "write" },
-    rateLimit: { action: "comment:batch-write", tier: "batch" },
+    rateLimit: { action: "community.comment:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 
