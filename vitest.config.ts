@@ -3,6 +3,17 @@ import { sharedAlias } from "./vitest.base";
 
 export default defineConfig({
   test: {
+    reporters: process.env.SPEC_EVIDENCE_DIR
+      ? [
+          "default",
+          [
+            "json",
+            {
+              outputFile: `${process.env.SPEC_EVIDENCE_DIR}/vitest-${process.pid}.json`,
+            },
+          ],
+        ]
+      : ["default"],
     environment: "node",
     include: ["tests/unit/**/*.test.ts"],
     globals: true,

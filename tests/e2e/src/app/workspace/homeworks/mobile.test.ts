@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { homeworkExpectation } from "../../../../../shared/specifications/homework";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { visibleText } from "../../../../utils/locators";
@@ -9,13 +10,15 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("移动端保留直接筛选并将视图切换收进紧凑菜单", async ({
-    page,
-  }, testInfo) => {
+  test("移动端保留直接筛选和足够大的新建操作", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
-    await page.setViewportSize({ height: 844, width: 390 });
+    const specification = homeworkExpectation(
+      "homework.mobile-toolbar-priority",
+      "target_size",
+    );
+    await page.setViewportSize(specification.viewport);
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
@@ -26,18 +29,19 @@ test.describe("仪表盘作业", () => {
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId("workspace-homeworks-add");
+    const add = page.getByTestId(specification.target);
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-homeworks-view-menu")).toHaveCount(
       0,
     );
 
-    for (const control of [incomplete, add]) {
-      const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(box?.width).toBeGreaterThanOrEqual(44);
-    }
+    const addBox = await add.boundingBox();
+    expect(addBox?.height).toBeGreaterThanOrEqual(specification.min_height);
+    expect(addBox?.width).toBeGreaterThanOrEqual(specification.min_width);
+    const filterBox = await incomplete.boundingBox();
+    expect(filterBox?.height).toBeGreaterThanOrEqual(44);
+    expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
     const all = page.getByRole("radio", { name: /全部|All/i }).first();
     await all.click();

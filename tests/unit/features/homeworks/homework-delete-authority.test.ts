@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { homeworkExpectation } from "../../../shared/specifications/homework";
 
 const { viewer, findHomework, updateHomework, writeAuditLog, invalidate } =
   vi.hoisted(() => ({
@@ -43,66 +44,60 @@ describe("homework deletion authority", () => {
     });
   });
 
-  it("does not give an administrator ordinary delete access to another creator's homework", async () => {
-    await expect(
-      deleteHomework({ userId: "admin-1", homeworkId: "homework-1" }),
-    ).resolves.toEqual({ ok: false, error: "forbidden" });
-    expect(updateHomework).not.toHaveBeenCalled();
-    expect(writeAuditLog).not.toHaveBeenCalled();
-    expect(invalidate).not.toHaveBeenCalled();
-  });
-
-  it("retains creator deletion for administrator accounts", async () => {
-    await expect(
-      deleteHomework({ userId: "creator-1", homeworkId: "homework-1" }),
-    ).resolves.toEqual({ ok: true, alreadyDeleted: false });
-    expect(updateHomework).toHaveBeenCalledOnce();
-    expect(writeAuditLog).toHaveBeenCalledOnce();
-    expect(invalidate).toHaveBeenCalledWith(42);
-  });
-
-  it("allows another creator's homework only through explicit admin moderation", async () => {
-    await expect(
-      deleteHomeworkForModeration({
-        userId: "admin-1",
+  async function verifyAuthority(id: string) {
+    const specification = homeworkExpectation(id, "authorization");
+    if (specification.surface !== "service")
+      throw new Error("Deletion matrix requires service-layer evidence");
+    const services = { deleteHomework, deleteHomeworkForModeration };
+    const effects = {
+      homework: updateHomework,
+      audit: writeAuditLog,
+      calendar: invalidate,
+    };
+    for (const scenario of specification.cases) {
+      vi.clearAllMocks();
+      viewer.mockResolvedValue({
+        isAuthenticated: scenario.authenticated,
+        isSuspended: scenario.suspended,
+        isAdmin: scenario.role === "admin",
+      });
+      const userId =
+        scenario.relationship === "creator" ? "creator-1" : "other-1";
+      const result = await services[specification.operation]({
+        userId,
         homeworkId: "homework-1",
-      }),
-    ).resolves.toEqual({ ok: true, alreadyDeleted: false });
-    expect(updateHomework).toHaveBeenCalledOnce();
-    expect(writeAuditLog).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "admin-1", action: "homework_delete" }),
-      expect.anything(),
-    );
+      });
+      if (scenario.outcome === "allowed") {
+        expect(result, scenario.id).toEqual({
+          ok: true,
+          alreadyDeleted: false,
+        });
+        expect(updateHomework, scenario.id).toHaveBeenCalledOnce();
+        expect(writeAuditLog, scenario.id).toHaveBeenCalledWith(
+          expect.objectContaining({ userId, action: "homework_delete" }),
+          expect.anything(),
+        );
+        expect(invalidate, scenario.id).toHaveBeenCalledWith(42);
+      } else {
+        expect(result, scenario.id).toMatchObject({
+          ok: false,
+          error: scenario.outcome,
+        });
+        for (const effect of specification.denied_effects) {
+          expect(
+            effects[effect],
+            `${scenario.id}: ${effect}`,
+          ).not.toHaveBeenCalled();
+        }
+      }
+    }
+  }
+
+  it("enforces the specified ordinary deletion authority matrix", async () => {
+    await verifyAuthority("homework.creator-only-delete");
   });
 
-  it("rejects non-admin creators from the moderation use-case", async () => {
-    viewer.mockResolvedValue({
-      isAuthenticated: true,
-      isSuspended: false,
-      isAdmin: false,
-    });
-    await expect(
-      deleteHomeworkForModeration({
-        userId: "creator-1",
-        homeworkId: "homework-1",
-      }),
-    ).resolves.toEqual({ ok: false, error: "forbidden" });
-    expect(updateHomework).not.toHaveBeenCalled();
-  });
-
-  it("does not allow suspended administrators to moderate", async () => {
-    viewer.mockResolvedValue({
-      isAuthenticated: true,
-      isSuspended: true,
-      isAdmin: true,
-      suspensionReason: "suspended",
-    });
-    await expect(
-      deleteHomeworkForModeration({
-        userId: "admin-1",
-        homeworkId: "homework-1",
-      }),
-    ).resolves.toMatchObject({ ok: false, error: "suspended" });
-    expect(updateHomework).not.toHaveBeenCalled();
+  it("enforces the specified moderation deletion authority matrix", async () => {
+    await verifyAuthority("homework.moderation-delete");
   });
 });

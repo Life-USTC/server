@@ -13,7 +13,9 @@ export type AcceptanceScenario = {
 export type Requirement = {
   id: string;
   category: string;
-  rule: string;
+  rule?: string;
+  expectation?: { kind: string; [field: string]: unknown };
+  rationale?: string;
   topic?: string;
   applies_to?: string[];
   acceptance?: AcceptanceScenario[];

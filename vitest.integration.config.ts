@@ -15,6 +15,17 @@ const sharedTest = {
 export default defineConfig({
   resolve: { alias: sharedAlias },
   test: {
+    reporters: process.env.SPEC_EVIDENCE_DIR
+      ? [
+          "default",
+          [
+            "json",
+            {
+              outputFile: `${process.env.SPEC_EVIDENCE_DIR}/vitest-${process.pid}.json`,
+            },
+          ],
+        ]
+      : ["default"],
     globalSetup: ["./tests/integration/global-setup.ts"],
     ...sharedTest,
     include: ["tests/integration/**/*.test.ts"],

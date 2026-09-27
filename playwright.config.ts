@@ -1,4 +1,8 @@
-import { defineConfig, devices } from "@playwright/test";
+import {
+  defineConfig,
+  devices,
+  type ReporterDescription,
+} from "@playwright/test";
 import { getWorkerProcessEnvironment } from "./tests/e2e/utils/worker-database-env";
 
 const e2ePort = process.env.E2E_PORT ?? "3000";
@@ -14,6 +18,18 @@ if (inspectorPort && !/^\d+$/.test(inspectorPort)) {
 const baseURL = `http://localhost:${e2ePort}`;
 const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
 const workerEnvironment = getWorkerProcessEnvironment();
+
+const reporters: ReporterDescription[] = process.env.CI
+  ? [["list"], ["blob", { outputDir: `${reportRoot}/blob` }]]
+  : [["list"], ["html", { open: "never", outputFolder: `${reportRoot}/html` }]];
+if (process.env.SPEC_EVIDENCE_DIR) {
+  reporters.push([
+    "json",
+    {
+      outputFile: `${process.env.SPEC_EVIDENCE_DIR}/playwright-${process.pid}.json`,
+    },
+  ]);
+}
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -32,12 +48,7 @@ export default defineConfig({
   // Shared seeded users are mutated by several E2E files. Keep the suite
   // single-worker so those stateful cases run sequentially.
   workers: 1,
-  reporter: process.env.CI
-    ? [["list"], ["blob", { outputDir: `${reportRoot}/blob` }]]
-    : [
-        ["list"],
-        ["html", { open: "never", outputFolder: `${reportRoot}/html` }],
-      ],
+  reporter: reporters,
   snapshotPathTemplate:
     "{testDir}/visual-matrix/snapshots/{arg}{-projectName}{ext}",
   expect: {

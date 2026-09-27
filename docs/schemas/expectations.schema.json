@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/expectations.schema.json",
+  "title": "Typed behavioral expectations",
+  "$defs": {
+    "numeric_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "input",
+        "minimum",
+        "maximum",
+        "integer"
+      ],
+      "properties": {
+        "kind": {
+          "const": "numeric_input"
+        },
+        "surface": {
+          "type": "string",
+          "enum": ["rest", "graphql", "mcp"]
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "input": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "default": {
+          "type": "number"
+        },
+        "integer": {
+          "type": "boolean"
+        }
+      }
+    },
+    "collection_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "input",
+        "min_items",
+        "max_items",
+        "unique_items"
+      ],
+      "properties": {
+        "kind": {
+          "const": "collection_input"
+        },
+        "surface": {
+          "type": "string",
+          "enum": ["rest", "graphql", "mcp"]
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "input": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "min_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unique_items": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ordered_items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "surface", "target", "items"],
+      "properties": {
+        "kind": {
+          "const": "ordered_items"
+        },
+        "surface": {
+          "const": "web"
+        },
+        "target": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "target_size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "target",
+        "viewport",
+        "min_width",
+        "min_height"
+      ],
+      "properties": {
+        "kind": {
+          "const": "target_size"
+        },
+        "surface": {
+          "const": "web"
+        },
+        "target": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "min_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min_height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "state_presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "surface", "target", "state", "text_decoration"],
+      "properties": {
+        "kind": {
+          "const": "state_presentation"
+        },
+        "surface": {
+          "const": "web"
+        },
+        "target": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["completed"],
+          "properties": {
+            "completed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "text_decoration": {
+          "type": "string",
+          "enum": ["line-through", "none"]
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "surface", "operation", "cases", "denied_effects"],
+      "properties": {
+        "kind": {
+          "const": "authorization"
+        },
+        "surface": {
+          "type": "string",
+          "enum": ["service", "rest", "graphql", "mcp"]
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "authenticated",
+              "suspended",
+              "role",
+              "relationship",
+              "outcome"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "defs.schema.json#/$defs/localId"
+              },
+              "authenticated": {
+                "type": "boolean"
+              },
+              "suspended": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["user", "admin"]
+              },
+              "relationship": {
+                "type": "string",
+                "enum": ["owner", "creator", "other"]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "allowed",
+                  "forbidden",
+                  "not_found",
+                  "unauthenticated",
+                  "suspended"
+                ]
+              }
+            }
+          }
+        },
+        "denied_effects": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "subscription_completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subscription_kind",
+        "completion_required",
+        "preserve_records"
+      ],
+      "properties": {
+        "kind": {
+          "const": "subscription_completion"
+        },
+        "subscription_kind": {
+          "type": "string",
+          "enum": ["regular", "auditor", "teaching_assistant"]
+        },
+        "completion_required": {
+          "type": "boolean"
+        },
+        "preserve_records": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pending_deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subscription_kind",
+        "without_deadline",
+        "before_deadline",
+        "at_deadline",
+        "after_deadline",
+        "completed"
+      ],
+      "properties": {
+        "kind": {
+          "const": "pending_deadline"
+        },
+        "subscription_kind": {
+          "type": "string",
+          "enum": ["regular", "auditor", "teaching_assistant"]
+        },
+        "without_deadline": {
+          "type": "boolean"
+        },
+        "before_deadline": {
+          "type": "boolean"
+        },
+        "at_deadline": {
+          "type": "boolean"
+        },
+        "after_deadline": {
+          "type": "boolean"
+        },
+        "completed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "state_visibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "targets",
+        "state",
+        "visible",
+        "hidden",
+        "restore_on_incomplete"
+      ],
+      "properties": {
+        "kind": {
+          "const": "state_visibility"
+        },
+        "surface": {
+          "const": "web"
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["completed"],
+          "properties": {
+            "completed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "visible": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "hidden": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        },
+        "restore_on_incomplete": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "expectation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/numeric_input"
+        },
+        {
+          "$ref": "#/$defs/collection_input"
+        },
+        {
+          "$ref": "#/$defs/ordered_items"
+        },
+        {
+          "$ref": "#/$defs/target_size"
+        },
+        {
+          "$ref": "#/$defs/state_presentation"
+        },
+        {
+          "$ref": "#/$defs/authorization"
+        },
+        {
+          "$ref": "#/$defs/subscription_completion"
+        },
+        {
+          "$ref": "#/$defs/pending_deadline"
+        },
+        {
+          "$ref": "#/$defs/state_visibility"
+        }
+      ]
+    }
+  }
+}

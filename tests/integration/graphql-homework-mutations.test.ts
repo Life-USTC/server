@@ -9,6 +9,7 @@ import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
+import { homeworkExpectation } from "../shared/specifications/homework";
 
 const fixturePrisma = createFixturePrisma();
 
@@ -110,6 +111,7 @@ beforeAll(async () => {
             scopes: [
               restReadScope("community.section-homework"),
               restWriteScope("community.section-homework"),
+              restWriteScope("workspace.homework"),
             ],
             userId: creatorId,
           },
@@ -117,6 +119,7 @@ beforeAll(async () => {
             scopes: [
               restReadScope("community.section-homework"),
               restWriteScope("community.section-homework"),
+              restWriteScope("workspace.homework"),
             ],
             userId: collaboratorId,
           },
@@ -582,4 +585,45 @@ describe("GraphQL homework CRUD mutations", () => {
       },
     ]);
   });
+});
+
+it("GraphQL completion batches enforce specified bounds and duplicate policy with a real bearer principal", async () => {
+  const specification = homeworkExpectation(
+    "homework.graphql-completion-batch-input",
+    "collection_input",
+  );
+  const token = await signToken(creatorId, [
+    restWriteScope("workspace.homework"),
+  ]);
+  const items = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      homeworkId: `missing-spec-homework-${index}`,
+      completed: true,
+    }));
+  const send = (value: ReturnType<typeof items>) =>
+    execute(
+      {
+        query: `mutation SpecBatch($items: [HomeworkCompletionBatchItemInput!]!) { ${specification.operation}(${specification.input}: $items) { results { success homeworkId } } }`,
+        variables: { items: value },
+      },
+      token,
+    );
+  for (const size of [specification.min_items, specification.max_items]) {
+    const { payload } = await send(items(size));
+    expect(payload.errors).toBeUndefined();
+    const batch = payload.data?.[specification.operation] as {
+      results: Array<{ success: boolean }>;
+    };
+    expect(batch.results).toHaveLength(size);
+    for (const result of batch.results) expect(result.success).toBe(false);
+  }
+  for (const size of [
+    specification.min_items - 1,
+    specification.max_items + 1,
+  ]) {
+    expectErrorCode((await send(items(size))).payload, "BAD_USER_INPUT");
+  }
+  const { payload } = await send([items(1)[0], items(1)[0]]);
+  if (specification.unique_items) expectErrorCode(payload, "BAD_USER_INPUT");
+  else expect(payload.errors).toBeUndefined();
 });

@@ -9,6 +9,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { resolveSeedSectionId } from "../../../../e2e/utils/seed-lookups";
+import { homeworkExpectation } from "../../../../shared/specifications/homework";
 import { signInAsDebugUserApi } from "../../_harness/auth";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -127,4 +128,45 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
       `/api/community/section-homeworks/${activeHomeworkId}`,
     );
   }
+});
+
+test("REST completion batches enforce specified bounds and duplicate policy over HTTP", async ({
+  request,
+}) => {
+  await signInAsDebugUserApi(request, "/");
+  const specification = homeworkExpectation(
+    "homework.rest-completion-batch-input",
+    "collection_input",
+  );
+  const [method, path] = specification.operation.split(" ");
+  const items = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      homeworkId: `missing-spec-homework-${index}`,
+      completed: true,
+    }));
+  const send = (value: ReturnType<typeof items>) =>
+    request.fetch(path, { method, data: { [specification.input]: value } });
+  for (const size of [specification.min_items, specification.max_items]) {
+    const response = await send(items(size));
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.results).toHaveLength(size);
+    for (const result of body.results)
+      expect(result).toMatchObject({
+        success: false,
+        error: { code: "not_found" },
+      });
+  }
+  for (const size of [
+    specification.min_items - 1,
+    specification.max_items + 1,
+  ]) {
+    expect((await send(items(size))).status()).toBe(400);
+  }
+  const duplicateResponse = await send([items(1)[0], items(1)[0]]);
+  expect(duplicateResponse.status()).toBe(
+    specification.unique_items ? 400 : 200,
+  );
+  if (!specification.unique_items)
+    expect((await duplicateResponse.json()).results).toHaveLength(2);
 });

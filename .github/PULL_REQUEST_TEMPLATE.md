@@ -8,7 +8,7 @@
 
 ## Evidence
 
-<!-- Commands run plus any browser screenshot/API/MCP output inspected. Say N/A with reason for skipped checks. -->
+<!-- Commands run plus any browser screenshot/API/MCP output inspected. For typed requirements, identify the requirement IDs and tests that exercise the changed behavior; inspect CI specification evidence. Say N/A with reason for skipped checks. -->
 
 ## Docs / Contracts
 

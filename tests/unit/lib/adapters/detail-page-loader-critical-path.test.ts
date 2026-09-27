@@ -232,27 +232,41 @@ describe.each(["course", "teacher"] as const)(
           });
     }
 
-    it.each([
-      "1e308",
-      String(Number.MAX_SAFE_INTEGER),
-      "450359962737051",
-      "0",
-      "-1",
-      "1.5",
-      "",
-      "01",
-      "+1",
-      " 1",
-      "1 ",
-    ])(
-      "rejects invalid sectionsPage=%s before catalog reads",
-      async (value) => {
-        await expect(loadPage(value)).rejects.toMatchObject({ status: 400 });
+    async function rejectsInvalidPages() {
+      for (const value of [
+        "1e308",
+        String(Number.MAX_SAFE_INTEGER),
+        "450359962737051",
+        "0",
+        "-1",
+        "1.5",
+        "",
+        "01",
+        "+1",
+        " 1",
+        "1 ",
+      ]) {
+        await expect(
+          loadPage(value),
+          `sectionsPage=${JSON.stringify(value)}`,
+        ).rejects.toMatchObject({ status: 400 });
         expect(getCoursePageMock).not.toHaveBeenCalled();
         expect(getTeacherPageMock).not.toHaveBeenCalled();
         expect(getViewerContextMock).not.toHaveBeenCalled();
-      },
-    );
+      }
+    }
+
+    if (kind === "course") {
+      it(
+        "rejects invalid course history pages before catalog reads",
+        rejectsInvalidPages,
+      );
+    } else {
+      it(
+        "rejects invalid teacher history pages before catalog reads",
+        rejectsInvalidPages,
+      );
+    }
 
     it.each([
       { value: null, page: 1 },

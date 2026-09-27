@@ -5,6 +5,8 @@ import {
   isHomeworkPendingForViewer,
 } from "@/features/homeworks/lib/homework-completion-state";
 
+import { homeworkExpectation } from "../../../shared/specifications/homework";
+
 const referenceDate = new Date("2026-09-13T12:00:00.000Z");
 
 describe("homework completion requirement", () => {
@@ -124,4 +126,55 @@ describe("teaching assistant pending scope", () => {
       ),
     ).toBe(true);
   });
+});
+
+it("derives completion requirements from the specification without changing records", () => {
+  const specification = homeworkExpectation(
+    "homework.teaching-assistant-completion",
+    "subscription_completion",
+  );
+  const completion = { completedAt: referenceDate };
+  const original = { id: "homework-1", sectionId: 1, completion };
+  const snapshot = structuredClone(original);
+  const [actual] = attachHomeworkCompletionRequired(
+    [original],
+    new Map([[1, specification.subscription_kind]]),
+  );
+  expect(actual.completionRequired).toBe(specification.completion_required);
+  expect(actual.completion).toEqual(
+    specification.preserve_records ? snapshot.completion : null,
+  );
+  expect(original).toEqual(snapshot);
+});
+
+it("applies the specified TA pending deadline boundaries", () => {
+  const specification = homeworkExpectation(
+    "homework.teaching-assistant-pending",
+    "pending_deadline",
+  );
+  const completionRequired = completionRequiredForSubscriptionKind(
+    specification.subscription_kind,
+  );
+  const cases = [
+    { dueAt: null, expected: specification.without_deadline },
+    {
+      dueAt: new Date(referenceDate.getTime() + 1),
+      expected: specification.before_deadline,
+    },
+    { dueAt: referenceDate, expected: specification.at_deadline },
+    {
+      dueAt: new Date(referenceDate.getTime() - 1),
+      expected: specification.after_deadline,
+    },
+  ];
+  for (const { dueAt, expected } of cases) {
+    const homework = { completionRequired, submissionDueAt: dueAt };
+    expect(isHomeworkPendingForViewer(homework, referenceDate)).toBe(expected);
+    expect(
+      isHomeworkPendingForViewer(
+        { ...homework, completion: { completedAt: referenceDate } },
+        referenceDate,
+      ),
+    ).toBe(specification.completed);
+  }
 });

@@ -9,13 +9,20 @@ policy_refs:
 - permission-ui
 - rendering-and-cache
 - cases.mcp-assistant-workflows
-access:
-  anon: Cannot read or write personal todos.
-  user: Can only manage their own todos.
-  admin: Has no ordinary page capability to independently manage other users' todos.
-  agent: After authorization, can only read and write the current user's own todos; both REST and MCP
-    currently provide this capability.
 requirements:
+- id: todo.personal-ownership
+  category: authorization
+  surfaces:
+  - web
+  - rest
+  - graphql
+  - mcp
+  applies_to:
+  - todo-list
+  - todo-edit
+  rule: Anonymous callers cannot read or write personal todos. Authenticated users can only read and
+    manage their own todos on every surface, including through OAuth-authorized clients. Administrator
+    status never grants ordinary access to another user's todos.
 - id: todo.calendar-write-commit
   category: consistency
   rule: Todo creates, updates, completion changes and deletes enqueue personal calendar export rebuilds
@@ -50,8 +57,7 @@ requirements:
     order applies to every completion filter and updates after edits.
 - id: todo.web-detail
   category: presentation
-  rule: Completed todo detail titles are struck through. Priority uses the same badge as the list. Footer
-    actions are delete, completion toggle, then edit, with icons and accessible mobile controls.
+  rule: Priority uses the same badge as the list. Footer actions include icons and accessible mobile controls.
 - id: todo.purely-personal
   category: authorization
   rule: Todo is a purely personal object and is not bound to any section.
@@ -63,14 +69,261 @@ requirements:
   rule: Completed todos retain history but no longer occupy urgent information areas.
 - id: todo.bounded-summary-read
   category: consistency
-  rule: REST todo summaries default to 100 items and accept at most 200. The complete incomplete/completed/overdue
-    counts are fused into one RLS-scoped aggregate statement and remain independent of list filters; the
-    bounded list is loaded in one additional statement.
+  rule: The complete incomplete/completed/overdue counts are fused into one RLS-scoped aggregate statement
+    and remain independent of list filters; the bounded list is loaded in one additional statement.
 - id: todo.mobile-toolbar-priority
   category: presentation
-  rule: At mobile widths, completion-status filters stay directly available, card/list display mode moves
-    into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target.
-    Desktop toolbar behavior remains unchanged.
+  rule: At mobile widths, completion-status filters stay directly available and todos use cards. Desktop
+    todos use the table view; there is no display-mode menu.
+- id: todo.rest-list-limit
+  category: validation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: numeric_input
+    surface: rest
+    operation: GET /api/workspace/todos
+    input: limit
+    minimum: 1
+    maximum: 200
+    default: 100
+    integer: true
+  acceptance:
+  - id: todo.rest-list-limit.behavior
+    given: An authenticated caller lists personal todos.
+    when: The limit is omitted, on a boundary, fractional, or outside the interval.
+    then:
+    - The declared default reaches the read model and invalid limits are rejected before reading.
+    tests:
+    - file: tests/unit/features/todos/todo-specification-inputs.test.ts
+      name: enforces rest todo list limits and default
+- id: todo.mcp-list-limit
+  category: validation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: numeric_input
+    surface: mcp
+    operation: workspace_todo_list
+    input: limit
+    minimum: 1
+    maximum: 200
+    default: 50
+    integer: true
+  acceptance:
+  - id: todo.mcp-list-limit.behavior
+    given: An authenticated caller lists personal todos.
+    when: The limit is omitted, on a boundary, fractional, or outside the interval.
+    then:
+    - The declared default reaches the read model and invalid limits are rejected before reading.
+    tests:
+    - file: tests/unit/features/todos/todo-specification-inputs.test.ts
+      name: enforces mcp todo list limits and default
+- id: todo.rest-batch-patch-bounds
+  category: validation
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: collection_input
+    surface: rest
+    operation: PATCH /api/workspace/todos/batch
+    input: items
+    min_items: 1
+    max_items: 100
+    unique_items: false
+  acceptance:
+  - id: todo.rest-batch-patch-bounds.behavior
+    given: An authenticated caller sends a batch.
+    when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
+    then:
+    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
+    tests:
+    - file: tests/unit/features/todos/todo-batch-route.test.ts
+      name: enforces specified PATCH collection boundaries
+- id: todo.rest-batch-delete-bounds
+  category: validation
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: collection_input
+    surface: rest
+    operation: DELETE /api/workspace/todos/batch
+    input: ids
+    min_items: 1
+    max_items: 100
+    unique_items: false
+  acceptance:
+  - id: todo.rest-batch-delete-bounds.behavior
+    given: An authenticated caller sends a batch.
+    when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
+    then:
+    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
+    tests:
+    - file: tests/unit/features/todos/todo-batch-route.test.ts
+      name: enforces specified DELETE collection boundaries
+- id: todo.rest-patch-ownership
+  category: authorization
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: authorization
+    surface: rest
+    operation: PATCH /api/workspace/todos/[id]
+    cases:
+    - id: anonymous
+      authenticated: false
+      suspended: false
+      role: user
+      relationship: other
+      outcome: unauthenticated
+    - id: user-owner
+      authenticated: true
+      suspended: false
+      role: user
+      relationship: owner
+      outcome: allowed
+    - id: user-other
+      authenticated: true
+      suspended: false
+      role: user
+      relationship: other
+      outcome: not_found
+    - id: admin-owner
+      authenticated: true
+      suspended: false
+      role: admin
+      relationship: owner
+      outcome: allowed
+    - id: admin-other
+      authenticated: true
+      suspended: false
+      role: admin
+      relationship: other
+      outcome: not_found
+    denied_effects:
+    - todo
+  acceptance:
+  - id: todo.rest-patch-ownership.behavior
+    given: Fresh todos belong to signed-in ordinary and administrator users.
+    when: Anonymous, owner and other-user contexts invoke the ordinary REST endpoint.
+    then:
+    - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
+    tests:
+    - file: tests/integration/rest/todos/[id]/test.ts
+      name: enforces specified PATCH ownership through the real REST endpoint
+- id: todo.rest-delete-ownership
+  category: authorization
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: authorization
+    surface: rest
+    operation: DELETE /api/workspace/todos/[id]
+    cases:
+    - id: anonymous
+      authenticated: false
+      suspended: false
+      role: user
+      relationship: other
+      outcome: unauthenticated
+    - id: user-owner
+      authenticated: true
+      suspended: false
+      role: user
+      relationship: owner
+      outcome: allowed
+    - id: user-other
+      authenticated: true
+      suspended: false
+      role: user
+      relationship: other
+      outcome: not_found
+    - id: admin-owner
+      authenticated: true
+      suspended: false
+      role: admin
+      relationship: owner
+      outcome: allowed
+    - id: admin-other
+      authenticated: true
+      suspended: false
+      role: admin
+      relationship: other
+      outcome: not_found
+    denied_effects:
+    - todo
+  acceptance:
+  - id: todo.rest-delete-ownership.behavior
+    given: Fresh todos belong to signed-in ordinary and administrator users.
+    when: Anonymous, owner and other-user contexts invoke the ordinary REST endpoint.
+    then:
+    - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
+    tests:
+    - file: tests/integration/rest/todos/[id]/test.ts
+      name: enforces specified DELETE ownership through the real REST endpoint
+- id: todo.web-detail-actions
+  category: presentation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: ordered_items
+    surface: web
+    target: '[data-slot="dialog-footer"]'
+    items:
+    - delete
+    - completion
+    - edit
+  acceptance:
+  - id: todo.web-detail-actions.behavior
+    given: An incomplete todo detail dialog is open.
+    when: The footer actions are rendered.
+    then:
+    - The visible buttons occur in the specified order.
+    tests:
+    - file: tests/e2e/src/app/workspace/todos/test.ts
+      name: 待办详情弹窗展示优先级、状态与底部操作
+- id: todo.web-create-target
+  category: presentation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: target_size
+    surface: web
+    target: workspace-todos-add
+    viewport:
+      width: 390
+      height: 844
+    min_width: 44
+    min_height: 44
+  acceptance:
+  - id: todo.web-create-target.behavior
+    given: The todo workspace is rendered at the specified viewport.
+    when: The create button is measured.
+    then:
+    - Both CSS pixel dimensions meet the declared minimum.
+    tests:
+    - file: tests/e2e/src/app/workspace/todos/test.ts
+      name: 移动端待办工具栏保留筛选和大尺寸主操作
+- id: todo.web-completed-title
+  category: presentation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: state_presentation
+    surface: web
+    target: '[data-slot="dialog-title"]'
+    state:
+      completed: true
+    text_decoration: line-through
+  acceptance:
+  - id: todo.web-completed-title.behavior
+    given: A todo has the specified completed state.
+    when: Its detail dialog opens.
+    then:
+    - The rendered title has the declared computed text decoration.
+    tests:
+    - file: tests/e2e/src/app/workspace/todos/test.ts
+      name: 已完成筛选显示已完成的待办
 capabilities:
   todo-list:
     title: Todo List & Filter
@@ -136,17 +389,19 @@ capabilities:
         - Returns the same count summary as workspace_todo_list plus todos[]; each item contains id, title,
           content, completed, priority, dueAt, createdAt, and updatedAt.
         - Supports completed, priority, dueBefore, dueAfter, and limit query parameters.
-        - 'REST defaults limit to 100. REST and MCP share the same explicit limit bounds: 1-200.'
         - Summary counts cover all of the current user's todos regardless of list filters and are computed
           in one aggregate statement.
+        requirement_refs:
+        - todo.rest-list-limit
     mcp:
       tools:
       - name: workspace_todo_list
         rest_equivalent: GET /api/workspace/todos?completed=false&limit=50
         notes:
-        - 'Default parameters: includeCompleted=false, limit=50.'
-        - 'REST and MCP share the same limit bounds: 1-200.'
+        - includeCompleted defaults to false.
         - Incomplete items are returned first; completed items are excluded unless includeCompleted=true.
+        requirement_refs:
+        - todo.mcp-list-limit
     presentation:
       items:
       - todo.title
@@ -157,7 +412,13 @@ capabilities:
         completion), then content; completion/edit/delete stay in the footer
       - completed status action button
       - 'filter: incomplete/completed/all'
-      - mobile compact toolbar with direct completion filters and overflow display-mode control
+      - mobile compact toolbar with direct completion filters
+    requirement_refs:
+    - todo.rest-list-limit
+    - todo.mcp-list-limit
+    - todo.web-detail-actions
+    - todo.web-create-target
+    - todo.web-completed-title
   todo-edit:
     title: Todo Create/Edit Form
     auth: user
@@ -174,26 +435,27 @@ capabilities:
         status: 201
       - path: /api/workspace/todos/[id]
         method: PATCH
+        requirement_refs:
+        - todo.rest-patch-ownership
         notes:
-        - Returns the updated todo snapshot so callers can confirm the applied changes without an extra
-          read. Missing todos and other users' todos hidden by row security return 404, including for
-          admin callers.
+        - Returns the updated todo snapshot so callers can confirm applied changes without an extra read.
       - path: /api/workspace/todos/batch
         method: PATCH
         notes:
-        - Batch completion endpoint for setting completed=true/false across up to 100 todos.
         - Each item reports success or a per-item not_found/forbidden error without aborting the whole
           batch.
+        requirement_refs:
+        - todo.rest-batch-patch-bounds
       - path: /api/workspace/todos/[id]
         method: DELETE
-        notes:
-        - Missing todos and other users' todos hidden by row security return 404, including for admin
-          callers.
+        requirement_refs:
+        - todo.rest-delete-ownership
       - path: /api/workspace/todos/batch
         method: DELETE
         notes:
-        - Batch delete endpoint for up to 100 todos.
         - Each id reports success or a per-item not_found/forbidden error without aborting the whole batch.
+        requirement_refs:
+        - todo.rest-batch-delete-bounds
     mcp:
       tools:
       - name: workspace_todo_create
@@ -215,3 +477,8 @@ capabilities:
       - Save button
       - Delete button (edit mode)
       - Cancel button
+    requirement_refs:
+    - todo.rest-batch-patch-bounds
+    - todo.rest-batch-delete-bounds
+    - todo.rest-patch-ownership
+    - todo.rest-delete-ownership

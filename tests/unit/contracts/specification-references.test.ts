@@ -123,13 +123,14 @@ describe("specification structure and references", () => {
       const unused = "string only";
       it("real test", () => {});
       test.each([1])("parameterized %s", () => {});
+      test.for([1])("repeated title", () => {});
       test.skip("skipped", () => {});
       describe.skip("disabled group", () => { it("disabled child", () => {}); });
       other("not a test", () => {});
       test.step("step only", () => {});
       it.extend("not a declaration", () => {});
     `),
-    ]).toEqual(["real test", "parameterized %s"]);
+    ]).toEqual(["real test"]);
   });
 
   it("rejects specifications misplaced outside their canonical directory", async () => {
@@ -138,6 +139,21 @@ describe("specification structure and references", () => {
     expect(
       (await validateSpecificationReferences([file])).errors.join("\n"),
     ).toContain("must be stored at docs/features/example.yaml");
+  });
+
+  it("rejects expected-failure options, inherited disabled options and dynamic option objects", () => {
+    expect([
+      ...declaredTestNames(`
+      test("expected failure", { fails: true }, () => {});
+      test("legacy expected failure", () => {}, { fails: true });
+      describe("expected failure suite", { fails: true }, () => { test("inherited failure", () => {}); });
+      describe("skipped suite", { skip: true }, () => { test("inherited skip", () => {}); });
+      test("dynamic", options, () => {});
+      test("spread", { ...options }, () => {});
+      test("computed", { [key]: true }, () => {});
+      test("normal options", { timeout: 1000, fails: false }, () => {});
+    `),
+    ]).toEqual(["normal options"]);
   });
 
   it("requires policy requirement IDs to use their document prefix", async () => {
