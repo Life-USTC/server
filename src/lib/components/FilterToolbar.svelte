@@ -31,7 +31,7 @@ afterNavigate(() => {
 </script>
 
 <div class="grid min-w-0 gap-3" data-slot="filter-toolbar">
-  <div class="flex min-w-0 flex-wrap items-center gap-2">
+  <div class="flex min-w-0 flex-wrap items-end gap-2">
     <div class="min-w-0 basis-full sm:basis-64 sm:flex-1">{@render primary()}</div>
     {#if advanced}
       <Sheet.Root bind:open>
