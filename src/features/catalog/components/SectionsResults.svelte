@@ -17,6 +17,7 @@ import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   SectionListFilters,
@@ -75,7 +76,7 @@ $: sectionSemesterSummary = selectedSemester
               {#snippet child({ props })}
                 <a href={sectionHref} {...props}>
                   <Item.Content>
-                    <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
+                    <Item.Title><CatalogEntityName item={section.course} {locale} /></Item.Title>
                     <Item.Description>
                       {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
                       · {catalogLocalizedNames(section.teachers, locale) || "-"}
@@ -124,10 +125,12 @@ $: sectionSemesterSummary = selectedSemester
                   : sectionLabels.noSemester}
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
+                <CatalogTableLink class="font-medium" href={sectionHref}>
+                  <TruncatedText class="font-medium"
                     text={catalogLocalizedDisplayName(section.course, locale)}
-                  />
+                  >
+                    {#snippet children()}<CatalogEntityName item={section.course} {locale} />{/snippet}
+                  </TruncatedText>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="align-top">

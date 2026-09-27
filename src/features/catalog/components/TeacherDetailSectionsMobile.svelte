@@ -1,9 +1,9 @@
 <script lang="ts">
-import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailTeacher,
@@ -30,7 +30,7 @@ export let teacher: TeacherDetailTeacher;
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
             <Item.Content>
-              <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
+              <Item.Title><CatalogEntityName item={section.course} {locale} /></Item.Title>
             </Item.Content>
             <Item.Actions>
               <TruncatedCode text={section.code} />

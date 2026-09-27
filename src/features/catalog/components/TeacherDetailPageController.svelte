@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  catalogPrimaryName,
+  catalogSecondaryName,
+} from "@/features/catalog/lib/catalog-list-display";
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
@@ -74,9 +78,13 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 <DetailPageLayout>
   {#snippet header()}
     <PageHeader
-      title={displayName}
+      title={catalogPrimaryName(data.teacher) || displayName}
       titleClass="text-2xl leading-tight sm:text-3xl"
-    />
+    >
+      {#snippet titleExtra()}
+        {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)} <span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
+      {/snippet}
+    </PageHeader>
   {/snippet}
 
   {#snippet identity()}

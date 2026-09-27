@@ -14,6 +14,7 @@ import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherListCommonLabels,
@@ -73,7 +74,7 @@ $: pageLabel = teacherLabels.pageOf
               {#snippet child({ props })}
                 <a href={teacherHref} {...props}>
                   <Item.Content>
-                    <Item.Title>{catalogLocalizedDisplayName(teacher, locale)}</Item.Title>
+                    <Item.Title><CatalogEntityName item={teacher} {locale} /></Item.Title>
                   </Item.Content>
                   <Item.Actions>
                     <span class="tabular-nums text-muted-foreground text-sm"
@@ -115,10 +116,12 @@ $: pageLabel = teacherLabels.pageOf
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText
+                <CatalogTableLink class="font-medium" href={teacherHref}>
+                  <TruncatedText class="font-medium"
                     text={catalogLocalizedDisplayName(teacher, locale)}
-                  />
+                  >
+                    {#snippet children()}<CatalogEntityName item={teacher} {locale} />{/snippet}
+                  </TruncatedText>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="whitespace-nowrap font-mono">

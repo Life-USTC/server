@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import type { Action } from "svelte/action";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
@@ -6,6 +7,7 @@ import { cn } from "$lib/utils.js";
 export let text: string | number | null | undefined;
 export let lines: 1 | 2 = 1;
 export let preserveWhitespace = false;
+export let children: Snippet | undefined = undefined;
 
 let className = "";
 let open = false;
@@ -97,7 +99,7 @@ function triggerProps(props: Record<string, unknown>) {
           data-preserve-whitespace={preserveWhitespace || undefined}
           use:observeOverflow={displayText}
         >
-          {displayText}
+          {#if children}{@render children()}{:else}{displayText}{/if}
         </span>
       {/snippet}
     </Tooltip.Trigger>

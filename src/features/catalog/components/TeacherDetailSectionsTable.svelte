@@ -5,6 +5,7 @@ import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherDetailCopy,
@@ -54,10 +55,12 @@ export let teacher: TeacherDetailTeacher;
               </CatalogTableLink>
             </Table.Cell>
             <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
+              <CatalogTableLink class="font-medium" href={sectionHref}>
                 <TruncatedText
                   text={catalogLocalizedDisplayName(section.course, locale)}
-                />
+                >
+                  {#snippet children()}<CatalogEntityName item={section.course} {locale} />{/snippet}
+                </TruncatedText>
               </CatalogTableLink>
             </Table.Cell>
           </Table.Row>

@@ -44,7 +44,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
           <Table.Row>
             <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap>
+              <CatalogTableLink class="font-medium" href={sectionHref} nowrap>
                 {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}
               </CatalogTableLink>
             </Table.Cell>

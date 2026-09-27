@@ -352,9 +352,9 @@ capabilities:
           - course.jwId
         web-history:
           primary:
-          - section.teachers.namePrimary
-          secondary:
           - section.semester.nameCn
+          secondary:
+          - section.teachers.namePrimary
           - section.code
           - section.campus.namePrimary
           - section.stdCount

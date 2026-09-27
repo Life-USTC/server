@@ -555,9 +555,8 @@ test("ui.data-table-cells-2", async ({ page, browser, baseURL }, testInfo) => {
     });
     for (const value of values) {
       const text = page
-        .locator("#main-content")
-        .getByText(value, { exact: true })
-        .filter({ visible: true });
+        .locator('#main-content [data-slot="truncated-text"]')
+        .filter({ hasText: value, visible: true });
       expect(
         await text.evaluate(
           (element) => element.scrollWidth > element.clientWidth,
