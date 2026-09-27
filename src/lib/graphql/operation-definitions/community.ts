@@ -39,6 +39,9 @@ export const communityGraphqlOperationDefinitions = [
             submissionDueAt
             createdAt
             updatedAt
+            completed
+            completedAt
+            completionRequired
             commentCount
             section {
               id
@@ -71,6 +74,9 @@ export const communityGraphqlOperationDefinitions = [
             submissionDueAt
             createdAt
             updatedAt
+            completed
+            completedAt
+            completionRequired
             commentCount
             section {
               id

@@ -414,9 +414,24 @@ requirements:
       name: graphql.workspace-ownership
 - id: graphql.homework-completion-requirement
   category: consistency
-  rule: Workspace and community homework reads expose completionRequired, derived from the viewer's current
-    section subscription kind. Teaching-assistant homework displays no completion required while preserving
-    actual completion state and pending-scope deadline semantics.
+  rule: Workspace.homeworks and community homework create/update payloads expose completionRequired from
+    the viewer's current subscription kind, including their registered MCP projections. Teaching assistants
+    require no completion, while actual completion records and deadline-based pending semantics remain
+    intact.
+  rationale: Community has no homework query root. Collaborative homework mutations return the shared
+    Homework type; this contract applies to those payloads and workspace reads.
+  acceptance:
+    given: A teaching assistant and regular subscriber share homework with past, future and absent deadlines;
+      only the assistant has one actual completion.
+    when: Registered GraphQL list/create/update operations run, then the assistant changes to auditor.
+    then:
+    - All three Homework projections expose completionRequired=false for the assistant and retain completed/completedAt.
+    - Assistant pending results exclude past-deadline homework and actual completions; regular subscriber
+      pending results retain their incomplete homework.
+    - Changing subscription kind updates completionRequired without rewriting any completion record.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.homework-completion-requirement
 - id: graphql.zoned-datetime
   category: consistency
   rule: DateTime accepts only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
@@ -460,11 +475,82 @@ requirements:
   category: behavior
   rule: Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate
     edits existing owner-scoped membership only.
-- id: graphql.young-workspace
+  acceptance:
+    given: Only the owner has an existing regular section membership.
+    when: Both users invoke registered subscription kind updates; the owner queries the registered membership
+      list.
+    then:
+    - The owner can change among all three kinds and receives typed kind/section page items.
+    - The nonmember receives NOT_FOUND and cannot create or modify the owner membership.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.subscription-kind
+- id: graphql.young-event-subscriptions
   category: behavior
-  rule: Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range
-    calendars use shared owner-scoped services. See docs/features/young-workspace.yaml for capability
-    scopes and docs/graphql/schema.graphql for generated signatures.
+  rule: Young activity subscription mutations and state/list queries use the authenticated owner and preserve
+    reminder preferences.
+  acceptance:
+    given: Two signed user contexts and a public event.
+    when: GraphQL subscribes one user, reads both users, and unsubscribes independently.
+    then:
+    - Only the owner sees their subscription and explicit reminder preferences; another user cannot remove
+      it.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-event-subscriptions
+- id: graphql.young-organizer-subscriptions
+  category: behavior
+  rule: Young organizer subscriptions use the authenticated owner and do not imply event subscriptions.
+  acceptance:
+    given: Two user contexts and one public organizer.
+    when: GraphQL follows, reads and unfollows the organizer.
+    then:
+    - State and list fields agree, foreign state remains empty, and organizer following creates no event
+      subscription.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-organizer-subscriptions
+- id: graphql.young-reminders
+  category: behavior
+  rule: GraphQL exposes the shared owner-scoped activity reminders with deduplicated delivery and owner-only
+    read state.
+  acceptance:
+    given: An owner subscribes an event within its signup-deadline and start reminder windows.
+    when: GraphQL refreshes the inbox repeatedly and both users try to mark a reminder read.
+    then:
+    - Exactly the two due reminders appear with stable IDs; the other inbox is empty.
+    - A foreign mark returns success=false without changing readAt; the owner mark removes the reminder
+      from unread results.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-reminders
+- id: graphql.young-daily-digests
+  category: behavior
+  rule: GraphQL exposes the shared completed-day organizer digest once per owner and organizer, without
+    implicitly subscribing events.
+  acceptance:
+    given: An owner followed before the previous Shanghai day and the organizer published an upcoming
+      event during that day.
+    when: GraphQL reads both users’ inboxes repeatedly.
+    then:
+    - One stable organizer_digest appears only for the follower and no event subscription is created.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-daily-digests
+- id: graphql.young-calendar
+  category: behavior
+  rule: GraphQL date-range calendars expose full subscribed event metadata for the authenticated owner
+    and requested Shanghai days.
+  acceptance:
+    given: Only one of two users subscribes an upcoming event.
+    when: GraphQL queries its Shanghai calendar day and the following day.
+    then:
+    - The owner receives event type, ID, exact start instant, end and location only within the requested
+      day.
+    - The other user receives no private calendar event.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-calendar
 - id: graphql.source-metadata
   category: consistency
   rule: YoungEvent exposes the same typed upstream participation requirements, audience and eligibility
