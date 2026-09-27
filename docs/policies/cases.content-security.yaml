@@ -23,6 +23,17 @@ requirements:
   rule: Each attachment-byte request checks the current upload and parent-content authorization before returning
     bytes. A previously issued attachment URL does not bypass ownership, visibility, moderation, or deletion
     checks.
+  acceptance:
+    given: An isolated owner uploads real object bytes, retains its download URL, and later attaches it to a section comment; separate viewer, administrator, and anonymous principals reuse that same URL and preview URL.
+    when: The comment changes from public to logged-in-only, is moderation-hidden, restored, and deleted, then its owner deletes the upload.
+    then:
+    - An unattached upload returns exact bytes only to its owner; active public or logged-in-only attachments also permit authenticated viewers and never anonymous requests.
+    - Moderation-hidden parents deny ordinary viewers while permitting the author and administrator; restoration restores viewer access and parent deletion removes viewer and administrator access.
+    - The owner retains independent access to their upload after parent deletion, but deleting the upload makes every signed-in principal receive 404 without bytes.
+    - Preview requests follow the same current authorization results as byte requests.
+    test:
+      file: tests/e2e/src/app/account-policy/attachment-security.test.ts
+      name: cases.content-security.upload-attachment-download-1
 - id: cases.content-security.destructive-actions-1
   category: presentation
   topic: destructive-actions
