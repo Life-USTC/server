@@ -14,7 +14,7 @@ import {
 } from "@/lib/api/routes/calendar-subscriptions";
 import { createFixturePrisma } from "../shared/prisma";
 
-it("subscription.per-user-rate-limit", async () => {
+it("subscription.per-user-rate-limit", { timeout: 60_000 }, async () => {
   const db = createFixturePrisma();
   const directory = await mkdtemp(join(tmpdir(), "subscription-rate-"));
   const config = parseConfigFileTextToJson(
@@ -161,4 +161,4 @@ it("subscription.per-user-rate-limit", async () => {
     await platform.dispose();
     await rm(directory, { recursive: true, force: true });
   }
-}, 60_000);
+});
