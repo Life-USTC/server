@@ -56,10 +56,39 @@ export function workspaceCalendarHrefFromPatch({
 }
 
 export function workspaceCalendarUrlState(input: {
-  calendar: WorkspaceCalendarNavData | null;
+  calendar: CalendarData | null;
   url: URL;
 }) {
-  return workspaceCalendarStateFromUrl(input.url, input.calendar);
+  const { calendar, url } = input;
+  if (
+    calendar &&
+    url.searchParams.get("calendarSemester") ===
+      String(calendar.activeCalendarSemesterId)
+  ) {
+    const semesterDays = calendar.semesterWeeks.flat();
+    const referenceDay = calendar.todayDate;
+    if (
+      semesterDays.length &&
+      (!referenceDay || !semesterDays.includes(referenceDay))
+    ) {
+      const firstEventDay = [
+        ...calendar.allSessions,
+        ...calendar.allExams,
+        ...calendar.semesterHomeworks,
+      ]
+        .map((event) => event.dateKey)
+        .filter(
+          (key): key is string =>
+            typeof key === "string" && semesterDays.includes(key),
+        )
+        .sort()[0];
+      return workspaceCalendarStateFromUrl(url, {
+        ...calendar,
+        referenceDate: firstEventDay ?? semesterDays[0],
+      });
+    }
+  }
+  return workspaceCalendarStateFromUrl(url, calendar);
 }
 
 export function workspaceCalendarStateChange(input: {

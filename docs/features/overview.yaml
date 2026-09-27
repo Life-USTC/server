@@ -96,6 +96,16 @@ requirements:
   rule: A zero current-semester subscription count must not be presented as no course history when total
     subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework,
     schedules, and exams.
+  acceptance:
+    given: An isolated owner has a historical section with homework, a schedule and an exam, and no current-term subscriptions.
+    when: Desktop and mobile users follow the actual overview history links, then an OAuth MCP client reads the snapshot, subscriptions and semester-filtered personal lists.
+    then:
+    - Every web history link displays the owner's historical record, including the mobile calendar agenda.
+    - The MCP snapshot reports one total and zero current-term subscriptions; the subscription list preserves the past semester.
+    - Personal homework, schedule and exam tools return the historical section for its semester and no records for the current semester.
+    test:
+      file: tests/e2e/src/app/workspace/overview/history-contract.test.ts
+      name: overview.historical-subscriptions-remain-discoverable
 - id: overview.focused-extracts-share-window
   category: consistency
   rule: With the same atTime and default inputs, the workspace snapshot, next-class and deadline tools

@@ -5,6 +5,7 @@ import {
   listSubscribedSchedules,
   toSubscribedScheduleEntryDto,
 } from "@/features/subscriptions/server/subscription-read-model";
+import { subscribedExamDtoSchema } from "@/lib/api/schemas/subscribed-exams-schemas";
 import {
   flexDateInputSchema,
   getUserId,
@@ -14,6 +15,7 @@ import {
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
+import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
 export function registerWorkspaceScheduleTools(server: McpServer) {
   server.registerTool(
@@ -97,7 +99,14 @@ export function registerWorkspaceScheduleTools(server: McpServer) {
         semesterId,
       });
 
-      return jsonToolResult({ exams }, { mode: resolvedMode });
+      return jsonToolResult(
+        {
+          exams: exams.map((exam) =>
+            subscribedExamDtoSchema.parse(serializeDatesDeep(exam)),
+          ),
+        },
+        { mode: resolvedMode },
+      );
     },
   );
 }
