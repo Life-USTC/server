@@ -23,6 +23,16 @@ requirements:
   rule: This upload capability manages comment attachment drafts and their completed attachments. It is
     not an independent public file-sharing space. Profile avatars and publication ingestion use their
     separate feature-owned workflows.
+  acceptance:
+    given: An isolated owner has completed a comment-attachment draft but has not attached it to a comment.
+    when: Open desktop/mobile upload management, request the draft as its owner and anonymously, then open a real section comment composer.
+    then:
+    - Management lists the draft and authenticated download action without a standalone upload or public-sharing control.
+    - The draft bytes are available to the owner and rejected for an anonymous request.
+    - Comment composition exposes attachment upload; merely opening it does not attach or publish the draft.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: upload.comment-attachments-only
 - id: upload.permission-and-quota
   category: authorization
   rule: Upload session creation requires an authenticated actor and rejects reservations that exceed that
@@ -49,10 +59,30 @@ requirements:
     batch of expired UploadPending rows only. Request-path reservation cleanup never deletes R2 objects
     because it cannot coordinate safely with a PUT already in flight; orphan object reconciliation belongs
     to a dedicated storage lifecycle workflow.
+  acceptance:
+    given: An owner has completed uploads, live reservations, sixty expired reservations and protected
+      upload phases.
+    when: Actual REST GET requests repeat before session creation and completion write paths run.
+    then:
+    - GET preserves every pending row and excludes expired bytes from quota.
+    - Each write removes exactly the oldest eligible twenty-five reservations while preserving protected
+      phases and all R2 objects.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.pure-upload-reads
 - id: upload.paginated-upload-list
   category: consistency
   rule: Completed uploads use { data, pagination, meta }. REST accepts page/pageSize and MCP accepts page/limit;
     REST does not accept the retired limit alias. meta contains the owner's quota and file-size limits.
+  acceptance:
+    given: An owner has five completed uploads and a live pending reservation.
+    when: Actual authenticated REST and MCP list calls request pages and invalid pagination.
+    then:
+    - REST page/pageSize and MCP page/limit return the same ordered data, pagination and quota metadata.
+    - REST rejects the retired limit alias and invalid page sizes; MCP rejects out-of-range inputs.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.paginated-upload-list
 - id: upload.write-auth-unsuspended
   category: authorization
   rule: Every upload write requires an unsuspended authenticated user and the relevant ownership permission.
@@ -78,6 +108,15 @@ requirements:
   category: behavior
   rule: Web comment attachment uploads follow a three-step flow — create upload session on-site → browser
     PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.
+  acceptance:
+    given: A signed-in browser opens the comment attachment composer in the production Worker.
+    when: The browser selects a file, submits a comment and opens its attachment.
+    then:
+    - Create, same-origin R2-backed PUT and completion occur in order with the same key.
+    - The attachment is attached to the comment and downloads with the exact original bytes.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/comments.test.ts
+      name: upload.three-step-upload
 - id: upload.exclusive-completion
   category: consistency
   rule: Completion prevents a replacement PUT from changing the inspected object until quota settlement
@@ -112,17 +151,52 @@ requirements:
   category: behavior
   rule: Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime
     does not use S3-compatible signed URL fallbacks.
+  acceptance:
+    given: The runtime has an R2 binding that records storage calls.
+    when: Actual shared helpers put, head, get and delete an object, then run without that binding.
+    then:
+    - Every operation uses the binding and preserves the body and response metadata.
+    - Missing bindings reject without invoking a network or signed URL fallback.
+    test:
+      file: tests/unit/features/uploads/upload-storage-contracts.test.ts
+      name: upload.r2-backend
 - id: upload.storage-observability
   category: privacy
   rule: Shared storage helpers must never record bucket names, object keys, signed URLs, filenames, or
     user IDs in logs or metrics.
+  acceptance:
+    given: Storage keys, filenames and errors contain distinctive private values.
+    when: Actual shared storage helpers report successes, misses and errors through the Analytics binding.
+    then:
+    - Only operation, outcome, duration and size are recorded.
+    - No console log or metric includes any private value.
+    test:
+      file: tests/unit/features/uploads/upload-storage-contracts.test.ts
+      name: upload.storage-observability
 - id: upload.safe-filenames
   category: validation
   rule: Upload create, completion, and rename request schemas reject ASCII control characters in filenames.
+  acceptance:
+    given: Each ASCII control character appears at the start, middle and end of filenames.
+    when: Actual create, completion and rename request schemas parse those inputs and valid Unicode names.
+    then:
+    - All control characters are rejected before trimming; Unicode filenames remain accepted.
+    test:
+      file: tests/unit/features/uploads/upload-utils.test.ts
+      name: upload.safe-filenames
 - id: upload.one-upload-one-comment
   category: consistency
   rule: A completed upload can be attached to at most one comment. Reusing an upload id across comments
     is rejected instead of treated as implicit file sharing.
+  acceptance:
+    given: A user owns one completed unattached upload.
+    when: The user attaches it to one comment and then reuses it in another create and edit.
+    then:
+    - The first attachment succeeds; both reuse attempts reject without changing comments.
+    - Exactly one attachment references the upload.
+    test:
+      file: tests/integration/comment-write-contracts.test.ts
+      name: upload.one-upload-one-comment
 - id: upload.mcp-transfer-boundary
   category: privacy
   rule: MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow
@@ -130,6 +204,17 @@ requirements:
     or returns raw object bytes; PUT and download delivery remain R2-backed HTTP surfaces. MCP-resource
     bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session
     or separately authorized REST upload token.
+  acceptance:
+    given: A real OAuth grant authorizes separate signed MCP and REST resource tokens.
+    when: HTTP MCP registered operations reserve, complete, rename and delete metadata around separately
+      authenticated HTTP PUT and download.
+    then:
+    - MCP rejects binary input fields and only returns metadata.
+    - The on-site PUT URL rejects the MCP token without changing the reservation or object.
+    - The REST token transfers the exact object bytes; completion and metadata management preserve ownership.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: upload.mcp-transfer-boundary
 - id: upload.completion-failure-release
   category: consistency
   rule: When object inspection fails because the object is missing, unavailable, or oversized, completion
@@ -225,6 +310,15 @@ requirements:
   category: consistency
   rule: A completion lease expires after 30 seconds. A valid reservation may be reclaimed after that expiry;
     only the current attempt may settle or release it.
+  acceptance:
+    given: An owned uploaded reservation is valid beyond the lease duration.
+    when: Real runtime-role lease claims run against PostgreSQL at initial time, 29999ms and 30000ms.
+    then:
+    - The persisted lease lasts exactly 30 seconds and can only be reclaimed at expiry.
+    - The stale attempt cannot release the successor; only release by the current attempt permits completion.
+    test:
+      file: tests/integration/upload-finalization.test.ts
+      name: upload.completion-lease-duration
 - id: upload.download-filename-header
   category: privacy
   rule: Attachment Content-Disposition contains a safe ASCII filename and an encoded UTF-8 filename parameter,
@@ -293,7 +387,9 @@ capabilities:
   upload-list:
     title: Upload List
     auth: user
-    web: stable
+    web:
+      pages:
+      - /workspace/uploads
     rest:
       routes:
       - path: /api/workspace/uploads
@@ -401,7 +497,9 @@ capabilities:
   upload-manage:
     title: Upload Rename & Delete
     auth: user
-    web: stable
+    web:
+      pages:
+      - /workspace/uploads
     graphql:
       mutations:
       - name: uploadRename

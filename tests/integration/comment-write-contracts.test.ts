@@ -605,3 +605,48 @@ it("description.editor-authorization", async () => {
     }),
   ).toBe(1);
 });
+
+it("upload.one-upload-one-comment", async () => {
+  const attachment = await upload();
+  const first = await postCommentRoute(
+    request(
+      createInput({
+        body: "first attachment owner",
+        attachmentIds: [attachment],
+      }),
+    ),
+  );
+  expect(first.status).toBe(201);
+  const { id: firstId } = await first.json();
+  const countBefore = await db.comment.count({ where: { teacherId } });
+  const second = await postCommentRoute(
+    request(
+      createInput({
+        body: "rejected attachment reuse",
+        attachmentIds: [attachment],
+      }),
+    ),
+  );
+  expect(second.status).toBe(400);
+  expect(await second.json()).toEqual({ error: "Invalid attachments" });
+  expect(await db.comment.count({ where: { teacherId } })).toBe(countBefore);
+  const otherId = await seed();
+  const edited = await patchCommentRoute(
+    request(
+      { body: "rejected attachment edit", attachmentIds: [attachment] },
+      "PATCH",
+    ),
+    { id: otherId },
+  );
+  expect(edited.status).toBe(400);
+  expect(
+    (await db.comment.findUniqueOrThrow({ where: { id: otherId } })).body,
+  ).toBe(marker);
+  expect(
+    await db.commentAttachment.findMany({
+      where: { uploadId: attachment },
+      select: { commentId: true },
+    }),
+  ).toEqual([{ commentId: firstId }]);
+  expect(await db.upload.count({ where: { id: attachment } })).toBe(1);
+});

@@ -73,10 +73,12 @@ export const commentRepliesQuerySchema = z.object({
   ),
 });
 
-export const uploadsQuerySchema = z.object({
-  page: integerStringSchema.optional(),
-  pageSize: paginationPageSizeParam(publicPageSizeSchema),
-});
+export const uploadsQuerySchema = z
+  .object({
+    page: integerStringSchema.optional(),
+    pageSize: paginationPageSizeParam(publicPageSizeSchema),
+  })
+  .strict();
 
 export const descriptionsQuerySchema = z.object({
   targetType: descriptionTargetTypeSchema,

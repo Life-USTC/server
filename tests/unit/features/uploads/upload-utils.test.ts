@@ -3,6 +3,11 @@ import {
   buildContentDisposition,
   sanitizeFilename,
 } from "@/features/uploads/lib/upload-utils";
+import {
+  uploadCompleteRequestSchema,
+  uploadCreateRequestSchema,
+  uploadRenameRequestSchema,
+} from "@/lib/api/schemas/request-upload-mutation-schemas";
 import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 
 function hasHeaderControlCharacters(value: string) {
@@ -33,4 +38,37 @@ describe("上传文件名工具函数", () => {
       new Headers({ "Content-Disposition": header });
     }).not.toThrow();
   });
+});
+
+it("upload.safe-filenames", () => {
+  const schemas = [
+    uploadCreateRequestSchema,
+    uploadCompleteRequestSchema,
+    uploadRenameRequestSchema,
+  ];
+  for (const schema of schemas) {
+    for (const code of [
+      ...Array.from({ length: 32 }, (_, index) => index),
+      127,
+    ]) {
+      const control = String.fromCharCode(code);
+      for (const filename of [
+        `${control}report.txt`,
+        `report${control}.txt`,
+        `report.txt${control}`,
+      ]) {
+        expect(
+          schema.safeParse({ filename, key: "key", size: 1 }).success,
+          `${code}:${JSON.stringify(filename)}`,
+        ).toBe(false);
+      }
+    }
+    expect(
+      schema.parse({ filename: "  课程报告 😀.txt  ", key: "key", size: 1 })
+        .filename,
+    ).toBe("课程报告 😀.txt");
+    expect(
+      schema.safeParse({ filename: "   ", key: "key", size: 1 }).success,
+    ).toBe(false);
+  }
 });

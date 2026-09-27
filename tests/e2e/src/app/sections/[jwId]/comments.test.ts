@@ -326,7 +326,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     }
   });
 
-  test("评论可上传附件并通过签名下载链接打开", async ({ page }, testInfo) => {
+  test("upload.three-step-upload", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const filename = `e2e-attachment-${Date.now()}.txt`;
     const body = `e2e-attachment-comment-${Date.now()}`;
@@ -364,7 +364,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       // Upload attachment (upload.yml three-step flow)
       const uploadCreate = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/workspace/uploads") &&
+          new URL(r.url()).pathname === "/api/workspace/uploads" &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
@@ -373,7 +373,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           r.request().method() === "PUT" &&
           r.status() >= 200 &&
           r.status() < 300 &&
-          r.url().startsWith("http"),
+          new URL(r.url()).origin === new URL(page.url()).origin &&
+          new URL(r.url()).pathname === "/api/workspace/uploads/object",
       );
       const uploadComplete = page.waitForResponse(
         (r) =>
@@ -387,9 +388,25 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         mimeType: "text/plain",
         buffer: Buffer.from("section-attachment"),
       });
-      await uploadCreate;
-      await uploadPut;
+      const uploadCreateResponse = await uploadCreate;
+      const uploadPutResponse = await uploadPut;
       const uploadCompleteResponse = await uploadComplete;
+      const session = await uploadCreateResponse.json();
+      expect(new URL(session.url).origin).toBe(new URL(page.url()).origin);
+      expect(uploadPutResponse.url()).toBe(session.url);
+      expect(new URL(session.url).searchParams.get("key")).toBe(session.key);
+      expect(uploadCompleteResponse.request().postDataJSON()).toMatchObject({
+        key: session.key,
+        filename,
+      });
+      expect(
+        uploadCreateResponse.request().timing().startTime,
+      ).toBeLessThanOrEqual(uploadPutResponse.request().timing().startTime);
+      expect(
+        uploadPutResponse.request().timing().startTime,
+      ).toBeLessThanOrEqual(
+        uploadCompleteResponse.request().timing().startTime,
+      );
       const uploadCompleteBody = (await uploadCompleteResponse.json()) as {
         upload?: { id?: string };
       };
@@ -447,6 +464,11 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       await popup.waitForLoadState("domcontentloaded");
       await expect(popup).toHaveURL(/\/api\/workspace\/uploads\/.*\/download/);
       await popup.close();
+      const download = await page.request.get(
+        `/api/workspace/uploads/${uploadId}/download`,
+      );
+      expect(download.status()).toBe(200);
+      expect(await download.text()).toBe("section-attachment");
 
       // Cleanup
       const dlg = await openCommentDeleteDialog(page, commentCard);

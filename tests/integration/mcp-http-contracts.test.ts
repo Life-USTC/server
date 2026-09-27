@@ -3,12 +3,18 @@ import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import {
+  type CloudflareR2Bucket,
+  runWithCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
+import {
   mcpDeleteRoute,
   mcpGetRoute,
   mcpOptionsRoute,
   mcpPostRoute,
 } from "@/lib/api/routes/mcp";
+import { getUploadDownloadRoute } from "@/lib/api/routes/upload-download-route";
 import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
+import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
 
@@ -21,6 +27,7 @@ const scopes = [
   "workspace.todo:write",
   "account.profile:read",
   "workspace.upload:write",
+  "workspace.upload:read",
   "workspace.overview:read",
   "workspace.schedule:read",
   "workspace.calendar:read",
@@ -30,6 +37,48 @@ let origin: string;
 let grantId: string;
 let token: string;
 let publicJwksRequests = 0;
+const objects = new Map<string, Uint8Array>();
+const bucket: CloudflareR2Bucket = {
+  async head(key) {
+    const bytes = objects.get(key);
+    return bytes
+      ? { size: bytes.byteLength, httpMetadata: { contentType: "text/plain" } }
+      : null;
+  },
+  async get(key) {
+    const bytes = objects.get(key);
+    return bytes
+      ? {
+          size: bytes.byteLength,
+          body: new Response(new Uint8Array(bytes).buffer)
+            .body as ReadableStream<Uint8Array>,
+          httpMetadata: { contentType: "text/plain" },
+        }
+      : null;
+  },
+  async put(key, value) {
+    objects.set(
+      key,
+      new Uint8Array(await new Response(value as BodyInit).arrayBuffer()),
+    );
+  },
+  async delete(key) {
+    objects.delete(key);
+  },
+};
+function runtime<T>(work: () => T) {
+  return runWithCloudflareRuntimeEnv(
+    {
+      HYPERDRIVE: { connectionString: process.env.DATABASE_URL ?? "" },
+      HYPERDRIVE_AUTH: {
+        connectionString: process.env.AUTH_DATABASE_URL ?? "",
+      },
+      R2_UPLOADS: bucket,
+      USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    },
+    work,
+  );
+}
 const call = (name: string, args: Record<string, unknown> = {}) => ({
   jsonrpc: "2.0",
   id: 1,
@@ -93,16 +142,28 @@ beforeAll(async () => {
       } else if (
         new URL(request.url).pathname === "/api/workspace/uploads/object"
       ) {
-        response = await putUploadObjectRoute(request);
+        response = await runtime(() => putUploadObjectRoute(request));
+      } else if (
+        /^\/api\/workspace\/uploads\/[^/]+\/download$/.test(
+          new URL(request.url).pathname,
+        )
+      ) {
+        response = await runtime(() =>
+          getUploadDownloadRoute(request, {
+            id: new URL(request.url).pathname.split("/")[4],
+          }),
+        );
       } else {
-        response = await (
-          {
-            POST: mcpPostRoute,
-            GET: mcpGetRoute,
-            DELETE: mcpDeleteRoute,
-            OPTIONS: mcpOptionsRoute,
-          }[request.method] ?? (() => new Response(null, { status: 405 }))
-        )(request);
+        response = await runtime(() =>
+          (
+            ({
+              POST: mcpPostRoute,
+              GET: mcpGetRoute,
+              DELETE: mcpDeleteRoute,
+              OPTIONS: mcpOptionsRoute,
+            })[request.method] ?? (() => new Response(null, { status: 405 }))
+          )(request),
+        );
       }
       await setResponse(outgoing, response);
     } catch (error) {
@@ -723,5 +784,170 @@ it("oauth.transport-origin-validation", async () => {
   } finally {
     vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
     vi.stubEnv("APP_CANONICAL_ORIGIN", priorCanonical);
+  }
+});
+
+it("upload.mcp-transfer-boundary", async () => {
+  const credentials = await sign({
+    scopes: ["workspace.upload:write", "workspace.upload:read"],
+  });
+  const authorization = `Bearer ${credentials}`;
+  const content = "private object bytes unique to this contract";
+  async function operation(
+    operationId: string,
+    variables: Record<string, unknown>,
+  ) {
+    const response = await post(
+      call("graphql_operation_run", {
+        operationId,
+        variables,
+        confirmed: true,
+        locale: "en-us",
+      }),
+      authorization,
+    );
+    expect(response.status).toBe(200);
+    const result = (await payload(response)).result;
+    expect(JSON.stringify(result)).not.toContain(content);
+    expect(
+      result.content.every((item: { type: string }) => item.type === "text"),
+    ).toBe(true);
+    return result;
+  }
+  let key: string | undefined;
+  let uploadId: string | undefined;
+  try {
+    const pendingBefore = await db.uploadPending.count({ where: { userId } });
+    for (const field of ["bytes", "file", "body"]) {
+      const denied = await operation("workspace.upload.session.create.v1", {
+        input: {
+          filename: "boundary.txt",
+          size: content.length,
+          [field]: "unaccepted-binary-input",
+        },
+      });
+      expect(denied.isError).toBe(true);
+    }
+    expect(await db.uploadPending.count({ where: { userId } })).toBe(
+      pendingBefore,
+    );
+    expect(objects.size).toBe(0);
+    const created = await operation("workspace.upload.session.create.v1", {
+      input: {
+        filename: "boundary.txt",
+        contentType: "text/plain",
+        size: content.length,
+      },
+    });
+    expect(created.isError).not.toBe(true);
+    expect(created.structuredContent.success).toBe(true);
+    const session = created.structuredContent.data.uploadSessionCreate;
+    key = session.key;
+    expect(Object.keys(session).sort()).toEqual([
+      "key",
+      "maxFileSizeBytes",
+      "quotaBytes",
+      "url",
+      "usedBytes",
+    ]);
+    expect(new URL(session.url).origin).toBe(origin);
+    expect(new URL(session.url).pathname).toBe("/api/workspace/uploads/object");
+    expect(new URL(session.url).searchParams.get("key")).toBe(key);
+    expect(
+      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+    ).toBe("reserved");
+    const rejectedPut = await fetch(session.url, {
+      method: "PUT",
+      headers: { authorization, "content-type": "text/plain" },
+      body: content,
+    });
+    expect(rejectedPut.status).toBe(401);
+    await rejectedPut.text();
+    expect(objects.size).toBe(0);
+    expect(
+      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+    ).toBe("reserved");
+    const restToken = await sign({
+      resource: getOAuthRestAudienceUrls()[0],
+      scopes: ["workspace.upload:write", "workspace.upload:read"],
+    });
+    const put = await fetch(session.url, {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${restToken}`,
+        "content-type": "text/plain",
+      },
+      body: content,
+    });
+    expect(put.status).toBe(200);
+    await put.text();
+    expect(
+      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+    ).toBe("uploaded");
+    const completionInput = {
+      key,
+      filename: "boundary.txt",
+      contentType: "text/plain",
+    };
+    for (const field of ["bytes", "file", "body"])
+      expect(
+        (
+          await operation("workspace.upload.complete.v1", {
+            input: { ...completionInput, [field]: "unaccepted-binary-input" },
+          })
+        ).isError,
+      ).toBe(true);
+    expect(await db.upload.count({ where: { key } })).toBe(0);
+    const completed = await operation("workspace.upload.complete.v1", {
+      input: completionInput,
+    });
+    expect(completed.structuredContent.success).toBe(true);
+    const upload =
+      completed.structuredContent.data.uploadSessionComplete.upload;
+    uploadId = upload.id;
+    expect(upload.size).toBe(content.length);
+    expect(Object.keys(upload).sort()).toEqual([
+      "createdAt",
+      "filename",
+      "id",
+      "key",
+      "size",
+    ]);
+    const renamed = await operation("workspace.upload.rename.v1", {
+      id: uploadId,
+      filename: "renamed.txt",
+    });
+    expect(renamed.structuredContent.data.uploadRename.upload.filename).toBe(
+      "renamed.txt",
+    );
+    const downloadUrl = `${origin}/api/workspace/uploads/${uploadId}/download`;
+    const deniedDownload = await fetch(downloadUrl, {
+      headers: { authorization },
+    });
+    expect(deniedDownload.status).toBe(401);
+    await deniedDownload.text();
+    const download = await fetch(downloadUrl, {
+      headers: { authorization: `Bearer ${restToken}` },
+    });
+    expect(download.status).toBe(200);
+    expect(await download.text()).toBe(content);
+    const deleted = await operation("workspace.upload.delete.v1", {
+      id: uploadId,
+    });
+    expect(deleted.structuredContent.data.uploadDelete).toMatchObject({
+      id: uploadId,
+      success: true,
+      deletedSize: content.length,
+    });
+    expect(objects.size).toBe(0);
+    expect(await db.upload.count({ where: { key } })).toBe(0);
+  } finally {
+    if (uploadId)
+      await db.auditLog.deleteMany({ where: { targetId: uploadId } });
+    if (key) {
+      await db.upload.deleteMany({ where: { key } });
+      await db.uploadPending.deleteMany({ where: { key } });
+      objects.delete(key);
+    }
   }
 });

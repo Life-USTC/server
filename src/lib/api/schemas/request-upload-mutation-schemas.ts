@@ -6,20 +6,13 @@ const filenameControlCharacterMessage =
 
 const uploadFilenameSchema = z
   .string()
-  .trim()
-  .min(1)
   .refine((filename) => !hasAsciiControlCharacters(filename), {
     message: filenameControlCharacterMessage,
-  });
+  })
+  .trim()
+  .min(1);
 
-const uploadRenameFilenameSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(255)
-  .refine((filename) => !hasAsciiControlCharacters(filename), {
-    message: filenameControlCharacterMessage,
-  });
+const uploadRenameFilenameSchema = uploadFilenameSchema.max(255);
 
 export const uploadCreateRequestSchema = z.object({
   filename: uploadFilenameSchema,

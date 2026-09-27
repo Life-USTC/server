@@ -753,7 +753,7 @@ describe("其他请求 schema", () => {
       ).toBe(false);
       expect(
         input.schema.safeParse({ ...input.base, limit: "100" }).success,
-      ).toBe(true);
+      ).toBe(false);
     }
 
     for (const schema of [
