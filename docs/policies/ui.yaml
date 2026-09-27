@@ -135,6 +135,14 @@ requirements:
   category: presentation
   topic: list-table
   rule: News keeps title-led rows.
+  acceptance:
+    given: An isolated news source contains more than one page of publications with titles and source/date metadata.
+    when: The browser renders its first page at mobile and desktop widths.
+    then:
+    - Every result begins with a linked level-two title above smaller source/date metadata and links to its article detail.
+    test:
+      file: tests/e2e/src/app/news/test.ts
+      name: ui.list-table-7
 - id: ui.list-table-8
   category: presentation
   topic: list-table
