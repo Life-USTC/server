@@ -21,10 +21,32 @@ requirements:
   rule: The authorization page must clearly display the application name, requested permissions, client-id
     host when URL-based, redirect host, per-scope controls, approve action, and reject action. Loopback
     redirects warn that the callback returns to a local application.
+  acceptance:
+    given: A real URL-identified client and local native callback rendered in both locales at desktop
+      and mobile widths.
+    when: Open the authorization page and inspect its identity, permissions, actions, and local callback
+      warning.
+    then:
+    - The application name, client host, redirect host, readable permission controls, approve/deny actions,
+      and loopback warning are visible without overflow or browser errors.
+    test:
+      file: tests/e2e/src/app/oauth/authorize/test.ts
+      name: oauth.auth-page-clarity
 - id: oauth.user-consent-framing
   category: presentation
   rule: Consent describes the requesting application and permissions in user-facing terms, including the
     ability to approve a subset of the requested permissions.
+  acceptance:
+    given: A signed provider request for identity, profile, and email access.
+    when: Read the application description, deselect email, approve the remaining permissions, and exchange
+      the returned code.
+    then:
+    - Consent presents readable permission labels, preserves the selected subset through the UI and persisted
+      grant, and returns only the selected token scopes.
+    - Approval and rejection controls are disabled while the consent request is pending.
+    test:
+      file: tests/e2e/src/app/oauth/authorize/test.ts
+      name: oauth.user-consent-framing
 - id: oauth.signed-consent-integrity
   category: authorization
   rule: Approval accepts only the current canonical signed-parameter format with an exact nonempty signed-name
@@ -122,6 +144,18 @@ requirements:
   category: presentation
   rule: The administrator OAuth client inventory explicitly labels client trust and the fixed client authentication
     method, including public clients without a secret, to prevent authentication-mode misconfiguration.
+  acceptance:
+    given: An administrator using each of the three fixed client creation patterns.
+    when: Create trusted confidential, public PKCE, and consent-required confidential clients and inspect
+      their inventory rows and one-time credentials.
+    then:
+    - The inventory displays each persisted trust status and fixed authentication method, including public
+      PKCE clients.
+    - Public clients receive no secret; confidential secrets are shown once and require acknowledgment
+      before dismissing.
+    test:
+      file: tests/e2e/src/app/admin/oauth/test.ts
+      name: oauth.client-authentication-inventory
 - id: oauth.rotated-refresh-replay
   category: authorization
   rule: Reusing a rotated refresh token outside the provider-configured bounded retry interval is rejected

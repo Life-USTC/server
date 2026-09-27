@@ -7,6 +7,7 @@ import {
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -181,7 +182,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
   await captureStepScreenshot(page, testInfo, "oauth-authorize-denied");
 });
 
-test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInfo) => {
+test("oauth.user-consent-framing", async ({ page, request }, testInfo) => {
   const clientId = await registerPublicClient(page.request);
   await signInAsDebugUser(page, "/");
 
@@ -191,7 +192,7 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
       client_id: clientId,
       redirect_uri: REDIRECT_URI,
       response_type: "code",
-      scope: "openid profile",
+      scope: "openid profile email",
       state: "allow-state",
       prompt: "consent",
     }),
@@ -203,6 +204,24 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
 
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
   await resumeConsentIfSignInPage(page);
+
+  await expect(
+    page.getByText(
+      /正在请求访问您的账户|is requesting access to your account/i,
+    ),
+  ).toBeVisible();
+  const emailPermission = page.getByRole("checkbox", {
+    name: /查看您的邮箱地址|View your email address/i,
+  });
+  const profilePermission = page.getByRole("checkbox", {
+    name: /查看您的个人资料|View your profile information/i,
+  });
+  await expect(emailPermission).toBeChecked();
+  await expect(profilePermission).toBeChecked();
+  await emailPermission.uncheck();
+  await expect(emailPermission).not.toBeChecked();
+  await expect(profilePermission).toBeChecked();
+  await captureStepScreenshot(page, testInfo, "oauth-consent-subset");
 
   let releaseConsentRequest = () => {};
   const consentRequestGate = new Promise<void>((resolve) => {
@@ -229,6 +248,27 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
   expect(typeof code).toBe("string");
   expect(redirected.searchParams.get("state")).toBe("allow-state");
 
+  const persisted = await withE2ePrisma((prisma) =>
+    prisma.oAuthConsent.findFirstOrThrow({
+      where: { clientId },
+      select: { scopes: true },
+    }),
+  );
+  expect(persisted.scopes).toEqual(["openid", "profile"]);
+  const exchanged = await request.post("/api/auth/oauth2/token", {
+    form: {
+      client_id: clientId,
+      code: code!,
+      code_verifier: OAUTH_E2E_CODE_VERIFIER,
+      redirect_uri: REDIRECT_URI,
+      grant_type: "authorization_code",
+    },
+  });
+  expect(exchanged.status()).toBe(200);
+  expect((await exchanged.json()).scope.split(" ")).toEqual([
+    "openid",
+    "profile",
+  ]);
   await captureStepScreenshot(page, testInfo, "oauth-authorize-allowed");
 });
 
@@ -280,4 +320,108 @@ test("user.oauth-consent-loopback-continuation", async ({ page }) => {
   );
   expect(response.status()).toBe(200);
   expect((await response.json()).access_token).toEqual(expect.any(String));
+});
+
+test("oauth.auth-page-clarity", async ({ page }, testInfo) => {
+  const marker = crypto.randomUUID();
+  const clientId = `https://client.example/${marker}/metadata.json`;
+  const clientName = `Desktop calendar ${marker.slice(0, 8)}`;
+  const redirectUri = "http://127.0.0.1:61000/callback";
+  await withE2ePrisma((prisma) =>
+    prisma.oAuthClient.create({
+      data: {
+        clientId,
+        name: clientName,
+        applicationType: "native",
+        tokenEndpointAuthMethod: "none",
+        redirectUris: [redirectUri],
+        scopes: ["openid", "profile", "email"],
+        requirePKCE: true,
+        grantTypes: ["authorization_code"],
+        responseTypes: ["code"],
+      },
+    }),
+  );
+  try {
+    await signInAsDebugUser(page, "/");
+    for (const locale of ["en-us", "zh-cn"]) {
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+        ]);
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        const query = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          scope: "openid profile email",
+        });
+        const response = await gotoAndWaitForReady(
+          page,
+          `/oauth/authorize?${query}`,
+          {
+            browserHealth: {},
+            expectMeaningfulContent: true,
+            expectNoHorizontalOverflow: true,
+            uiQuality: {},
+          },
+        );
+        expect(response?.status()).toBe(200);
+        await expect(page).toHaveURL(/\/oauth\/authorize\?/);
+        await expect(page).toHaveTitle(/Authorize|授权/);
+        await expect(page.locator("html")).toHaveAttribute(
+          "lang",
+          locale === "en-us" ? /en/i : /zh/i,
+        );
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        await expect(page.getByText(clientName, { exact: true })).toBeVisible();
+        await expect(
+          page.getByText(
+            /Client host: client\.example|客户端主机: client\.example|客户端主机：client\.example/,
+          ),
+        ).toBeVisible();
+        await expect(
+          page.getByText(
+            /Redirect host: 127\.0\.0\.1:61000|回调主机: 127\.0\.0\.1:61000|回调主机：127\.0\.0\.1:61000/,
+          ),
+        ).toBeVisible();
+        await expect(
+          page.getByText(
+            /This callback returns to an application on your device|此回调将返回您设备上的本地应用/,
+          ),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("checkbox", {
+            name: /View your email address|查看您的邮箱地址/i,
+          }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("checkbox", {
+            name: /View your profile information|查看您的个人资料/i,
+          }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("checkbox", {
+            name: /Verify your identity|验证您的身份/i,
+          }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: /Allow|允许/i }),
+        ).toBeEnabled();
+        await expect(
+          page.getByRole("button", { name: /Deny|拒绝/i }),
+        ).toBeEnabled();
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `oauth-clarity-${locale}-${width}`,
+        );
+      }
+    }
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.oAuthClient.deleteMany({ where: { clientId } }),
+    );
+  }
 });
