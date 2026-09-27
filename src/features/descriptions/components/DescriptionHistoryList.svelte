@@ -64,8 +64,8 @@ function diffSegmentClass(segment: DiffSegment) {
       <Item.Root variant="outline" class="items-start">
         <Item.Header>
           <Item.Content class="gap-0">
-            <Item.Title>{editorName(item.editor)}</Item.Title>
-            <Item.Description>{formatDate(item.createdAt)}</Item.Description>
+            <Item.Title>{formatDate(item.createdAt)}</Item.Title>
+            <Item.Description>{editorName(item.editor)}</Item.Description>
           </Item.Content>
         </Item.Header>
         <div class="grid w-full gap-3 sm:grid-cols-2">

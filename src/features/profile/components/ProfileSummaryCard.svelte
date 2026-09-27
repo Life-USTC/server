@@ -24,7 +24,7 @@ export let user: ProfileSummaryUser;
       <Avatar.Fallback>{initials}</Avatar.Fallback>
     </Avatar.Root>
     <div class="min-w-0">
-      <Card.Title class="truncate" role="heading" aria-level={1}>
+      <Card.Title class="truncate text-xl font-semibold" role="heading" aria-level={1}>
         {displayName}
       </Card.Title>
       {#if user.username}

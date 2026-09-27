@@ -325,18 +325,25 @@ capabilities:
     presentation:
       kind: fields
       views:
-        web:
+        web-content:
           primary:
           - description.content
+          - history.count
           secondary:
           - description.lastEditedBy.name
-          - description.updatedAt
-          - history.count
-          - history.editor.name
-          - history.previousContent
-          - history.updatedContent
+          - description.lastEditedAt
           tertiary:
           - description.id
+          - description.updatedAt
+        web-history:
+          primary:
+          - history.createdAt
+          - history.previousContent
+          - history.nextContent
+          secondary:
+          - history.editor.name
+          tertiary:
+          - history.id
         mcp-community-description-get:
           primary:
           - description.content
@@ -394,6 +401,7 @@ capabilities:
     - description.editor-authorization
 
 rationale:
+- The public description has mutually exclusive reading and history views. The reading view displays lastEditedAt rather than the storage update timestamp; the history count is task navigation. Each history version is identified by its creation time and presents previous and next content equally, with the editor as supporting attribution.
 - >-
   Governance display.editedAt is the rendered edit timestamp returned by adminModerationDescriptionEditedAt: lastEditedAt when present, otherwise updatedAt for a record without an explicit edit timestamp. It is a derived presentation value, not a Description record property; the raw updatedAt timestamp is reconstruction metadata.
 - The former description.public-cache-retry is part of description.public-cache-invalidation, whose real database acceptance verifies post-commit invalidation and unchanged-content retry without duplicate edit history.

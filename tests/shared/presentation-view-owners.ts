@@ -81,9 +81,11 @@ export const PRESENTATION_VIEW_FAMILIES = {
     file: "tests/e2e/src/app/shared-policy/property-priority-community.test.ts",
     views: [
       "comment/object-comment-section/web",
-      "description/object-description-section/web",
+      "description/object-description-section/web-content",
+      "description/object-description-section/web-history",
       "upload/comment-attachment-download/web",
-      "upload/comment-attachment-upload/web",
+      "upload/comment-attachment-upload/web-pending",
+      "upload/comment-attachment-upload/web-ready",
       "upload/upload-list/web",
       "upload/upload-manage/web",
       "user/public-profile/web",

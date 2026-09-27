@@ -541,6 +541,28 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-7
+- id: ui.model-property-priority-community-views
+  category: presentation
+  topic: model-property-priority
+  rule: Community comments, description reading and history, attachment upload stages, downloads,
+    upload management and public profiles retain the field priorities declared for each visible view.
+  acceptance:
+    given: An isolated account owns attributed comments, a description with distinct edit and update times,
+      edit history, real stored attachments and recent profile contributions.
+    when: English and Chinese browsers inspect all nine community views at mobile and desktop widths,
+      switch description tabs, hold and release a real upload request, and trigger a real rejected rename.
+    then:
+    - Every declared primary field is visible in its identifying content, input or version title;
+      before-and-after history content remains equally readable and upload state stays task-critical.
+    - Secondary metadata remains visible and subordinate to its local identity, including rendered image
+      previews, storage usage, attribution, timestamps and profile statistics.
+    - Public comment text omits its raw moderation state and private badge; ordinary views omit internal
+      IDs and the description storage timestamp, while reading displays its actual lastEditedAt.
+    - Upload completion renders a decoded image backed by the real object route, and attachment download
+      returns the fixture bytes; rejected rename feedback retains the filename without changing the record.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-community.test.ts
+      name: ui.model-property-priority-community-views
 - id: ui.model-property-priority-admin-views
   category: presentation
   topic: model-property-priority

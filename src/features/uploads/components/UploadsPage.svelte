@@ -42,7 +42,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
   {#snippet header()}<PageHeader title={copy.title} description={copy.description} />{/snippet}
   <Panel>
     <div class="grid gap-2" aria-label={copy.usageLabel.replace("{used}", formatBytes(data.usedBytes)).replace("{total}", formatBytes(data.quotaBytes))}>
-      <p>{copy.usageLabel.replace("{used}", formatBytes(data.usedBytes)).replace("{total}", formatBytes(data.quotaBytes))}</p>
+      <p class="text-sm text-muted-foreground">{copy.usageLabel.replace("{used}", formatBytes(data.usedBytes)).replace("{total}", formatBytes(data.quotaBytes))}</p>
       <p class="text-sm text-muted-foreground">{copy.fileLimit.replace("{size}", formatBytes(data.maxFileSizeBytes))}</p>
     </div>
   </Panel>
@@ -57,7 +57,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
             <Table.Body>
               {#each data.uploads as upload (upload.id)}
                 <Table.Row>
-                  <Table.Cell class="max-w-64"><TruncatedText text={upload.filename} /></Table.Cell>
+                  <Table.Cell class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></Table.Cell>
                   <Table.Cell class="text-right tabular-nums">{formatBytes(upload.size)}</Table.Cell>
                   <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
                   <Table.Cell>{@render actions(upload)}</Table.Cell>

@@ -514,12 +514,17 @@ capabilities:
     presentation:
       kind: fields
       views:
-        web:
+        web-pending:
+          primary:
+          - file.name
+          - display.uploadState
+          secondary: []
+          tertiary: []
+        web-ready:
           primary:
           - file.name
           secondary:
           - file.preview
-          - upload.progress
           tertiary: []
         mcp-graphql-operation-run:
           primary:
@@ -631,6 +636,7 @@ capabilities:
       - Delete action
       - Per-upload feedback state
 rationale:
+- Attachment upload has mutually exclusive pending and ready views. The pending editor shows the selected filename and task-critical upload state; no numerical progress is promised. After completion the attachment filename and rendered Markdown preview identify the ready file.
 - E2E upload coverage should exercise the same Workers upload object route used in production.
 - Download authorization is owned by cases.content-security.upload-attachment-download-1, including the authenticated
   REST byte/preview route, current owner or visible-parent access, retained-URL rechecks, and R2-backed streaming.

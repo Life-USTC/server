@@ -794,12 +794,12 @@ capabilities:
           - comment.createdAt
           - comment.updatedAt
           - comment.visibility
-          - comment.status
           - comment.reactions.count
           - comment.attachments.filename
           tertiary:
           - comment.id
           - comment.userId
+          - comment.status
         mcp-community-comment-list:
           primary:
           - data.body
@@ -911,3 +911,6 @@ capabilities:
     requirement_refs:
     - comment.interaction-gate
     - comment.visibility-modes
+
+rationale:
+- Ordinary comment readers deliberately receive a normalized status for soft-banned comments and no moderation badge. The raw moderation status is internal metadata; administrative governance owns its visible status.
