@@ -282,8 +282,7 @@ export async function validateSpecificationReferences(
 ): Promise<{
   errors: string[];
   requirements: number;
-  scenarios: number;
-  linkedScenarios: number;
+  boundRequirements: number;
 }> {
   const errors: string[] = [];
   const documentIds = new Set<string>();
@@ -304,8 +303,7 @@ export async function validateSpecificationReferences(
   const testNames = new Map<string, Set<string>>();
   const testOwners = new Map<string, string>();
   let requirements = 0;
-  let scenarios = 0;
-  let linkedScenarios = 0;
+  let boundRequirements = 0;
   for (const { path, data } of files) {
     const documentId = `${data.kind}:${data.id}`;
     if (documentIds.has(documentId))
@@ -368,7 +366,6 @@ export async function validateSpecificationReferences(
       }
       const acceptance = requirement.acceptance;
       if (!acceptance) continue;
-      scenarios += 1;
       const test = acceptance.test;
       if (!test) {
         errors.push(
@@ -376,7 +373,7 @@ export async function validateSpecificationReferences(
         );
         continue;
       }
-      linkedScenarios += 1;
+      boundRequirements += 1;
       try {
         if (
           !test.file.startsWith("tests/") ||
@@ -450,7 +447,7 @@ export async function validateSpecificationReferences(
     }
     checkReferences(data);
   }
-  return { errors, requirements, scenarios, linkedScenarios };
+  return { errors, requirements, boundRequirements };
 }
 
 /** Stable requirement IDs form the namespace for canonical acceptance tests. */

@@ -219,8 +219,7 @@ describe("specification structure and references", () => {
     const unlinked = await validateSpecificationReferences([file], root);
     expect(unlinked).toMatchObject({
       requirements: 1,
-      scenarios: 1,
-      linkedScenarios: 0,
+      boundRequirements: 0,
     });
     expect(unlinked.errors.join("\n")).toContain(
       "acceptance requires exactly one test",
@@ -231,7 +230,7 @@ describe("specification structure and references", () => {
     };
     expect(await validateSpecificationReferences([file], root)).toMatchObject({
       errors: [],
-      linkedScenarios: 1,
+      boundRequirements: 1,
     });
     scenario.test.name = "nonexistent test";
     expect(

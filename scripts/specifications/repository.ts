@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { readSpecification, repositoryRoot } from "./yaml";
 
 export type TestReference = { file: string; name: string };
-export type AcceptanceScenario = {
+export type AcceptanceTest = {
   given: string;
   when: string;
   then: string[];
@@ -17,7 +17,7 @@ export type Requirement = {
   rationale?: string;
   topic?: string;
   applies_to?: string[];
-  acceptance?: AcceptanceScenario;
+  acceptance?: AcceptanceTest;
 };
 export type FeatureSpecification = {
   kind: "feature";

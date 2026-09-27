@@ -164,7 +164,7 @@
             "single",
             "per_item_partial",
             "single_idempotent",
-            "service_transaction_or_single_atomic_write",
+            "atomic",
             "single_audited",
             "single_audited_idempotent",
             "ordered_non_atomic",

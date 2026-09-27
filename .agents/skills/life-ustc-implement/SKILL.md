@@ -36,8 +36,9 @@ presentation only).
 
 Read the affected specification with `bun run specs:show <feature-id>` and its
 referenced policies. Validate specification edits with `bun run specs:check`.
-For typed requirements, update the `expectation` and its bound behavioral tests
-together. Use `bun run specs:coverage` to inspect requirement-level gaps; test
+For every changed requirement, update its canonical acceptance test together;
+its literal name equals the requirement ID. Typed requirements also update the
+`expectation` read by that test. Independent behaviors require separate IDs. Use `bun run specs:coverage` to inspect requirement-level gaps; test
 existence alone is not execution evidence. Remove duplicated normative prose
 when its rule becomes structured and retain any useful rationale separately.
 

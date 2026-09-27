@@ -11,8 +11,7 @@ describe("versioned YAML product specifications", () => {
     const result = await checkSpecifications();
     expect(result.files).toBeGreaterThan(0);
     expect(result.requirements).toBeGreaterThan(0);
-    expect(result.scenarios).toBeGreaterThan(0);
-    expect(result.linkedScenarios).toBeGreaterThan(0);
+    expect(result.boundRequirements).toBeGreaterThan(0);
     expect(result.errors).toEqual([]);
   });
 

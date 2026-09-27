@@ -92,6 +92,9 @@
           },
           "description": {
             "$ref": "defs.schema.json#/$defs/nonEmptyString"
+          },
+          "requirement_refs": {
+            "$ref": "defs.schema.json#/$defs/requirementRefs"
           }
         },
         "required": ["action", "trigger", "description"]
