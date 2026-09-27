@@ -8,6 +8,8 @@ const services = vi.hoisted(() => ({
   exams: vi.fn(),
   homeworks: vi.fn(),
   roomMap: vi.fn(),
+  youngEvent: vi.fn(),
+  sections: vi.fn(),
 }));
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
   listSubscribedSchedulePage: services.schedules,
@@ -19,6 +21,14 @@ vi.mock("@/features/rooms/server/room-map-service", () => ({
 }));
 
 import type { GraphqlContext } from "@/lib/graphql/context";
+
+vi.mock("@/features/young/server/young-event-service", () => ({
+  getYoungEvent: services.youngEvent,
+}));
+vi.mock("@/features/catalog/server/section-summary-read-model", () => ({
+  listSections: services.sections,
+}));
+
 import { graphqlSchema } from "@/lib/graphql/schema";
 
 async function graphql(input: {
@@ -164,4 +174,148 @@ it("graphql.single-endpoint", async () => {
     if (method !== "OPTIONS")
       expect(await response.json()).toEqual({ data: { __typename: "Query" } });
   }
+});
+
+it("graphql.source-metadata", async () => {
+  const known = {
+    activityStatusCode: "active",
+    signupStatusCode: "open",
+    requiresSignup: true,
+    categoryCode: "campus",
+    moduleCode: "club",
+    formCode: "lecture",
+    activityLevelCode: "university",
+    departmentId: "department-source-id",
+    upstreamOrganizerIds: ["source-organizer"],
+    upstreamSponsorIds: ["source-sponsor"],
+    tagIds: ["source-tag"],
+    signupScopeCode: "graduate",
+    signupDepartmentIds: ["source-department"],
+    requiresSignupInfo: true,
+    allowedAttachmentTypes: ["pdf"],
+    isOnline: false,
+    onlineMeetingInfo: null,
+    externalSponsor: "Public sponsor",
+  };
+  for (const expected of [
+    known,
+    Object.fromEntries(
+      Object.entries(known).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? [] : null,
+      ]),
+    ),
+  ]) {
+    services.youngEvent.mockResolvedValue({
+      ...expected,
+      youngId: "opaque-event",
+      signedUp: true,
+      participantUserId: "private-account",
+      privateEmail: "private@example.test",
+    });
+    const result = await graphql({
+      schema: graphqlSchema,
+      source: `{ catalog { youngEvent(youngId: "opaque-event") { ${Object.keys(known).join(" ")} } } }`,
+      contextValue: { principal: { kind: "anonymous" }, locale: "zh-cn" },
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({ catalog: { youngEvent: expected } });
+    expect(services.youngEvent).toHaveBeenLastCalledWith("opaque-event");
+    expect(JSON.stringify(result)).not.toContain("private-account");
+    expect(JSON.stringify(result)).not.toContain("private@example.test");
+  }
+  for (const field of ["signedUp", "participantUserId", "privateEmail"]) {
+    const result = await graphql({
+      schema: graphqlSchema,
+      source: `{ catalog { youngEvent(youngId: "opaque-event") { ${field} } } }`,
+      contextValue: { principal: { kind: "anonymous" } },
+    });
+    expect(result.data).toBeUndefined();
+    expect(result.errors?.[0].message).toContain(
+      `Cannot query field "${field}"`,
+    );
+  }
+});
+
+it("graphql.section-source-metadata", async () => {
+  const expected = {
+    requiredWeeks: 16,
+    catalogAdminClasses: [{ nameCn: "2024班", nameEn: null }],
+  };
+  services.sections.mockResolvedValue({
+    data: [
+      {
+        ...expected,
+        catalogAdminClasses: [
+          {
+            ...expected.catalogAdminClasses[0],
+            id: 71,
+            privateMemberUserId: "private-account",
+          },
+        ],
+      },
+    ],
+    pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+  });
+  const result = await graphql({
+    schema: graphqlSchema,
+    source:
+      "{ catalog { sections { items { requiredWeeks catalogAdminClasses { nameCn nameEn } } } } }",
+    contextValue: { principal: { kind: "anonymous" }, locale: "zh-cn" },
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({ catalog: { sections: { items: [expected] } } });
+  const type = graphqlSchema.getType("CatalogClassName");
+  if (!type || !("getFields" in type))
+    throw new Error("Missing catalog class names");
+  expect(Object.keys(type.getFields()).sort()).toEqual(["nameCn", "nameEn"]);
+});
+
+it("graphql.exam-source-metadata", async () => {
+  const expected = {
+    grades: "2024",
+    adminClassNames: "Class A",
+    monitors: [{ jwId: 901, nameCn: "公开监考姓名", nameEn: null }],
+  };
+  services.exams.mockResolvedValue({
+    data: [
+      {
+        ...expected,
+        monitors: [
+          {
+            ...expected.monitors[0],
+            id: "private-account",
+            email: "private@example.test",
+            phone: "private-phone",
+          },
+        ],
+      },
+    ],
+    pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+  });
+  const result = await graphql({
+    schema: graphqlSchema,
+    source:
+      "{ workspace { exams { items { grades adminClassNames monitors { jwId nameCn nameEn } } } } }",
+    contextValue: {
+      principal: { kind: "session", userId: "exam-viewer" },
+      locale: "zh-cn",
+    },
+  });
+  expect(result.errors).toBeUndefined();
+  expect(result.data).toEqual({ workspace: { exams: { items: [expected] } } });
+  const type = graphqlSchema.getType("ExamMonitor");
+  if (!type || !("getFields" in type))
+    throw new Error("Missing exam monitor metadata");
+  expect(Object.keys(type.getFields()).sort()).toEqual([
+    "jwId",
+    "nameCn",
+    "nameEn",
+  ]);
+  for (const privateValue of [
+    "private-account",
+    "private@example.test",
+    "private-phone",
+  ])
+    expect(JSON.stringify(result)).not.toContain(privateValue);
 });

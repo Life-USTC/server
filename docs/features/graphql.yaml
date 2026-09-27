@@ -249,6 +249,17 @@ requirements:
   category: authorization
   rule: Workspace collections derive ownership from the authenticated user relation in feature services
     and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.
+  acceptance:
+    given: Two real users with distinct todos and section subscriptions.
+    when: Each user reads the workspace through a signed authoritative session, and callers try internal
+      ownership/shape inputs.
+    then:
+    - Core workspace collections contain only the authenticated user's records or subscribed sections.
+    - Workspace field arguments and filter schemas do not accept userId, sectionIds or internal visibility/shape
+      switches.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.workspace-ownership
 - id: graphql.homework-completion-requirement
   category: consistency
   rule: Workspace and community homework reads expose completionRequired, derived from the viewer's current
@@ -304,11 +315,22 @@ requirements:
     scopes and docs/graphql/schema.graphql for generated signatures.
 - id: graphql.source-metadata
   category: consistency
-  rule: 'YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST
-    and MCP: arrays are non-null, while unknown scalar fields are null. Section exposes requiredWeeks
-    and catalogAdminClasses localized names independently of ID-backed administrative classes. Exam exposes
-    grades, adminClassNames and monitors containing only school IDs and localized names, matching REST/MCP
-    catalog records.'
+  rule: YoungEvent exposes the same typed upstream participation requirements, audience and eligibility
+    metadata, and opaque source identifiers as REST and MCP. These metadata arrays are non-null, while
+    unknown scalar values are null.
+  rationale: These published upstream fields describe event requirements and intended audiences, not a
+    private user's registration or participation state. Existing published source metadata and advertised
+    public contact information remain available. Source identifiers do not establish Life@USTC account
+    identity or authorize access to nonpublic account contact details.
+  acceptance:
+    given: Known and unknown upstream audience/eligibility metadata plus unrelated private account properties.
+    when: An anonymous GraphQL event query selects its declared metadata fields.
+    then:
+    - The result preserves exact scalar/source-ID values, empty arrays, and null unknowns.
+    - Private account and participation-state properties are not queryable.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.source-metadata
 - id: graphql.scoped-queries.community-read-boundary
   category: authorization
   rule: Community exposes user profiles only; comment and shared-description reads are unavailable in
@@ -540,6 +562,33 @@ requirements:
     test:
       file: tests/integration/graphql-mcp-resources.test.ts
       name: graphql.mcp-validation-parity
+- id: graphql.section-source-metadata
+  category: presentation
+  rule: Section exposes requiredWeeks and catalogAdminClasses localized names independently of ID-backed
+    administrative classes.
+  acceptance:
+    given: A section with required weeks, localized class names, and unrelated class membership fields.
+    when: An anonymous GraphQL section query reads source metadata.
+    then:
+    - Required weeks and localized class names are preserved exactly.
+    - CatalogClassName exposes only localized names.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.section-source-metadata
+- id: graphql.exam-source-metadata
+  category: presentation
+  rule: Exam exposes grades, adminClassNames and monitors containing only school IDs and localized names,
+    matching REST/MCP catalog records. School IDs must not be treated as Life@USTC account identifiers
+    or reveal nonpublic account contact details.
+  acceptance:
+    given: An exam with published school IDs/localized monitor names and unrelated account/contact properties.
+    when: An authorized workspace query reads exam metadata.
+    then:
+    - Grades, class names, school IDs and localized monitor names are preserved.
+    - ExamMonitor exposes only jwId/nameCn/nameEn and excludes private account/contact properties.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.exam-source-metadata
 capabilities:
   public-query-endpoint:
     title: Public Queries and Scoped Personal Mutations
