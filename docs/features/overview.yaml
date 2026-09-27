@@ -68,6 +68,16 @@ requirements:
   rule: Upcoming exam counts are shared between the workspace web navigation, REST overview, and MCP overview.
     They include known-date exams that have not ended or start later today, and exclude date-unknown exam
     records that cannot be placed in the upcoming timeline.
+  acceptance:
+    given: An isolated subscriber has ended, date-unknown, all-day, ongoing, later-today and tomorrow exams.
+    when: Real session shell navigation, REST, GraphQL and OAuth HTTP MCP overview reads run at the same
+      reference time.
+    then:
+    - All four surfaces report the same four upcoming exams.
+    - REST and MCP samples contain exactly the known-date all-day, ongoing, later-today and tomorrow records.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.upcoming-exam-counts
 - id: overview.historical-subscriptions-remain-discoverable
   category: presentation
   rule: A zero current-semester subscription count must not be presented as no course history when total
@@ -78,6 +88,18 @@ requirements:
   rule: With the same atTime and default inputs, the workspace snapshot, next-class and deadline tools
     use the same seven-day horizon. Explicit supported horizon arguments override only the requested tool's
     window.
+  acceptance:
+    given: An isolated subscriber has a next class and deadlines immediately before, at and within the
+      default seven-day range, exactly at its exclusive end and one day later.
+    when: Actual OAuth HTTP MCP snapshot, next-class and deadline tools run in default and full modes
+      with a fixed atTime, then the deadline tool receives explicit one- and nine-day windows.
+    then:
+    - Snapshot and next-class agree; a class beyond seven days is absent from both.
+    - Default full deadline lists match the snapshot, include the start and exclude the seven-day end.
+    - Explicit deadline windows change only that call and leave the snapshot unchanged.
+    test:
+      file: tests/e2e/src/app/workspace/overview/read-contract.test.ts
+      name: overview.focused-extracts-share-window
 - id: overview.workspace-card-priority
   category: presentation
   rule: Workspace cards present the actionable title, time/status and direct destination before secondary
