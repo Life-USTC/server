@@ -24,9 +24,22 @@ requirements:
 - id: rendering-and-cache.web-rendering-and-cache-2
   category: consistency
   topic: web-rendering-and-cache
-  rule: For the same public URL and locale, visitors with and without a session receive equivalent public HTML
-    content after excluding request nonce and request ID. Personal state is loaded separately through private
-    endpoints.
+  rule: For the same catalog URL and locale admitted to shared public rendering for both anonymous and session
+    visitors, their HTML has equivalent public content and DOM relationships after excluding request nonce
+    and request ID. Generated accessibility IDs may be renamed bijectively with their references; other
+    text and attributes remain equivalent. Personal state is loaded separately through private endpoints.
+  acceptance:
+    given: Anonymous and two isolated session viewers request admitted academic catalog lists/details,
+      campus links, and second-classroom lists/details/calendar/organizers in each locale.
+    when: The real Worker renders their HTML and each session independently reads its private shell projection.
+    then:
+    - Public HTML content and DOM relationships agree across viewers; no private viewer identity occurs.
+    - Only nonce, request ID and bijectively mapped generated accessibility identifiers differ; changed
+      text or broken references remain observable.
+    - Private shell projections retain their matching authenticated viewer and no-store headers.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: rendering-and-cache.web-rendering-and-cache-2
 - id: rendering-and-cache.cacheable-public-pages-1
   category: consistency
   topic: cacheable-public-pages
@@ -494,3 +507,9 @@ rationale:
   rendering-and-cache.personal-overlays-5 for direct workspace SSR seeding and
   rendering-and-cache.personal-overlays-4 for client hydration and anonymous results. user.shell-viewer
   independently owns reuse of that state without duplicate identity requests.
+- rendering-and-cache.web-rendering-and-cache-2 concerns catalog URLs admitted for both anonymous and
+  session visitors. The signed-in landing-page redirect remains owned by rendering-and-cache.cacheable-public-pages-14, and
+  anonymous-only sign-in cache admission remains owned by rendering-and-cache.cacheable-public-pages-6.
+- Viewer-independent HTML means equivalent content and DOM relationships, not byte-identical generated
+  accessibility identifiers. A one-to-one rename preserves every ID/reference relationship; text, ordinary
+  attributes and user-bearing data cannot be removed or ignored when comparing those representations.

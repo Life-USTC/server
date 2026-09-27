@@ -424,3 +424,177 @@ test("rendering-and-cache.web-rendering-and-cache-1", async ({ browser }) => {
     await cleanup(users);
   }
 });
+
+function normalizePublicHtml(html: string) {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  for (const element of document.querySelectorAll("[nonce]"))
+    element.removeAttribute("nonce");
+  const generatedIds = new Map<string, string>();
+  for (const element of document.querySelectorAll(
+    "[data-scroll-area-viewport] > [data-scroll-area-content][id]",
+  )) {
+    if (!/^bits-\d+$/.test(element.id)) continue;
+    if (generatedIds.has(element.id))
+      throw new Error("Duplicate generated accessibility ID");
+    generatedIds.set(
+      element.id,
+      `generated-scroll-content-${generatedIds.size}`,
+    );
+  }
+  const references = [
+    "for",
+    "form",
+    "list",
+    "headers",
+    "aria-activedescendant",
+    "aria-labelledby",
+    "aria-describedby",
+    "aria-controls",
+    "aria-owns",
+    "aria-details",
+    "aria-errormessage",
+    "aria-flowto",
+  ];
+  for (const element of document.querySelectorAll("*")) {
+    const normalizedId = generatedIds.get(element.id);
+    if (normalizedId) element.id = normalizedId;
+    for (const attribute of references) {
+      const value = element.getAttribute(attribute);
+      if (value === null) continue;
+      element.setAttribute(
+        attribute,
+        value.replace(/\S+/g, (id) => generatedIds.get(id) ?? id),
+      );
+    }
+    for (const attribute of ["href", "xlink:href"]) {
+      const value = element.getAttribute(attribute);
+      if (!value?.startsWith("#")) continue;
+      const id = generatedIds.get(value.slice(1));
+      if (id) element.setAttribute(attribute, `#${id}`);
+    }
+  }
+  return document.documentElement.outerHTML;
+}
+
+// Check that the observation adapter cannot hide changed public content or broken references.
+test("public HTML normalization preserves text and accessibility relationships", async ({
+  page,
+}) => {
+  const markup = (id: string, reference = id, text = "Public content") =>
+    `<div data-scroll-area-viewport><div data-scroll-area-content id="${id}">${text}</div></div><button aria-controls="${reference}" aria-label="Open content">Open</button><a href="#${reference}">Jump</a>`;
+  const original = await page.evaluate(normalizePublicHtml, markup("bits-1"));
+  expect(await page.evaluate(normalizePublicHtml, markup("bits-42"))).toBe(
+    original,
+  );
+  expect(
+    await page.evaluate(normalizePublicHtml, markup("bits-42", "bits-99")),
+  ).not.toBe(original);
+  expect(
+    await page.evaluate(
+      normalizePublicHtml,
+      markup("bits-42", "bits-42", "Different private content"),
+    ),
+  ).not.toBe(original);
+});
+
+test("rendering-and-cache.web-rendering-and-cache-2", async ({
+  browser,
+  page,
+}) => {
+  const users = await createUsers();
+  const fixtures = await withE2ePrisma(async (db) => ({
+    teacher: await db.teacher.findFirstOrThrow({
+      where: { code: DEV_SEED.teacher.code },
+      select: { id: true },
+    }),
+    organizer: await db.youngOrganizer.findFirstOrThrow({
+      where: { name: DEV_SEED.youngEvent.organizer },
+      select: { id: true },
+    }),
+  }));
+  const paths = [
+    "/catalog/courses",
+    `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    `/catalog/courses/${DEV_SEED.course.jwId}`,
+    "/catalog/sections",
+    `/catalog/sections/${DEV_SEED.section.jwId}`,
+    "/catalog/teachers",
+    `/catalog/teachers/${fixtures.teacher.id}`,
+    "/catalog/links",
+    "/catalog/young-events",
+    `/catalog/young-events/${DEV_SEED.youngEvent.youngId}`,
+    "/catalog/young-events/calendar",
+    "/catalog/young-events/organizers",
+    `/catalog/young-events/organizers/${fixtures.organizer.id}`,
+  ];
+  async function publicHtml(response: APIResponse) {
+    expect(response.status(), response.url()).toBe(200);
+    // The edge caches anonymous HTML internally, then marks its fresh-nonce browser response private.
+    expect(response.headers()["cache-control"], response.url()).toBe(
+      "private, no-store",
+    );
+    const body = await response.text();
+    const requestId = response.headers()["x-request-id"];
+    for (const user of users) {
+      expect(body, response.url()).not.toContain(user.id);
+      expect(body, response.url()).not.toContain(user.name);
+      expect(body, response.url()).not.toContain(user.email);
+    }
+    return page.evaluate(
+      normalizePublicHtml,
+      requestId ? body.replaceAll(requestId, "REQUEST_ID") : body,
+    );
+  }
+  try {
+    for (const locale of ["zh-cn", "en-us"]) {
+      const anonymous = await browser.newContext({
+        baseURL: PLAYWRIGHT_BASE_URL,
+      });
+      const signedContexts = await Promise.all(
+        users.map(() => browser.newContext({ baseURL: PLAYWRIGHT_BASE_URL })),
+      );
+      try {
+        const localeCookie = {
+          name: "NEXT_LOCALE",
+          value: locale,
+          url: PLAYWRIGHT_BASE_URL,
+        };
+        await anonymous.addCookies([localeCookie]);
+        for (const [index, signed] of signedContexts.entries())
+          await signed.addCookies([
+            localeCookie,
+            await createSignedSessionCookie(users[index].id),
+          ]);
+        for (const path of paths) {
+          const expected = await publicHtml(
+            await anonymous.request.get(path, {
+              headers: { accept: "text/html" },
+            }),
+          );
+          for (const signed of signedContexts) {
+            const actual = await publicHtml(
+              await signed.request.get(path, {
+                headers: { accept: "text/html" },
+              }),
+            );
+            expect(actual, `${locale}:${path}`).toBe(expected);
+          }
+        }
+        for (const [index, signed] of signedContexts.entries()) {
+          const privateProjection = await signed.request.get(
+            "/_internal/shell-bootstrap",
+          );
+          expectPrivate(privateProjection);
+          expect((await privateProjection.json()).viewer.id).toBe(
+            users[index].id,
+          );
+        }
+      } finally {
+        await anonymous.close();
+        await Promise.all(signedContexts.map((context) => context.close()));
+      }
+    }
+  } finally {
+    await cleanup(users);
+  }
+});
