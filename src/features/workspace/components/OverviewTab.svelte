@@ -343,7 +343,9 @@ function overviewFocus(
         <OverviewTermSelectionCard
           {workspaceCopy}
           {workspaceTabHref}
-          description={workspaceCopy.termSelection.noCurrentTerm}
+          description={signedData.overview.currentTermName
+            ? workspaceCopy.termSelection.noCurrentTerm
+            : workspaceCopy.termSelection.noCurrentSemester}
           historyCalendarSemesterId={signedData.overview.calendar.calendarSemesterPicker?.at(-1)?.id ?? null}
           showHistoryActions={true}
         />

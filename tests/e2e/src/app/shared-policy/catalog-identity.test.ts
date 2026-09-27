@@ -283,18 +283,24 @@ test("ui.global-search-results-2", async ({ page }) => {
         ],
         [
           noTeacher,
-          `${courseName} · ${noTeacher.code}`,
+          courseName,
           `${locale === "zh-cn" ? "未知" : "Unknown"} · ${noTeacher.code}`,
         ],
       ] as const) {
         await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
         const result = page
+          .getByRole("group", {
+            name: locale === "zh-cn" ? "班级" : "Sections",
+            exact: true,
+          })
           .getByRole("option")
           .filter({ has: page.getByText(title, { exact: true }) });
         await expect(result).toHaveCount(1);
-        expect((await result.innerText()).trim()).toBe(
-          `${title}\n${description}`,
-        );
+        await expect
+          .poll(async () =>
+            (await result.innerText()).replace(/\s+/g, " ").trim(),
+          )
+          .toBe(`${title} ${description}`);
         await result.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/sections/${section.jwId}$`),
@@ -755,7 +761,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", async ({
         locale === "zh-cn" ? "暂无教师。" : "No teachers listed.",
       );
       const campus = page
-        .locator("#overview dt")
+        .locator("[data-detail-identity] dt")
         .filter({ hasText: locale === "zh-cn" ? "校区" : "Campus" });
       await expect(campus.locator("+ dd")).toHaveText(
         locale === "zh-cn" ? "暂无" : "N/A",
@@ -1088,9 +1094,13 @@ test("cases.disambiguation.multiple-sections-same-course-1", async ({
           await expect(row).toContainText(section.code);
           await expect(row).toContainText(
             section.semesterId === current.id
-              ? current.nameCn
+              ? locale === "zh-cn"
+                ? current.nameCn
+                : "Spring 2026"
               : section.semesterId === previous.id
-                ? previous.nameCn
+                ? locale === "zh-cn"
+                  ? previous.nameCn
+                  : "Fall 2025"
                 : locale === "zh-cn"
                   ? "暂无"
                   : "N/A",
@@ -1135,7 +1145,9 @@ test("cases.disambiguation.multiple-sections-same-course-1", async ({
           .filter({ has: page.locator(`#bulk-import-section-${section.id}`) });
         await expect(field).toContainText(name);
         await expect(field).toContainText(section.code);
-        await expect(field).toContainText(current.nameCn);
+        await expect(field).toContainText(
+          locale === "zh-cn" ? current.nameCn : "Spring 2026",
+        );
       }
       await dialog
         .getByRole("button", {

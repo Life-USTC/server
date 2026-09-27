@@ -286,10 +286,13 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .first();
       await expect(commentCard).toBeVisible();
       await expect(commentCard.getByText(body)).toBeVisible();
-      // Author sees their own name and an anonymous badge
+      // Ordinary reads conceal the author's identity even from the author.
       await expect(
         commentCard.getByText(DEV_SEED.debugName).first(),
-      ).toBeVisible();
+      ).toHaveCount(0);
+      await expect(
+        commentCard.locator('a[href^="/community/users/"]'),
+      ).toHaveCount(0);
       await expect(
         commentCard.getByText(/匿名|Anonymous/i).first(),
       ).toBeVisible();

@@ -589,8 +589,9 @@ requirements:
 - id: ui.global-search-results-2
   category: presentation
   topic: global-search-results
-  rule: Section items use title `course.namePrimary · teachers` (fall back to course name · section code when
-    teachers are empty) and description `semester · campus · section.code` with code last.
+  rule: Section items use title `course.namePrimary · teachers` (course name alone when teachers are empty)
+    and description `semester · campus · section.code` with code last. The secondary code remains available
+    for disambiguation without duplicating it in the title.
   acceptance:
     given: An isolated section has two bilingual teachers, a bilingual campus, and an explicitly historical
       semester; another offering has no teacher, campus, or semester.
@@ -598,8 +599,8 @@ requirements:
     then:
     - The complete section shows localized course and teacher names in its title, followed by the historical
       semester, localized campus, and public section code in its description.
-    - The incomplete section uses the public code after its course title and localized Unknown before the
-      final code in its description, without empty campus separators.
+    - The incomplete section uses the course title alone and localized Unknown before the final public code
+      in its description, without empty campus separators.
     - Both results navigate to the corresponding canonical section detail.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts

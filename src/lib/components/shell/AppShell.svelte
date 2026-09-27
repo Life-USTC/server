@@ -752,6 +752,7 @@ async function resolveClientShell() {
   const controller = new AbortController();
   shellBootstrapAbortController = controller;
   const generation = shellBootstrapGeneration;
+  if (!viewerUser) viewerLoading = true;
 
   try {
     const bootstrap = await getClientShellBootstrap(
@@ -837,6 +838,7 @@ onMount(() => {
 
 afterNavigate(({ from, to }) => {
   if (!from || !to) return;
+  void resolveClientShell();
   if (
     from.url.pathname === to.url.pathname &&
     from.url.search === to.url.search
@@ -1014,18 +1016,17 @@ afterNavigate(({ from, to }) => {
         />
       {/if}
     {/if}
+    {#if GlobalSearchDialog}
+      <svelte:component
+        this={GlobalSearchDialog}
+        copy={data.copy.globalSearch}
+        locale={data.locale}
+        bind:open={globalSearchOpen}
+        signedIn={Boolean(viewerUser)}
+        on:openChange={(event) => {
+          globalSearchOpen = event.detail;
+        }}
+      />
+    {/if}
   </Sidebar.Provider>
-{/if}
-
-{#if GlobalSearchDialog && !focusedShell}
-  <svelte:component
-    this={GlobalSearchDialog}
-    copy={data.copy.globalSearch}
-    locale={data.locale}
-    bind:open={globalSearchOpen}
-    signedIn={Boolean(viewerUser)}
-    on:openChange={(event) => {
-      globalSearchOpen = event.detail;
-    }}
-  />
 {/if}

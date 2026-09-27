@@ -142,7 +142,8 @@ $: if (
 }
 $: _postTargetOptions = commentPostTargetOptions(_resolvedTargets);
 $: _visibilityOptions = buildCommentVisibilityOptions(_commentCopy);
-$: _viewerResolved = _appliedInitialData || _targetLoadStates.some((state) => state.loaded);
+$: _viewerResolved =
+  _appliedInitialData || _targetLoadStates.some((state) => state.loaded);
 
 const { applyInitialData: _applyInitialData } =
   createCommentPanelInitialDataActions({

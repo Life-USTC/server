@@ -144,8 +144,14 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
     await jumpToCourseSection(page, /班级|Sections/i, "#sections");
 
-    // section.semester.nameCn
-    await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
+    // The upstream Chinese term name is localized for the active page locale.
+    const locale = await page.locator("html").getAttribute("lang");
+    await expect(
+      visibleText(
+        page,
+        locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+      ),
+    ).toBeVisible();
     // section.code (plain monospace text)
     await expect(
       page

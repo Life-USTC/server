@@ -807,6 +807,29 @@ test("user.shell-viewer", async ({ browser }) => {
       users[0].name ?? "",
     );
     expect(identities).toEqual([]);
+    // Signing in directly to a public detail retains the focused root layout.
+    // The completed login must initialize its private shell projection.
+    await context.clearCookies();
+    await gotoAndWaitForReady(
+      page,
+      `/account/sign-in?callbackUrl=${encodeURIComponent(destination)}`,
+    );
+    identities.length = 0;
+    const signedInBootstrap = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+    );
+    await page
+      .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+      .click();
+    expect((await (await signedInBootstrap).json()).viewer.name).toBe(
+      DEV_SEED.debugName,
+    );
+    await expect(page).toHaveURL(new RegExp(`${destination}$`));
+    await expect(page.locator("#app-user-menu")).toContainText(
+      DEV_SEED.debugName,
+    );
+    expect(identities).toEqual(["/_internal/shell-bootstrap"]);
   } finally {
     await context.close();
     await cleanup(users);

@@ -132,7 +132,9 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
       await expect(disconnectButton).toBeVisible();
       await expect(disconnectButton).toBeDisabled();
       await expect(
-        providerCard.getByText(/不能断开唯一关联的账户|cannot disconnect/i),
+        providerCard.getByText(
+          /至少.*登录方式|Keep at least one usable sign-in method/i,
+        ),
       ).toBeVisible();
       await captureStepScreenshot(
         page,

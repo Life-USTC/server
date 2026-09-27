@@ -97,7 +97,7 @@ test("section.student-identity-teachers", async ({ page }, testInfo) => {
       .getByRole("complementary")
       .filter({ hasText: fixture.section.code });
     await expect(
-      overview.getByRole("link", {
+      page.locator("[data-detail-identity]").getByRole("link", {
         name: `${fixture.teacher.nameCn} (${fixture.teacher.nameEn})`,
       }),
     ).toBeVisible();

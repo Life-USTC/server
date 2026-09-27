@@ -597,7 +597,7 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
   await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
 
   const listResponse = await page.request.get(
-    "/api/admin/descriptions?limit=1",
+    "/api/admin/descriptions?pageSize=1",
   );
   expect(listResponse.status()).toBe(200);
   const description = (

@@ -35,15 +35,16 @@ requirements:
       name: user.public-contribution-window
 - id: user.shell-viewer
   category: behavior
-  rule: "The root layout owns client viewer state and issues at most one shell bootstrap request per mount. Public controls and navigation reuse that state rather than issuing duplicate identity requests."
+  rule: "The root layout owns client viewer state. A public full-page load issues one shell bootstrap request; a client navigation resolves an identity that the previous page could not initialize, including return from sign-in. Public controls and subsequent navigation reuse an initialized viewer and navigation summary rather than issuing duplicate identity requests."
   acceptance:
     given: An isolated signed-in owner opens academic details, links, bus, Young event/organizer details,
       a dated Young calendar and the workspace calendar.
-    when: Real browser requests load feature-specific private projections and navigate from the workspace into a section detail through the retained root layout.
+    when: Real browser requests load feature-specific private projections, navigate from the workspace into a section detail through the retained root layout, and sign in through the real development login form with a public section callback.
     then:
     - Each public full-page load makes exactly one shell-bootstrap request, returns the matching viewer and successfully reads its feature projection.
     - No page duplicates identity reads through profile or session endpoints.
     - Workspace SSR and subsequent client navigation reuse the existing viewer without another shell-bootstrap request.
+    - Navigating from sign-in with a newly established session initializes the viewer and navigation with one bootstrap request and replaces anonymous shell controls.
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: user.shell-viewer

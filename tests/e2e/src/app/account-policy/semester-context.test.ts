@@ -58,7 +58,7 @@ test("cases.semester.no-current-semester-1", async ({ page }, testInfo) => {
       );
       expect(await page.locator("#main-content").innerText()).not.toContain(
         locale === "en-us"
-          ? "You are only subscribed to past-term sections right now."
+          ? "You only have past-term section subscriptions."
           : "你目前只订阅了往期教学班",
       );
       const todoLink = page
@@ -180,7 +180,9 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
         name: /Confirm .*section subscriptions|确认订阅/,
       });
       await expect(dialog).toContainText(fixture.section.code);
-      await expect(dialog).toContainText(DEV_SEED.previousSemesterNameCn);
+      await expect(dialog).toContainText(
+        locale === "en-us" ? "Fall 2025" : DEV_SEED.previousSemesterNameCn,
+      );
       await page.keyboard.press("Escape");
     }
   } finally {
@@ -236,7 +238,7 @@ test("cases.semester.only-non-current-semester-subscriptions-1", async ({
       ).toBeVisible();
       await expect(page.locator("#main-content")).toContainText(
         locale === "en-us"
-          ? "You are only subscribed to past-term sections right now."
+          ? "You only have past-term section subscriptions."
           : "你目前只订阅了往期教学班。",
       );
       expect(await page.locator("#main-content").innerText()).not.toContain(
@@ -250,7 +252,9 @@ test("cases.semester.only-non-current-semester-subscriptions-1", async ({
       const homework = page
         .getByRole("row")
         .filter({ hasText: DEV_SEED.homeworks.historicalTitle });
-      await expect(homework).toContainText(DEV_SEED.previousSemesterNameCn);
+      await expect(homework).toContainText(
+        locale === "en-us" ? "Fall 2025" : DEV_SEED.previousSemesterNameCn,
+      );
       expect(await homework.innerText()).not.toContain(DEV_SEED.semesterNameCn);
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await expect(page.locator("#main-content")).toContainText(
