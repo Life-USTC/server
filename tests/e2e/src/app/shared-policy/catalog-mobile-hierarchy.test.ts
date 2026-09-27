@@ -108,10 +108,148 @@ async function createFixture() {
   );
 }
 
+async function cleanupFixture(
+  fixture: Awaited<ReturnType<typeof createFixture>>,
+) {
+  await withE2ePrisma(async (db) => {
+    await db.section.delete({ where: { id: fixture.section.id } });
+    await db.teacher.delete({ where: { id: fixture.teacher.id } });
+    await db.course.delete({ where: { id: fixture.course.id } });
+    await db.user.delete({ where: { id: fixture.user.id } });
+    await db.educationLevel.delete({ where: { id: fixture.education.id } });
+    await db.courseCategory.delete({ where: { id: fixture.category.id } });
+    await db.classType.delete({ where: { id: fixture.classType.id } });
+    await db.department.delete({ where: { id: fixture.department.id } });
+    await db.teacherTitle.delete({ where: { id: fixture.title.id } });
+    await db.semester.delete({ where: { id: fixture.semester.id } });
+    await db.campus.delete({ where: { id: fixture.campus.id } });
+  });
+}
+
 function required(value: string | null) {
   if (value === null) throw new Error("Fixture field must be populated");
   return value;
 }
+
+test("ui.detail-hero-4", async ({ page }) => {
+  const fixture = await createFixture();
+  const courseNames = {
+    nameCn: "跨学科科学研究与高等数学方法应用课程".repeat(4),
+    nameEn:
+      "Interdisciplinary scientific research and advanced mathematical methods "
+        .repeat(4)
+        .trim(),
+  };
+  const teacherNames = {
+    nameCn: "跨学科科学研究领域教师姓名".repeat(4),
+    nameEn: "Professor of interdisciplinary scientific research "
+      .repeat(4)
+      .trim(),
+  };
+  try {
+    await withE2ePrisma(async (db) => {
+      await db.course.update({
+        where: { id: fixture.course.id },
+        data: courseNames,
+      });
+      await db.teacher.update({
+        where: { id: fixture.teacher.id },
+        data: teacherNames,
+      });
+    });
+    for (const locale of ["zh-cn", "en-us"]) {
+      expect(
+        (
+          await page.request.post("/api/account/preferences", {
+            data: { locale },
+          })
+        ).status(),
+      ).toBe(200);
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const item of [
+          {
+            path: `/catalog/courses/${fixture.course.jwId}`,
+            bilingualHeading: true,
+            names: courseNames,
+            code: fixture.course.code,
+            id: fixture.course.id,
+            jwId: fixture.course.jwId,
+          },
+          {
+            path: `/catalog/sections/${fixture.section.jwId}`,
+            bilingualHeading: false,
+            names: courseNames,
+            code: fixture.section.code,
+            id: fixture.section.id,
+            jwId: fixture.section.jwId,
+          },
+          {
+            path: `/catalog/teachers/${fixture.teacher.id}`,
+            bilingualHeading: true,
+            names: teacherNames,
+            code: null,
+            id: fixture.teacher.id,
+            jwId: fixture.teacher.jwId,
+          },
+        ]) {
+          await gotoAndWaitForReady(page, item.path);
+          const title = page.getByRole("heading", { level: 1 });
+          await expect(title).toHaveCount(1);
+          await expect(title).toHaveText(
+            locale === "zh-cn"
+              ? item.names.nameCn
+              : item.bilingualHeading
+                ? `${item.names.nameEn} (${item.names.nameCn})`
+                : item.names.nameEn,
+          );
+          const hero = title.locator("xpath=ancestor::header[1]");
+          if (!item.bilingualHeading) {
+            await expect(
+              hero.getByText(
+                locale === "zh-cn" ? "授课班级" : "Teaching section",
+                { exact: true },
+              ),
+            ).toBeVisible();
+          }
+          if (item.code) {
+            const code = hero.getByText(item.code, { exact: true });
+            await expect(code).toBeVisible();
+            const bounds = await box(code);
+            expect(bounds.x).toBeGreaterThanOrEqual(0);
+            expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+            expect(
+              await code.evaluate(
+                (element) => element.scrollWidth <= element.clientWidth + 1,
+              ),
+            ).toBe(true);
+          }
+          const bounds = await box(title);
+          expect(bounds.x).toBeGreaterThanOrEqual(0);
+          expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+          expect(
+            await title.evaluate(
+              (element) => element.scrollWidth <= element.clientWidth + 1,
+            ),
+          ).toBe(true);
+          await expect(
+            hero.getByText(String(item.id), { exact: true }),
+          ).toHaveCount(0);
+          await expect(
+            hero.getByText(String(item.jwId), { exact: true }),
+          ).toHaveCount(0);
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth,
+            ),
+          ).toBe(true);
+        }
+      }
+    }
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
 
 async function box(locator: Locator) {
   const result = await locator.boundingBox();
@@ -253,18 +391,6 @@ test("ui.layout-principles-3", async ({ page }, testInfo) => {
       }
     }
   } finally {
-    await withE2ePrisma(async (db) => {
-      await db.section.delete({ where: { id: fixture.section.id } });
-      await db.teacher.delete({ where: { id: fixture.teacher.id } });
-      await db.course.delete({ where: { id: fixture.course.id } });
-      await db.user.delete({ where: { id: fixture.user.id } });
-      await db.educationLevel.delete({ where: { id: fixture.education.id } });
-      await db.courseCategory.delete({ where: { id: fixture.category.id } });
-      await db.classType.delete({ where: { id: fixture.classType.id } });
-      await db.department.delete({ where: { id: fixture.department.id } });
-      await db.teacherTitle.delete({ where: { id: fixture.title.id } });
-      await db.semester.delete({ where: { id: fixture.semester.id } });
-      await db.campus.delete({ where: { id: fixture.campus.id } });
-    });
+    await cleanupFixture(fixture);
   }
 });

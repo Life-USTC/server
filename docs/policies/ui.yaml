@@ -227,6 +227,17 @@ requirements:
   rule: Mobile catalog detail heroes keep public course or section codes and concise context visible alongside
     long localized names without horizontal overflow. Database row IDs and JW IDs do not substitute for that
     display context.
+  acceptance:
+    given: Isolated course, section and teacher details have long Chinese and English names and distinct
+      public codes versus internal identifiers.
+    when: The browser renders each detail at 320 and 390 CSS pixels in both locales.
+    then:
+    - The localized heading retains its complete text and fits the viewport; course and section codes remain
+      visible and fit without clipping or horizontal document overflow.
+    - Hero content never substitutes the database row ID or JW ID for the public display identity.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-hero-4
 - id: ui.detail-hero-5
   category: presentation
   topic: detail-hero
