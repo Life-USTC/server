@@ -53,10 +53,6 @@ requirements:
   - graphql
   rule: Public catalog and public community GraphQL queries permit an anonymous principal. Native MCP tools
     enforce the authentication and scopes declared on their own bindings.
-- id: interface-hierarchy.surface-mapping-6
-  category: consistency
-  topic: surface-mapping
-  rule: The executable GraphQL schema and published MCP tool registry contain no admin or governance capabilities.
 - id: interface-hierarchy.canonical-actions-1
   category: consistency
   topic: canonical-actions
@@ -584,3 +580,4 @@ rationale:
   repository; server token audience, feature scopes and ownership remain enforced here.
 
 - Anonymous GraphQL root access has one canonical obligation, graphql.anonymous-roots; its real HTTP acceptance covers null account/workspace roots and readable catalog/community roots.
+- Governance exclusion is owned by graphql.registered-operation-coverage for the executable GraphQL schema and mcp.personal-workspace-focus for the complete MCP tool inventory.
