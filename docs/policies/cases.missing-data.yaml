@@ -8,19 +8,11 @@ requirements:
   rule: A section with a missing teacher, location, or exam relation keeps the section visible and displays
     a localized unknown or not-provided state for the missing fact. Missing source data is not presented as
     a confirmed cancellation.
-- id: cases.missing-data.section-missing-teacher-location-or-exam-2
-  category: behavior
-  topic: section-missing-teacher-location-or-exam
-  rule: The entire object must not be hidden.
 - id: cases.missing-data.homework-no-due-date-1
   category: behavior
   topic: homework-no-due-date
   rule: Homework without a due date is excluded from due-window results. It remains reachable in unfiltered
     homework lists and is not assigned a synthetic due date.
-- id: cases.missing-data.homework-no-due-date-2
-  category: behavior
-  topic: homework-no-due-date
-  rule: Can still be viewed in the homework list.
 - id: cases.missing-data.ical-no-events-1
   category: behavior
   topic: ical-no-events
@@ -42,3 +34,6 @@ topics:
   title: Homework no due date
 - id: ical-no-events
   title: Ical no events
+rationale:
+- Section visibility is part of cases.missing-data.section-missing-teacher-location-or-exam-1; it is not a second independent behavior.
+- Undated-homework list reachability is part of cases.missing-data.homework-no-due-date-1 alongside due-window exclusion.

@@ -17,10 +17,6 @@ requirements:
   topic: only-non-current-semester-subscriptions
   rule: When subscriptions exist only in other semesters, the workspace reports zero current-semester subscriptions
     and labels any historical work with its actual term instead of relabeling it current.
-- id: cases.semester.only-non-current-semester-subscriptions-2
-  category: behavior
-  topic: only-non-current-semester-subscriptions
-  rule: Must clearly indicate that no sections are subscribed for the current semester.
 - id: cases.semester.only-non-current-semester-subscriptions-3
   category: behavior
   topic: only-non-current-semester-subscriptions
@@ -64,3 +60,5 @@ topics:
   title: Cross semester browsing
 - id: scenario-guidance
   title: Scenario guidance
+rationale:
+- The zero-current-subscription explanation is part of cases.semester.only-non-current-semester-subscriptions-1 alongside accurate historical term labels.
