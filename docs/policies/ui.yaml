@@ -332,6 +332,15 @@ requirements:
   category: presentation
   topic: shell-layout
   rule: Desktop sidebar and main content scroll independently.
+  acceptance:
+    given: A short desktop viewport displays a long public document and overflowing sidebar navigation.
+    when: The user wheels each pane separately and uses Home in the focused content pane.
+    then:
+    - Scrolling either pane changes only its own scroll position; the document viewport remains stationary.
+    - Keyboard scrolling returns main content to its beginning without moving the sidebar.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-1
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
@@ -361,10 +370,30 @@ requirements:
   topic: shell-layout
   rule: The topbar exposes language and theme controls. Signed-in desktop profile actions use the sidebar footer;
     mobile profile actions remain available from the mobile shell.
+  acceptance:
+    given: An isolated signed-in user opens a workspace page at desktop and mobile widths.
+    when: The user opens language, theme, and profile menus with the keyboard and closes them with Escape.
+    then:
+    - Language and theme controls are visible in the topbar and expose selectable menu items.
+    - Profile actions are available from the sidebar footer on desktop and the mobile drawer, including personal
+      page, settings, and sign out.
+    - Escape restores focus to each menu trigger.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-5
 - id: ui.shell-layout-7
   category: presentation
   topic: shell-layout
   rule: Anonymous topbars retain Sign in.
+  acceptance:
+    given: An anonymous visitor opens the landing page, course catalog, and terms page at desktop and mobile widths.
+    when: The visitor focuses the topbar Sign in link and presses Enter.
+    then:
+    - Each topbar exposes a visible Sign in link to the canonical account sign-in route.
+    - Keyboard activation reaches the sign-in page and its main heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-7
 - id: ui.shell-layout-8
   category: presentation
   topic: shell-layout
@@ -422,6 +451,16 @@ requirements:
   category: presentation
   topic: workspace-footer-policy
   rule: Workspace, /account/settings/*, /admin/*, and /account/welcome pages do not append the public footer.
+  acceptance:
+    given: The public terms page exposes footer navigation and an isolated administrator has a complete profile.
+    when: The user opens workspace views, account settings, and administration pages, then opens onboarding with
+      their own profile made incomplete.
+    then:
+    - Workspace, settings, and administration routes omit the public footer navigation.
+    - The incomplete profile reaches the canonical welcome route, which also omits the public footer.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.workspace-footer-policy-2
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
