@@ -147,6 +147,15 @@ requirements:
   category: presentation
   topic: list-table
   rule: Query parsing, caching and URL builders remain in features.
+  rationale: Collection route loaders delegate their domain queries to feature modules. Shared collection layout, header, panel, navigation, search and pagination primitives receive prepared values and callbacks; generic cache infrastructure is not feature query logic.
+  acceptance:
+    given: The public catalog, links, second-classroom and news collection route loaders and their shared collection primitives.
+    when: TypeScript parses each module and the Svelte compiler extracts primitive scripts.
+    then:
+    - Every route invokes an imported feature service without local URL query parsing, cache access or database imports; shared primitives do not import feature/state/query modules or fetch data.
+    test:
+      file: tests/unit/lib/components/collection-query-ownership.test.ts
+      name: ui.list-table-8
 - id: ui.list-table-9
   category: presentation
   topic: list-table
