@@ -152,7 +152,7 @@ requirements:
     representation; changing an event's poster must not continue serving old bytes under an unchanged
     immutable representation.
   acceptance:
-    given: A controlled event record changes its poster path while both image representations are cached in R2.
+    given: A controlled event record changes its poster path while a controlled R2 binding contains both image representations.
     when: The actual event-image route resolves each current poster and the local path proxy reads its bytes.
     then:
     - The mutable event route returns an uncached redirect; distinct poster paths produce distinct local URLs.

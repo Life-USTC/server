@@ -18,6 +18,27 @@ access:
   agent: Can initiate and complete upload metadata workflows and manage owned upload metadata through
     registered GraphQL operations; binary object transfer remains REST/HTTP-only.
 requirements:
+- id: upload.storage-delete-retry
+  category: consistency
+  rule: Upload deletion removes the backing object before committing metadata deletion and one audit
+    event. Unconfirmed storage deletion preserves metadata and returns REST 502, GraphQL 503 with
+    SERVICE_UNAVAILABLE, or MCP storage_delete_failed. Retrying after storage recovers completes the
+    deletion; replay after successful deletion returns not_found without another storage call or audit event.
+  rationale: Storage and PostgreSQL cannot share a transaction. Keeping metadata until storage deletion
+    is confirmed permits safe recovery. REST uses its upstream-storage error status, while GraphQL uses
+    its service-availability code; neither response promises rollback of a storage operation that already succeeded.
+  acceptance:
+    given: A real restricted PostgreSQL runtime, isolated owner credentials and a controlled R2 binding
+      that first rejects deletion while retaining bytes and later succeeds.
+    when: Real REST, GraphQL and MCP HTTP requests encounter the storage failure, retry after recovery
+      and repeat a completed deletion.
+    then:
+    - Failed storage calls preserve the exact upload row, stored content and zero deletion audits, without leaking the internal error.
+    - Every storage deletion runs while the metadata exists; successful deletion removes both and records one audit.
+    - Replays return not_found without another storage delete or audit event; declared deletedSize matches the removed content.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: upload.storage-delete-retry
 - id: upload.comment-attachments-only
   category: behavior
   rule: This upload capability manages comment attachment drafts and their completed attachments. It is

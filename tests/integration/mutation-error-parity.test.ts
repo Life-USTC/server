@@ -3,7 +3,10 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  type CloudflareR2Bucket,
+  runWithCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
 import { deleteCommentRoute } from "@/lib/api/routes/comments-delete-route";
 import { deleteHomeworkRoute } from "@/lib/api/routes/homework-mutation-routes";
 import { mcpPostRoute } from "@/lib/api/routes/mcp";
@@ -17,6 +20,7 @@ const db = createFixturePrisma();
 const graphql = createGraphqlRequestHandler(false);
 let server: Server | undefined;
 let origin = "";
+let storage: CloudflareR2Bucket | undefined;
 const routes = [
   { path: "/api/workspace/todos", handler: deleteTodoRoute },
   { path: "/api/workspace/uploads", handler: deleteUploadRoute },
@@ -57,6 +61,7 @@ function runtime<T>(work: () => T) {
   return runWithCloudflareRuntimeEnv(
     {
       HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
+      ...(storage ? { R2_UPLOADS: storage } : {}),
       HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
       // Rate limiting is a separate contract; admit these requests at its boundary.
       USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
@@ -182,7 +187,12 @@ async function rejectDelete(
   domain: Domain,
   id: string,
   tokens: Tokens,
-  meaning: "not_found" | "forbidden" | "locked" | "suspended",
+  meaning:
+    | "not_found"
+    | "forbidden"
+    | "locked"
+    | "suspended"
+    | "storage_delete_failed",
 ) {
   const binding = domains[domain];
   const rest = await fetch(`${origin}${binding.path}/${id}`, {
@@ -190,7 +200,11 @@ async function rejectDelete(
     headers: { authorization: `Bearer ${tokens.rest}` },
   });
   expect(rest.status, await rest.clone().text()).toBe(
-    meaning === "not_found" ? 404 : 403,
+    meaning === "not_found"
+      ? 404
+      : meaning === "storage_delete_failed"
+        ? 502
+        : 403,
   );
   const restBody = await rest.json();
   const graph = await fetch(`${origin}/api/graphql`, {
@@ -204,11 +218,21 @@ async function rejectDelete(
       variables: { id },
     }),
   });
-  expect(graph.status).toBe(meaning === "not_found" ? 404 : 403);
+  expect(graph.status).toBe(
+    meaning === "not_found"
+      ? 404
+      : meaning === "storage_delete_failed"
+        ? 503
+        : 403,
+  );
   const graphBody = await graph.json();
   expect(graphBody.errors).toHaveLength(1);
   expect(graphBody.errors[0].extensions.code).toBe(
-    meaning === "not_found" ? "NOT_FOUND" : "FORBIDDEN",
+    meaning === "not_found"
+      ? "NOT_FOUND"
+      : meaning === "storage_delete_failed"
+        ? "SERVICE_UNAVAILABLE"
+        : "FORBIDDEN",
   );
   const mcp = await fetch(`${origin}/api/mcp`, {
     method: "POST",
@@ -411,7 +435,9 @@ async function successfulDelete(
     });
     expect(response.status, await response.clone().text()).toBe(200);
     const body = await response.json();
-    expect(body.success).toBe(true);
+    if (domain === "upload")
+      expect(body).toEqual({ deletedId: id, deletedSize: expect.any(Number) });
+    else expect(body.success).toBe(true);
     return body;
   }
   const response = await fetch(`${origin}/api/${surface}`, {
@@ -556,4 +582,89 @@ it("comment.single-delete-replay", async () => {
 });
 it("homework.single-delete-replay", async () => {
   await verifyDeleteReplay("homework");
+});
+
+it("upload.storage-delete-retry", async () => {
+  const f = await fixture();
+  const objects = new Map<string, string>();
+  let failStorage = true;
+  const metadataAtStorageDelete: number[] = [];
+  storage = {
+    async delete(key) {
+      metadataAtStorageDelete.push(await db.upload.count({ where: { key } }));
+      if (failStorage) throw new Error("private-storage-failure");
+      objects.delete(key);
+    },
+    async head(key) {
+      const content = objects.get(key);
+      return content === undefined ? null : { size: content.length };
+    },
+    async get() {
+      throw new Error("Unexpected storage read");
+    },
+    async put() {
+      throw new Error("Unexpected storage write");
+    },
+  };
+  try {
+    for (const surface of ["rest", "graphql", "mcp"] as const) {
+      const key = `uploads/${f.owner.id}/${crypto.randomUUID()}`;
+      const content = `Owned bytes for ${surface}`;
+      const row = await db.upload.create({
+        data: {
+          userId: f.owner.id,
+          key,
+          filename: `${surface}.txt`,
+          size: content.length,
+        },
+      });
+      objects.set(key, content);
+      failStorage = true;
+      metadataAtStorageDelete.length = 0;
+      const rejected = await rejectDelete(
+        "upload",
+        row.id,
+        f.tokens,
+        "storage_delete_failed",
+      );
+      expect(JSON.stringify(rejected)).not.toContain("private-storage-failure");
+      expect(await db.upload.findUnique({ where: { id: row.id } })).toEqual(
+        row,
+      );
+      expect(objects.get(key)).toBe(content);
+      expect(
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      ).toBe(0);
+      expect(metadataAtStorageDelete).toEqual([1, 1, 1]);
+      failStorage = false;
+      const deleted = await successfulDelete(
+        "upload",
+        row.id,
+        f.tokens,
+        surface,
+      );
+      if (surface !== "graphql")
+        expect(deleted.deletedSize).toBe(content.length);
+      expect(objects.has(key)).toBe(false);
+      expect(await db.upload.findUnique({ where: { id: row.id } })).toBeNull();
+      expect(
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      ).toBe(1);
+      expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
+      await rejectDelete("upload", row.id, f.tokens, "not_found");
+      expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
+      expect(
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      ).toBe(1);
+    }
+  } finally {
+    storage = undefined;
+    await f.cleanup();
+  }
 });
