@@ -396,3 +396,164 @@ it("interface-hierarchy.suspended-delete-error-parity", async () => {
     await f.cleanup();
   }
 });
+
+async function successfulDelete(
+  domain: Domain,
+  id: string,
+  tokens: Tokens,
+  surface: keyof Tokens,
+) {
+  const binding = domains[domain];
+  if (surface === "rest") {
+    const response = await fetch(`${origin}${binding.path}/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${tokens.rest}` },
+    });
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = await response.json();
+    expect(body.success).toBe(true);
+    return body;
+  }
+  const response = await fetch(`${origin}/api/${surface}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${tokens[surface]}`,
+      "content-type": "application/json",
+      ...(surface === "mcp"
+        ? { accept: "application/json, text/event-stream" }
+        : {}),
+    },
+    body: JSON.stringify(
+      surface === "graphql"
+        ? {
+            query: `mutation($id: ID!) { ${binding.field}(id: $id) { success ${domain === "homework" ? "alreadyDeleted" : ""} } }`,
+            variables: { id },
+          }
+        : {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: {
+              name: binding.tool,
+              arguments: { [binding.argument]: id, mode: "full" },
+            },
+          },
+    ),
+  });
+  const text = await response.text();
+  expect(response.status, text).toBe(200);
+  const payload = response.headers
+    .get("content-type")
+    ?.includes("text/event-stream")
+    ? text
+        .split("\n")
+        .filter((line) => line.startsWith("data: "))
+        .at(-1)
+        ?.slice(6)
+    : text;
+  if (!payload) throw new Error("Missing transport response");
+  const envelope = JSON.parse(payload);
+  expect(envelope.errors).toBeUndefined();
+  expect(envelope.error).toBeUndefined();
+  if (surface === "mcp")
+    expect(envelope.result.isError, payload).not.toBe(true);
+  const body =
+    surface === "graphql"
+      ? envelope.data[binding.field]
+      : JSON.parse(
+          envelope.result.content.find(
+            (item: { type: string }) => item.type === "text",
+          ).text,
+        );
+  expect(body.success).toBe(true);
+  return body;
+}
+
+async function verifyDeleteReplay(domain: "todo" | "comment" | "homework") {
+  const f = await fixture();
+  try {
+    const section = await db.section.findFirstOrThrow({
+      where: { retiredAt: null },
+    });
+    for (const surface of ["rest", "graphql", "mcp"] as const) {
+      const row =
+        domain === "todo"
+          ? await db.todo.create({
+              data: { userId: f.owner.id, title: `Replay ${surface}` },
+            })
+          : domain === "comment"
+            ? await db.comment.create({
+                data: {
+                  userId: f.owner.id,
+                  sectionId: section.id,
+                  body: `Replay ${surface}`,
+                },
+              })
+            : await db.homework.create({
+                data: {
+                  createdById: f.owner.id,
+                  sectionId: section.id,
+                  title: `Replay ${surface}`,
+                },
+              });
+      const read = () =>
+        domain === "todo"
+          ? db.todo.findUnique({ where: { id: row.id } })
+          : domain === "comment"
+            ? db.comment.findUnique({ where: { id: row.id } })
+            : db.homework.findUnique({ where: { id: row.id } });
+      const first = await successfulDelete(domain, row.id, f.tokens, surface);
+      const committed = await read();
+      if (domain === "todo") expect(committed).toBeNull();
+      else {
+        expect(committed).toMatchObject({
+          id: row.id,
+          deletedAt: expect.any(Date),
+          ...(domain === "comment"
+            ? { status: "deleted" }
+            : { deletedById: f.owner.id }),
+        });
+        expect(
+          await db.auditLog.count({
+            where: { action: `${domain}_delete`, targetId: row.id },
+          }),
+        ).toBe(1);
+      }
+      if (domain === "homework") {
+        if (surface !== "rest") expect(first.alreadyDeleted).toBe(false);
+        const replay = await successfulDelete(
+          domain,
+          row.id,
+          f.tokens,
+          surface,
+        );
+        if (surface !== "rest") expect(replay.alreadyDeleted).toBe(true);
+      } else
+        await rejectDelete(
+          domain,
+          row.id,
+          f.tokens,
+          domain === "todo" ? "not_found" : "locked",
+        );
+      expect(await read()).toEqual(committed);
+      if (domain !== "todo")
+        expect(
+          await db.auditLog.count({
+            where: { action: `${domain}_delete`, targetId: row.id },
+          }),
+        ).toBe(1);
+    }
+  } finally {
+    await f.cleanup();
+  }
+}
+
+it("todo.single-delete-replay", async () => {
+  await verifyDeleteReplay("todo");
+});
+it("comment.single-delete-replay", async () => {
+  await verifyDeleteReplay("comment");
+});
+it("homework.single-delete-replay", async () => {
+  await verifyDeleteReplay("homework");
+});

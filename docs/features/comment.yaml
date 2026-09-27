@@ -12,6 +12,18 @@ policy_refs:
 - audit
 - cases.content-security
 requirements:
+- id: comment.single-delete-replay
+  category: consistency
+  rule: Ordinary single-comment deletion retains a deleted tombstone and writes one deletion audit event. Repeating the delete returns locked, preserving the original tombstone and audit event. REST and GraphQL use 403/FORBIDDEN; MCP retains locked.
+  acceptance:
+    given: An isolated unsuspended owner has a fresh comment for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
+    when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.
+    then:
+    - The first request succeeds with status=deleted and a deletion timestamp stored alongside exactly one audit event.
+    - Retries report the locked outcome, preserving the complete tombstone and the single audit event.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: comment.single-delete-replay
 - id: comment.attached-to-object
   category: behavior
   rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
