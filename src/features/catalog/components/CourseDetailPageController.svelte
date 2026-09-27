@@ -15,7 +15,7 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
+import CatalogSectionHistory from "./CatalogSectionHistory.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailIdentity from "./CourseDetailIdentity.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
@@ -127,21 +127,22 @@ $: displayName =
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.courseDetail.teachingSectionsDescription}
           </p>
-          <CatalogSectionHistoryPagination
+          <CatalogSectionHistory
             pagination={data.sectionsPagination}
             shown={data.course.sections.length}
             summaryTemplate={copy.courseDetail.sectionHistorySummary}
             ariaLabel={copy.courseDetail.sectionHistoryPagination}
             nextLabel={copy.common.next}
             previousLabel={copy.common.previous}
-          />
-          <CourseDetailSections
-            copy={detailCopy}
-            course={data.course}
-            locale={data.locale}
-            {notAvailable}
-            {primaryName}
-          />
+          >
+            <CourseDetailSections
+              copy={detailCopy}
+              course={data.course}
+              locale={data.locale}
+              {notAvailable}
+              {primaryName}
+            />
+          </CatalogSectionHistory>
         </section>
 
         <section id="comments" class="scroll-mt-4">

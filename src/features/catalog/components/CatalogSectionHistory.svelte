@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
 import { page as currentPage } from "$app/stores";
 import ListPagination from "$lib/components/ListPagination.svelte";
@@ -11,6 +12,7 @@ let {
   ariaLabel,
   nextLabel,
   previousLabel,
+  children,
 }: {
   pagination: PaginatedResponse<unknown>["pagination"];
   shown: number;
@@ -18,6 +20,7 @@ let {
   ariaLabel: string;
   nextLabel: string;
   previousLabel: string;
+  children: Snippet;
 } = $props();
 
 const { page, pageSize, total, totalPages } = $derived(pagination);
@@ -36,8 +39,9 @@ function pageHref(targetPage: number) {
 }
 </script>
 
-<div class="mb-4 grid gap-3" data-testid="section-history-pagination">
+<div class="grid gap-4" data-testid="section-history">
   <ResultsSummary {summary} {page} {totalPages} />
+  {@render children()}
   <ListPagination
     {page}
     {totalPages}

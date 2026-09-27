@@ -122,7 +122,15 @@ requirements:
   category: presentation
   topic: list-table
   rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before applicable filters, result summary and records; available pagination follows the records.
-  rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts.
+  rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
+  acceptance:
+    given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
+    when: A browser opens all ten collections at 390 and 1280 pixels and measures their DOM and visual order.
+    then:
+    - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
+    test:
+      file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
+      name: ui.embedded-collection-order
 - id: ui.list-table-2
   category: presentation
   topic: list-table
@@ -185,6 +193,16 @@ requirements:
   category: presentation
   topic: list-table
   rule: Outside the public browse collections covered by ui.public-browse-responsive-lists and the directory/workspace/administrative views covered by ui.other-browse-responsive-lists, compact lists do not cause horizontal document overflow at narrow widths. Wide comparison tables retain their required columns inside a horizontally scrollable table region.
+  acceptance:
+    given: Long-name isolated workspace tasks/subscriptions, course/teacher/organizer histories and section collections are populated, alongside both task detail overlays and the public bus timetable.
+    when: A browser opens those views at 320 and 390 pixels, reaches every compact record and scrolls wide comparison tables to their final column.
+    then:
+    - Compact records and task fact tables fit the viewport without horizontal document overflow.
+    - Section calendar/exam tables retain all five/six columns in overflowing local scroll containers; their final column is reachable.
+    - Bus rows retain every stop column, matching the desktop headers, and their final column remains reachable within the local table region.
+    test:
+      file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
+      name: ui.list-table-6
 - id: ui.other-browse-responsive-lists
   category: presentation
   topic: list-table

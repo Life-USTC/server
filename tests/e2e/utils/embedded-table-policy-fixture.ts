@@ -10,6 +10,10 @@ export async function createEmbeddedTablePolicyFixture() {
     const section = base.catalog.sections[0];
     const userId = base.admin.id;
     const marker = base.catalog.marker;
+    await db.campus.update({
+      where: { id: base.catalog.campus.id },
+      data: { nameCn: "验收校区", nameEn: "Policy campus" },
+    });
     await db.course.update({
       where: { id: base.catalog.courses[0].id },
       data: {

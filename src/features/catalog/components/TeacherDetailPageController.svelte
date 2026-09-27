@@ -15,7 +15,7 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
+import CatalogSectionHistory from "./CatalogSectionHistory.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailSection,
@@ -112,20 +112,21 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.teacherDetail.teachingSectionsDescription}
           </p>
-          <CatalogSectionHistoryPagination
+          <CatalogSectionHistory
             pagination={data.sectionsPagination}
             shown={data.teacher.sections.length}
             summaryTemplate={copy.teacherDetail.sectionHistorySummary}
             ariaLabel={copy.teacherDetail.sectionHistoryPagination}
             nextLabel={copy.common.next}
             previousLabel={copy.common.previous}
-          />
-          <TeacherDetailSections
-            copy={detailCopy}
-            locale={data.locale}
-            {notAvailable}
-            teacher={data.teacher}
-          />
+          >
+            <TeacherDetailSections
+              copy={detailCopy}
+              locale={data.locale}
+              {notAvailable}
+              teacher={data.teacher}
+            />
+          </CatalogSectionHistory>
         </section>
 
         <section id="comments" class="scroll-mt-4">

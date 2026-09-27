@@ -50,7 +50,7 @@ async function verifyHistory(page: Page, kind: "course" | "teacher") {
           : `/catalog/teachers/${fixture.teacher.id}`,
       ]) {
         const response = await gotoAndWaitForReady(page, route);
-        const history = page.getByTestId("section-history-pagination");
+        const history = page.getByTestId("section-history");
         await expect(history).toContainText(/共 23 条|total: 23/);
         const rows = page.locator(
           '#sections a[href^="/catalog/sections/"]:visible',
