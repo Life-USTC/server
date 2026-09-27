@@ -105,6 +105,7 @@ export type AdminUsersPageCopy = AdminUsersCopy & {
   liftSuccess: string;
   noResults: string;
   showing: string;
+  showingOne: string;
   suspendFailed: string;
   suspendSuccess: string;
   until: string;

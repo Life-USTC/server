@@ -1147,7 +1147,18 @@ requirements:
   category: presentation
   topic: localized-count-copy
   rule: Outside catalog result summaries and profile contribution-day labels, user-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.
-  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Other user-visible counts retain this unbound obligation.
+  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Count-neutral labels need no invented singular variant, and zero-count notices/results may be absent where their component only renders nonempty records.
+  acceptance:
+    given: Isolated database fixtures provide zero, one and two activities, organizers, publications, sources, private comments, administrative records, importable sections and account security events.
+    when: English and Chinese browsers open the activity list/calendar/organizer history/directory, news and source directory, course comments, administrative users/OAuth/descriptions, activity digests, account security, subscription search/import and welcome import; publication folding and subscription selection are changed through reachable states.
+    then:
+    - Visible summaries, digest/hidden-comment notices, folded sibling badges, search legends and import headings/actions use the actual count and natural singular/plural grammar.
+    - Source and publication totals choose their grammar independently, including sources with no publications; empty-only branches omit inapplicable count notices.
+    - Selecting zero sections updates the confirmation title, accessible legend and disabled action; importing one or two sections renders the correct success message and included-section summary in workspace and welcome.
+    - Security repetition badges appear only for groups larger than one and report their actual repeated count.
+    test:
+      file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
+      name: ui.localized-count-copy-1
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy

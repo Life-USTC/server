@@ -15,6 +15,7 @@ export let copy: AdminUsersCopy & {
   accountsTitle: string;
   noResults: string;
   showing: string;
+  showingOne: string;
 };
 export let displayName: AdminUserFormatter;
 export let formatDate: (value: Date | string | null | undefined) => string;
@@ -31,7 +32,7 @@ export let users: AdminUserRow[];
 <section class="grid min-w-0 gap-3">
   <div class="flex justify-end">
     <Badge variant="ghost">
-      {formatMessage(copy.showing, {
+      {formatMessage(pagination.total === 1 ? copy.showingOne : copy.showing, {
         count: String(users.length),
         total: String(pagination.total),
       })}

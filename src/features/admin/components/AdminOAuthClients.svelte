@@ -26,7 +26,7 @@ export let scopeLabel: (scope: string) => string;
 <section class="flex min-w-0 flex-col gap-3">
   <div class="flex justify-end">
     <Badge variant="ghost">
-      {copy.clientCount.replace("{count}", String(clients.length))}
+      {(clients.length === 1 ? copy.clientCountOne : copy.clientCount).replace("{count}", String(clients.length))}
     </Badge>
   </div>
 

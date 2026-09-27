@@ -12,7 +12,7 @@ export let formatMessage: (
 
 <div class="flex justify-end">
   <Badge variant="ghost">
-    {formatMessage(copy.showingResults, {
+    {formatMessage(count === 1 ? copy.showingResultsOne : copy.showingResults, {
       count: String(count),
     })}
   </Badge>

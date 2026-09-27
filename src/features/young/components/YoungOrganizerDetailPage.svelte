@@ -89,7 +89,7 @@ function pageHref(page: number) {
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
-        <ResultsSummary summary={youngCopy.showing.replace("{count}", String(events.data.length)).replace("{total}", String(events.pagination.total))} page={events.pagination.page} totalPages={events.pagination.totalPages} />
+        <ResultsSummary summary={(events.pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing).replace("{count}", String(events.data.length)).replace("{total}", String(events.pagination.total))} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}

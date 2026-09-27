@@ -34,7 +34,7 @@ const titleId = "bulk-import-confirm-title";
   <Dialog.Content class="max-w-2xl sm:max-w-2xl" aria-labelledby={titleId}>
     <Dialog.Header>
       <Dialog.Title id={titleId}>
-        {formatMessage(copy.confirmTitle, { count: selectedSectionIdSet.size })}
+        {formatMessage(selectedSectionIdSet.size === 1 ? copy.confirmTitleOne : copy.confirmTitle, { count: selectedSectionIdSet.size })}
       </Dialog.Title>
       <Dialog.Description>
         {formatMessage(copy.matchedSummary, {
@@ -52,7 +52,7 @@ const titleId = "bulk-import-confirm-title";
         {/if}
         {#if matchedSections.length > 0}
           <Field.Set>
-            <Field.Legend variant="label" class="sr-only">{copy.confirmTitle}</Field.Legend>
+            <Field.Legend variant="label" class="sr-only">{formatMessage(selectedSectionIdSet.size === 1 ? copy.confirmTitleOne : copy.confirmTitle, { count: selectedSectionIdSet.size })}</Field.Legend>
             <Field.Group data-slot="checkbox-group" class="gap-2">
               {#each matchedSections as section}
                 {@const checkboxId = `bulk-import-section-${section.id}`}
@@ -109,7 +109,7 @@ const titleId = "bulk-import-confirm-title";
         {/if}
         {isImporting
           ? copy.importing
-          : formatMessage(copy.subscribeSelected, { count: selectedSectionIdSet.size })}
+          : formatMessage(selectedSectionIdSet.size === 1 ? copy.subscribeSelectedOne : copy.subscribeSelected, { count: selectedSectionIdSet.size })}
       </Button>
     </Dialog.Footer>
   </Dialog.Content>

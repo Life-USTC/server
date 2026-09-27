@@ -101,7 +101,7 @@ const activeFilters = $derived([
     : []),
 ]);
 const resultsCount = $derived(
-  copy.resultsCount.replace(
+  (data.publications.pagination.total === 1 ? copy.resultsCountOne : copy.resultsCount).replace(
     "{count}",
     String(data.publications.pagination.total),
   ),
@@ -203,7 +203,7 @@ function changeType(value: string) {
               {#if item.revision.updatedAtSource && (!item.revision.publishedAt || formatShanghaiDate(item.revision.updatedAtSource) !== formatShanghaiDate(item.revision.publishedAt))}
                 <span>{copy.updatedAt}: {formatShanghaiDate(item.revision.updatedAtSource)}</span>
               {/if}
-              {#if item.foldGroup}<Badge variant="secondary">{copy.foldSiblingCount.replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
+              {#if item.foldGroup}<Badge variant="secondary">{(item.foldGroup.siblingCount === 1 ? copy.foldSiblingCountOne : copy.foldSiblingCount).replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
             </div>
             {#if summary}<p class="line-clamp-2 min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
           </li>

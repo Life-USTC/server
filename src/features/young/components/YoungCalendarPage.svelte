@@ -173,7 +173,7 @@ const calendarLabels = $derived({
     {/snippet}
 
     <div class="grid gap-3">
-    <ResultsSummary summary={youngCopy.showing.replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
+    <ResultsSummary summary={(data.length === 1 ? youngCopy.showingOne : youngCopy.showing).replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
     {#if filters.timeBasis === "activity"}
       <p class="text-sm text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
         {#if conflictStatus === "loading"}{youngCopy.conflictLoading}

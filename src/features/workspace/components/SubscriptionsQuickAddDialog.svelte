@@ -237,7 +237,7 @@ async function subscribeSelectedSections() {
               {#if results.length > 0}
                 <Field.Set>
                   <Field.Legend variant="label">
-                    {formatMessage(subscriptionsCopy.quickAdd.resultsLabel, {
+                    {formatMessage(results.length === 1 ? subscriptionsCopy.quickAdd.resultsLabelOne : subscriptionsCopy.quickAdd.resultsLabel, {
                       count: results.length,
                     })}
                   </Field.Legend>

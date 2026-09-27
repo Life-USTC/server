@@ -248,6 +248,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     cancel: string;
     checkFormat: string;
     confirmTitle: string;
+    confirmTitleOne: string;
     descriptionPrefix: string;
     undergraduateSystem: string;
     descriptionConjunction: string;
@@ -267,6 +268,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     semesterLabel: string;
     semesterPlaceholder: string;
     subscribeSelected: string;
+    subscribeSelectedOne: string;
     successDescription: string;
     title: string;
     unmatchedCodes: string;
@@ -281,6 +283,7 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
     placeholder: string;
     resultsDescription: string;
     resultsLabel: string;
+    resultsLabelOne: string;
     searchButton: string;
     searching: string;
     selectSection: string;

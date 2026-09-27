@@ -57,7 +57,7 @@ function pageHref(targetPage: number) {
 }
 
 const summary = $derived(
-  youngCopy.showing
+  (pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing)
     .replace("{count}", String(data.length))
     .replace("{total}", String(pagination.total)),
 );
