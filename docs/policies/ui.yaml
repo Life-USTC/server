@@ -123,6 +123,15 @@ requirements:
   topic: detail-hero
   rule: Course codes live in the title region, in plain monospace text before the name; the localized name
     remains the dominant h1.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Course codes live in the title region, in plain monospace text before the name; the localized name remains
+      the dominant h1.
+    test:
+      file: tests/e2e/src/app/courses/[jwId]/test.ts
+      name: ui.detail-hero-5
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
@@ -156,11 +165,6 @@ requirements:
   category: presentation
   topic: detail-two-column-stream
   rule: Hash anchors scroll in-page.
-- id: ui.detail-two-column-stream-8
-  category: presentation
-  topic: detail-two-column-stream
-  rule: 'Course and teacher offerings include retired records, display the total count, and paginate through
-    the URL with 20 items per page. Pagination links keep the #sections fragment.'
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
@@ -228,6 +232,15 @@ requirements:
   topic: shell-layout
   rule: Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
     use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
+      use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-2
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
@@ -249,12 +262,40 @@ requirements:
 - id: ui.shell-layout-8
   category: presentation
   topic: shell-layout
-  rule: Mobile topbar/nav controls are at least 44 by 44 CSS pixels.
+  expectation:
+    kind: target_size
+    surface: web
+    target: mobile topbar controls and primary navigation links
+    viewport:
+      width: 390
+      height: 844
+    min_width: 44
+    min_height: 44
+  applies_to:
+  - shell
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Rendered mobile topbar and primary-navigation hit targets meet the declared width and height at the declared
+      viewport.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-8
 - id: ui.shell-layout-9
   category: presentation
   topic: shell-layout
-  rule: Theme resolves from the user’s system/light/dark preference before first paint. System mode follows
-    live OS changes; a JavaScript-disabled page remains readable using its declared static theme.
+  rule: A stored light/dark preference is applied to the document before application hydration, using a bootstrap
+    script authorized by the response CSP.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - A stored light/dark preference is applied to the document before application hydration, using a bootstrap
+      script authorized by the response CSP.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-9
 - id: ui.workspace-footer-policy-1
   category: presentation
   topic: workspace-footer-policy
@@ -294,11 +335,29 @@ requirements:
   topic: settings-navigation
   rule: Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
     settings destination with localized labels.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Settings navigation uses a desktop rail and a horizontally scrollable mobile row containing every declared
+      settings destination with localized labels.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-1
 - id: ui.settings-navigation-2
   category: presentation
   topic: settings-navigation
   rule: The default settings destination is /account/settings/profile. Canonical settings navigation does not
     depend on legacy tab query inputs.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - The default settings destination is /account/settings/profile. Canonical settings navigation does not
+      depend on legacy tab query inputs.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-2
 - id: ui.settings-navigation-4
   category: presentation
   topic: settings-navigation
@@ -314,6 +373,15 @@ requirements:
   topic: settings-navigation
   rule: Within settings navigation, exactly one link identifies the active page with aria-current=page, and
     that link is visible in the mobile scroll region after navigation.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Within settings navigation, exactly one link identifies the active page with aria-current=page, and that
+      link is visible in the mobile scroll region after navigation.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-6
 - id: ui.settings-navigation-7
   category: presentation
   topic: settings-navigation
@@ -349,8 +417,17 @@ requirements:
 - id: ui.workspace-mobile-priority-1
   category: presentation
   topic: workspace-mobile-priority
-  rule: Mobile workspace overview places its next learning/task actions before directory shortcuts. Mobile
-    task pages place their active filters and task results before secondary planning or navigation content.
+  rule: Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
+    within a layout that does not overflow the viewport horizontally.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
+      within a layout that does not overflow the viewport horizontally.
+    test:
+      file: tests/e2e/src/app/workspace/test.ts
+      name: ui.workspace-mobile-priority-1
 - id: ui.workspace-mobile-priority-2
   category: presentation
   topic: workspace-mobile-priority
@@ -440,8 +517,15 @@ requirements:
 - id: ui.navigation-landmarks-4
   category: presentation
   topic: navigation-landmarks
-  rule: The first focusable shell control is a localized skip link that moves focus to main content. Public
-    footer links belong to a separate navigation landmark.
+  rule: The first focusable shell control is a localized skip link that moves keyboard focus to main content.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.navigation-landmarks-4
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
@@ -462,6 +546,37 @@ requirements:
   topic: list-table
   rule: Collection pagination links preserve the applied search query and filters while changing only pagination
     state; browser back/forward restores the corresponding query and results.
+- id: ui.theme-system-response
+  category: presentation
+  topic: shell-layout
+  rule: Selecting light, dark, or system updates the displayed theme and saved preference. While system is
+    selected, a subsequent OS color-scheme change updates the displayed theme.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Selecting light, dark, or system updates the displayed theme and saved preference. While system is selected,
+      a subsequent OS color-scheme change updates the displayed theme.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.theme-system-response
+- id: ui.theme-no-js
+  category: presentation
+  topic: shell-layout
+  rule: With JavaScript disabled, the page remains readable and its CSS follows the operating-system color
+    scheme.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - With JavaScript disabled, the page remains readable and its CSS follows the operating-system color scheme.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.theme-no-js
+- id: ui.footer-navigation-landmark
+  category: presentation
+  topic: navigation-landmarks
+  rule: Public footer links are contained in a distinct navigation landmark.
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -522,3 +637,6 @@ rationale:
 - REST may expose fuller records for application clients.
 - May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
   branches).
+- 'Course and teacher offering history, 20-item pagination, retired-record inclusion and #sections navigation
+  are owned by course.bounded-detail-history; repeating the same behavior here would create a second acceptance
+  owner.'

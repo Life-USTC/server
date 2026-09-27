@@ -39,152 +39,388 @@ requirements:
   topic: writer
   rule: Audit retention cleanup is performed only through the maintenance-only SECURITY DEFINER function. Ordinary
     application and authentication database roles cannot invoke cleanup or delete audit history directly.
+- id: audit.action-comment-create
+  category: privacy
+  topic: actions
+  rule: User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
+- id: audit.action-comment-edit
+  category: privacy
+  topic: actions
+  rule: User edits their own comment. MCP-originated writes include metadata.source=mcp.
+- id: audit.action-comment-delete
+  category: privacy
+  topic: actions
+  rule: User deletes their own comment. Transport-originated writes include safe metadata.source where available.
+- id: audit.action-comment-react
+  category: privacy
+  topic: actions
+  rule: User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
+- id: audit.action-description-edit
+  category: privacy
+  topic: actions
+  rule: User updates an object description (content changed). The description row, edit history, and audit
+    row are committed together.
+- id: audit.action-upload-delete
+  category: privacy
+  topic: actions
+  rule: User deletes an upload they own. Transport-originated writes include metadata.source where available.
+    After storage deletion succeeds, metadata deletion and the audit row are committed together.
+- id: audit.action-section-retire
+  category: privacy
+  topic: actions
+  rule: The importer marks one missing in-scope Section inactive without deleting the row or children. The
+    same transaction records the Section target, source snapshot SHA-256, observation time, and jwId.
+- id: audit.action-section-reactivate
+  category: privacy
+  topic: actions
+  rule: The importer clears retiredAt when a Section reappears. The same transaction records the Section target,
+    source snapshot SHA-256, observation time, jwId, and previous retiredAt.
+- id: audit.action-admin-user-suspend
+  category: privacy
+  topic: actions
+  rule: Admin suspends a user account. The suspension change and audit row are committed together.
+- id: audit.action-admin-user-unsuspend
+  category: privacy
+  topic: actions
+  rule: Admin lifts a user suspension. The suspension change and audit row are committed together.
+- id: audit.action-admin-comment-moderate
+  category: privacy
+  topic: actions
+  rule: Admin hides or moderates a comment. The moderation change and audit row are committed together.
+- id: audit.action-admin-description-moderate
+  category: privacy
+  topic: actions
+  rule: Admin updates description content from the moderation workflow. The description row, edit history,
+    and audit row are committed together.
+- id: audit.action-admin-user-role-update
+  category: privacy
+  topic: actions
+  rule: Admin changes administrator access. The user update and an audit row containing changedFields only
+    are committed together.
+- id: audit.action-admin-user-profile-update
+  category: privacy
+  topic: actions
+  rule: Admin changes managed profile fields. The audit row records field names, never previous or next values.
+- id: audit.action-admin-oauth-client-create
+  category: privacy
+  topic: actions
+  rule: Admin creates an OAuth client. Client secrets and redirect URI values are never stored in audit metadata.
+- id: audit.action-admin-oauth-client-delete
+  category: privacy
+  topic: actions
+  rule: Admin deletes an OAuth client after confirmation.
+- id: audit.action-admin-bus-version-activate
+  category: privacy
+  topic: actions
+  rule: Admin activates a timetable version; the version update and audit row are committed together.
+- id: audit.action-admin-bus-version-delete
+  category: privacy
+  topic: actions
+  rule: Admin deletes an inactive timetable version; the delete and audit row are committed together.
+- id: audit.action-admin-bus-import
+  category: privacy
+  topic: actions
+  rule: Admin imports the static timetable and records only version and aggregate row counts.
+- id: audit.action-homework-create
+  category: privacy
+  topic: actions
+  rule: Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without title
+    or description content.
+- id: audit.action-homework-update
+  category: privacy
+  topic: actions
+  rule: Records the collaborative editor and changed field names in the same transaction as the update.
+- id: audit.action-homework-delete
+  category: privacy
+  topic: actions
+  rule: Records the creator/admin actor and target without retaining a title snapshot.
+- id: audit.action-webhook-login
+  category: privacy
+  topic: actions
+  rule: Internal debug login aid (not a product surface). When enabled in a private environment, audit metadata
+    records the lookup mode only; secrets and session tokens are never stored.
+- id: audit.action-account-create
+  category: privacy
+  topic: actions
+  rule: Records successful account provisioning after the user transaction commits. Credentials, tokens, and
+    request bodies are excluded.
+- id: audit.action-account-sign-in
+  category: privacy
+  topic: actions
+  rule: Records successful sign-in after the session transaction commits without copying the session token.
+- id: audit.action-account-sign-out
+  category: privacy
+  topic: actions
+  rule: Records successful sign-out after the session transaction commits.
+- id: audit.action-account-profile-update
+  category: privacy
+  topic: actions
+  rule: Records successful profile changes with an allowlisted changed-field list, never field values or request
+    bodies.
+- id: audit.action-account-credential-update
+  category: privacy
+  topic: actions
+  rule: Records successful credential changes with changed-field names only; password and token values are
+    excluded.
+- id: audit.action-account-link
+  category: privacy
+  topic: actions
+  rule: Records successful linking for the authenticated user after commit, excluding provider credentials
+    and tokens.
+- id: audit.action-account-unlink
+  category: privacy
+  topic: actions
+  rule: Records successful provider unlinking after commit, excluding provider credentials and tokens.
+- id: audit.action-account-delete
+  category: privacy
+  topic: actions
+  rule: Records denial or failure while the user exists. The success row deliberately omits the deleted user's
+    raw identifier.
+- id: audit.action-account-passkey-create
+  category: privacy
+  topic: actions
+  rule: Records committed passkey registration from the final endpoint result, excluding attestation, credential
+    material, and request bodies.
+- id: audit.action-account-passkey-update
+  category: privacy
+  topic: actions
+  rule: Records committed passkey updates using only the passkey identifier and safe request context.
+- id: audit.action-account-passkey-delete
+  category: privacy
+  topic: actions
+  rule: Records committed passkey deletion using only the passkey identifier and safe request context.
+- id: audit.action-account-session-revoke
+  category: privacy
+  topic: actions
+  rule: Records successful current-user session revocation after commit without copying session tokens.
+- id: audit.action-account-calendar-token-create
+  category: privacy
+  topic: actions
+  rule: Records successful token creation without storing the calendar feed token value.
+- id: audit.action-account-calendar-token-rotate
+  category: privacy
+  topic: actions
+  rule: Records denied, failed, and successful rotation without storing old or new token values.
+- id: audit.action-oauth-authorization-grant
+  category: privacy
+  topic: actions
+  rule: Records a grant atomically with authorization state and verification-code creation, excluding codes,
+    tokens, state, and request bodies.
+- id: audit.action-oauth-authorization-update
+  category: privacy
+  topic: actions
+  rule: Records an authorization scope change atomically with authorization state using scope counts and changed-field
+    names only.
+- id: audit.action-oauth-authorization-revoke
+  category: privacy
+  topic: actions
+  rule: Records revocation atomically with authorization deletion using safe identifiers and counts only.
 audit_actions:
 - action: comment_create
   trigger: POST /api/community/comments or MCP community_comment_create
-  description: User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
+  description: Audit event for comment create.
+  requirement_refs:
+  - audit.action-comment-create
 - action: comment_edit
   trigger: PATCH /api/community/comments/[id] or MCP community_comment_update
-  description: User edits their own comment. MCP-originated writes include metadata.source=mcp.
+  description: Audit event for comment edit.
+  requirement_refs:
+  - audit.action-comment-edit
 - action: comment_delete
   trigger: DELETE /api/community/comments/[id], DELETE /api/community/comments/batch, GraphQL commentDelete/commentsDelete,
     MCP community_comment_delete, or registered GraphQL operations
-  description: User deletes their own comment. Transport-originated writes include safe metadata.source where
-    available.
+  description: Audit event for comment delete.
+  requirement_refs:
+  - audit.action-comment-delete
 - action: comment_react
   trigger: POST /api/community/comments/[id]/reactions, DELETE /api/community/comments/[id]/reactions, MCP
     community_comment_reaction_add, or MCP community_comment_reaction_remove
-  description: User adds or removes a reaction on an active visible comment. MCP-originated writes include
-    metadata.source=mcp.
+  description: Audit event for comment react.
+  requirement_refs:
+  - audit.action-comment-react
 - action: description_edit
   trigger: POST /api/community/descriptions or MCP community_description_set
-  description: User updates an object description (content changed). The description row, edit history, and
-    audit row are committed together.
+  description: Audit event for description edit.
+  requirement_refs:
+  - audit.action-description-edit
 - action: upload_delete
   trigger: DELETE /api/workspace/uploads/[id], GraphQL uploadDelete, MCP workspace_upload_delete, or the registered
     GraphQL operation
-  description: User deletes an upload they own. Transport-originated writes include metadata.source where available.
-    After storage deletion succeeds, metadata deletion and the audit row are committed together.
+  description: Audit event for upload delete.
+  requirement_refs:
+  - audit.action-upload-delete
 - action: section_retire
   trigger: Committed static Section snapshot import
-  description: The importer marks one missing in-scope Section inactive without deleting the row or children.
-    The same transaction records the Section target, source snapshot SHA-256, observation time, and jwId.
+  description: Audit event for section retire.
+  requirement_refs:
+  - audit.action-section-retire
 - action: section_reactivate
   trigger: Committed static Section snapshot import
-  description: The importer clears retiredAt when a Section reappears. The same transaction records the Section
-    target, source snapshot SHA-256, observation time, jwId, and previous retiredAt.
+  description: Audit event for section reactivate.
+  requirement_refs:
+  - audit.action-section-reactivate
 - action: admin_user_suspend
   trigger: POST /api/admin/suspensions
-  description: Admin suspends a user account. The suspension change and audit row are committed together.
+  description: Audit event for admin user suspend.
+  requirement_refs:
+  - audit.action-admin-user-suspend
 - action: admin_user_unsuspend
   trigger: PATCH /api/admin/suspensions/[id]
-  description: Admin lifts a user suspension. The suspension change and audit row are committed together.
+  description: Audit event for admin user unsuspend.
+  requirement_refs:
+  - audit.action-admin-user-unsuspend
 - action: admin_comment_moderate
   trigger: PATCH /api/admin/comments/[id]
-  description: Admin hides or moderates a comment. The moderation change and audit row are committed together.
+  description: Audit event for admin comment moderate.
+  requirement_refs:
+  - audit.action-admin-comment-moderate
 - action: admin_description_moderate
   trigger: PATCH /api/admin/descriptions/[id] or /admin/moderation description action
-  description: Admin updates description content from the moderation workflow. The description row, edit history,
-    and audit row are committed together.
+  description: Audit event for admin description moderate.
+  requirement_refs:
+  - audit.action-admin-description-moderate
 - action: admin_user_role_update
   trigger: PATCH /api/admin/users/[id]
-  description: Admin changes administrator access. The user update and an audit row containing changedFields
-    only are committed together.
+  description: Audit event for admin user role update.
+  requirement_refs:
+  - audit.action-admin-user-role-update
 - action: admin_user_profile_update
   trigger: PATCH /api/admin/users/[id]
-  description: Admin changes managed profile fields. The audit row records field names, never previous or next
-    values.
+  description: Audit event for admin user profile update.
+  requirement_refs:
+  - audit.action-admin-user-profile-update
 - action: admin_oauth_client_create
   trigger: POST /admin/oauth
-  description: Admin creates an OAuth client. Client secrets and redirect URI values are never stored in audit
-    metadata.
+  description: Audit event for admin oauth client create.
+  requirement_refs:
+  - audit.action-admin-oauth-client-create
 - action: admin_oauth_client_delete
   trigger: POST /admin/oauth
-  description: Admin deletes an OAuth client after confirmation.
+  description: Audit event for admin oauth client delete.
+  requirement_refs:
+  - audit.action-admin-oauth-client-delete
 - action: admin_bus_version_activate
   trigger: POST /admin/bus
-  description: Admin activates a timetable version; the version update and audit row are committed together.
+  description: Audit event for admin bus version activate.
+  requirement_refs:
+  - audit.action-admin-bus-version-activate
 - action: admin_bus_version_delete
   trigger: POST /admin/bus
-  description: Admin deletes an inactive timetable version; the delete and audit row are committed together.
+  description: Audit event for admin bus version delete.
+  requirement_refs:
+  - audit.action-admin-bus-version-delete
 - action: admin_bus_import
   trigger: POST /admin/bus
-  description: Admin imports the static timetable and records only version and aggregate row counts.
+  description: Audit event for admin bus import.
+  requirement_refs:
+  - audit.action-admin-bus-import
 - action: homework_create
   trigger: POST /api/community/section-homeworks
-  description: Records actor, verified transport/OAuth attribution, target, sectionId, and changedFields without
-    title or description content.
+  description: Audit event for homework create.
+  requirement_refs:
+  - audit.action-homework-create
 - action: homework_update
   trigger: PATCH /api/community/section-homeworks/[id]
-  description: Records the collaborative editor and changed field names in the same transaction as the update.
+  description: Audit event for homework update.
+  requirement_refs:
+  - audit.action-homework-update
 - action: homework_delete
   trigger: DELETE /api/community/section-homeworks/[id]
-  description: Records the creator/admin actor and target without retaining a title snapshot.
+  description: Audit event for homework delete.
+  requirement_refs:
+  - audit.action-homework-delete
 - action: webhook_login
   trigger: Explicitly enabled non-production internal debug login
-  description: Internal debug login aid (not a product surface). When enabled in a private environment, audit
-    metadata records the lookup mode only; secrets and session tokens are never stored.
+  description: Audit event for webhook login.
+  requirement_refs:
+  - audit.action-webhook-login
 - action: account_create
   trigger: POST /api/auth/sign-up or another Better Auth user-provisioning endpoint
-  description: Records successful account provisioning after the user transaction commits. Credentials, tokens,
-    and request bodies are excluded.
+  description: Audit event for account create.
+  requirement_refs:
+  - audit.action-account-create
 - action: account_sign_in
   trigger: POST /api/auth/sign-in or /api/auth/passkey/verify-authentication
-  description: Records successful sign-in after the session transaction commits without copying the session
-    token.
+  description: Audit event for account sign in.
+  requirement_refs:
+  - audit.action-account-sign-in
 - action: account_sign_out
   trigger: POST /api/auth/sign-out
-  description: Records successful sign-out after the session transaction commits.
+  description: Audit event for account sign out.
+  requirement_refs:
+  - audit.action-account-sign-out
 - action: account_profile_update
   trigger: POST /api/auth/update-user, /api/auth/change-email, or settings profile action
-  description: Records successful profile changes with an allowlisted changed-field list, never field values
-    or request bodies.
+  description: Audit event for account profile update.
+  requirement_refs:
+  - audit.action-account-profile-update
 - action: account_credential_update
   trigger: POST /api/auth/change-password or /api/auth/set-password
-  description: Records successful credential changes with changed-field names only; password and token values
-    are excluded.
+  description: Audit event for account credential update.
+  requirement_refs:
+  - audit.action-account-credential-update
 - action: account_link
   trigger: POST /api/auth/link-social or the settings account-link action after recent authentication
-  description: Records successful linking for the authenticated user after commit, excluding provider credentials
-    and tokens.
+  description: Audit event for account link.
+  requirement_refs:
+  - audit.action-account-link
 - action: account_unlink
   trigger: POST /api/auth/unlink-account or settings linked-account action
-  description: Records successful provider unlinking after commit, excluding provider credentials and tokens.
+  description: Audit event for account unlink.
+  requirement_refs:
+  - audit.action-account-unlink
 - action: account_delete
   trigger: POST /api/auth/delete-user or settings account-deletion action
-  description: Records denial or failure while the user exists. The success row deliberately omits the deleted
-    user's raw identifier.
+  description: Audit event for account delete.
+  requirement_refs:
+  - audit.action-account-delete
 - action: account_passkey_create
   trigger: POST /api/auth/passkey/verify-registration
-  description: Records committed passkey registration from the final endpoint result, excluding attestation,
-    credential material, and request bodies.
+  description: Audit event for account passkey create.
+  requirement_refs:
+  - audit.action-account-passkey-create
 - action: account_passkey_update
   trigger: POST /api/auth/passkey/update-passkey
-  description: Records committed passkey updates using only the passkey identifier and safe request context.
+  description: Audit event for account passkey update.
+  requirement_refs:
+  - audit.action-account-passkey-update
 - action: account_passkey_delete
   trigger: POST /api/auth/passkey/delete-passkey
-  description: Records committed passkey deletion using only the passkey identifier and safe request context.
+  description: Audit event for account passkey delete.
+  requirement_refs:
+  - audit.action-account-passkey-delete
 - action: account_session_revoke
   trigger: POST /api/auth/revoke-session, /api/auth/revoke-sessions, or /api/auth/revoke-other-sessions
-  description: Records successful current-user session revocation after commit without copying session tokens.
+  description: Audit event for account session revoke.
+  requirement_refs:
+  - audit.action-account-session-revoke
 - action: account_calendar_token_create
   trigger: First authorized initialization of the current user calendar feed credential
-  description: Records successful token creation without storing the calendar feed token value.
+  description: Audit event for account calendar token create.
+  requirement_refs:
+  - audit.action-account-calendar-token-create
 - action: account_calendar_token_rotate
   trigger: POST /account/settings/security?/rotateCalendarToken
-  description: Records denied, failed, and successful rotation without storing old or new token values.
+  description: Audit event for account calendar token rotate.
+  requirement_refs:
+  - audit.action-account-calendar-token-rotate
 - action: oauth_authorization_grant
   trigger: POST /oauth/consent grant action
-  description: Records a grant atomically with authorization state and verification-code creation, excluding
-    codes, tokens, state, and request bodies.
+  description: Audit event for oauth authorization grant.
+  requirement_refs:
+  - audit.action-oauth-authorization-grant
 - action: oauth_authorization_update
   trigger: POST /oauth/consent or PATCH /api/auth/oauth2/consent
-  description: Records an authorization scope change atomically with authorization state using scope counts
-    and changed-field names only.
+  description: Audit event for oauth authorization update.
+  requirement_refs:
+  - audit.action-oauth-authorization-update
 - action: oauth_authorization_revoke
   trigger: DELETE /api/auth/oauth2/consent or settings authorization action
-  description: Records revocation atomically with authorization deletion using safe identifiers and counts
-    only.
+  description: Audit event for oauth authorization revoke.
+  requirement_refs:
+  - audit.action-oauth-authorization-revoke
 topics:
 - id: writer
   title: Writer
+- id: actions
+  title: Audit event contracts

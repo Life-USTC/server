@@ -246,9 +246,7 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-subscriptions-path");
   });
 
-  test("移动端总览优先显示此刻与下一步，常用网站保持次要", async ({
-    page,
-  }, testInfo) => {
+  test("ui.workspace-mobile-priority-1", async ({ page }, testInfo) => {
     await page.setViewportSize({ height: 844, width: 390 });
     await signInAsDebugUser(page, "/");
     await ensureSeedSectionSubscription(page);

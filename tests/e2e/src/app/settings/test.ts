@@ -29,7 +29,7 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("默认进入个人资料标签并显示种子用户数据", async ({ page }, testInfo) => {
+  test("ui.settings-navigation-2", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/account/settings");
 
     await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
@@ -41,9 +41,7 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-default-profile");
   });
 
-  test("设置导航在移动端紧凑显示并在桌面形成侧栏", async ({
-    page,
-  }, testInfo) => {
+  test("ui.settings-navigation-1", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, "/account/settings");
 
@@ -78,7 +76,7 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
   });
 
-  test("移动端直接打开末尾标签时当前项保持可见", async ({ page }) => {
+  test("ui.settings-navigation-6", async ({ page }) => {
     const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });

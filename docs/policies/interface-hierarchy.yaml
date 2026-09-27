@@ -83,30 +83,11 @@ requirements:
   topic: transport-specific-exceptions
   rule: Personal campus-work pages use /workspace/*; account settings use /account/settings/* and governance
     pages use /admin/*. A capability without a Web binding does not create a corresponding page route.
-- id: interface-hierarchy.transport-specific-exceptions-7
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Bot AI tool discovery uses the configured per-user MCP session. Tools are presented only with the schema
-    and read/write annotations supplied by that authenticated server session.
-- id: interface-hierarchy.transport-specific-exceptions-8
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Bot discovers tools dynamically from its authenticated MCP session; server authorization remains authoritative
-    even if a client hides or filters tools in its own interface.
-- id: interface-hierarchy.transport-specific-exceptions-9
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Bot does not automatically replay a private mutation whose outcome became uncertain after interruption
-    or timeout. Its durable execution record preserves that uncertainty until the result is reconciled.
 - id: interface-hierarchy.transport-specific-exceptions-11
   category: consistency
   topic: transport-specific-exceptions
   rule: MCP schema resources and operation-planning prompts identify the currently supported GraphQL schema
     and registered operation context without embedding user credentials.
-- id: interface-hierarchy.transport-specific-exceptions-12
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Shared conversations retain public host commands and do not expose MCP tools, resources, or prompts.
 - id: interface-hierarchy.transport-specific-exceptions-14
   category: consistency
   topic: transport-specific-exceptions
@@ -188,12 +169,6 @@ requirements:
   topic: locale-caching-and-seo
   rule: A cached locale-varying public representation includes the resolved locale in its cache identity. Any
     localized response outside that explicit cache policy is private and no-store.
-- id: interface-hierarchy.bot-mutation-confirmation
-  category: consistency
-  topic: transport-specific-exceptions
-  rule: Before executing a private mutation that the Bot confirmation policy marks destructive, Bot obtains
-    explicit user confirmation and records that confirmation durably for the intended operation. A confirmation
-    is not reused for a different operation.
 scopes:
 - id: catalog
   owns: Public academic and transit facts
@@ -593,3 +568,6 @@ rationale:
 - Contract `required_scopes` are checked against the OAuth registry and native MCP equivalents by `graphql-contract-parity.test.ts`.
 - Locale is a presentation preference, not content identity.
 - Domain records prefer locale-neutral values with presentation localized at the edge.
+- Bot discovery, client annotation display, durable mutation confirmation, uncertain-write recovery and shared-conversation
+  isolation are client-owned contracts. Their implementation and native acceptance evidence belong in the Bot
+  repository; server token audience, feature scopes and ownership remain enforced here.

@@ -180,7 +180,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/sections-table");
   });
 
-  test("jwId 不在课程可见界面中显示", async ({ page }) => {
+  test("permission-ui.identity-4", async ({ page }) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     const content = await page.locator("#main-content").innerText();
     // Raw jwId should not appear as visible text
@@ -206,7 +206,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
-  test("移动端标题层级紧凑且流式区块可用", async ({ page }, testInfo) => {
+  test("ui.detail-hero-5", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, COURSE_URL);
 

@@ -25,6 +25,14 @@ requirements:
   category: behavior
   topic: only-non-current-semester-subscriptions
   rule: Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: cases.semester.only-non-current-semester-subscriptions-3
 - id: cases.semester.cross-semester-browsing-1
   category: behavior
   topic: cross-semester-browsing

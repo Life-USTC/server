@@ -7,6 +7,15 @@ requirements:
   topic: identity
   rule: Ordinary page headings and metadata do not display database row IDs. Public JW IDs remain valid API
     retrieval identifiers but do not replace localized names or public course/section codes in ordinary UI.
+  acceptance:
+    given: The actual Worker renders the specified page with the seeded or isolated fixture used by this test.
+    when: The named browser test performs the relevant navigation, input, or viewport transition.
+    then:
+    - Ordinary page headings and metadata do not display database row IDs. Public JW IDs remain valid API retrieval
+      identifiers but do not replace localized names or public course/section codes in ordinary UI.
+    test:
+      file: tests/e2e/src/app/courses/[jwId]/test.ts
+      name: permission-ui.identity-4
 applies_to:
 - id: list-page
   title: List Page
