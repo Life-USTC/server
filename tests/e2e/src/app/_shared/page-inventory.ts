@@ -281,13 +281,13 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "welcome-name",
         role: "textbox",
-        name: "/^(姓名|Name)\\b/i",
+        name: "/^(昵称|Nickname)(?:\\s|$)/i",
         e2eSpec: E2E.welcome,
       },
       {
         id: "welcome-username",
         role: "textbox",
-        name: "/^(用户名|Username)\\b/i",
+        name: "/^ID\\b/i",
         e2eSpec: E2E.welcome,
       },
       {

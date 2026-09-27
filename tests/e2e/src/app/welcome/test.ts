@@ -60,11 +60,9 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
 
     // user.name and user.username fields (user.yml first-login-welcome.display.fields)
     await expect(
-      page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("textbox", { name: /^(用户名|Username)\b/i }),
-    ).toBeVisible();
+      page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
+    ).toHaveValue("");
+    await expect(page.getByRole("textbox", { name: /^ID\b/i })).toBeVisible();
     await expect(
       page.getByLabel(/上传自己的头像|Upload your own avatar/i),
     ).toBeVisible();
@@ -122,10 +120,10 @@ test("/account/welcome 本地图片处理不可用时保留表单并显示错误
         ),
       });
     await page
-      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
       .fill(DEV_SEED.debugName);
     await page
-      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .getByRole("textbox", { name: /^ID\b/i })
       .fill(DEV_SEED.debugUsername);
     await page.getByRole("button", { name: /继续|Continue/i }).click();
     await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
@@ -166,7 +164,7 @@ test("资料不完整的登录用户从普通页面重定向到 /welcome", async
       /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
     );
     await expect(
-      page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
+      page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
     ).toBeVisible();
   } finally {
     await updateUserProfileById(sessionUser.id, {
@@ -197,10 +195,10 @@ test("/account/welcome 完成后返回原回调页面", async ({ page }, testInf
       /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
     );
     await page
-      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
       .fill(DEV_SEED.debugName);
     await page
-      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .getByRole("textbox", { name: /^ID\b/i })
       .fill(DEV_SEED.debugUsername);
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
@@ -253,10 +251,10 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
 
     await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
     await page
-      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
       .fill(DEV_SEED.debugName);
     await page
-      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .getByRole("textbox", { name: /^ID\b/i })
       .fill(DEV_SEED.debugUsername);
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
@@ -318,10 +316,10 @@ test("/account/welcome 可选择已上传头像并保存", async ({ page }) => {
     ).toHaveAttribute("src", avatarOptions[1]);
 
     await page
-      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
       .fill(DEV_SEED.debugName);
     await page
-      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .getByRole("textbox", { name: /^ID\b/i })
       .fill(DEV_SEED.debugUsername);
     await page.getByRole("button", { name: /继续|Continue/i }).click();
     await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });

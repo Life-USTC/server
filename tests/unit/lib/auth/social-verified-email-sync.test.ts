@@ -46,7 +46,6 @@ describe("social verified email sync", () => {
       accountId: "octocat",
       email: "octocat@example.com",
       emailVerified: true,
-      name: "Octo Cat",
       image: "https://example.com/octocat.png",
     });
     verifiedEmailUpsertMock.mockResolvedValue(undefined);
@@ -103,7 +102,6 @@ describe("social verified email sync", () => {
       accountId: "435",
       email: null,
       emailVerified: false,
-      name: "Student",
       image: "https://example.com/ustc.png",
     });
     userFindUniqueMock.mockResolvedValue({
@@ -123,7 +121,6 @@ describe("social verified email sync", () => {
     expect(userUpdateMock).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: {
-        name: "Student",
         image: "https://example.com/ustc.png",
       },
     });

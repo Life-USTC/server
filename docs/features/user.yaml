@@ -216,13 +216,13 @@ requirements:
       name: user.avatar-current-reference
 - id: user.welcome-oauth-refresh
   category: consistency
-  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing name/image values may be filled and new avatar choices added, while user-entered name, username and image remain unchanged. Refresh neither links a previously unlinked provider nor grants a third-party application access to Life@USTC APIs.
+  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing image values may be filled and new avatar choices added, while name and username remain user-controlled, even when empty, and a user-entered image remains unchanged. Refresh neither links a previously unlinked provider nor grants a third-party application access to Life@USTC APIs.
   acceptance:
     given: A real social-login session has an existing provider identity and user-entered profile fields.
     when: The actual welcome refresh action rejects unsupported/unlinked providers, then completes provider callbacks with new profile data and later with missing local values.
     then:
     - User-entered fields are preserved and new avatar choices are recorded.
-    - Missing name/image fields are filled from the provider without changing the username.
+    - Missing image fields are filled from the provider without filling or changing name or username.
     - The account remains singly linked and no delegated API consent is created.
     test:
       file: tests/integration/social-login-contract.test.ts

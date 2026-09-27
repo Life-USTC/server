@@ -19,7 +19,7 @@ then the relevant [feature](features/) and its referenced [policies](policies/).
 | Generated REST contract | [openapi.generated.json](../public/openapi.generated.json) |
 | Models and enums | [schema.prisma](../prisma/schema.prisma) |
 | Editing and validating specifications | [docs/AGENTS.md](AGENTS.md) |
-| Implementation and local checks | [root AGENTS.md](../AGENTS.md), [implementation skill](../.agents/skills/life-ustc-implement/SKILL.md) |
+| Implementation, checks, and delivery | [root AGENTS.md](../AGENTS.md) |
 
 ```bash
 bun run specs:list

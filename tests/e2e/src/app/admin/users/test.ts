@@ -282,7 +282,7 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
 
   const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
 
-  const usernameInput = dialog.getByLabel(/用户名|Username/i).first();
+  const usernameInput = dialog.getByLabel(/ID/i).first();
   await expect(usernameInput).toBeVisible();
   await usernameInput.fill("INVALID");
 
@@ -311,7 +311,7 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
 
     const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
-    const nameInput = dialog.getByLabel(/姓名|Name/i).first();
+    const nameInput = dialog.getByLabel(/昵称|Nickname/i).first();
     const newName = `e2e-${Date.now()}`;
     await nameInput.fill(newName);
 

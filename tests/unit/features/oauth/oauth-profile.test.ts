@@ -26,7 +26,7 @@ describe("OAuth 档案映射", () => {
     expect(getOidcAccountSubject(profile)).toBe("435");
     expect(mapOidcProfileToUser(profile)).toEqual({
       email: "oidc-435@users.local",
-      name: "USTC User 435",
+      name: "",
       image: undefined,
       emailVerified: false,
     });
@@ -35,7 +35,6 @@ describe("OAuth 档案映射", () => {
       accountId: "435",
       email: null,
       emailVerified: false,
-      name: "USTC User 435",
       image: null,
     });
   });
@@ -51,7 +50,7 @@ describe("OAuth 档案映射", () => {
 
     expect(mapOidcProfileToUser(profile)).toEqual({
       email: "oidc-812@users.local",
-      name: "USTC User 812",
+      name: "",
       image: undefined,
       emailVerified: false,
     });
@@ -69,13 +68,13 @@ describe("OAuth 档案映射", () => {
     expect(getOidcAccountSubject(profile)).toBe("abc");
     expect(mapOidcProfileToUser(profile)).toEqual({
       email: "oidc-abc@users.local",
-      name: "Student Name",
+      name: "",
       image: "https://example.com/avatar.png",
       emailVerified: false,
     });
   });
 
-  it("使用第一个非空的档案显示名称", () => {
+  it("不使用上游名称或标识填充昵称", () => {
     expect(
       mapOidcProfileToUser({
         sub: "abc",
@@ -83,7 +82,7 @@ describe("OAuth 档案映射", () => {
         preferred_username: " student ",
         nickname: "ignored",
       }).name,
-    ).toBe("student");
+    ).toBe("");
   });
 
   it("映射 GitHub 档案时暂存可发布邮箱", () => {
@@ -97,7 +96,7 @@ describe("OAuth 档案映射", () => {
       }),
     ).toEqual({
       email: "octocat@example.com",
-      name: "Octo Cat",
+      name: "",
       image: "https://example.com/octocat.png",
       emailVerified: false,
     });
@@ -106,7 +105,6 @@ describe("OAuth 档案映射", () => {
       accountId: "octocat",
       email: "octocat@example.com",
       emailVerified: true,
-      name: "Octo Cat",
       image: "https://example.com/octocat.png",
     });
   });
@@ -120,7 +118,7 @@ describe("OAuth 档案映射", () => {
       }),
     ).toEqual({
       email: "github-octocat@users.local",
-      name: "octocat",
+      name: "",
       image: undefined,
       emailVerified: false,
     });
@@ -129,7 +127,6 @@ describe("OAuth 档案映射", () => {
       accountId: "octocat",
       email: null,
       emailVerified: false,
-      name: "octocat",
       image: null,
     });
   });
@@ -145,7 +142,7 @@ describe("OAuth 档案映射", () => {
       }),
     ).toEqual({
       email: "student@example.com",
-      name: "Student",
+      name: "",
       image: "https://example.com/google.png",
       emailVerified: true,
     });
@@ -154,7 +151,6 @@ describe("OAuth 档案映射", () => {
       accountId: "google-user",
       email: "student@example.com",
       emailVerified: true,
-      name: "Student",
       image: "https://example.com/google.png",
     });
 
@@ -170,7 +166,6 @@ describe("OAuth 档案映射", () => {
       accountId: "google-user",
       email: null,
       emailVerified: false,
-      name: null,
       image: null,
     });
   });
