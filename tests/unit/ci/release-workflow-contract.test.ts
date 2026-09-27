@@ -3,6 +3,31 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 describe("release workflow contract", () => {
+  it("publishes GitHub releases without plugins that prepare repository changes", async () => {
+    const config: { plugins: (string | [string, unknown])[] } = JSON.parse(
+      await readFile(
+        new URL("../../../.releaserc.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    const pluginNames = config.plugins.map((plugin) =>
+      typeof plugin === "string" ? plugin : plugin[0],
+    );
+
+    expect(pluginNames).toContain("@semantic-release/github");
+    for (const pluginName of pluginNames) {
+      const plugin = await import(pluginName);
+      // Prepare hooks can write release files or commit them onto protected main.
+      expect(
+        plugin.prepare,
+        `${pluginName} must not prepare repository changes`,
+      ).toBeUndefined();
+      if (pluginName === "@semantic-release/github") {
+        expect(plugin.publish).toBeTypeOf("function");
+      }
+    }
+  });
+
   it("serializes releases and gates the current main tip on full CI", async () => {
     const workflow = await readFile(
       new URL("../../../.github/workflows/release.yml", import.meta.url),
