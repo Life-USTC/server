@@ -144,7 +144,8 @@ async function comparePages(
       ),
     ).toEqual(expectedIds.slice((page - 1) * pageSize, page * pageSize));
     if (kind === "event") {
-      expect(rest.unknownDateCount).toBe(unknownDateCount);
+      // REST metadata is nested; GraphQL and native MCP expose the same fact directly.
+      expect(rest.meta.unknownDateCount).toBe(unknownDateCount);
       expect(result[field].unknownDateCount).toBe(unknownDateCount);
       expect(tools.unknownDateCount).toBe(unknownDateCount);
     }
