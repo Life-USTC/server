@@ -598,7 +598,7 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     ).toBe(true);
   });
 
-  it("bounds nested Schedule teachers and Exam rooms with PageInput", async () => {
+  async function verifyNestedPagination() {
     const headers = {
       cookie: sessionCookie,
       origin: new URL(getOAuthGraphqlResourceUrl()).origin,
@@ -770,6 +770,86 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
       expect(rejected.payload.errors?.[0]?.extensions).toMatchObject({
         code: "BAD_USER_INPUT",
       });
+    }
+  }
+
+  it("graphql.pagination", async () => {
+    const headers = { authorization: `Bearer ${graphqlBearer}` };
+    for (const field of [
+      "todos",
+      "subscribedSections",
+      "homeworks",
+      "schedules",
+      "exams",
+    ]) {
+      for (const page of [
+        undefined,
+        { page: 1, pageSize: 1 },
+        { page: 100, pageSize: 100 },
+      ]) {
+        const { payload } = await execute(
+          {
+            query: `query Pages($page: PageInput) { workspace { ${field}(page: $page) { pageInfo { page pageSize } } } }`,
+            variables: { page },
+          },
+          headers,
+        );
+        expect(payload.errors, field).toBeUndefined();
+        expect(payload.data).toMatchObject({
+          workspace: {
+            [field]: { pageInfo: page ?? { page: 1, pageSize: 20 } },
+          },
+        });
+      }
+      for (const page of [
+        { page: 0 },
+        { page: 101 },
+        { pageSize: 0 },
+        { pageSize: 101 },
+      ]) {
+        const { payload } = await execute(
+          {
+            query: `query Pages($page: PageInput) { workspace { ${field}(page: $page) { pageInfo { total } } } }`,
+            variables: { page },
+          },
+          headers,
+        );
+        expect(payload.errors?.[0]?.extensions, field).toMatchObject({
+          code: "BAD_USER_INPUT",
+        });
+      }
+    }
+    await verifyNestedPagination();
+    const { graphqlScopeResolvers } = await import("@/lib/graphql/workspace");
+    const teachers = Array.from({ length: 101 }, (_, index) => ({
+      teacher: { id: index + 1 },
+    }));
+    const rooms = Array.from({ length: 101 }, (_, index) => ({
+      id: index + 1,
+    }));
+    for (const pageSize of [20, 100]) {
+      const pages = [
+        graphqlScopeResolvers.Schedule.teachers(
+          { teacherParticipations: teachers },
+          { page: { pageSize } },
+        ),
+        graphqlScopeResolvers.Schedule.teacherParticipations(
+          { teacherParticipations: teachers },
+          { page: { pageSize } },
+        ),
+        graphqlScopeResolvers.Exam.examRooms(
+          { examRooms: rooms },
+          { page: { pageSize } },
+        ),
+      ];
+      for (const page of pages) {
+        expect(page.data).toHaveLength(pageSize);
+        expect(page.pagination).toMatchObject({
+          page: 1,
+          pageSize,
+          total: 101,
+        });
+      }
     }
   });
 

@@ -268,25 +268,116 @@ describe("GraphQL MCP operations", () => {
     });
   });
 
-  it("requires confirmation for every arbitrary mutation", async () => {
-    const result = await callExpectedGraphqlError<{
-      success: boolean;
-      error: string;
-    }>({
-      document: /* GraphQL */ `
-        mutation CreateTodo($input: CreateTodoInput!) {
-          todoCreate(input: $input) { id }
-        }
-      `,
-      operationName: "CreateTodo",
-      variables: { input: { title: marker } },
-      locale: "zh-cn",
-    });
+  it("graphql.mcp-mutation-confirmation", async () => {
+    for (const mode of ["document", "registered"] as const) {
+      const title = `${marker}-confirmation-${mode}`;
+      const input = {
+        ...(mode === "document"
+          ? {
+              document:
+                "mutation CreateTodo($input: CreateTodoInput!) { todoCreate(input: $input) { id } }",
+              operationName: "CreateTodo",
+            }
+          : { operationId: "workspace.todo.create.v1" }),
+        variables: { input: { title } },
+        locale: "zh-cn",
+      };
+      for (const confirmed of [undefined, false]) {
+        const result = await callExpectedGraphqlError({ ...input, confirmed });
+        expect(result).toMatchObject({
+          success: false,
+          error: "CONFIRMATION_REQUIRED",
+        });
+        expect(
+          await fixtures.prisma.todo.count({
+            where: { userId: isolated.userId, title },
+          }),
+        ).toBe(0);
+      }
+      const result = await isolated.client.call("graphql_operation_run", {
+        ...input,
+        confirmed: true,
+      });
+      expect(result).toMatchObject({ success: true });
+      expect(
+        await fixtures.prisma.todo.count({
+          where: { userId: isolated.userId, title },
+        }),
+      ).toBe(1);
+    }
+  });
 
-    expect(result).toMatchObject({
-      success: false,
-      error: "CONFIRMATION_REQUIRED",
-    });
+  it("graphql.graphql-operation-runner", async () => {
+    for (const input of [
+      {},
+      {
+        operationId: "catalog.semester.current.get.v1",
+        document: "query Current { catalog { currentSemester { jwId } } }",
+      },
+    ]) {
+      expect(
+        await callExpectedGraphqlError({ ...input, locale: "zh-cn" }),
+      ).toMatchObject({ success: false, error: "BAD_USER_INPUT" });
+    }
+    for (const input of [
+      { operationId: "catalog.semester.current.get.v1" },
+      { document: "query Current { catalog { currentSemester { jwId } } }" },
+    ]) {
+      const result = await isolated.client.call("graphql_operation_run", {
+        ...input,
+        locale: "zh-cn",
+      });
+      expect(result).toMatchObject({
+        success: true,
+        data: { catalog: { currentSemester: { jwId: expect.any(Number) } } },
+      });
+    }
+  });
+
+  it("graphql.mcp-validation-parity", async () => {
+    const { createGraphqlRequestHandler } = await import(
+      "@/lib/graphql/server"
+    );
+    const handler = createGraphqlRequestHandler(true);
+    const documents = [
+      "query Broken {",
+      "{ __schema { queryType { name } } }",
+      `{ ${Array.from({ length: 11 }, (_, i) => `f${i}: catalog { currentSemester { jwId } }`).join(" ")} }`,
+      `{ catalog { courses { ${Array.from({ length: 16 }, (_, i) => `a${i}: items { jwId }`).join(" ")} } } }`,
+      `{ catalog { courses { items { ${Array.from({ length: 11 }, (_, i) => `f${i}: code @skip(if: false)`).join(" ")} } } } }`,
+      `{ catalog { courses { items { ${"code ".repeat(990)} } } } }`,
+      `{ catalog { courses(page: { pageSize: 100 }) { items { ${"code ".repeat(60)} } } } }`,
+      "{ catalog { courses(page: { pageSize: 101 }) { pageInfo { total } } } }",
+    ];
+    for (const document of documents) {
+      const mcp = await isolated.client.callToolResult(
+        "graphql_operation_run",
+        { document, locale: "zh-cn" },
+      );
+      expect(mcp.isError, document.slice(0, 80)).toBe(true);
+      const request = new Request("http://localhost:3000/api/graphql", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: document }),
+      });
+      const response = await handler({
+        request,
+        locals: { locale: "zh-cn", requestId: "mcp-validation-parity" },
+      } as Parameters<typeof handler>[0]);
+      const http = (await response.json()) as { errors?: unknown[] };
+      expect(http.errors?.length, document.slice(0, 80)).toBeGreaterThan(0);
+    }
+    for (const variables of [
+      { unexpected: true },
+      { filter: { search: "x".repeat(65537) } },
+      { page: { pageSize: 101 } },
+    ]) {
+      const result = await isolated.client.callToolResult(
+        "graphql_operation_run",
+        { operationId: "catalog.course.search.v1", variables, locale: "zh-cn" },
+      );
+      expect(result.isError).toBe(true);
+    }
   });
 
   it("rejects ambiguous inputs, introspection, and over-wide documents", async () => {

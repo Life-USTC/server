@@ -20,6 +20,18 @@ requirements:
   rule: Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer
     callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session
     callers receive the equivalent first-party access.
+  acceptance:
+    given: Every executable business Mutation resolver and its registered feature write scope.
+    when: Anonymous, read-only OAuth, trusted-session, and matching-write OAuth principals invoke every
+      resolver.
+    then:
+    - Anonymous and read-only principals are rejected before consuming mutation budgets.
+    - Session and write-scope callers reach the shared per-user feature action budget before input validation
+      or business services.
+    - Batch fields use the stricter batch-write action key.
+    test:
+      file: tests/unit/lib/graphql/graphql-all-mutation-authority.test.ts
+      name: graphql.scoped-mutations
 - id: graphql.batch-mutations
   category: behavior
   rule: Todo, homework, and comment-delete batches preserve REST per-item results. Section subscriptions
@@ -65,9 +77,19 @@ requirements:
       name: graphql.request-budgets
 - id: graphql.graphql-operation-runner
   category: behavior
-  rule: MCP accepts exactly one GraphQL document or registered operation ID. Execution uses the same production
-    validation, request budgets, error projection, and resolver authorization as HTTP GraphQL. Every mutation
-    requires confirmed=true before execution.
+  rule: MCP accepts exactly one GraphQL document or registered operation ID and executes the selected
+    operation.
+  rationale: Validation parity is owned by graphql.mcp-validation-parity; confirmation by graphql.mcp-mutation-confirmation;
+    shared resolver authorization and safe error projection remain governed by graphql.scoped-query-auth,
+    graphql.scoped-mutations, and graphql.safe-errors.
+  acceptance:
+    given: A live MCP client and a valid public query/registered operation.
+    when: The runner receives neither, both, or exactly one operation source.
+    then:
+    - Neither and both are BAD_USER_INPUT; either single source executes successfully.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.graphql-operation-runner
 - id: graphql.graphql-operation-prompt
   category: presentation
   rule: MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation
@@ -126,6 +148,17 @@ requirements:
     exams use PageInput, while nested Schedule.teachers, Schedule.teacherParticipations and Exam.examRooms
     return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, page must be between
     1 and 100, and pageSize must be between 1 and 100.'
+  acceptance:
+    given: Owner-scoped workspace data and nested schedule/exam collections.
+    when: The HTTP handler executes every core workspace page at default, minimum, maximum and invalid
+      boundaries.
+    then:
+    - Defaults are page 1/pageSize 20; page and pageSize 1-100 are accepted and 0/101 rejected.
+    - Nested schedule teachers/participations and exam rooms preserve page metadata and cap 101-item inputs
+      at the requested 20 or 100.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.pagination
 - id: graphql.search-boundary
   category: validation
   rule: GraphQL search filter strings accept 2-200 characters, matching public catalog REST, Web, and
@@ -143,6 +176,16 @@ requirements:
   category: consistency
   rule: Resolvers call feature-owned services only; they do not issue internal HTTP requests or access
     Prisma directly.
+  acceptance:
+    given: All checked-in GraphQL TypeScript modules, including the executable schema and mutation adapters.
+    when: AST imports and calls are inspected.
+    then:
+    - Resolver modules do not import database clients or HTTP API adapters, execute raw database queries,
+      or issue network fetches.
+    - The two Yoga fetch calls are in-process transport dispatch, not resolver network requests.
+    test:
+      file: tests/unit/lib/graphql/graphql-resolver-boundary.test.ts
+      name: graphql.resolver-boundary
 - id: graphql.request-cache
   category: consistency
   rule: Entity DataLoaders batch and cache within one GraphQL request only; a new request starts with
@@ -468,6 +511,35 @@ requirements:
     test:
       file: tests/integration/graphql-viewer-query.test.ts
       name: graphql.session-query-authority
+- id: graphql.mcp-mutation-confirmation
+  category: validation
+  rule: Every GraphQL mutation submitted through MCP requires confirmed=true before executing its feature
+    write, whether supplied as an arbitrary document or a registered operation.
+  acceptance:
+    given: A live MCP client invoking arbitrary and registered todo creation.
+    when: Each operation is submitted with missing, false, and true confirmation.
+    then:
+    - Missing/false confirmation returns CONFIRMATION_REQUIRED with no persisted row.
+    - Explicit confirmation persists exactly one owner-scoped row.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.mcp-mutation-confirmation
+- id: graphql.mcp-validation-parity
+  category: validation
+  rule: Arbitrary MCP GraphQL documents enforce the production schema validation and request budgets used
+    by HTTP. Registered operations reject undeclared variables, oversized variable bodies, and invalid
+    field inputs.
+  acceptance:
+    given: Malformed, introspective, over-wide, over-aliased, over-directed, over-token, over-cost, and
+      invalid-page documents.
+    when: The same documents are sent to production HTTP and the live MCP runner; registered calls also
+      receive invalid variable envelopes.
+    then:
+    - Both document transports reject the invalid requests.
+    - Registered operations reject extra variables, oversized variable bodies, and invalid page sizes.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.mcp-validation-parity
 capabilities:
   public-query-endpoint:
     title: Public Queries and Scoped Personal Mutations
