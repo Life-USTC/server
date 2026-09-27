@@ -93,6 +93,17 @@ requirements:
     and cancel actions. Opening or cancelling the dialog does not send the deletion request or remove the
     item; only confirmation submits deletion. Account deletion additionally follows the exact-word check
     owned by cases.account.account-deletion-1.
+  acceptance:
+    given: An isolated owner has an account, an active comment, and an uploaded real file.
+    when: The owner opens, cancels, reopens, and confirms each deletion dialog in the browser.
+    then:
+    - Each dialog presents a warning and explicit confirmation and cancellation actions.
+    - Opening and cancelling send no deletion request and preserve the current account, active comment,
+      or upload.
+    - Confirmation sends exactly one deletion request and deletes the selected resource.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: cases.content-security.deletion-confirmation
 refs:
 - feature: comment
   capability: object-comment-section

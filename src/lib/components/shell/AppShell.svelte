@@ -8,6 +8,7 @@ import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import CompassIcon from "@lucide/svelte/icons/compass";
+import FilesIcon from "@lucide/svelte/icons/files";
 import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
@@ -367,6 +368,12 @@ function buildShellNavGroups(
           icon: RouteIcon,
           label: copy.nav.subscriptions,
         },
+        {
+          ariaLabel: copy.nav.uploads,
+          href: "/workspace/uploads",
+          icon: FilesIcon,
+          label: copy.nav.uploads,
+        },
       ],
     },
     {
@@ -454,6 +461,12 @@ function buildMobileSecondaryNavGroups(
       href: "/workspace/subscriptions",
       icon: RouteIcon,
       label: copy.nav.subscriptions,
+    },
+    {
+      ariaLabel: copy.nav.uploads,
+      href: "/workspace/uploads",
+      icon: FilesIcon,
+      label: copy.nav.uploads,
     },
     {
       href: "/catalog/bus",

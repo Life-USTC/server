@@ -239,6 +239,56 @@ requirements:
     test:
       file: tests/unit/features/uploads/upload-utils.test.ts
       name: upload.download-filename-header
+- id: upload.web-list
+  category: presentation
+  rule: The signed-in uploads page is reachable from workspace navigation and presents only the current
+    user's uploads, paginated newest first, with filename, formatted size, Shanghai creation time, used
+    bytes, total quota, and maximum file size. It uses a desktop table and a mobile list with localized
+    labels. Signed-out visits require sign-in and private responses must not be cached.
+  acceptance:
+    given: An isolated owner has 21 uploads and another user has a private upload.
+    when: The owner opens the workspace uploads page, navigates pages, and uses desktop and mobile layouts
+      in English and Chinese; an anonymous visitor requests the same page.
+    then:
+    - The page shows only the owner's newest 20 files and quota metadata, then the final file on page two;
+      an out-of-range page redirects to the last page.
+    - The mobile list exposes filenames and management actions without horizontal overflow; localized
+      labels render, and anonymous navigation redirects to sign-in while owner responses are private no-store.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: upload.web-list
+- id: upload.web-rename
+  category: presentation
+  rule: Web upload rename edits the selected file's name, prevents empty names, preserves the file and
+    shows localized failure feedback if the write is rejected, and refreshes the persisted filename with
+    accessible success feedback after acceptance. Renaming preserves the stored bytes.
+  acceptance:
+    given: An isolated owner uploaded real object bytes and opens the file's rename dialog.
+    when: The owner submits an empty name, attempts a rename after suspension, then retries after suspension
+      is removed and reloads the page.
+    then:
+    - Empty names cannot submit; a rejected rename leaves the original filename and an accessible error.
+    - Successful retry updates the page and download filename, preserves exact bytes, announces success,
+      and survives reload.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: upload.web-rename
+- id: upload.web-delete-feedback
+  category: presentation
+  rule: Web upload deletion preserves the row and bytes and displays localized error feedback when the
+    request fails. Successful deletion refreshes the list and quota and announces success accessibly.
+  acceptance:
+    given: An isolated owner uploaded real bytes and opens the file deletion dialog.
+    when: A newly persisted suspension rejects deletion, then the owner retries after suspension is removed.
+    then:
+    - Failure leaves the dialog open with an alert, the upload and exact downloadable bytes intact, and
+      no success announcement.
+    - Success removes the upload, updates the empty state and quota, announces success, and makes its old
+      download URL return 404.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: upload.web-delete-feedback
+
 capabilities:
   upload-list:
     title: Upload List
