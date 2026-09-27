@@ -70,23 +70,79 @@ requirements:
   category: privacy
   topic: actions
   rule: User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
+  acceptance:
+    given: An isolated authenticated MCP user with real persisted target/comment data.
+    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
+      operation.
+    then:
+    - User creates a new comment on an object. MCP-originated writes include metadata.source=mcp.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
+      private content.
+    test:
+      file: tests/integration/mcp/community/audit-policy.test.ts
+      name: audit.action-comment-create
 - id: audit.action-comment-edit
   category: privacy
   topic: actions
   rule: User edits their own comment. MCP-originated writes include metadata.source=mcp.
+  acceptance:
+    given: An isolated authenticated MCP user with real persisted target/comment data.
+    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
+      operation.
+    then:
+    - User edits their own comment. MCP-originated writes include metadata.source=mcp.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
+      private content.
+    test:
+      file: tests/integration/mcp/community/audit-policy.test.ts
+      name: audit.action-comment-edit
 - id: audit.action-comment-delete
   category: privacy
   topic: actions
   rule: User deletes their own comment. Transport-originated writes include safe metadata.source where available.
+  acceptance:
+    given: An isolated authenticated MCP user with real persisted target/comment data.
+    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
+      operation.
+    then:
+    - User deletes their own comment. Transport-originated writes include safe metadata.source where available.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
+      private content.
+    test:
+      file: tests/integration/mcp/community/audit-policy.test.ts
+      name: audit.action-comment-delete
 - id: audit.action-comment-react
   category: privacy
   topic: actions
   rule: User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
+  acceptance:
+    given: An isolated authenticated MCP user with real persisted target/comment data.
+    when: The user invokes the production MCP mutation and, for idempotent operations, repeats the unchanged
+      operation.
+    then:
+    - User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp.
+    - Exactly one persisted event per actual change contains the actor, target, and source=mcp without copying
+      private content.
+    - Unchanged repeated add/remove operations add no audit event.
+    test:
+      file: tests/integration/mcp/community/audit-policy.test.ts
+      name: audit.action-comment-react
 - id: audit.action-description-edit
   category: privacy
   topic: actions
   rule: User updates an object description (content changed). The description row, edit history, and audit
     row are committed together.
+  acceptance:
+    given: An isolated authenticated MCP user with real persisted target/comment data.
+    when: A real database constraint rejects the audit insertion, then the user retries the production MCP
+      description mutation with the constraint removed.
+    then:
+    - Audit insertion failure rolls back description and edit-history writes.
+    - A successful change persists the description, one edit-history row, and one content-free audit event;
+      an identical retry adds neither history nor audit rows.
+    test:
+      file: tests/integration/mcp/community/audit-policy.test.ts
+      name: audit.action-description-edit
 - id: audit.action-upload-delete
   category: privacy
   topic: actions

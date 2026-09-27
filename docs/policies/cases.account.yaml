@@ -7,6 +7,16 @@ requirements:
   topic: username-change
   rule: After a successful username change, resolving the old username does not return the renamed user. The
     new username resolves to that user immediately; no old-name compatibility redirect is created.
+  acceptance:
+    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
+    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
+      confirmations.
+    then:
+    - After a successful username change, resolving the old username does not return the renamed user. The
+      new username resolves to that user immediately; no old-name compatibility redirect is created.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.username-change-2
 - id: cases.account.oauth-connection-error-1
   category: behavior
   topic: oauth-connection-error
@@ -24,21 +34,46 @@ requirements:
   topic: account-deletion
   rule: The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
     it submits the deletion request.
+  acceptance:
+    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
+    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
+      confirmations.
+    then:
+    - The settings account-deletion flow requires the user to enter the exact confirmation word DELETE before
+      it submits the deletion request.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.account-deletion-1
 - id: cases.account.account-deletion-2
   category: behavior
   topic: account-deletion
   rule: After successful account deletion, the browser clears its authenticated viewer state and leaves settings
     for a public page.
-- id: cases.account.scenario-guidance-1
-  category: behavior
-  topic: scenario-guidance
-  rule: After a successful username change, the public profile canonical URL uses the new username and resolves
-    to the same user.
+  acceptance:
+    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
+    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
+      confirmations.
+    then:
+    - After successful account deletion, the browser clears its authenticated viewer state and leaves settings
+      for a public page.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.account-deletion-2
 - id: cases.account.deleted-session-revocation
   category: authorization
   topic: account-deletion
   rule: Successful account deletion revokes the deleted user’s active sessions; a previously valid session
     cannot authorize subsequent account or workspace requests.
+  acceptance:
+    given: An isolated user has a real signed-in browser session; the replay case also has a second valid session.
+    when: The browser uses the actual settings form to rename or delete the account, or enters invalid deletion
+      confirmations.
+    then:
+    - Successful account deletion revokes the deleted user’s active sessions; a previously valid session cannot
+      authorize subsequent account or workspace requests.
+    test:
+      file: tests/e2e/src/app/account-policy/test.ts
+      name: cases.account.deleted-session-revocation
 refs:
 - feature: user
   capability: settings
@@ -51,5 +86,6 @@ topics:
   title: Oauth connection error
 - id: account-deletion
   title: Account deletion
-- id: scenario-guidance
-  title: Scenario guidance
+rationale:
+- Canonical profile URLs after a username change are owned by user.public-profile-canonical-route. The account
+  scenario retains the independent old-name invalidation contract in cases.account.username-change-2.

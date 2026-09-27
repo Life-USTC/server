@@ -67,12 +67,11 @@ test("task filters respond after navigating between workspace pages", async ({
   }
 });
 
-for (const tab of ["homeworks", "todos", "exams"] as const) {
-  for (const mobile of [false, true]) {
-    for (const includePending of [false, true]) {
-      test(`${tab} filters actual ${includePending ? "mixed" : "completed-only"} data on ${mobile ? "mobile" : "desktop"}`, async ({
-        page,
-      }) => {
+test("ui.workspace-filters-and-empty-states-1", async ({ page }) => {
+  test.setTimeout(180_000);
+  for (const tab of ["homeworks", "todos", "exams"] as const) {
+    for (const mobile of [false, true]) {
+      for (const includePending of [false, true]) {
         await page.setViewportSize(
           mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 },
         );
@@ -166,7 +165,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
           await page.context().setOffline(false);
           await fixture.cleanup();
         }
-      });
+      }
     }
   }
-}
+});

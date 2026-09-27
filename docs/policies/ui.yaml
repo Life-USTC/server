@@ -377,7 +377,16 @@ requirements:
 - id: ui.workspace-footer-policy-1
   category: presentation
   topic: workspace-footer-policy
-  rule: Public discovery, content, policy, and marketing pages retain the public footer.
+  rule: Public discovery, policy, and marketing pages retain the public footer. Focused catalog detail pages
+    may omit the footer; their legal and help navigation remains required by ui.public-legal-help-navigation.
+  acceptance:
+    given: Public discovery, policy, and usage pages with no authenticated viewer.
+    when: The browser loads representative pages at desktop and mobile widths.
+    then:
+    - A visible public footer retains navigable Terms, Privacy, and usage links.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-footer-policy-1
 - id: ui.workspace-footer-policy-2
   category: presentation
   topic: workspace-footer-policy
@@ -388,21 +397,60 @@ requirements:
   rule: Homework, todo, and exam status filters retain the selected value through repeated activation, empty
     results, and completing the last pending task. Only an explicit selection or clear action changes the applied
     filter.
+  acceptance:
+    given: Real homework, todo, and exam pages with isolated task fixtures or a blocked hydration script.
+    when: The browser repeatedly selects filters, using empty/nonempty results, completion, keyboard activation,
+      and an offline connection as applicable.
+    then:
+    - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
+      results, and completing the last pending task. Only an explicit selection or clear action changes the
+      applied filter.
+    test:
+      file: tests/e2e/src/app/workspace/task-filters.test.ts
+      name: ui.workspace-filters-and-empty-states-1
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
     visual and accessible state without waiting for the results request to finish.
+  acceptance:
+    given: Real homework, todo, and exam pages with isolated task fixtures or a blocked hydration script.
+    when: The browser repeatedly selects filters, using empty/nonempty results, completion, keyboard activation,
+      and an offline connection as applicable.
+    then:
+    - Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
+      visual and accessible state without waiting for the results request to finish.
+    test:
+      file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
+      name: ui.workspace-filters-and-empty-states-2
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
     or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
     the explanation.
+  acceptance:
+    given: An isolated user has completed homework, todo, and exam rows but no pending rows.
+    when: The browser loads the default pending filter and inspects the empty state or activates Clear filter.
+    then:
+    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
+      or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
+      the explanation.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-filters-and-empty-states-3
 - id: ui.workspace-filters-and-empty-states-5
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Filter-empty results explain the selection and offer clear-filter.
+  acceptance:
+    given: An isolated user has completed homework, todo, and exam rows but no pending rows.
+    when: The browser loads the default pending filter and inspects the empty state or activates Clear filter.
+    then:
+    - Filter-empty results explain the selection and offer clear-filter.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-filters-and-empty-states-5
 - id: ui.workspace-filters-and-empty-states-6
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -719,6 +767,19 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.footer-navigation-landmark
+- id: ui.public-legal-help-navigation
+  category: presentation
+  topic: workspace-footer-policy
+  rule: Directly opened course, section, and teacher detail pages provide reachable Terms, Privacy, and usage-help
+    links through the public shell, on desktop and mobile without requiring sign-in.
+  acceptance:
+    given: An anonymous user directly opens each kind of public catalog detail at desktop and mobile widths.
+    when: The user expands navigation when necessary and activates each legal or help destination.
+    then:
+    - Each destination is reachable without sign-in, responds successfully, and has a visible page heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.public-legal-help-navigation
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -780,7 +841,7 @@ rationale:
 - May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
   branches).
 - 'Course and teacher offering history, 20-item pagination, retired-record inclusion and #sections navigation
-  are owned by course.bounded-detail-history; repeating the same behavior here would create a second acceptance
-  owner.'
+  are owned by course.bounded-detail-history and teacher.bounded-detail-history; repeating the same behavior
+  here would create a second acceptance owner.'
 - Detail orientation requires recognizable entity identity and a route back to its owning collection. Persistent
   navigation or an explicit parent link can provide this; breadcrumb styling is not required.
