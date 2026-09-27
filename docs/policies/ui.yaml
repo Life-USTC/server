@@ -788,6 +788,17 @@ requirements:
   rule: Public course, section, and teacher detail metadata uses the canonical entity-root URL and controlled
     localized summaries rather than editable user-authored descriptions. This does not require supporting obsolete
     detail subroutes.
+  acceptance:
+    given: Isolated course, section, and teacher records each have a user-authored description containing
+      a unique marker.
+    when: Chinese and English clients fetch their current entity-root pages with query and fragment noise.
+    then:
+    - Actual SSR metadata contains exactly one complete card set with the entity-root canonical URL and
+      the controlled localized entity summary.
+    - Authored description content is present in page data but never copied into social descriptions or titles.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: ui.social-sharing-metadata-3
 - id: ui.social-sharing-metadata-4
   category: presentation
   topic: social-sharing-metadata
@@ -818,6 +829,16 @@ requirements:
   topic: social-sharing-metadata
   rule: The fixed social image contains no page titles, profile names, or avatars. It is delivered as a static
     asset without invoking application rendering.
+  acceptance:
+    given: The fixed bundled 1200 by 630 PNG and requests with unrelated title/profile/avatar query parameters.
+    when: Clients issue ordinary GET, query-bearing GET, HEAD, and conditional requests for /open-graph.png.
+    then:
+    - Both GETs return the exact bundled static bytes, with PNG metadata and public asset caching; query
+      parameters never affect the image.
+    - Static delivery has no application request ID, HEAD has no body, and a matching ETag returns 304.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: ui.social-sharing-metadata-6
 - id: ui.localized-count-copy-1
   category: presentation
   topic: localized-count-copy

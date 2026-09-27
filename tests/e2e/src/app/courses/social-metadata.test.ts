@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
@@ -239,59 +241,112 @@ test("课程、班级与教师列表页输出本地化 SSR 分享元数据", asy
   }
 });
 
-test("课程与班级详情子路由规范化 canonical 并使用受控摘要", async ({
-  page,
-}) => {
-  await setLocale(page, "zh-cn");
-  const courseMetadata = await readRawSocialMetadata(
-    page,
-    `/catalog/courses/${DEV_SEED.course.jwId}/introduction?utm_source=e2e`,
+test("ui.social-sharing-metadata-3", async ({ page }) => {
+  const base = 1_700_000_000 + Math.floor(Math.random() * 100_000_000);
+  const marker = `authored-description-${crypto.randomUUID()}`;
+  const fixture = await withE2ePrisma((db) =>
+    db.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name: "Metadata author",
+          email: `${crypto.randomUUID()}@example.test`,
+        },
+      });
+      const course = await tx.course.create({
+        data: {
+          jwId: base,
+          code: `META-${base}`,
+          nameCn: "元数据测试课程",
+          nameEn: "Metadata course",
+        },
+      });
+      const teacher = await tx.teacher.create({
+        data: {
+          jwId: base + 1,
+          code: `META-T-${base}`,
+          nameCn: "元数据测试教师",
+          nameEn: "Metadata teacher",
+        },
+      });
+      const section = await tx.section.create({
+        data: {
+          jwId: base + 2,
+          code: `META-S-${base}`,
+          courseId: course.id,
+          teachers: { connect: { id: teacher.id } },
+        },
+      });
+      for (const target of [
+        { courseId: course.id },
+        { teacherId: teacher.id },
+        { sectionId: section.id },
+      ])
+        await tx.description.create({
+          data: { ...target, content: marker, lastEditedById: user.id },
+        });
+      return { user, course, section, teacher };
+    }),
   );
-  expectCompleteSocialMetadata(courseMetadata, {
-    canonicalPath: `/catalog/courses/${DEV_SEED.course.jwId}`,
-    description: `在 Life@USTC 查看${DEV_SEED.course.nameCn}（${DEV_SEED.course.code}）的班级、简介与讨论。`,
-    imageAlt: "Life@USTC 课程与日程工作台分享卡片",
-    locale: "zh-cn",
-    title: `${DEV_SEED.course.nameCn} (${DEV_SEED.course.code}) - Life@USTC`,
-  });
-
-  await setLocale(page, "en-us");
-  const sectionMetadata = await readRawSocialMetadata(
-    page,
-    `/catalog/sections/${DEV_SEED.section.jwId}?subscribe=1#calendar`,
-  );
-  expectCompleteSocialMetadata(sectionMetadata, {
-    canonicalPath: `/catalog/sections/${DEV_SEED.section.jwId}`,
-    description: `View section ${DEV_SEED.section.code} for ${DEV_SEED.course.nameEn}, including schedules, homework, exams, teachers, and discussions on Life@USTC.`,
-    imageAlt: "Life@USTC course and schedule workspace social card",
-    locale: "en-us",
-    title: `${DEV_SEED.course.nameEn} · Section ${DEV_SEED.section.code} - Life@USTC`,
-  });
-});
-
-test("教师详情原始 SSR HTML 使用实体根路径与本地化摘要", async ({ page }) => {
-  await setLocale(page, "en-us");
-  await gotoAndWaitForReady(
-    page,
-    `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
-  );
-  const teacherHref = await page
-    .locator("#main-content a[href^='/catalog/teachers/']:visible")
-    .first()
-    .getAttribute("href");
-  expect(teacherHref).toMatch(/^\/catalog\/teachers\/\d+$/);
-
-  const metadata = await readRawSocialMetadata(
-    page,
-    `${teacherHref}/sections?utm_source=e2e`,
-  );
-  expectCompleteSocialMetadata(metadata, {
-    canonicalPath: teacherHref ?? "",
-    description: `View ${DEV_SEED.teacher.nameEn}'s profile, teaching sections, descriptions, and discussions on Life@USTC.`,
-    imageAlt: "Life@USTC course and schedule workspace social card",
-    locale: "en-us",
-    title: `Teacher: ${DEV_SEED.teacher.nameEn} - Life@USTC`,
-  });
+  try {
+    for (const locale of ["zh-cn", "en-us"] as const) {
+      await setLocale(page, locale);
+      const cn = locale === "zh-cn";
+      const courseName = cn ? fixture.course.nameCn : fixture.course.nameEn;
+      const teacherName = cn ? fixture.teacher.nameCn : fixture.teacher.nameEn;
+      const imageAlt = cn
+        ? "Life@USTC 课程与日程工作台分享卡片"
+        : "Life@USTC course and schedule workspace social card";
+      const cases = [
+        {
+          path: `/catalog/courses/${fixture.course.jwId}`,
+          title: `${courseName} (${fixture.course.code}) - Life@USTC`,
+          description: cn
+            ? `在 Life@USTC 查看${courseName}（${fixture.course.code}）的班级、简介与讨论。`
+            : `View ${courseName} (${fixture.course.code}), teaching sections, descriptions, and discussions on Life@USTC.`,
+        },
+        {
+          path: `/catalog/sections/${fixture.section.jwId}`,
+          title: cn
+            ? `${courseName}(${fixture.section.code}) - Life@USTC`
+            : `${courseName} · Section ${fixture.section.code} - Life@USTC`,
+          description: cn
+            ? `在 Life@USTC 查看${courseName}（${fixture.section.code}）的课表、作业、考试、教师与讨论。`
+            : `View section ${fixture.section.code} for ${courseName}, including schedules, homework, exams, teachers, and discussions on Life@USTC.`,
+        },
+        {
+          path: `/catalog/teachers/${fixture.teacher.id}`,
+          title: cn
+            ? `教师：${teacherName} - Life@USTC`
+            : `Teacher: ${teacherName} - Life@USTC`,
+          description: cn
+            ? `在 Life@USTC 查看${teacherName}的教师资料、授课班级、简介与讨论。`
+            : `View ${teacherName}'s profile, teaching sections, descriptions, and discussions on Life@USTC.`,
+        },
+      ];
+      for (const current of cases) {
+        const path = `${current.path}?utm_source=e2e&title=${encodeURIComponent(marker)}#comments`;
+        const raw = await page.request.get(path);
+        expect(raw.status()).toBe(200);
+        expect(await raw.text()).toContain(marker);
+        const metadata = await readRawSocialMetadata(page, path);
+        expectCompleteSocialMetadata(metadata, {
+          canonicalPath: current.path,
+          description: current.description,
+          title: current.title,
+          imageAlt,
+          locale,
+        });
+        expect(JSON.stringify(metadata.values)).not.toContain(marker);
+      }
+    }
+  } finally {
+    await withE2ePrisma(async (db) => {
+      await db.section.delete({ where: { id: fixture.section.id } });
+      await db.teacher.delete({ where: { id: fixture.teacher.id } });
+      await db.course.delete({ where: { id: fixture.course.id } });
+      await db.user.delete({ where: { id: fixture.user.id } });
+    });
+  }
 });
 
 test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({
@@ -370,14 +425,17 @@ test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字�
   }
 });
 
-test("固定社交分享图片由静态资源服务返回，不受查询参数影响", async ({
-  request,
-}) => {
+test("ui.social-sharing-metadata-6", async ({ request }) => {
   const response = await request.get("/open-graph.png");
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("image/png");
 
   const image = await response.body();
+  expect(image).toEqual(
+    await readFile(
+      new URL("../../../../../public/open-graph.png", import.meta.url),
+    ),
+  );
   expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
   expect(image.readUInt32BE(16)).toBe(1200);
   expect(image.readUInt32BE(20)).toBe(630);
