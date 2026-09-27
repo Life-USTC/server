@@ -674,6 +674,15 @@ requirements:
   topic: workspace-filters-and-empty-states
   rule: 'Setup-empty states offer a relevant authorized next action: task creation for an empty todo list and
     subscription setup for learning views that require subscribed sections.'
+  rationale: Learning setup applies to overview, homework and exams. The unsubscribed calendar remains a personal activity calendar and does not require section subscriptions.
+  acceptance:
+    given: An isolated signed-in user has no todos or section subscriptions, in English desktop and Chinese mobile views.
+    when: The browser follows section/course setup actions from overview, homework and exams, then creates the first todo from the empty todo list.
+    then:
+    - Setup actions reach the public section/course pages, and the authorized todo action creates the first task in the database and displays it.
+    test:
+      file: tests/e2e/src/app/shared-policy/setup-empty.test.ts
+      name: ui.workspace-filters-and-empty-states-6
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
