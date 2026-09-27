@@ -92,12 +92,14 @@ test.describe("/community/users/[identifier]", () => {
       has: page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
     });
     await expect(summary).toBeVisible();
-    for (const label of ["评论", "上传", "创建作业"]) {
+    for (const label of [
+      /^(评论|Comments)$/,
+      /^(上传|Uploads)$/,
+      /^(创建作业|Created homework)$/,
+    ]) {
       await expect(summary.getByText(label, { exact: true })).toBeVisible();
     }
-    await expect(summary.getByText("教学班订阅", { exact: true })).toHaveCount(
-      0,
-    );
+    await expect(summary.getByText(/^(教学班订阅|Sections)$/)).toHaveCount(0);
     const response = await page.request.get(
       `/api/community/users/${DEV_SEED.adminUsername}`,
     );
@@ -107,6 +109,18 @@ test.describe("/community/users/[identifier]", () => {
     expect(body.user._count).not.toHaveProperty("subscribedSections");
 
     await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const label of [
+      /^(评论|Comments)$/,
+      /^(上传|Uploads)$/,
+      /^(创建作业|Created homework)$/,
+    ]) {
+      await expect(summary.getByText(label, { exact: true })).toBeVisible();
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+    await captureStepScreenshot(page, testInfo, "u-username/stats-grid-mobile");
   });
 
   test("显示贡献热力图及 totalContributions", async ({ page }, testInfo) => {
