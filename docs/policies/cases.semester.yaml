@@ -22,8 +22,8 @@ requirements:
   rule: The no-current-semester state links to catalog browsing and existing subscribed-section history. A
     code-import flow requires selection of an available semester when no current semester can supply its scope.
   acceptance:
-    given: An isolated user retains a historical section subscription while every stored semester range has ended.
-    when: The user follows the no-current-semester recovery links and opens code import in Chinese and English.
+    given: An isolated user retains a historical section subscription while no stored semester covers the explicit 2030 snapshot.
+    when: The user follows the no-current-semester recovery links and opens code import at the same reference time in Chinese and English.
     then:
     - Catalog course and section links remain available, and the history link opens the existing subscribed section.
     - Code matching starts with no selected semester and stays disabled until an available semester is selected.

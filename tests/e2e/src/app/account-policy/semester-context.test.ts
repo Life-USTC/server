@@ -4,7 +4,7 @@ import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-test("cases.semester.no-current-semester-1", async ({ page }) => {
+test("cases.semester.no-current-semester-1", async ({ page }, testInfo) => {
   const marker = `semester-policy-${crypto.randomUUID()}`;
   const fixture = await withE2ePrisma(async (db) => {
     const user = await db.user.create({
@@ -48,7 +48,7 @@ test("cases.semester.no-current-semester-1", async ({ page }) => {
       await gotoAndWaitForReady(page, snapshot);
       if (locale === "en-us")
         await page.screenshot({
-          path: "/tmp/life-policy-no-semester-after.png",
+          path: testInfo.outputPath("no-semester-after.png"),
           fullPage: true,
         });
       await expect(page.locator("#main-content")).toContainText(
@@ -111,16 +111,7 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
     await db.userSectionSubscription.create({
       data: { userId: user.id, sectionId: section.id },
     });
-    const semesters = await db.semester.findMany({
-      select: { id: true, startDate: true, endDate: true },
-    });
-    await db.semester.updateMany({
-      data: {
-        startDate: new Date("2000-01-01T00:00:00.000Z"),
-        endDate: new Date("2000-06-01T00:00:00.000Z"),
-      },
-    });
-    return { user, section, semesters };
+    return { user, section };
   });
   try {
     await page
@@ -134,7 +125,10 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
           })
         ).status(),
       ).toBe(200);
-      await gotoAndWaitForReady(page, "/workspace/overview");
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/overview?snapshotAt=2030-01-01T00:00:00%2B08:00",
+      );
       await expect(
         page.getByRole("link", {
           name: /Browse Courses|浏览课程/,
@@ -154,6 +148,10 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
         })
         .click();
       await expect(page).toHaveURL(/\/workspace\/subscriptions$/);
+      await gotoAndWaitForReady(
+        page,
+        "/workspace/subscriptions?snapshotAt=2030-01-01T00:00:00%2B08:00",
+      );
       await expect(
         page
           .locator(
@@ -187,11 +185,6 @@ test("cases.semester.no-current-semester-2", async ({ page }) => {
     }
   } finally {
     await withE2ePrisma(async (db) => {
-      for (const semester of fixture.semesters)
-        await db.semester.update({
-          where: { id: semester.id },
-          data: { startDate: semester.startDate, endDate: semester.endDate },
-        });
       await db.auditLog.deleteMany({ where: { userId: fixture.user.id } });
       await db.user.delete({ where: { id: fixture.user.id } });
     });
