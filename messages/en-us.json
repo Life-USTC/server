@@ -1366,7 +1366,6 @@
     "idLabel": "User",
     "joinedAt": "Joined on {date}",
     "stats": {
-      "sections": "Selected sections",
       "comments": "Comments",
       "uploads": "Uploads",
       "homeworks": "Created homework"

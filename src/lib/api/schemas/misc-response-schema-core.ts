@@ -223,10 +223,8 @@ export const publicUserProfileResponseSchema = z.object({
       comments: z.number().int().nonnegative(),
       uploads: z.number().int().nonnegative(),
       homeworksCreated: z.number().int().nonnegative(),
-      subscribedSections: z.number().int().nonnegative(),
     }),
   }),
-  sectionCount: z.number().int().nonnegative(),
   weeks: z.array(
     z.array(
       z.object({

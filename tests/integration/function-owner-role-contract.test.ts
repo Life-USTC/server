@@ -111,13 +111,6 @@ const expectedFunctions = [
     securityDefiner: true,
     settings: ['search_path=""'],
     signature:
-      "public.get_public_profile_section_subscription_count(p_user_id text)",
-    volatility: "STABLE",
-  },
-  {
-    securityDefiner: true,
-    settings: ['search_path=""'],
-    signature:
       "public.get_public_profile_upload_stats(p_user_id text, p_since timestamp without time zone)",
     volatility: "STABLE",
   },

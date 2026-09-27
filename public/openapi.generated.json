@@ -33156,18 +33156,12 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
-                  },
-                  "subscribedSections": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
                   "comments",
                   "uploads",
-                  "homeworksCreated",
-                  "subscribedSections"
+                  "homeworksCreated"
                 ],
                 "additionalProperties": false
               }
@@ -33181,11 +33175,6 @@
               "_count"
             ],
             "additionalProperties": false
-          },
-          "sectionCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
           },
           "weeks": {
             "type": "array",
@@ -33220,7 +33209,6 @@
         },
         "required": [
           "user",
-          "sectionCount",
           "weeks",
           "totalContributions"
         ],

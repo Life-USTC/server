@@ -21,10 +21,8 @@ type Profile = {
       comments: number;
       uploads: number;
       homeworksCreated: number;
-      subscribedSections: number;
     };
   };
-  sectionCount: number;
   copy: ProfileCopy;
   locale: AppLocale;
   weeks: ContributionCell[][];
@@ -43,7 +41,6 @@ $: initials = displayName.slice(0, 1).toUpperCase();
 $: joinedDate = dateFormatter.format(new Date(user.createdAt));
 
 $: stats = [
-  { label: copy.stats.sections, value: profile.sectionCount },
   { label: copy.stats.comments, value: user._count.comments },
   { label: copy.stats.uploads, value: user._count.uploads },
   { label: copy.stats.homeworks, value: user._count.homeworksCreated },

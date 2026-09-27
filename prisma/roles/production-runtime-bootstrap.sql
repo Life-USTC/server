@@ -322,8 +322,6 @@ ALTER FUNCTION public.comment_hidden_root_count(
   integer,
   integer
 ) OWNER TO life_ustc_function_owner;
-ALTER FUNCTION public.get_public_profile_section_subscription_count(text)
-  OWNER TO life_ustc_function_owner;
 ALTER FUNCTION public.claim_upload_pending_storage_cleanup(
   timestamp without time zone,
   integer,
@@ -425,7 +423,6 @@ GRANT EXECUTE ON FUNCTION
   public.comment_reaction_summaries(text[]),
   public.comment_hidden_root_count(integer, integer, integer, text, integer, integer),
   public.get_public_profile_comment_contribution_days(text, timestamp without time zone),
-  public.get_public_profile_section_subscription_count(text),
   public.claim_upload_pending_storage_cleanup(
     timestamp without time zone,
     integer,

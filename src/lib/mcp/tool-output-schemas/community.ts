@@ -190,7 +190,6 @@ export const communityModeOutputSchemas = {
 export const communityToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   community_user_get: objectOutputSchema({
     user: z.union([compactUserSchema, publicProfileFullUserSchema]),
-    sectionCount: z.number().int().nonnegative(),
     weeks: contributionWeeksSchema,
     totalContributions: z.number().int().nonnegative(),
   }),

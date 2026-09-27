@@ -1024,7 +1024,6 @@
     "idLabel": "用户",
     "joinedAt": "加入时间：{date}",
     "stats": {
-      "sections": "教学班订阅",
       "comments": "评论",
       "uploads": "上传",
       "homeworks": "创建作业"

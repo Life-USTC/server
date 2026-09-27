@@ -6,7 +6,6 @@
  * - user.name (display name)
  * - user.username (@username)
  * - user.createdAt (join date)
- * - sectionCount (subscribed sections)
  * - user._count.comments (total comments)
  * - user._count.uploads (total uploads)
  * - user._count.homeworksCreated (homeworks created)
@@ -89,18 +88,23 @@ test.describe("/community/users/[identifier]", () => {
       `/community/users/${DEV_SEED.adminUsername}`,
     );
 
-    // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
-    // Stats grid must contain numeric counters
-    const statsGrid = page.locator("[class*=grid]").filter({
-      has: page.locator("[class*=text]"),
+    const summary = page.locator('[data-slot="card"]').filter({
+      has: page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
     });
-    await expect(statsGrid.first()).toBeVisible();
-
-    // At least one numeric counter is present (even if 0)
-    const counters = page.locator(
-      "[class*=stat], [class*=count], [class*=grid] [class*=text]",
+    await expect(summary).toBeVisible();
+    for (const label of ["评论", "上传", "创建作业"]) {
+      await expect(summary.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(summary.getByText("教学班订阅", { exact: true })).toHaveCount(
+      0,
     );
-    expect(await counters.count()).toBeGreaterThan(0);
+    const response = await page.request.get(
+      `/api/community/users/${DEV_SEED.adminUsername}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).not.toHaveProperty("sectionCount");
+    expect(body.user._count).not.toHaveProperty("subscribedSections");
 
     await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
   });

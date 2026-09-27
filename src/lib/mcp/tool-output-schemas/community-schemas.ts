@@ -15,7 +15,6 @@ export const publicProfileFullUserSchema = compactUserSchema.extend({
   _count: z.strictObject({
     comments: z.number().int().nonnegative(),
     homeworksCreated: z.number().int().nonnegative(),
-    subscribedSections: z.number().int().nonnegative(),
     uploads: z.number().int().nonnegative(),
   }),
 });
@@ -143,7 +142,6 @@ export function publicProfileOutputSchema(userSchema: z.ZodType) {
     exactSuccessOutput({
       found: z.literal(true),
       user: userSchema,
-      sectionCount: z.number().int().nonnegative(),
       weeks: contributionWeeksSchema,
       totalContributions: z.number().int().nonnegative(),
     }),

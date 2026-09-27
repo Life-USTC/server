@@ -143,15 +143,44 @@ requirements:
   category: privacy
   rule: Named public profile comment totals and contribution dates include only active, public, non-anonymous
     comments. Login-only, anonymous, hidden and deleted comments do not change those public values.
+  acceptance:
+    given: A named profile has public, anonymous, logged-in-only, softbanned, deleted and tombstoned comments.
+    when: The restricted runtime reads public contribution days and public profile counts, then a public
+      comment becomes anonymous.
+    then:
+    - Only active, public, non-anonymous and non-deleted comments contribute to counts or dates.
+    - Changing a comment to anonymous immediately removes its attributed contribution.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-comment-contribution-privacy
 - id: user.public-upload-contribution-privacy
   category: privacy
   rule: Named public profile upload totals and contribution dates include only uploads attached to active,
     public, non-anonymous comments. Unattached uploads and attachments of invisible or anonymous comments
     do not change those public values.
+  acceptance:
+    given: The profile owns public attachments, private attachments and unattached uploads.
+    when: The restricted runtime reads totals and contribution dates before and after publishing and restricting
+      an attachment comment.
+    then:
+    - Only uploads attached to active public non-anonymous comments by the same owner contribute.
+    - Unattached, anonymous, restricted and deleted attachments do not change either projection.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-upload-contribution-privacy
 - id: user.private-workspace-profile-exclusion
   category: privacy
   rule: Public profiles do not expose private section subscription counts or homework completion state.
     Private workspace actions do not change public contribution totals or date cells.
+  acceptance:
+    given: A public profile exists for a user with private homework completion state.
+    when: The user changes subscriptions and completion state while their public profile is read.
+    then:
+    - Public output and contribution counts do not change.
+    - Neither subscription totals nor the removed privileged subscription-count function remain available.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.private-workspace-profile-exclusion
 capabilities:
   sign-in:
     title: Sign In
