@@ -1,6 +1,20 @@
 import { readFileSync } from "node:fs";
 import { parse } from "jsonc-parser";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createWaitUntil } from "../../../shared/wait-until";
+
+const backgroundTasks = createWaitUntil();
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: vi.fn().mockResolvedValue(undefined),
+}));
+
+afterEach(async () => {
+  try {
+    await backgroundTasks.drain();
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
 
 const {
   appFetchMock,
@@ -96,10 +110,14 @@ async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   try {
     return await callback();
   } finally {
-    if (previousHtmlRewriter === undefined) {
-      delete globalScope.HTMLRewriter;
-    } else {
-      globalScope.HTMLRewriter = previousHtmlRewriter;
+    try {
+      await backgroundTasks.drain();
+    } finally {
+      if (previousHtmlRewriter === undefined) {
+        delete globalScope.HTMLRewriter;
+      } else {
+        globalScope.HTMLRewriter = previousHtmlRewriter;
+      }
     }
   }
 }
@@ -134,10 +152,6 @@ describe("Worker routing entrypoint", () => {
     appFetchMock.mockResolvedValue(new Response("dynamic", { status: 200 }));
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("defaults early dynamic redirects to private caching without changing their payload or cookies", async () => {
     for (const [status, body, contentType, location] of [
       [303, null, null, "/account/welcome?callbackUrl=%2F"],
@@ -169,7 +183,7 @@ describe("Worker routing entrypoint", () => {
             headers: { cookie: "better-auth.session_token=session" },
           }),
           {},
-          { waitUntil: vi.fn() },
+          { waitUntil: backgroundTasks.waitUntil },
         );
         expect(response.status).toBe(status);
         expect(response.headers.get("Location")).toBe(location);
@@ -212,7 +226,7 @@ describe("Worker routing entrypoint", () => {
         },
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(200);
@@ -278,7 +292,11 @@ describe("Worker routing entrypoint", () => {
       return new Response("unauthorized", { status: 401 });
     });
 
-    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+    const response = await worker.fetch(
+      request,
+      {},
+      { waitUntil: backgroundTasks.waitUntil },
+    );
 
     expect(response.status).toBe(401);
     expect(
@@ -312,7 +330,11 @@ describe("Worker routing entrypoint", () => {
       "https://life-ustc.test/api/workspace/uploads/object",
       requestInit,
     );
-    const response = await worker.fetch(request, {}, { waitUntil: vi.fn() });
+    const response = await worker.fetch(
+      request,
+      {},
+      { waitUntil: backgroundTasks.waitUntil },
+    );
     expect(response.status).toBe(401);
     expect(cancel).toHaveBeenCalledExactlyOnceWith("request body released");
   });
@@ -334,7 +356,7 @@ describe("Worker routing entrypoint", () => {
       exports: {
         PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetch })),
       },
-      waitUntil: vi.fn(),
+      waitUntil: backgroundTasks.waitUntil,
     };
     for (const path of [
       "/catalog/courses",
@@ -413,7 +435,7 @@ describe("Worker routing entrypoint", () => {
               fetch: publicSsrFetchMock,
             })),
           },
-          waitUntil: vi.fn(),
+          waitUntil: backgroundTasks.waitUntil,
         },
       ),
     );
@@ -461,7 +483,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/catalog/courses/123?token=private-value",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(200);
@@ -490,7 +512,7 @@ describe("Worker routing entrypoint", () => {
       exports: {
         PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
       },
-      waitUntil: vi.fn(),
+      waitUntil: backgroundTasks.waitUntil,
     };
     for (const cookie of [
       "NEXT_LOCALE=zh-cn",
@@ -577,7 +599,7 @@ describe("Worker routing entrypoint", () => {
     const exports = {
       PublicSsr: publicSsrExportStub(() => ({ fetch: publicSsrFetchMock })),
     };
-    const context = { exports, waitUntil: vi.fn() };
+    const context = { exports, waitUntil: backgroundTasks.waitUntil };
 
     const first = await withHtmlRewriter(() =>
       worker.fetch(
@@ -642,7 +664,7 @@ describe("Worker routing entrypoint", () => {
           },
         ),
         {},
-        { waitUntil: vi.fn() },
+        { waitUntil: backgroundTasks.waitUntil },
       ),
     ).rejects.toBe(error);
 
@@ -680,7 +702,7 @@ describe("Worker routing entrypoint", () => {
     const response = await worker.fetch(
       new Request("https://life-ustc.test/sections/159446"),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(301);
@@ -708,7 +730,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/signin?callbackUrl=%2Fworkspace%2Foverview",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(308);
@@ -734,7 +756,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/users/user-1:feed-token/calendar.ics",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(308);
@@ -759,7 +781,7 @@ describe("Worker routing entrypoint", () => {
         "https://life-ustc.test/api/calendar-subscriptions/sub-1/calendar.ics",
       ),
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(response.status).toBe(410);
@@ -794,7 +816,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     expect(response.status).toBe(200);
@@ -820,7 +845,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     // The bare `PublicSsr()` this replaces threw before the RPC was ever
@@ -846,7 +874,10 @@ describe("Worker routing entrypoint", () => {
         method: "POST",
       }),
       { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
-      { exports: { PublicSsr: publicSsrStub }, waitUntil: vi.fn() },
+      {
+        exports: { PublicSsr: publicSsrStub },
+        waitUntil: backgroundTasks.waitUntil,
+      },
     );
 
     expect(response.status).toBe(401);
@@ -929,7 +960,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-calendar-export-rebuild-dlq",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(handleCalendarExportRebuildBatchMock).not.toHaveBeenCalled();
@@ -973,7 +1004,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-audit-log-write-dlq",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     expect(handleAuditLogWriteBatchMock).not.toHaveBeenCalled();
@@ -1004,7 +1035,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-audit-log-write",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     const queueFinishes = logAppEventMock.mock.calls.filter(
@@ -1034,7 +1065,7 @@ describe("Worker routing entrypoint", () => {
         queue: "life-ustc-calendar-export-rebuild",
       },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
 
     const queueFinishes = logAppEventMock.mock.calls.filter(
@@ -1063,7 +1094,7 @@ it("audit.retention-maintenance-cadence", async () => {
   );
   expect(config.triggers.crons).toContain("23 */6 * * *");
   const controller = { cron: "23 */6 * * *" };
-  const context = { waitUntil: vi.fn() };
+  const context = { waitUntil: backgroundTasks.waitUntil };
   cleanupExpiredAuthRecordsMock.mockResolvedValue({
     sessions: 0,
     verificationTokens: 0,
@@ -1159,7 +1190,11 @@ it("weather.weather-refresh-budget", async () => {
       expect(config.triggers.crons).toContain(cron);
       for (let minute = 0; minute < 1440; minute += interval) {
         const start = calls.length;
-        await worker.scheduled({ cron }, {}, { waitUntil: vi.fn() });
+        await worker.scheduled(
+          { cron },
+          {},
+          { waitUntil: backgroundTasks.waitUntil },
+        );
         ticks[key]++;
         const tick = calls.slice(start);
         expect(tick).toHaveLength(3);
@@ -1197,13 +1232,17 @@ it("weather.weather-refresh-budget", async () => {
     await worker.scheduled(
       { cron: "*/20 * * * *" },
       {},
-      { waitUntil: vi.fn() },
+      { waitUntil: backgroundTasks.waitUntil },
     );
     expect(calls.length - start).toBe(3);
     expect(writeWeatherCache).toHaveBeenCalledTimes(120);
     expect(writeWeatherHistory).toHaveBeenCalledTimes(120);
   } finally {
-    vi.unstubAllGlobals();
-    vi.unstubAllEnvs();
+    try {
+      await backgroundTasks.drain();
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
   }
 });

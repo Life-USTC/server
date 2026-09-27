@@ -2,6 +2,12 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import { createWaitUntil } from "../../../shared/wait-until";
+
+const backgroundTasks = createWaitUntil();
+vi.mock("@/lib/db/feature-event-store", () => ({
+  writeObservabilityBatch: vi.fn().mockResolvedValue(undefined),
+}));
 
 const {
   getCommentsPayloadMock,
@@ -203,8 +209,12 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
+afterEach(async () => {
+  try {
+    await backgroundTasks.drain();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
 
 async function loadHistoryPage(
@@ -522,12 +532,7 @@ describe("catalog detail loader critical path", () => {
     );
     const open = vi.fn(async () => ({ match, put }));
     vi.stubGlobal("caches", { open });
-    const scheduled: Promise<unknown>[] = [];
-    const executionContext = {
-      waitUntil(promise: Promise<unknown>) {
-        scheduled.push(promise);
-      },
-    };
+    const executionContext = { waitUntil: backgroundTasks.waitUntil };
     const { loadCourseDetailPage, loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
@@ -556,7 +561,7 @@ describe("catalog detail loader critical path", () => {
           request: request(`/catalog/sections/${section.jwId}`),
           url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
         });
-        await Promise.all(scheduled);
+        await backgroundTasks.drain();
       },
       executionContext,
     );
@@ -598,7 +603,7 @@ describe("detail request session resolution", () => {
     const event = {
       cookies: { get: vi.fn(() => undefined) },
       locals: locals(),
-      platform: undefined,
+      platform: { context: { waitUntil: backgroundTasks.waitUntil } },
       request,
       route: { id: "/catalog/courses/[jwId]" },
       url: new URL(request.url),
