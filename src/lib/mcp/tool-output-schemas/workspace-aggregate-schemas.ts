@@ -202,7 +202,13 @@ export const workspaceAggregateOutputSchemas = {
       upcomingExamsCount: count,
     }),
     samples: z.strictObject({
-      dueTodos: compactOverviewResponseSchema.shape.dueTodos.shape.items,
+      dueTodos: z.array(
+        compactOverviewResponseSchema.shape.dueTodos.shape.items.element.extend(
+          {
+            createdAt: dateTimeSchema.optional(),
+          },
+        ),
+      ),
       dueHomeworks: z.array(calendarHomeworkSchema),
       upcomingExams: z.array(calendarExamSchema),
     }),
