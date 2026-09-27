@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   allowDebugAuthMock,
@@ -55,6 +55,7 @@ vi.mock("@/lib/db/auth-prisma", () => ({
 }));
 
 describe("Better Auth options", () => {
+  afterEach(() => vi.unstubAllEnvs());
   beforeEach(() => {
     allowDebugAuthMock.mockReset();
     buildPluginsMock.mockClear();
@@ -120,5 +121,34 @@ describe("Better Auth options", () => {
 
     expect(options.emailAndPassword.enabled).toBe(true);
     expect(options.rateLimit).toEqual({ enabled: false });
+  });
+
+  it("user.debug-password-boundary", async () => {
+    const { allowDebugAuth } = await vi.importActual<
+      typeof import("@/lib/auth/auth-config")
+    >("@/lib/auth/auth-config");
+    allowDebugAuthMock.mockImplementation(allowDebugAuth);
+    const { buildBetterAuthOptions } = await import(
+      "@/lib/auth/better-auth-options"
+    );
+    for (const [environment, debug, enabled] of [
+      ["development", "", true],
+      ["test", "", false],
+      ["test", "1", true],
+      ["production", "", false],
+    ] as const) {
+      vi.stubEnv("NODE_ENV", environment);
+      vi.stubEnv("E2E_DEBUG_AUTH", debug);
+      expect(buildBetterAuthOptions().emailAndPassword).toEqual({
+        enabled,
+        disableSignUp: true,
+        autoSignIn: false,
+      });
+    }
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("E2E_DEBUG_AUTH", "1");
+    expect(() => buildBetterAuthOptions()).toThrow(
+      "E2E_DEBUG_AUTH must not be set in production hosting",
+    );
   });
 });

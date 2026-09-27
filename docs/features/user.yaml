@@ -71,6 +71,15 @@ requirements:
   category: authorization
   rule: Email/password authentication is enabled only for local development or the explicit non-production
     E2E debug mode; production does not expose debug password authentication.
+  acceptance:
+    given: Development, ordinary test, explicit E2E and production environments.
+    when: The actual debug policy configures Better Auth options.
+    then:
+    - Password sign-in is enabled only for development or explicit non-production E2E.
+    - Password signup stays disabled in every mode; enabling the debug flag in production throws.
+    test:
+      file: tests/unit/lib/auth/better-auth-options.test.ts
+      name: user.debug-password-boundary
 - id: user.oauth-callback-integrity
   category: authorization
   rule: On a canonical same-origin deployment, OAuth login callbacks must complete state validation and
@@ -190,12 +199,32 @@ requirements:
 - id: user.oauth-client-activity-isolation
   category: authorization
   rule: REST, GraphQL, and MCP expose only events whose subject user and OAuth client both come from the
-    verified principal. Callers cannot provide either identity, and the projection excludes IP, user agent,
-    grant, session, request, and other-client data.
+    verified principal and whose grant generation matches the current delegation. Callers cannot override
+    those identities, and the projection excludes IP, user agent, grant, session, request, target ID and other-client data.
+  acceptance:
+    given: Persisted audit events include two current-delegation events and separate other-user, other-client and old-grant controls with private attribution fields.
+    when: Real signed REST, GraphQL and MCP HTTP requests exhaust one-item activity pages; REST also receives forged identity query parameters.
+    then:
+    - All three transports return exactly the two current-delegation events and only the public event fields.
+    - Pagination retains the correct boundary; forged query identities cannot change ownership.
+    - The REST client-specific view rejects a cookie session.
+    test:
+      file: tests/integration/account-profile-contract.test.ts
+      name: user.oauth-client-activity-isolation
 - id: user.account-profile-oauth-projection
   category: privacy
   rule: Cookie sessions receive their full private account profile. OAuth account.profile:read returns
     email only when the standard email scope is also granted and never discloses administrative status.
+  acceptance:
+    given: An admin user has a real session and resource-bound OAuth tokens with and without the email scope, while another user also exists.
+    when: The actual REST and GraphQL HTTP endpoints read the session profile and all three REST, GraphQL and MCP transports read OAuth profiles.
+    then:
+    - Session projections retain the owner's email and admin status.
+    - OAuth projections always hide admin status and expose email only with its scope.
+    - A caller-supplied userId cannot replace the authenticated profile owner.
+    test:
+      file: tests/integration/account-profile-contract.test.ts
+      name: user.account-profile-oauth-projection
 - id: user.public-comment-contribution-privacy
   category: privacy
   rule: Named public profile comment totals and contribution dates include only active, public, non-anonymous
