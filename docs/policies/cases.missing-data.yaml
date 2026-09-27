@@ -23,12 +23,30 @@ requirements:
   topic: homework-no-due-date
   rule: Homework without a due date is excluded from due-window results. It remains reachable in unfiltered
     homework lists and is not assigned a synthetic due date.
+  acceptance:
+    given: An isolated user subscribes to a section containing one published homework with submissionDueAt=null.
+    when: The browser selects All in workspace homework, reads both unfiltered homework APIs, and requests compact overview windows of one and seven days at two dates.
+    then:
+    - The homework remains visible with a Date TBD label and its API and database deadline stay null.
+    - Every overview counts it as pending but returns zero due-window homework without assigning a date.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.homework-no-due-date-1
 - id: cases.missing-data.ical-no-events-1
   category: behavior
   topic: ical-no-events
   rule: An existing calendar subject with no events returns a valid VCALENDAR with zero VEVENT components.
     It does not invent an informational event; nonexistent or unauthorized subjects retain their documented
     errors.
+  acceptance:
+    given: An existing isolated section and user have no schedule, exam, homework, or todo events; the user has a valid calendar-feed token.
+    when: Anonymous requests retrieve the section, multi-section, and token-bearing personal feeds, then exercise missing subjects and invalid credentials; a signed session retrieves its own feed and tries another subject.
+    then:
+    - Successful responses contain a VCALENDAR with VERSION and PRODID but zero VEVENT or invented SUMMARY components.
+    - Missing section and token-authenticated missing user return 404; absent credentials return 401, a wrong token returns 410, and a foreign session subject returns 403.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.ical-no-events-1
 refs:
 - feature: schedule
   capability: section-schedule
