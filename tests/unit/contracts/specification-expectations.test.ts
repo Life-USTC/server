@@ -59,6 +59,39 @@ function numeric() {
 }
 
 describe("typed specification expectations", () => {
+  it("validates string length constraints without implicit trimming or length units", async () => {
+    const validators = await loadSpecificationValidators();
+    const input = {
+      kind: "string_input",
+      surface: "service",
+      operation: "catalogSearchSchema",
+      input: "search",
+      min_length: 2,
+      max_length: 200,
+      trim: true,
+      length_unit: "utf16_code_units",
+    };
+    expect(
+      validateSpecificationShapes([specification(input)], validators),
+    ).toEqual([]);
+    for (const value of [
+      { ...input, min_length: -1 },
+      { ...input, max_length: 0 },
+      { ...input, max_length: 1.5 },
+      { ...input, trim: "true" },
+      { ...input, length_unit: "characters" },
+    ]) {
+      expect(
+        validateSpecificationShapes([specification(value)], validators),
+      ).not.toEqual([]);
+    }
+    const result = await validateSpecificationReferences([
+      specification({ ...input, min_length: 201 }),
+    ]);
+    expect(result.errors.join("\n")).toContain(
+      "minimum string length must not exceed maximum",
+    );
+  });
   it("validates positive integral rate budgets and rejects a weaker batch budget", async () => {
     const validators = await loadSpecificationValidators();
     const budget = {

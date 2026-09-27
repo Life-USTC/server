@@ -244,12 +244,62 @@ requirements:
     test:
       file: tests/unit/lib/api/api-route-query-validation.test.ts
       name: openapi.pagination-query-parameter
-- id: openapi.public-catalog-query-boundaries
+- id: openapi.public-catalog-search-boundaries
   category: validation
-  rule: Public catalog REST search strings accept 2-200 characters. Omitted locale deterministically means
-    zh-cn; locale=en-us selects English. Runtime cache keys are derived from canonical locale, response
-    shape, parsed filters, and pagination, so transport field order and ignored raw query parameters cannot
-    create distinct entries.
+  applies_to:
+  - business-rest-routes
+  expectation:
+    kind: string_input
+    surface: service
+    operation: catalogSearchSchema
+    input: search
+    min_length: 2
+    max_length: 200
+    trim: true
+    length_unit: utf16_code_units
+  rationale: The three catalog REST query schemas share this bounded search input. The technical length bound follows JavaScript string length after trimming, including supplementary Unicode characters.
+  acceptance:
+    given: Course, section and teacher query schemas receive omitted, boundary, overlong, whitespace and supplementary-Unicode search strings.
+    when: Each production schema validates the query.
+    then:
+    - Omission is accepted; provided strings are trimmed and validated against the structured length bounds.
+    - Valid values are preserved after trimming; invalid values are rejected.
+    test:
+      file: tests/unit/lib/api/public-catalog-search-specification.test.ts
+      name: openapi.public-catalog-search-boundaries
+- id: openapi.public-catalog-locale
+  category: consistency
+  rule: Omitted public catalog REST locale deterministically selects zh-cn. An explicit en-us or zh-cn selects that variant; cookies and Accept-Language cannot personalize it.
+  acceptance:
+    given: Requests omit locale or explicitly select either supported locale while carrying conflicting locale cookies and headers.
+    when: The actual public catalog locale resolver handles each request.
+    then:
+    - Omission selects zh-cn; explicit input selects the corresponding public variant regardless of cookies or headers.
+    test:
+      file: tests/unit/lib/api/public-catalog-locale.test.ts
+      name: openapi.public-catalog-locale
+- id: openapi.public-catalog-query-canonicalization
+  category: consistency
+  rule: Public course, section and teacher REST list queries canonicalize equivalent IDs and retain the first repeated parameter; query ordering and undeclared parameters do not change the parsed read request.
+  acceptance:
+    given: Equivalent list queries vary field order, numeric zero padding, repeated values and undeclared parameters.
+    when: Each actual REST handler parses the queries.
+    then:
+    - Each response succeeds and the shared read model receives identical canonical inputs with bounded default pagination.
+    test:
+      file: tests/unit/features/catalog/catalog-api-list-canonicalization.test.ts
+      name: openapi.public-catalog-query-canonicalization
+- id: openapi.public-catalog-cache-key
+  category: consistency
+  rule: Catalog list cache identities include entity kind, locale, response shape, parsed filters, page and page size; filter key order and set-valued ID order do not create distinct entries.
+  acceptance:
+    given: Equivalent filter maps and variants changing kind, locale, shape, a filter, page or page size.
+    when: The production cache key and namespace functions serialize them.
+    then:
+    - The canonical key has sorted fields and IDs; every semantic variation has a different identity.
+    test:
+      file: tests/unit/features/catalog/catalog-runtime-cache.test.ts
+      name: openapi.public-catalog-cache-key
 - id: openapi.paginated-list-envelope
   category: consistency
   rule: Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages.
@@ -266,11 +316,31 @@ requirements:
     validated and converted once by their declared Zod schemas. Route handlers consume those typed results
     and return validation responses without re-wrapping them; pagination and comma-separated ID lists
     keep their dedicated normalizers.
-- id: openapi.api-docs-responsive-navigation
+- id: openapi.api-docs-mobile-navigation
   category: presentation
-  rule: At 390x844, the selected API reference begins within the first viewport while the complete route-based
-    navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete
-    sticky sidebar remains visible beside the reference.
+  rule: At 390x844, the selected API reference begins within the first viewport while the complete route navigation remains available in a labeled, closable mobile sheet. Following a sheet link changes the route and closes the sheet.
+  acceptance:
+    given: The API reference is loaded at a 390x844 viewport.
+    when: A reader opens and dismisses the navigation sheet, then follows a listed operation.
+    then:
+    - The reference begins inside the first viewport without horizontal overflow.
+    - The labeled sheet contains all desktop navigation destinations; Escape closes it and restores focus.
+    - Choosing an operation changes the path, closes the sheet and presents the selected reference in the first viewport.
+    test:
+      file: tests/e2e/src/app/api/docs/test.ts
+      name: openapi.api-docs-mobile-navigation
+- id: openapi.api-docs-desktop-navigation
+  category: presentation
+  rule: At desktop widths the complete API reference navigation remains visible in a sticky sidebar beside the selected reference.
+  acceptance:
+    given: The API reference is loaded at a 1280x800 viewport.
+    when: The actual sidebar and reference layout are inspected.
+    then:
+    - The sidebar is visible to the left of the reference, uses sticky positioning and marks the selected group.
+    - The mobile sheet trigger is hidden.
+    test:
+      file: tests/e2e/src/app/api/docs/test.ts
+      name: openapi.api-docs-desktop-navigation
 - id: openapi.room-maps
   category: behavior
   rule: GET /api/catalog/rooms/{code}/map (catalog_rooms_map) returns a public room map object; invalid

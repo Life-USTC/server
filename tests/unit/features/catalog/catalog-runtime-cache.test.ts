@@ -39,7 +39,26 @@ describe("catalog runtime cache keys", () => {
     );
   });
 
-  it("canonicalizes shared list filters independently of transport key order", () => {
+  it("openapi.public-catalog-cache-key", () => {
+    const base = {
+      filters: { search: "math", categoryId: "7", ids: [3, 1] },
+      pagination: { page: 2, pageSize: 20 },
+      shape: "summary",
+    };
+    const key = catalogListReadCacheKey(base);
+    for (const changed of [
+      { ...base, pagination: { ...base.pagination, page: 3 } },
+      { ...base, pagination: { ...base.pagination, pageSize: 10 } },
+      { ...base, shape: "catalog" },
+      { ...base, filters: { ...base.filters, categoryId: "8" } },
+    ])
+      expect(catalogListReadCacheKey(changed)).not.toBe(key);
+    expect(catalogListReadCacheNamespace("courses", "en-us")).not.toBe(
+      catalogListReadCacheNamespace("courses", "zh-cn"),
+    );
+    expect(catalogListReadCacheNamespace("courses", "zh-cn")).not.toBe(
+      catalogListReadCacheNamespace("sections", "zh-cn"),
+    );
     expect(
       catalogListReadCacheKey({
         filters: { search: "math", categoryId: "7", ids: [3, 1] },

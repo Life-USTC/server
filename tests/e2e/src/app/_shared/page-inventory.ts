@@ -438,7 +438,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     e2eSpec: E2E.apiDocs,
     mobileCoveredBy: {
       e2eSpec: E2E.apiDocs,
-      testName: "移动端优先展示参考内容并用抽屉浏览完整导航",
+      testName: "openapi.api-docs-mobile-navigation",
       reason:
         "The embedded API reference has a dedicated mobile navigation and focus contract.",
     },

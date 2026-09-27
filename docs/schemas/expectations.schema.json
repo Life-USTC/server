@@ -417,6 +417,9 @@
         },
         {
           "$ref": "#/$defs/rate_limit_budget"
+        },
+        {
+          "$ref": "#/$defs/string_input"
         }
       ]
     },
@@ -567,6 +570,48 @@
         "batch_limit": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "string_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "surface",
+        "operation",
+        "input",
+        "min_length",
+        "max_length",
+        "trim",
+        "length_unit"
+      ],
+      "properties": {
+        "kind": {
+          "const": "string_input"
+        },
+        "surface": {
+          "enum": ["service", "rest", "graphql", "mcp"]
+        },
+        "operation": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "input": {
+          "$ref": "defs.schema.json#/$defs/nonEmptyString"
+        },
+        "min_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "trim": {
+          "type": "boolean"
+        },
+        "length_unit": {
+          "const": "utf16_code_units"
         }
       }
     }

@@ -76,6 +76,12 @@ function validateExpectation(
   ) {
     errors.push("enum default must be one of its declared values");
   }
+  if (
+    kind === "string_input" &&
+    Number(value.min_length) > Number(value.max_length)
+  ) {
+    errors.push("minimum string length must not exceed maximum");
+  }
   if (kind === "numeric_input" || kind === "collection_input") {
     const minimum = Number(
       kind === "numeric_input" ? value.minimum : value.min_items,
