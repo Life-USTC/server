@@ -102,6 +102,15 @@ requirements:
   rule: GET /api/catalog/bus and full mode of catalog_bus_timetable_get return the selected version's
     route, stop and trip dataset without client-side route filtering or ordering. Anonymous output has
     null preferences; authenticated preferences belong only to the caller.
+  acceptance:
+    given: An isolated historical version has two routes, three campuses and four trips, while two owners have different saved route preferences.
+    when: Anonymous REST, full HTTP MCP and each owner's authenticated REST request read that selected version.
+    then:
+    - All responses retain the same complete route, stop and trip arrays independent of viewer preferences.
+    - Anonymous preferences are null; each authenticated REST response contains only its caller's saved preference.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.raw-data-returned
 - id: bus.version-topology-self-contained
   category: consistency
   rule: When versionKey selects a historical timetable version, routes, stops, campuses, and trips are
@@ -118,10 +127,28 @@ requirements:
   category: consistency
   rule: REST, GraphQL, and MCP normalize surrounding whitespace in versionKey and then require 1-120 ASCII
     characters matching ^[A-Za-z0-9][A-Za-z0-9._-]*$.
+  acceptance:
+    given: An isolated version has a valid 120-character key containing letters, digits, dot, underscore and hyphen.
+    when: Actual REST, GraphQL and OAuth HTTP MCP requests use its exact and whitespace-padded key, then empty, punctuation-leading, internal-whitespace, non-ASCII and 121-character inputs.
+    then:
+    - Exact and trimmed keys resolve the same historical version on all three transports.
+    - Every invalid input is rejected before querying timetable data.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.version-key-boundary
 - id: bus.current-version-only
   category: consistency
   rule: catalog_bus_route_list only lists routes actually present in the current active timetable version;
     it does not expose historical route IDs outside the current version.
+  acceptance:
+    given: An isolated disabled historical version adds two route records beside the existing active timetable.
+    when: Actual OAuth HTTP MCP route discovery and explicit historical timetable reads execute alongside the current REST timetable.
+    then:
+    - Route discovery IDs exactly match the active timetable and omit both historical-only IDs.
+    - Explicit version selection still retrieves both historical routes.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.current-version-only
 - id: bus.public-version-metadata-omitted
   category: presentation
   rule: Public bus pages do not display opaque imported version keys or unlocalized version titles as
@@ -141,6 +168,16 @@ requirements:
   category: presentation
   rule: The default catalog_bus_timetable_get response contains counts, route/campus summaries and relevant
     next departures. Full mode returns the complete timetable dataset.
+  acceptance:
+    given: An isolated version contains two routes, three campuses and four trips across weekday and Saturday.
+    when: Actual OAuth HTTP MCP calls read the timetable in default and full modes.
+    then:
+    - Default output has exact counts and route/campus summaries without the full trip array.
+    - With no selected journey, departures are empty and the response directs the caller to the departure tool.
+    - Full output retains matching counts and all route stops and trips.
+    test:
+      file: tests/e2e/src/app/bus/data-contract.test.ts
+      name: bus.canonical-compact-mode
 - id: bus.cache-boundaries
   category: consistency
   rule: Timetable REST responses containing optional viewer preferences use private caching.
