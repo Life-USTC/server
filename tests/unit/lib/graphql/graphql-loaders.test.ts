@@ -26,7 +26,7 @@ describe("GraphQL request-scoped loaders", () => {
     );
   });
 
-  it("batches and caches within one request, then starts fresh next request", async () => {
+  it("graphql.request-cache", async () => {
     const firstRequest = createGraphqlLoaders("zh-cn");
 
     await expect(

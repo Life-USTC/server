@@ -109,39 +109,37 @@ describe("GraphQL protocol input boundaries", () => {
     ).toThrow("Date is output-only");
   });
 
-  it.each([
-    "2026-04-29T08:00:00+08:00",
-    "2026-04-29T00:00:00Z",
-    "2024-02-29T23:59:59.123-05:30",
-  ])("accepts the zoned DateTime %s for variables and literals", (value) => {
-    expect(graphqlDateTimeScalar.parseValue(value)).toBe(value);
-    expect(
-      graphqlDateTimeScalar.parseLiteral(
-        { kind: Kind.STRING, value },
-        undefined,
-      ),
-    ).toBe(value);
-  });
-
-  it.each([
-    "2026-04-29T08:00:00",
-    "2026-02-29T08:00:00Z",
-    "2026-04-31T08:00:00+08:00",
-    "2026-04-29T24:00:00+08:00",
-    "2026-04-29T08:00:00+14:01",
-  ])("rejects the invalid zoned DateTime %s", (value) => {
-    expect(() => graphqlDateTimeScalar.parseValue(value)).toThrow(
-      "DateTime must be an ISO 8601 datetime with a timezone",
-    );
-    expect(() =>
-      graphqlDateTimeScalar.parseLiteral(
-        { kind: Kind.STRING, value },
-        undefined,
-      ),
-    ).toThrow("DateTime must be an ISO 8601 datetime with a timezone");
-  });
-
-  it("rejects non-string DateTime variables and literals", () => {
+  it("graphql.zoned-datetime", () => {
+    for (const value of [
+      "2026-04-29T08:00:00+08:00",
+      "2026-04-29T00:00:00Z",
+      "2024-02-29T23:59:59.123-05:30",
+    ]) {
+      expect(graphqlDateTimeScalar.parseValue(value)).toBe(value);
+      expect(
+        graphqlDateTimeScalar.parseLiteral(
+          { kind: Kind.STRING, value },
+          undefined,
+        ),
+      ).toBe(value);
+    }
+    for (const value of [
+      "2026-04-29T08:00:00",
+      "2026-02-29T08:00:00Z",
+      "2026-04-31T08:00:00+08:00",
+      "2026-04-29T24:00:00+08:00",
+      "2026-04-29T08:00:00+14:01",
+    ]) {
+      expect(() => graphqlDateTimeScalar.parseValue(value)).toThrow(
+        "DateTime must be an ISO 8601 datetime with a timezone",
+      );
+      expect(() =>
+        graphqlDateTimeScalar.parseLiteral(
+          { kind: Kind.STRING, value },
+          undefined,
+        ),
+      ).toThrow("DateTime must be an ISO 8601 datetime with a timezone");
+    }
     expect(() => graphqlDateTimeScalar.parseValue(1)).toThrow(
       "DateTime must be an ISO 8601 datetime with a timezone",
     );
@@ -151,6 +149,15 @@ describe("GraphQL protocol input boundaries", () => {
         undefined,
       ),
     ).toThrow("DateTime must be an ISO 8601 datetime with a timezone");
+  });
+
+  it("graphql.search-boundary", () => {
+    for (const length of [2, 200])
+      expect(validateGraphqlSearch("a".repeat(length))).toBe(
+        "a".repeat(length),
+      );
+    for (const length of [1, 201])
+      expect(() => validateGraphqlSearch("a".repeat(length))).toThrow();
   });
 
   it("caps every fixed-size bus collection", () => {

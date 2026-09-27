@@ -31,12 +31,30 @@ requirements:
   rule: GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.
 - id: graphql.production-discovery
   category: behavior
-  rule: GraphiQL and schema introspection are disabled in production.
+  rule: The GraphiQL interactive IDE is available in development only and is not served by the production
+    GraphQL endpoint.
+  acceptance:
+    given: Development and production handlers receive HTML IDE requests.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - Development serves the IDE, production does not.
+    - Production still executes a public GET query.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.production-discovery
 - id: graphql.request-budgets
   category: validation
-  rule: Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level
-    fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated
-    selection by its effective pageSize, including values supplied through variables.
+  rule: GraphQL HTTP request bodies have an inclusive 64 KiB UTF-8 byte limit. A larger body returns 413
+    REQUEST_TOO_LARGE before execution.
+  acceptance:
+    given: A valid UTF-8 GraphQL JSON request reaches the 65536-byte boundary.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - A 65536-byte body is processed.
+    - A 65537-byte body returns413 REQUEST_TOO_LARGE.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-budgets
 - id: graphql.graphql-operation-runner
   category: behavior
   rule: MCP accepts exactly one GraphQL document or registered operation ID. Execution uses the same production
@@ -75,14 +93,32 @@ requirements:
   category: validation
   rule: GraphQL search filter strings accept 2-200 characters, matching public catalog REST, Web, and
     MCP search surfaces.
+  acceptance:
+    given: Search strings sit below, at, and above the2-200-character bounds.
+    when: The GraphQL search validator parses them.
+    then:
+    - Lengths2 and200 are accepted.
+    - Lengths1 and201 are rejected.
+    test:
+      file: tests/unit/lib/graphql/graphql-input-boundaries.test.ts
+      name: graphql.search-boundary
 - id: graphql.resolver-boundary
   category: consistency
   rule: Resolvers call feature-owned services only; they do not issue internal HTTP requests or access
     Prisma directly.
 - id: graphql.request-cache
   category: consistency
-  rule: The principal and entity DataLoaders are request-scoped; authentication is resolved once per request
-    and every response is marked no-store.
+  rule: Entity DataLoaders batch and cache within one GraphQL request only; a new request starts with
+    a fresh cache.
+  acceptance:
+    given: One request loads duplicate entity keys and a later request loads the same key.
+    when: The production DataLoaders batch their feature-service requests.
+    then:
+    - The first request performs one batch and caches duplicates.
+    - The next request performs a new read.
+    test:
+      file: tests/unit/lib/graphql/graphql-loaders.test.ts
+      name: graphql.request-cache
 - id: graphql.safe-errors
   category: privacy
   rule: Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors
@@ -112,15 +148,30 @@ requirements:
     actual completion state and pending-scope deadline semantics.
 - id: graphql.zoned-datetime
   category: consistency
-  rule: DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
-    with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize
-    to their Asia/Shanghai calendar day before querying @db.Date columns.
+  rule: DateTime accepts only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
+    with identical coercion for variables and inline literals.
+  acceptance:
+    given: Variables and inline literals contain valid zoned dates, impossible dates, zone-less dates,
+      and non-string values.
+    when: The real DateTime scalar coerces both forms.
+    then:
+    - Valid zoned values retain their instant representation.
+    - Invalid forms reject consistently.
+    test:
+      file: tests/unit/lib/graphql/graphql-input-boundaries.test.ts
+      name: graphql.zoned-datetime
 - id: graphql.schema-evolution
   category: consistency
-  rule: CI checks the current executable schema against the canonical SDL snapshot. Pull requests compare
-    the snapshot with the base schema and require explicit graphql-breaking-approved acknowledgement for
-    breaking or dangerous changes. An intentional breaking change updates current contracts and clients
-    without a compatibility shim; approval skips only the base-schema change gate.
+  rule: The current executable GraphQL schema must exactly match the canonical SDL snapshot; CI fails
+    on snapshot drift.
+  acceptance:
+    given: The executable schema and committed SDL snapshot are available.
+    when: The real generated SDL is compared with the canonical file.
+    then:
+    - The documents match exactly.
+    test:
+      file: tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
+      name: graphql.schema-evolution
 - id: graphql.room-maps
   category: behavior
   rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,
@@ -149,6 +200,157 @@ requirements:
     read tools. A GraphQL token is not a REST token. Do not blindly retry.
   applies_to:
   - scoped-queries
+- id: graphql.request-single-operation
+  category: validation
+  rule: GraphQL HTTP accepts one operation request per HTTP call and rejects JSON arrays of batched operation
+    requests.
+  acceptance:
+    given: A JSON array contains two GraphQL operation requests.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The request is rejected before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-single-operation
+- id: graphql.request-depth
+  category: validation
+  rule: A GraphQL operation may nest selections at most eight levels deep; over-depth documents fail before
+    resolver execution.
+  acceptance:
+    given: An otherwise small document nests beyond eight levels.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - A depth-specific validation error is returned before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-depth
+- id: graphql.request-top-level
+  category: validation
+  rule: A GraphQL query or mutation has at most ten top-level fields after fragment expansion.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-top-level
+- id: graphql.request-aliases
+  category: validation
+  rule: A GraphQL document contains at most fifteen aliases.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-aliases
+- id: graphql.request-directives
+  category: validation
+  rule: A GraphQL document contains at most ten directives.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-directives
+- id: graphql.request-tokens
+  category: validation
+  rule: The GraphQL parser accepts at most 1000 lexical tokens per document.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-tokens
+- id: graphql.request-cost
+  category: validation
+  rule: A GraphQL operation with estimated cost greater than 5000 is rejected before resolver execution.
+    Cost weights paginated selections by effective pageSize, including variables.
+  acceptance:
+    given: Paginated fields use a variable pageSize that exceeds the operation cost budget.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The cost ceiling is5000.
+    - A cost-specific validation failure occurs before the catalog service is called.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-cost
+- id: graphql.request-timeout
+  category: validation
+  rule: GraphQL HTTP execution stops waiting after a five-second request deadline and reports REQUEST_TIMEOUT.
+  acceptance:
+    given: A GraphQL HTTP query has entered a resolver that remains pending.
+    when: The production handler reaches its five-second deadline.
+    then:
+    - The response reports REQUEST_TIMEOUT without waiting for the resolver result.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-timeout
+- id: graphql.production-introspection
+  category: authorization
+  rule: Production GraphQL requests cannot introspect the schema.
+  acceptance:
+    given: An anonymous production request asks for __schema.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The response contains a validation error and no schema data.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.production-introspection
+- id: graphql.request-principal
+  category: authorization
+  rule: The GraphQL principal is resolved once per request and reused by independently scoped resolver
+    fields.
+  acceptance:
+    given: A GraphQL context serves fields requiring different feature scopes.
+    when: The real context and resolver authorization use one verified bearer principal.
+    then:
+    - Token verification runs exactly once; the session fallback is not queried.
+    test:
+      file: tests/unit/lib/graphql/graphql-auth.test.ts
+      name: graphql.request-principal
+- id: graphql.response-no-store
+  category: privacy
+  rule: GraphQL HTTP responses, including successful public reads, are marked no-store.
+  acceptance:
+    given: An unauthenticated request asks for public catalog data.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The successful response contains the expected public data and Cache-Control:no-store.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.response-no-store
+- id: graphql.schema-change-review
+  category: consistency
+  rule: Pull requests compare the canonical snapshot with the base schema and require explicit graphql-breaking-approved
+    acknowledgement for breaking or dangerous changes. Approval skips only the base-schema gate. Intentional
+    breaking changes update current contracts and clients without compatibility shims.
+- id: graphql.calendar-date-filter-normalization
+  category: consistency
+  rule: Schedule and exam DateTime filters normalize to the Asia/Shanghai calendar day before querying
+    date-only database columns.
+- id: graphql.registered-operation-timeout
+  category: validation
+  rule: Registered GraphQL operation execution through MCP stops waiting after a five-second deadline
+    and reports REQUEST_TIMEOUT.
+  acceptance:
+    given: A registered query has entered a resolver that remains pending.
+    when: The production runner passes its5000ms deadline.
+    then:
+    - It rejects with REQUEST_TIMEOUT at the five-second boundary.
+    test:
+      file: tests/unit/lib/graphql/graphql-operation-runner.test.ts
+      name: graphql.registered-operation-timeout
 capabilities:
   public-query-endpoint:
     title: Public Queries and Scoped Personal Mutations

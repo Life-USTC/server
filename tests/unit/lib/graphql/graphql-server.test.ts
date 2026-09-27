@@ -3,6 +3,7 @@ import { GraphQLError } from "graphql";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
+import { createDeferred } from "../../../shared/deferred";
 
 const courseService = vi.hoisted(() => ({
   listCourseSummaries: vi.fn(),
@@ -149,7 +150,7 @@ describe("GraphQL HTTP boundary", () => {
     });
   });
 
-  it("serves public queries without a session and prevents response caching", async () => {
+  it("graphql.response-no-store", async () => {
     const { response, payload } = await execute({
       query: "{ catalog { courses { items { jwId } pageInfo { total } } } }",
     });
@@ -161,7 +162,7 @@ describe("GraphQL HTTP boundary", () => {
     });
   });
 
-  it("keeps GraphiQL development-only and executes public GET queries", async () => {
+  it("graphql.production-discovery", async () => {
     const ideRequest = () =>
       requestEventFromRequest(
         new Request("https://example.test/api/graphql", {
@@ -782,19 +783,62 @@ describe("GraphQL HTTP boundary", () => {
     }
   });
 
-  it("rejects oversized request bodies", async () => {
-    const { response, payload } = await execute(
-      "x".repeat(GRAPHQL_LIMITS.bodyBytes + 1),
-    );
+  it("graphql.request-timeout", async () => {
+    expect(GRAPHQL_LIMITS.timeoutMs).toBe(5000);
+    vi.useFakeTimers();
+    const pending = createDeferred<{
+      data: unknown[];
+      pagination: {
+        page: number;
+        pageSize: number;
+        total: number;
+        totalPages: number;
+      };
+    }>();
+    const started = createDeferred<void>();
+    courseService.listCourseSummaries.mockImplementation(() => {
+      started.resolve(undefined);
+      return pending.promise;
+    });
+    try {
+      const execution = execute(
+        { query: "{ catalog { courses { items { jwId } } } }" },
+        true,
+      );
+      await started.promise;
+      await vi.advanceTimersByTimeAsync(5000);
+      const result = await execution;
+      expect(result.response.status).toBe(504);
+      expect(result.payload).toMatchObject({
+        errors: [{ extensions: { code: "REQUEST_TIMEOUT" } }],
+      });
+    } finally {
+      pending.resolve({
+        data: [],
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+      });
+      await vi.runAllTimersAsync();
+      vi.useRealTimers();
+    }
+  });
 
+  it("graphql.request-budgets", async () => {
+    expect(GRAPHQL_LIMITS.bodyBytes).toBe(65_536);
+    const body = JSON.stringify({
+      query: "{ catalog { courses { items { jwId } } } } #课",
+    });
+    const bytes = new TextEncoder().encode(body).byteLength;
+    const accepted = await execute(body + " ".repeat(65_536 - bytes));
+    expect(errorMessages(accepted.payload)).toEqual([]);
+    courseService.listCourseSummaries.mockClear();
+    const { response, payload } = await execute(
+      body + " ".repeat(65_537 - bytes),
+    );
     expect(response.status).toBe(413);
     expect(payload).toMatchObject({
-      errors: [
-        {
-          extensions: { code: "REQUEST_TOO_LARGE" },
-        },
-      ],
+      errors: [{ extensions: { code: "REQUEST_TOO_LARGE" } }],
     });
+    expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
   });
 
   it("logs unexpected transport failures with the request id", async () => {
@@ -823,7 +867,7 @@ describe("GraphQL HTTP boundary", () => {
     );
   });
 
-  it("rejects batched operations", async () => {
+  it("graphql.request-single-operation", async () => {
     const { response, payload } = await execute([
       { query: "{ currentSemester { jwId } }" },
       { query: "{ currentSemester { jwId } }" },
@@ -881,7 +925,7 @@ describe("GraphQL HTTP boundary", () => {
     expect(busService.getBusRouteTimetable).not.toHaveBeenCalled();
   });
 
-  it("disables production introspection", async () => {
+  it("graphql.production-introspection", async () => {
     const { payload } = await execute(
       { query: "{ __schema { queryType { name } } }" },
       true,
@@ -891,39 +935,69 @@ describe("GraphQL HTTP boundary", () => {
     expect(payload).not.toHaveProperty("data.__schema");
   });
 
-  it.each([
-    [
-      "top-level fields",
-      `{ ${Array.from(
-        { length: GRAPHQL_LIMITS.topLevelFields + 1 },
-        (_, index) => `q${index}: catalog { currentSemester { jwId } }`,
-      ).join(" ")} }`,
-    ],
-    [
-      "aliases",
-      `{ catalog { courses { ${Array.from(
-        { length: GRAPHQL_LIMITS.aliases + 1 },
-        (_, index) => `a${index}: items { jwId }`,
-      ).join(" ")} } } }`,
-    ],
-    [
-      "directives",
-      `{ catalog { courses { items { ${Array.from(
-        { length: GRAPHQL_LIMITS.directives + 1 },
-        (_, index) => `f${index}: code @skip(if: false)`,
-      ).join(" ")} } } } }`,
-    ],
-    [
-      "tokens",
-      `{ catalog { courses { items { ${"code ".repeat(GRAPHQL_LIMITS.tokens + 1)} } } } }`,
-    ],
-  ])("enforces the %s budget", async (_name, query) => {
-    const { payload } = await execute({ query });
-
-    expect(errorMessages(payload)).not.toHaveLength(0);
+  it("graphql.request-top-level", async () => {
+    expect(GRAPHQL_LIMITS.topLevelFields).toBe(10);
+    for (const count of [10, 11]) {
+      courseService.listCourseSummaries.mockClear();
+      const query = `{ ${Array.from({ length: count }, (_, index) => `q${index}: catalog { courses { items { jwId } } }`).join(" ")} }`;
+      const { payload } = await execute({ query });
+      if (count === 10) expect(errorMessages(payload)).toEqual([]);
+      else {
+        expect(errorMessages(payload).join(" ")).toContain(
+          "too many top-level fields",
+        );
+        expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+      }
+    }
   });
 
-  it("rejects an operation that independently exceeds maxDepth", async () => {
+  it("graphql.request-aliases", async () => {
+    expect(GRAPHQL_LIMITS.aliases).toBe(15);
+    for (const count of [15, 16]) {
+      courseService.listCourseSummaries.mockClear();
+      const query = `{ catalog { courses { ${Array.from({ length: count }, (_, index) => `a${index}: items { jwId }`).join(" ")} } } }`;
+      const { payload } = await execute({ query });
+      if (count === 15) expect(errorMessages(payload)).toEqual([]);
+      else {
+        expect(errorMessages(payload)).not.toHaveLength(0);
+        expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+      }
+    }
+  });
+
+  it("graphql.request-directives", async () => {
+    expect(GRAPHQL_LIMITS.directives).toBe(10);
+    for (const count of [10, 11]) {
+      courseService.listCourseSummaries.mockClear();
+      const query = `{ catalog { courses { items { ${Array.from({ length: count }, (_, index) => `f${index}: code @skip(if: false)`).join(" ")} } } } }`;
+      const { payload } = await execute({ query });
+      if (count === 10) expect(errorMessages(payload)).toEqual([]);
+      else {
+        expect(errorMessages(payload)).not.toHaveLength(0);
+        expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+      }
+    }
+  });
+
+  it("graphql.request-tokens", async () => {
+    expect(GRAPHQL_LIMITS.tokens).toBe(1000);
+    // Eleven fixed punctuation/name tokens surround the repeated field tokens.
+    // Repeated selections may fail cost validation; the parser must still accept
+    // exactly 1000 lexical tokens and reject 1001 with the syntax error.
+    const query = (tokens: number) =>
+      `{ catalog { courses { items { ${"code ".repeat(tokens - 11)} } } } }`;
+    const accepted = await execute({ query: query(1000) });
+    expect(errorMessages(accepted.payload).join(" ")).not.toContain(
+      "Syntax Error",
+    );
+    courseService.listCourseSummaries.mockClear();
+    const rejected = await execute({ query: query(1001) });
+    expect(errorMessages(rejected.payload).join(" ")).toContain("Syntax Error");
+    expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+  });
+
+  it("graphql.request-depth", async () => {
+    expect(GRAPHQL_LIMITS.depth).toBe(8);
     const { payload } = await execute({
       query: `{
         __type(name: "Course") {
@@ -954,7 +1028,8 @@ describe("GraphQL HTTP boundary", () => {
     expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
   });
 
-  it("rejects variable pageSize-weighted cost before service execution", async () => {
+  it("graphql.request-cost", async () => {
+    expect(GRAPHQL_LIMITS.cost).toBe(5000);
     const { payload } = await execute({
       query: `
         query ExpensiveCatalog($page: PageInput) {

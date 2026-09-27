@@ -398,7 +398,7 @@ describe("GraphQL feature scope gates", () => {
     );
   });
 
-  it("context 只解析一次 principal 并供多个字段复用", async () => {
+  it("graphql.request-principal", async () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
     getSessionFromHeadersMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
