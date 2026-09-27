@@ -152,6 +152,7 @@ export function exactSuccessOutput(shape: OutputShape) {
 
 export const exactFailureOutputSchema = z.strictObject({
   success: z.literal(false),
+  error: z.string(),
   found: z.literal(false).optional(),
   message: z.string(),
   hint: z.string().optional(),

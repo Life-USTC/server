@@ -65,7 +65,11 @@ async function listYoungEventsTool({
     return jsonToolResult(result, { mode: resolveMcpMode(mode) });
   } catch (error) {
     if (error instanceof RangeError) {
-      return jsonToolResult({ success: false, message: error.message });
+      return jsonToolResult({
+        success: false,
+        error: "invalid_range",
+        message: error.message,
+      });
     }
     throw error;
   }
@@ -83,7 +87,14 @@ async function getYoungEventTool({
 
   if (event == null) {
     return jsonToolResult(
-      { found: false, youngId, event: null },
+      {
+        success: false,
+        found: false,
+        error: "not_found",
+        message: "Young event not found",
+        youngId,
+        event: null,
+      },
       { mode: resolvedMode },
     );
   }
@@ -128,7 +139,15 @@ async function getYoungOrganizerTool({
   const resolvedMode = resolveMcpMode(mode);
   const organizer = await getYoungOrganizer(organizerId);
   return jsonToolResult(
-    { found: organizer != null, organizerId, organizer },
+    {
+      success: organizer != null,
+      ...(organizer
+        ? {}
+        : { error: "not_found", message: "Organizer not found" }),
+      found: organizer != null,
+      organizerId,
+      organizer,
+    },
     { mode: resolvedMode },
   );
 }

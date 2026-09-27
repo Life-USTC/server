@@ -24,6 +24,8 @@ export async function getSectionCalendarSubscriptionTool({
 
   return jsonToolResult(
     {
+      success: Boolean(section),
+      ...(section ? {} : { error: "not_found", message: "Section not found" }),
       found: Boolean(section),
       section,
       calendarPath: `/api/catalog/sections/${jwId}/calendar.ics`,
@@ -59,6 +61,7 @@ export async function subscribeMySectionsByCodesTool(
   if (!result) {
     return jsonToolResult({
       success: false,
+      error: "not_found",
       message: "No semester found",
     });
   }

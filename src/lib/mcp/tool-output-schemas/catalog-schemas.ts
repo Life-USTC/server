@@ -377,9 +377,12 @@ export function sectionCalendarFeedOutputSchema(sectionSchema: z.ZodType) {
       ...feedLocationShape,
     }),
     z.strictObject({
+      ...feedLocationShape,
+      success: z.literal(false),
+      error: z.string(),
+      message: z.string(),
       found: z.literal(false),
       section: z.null(),
-      ...feedLocationShape,
     }),
   ]);
 }

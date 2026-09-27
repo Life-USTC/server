@@ -59,6 +59,7 @@ export async function updateHomeworkOnSectionTool(
     return homeworkUpdateToolFailure(
       prepared.error === "no_changes" ? "No changes" : prepared.message,
       resolvedMode,
+      prepared.error,
     );
   }
 
@@ -71,7 +72,7 @@ export async function updateHomeworkOnSectionTool(
   if (!result.ok) {
     if (result.error === "no_changes") {
       return jsonToolResult(
-        { success: false, message: "No changes" },
+        { success: false, error: result.error, message: "No changes" },
         { mode: resolvedMode },
       );
     }
@@ -79,6 +80,7 @@ export async function updateHomeworkOnSectionTool(
       return jsonToolResult(
         {
           success: false,
+          error: result.error,
           message: "Homework not found",
           hint: "Use community_section_homework_list or workspace_homework_list to confirm the homeworkId before updating it.",
         },
@@ -89,6 +91,7 @@ export async function updateHomeworkOnSectionTool(
       return jsonToolResult(
         {
           success: false,
+          error: result.error,
           message: "Suspended",
           reason: "reason" in result ? (result.reason ?? null) : null,
         },
@@ -97,12 +100,12 @@ export async function updateHomeworkOnSectionTool(
     }
     if (result.error === "forbidden") {
       return jsonToolResult(
-        { success: false, message: "Forbidden" },
+        { success: false, error: result.error, message: "Forbidden" },
         { mode: resolvedMode },
       );
     }
     return jsonToolResult(
-      { success: false, message: "Homework deleted" },
+      { success: false, error: result.error, message: "Homework deleted" },
       { mode: resolvedMode },
     );
   }

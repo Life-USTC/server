@@ -54,8 +54,7 @@ describe("catalog_bus_departure_next — 默认模式去除重复的校区对象
 
     expect(result).toMatchObject({
       success: false,
-      message:
-        'Invalid atTime: "not-a-date". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.',
+      message: "Invalid atTime. Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.",
     });
   });
 

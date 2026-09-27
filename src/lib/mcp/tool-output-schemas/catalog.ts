@@ -163,14 +163,26 @@ export const catalogAcademicModeOutputSchemas = {
     full: paginatedCourseFullMcpSchema,
   },
   catalog_course_get: {
-    default: exactSuccessOutput({
-      found: z.boolean(),
-      course: compactCourseSchema.nullable(),
-    }),
-    full: exactSuccessOutput({
-      found: z.boolean(),
-      course: courseDetailSchema.nullable(),
-    }),
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        course: compactCourseSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        course: z.null(),
+      }),
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        course: courseDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        course: z.null(),
+      }),
+    ]),
   },
   catalog_section_search: {
     default: paginatedSectionDefaultMcpSchema,
@@ -202,14 +214,26 @@ export const catalogAcademicModeOutputSchemas = {
     full: paginatedTeacherFullMcpSchema,
   },
   catalog_teacher_get: {
-    default: exactSuccessOutput({
-      found: z.boolean(),
-      teacher: compactTeacherDetailSchema.nullable(),
-    }),
-    full: exactSuccessOutput({
-      found: z.boolean(),
-      teacher: teacherDetailSchema.nullable(),
-    }),
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        teacher: compactTeacherDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        teacher: z.null(),
+      }),
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        teacher: teacherDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        teacher: z.null(),
+      }),
+    ]),
   },
   catalog_schedule_list: {
     default: z.union([

@@ -217,7 +217,11 @@ export const compactWorkspaceExamSchema = compactExamSchema.extend({
 export function calendarFeedOutputSchema(subscriptionSchema: z.ZodType) {
   return z.union([
     exactSuccessOutput({ subscription: subscriptionSchema }),
-    z.strictObject({ success: z.literal(false), message: z.string() }),
+    z.strictObject({
+      success: z.literal(false),
+      error: z.string(),
+      message: z.string(),
+    }),
   ]);
 }
 
@@ -240,7 +244,11 @@ export function subscriptionImportOutputSchema(subscriptionSchema: z.ZodType) {
       alreadySubscribedCount: z.number().int().nonnegative(),
       subscription: subscriptionSchema.nullable(),
     }),
-    z.strictObject({ success: z.literal(false), message: z.string() }),
+    z.strictObject({
+      success: z.literal(false),
+      error: z.string(),
+      message: z.string(),
+    }),
   ]);
 }
 

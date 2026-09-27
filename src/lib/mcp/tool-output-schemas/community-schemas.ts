@@ -85,6 +85,7 @@ export const compactSectionHomeworkItemSchema = compactHomeworkSchema.omit({
 
 export const sectionHomeworkNotFoundSchema = z.strictObject({
   success: z.literal(false),
+  error: z.string(),
   found: z.literal(false),
   message: z.string(),
   hint: z.string(),
@@ -111,9 +112,14 @@ export const sectionHomeworkListFullSchema = z.union([
 ]);
 
 export const homeworkMutationFailureSchema = z.union([
-  z.strictObject({ success: z.literal(false), message: z.string() }),
   z.strictObject({
     success: z.literal(false),
+    error: z.string(),
+    message: z.string(),
+  }),
+  z.strictObject({
+    success: z.literal(false),
+    error: z.string(),
     message: z.string(),
     reason: z.string().nullable(),
   }),

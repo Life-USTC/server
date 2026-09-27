@@ -71,7 +71,8 @@ export function parseOptionalMcpDate(
       ok: false,
       result: jsonToolResult({
         success: false,
-        message: `Invalid ${name}: "${value}". ${MCP_DATE_FILTER_USAGE}`,
+        error: "invalid_date",
+        message: `Invalid ${name}. ${MCP_DATE_FILTER_USAGE}`,
       }),
     };
   }

@@ -55,6 +55,7 @@ export async function updateMyTodoAction(
   if (!result.ok) {
     return jsonToolResult({
       success: false,
+      error: result.error,
       message:
         result.error === "not_found"
           ? "Todo not found"

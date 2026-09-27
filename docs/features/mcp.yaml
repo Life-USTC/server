@@ -171,9 +171,22 @@ requirements:
       name: mcp.property-priority-parity
 - id: mcp.actionable-errors
   category: presentation
-  rule: Validation and not-found tool results contain a stable error classification and a user-readable
-    message. Any recovery hint names an available tool or valid input correction and excludes credentials
-    and hidden resource data.
+  rule: Domain validation and missing-resource tool results contain a stable error classification and
+    a user-readable message. Any recovery hint names an available tool or valid input correction and excludes
+    credentials and hidden resource data. SDK input-schema and JSON-RPC protocol errors retain their native
+    protocol classification.
+  acceptance:
+    given: An isolated subscribed user, a real MCP SDK connection, production-role database queries, nonexistent
+      resource identifiers, and malformed date input containing a credential marker.
+    when: Call 22 workspace, catalog, and community validation or lookup failure cases in default and
+      full modes.
+    then:
+    - Each domain failure returns success false, the expected stable error identifier, and a nonempty
+      readable message.
+    - Malformed date input is not echoed; recovery hints only reference registered tools.
+    test:
+      file: tests/integration/mcp/actionable-errors.test.ts
+      name: mcp.actionable-errors
 - id: mcp.public-catalog-access
   category: authorization
   rule: MCP discovery and public catalog calls allow anonymous access. Personal tools require authenticated
