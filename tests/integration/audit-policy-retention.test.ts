@@ -1,20 +1,11 @@
-import { afterAll, expect, it } from "vitest";
+import { expect } from "vitest";
 import { maintainAuditLogRetention } from "@/features/admin/server/audit-retention";
-import { createFixturePrisma, createTestPrisma } from "../shared/prisma";
+import { isolatedDatabaseTest as it } from "../shared/isolated-database";
 
-const owner = createFixturePrisma();
-const app = createTestPrisma();
-const auth = createTestPrisma(process.env.AUTH_DATABASE_URL);
-const maintenance = createTestPrisma(process.env.MAINTENANCE_DATABASE_URL);
-const marker = `audit-policy-${crypto.randomUUID()}`;
-afterAll(async () => {
-  await owner.auditLog.deleteMany({ where: { id: { startsWith: marker } } });
-  await Promise.all(
-    [owner, app, auth, maintenance].map((db) => db.$disconnect()),
-  );
-});
-
-it("audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively", async () => {
+it("audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively", async ({
+  isolatedDatabase: { owner, maintenance },
+}) => {
+  const marker = "audit-boundary";
   const expected = { network_days: 30, attribution_days: 90, event_days: 400 };
   const now = new Date(Date.now() - 1000);
   const privateFields = {
@@ -42,8 +33,12 @@ it("audit retention clears network data at 30 days, attribution at 90, and event
       });
     }
   }
-  expect(await maintainAuditLogRetention(maintenance, now)).toMatchObject({
+  expect(await maintainAuditLogRetention(maintenance, now)).toEqual({
+    auditRetentionBatches: 1,
     auditRetentionComplete: true,
+    networkAnonymized: 8,
+    attributionAnonymized: 5,
+    rowsDeleted: 2,
   });
   for (const [kind, days] of Object.entries({
     network: expected.network_days,
@@ -76,7 +71,10 @@ it("audit retention clears network data at 30 days, attribution at 90, and event
   }
 });
 
-it("audit.retention-maintenance-authority", async () => {
+it("only maintenance can execute audit retention while direct table deletion remains forbidden", async ({
+  isolatedDatabase: { owner, app, auth, maintenance },
+}) => {
+  const marker = "authority";
   const [definition] = await owner.$queryRaw<
     Array<{ securityDefiner: boolean; owner: string }>
   >`
