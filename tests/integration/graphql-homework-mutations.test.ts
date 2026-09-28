@@ -1,5 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { deleteHomeworkForModeration } from "@/features/homeworks/server/homework-mutations";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { authPrisma } from "@/lib/db/auth-prisma";
@@ -7,17 +7,14 @@ import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
-import { DEV_SEED } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
-import { homeworkExpectation } from "../shared/specifications/homework";
-import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const fixturePrisma = createFixturePrisma();
 
 const handler = createGraphqlRequestHandler(false);
-const marker = `[integration-test] graphql-homework-${Date.now()}`;
-const oauthClientId = `graphql-homework-${crypto.randomUUID()}`;
-const createdHomeworkIds: string[] = [];
+let marker = "";
+let oauthClientId = "";
+let section: { id: number; jwId: number } | undefined;
 
 let creatorId = "";
 let collaboratorId = "";
@@ -84,25 +81,38 @@ function expectErrorCode(payload: GraphqlPayload, code: string) {
   expect(payload.errors?.[0]?.extensions?.code).toBe(code);
 }
 
-beforeAll(async () => {
-  const [creator, collaborator] = await Promise.all([
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-creator@example.test`,
+beforeEach(async () => {
+  marker = `[integration-test] graphql-homework-${crypto.randomUUID()}`;
+  oauthClientId = `graphql-homework-${crypto.randomUUID()}`;
+  creatorId = crypto.randomUUID();
+  collaboratorId = crypto.randomUUID();
+  section = undefined;
+  await fixturePrisma.user.createMany({
+    data: [
+      {
+        id: creatorId,
+        email: `${creatorId}@graphql-homework.test`,
         name: "GraphQL Homework Creator",
       },
-      select: { id: true },
-    }),
-    fixturePrisma.user.create({
-      data: {
-        email: `${marker}-collaborator@example.test`,
+      {
+        id: collaboratorId,
+        email: `${collaboratorId}@graphql-homework.test`,
         name: "GraphQL Homework Collaborator",
       },
-      select: { id: true },
-    }),
-  ]);
-  creatorId = creator.id;
-  collaboratorId = collaborator.id;
+    ],
+  });
+  const source = await fixturePrisma.section.findFirstOrThrow({
+    where: { retiredAt: null },
+    select: { courseId: true, semesterId: true },
+  });
+  section = await fixturePrisma.section.create({
+    data: {
+      ...source,
+      jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
+      code: marker,
+    },
+    select: { id: true, jwId: true },
+  });
   await fixturePrisma.oAuthClient.create({
     data: {
       clientId: oauthClientId,
@@ -132,22 +142,24 @@ beforeAll(async () => {
   });
 });
 
-afterAll(async () => {
+afterEach(async () => {
   await fixturePrisma.oAuthClient.deleteMany({
     where: { clientId: oauthClientId },
   });
   await fixturePrisma.auditLog.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
-  await fixturePrisma.homework.deleteMany({
-    where: { id: { in: createdHomeworkIds } },
-  });
+  if (section)
+    await fixturePrisma.section.deleteMany({ where: { id: section.id } });
   await fixturePrisma.userSuspension.deleteMany({
     where: { userId: { in: [creatorId, collaboratorId] } },
   });
   await fixturePrisma.user.deleteMany({
     where: { id: { in: [creatorId, collaboratorId] } },
   });
+});
+
+afterAll(async () => {
   await Promise.all([
     fixturePrisma.$disconnect(),
     authPrisma.$disconnect(),
@@ -155,53 +167,68 @@ afterAll(async () => {
   ]);
 });
 
-describe("GraphQL homework CRUD mutations", () => {
-  it("keeps explicit administrator moderation available outside ordinary GraphQL writes", async () => {
-    const section = await fixturePrisma.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.section.jwId },
-      select: { id: true },
-    });
-    const homework = await fixturePrisma.homework.create({
-      data: {
-        sectionId: section.id,
-        title: `${marker} moderation`,
-        createdById: creatorId,
+function ownSection() {
+  if (!section) throw new Error("Missing isolated section");
+  return section;
+}
+
+async function arrangeHomework() {
+  return fixturePrisma.homework.create({
+    data: {
+      sectionId: ownSection().id,
+      title: `${marker} initial`,
+      createdById: creatorId,
+      isMajor: true,
+      requiresTeam: true,
+      publishedAt: new Date("2026-07-20T00:00:00Z"),
+      submissionStartAt: new Date("2026-07-21T00:00:00Z"),
+      submissionDueAt: new Date("2026-07-22T10:00:00Z"),
+      description: {
+        create: { content: "Solve question 1", lastEditedById: creatorId },
       },
-    });
-    createdHomeworkIds.push(homework.id);
-    await fixturePrisma.user.update({
-      where: { id: collaboratorId },
-      data: { isAdmin: true },
-    });
-    try {
-      await expect(
-        deleteHomeworkForModeration({
-          userId: creatorId,
-          homeworkId: homework.id,
-        }),
-      ).resolves.toMatchObject({ ok: false, error: "forbidden" });
-      await expect(
-        deleteHomeworkForModeration({
-          userId: collaboratorId,
-          homeworkId: homework.id,
-          audit: { channel: "web" },
-        }),
-      ).resolves.toMatchObject({ ok: true, alreadyDeleted: false });
-      await expect(
-        fixturePrisma.homework.findUniqueOrThrow({
-          where: { id: homework.id },
-          select: { deletedAt: true, deletedById: true },
-        }),
-      ).resolves.toEqual({
-        deletedAt: expect.any(Date),
-        deletedById: collaboratorId,
-      });
-    } finally {
+    },
+  });
+}
+
+describe("GraphQL homework CRUD mutations", () => {
+  it.each([
+    { name: "non-admin creator", administrator: false, allowed: false },
+    { name: "administrator", administrator: true, allowed: true },
+  ])("explicit moderation by $name", async ({ administrator, allowed }) => {
+    const homework = await arrangeHomework();
+    const userId = administrator ? collaboratorId : creatorId;
+    if (administrator)
       await fixturePrisma.user.update({
-        where: { id: collaboratorId },
-        data: { isAdmin: false },
+        where: { id: userId },
+        data: { isAdmin: true },
       });
-    }
+    const result = await deleteHomeworkForModeration({
+      userId,
+      homeworkId: homework.id,
+      audit: { channel: "web" },
+    });
+    expect(result).toMatchObject(
+      allowed
+        ? { ok: true, alreadyDeleted: false }
+        : { ok: false, error: "forbidden" },
+    );
+    expect(
+      await fixturePrisma.homework.findUniqueOrThrow({
+        where: { id: homework.id },
+        select: { deletedAt: true, deletedById: true },
+      }),
+    ).toEqual(
+      allowed
+        ? { deletedAt: expect.any(Date), deletedById: userId }
+        : { deletedAt: null, deletedById: null },
+    );
+    const audits = await fixturePrisma.auditLog.findMany({
+      where: { targetId: homework.id },
+      select: { action: true, userId: true },
+    });
+    expect(audits).toEqual(
+      allowed ? [{ action: "homework_delete", userId }] : [],
+    );
   });
 
   it("requires the exact homework write scope before resolving a section", async () => {
@@ -222,7 +249,7 @@ describe("GraphQL homework CRUD mutations", () => {
             }
           }
         `,
-        variables: { sectionJwId: DEV_SEED.section.jwId },
+        variables: { sectionJwId: ownSection().jwId },
       },
       readToken,
     );
@@ -263,7 +290,7 @@ describe("GraphQL homework CRUD mutations", () => {
           }
         `,
         variables: {
-          sectionJwId: DEV_SEED.section.jwId,
+          sectionJwId: ownSection().jwId,
           start: "2026-08-02T08:00:00+08:00",
           due: "2026-08-01T18:00:00+08:00",
         },
@@ -282,10 +309,9 @@ describe("GraphQL homework CRUD mutations", () => {
     ).resolves.toBe(0);
   });
 
-  it("creates, collaboratively updates, and creator-deletes with shared audit semantics", async () => {
-    const [creatorToken, collaboratorToken] = await Promise.all([
-      signToken(creatorId, [restWriteScope("community.section-homework")]),
-      signToken(collaboratorId, [restWriteScope("community.section-homework")]),
+  it("creates homework and records the normalized state and creation audit", async () => {
+    const creatorToken = await signToken(creatorId, [
+      restWriteScope("community.section-homework"),
     ]);
     const created = await execute(
       {
@@ -327,7 +353,7 @@ describe("GraphQL homework CRUD mutations", () => {
           }
         `,
         variables: {
-          sectionJwId: DEV_SEED.section.jwId,
+          sectionJwId: ownSection().jwId,
           publishedAt: "2026-07-20T08:00:00+08:00",
           start: "2026-07-21T08:00:00+08:00",
           due: "2026-07-22T18:00:00+08:00",
@@ -336,7 +362,10 @@ describe("GraphQL homework CRUD mutations", () => {
       creatorToken,
     );
     expect(created.response.headers.get("cache-control")).toBe("no-store");
-    expect(created.payload.errors).toBeUndefined();
+    expect(
+      created.payload.errors,
+      JSON.stringify(created.payload),
+    ).toBeUndefined();
     const createPayload = created.payload.data?.homeworkCreate as
       | {
           id: string;
@@ -345,7 +374,6 @@ describe("GraphQL homework CRUD mutations", () => {
       | undefined;
     expect(createPayload?.id).toEqual(expect.any(String));
     const homeworkId = createPayload?.id as string;
-    createdHomeworkIds.push(homeworkId);
     expect(createPayload?.homework).toMatchObject({
       id: homeworkId,
       title: `${marker} initial`,
@@ -356,7 +384,7 @@ describe("GraphQL homework CRUD mutations", () => {
       submissionDueAt: "2026-07-22T10:00:00.000Z",
       completed: false,
       commentCount: 0,
-      section: { jwId: DEV_SEED.section.jwId },
+      section: { jwId: ownSection().jwId },
     });
 
     const createdRecord = await fixturePrisma.homework.findUniqueOrThrow({
@@ -388,7 +416,13 @@ describe("GraphQL homework CRUD mutations", () => {
         metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
       },
     ]);
+  });
 
+  it("collaboratively updates known homework and records description audit", async () => {
+    const { id: homeworkId } = await arrangeHomework();
+    const collaboratorToken = await signToken(collaboratorId, [
+      restWriteScope("community.section-homework"),
+    ]);
     const updated = await execute(
       {
         query: /* GraphQL */ `
@@ -464,48 +498,49 @@ describe("GraphQL homework CRUD mutations", () => {
     ).resolves.toMatchObject({
       metadata: { targetType: "homework" },
     });
+  });
 
-    const forbiddenDelete = await execute(
-      {
-        query:
-          "mutation DeleteOtherHomework($id: ID!) { homeworkDelete(id: $id) { success } }",
-        variables: { id: homeworkId },
-      },
-      collaboratorToken,
-    );
-    expectErrorCode(forbiddenDelete.payload, "FORBIDDEN");
-
-    // The same ordinary grant must remain creator-scoped after promotion.
-    await fixturePrisma.user.update({
-      where: { id: collaboratorId },
-      data: { isAdmin: true },
-    });
-    try {
-      const adminToken = await signToken(collaboratorId, [
+  it.each([false, true])(
+    "rejects deletion by another owner even when isAdmin=%s",
+    async (isAdmin) => {
+      const { id: homeworkId } = await arrangeHomework();
+      await fixturePrisma.user.update({
+        where: { id: collaboratorId },
+        data: { isAdmin },
+      });
+      const token = await signToken(collaboratorId, [
         restWriteScope("community.section-homework"),
       ]);
-      const adminDelete = await execute(
+      const before = await fixturePrisma.homework.findUniqueOrThrow({
+        where: { id: homeworkId },
+      });
+      const { payload } = await execute(
         {
           query:
             "mutation DeleteOtherHomework($id: ID!) { homeworkDelete(id: $id) { success } }",
           variables: { id: homeworkId },
         },
-        adminToken,
+        token,
       );
-      expectErrorCode(adminDelete.payload, "FORBIDDEN");
-      await expect(
-        fixturePrisma.homework.findUniqueOrThrow({
+      expectErrorCode(payload, "FORBIDDEN");
+      expect(
+        await fixturePrisma.homework.findUniqueOrThrow({
           where: { id: homeworkId },
-          select: { deletedAt: true },
         }),
-      ).resolves.toEqual({ deletedAt: null });
-    } finally {
-      await fixturePrisma.user.update({
-        where: { id: collaboratorId },
-        data: { isAdmin: false },
-      });
-    }
+      ).toEqual(before);
+      expect(
+        await fixturePrisma.auditLog.findMany({
+          where: { userId: collaboratorId },
+        }),
+      ).toEqual([]);
+    },
+  );
 
+  it("creator deletion is idempotent and emits one deletion audit", async () => {
+    const { id: homeworkId } = await arrangeHomework();
+    const creatorToken = await signToken(creatorId, [
+      restWriteScope("community.section-homework"),
+    ]);
     const deleted = await execute(
       {
         query: /* GraphQL */ `
@@ -555,89 +590,138 @@ describe("GraphQL homework CRUD mutations", () => {
         },
       },
     });
-    await expect(
-      fixturePrisma.auditLog.findMany({
-        where: {
-          action: {
-            in: ["homework_create", "homework_update", "homework_delete"],
-          },
-          targetId: homeworkId,
-        },
-        orderBy: [{ createdAt: "asc" }, { action: "asc" }],
+    expect(
+      await fixturePrisma.homework.findUniqueOrThrow({
+        where: { id: homeworkId },
+        select: { deletedAt: true, deletedById: true },
+      }),
+    ).toEqual({ deletedAt: expect.any(Date), deletedById: creatorId });
+    expect(
+      await fixturePrisma.auditLog.findMany({
+        where: { targetId: homeworkId },
         select: { action: true, userId: true, metadata: true },
       }),
-    ).resolves.toEqual([
-      {
-        action: "homework_create",
-        userId: creatorId,
-        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
-      },
-      {
-        action: "homework_update",
-        userId: collaboratorId,
-        metadata: expect.objectContaining({
-          changedFields: expect.arrayContaining(["title", "description"]),
-        }),
-      },
+    ).toEqual([
       {
         action: "homework_delete",
         userId: creatorId,
-        metadata: expect.objectContaining({ sectionId: expect.any(Number) }),
+        metadata: expect.objectContaining({ sectionId: ownSection().id }),
       },
     ]);
   });
 });
 
-it("homework.graphql-completion-batch-input", async (context) => {
-  const contract = await semanticContract(
-    "homework.graphql-completion-batch-input",
-    "collection_input",
-  );
-  contract.equal("/surface", "graphql");
-  contract.equal("/operation", "homeworkCompletionsSet");
-  contract.equal("/input", "items");
-  const specification = homeworkExpectation(
-    "homework.graphql-completion-batch-input",
-    "collection_input",
-  );
-  const token = await signToken(creatorId, [
-    restWriteScope("workspace.homework"),
-  ]);
+describe("GraphQL completion batch boundaries", () => {
   const items = (count: number) =>
     Array.from({ length: count }, (_, index) => ({
-      homeworkId: `missing-spec-homework-${index}`,
+      homeworkId: `missing-homework-${index}`,
       completed: true,
     }));
-  const send = (value: ReturnType<typeof items>) =>
+  const send = async (value: ReturnType<typeof items>) =>
     execute(
       {
-        query: `mutation SpecBatch($items: [HomeworkCompletionBatchItemInput!]!) { ${specification.operation}(${specification.input}: $items) { results { success homeworkId } } }`,
+        query:
+          "mutation CompletionBatch($items: [HomeworkCompletionBatchItemInput!]!) { homeworkCompletionsSet(items: $items) { results { success homeworkId } } }",
         variables: { items: value },
       },
-      token,
+      await signToken(creatorId, [restWriteScope("workspace.homework")]),
     );
-  for (const size of [specification.min_items, specification.max_items]) {
-    const { payload } = await send(items(size));
+
+  it.each([1, 100])(
+    "accepts %s items and persists every completion",
+    async (size) => {
+      const homeworkIds = Array.from({ length: size }, () =>
+        crypto.randomUUID(),
+      );
+      await fixturePrisma.homework.createMany({
+        data: homeworkIds.map((id) => ({
+          id,
+          sectionId: ownSection().id,
+          title: `${marker} batch`,
+        })),
+      });
+      const value = homeworkIds.map((homeworkId) => ({
+        homeworkId,
+        completed: true,
+      }));
+      const { response, payload } = await send(value);
+      expect(response.status).toBe(200);
+      expect(payload.errors).toBeUndefined();
+      expect(payload.data?.homeworkCompletionsSet).toEqual({
+        results: homeworkIds.map((homeworkId) => ({
+          success: true,
+          homeworkId,
+        })),
+      });
+      expect(
+        await fixturePrisma.homeworkCompletion.findMany({
+          where: { homeworkId: { in: homeworkIds } },
+          select: { userId: true, homeworkId: true, completedAt: true },
+          orderBy: { homeworkId: "asc" },
+        }),
+      ).toEqual(
+        [...homeworkIds].sort().map((homeworkId) => ({
+          userId: creatorId,
+          homeworkId,
+          completedAt: expect.any(Date),
+        })),
+      );
+    },
+  );
+
+  it("returns an independent not-found result for each missing target", async () => {
+    const { payload } = await send(items(2));
     expect(payload.errors).toBeUndefined();
-    const batch = payload.data?.[specification.operation] as {
-      results: Array<{ success: boolean }>;
-    };
-    expect(batch.results).toHaveLength(size);
-    contract.equal(
-      size === specification.min_items ? "/min_items" : "/max_items",
-      batch.results.length,
-    );
-    for (const result of batch.results) expect(result.success).toBe(false);
-  }
-  for (const size of [
-    specification.min_items - 1,
-    specification.max_items + 1,
-  ]) {
-    expectErrorCode((await send(items(size))).payload, "BAD_USER_INPUT");
-  }
-  const { payload } = await send([items(1)[0], items(1)[0]]);
-  if (specification.unique_items) expectErrorCode(payload, "BAD_USER_INPUT");
-  else expect(payload.errors).toBeUndefined();
-  contract.equal("/unique_items", Boolean(payload.errors?.length));
-  contract.recordVitest(context);
+    expect(payload.data?.homeworkCompletionsSet).toEqual({
+      results: items(2).map(({ homeworkId }) => ({
+        success: false,
+        homeworkId,
+      })),
+    });
+    expect(
+      await fixturePrisma.homeworkCompletion.findMany({
+        where: { userId: creatorId },
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    { name: "empty", count: 0 },
+    { name: "over 100", count: 101 },
+    { name: "duplicate", count: 2 },
+    { name: "normalized duplicate", count: 2 },
+  ])(
+    "rejects $name batches without changing existing completion",
+    async ({ name, count }) => {
+      const homework = await arrangeHomework();
+      const completedAt = new Date("2026-09-13T08:00:00Z");
+      await fixturePrisma.homeworkCompletion.create({
+        data: { userId: creatorId, homeworkId: homework.id, completedAt },
+      });
+      const value = name.includes("duplicate")
+        ? [
+            { homeworkId: homework.id, completed: false },
+            {
+              homeworkId:
+                name === "normalized duplicate"
+                  ? ` ${homework.id} `
+                  : homework.id,
+              completed: true,
+            },
+          ]
+        : items(count).map((item, index) =>
+            index === 0 ? { homeworkId: homework.id, completed: false } : item,
+          );
+      expectErrorCode((await send(value)).payload, "BAD_USER_INPUT");
+      expect(
+        await fixturePrisma.homeworkCompletion.findMany({
+          where: { userId: creatorId },
+          select: { homeworkId: true, completedAt: true },
+        }),
+      ).toEqual([{ homeworkId: homework.id, completedAt }]);
+      expect(
+        await fixturePrisma.auditLog.findMany({ where: { userId: creatorId } }),
+      ).toEqual([]);
+    },
+  );
 });
