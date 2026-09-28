@@ -255,7 +255,8 @@ requirements:
     bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session
     or separately authorized REST upload token.
   acceptance:
-    given: A real OAuth grant authorizes separate signed MCP and REST resource tokens.
+    given: A private database, Node HTTP production routes, private in-memory R2 and a real OAuth
+      grant authorizing separate signed MCP and REST resource tokens.
     when: HTTP MCP registered operations reserve, complete, rename and delete metadata around separately
       authenticated HTTP PUT and download.
     then:
