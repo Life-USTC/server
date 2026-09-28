@@ -417,7 +417,7 @@ requirements:
     - One event records the imported version ID and aggregate campus, route and trip counts.
     - Private source message, URL, campus names and timetable values are absent from audit metadata.
     test:
-      file: tests/integration/audit-bus-actions.test.ts
+      file: tests/integration/audit-bus-import.test.ts
       name: audit.action-admin-bus-import
 - id: audit.action-homework-create
   category: privacy
