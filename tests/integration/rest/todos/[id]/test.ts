@@ -1,6 +1,5 @@
 import { expect } from "@playwright/test";
-import { withE2ePrisma } from "../../../../e2e/utils/e2e-db/prisma";
-import { test } from "../../_harness/actor";
+import { test } from "../_fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -13,7 +12,7 @@ for (const method of ["PATCH", "DELETE"] as const) {
       { name: "admin owner", isAdmin: true, owns: true, status: 200 },
       { name: "other admin", isAdmin: true, owns: false, status: 404 },
     ]) {
-      test(scenario.name, async ({ createActor, request: anonymous }) => {
+      test(scenario.name, async ({ createActor, request: anonymous, db }) => {
         const actor = await createActor({ isAdmin: scenario.isAdmin });
         const owner = scenario.owns ? actor : await createActor();
         const caller =
@@ -29,15 +28,11 @@ for (const method of ["PATCH", "DELETE"] as const) {
             isAdmin: scenario.isAdmin,
           });
         expect(
-          await withE2ePrisma((db) =>
-            db.userSuspension.count({ where: { userId: actor.id } }),
-          ),
+          await db.userSuspension.count({ where: { userId: actor.id } }),
         ).toBe(0);
-        const before = await withE2ePrisma((db) =>
-          db.todo.create({
-            data: { userId: owner.id, title: "Owned todo", priority: "medium" },
-          }),
-        );
+        const before = await db.todo.create({
+          data: { userId: owner.id, title: "Owned todo", priority: "medium" },
+        });
         const response = await caller.fetch(
           `/api/workspace/todos/${before.id}`,
           {
@@ -50,9 +45,7 @@ for (const method of ["PATCH", "DELETE"] as const) {
           "application/json",
         );
         const body = await response.json();
-        const after = await withE2ePrisma((db) =>
-          db.todo.findUnique({ where: { id: before.id } }),
-        );
+        const after = await db.todo.findUnique({ where: { id: before.id } });
         if (scenario.status !== 200) {
           expect(typeof body.error).toBe("string");
           expect(after).toEqual(before);
@@ -102,13 +95,12 @@ for (const method of ["PATCH", "DELETE"] as const) {
 
 test("todo PATCH returns its public fields and persists the edited values", async ({
   createActor,
+  db,
 }) => {
   const actor = await createActor();
-  const before = await withE2ePrisma((db) =>
-    db.todo.create({
-      data: { userId: actor.id, title: "Original title", priority: "medium" },
-    }),
-  );
+  const before = await db.todo.create({
+    data: { userId: actor.id, title: "Original title", priority: "medium" },
+  });
   const response = await actor.request.patch(
     `/api/workspace/todos/${before.id}`,
     { data: { title: "Updated todo title", completed: true } },
@@ -130,11 +122,7 @@ test("todo PATCH returns its public fields and persists the edited values", asyn
     expect(typeof body.todo[field]).toBe("string");
     expect(Number.isNaN(Date.parse(body.todo[field]))).toBe(false);
   }
-  expect(
-    await withE2ePrisma((db) =>
-      db.todo.findUnique({ where: { id: before.id } }),
-    ),
-  ).toMatchObject({
+  expect(await db.todo.findUnique({ where: { id: before.id } })).toMatchObject({
     ...before,
     title: "Updated todo title",
     completed: true,
@@ -144,6 +132,7 @@ test("todo PATCH returns its public fields and persists the edited values", asyn
 
 test("deleting a todo removes it from the owner's subsequent list", async ({
   createActor,
+  db,
 }) => {
   const { request } = await createActor();
   // One real create → delete → read connection check complements isolated mutations.
@@ -159,7 +148,5 @@ test("deleting a todo removes it from the owner's subsequent list", async ({
   const listed = await request.get("/api/workspace/todos");
   expect(listed.status()).toBe(200);
   expect((await listed.json()).todos).toEqual([]);
-  expect(
-    await withE2ePrisma((db) => db.todo.findUnique({ where: { id } })),
-  ).toBeNull();
+  expect(await db.todo.findUnique({ where: { id } })).toBeNull();
 });
