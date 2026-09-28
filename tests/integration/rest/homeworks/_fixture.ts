@@ -1,4 +1,5 @@
 import type { APIRequestContext } from "@playwright/test";
+import { DEV_SEED } from "../../../fixtures/dev-seed";
 import {
   createFixturePrisma,
   type TestPrismaClient,
@@ -20,8 +21,8 @@ export const test = actorTest.extend<{ homeworkState: HomeworkState }>({
     try {
       const owner = await createActor();
       const other = await createActor();
-      const source = await db.section.findFirstOrThrow({
-        where: { retiredAt: null },
+      const source = await db.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
         select: { courseId: true, semesterId: true },
       });
       const section = await db.section.create({
