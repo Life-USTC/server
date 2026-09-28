@@ -3,6 +3,7 @@ import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/c
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
+import { DEV_SEED } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
 
 const db = createFixturePrisma();
@@ -16,8 +17,8 @@ beforeEach(async () => {
   users = [crypto.randomUUID(), crypto.randomUUID()];
   ids = Array.from({ length: 4 }, () => crypto.randomUUID());
   section = undefined;
-  const source = await db.section.findFirstOrThrow({
-    where: { retiredAt: null },
+  const source = await db.section.findUniqueOrThrow({
+    where: { jwId: DEV_SEED.section.jwId },
     select: { courseId: true, semesterId: true },
   });
   section = await db.section.create({

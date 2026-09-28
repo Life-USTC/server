@@ -7,6 +7,7 @@ import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthGraphqlResourceUrl } from "@/lib/oauth/resource-urls";
 import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
+import { DEV_SEED } from "../fixtures/dev-seed";
 import { createFixturePrisma } from "../shared/prisma";
 
 const fixturePrisma = createFixturePrisma();
@@ -101,8 +102,8 @@ beforeEach(async () => {
       },
     ],
   });
-  const source = await fixturePrisma.section.findFirstOrThrow({
-    where: { retiredAt: null },
+  const source = await fixturePrisma.section.findUniqueOrThrow({
+    where: { jwId: DEV_SEED.section.jwId },
     select: { courseId: true, semesterId: true },
   });
   section = await fixturePrisma.section.create({
