@@ -21,8 +21,7 @@
  * - Completion toggle calls PUT /api/workspace/homeworks/{id}/completion
  * - Empty state when filter yields no results
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { expect } from "@playwright/test";
 import {
   closeDetailDialog,
   detailDialog,
@@ -31,14 +30,13 @@ import {
   expectIconOnlyCloseButton,
   expectSingleColumnDiscussion,
 } from "../../../../utils/detail-dialog";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘作业", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
   test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
     const response = await page.request.get(
@@ -65,9 +63,11 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("登录后显示种子作业及所有必填字段", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("登录后显示独立作业及所有必填字段", async ({
+    page,
+    academic,
+    homeworks,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
@@ -81,24 +81,24 @@ test.describe("仪表盘作业", () => {
 
     const hwRow = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[1].title })
       .first();
     await expect(hwRow).toBeVisible();
 
     // homework.title
-    await expect(hwRow.getByText(DEV_SEED.homeworks.title)).toBeVisible();
+    await expect(hwRow.getByText(homeworks[1].title)).toBeVisible();
     await expect(hwRow.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
 
     // section.course.namePrimary appears in the homework subtitle.
     await expect(
       hwRow
-        .getByText(DEV_SEED.course.nameCn)
-        .or(hwRow.getByText(DEV_SEED.course.nameEn))
+        .getByText(academic.course.nameCn)
+        .or(hwRow.getByText(academic.course.nameEn))
         .first(),
     ).toBeVisible();
 
     const detailButton = hwRow.getByRole("button", {
-      name: new RegExp(DEV_SEED.homeworks.title),
+      name: new RegExp(homeworks[1].title),
     });
     await detailButton.focus();
     await page.keyboard.press("Enter");
@@ -110,9 +110,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/seed-list-fields");
   });
 
-  test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("协作作业显示重要和团队徽章", async ({ page, homeworks }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
@@ -125,25 +123,25 @@ test.describe("仪表盘作业", () => {
 
     const hwRow = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[1].title })
       .first();
     await expect(hwRow).toBeVisible();
-    await expect(hwRow.getByText(/重要|Major|重大/i)).toBeVisible();
+    await expect(
+      hwRow
+        .locator('[data-slot="badge"]')
+        .filter({ hasText: /重要|Major|重大/i }),
+    ).toBeVisible();
     await expect(hwRow.getByText(/团队|Team/i)).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "homeworks/major-team-badges");
   });
 
-  test("可在筛选标签之间切换", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("可在筛选标签之间切换", async ({ page, homeworkStates }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
-    await expect(
-      visibleText(page, DEV_SEED.homeworks.overdueTitle),
-    ).toBeVisible();
+    await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
 
     // Completed filter
     const completedTab = page
@@ -151,27 +149,22 @@ test.describe("仪表盘作业", () => {
       .first();
     await expect(completedTab).toBeVisible();
     await completedTab.click();
-    await expect(
-      visibleText(page, DEV_SEED.homeworks.completedTitle),
-    ).toBeVisible();
-    await expect(
-      visibleText(page, DEV_SEED.homeworks.overdueTitle),
-    ).toHaveCount(0);
+    await expect(visibleText(page, homeworkStates[1].title)).toBeVisible();
+    await expect(visibleText(page, homeworkStates[0].title)).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
     const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
-    await expect(
-      visibleText(page, DEV_SEED.homeworks.overdueTitle),
-    ).toBeVisible();
+    await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
   });
 
-  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({ page }) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("作业详情弹窗单栏展示截止日期、讨论与图标关闭按钮", async ({
+    page,
+    homeworks,
+  }) => {
     await gotoAndWaitForReady(page, "/workspace/homeworks");
 
     await page
@@ -181,10 +174,10 @@ test.describe("仪表盘作业", () => {
 
     const row = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[1].title })
       .first();
     await row
-      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .getByRole("button", { name: new RegExp(homeworks[1].title) })
       .first()
       .click();
 
@@ -199,9 +192,9 @@ test.describe("仪表盘作业", () => {
 
   test("作业详情链接到班级页面且不打开第二层详情", async ({
     page,
+    academic,
+    homeworks,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
@@ -214,16 +207,16 @@ test.describe("仪表盘作业", () => {
 
     const detailRow = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[1].title })
       .first();
     await detailRow
-      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .getByRole("button", { name: new RegExp(homeworks[1].title) })
       .first()
       .click();
     const popout = page.locator('[data-slot="dialog-content"]').first();
     await expect(popout).toBeVisible();
     const sectionLink = popout
-      .locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`)
+      .locator(`a[href="/catalog/sections/${academic.section.jwId}"]`)
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();

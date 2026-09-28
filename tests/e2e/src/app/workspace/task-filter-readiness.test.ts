@@ -1,13 +1,11 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
+import { expect, type Page } from "@playwright/test";
+import { test as academicTest } from "../../../utils/homework-fixture";
+import { test as accountTest } from "../../../utils/isolated-account";
 import { waitForUiSettled } from "../../../utils/page-ready";
-import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
-test("ui.workspace-filters-and-empty-states-2", async ({ page }) => {
-  for (const tab of ["homeworks", "todos", "exams"] as const) {
-    await signInAsDebugUser(page, `/workspace/${tab}`);
-    if (tab !== "todos") await ensureSeedSectionSubscription(page);
-
+academicTest.describe.configure({ mode: "parallel" });
+for (const tab of ["homeworks", "todos", "exams"] as const) {
+  const verify = async (page: Page) => {
     let releaseScripts = () => {};
     const scriptsReady = new Promise<void>((resolve) => {
       releaseScripts = resolve;
@@ -45,5 +43,16 @@ test("ui.workspace-filters-and-empty-states-2", async ({ page }) => {
       await page.context().setOffline(false);
       await page.unrouteAll({ behavior: "wait" });
     }
+  };
+  if (tab === "todos") {
+    accountTest(
+      `ui.workspace-filters-and-empty-states-2 (${tab})`,
+      async ({ page, account: _account }) => verify(page),
+    );
+  } else {
+    academicTest(
+      `ui.workspace-filters-and-empty-states-2 (${tab})`,
+      async ({ page, academic: _academic }) => verify(page),
+    );
   }
-});
+}

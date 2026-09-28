@@ -1,21 +1,20 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { expect } from "@playwright/test";
+import { storedHomeworks, test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘作业", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
-  test("homework.mobile-toolbar-priority", async ({ page }, testInfo) => {
+  test("homework.mobile-toolbar-priority", async ({
+    page,
+    homeworks: _homeworks,
+  }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks-mobile-toolbar",
@@ -73,10 +72,11 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/mobile-toolbar");
   });
 
-  test("移动端新建作业保留内部滚动和可见底部操作", async ({ page }) => {
+  test("移动端新建作业保留内部滚动和可见底部操作", async ({
+    page,
+    academic: _academic,
+  }) => {
     await page.setViewportSize({ height: 568, width: 320 });
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks");
 
     await page.getByTestId("workspace-homeworks-add").first().click();
@@ -148,83 +148,76 @@ test.describe("仪表盘作业", () => {
     await expect(submit).toBeInViewport();
   });
 
-  test("移动端作业详情长内容保持底部操作可达", async ({ page }) => {
+  test("移动端作业详情长内容保持底部操作可达", async ({ page, academic }) => {
     test.setTimeout(90_000);
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
     await page.setViewportSize({ height: 568, width: 320 });
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks");
 
     const title = `e2e-workspace-homework-mobile-${Date.now()}-${"长标题".repeat(30)}`;
     const description = `${"这是用于验证仪表盘作业详情滚动区域的长说明。 ".repeat(24)}\n\nworkspace-homework-mobile-content-marker`;
-    let homeworkId: string | undefined;
 
-    try {
-      await page.getByTestId("workspace-homeworks-add").first().click();
-      const createDialog = page.getByRole("dialog", {
-        name: /新建作业|New Homework/i,
-      });
-      await expect(createDialog).toBeVisible();
-      await createDialog.getByTestId("workspace-homework-title").fill(title);
-      await createDialog
-        .getByRole("textbox", { name: /说明|Details/i })
-        .fill(description);
-      await createDialog.getByTestId("workspace-homework-create").click();
-      await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
-      await page.keyboard.press("Escape");
-      await expect(createDialog).toHaveCount(0);
+    await page.getByTestId("workspace-homeworks-add").first().click();
+    const createDialog = page.getByRole("dialog", {
+      name: /新建作业|New Homework/i,
+    });
+    await expect(createDialog).toBeVisible();
+    await createDialog.getByTestId("workspace-homework-title").fill(title);
+    await createDialog
+      .getByRole("textbox", { name: /说明|Details/i })
+      .fill(description);
+    await createDialog.getByTestId("workspace-homework-create").click();
+    await expect(visibleText(page, title)).toBeVisible({ timeout: 15_000 });
+    await page.keyboard.press("Escape");
+    await expect(createDialog).toHaveCount(0);
 
-      await page
-        .getByRole("button", { name: new RegExp(title) })
-        .first()
-        .click();
-      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
-      await expect(detailDialog).toBeVisible();
-      await expect(
-        detailDialog.getByText("workspace-homework-mobile-content-marker"),
-      ).toBeVisible();
-      await expect(
-        detailDialog.locator('a[href*="/catalog/sections/"]').first(),
-      ).toBeVisible();
+    await page
+      .getByRole("button", { name: new RegExp(title) })
+      .first()
+      .click();
+    const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+    await expect(detailDialog).toBeVisible();
+    await expect(
+      detailDialog.getByText("workspace-homework-mobile-content-marker"),
+    ).toBeVisible();
+    await expect(
+      detailDialog.locator('a[href*="/catalog/sections/"]').first(),
+    ).toBeVisible();
 
-      const viewportHeight = page.viewportSize()?.height ?? 568;
-      const dialogBox = await detailDialog.boundingBox();
-      const footer = detailDialog.locator('[data-slot="dialog-footer"]');
-      const footerBox = await footer.boundingBox();
-      expect(dialogBox).not.toBeNull();
-      expect(footerBox).not.toBeNull();
-      if (!dialogBox || !footerBox) {
-        throw new Error("Expected the mobile homework detail bounds");
-      }
-      expect(dialogBox.y).toBeGreaterThanOrEqual(0);
-      expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(
-        viewportHeight,
-      );
-      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
-        viewportHeight,
-      );
-      await expect(footer).toBeInViewport();
-
-      const completion = footer.getByRole("button", {
-        name: /标记为完成|Mark as complete/i,
-      });
-      await expect(completion).toBeVisible();
-      const completionBox = await completion.boundingBox();
-      expect(completionBox).not.toBeNull();
-      expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(240);
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
-
-      homeworkId =
-        (await detailDialog.getAttribute("data-homework-id")) ?? undefined;
-    } finally {
-      await cleanupHomeworksForE2e([homeworkId]);
+    const viewportHeight = page.viewportSize()?.height ?? 568;
+    const dialogBox = await detailDialog.boundingBox();
+    const footer = detailDialog.locator('[data-slot="dialog-footer"]');
+    const footerBox = await footer.boundingBox();
+    expect(dialogBox).not.toBeNull();
+    expect(footerBox).not.toBeNull();
+    if (!dialogBox || !footerBox) {
+      throw new Error("Expected the mobile homework detail bounds");
     }
+    expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(viewportHeight);
+    expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewportHeight);
+    await expect(footer).toBeInViewport();
+
+    const completion = footer.getByRole("button", {
+      name: /标记为完成|Mark as complete/i,
+    });
+    await expect(completion).toBeVisible();
+    const completionBox = await completion.boundingBox();
+    expect(completionBox).not.toBeNull();
+    expect(completionBox?.width ?? 0).toBeGreaterThanOrEqual(240);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    const persisted = await storedHomeworks(academic.section.id);
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]).toMatchObject({
+      title,
+      description: { content: description },
+    });
   });
 });

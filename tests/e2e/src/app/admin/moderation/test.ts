@@ -14,7 +14,7 @@ import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { resolveSeedSectionId } from "../../../../utils/subscriptions";
+import { resolveSeedSectionId } from "../../../../utils/seed-lookups";
 import { assertPageContract } from "../../_shared/page-contract";
 
 function moderationTableRow(page: Page, text: string) {

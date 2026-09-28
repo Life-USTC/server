@@ -19,14 +19,13 @@
  * - Exams without a date appear after dated exams
  * - Empty state when no subscriptions or no exams
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/academic-events";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘考试", () => {
+  test.describe.configure({ mode: "parallel" });
   test("未登录旧 exams tab 重定向到语义路径", async ({ page }) => {
     const response = await page.request.get("/?tab=exams&examView=list", {
       maxRedirects: 0,
@@ -36,9 +35,10 @@ test.describe("仪表盘考试", () => {
     expect(response.headers().location).toBe("/workspace/exams?examView=list");
   });
 
-  test("登录后显示考试筛选工具栏和列表", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/exams");
-    await ensureSeedSectionSubscription(page);
+  test("登录后显示考试筛选工具栏和列表", async ({
+    page,
+    pastExam: _pastExam,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
@@ -56,7 +56,7 @@ test.describe("仪表盘考试", () => {
     await expect(
       filterTabs.getByRole("radio", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
-    // Seed exams are in the past; the default upcoming filter stays empty.
+    // This case owns only a past exam; the default upcoming filter stays empty.
     await expect(
       filterTabs.locator('[data-value="incomplete"]'),
     ).toHaveAttribute("aria-checked", "true");
@@ -79,9 +79,11 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-empty-cleared");
   });
 
-  test("考试列表显示必填字段", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/exams");
-    await ensureSeedSectionSubscription(page);
+  test("考试列表显示必填字段", async ({
+    page,
+    academic,
+    pastExam: _pastExam,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
@@ -106,7 +108,7 @@ test.describe("仪表盘考试", () => {
     const seedExamRow = examRows
       .filter({
         hasText: new RegExp(
-          `${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`,
+          `${academic.course.nameCn}|${academic.course.nameEn}`,
         ),
       })
       .first();
@@ -139,9 +141,10 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/list-fields");
   });
 
-  test("考试列表链接到班级详情页", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/exams");
-    await ensureSeedSectionSubscription(page);
+  test("考试列表链接到班级详情页", async ({
+    page,
+    pastExam: _pastExam,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",
@@ -167,9 +170,8 @@ test.describe("仪表盘考试", () => {
 
   test("已完成筛选显示过往考试，未完成显示即将到来", async ({
     page,
+    pastExam: _pastExam,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/exams");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/exams", {
       testInfo,
       screenshotLabel: "exams",

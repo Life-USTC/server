@@ -20,16 +20,17 @@
  * - Unauthenticated legacy tab → protected semantic route, then sign-in
  * - Different layout per view mode
  */
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
+import { expect, mergeTests } from "@playwright/test";
+import { test as academicTest } from "../../../../utils/academic-events";
+import { test as calendarTest } from "../../../../utils/calendar-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
 
+const test = mergeTests(academicTest, calendarTest);
+
 test.describe("仪表盘日历", () => {
+  test.describe.configure({ mode: "parallel" });
   test("未登录旧 calendar tab 重定向到语义路径", async ({ page }) => {
     const response = await page.request.get(
       "/?tab=calendar&calendarView=week",
@@ -60,10 +61,9 @@ test.describe("仪表盘日历", () => {
 
   test("登录后显示日历，包含班级事件链接和星期标签", async ({
     page,
+    calendarUrl,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar", {
+    await gotoAndWaitForReady(page, calendarUrl, {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -79,21 +79,28 @@ test.describe("仪表盘日历", () => {
     ).toBeVisible();
 
     // Section links from schedule events
-    const sectionLink = page.locator('a[href^="/catalog/sections/"]').first();
+    const sectionLink = page
+      .locator('a[href^="/catalog/sections/"]')
+      .filter({ visible: true })
+      .first();
     await expect(sectionLink).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "calendar/semester-view");
   });
 
-  test("班级事件链接导航到班级详情", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar", {
+  test("班级事件链接导航到班级详情", async ({
+    page,
+    calendarUrl,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, calendarUrl, {
       testInfo,
       screenshotLabel: "calendar",
     });
 
-    const sectionLink = page.locator('a[href^="/catalog/sections/"]').first();
+    const sectionLink = page
+      .locator('a[href^="/catalog/sections/"]')
+      .filter({ visible: true })
+      .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
@@ -101,10 +108,8 @@ test.describe("仪表盘日历", () => {
     await captureStepScreenshot(page, testInfo, "calendar/section-link");
   });
 
-  test("考试卡片链接到考试标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar", {
+  test("考试卡片链接到考试标签", async ({ page, calendarUrl }, testInfo) => {
+    await gotoAndWaitForReady(page, calendarUrl, {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -116,10 +121,11 @@ test.describe("仪表盘日历", () => {
     await captureStepScreenshot(page, testInfo, "calendar/exam-link");
   });
 
-  test("学期导航控件可切换到其他学期", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar", {
+  test("学期导航控件可切换到其他学期", async ({
+    page,
+    calendarUrl,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, calendarUrl, {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -142,16 +148,17 @@ test.describe("仪表盘日历", () => {
     const beforeUrl = page.url();
     await navigationButton.click();
     await expect(page).toHaveURL(/calendarSemester=\d+/);
-    expect(page.url()).not.toBe(beforeUrl);
+    await expect(page).not.toHaveURL(beforeUrl);
     await expect(page.locator("#main-content")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "calendar/semester-navigation");
   });
 
-  test("视图切换可在学期/月/周之间切换", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar", {
+  test("视图切换可在学期/月/周之间切换", async ({
+    page,
+    calendarUrl,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, calendarUrl, {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -177,13 +184,11 @@ test.describe("仪表盘日历", () => {
     await captureStepScreenshot(page, testInfo, "calendar/week-view");
   });
 
-  test("ical.copyable-links", async ({ page }) => {
+  test("ical.copyable-links", async ({ page, academic, calendarUrl }) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
-    await signInAsDebugUser(page, "/workspace/calendar");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/workspace/calendar");
+    await gotoAndWaitForReady(page, calendarUrl);
 
     const copyButton = page.getByRole("button", { name: /复制日历链接|iCal/i });
     await expect(copyButton).toBeVisible();
@@ -206,7 +211,7 @@ test.describe("仪表盘日历", () => {
     await page.keyboard.press("Escape");
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${DEV_SEED.section.jwId}`,
+      `/catalog/sections/${academic.section.jwId}`,
     );
     await page
       .getByTestId("detail-pinned-summary")
@@ -218,7 +223,7 @@ test.describe("仪表盘日历", () => {
       .locator("#calendar-url")
       .inputValue();
     expect(sectionUrl).toContain(
-      `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+      `/api/catalog/sections/${academic.section.jwId}/calendar.ics`,
     );
     await sectionDialog
       .getByRole("button", { name: /复制|Copy/i })
@@ -235,109 +240,104 @@ test.describe("仪表盘日历", () => {
     expect(await sectionResponse.text()).toContain("BEGIN:VCALENDAR");
   });
 
-  test("calendar.mobile-agenda-first", async ({ page }, testInfo) => {
+  test("calendar.mobile-agenda-first", async ({
+    page,
+    calendar: fixture,
+  }, testInfo) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.setViewportSize({ height: 844, width: 390 });
-    const fixture = await createCalendarContractFixture();
-    try {
-      await page.context().clearCookies();
-      await page
-        .context()
-        .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-      await gotoAndWaitForReady(page, fixture.academicUrl(), {
-        testInfo,
-        screenshotLabel: "calendar-mobile-agenda",
-      });
 
-      const agenda = page.getByTestId("calendar-agenda");
-      await expect(agenda).toBeVisible();
-      await expect(agenda.locator("section")).toHaveCount(7);
-      await expect(agenda.locator("a").first()).toBeVisible();
-      const courseEvent = agenda
-        .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
-        .first();
-      await expect(
-        courseEvent.locator('[data-slot="item-title"]'),
-      ).not.toHaveText("");
-      await expect(
-        courseEvent.locator('[data-slot="item-description"]'),
-      ).toContainText(/\d{1,2}:\d{2}/);
-      await expect(courseEvent).toContainText("Calendar teaching room");
-      await expect(
-        agenda.getByText(fixture.homework.title).first(),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("radio", { name: /^(Day|日)$/ }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("radio", { name: /^(This week|本周)$/ }),
-      ).toBeVisible();
+    await page.context().clearCookies();
+    await page
+      .context()
+      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
+    await gotoAndWaitForReady(page, fixture.academicUrl(), {
+      testInfo,
+      screenshotLabel: "calendar-mobile-agenda",
+    });
 
-      const previous = page.getByRole("button", {
-        name: /上一周|Previous week/i,
-      });
-      const today = page.getByRole("button", { name: /今天|Today/i });
-      const next = page.getByRole("button", { name: /下一周|Next week/i });
-      const more = page.getByRole("button", {
-        name: /更多日历操作|More calendar actions/i,
-      });
-      for (const control of [previous, today, next, more]) {
-        const box = await control.boundingBox();
-        expect(box?.width).toBeGreaterThanOrEqual(44);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
-      }
+    const agenda = page.getByTestId("calendar-agenda");
+    await expect(agenda).toBeVisible();
+    await expect(agenda.locator("section")).toHaveCount(7);
+    await expect(agenda.locator("a").first()).toBeVisible();
+    const courseEvent = agenda
+      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+      .first();
+    await expect(
+      courseEvent.locator('[data-slot="item-title"]'),
+    ).not.toHaveText("");
+    await expect(
+      courseEvent.locator('[data-slot="item-description"]'),
+    ).toContainText(/\d{1,2}:\d{2}/);
+    await expect(courseEvent).toContainText("Calendar teaching room");
+    await expect(
+      agenda.getByText(fixture.homework.title).first(),
+    ).toBeVisible();
+    await expect(page.getByRole("radio", { name: /^(Day|日)$/ })).toBeVisible();
+    await expect(
+      page.getByRole("radio", { name: /^(This week|本周)$/ }),
+    ).toBeVisible();
 
-      await more.click();
-      const iCalAction = page.getByRole("menuitem", {
-        name: /复制日历链接|iCal/i,
-      });
-      await expect(iCalAction).toBeVisible();
-      await iCalAction.click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
-      expect(
-        await page.evaluate(async () => navigator.clipboard.readText()),
-      ).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
-
-      await page.keyboard.press("Escape");
-      await expect(dialog).toBeHidden();
-
-      await next.click();
-      await expect(page).toHaveURL(/calendarView=week/);
-      await expect(page).toHaveURL(/calendarWeek=\d{4}-\d{2}-\d{2}/);
-      await expect(agenda).toBeVisible();
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
-
-      await page.getByRole("radio", { name: /^(Day|日)$/ }).click();
-      await expect(agenda.locator("section")).toHaveCount(1);
-      for (const label of [
-        /^(Previous day|前一天)$/,
-        /^(Today|今天)$/,
-        /^(Next day|后一天)$/,
-      ]) {
-        const box = await page
-          .getByRole("button", { name: label })
-          .boundingBox();
-        expect(box?.width).toBeGreaterThanOrEqual(44);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
-      }
-      await page.getByRole("radio", { name: /^(This week|本周)$/ }).click();
-      await expect(agenda.locator("section")).toHaveCount(7);
-      await captureStepScreenshot(page, testInfo, "calendar/mobile-agenda");
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await expect(page.getByTestId("workspace-calendar-grid")).toBeVisible();
-      await expect(
-        page.getByRole("group", { name: /日历|Calendar/i }),
-      ).toBeVisible();
-    } finally {
-      await fixture.cleanup();
+    const previous = page.getByRole("button", {
+      name: /上一周|Previous week/i,
+    });
+    const today = page.getByRole("button", { name: /今天|Today/i });
+    const next = page.getByRole("button", { name: /下一周|Next week/i });
+    const more = page.getByRole("button", {
+      name: /更多日历操作|More calendar actions/i,
+    });
+    for (const control of [previous, today, next, more]) {
+      const box = await control.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
     }
+
+    await more.click();
+    const iCalAction = page.getByRole("menuitem", {
+      name: /复制日历链接|iCal/i,
+    });
+    await expect(iCalAction).toBeVisible();
+    await iCalAction.click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /^复制$|^Copy$/i }).click();
+    expect(
+      await page.evaluate(async () => navigator.clipboard.readText()),
+    ).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    await next.click();
+    await expect(page).toHaveURL(/calendarView=week/);
+    await expect(page).toHaveURL(/calendarWeek=\d{4}-\d{2}-\d{2}/);
+    await expect(agenda).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await page.getByRole("radio", { name: /^(Day|日)$/ }).click();
+    await expect(agenda.locator("section")).toHaveCount(1);
+    for (const label of [
+      /^(Previous day|前一天)$/,
+      /^(Today|今天)$/,
+      /^(Next day|后一天)$/,
+    ]) {
+      const box = await page.getByRole("button", { name: label }).boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.getByRole("radio", { name: /^(This week|本周)$/ }).click();
+    await expect(agenda.locator("section")).toHaveCount(7);
+    await captureStepScreenshot(page, testInfo, "calendar/mobile-agenda");
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByTestId("workspace-calendar-grid")).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /日历|Calendar/i }),
+    ).toBeVisible();
   });
 });

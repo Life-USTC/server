@@ -10,12 +10,13 @@ import { test as accountTest } from "./isolated-account";
 
 export const homeworkDescription =
   "Private assignment instructions: submit a PDF with the derivation.";
-type AcademicState = { course: Course; section: Section };
+type AcademicState = { course: Course & { nameEn: string }; section: Section };
 
 /** Writes own their catalog rows. The shared semester is only read. */
 export const test = accountTest.extend<{
   academic: AcademicState;
   homeworks: Homework[];
+  homeworkStates: Homework[];
 }>({
   academic: async ({ account, page }, use) => {
     const marker = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
@@ -44,7 +45,9 @@ export const test = accountTest.extend<{
         await tx.userSectionSubscription.create({
           data: { userId: account.id, sectionId: section.id },
         });
-        return { course, section };
+        if (!course.nameEn)
+          throw new Error("Expected bilingual fixture course");
+        return { course: { ...course, nameEn: course.nameEn }, section };
       }),
     );
     try {
@@ -63,6 +66,21 @@ export const test = accountTest.extend<{
         );
       }
     }
+  },
+  homeworkStates: async ({ account, homeworks }, use) => {
+    const overdue = await withE2ePrisma((db) =>
+      db.$transaction(async (tx) => {
+        const overdue = await tx.homework.update({
+          where: { id: homeworks[0].id },
+          data: { submissionDueAt: new Date("2020-01-01T12:00:00+08:00") },
+        });
+        await tx.homeworkCompletion.create({
+          data: { userId: account.id, homeworkId: homeworks[1].id },
+        });
+        return overdue;
+      }),
+    );
+    await use([overdue, homeworks[1]]);
   },
   homeworks: async ({ account, academic }, use) => {
     const homeworks = await withE2ePrisma((db) =>
