@@ -1,22 +1,26 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 import {
   batchUpdateUserSectionSubscriptions,
   removeUserSectionSubscriptions,
 } from "@/features/subscriptions/server/subscription-write-model";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
-import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
-
-const adminPrisma = createFixturePrisma();
+import { rlsTest as it } from "../shared/rls-fixture";
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "subscription batch removal under PostgreSQL row security",
   () => {
-    let sectionIds: [number, number];
+    it("removes an owner subscription and reports truthful counts", async ({
+      rlsRuntime,
+      isolatedDatabase: { owner: adminPrisma },
+      rlsActors: { firstUserId: userId, secondUserId: otherUserId },
+      rlsSections: { sectionId, writeProbeSectionId },
+    }) => {
+      await rlsRuntime.run(async () => {
+        const sectionIds = [sectionId, writeProbeSectionId];
 
-    beforeAll(async () => {
-      const [role] = await prisma.$queryRaw<
-        Array<{ currentUser: string; superuser: boolean; bypassRls: boolean }>
-      >`
+        const [role] = await prisma.$queryRaw<
+          Array<{ currentUser: string; superuser: boolean; bypassRls: boolean }>
+        >`
         SELECT
           current_user AS "currentUser",
           rolsuper AS superuser,
@@ -24,60 +28,22 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         FROM pg_roles
         WHERE rolname = current_user
       `;
-      expect(role).toEqual({
-        currentUser: "life_ustc_runtime",
-        superuser: false,
-        bypassRls: false,
-      });
+        expect(role).toEqual({
+          currentUser: "life_ustc_runtime",
+          superuser: false,
+          bypassRls: false,
+        });
 
-      const [table] = await prisma.$queryRaw<
-        Array<{ rlsEnabled: boolean; rlsForced: boolean }>
-      >`
+        const [table] = await prisma.$queryRaw<
+          Array<{ rlsEnabled: boolean; rlsForced: boolean }>
+        >`
         SELECT
           relrowsecurity AS "rlsEnabled",
           relforcerowsecurity AS "rlsForced"
         FROM pg_class
         WHERE oid = 'public."UserSectionSubscription"'::regclass
       `;
-      expect(table).toEqual({ rlsEnabled: true, rlsForced: true });
-
-      const sections = await prisma.section.findMany({
-        where: { retiredAt: null },
-        orderBy: { id: "asc" },
-        select: { id: true },
-        take: 2,
-      });
-      if (sections.length !== 2) {
-        throw new Error("Expected two seeded active sections");
-      }
-      sectionIds = [sections[0].id, sections[1].id];
-    });
-
-    afterAll(async () => {
-      await Promise.all([
-        prisma.$disconnect(),
-        disconnectTestPrisma(adminPrisma),
-      ]);
-    });
-
-    it("removes an owner subscription and reports truthful counts", async () => {
-      const userId = `subscription-remove-rls-${crypto.randomUUID()}`;
-      const otherUserId = `subscription-remove-rls-other-${crypto.randomUUID()}`;
-      try {
-        await adminPrisma.user.create({
-          data: {
-            id: userId,
-            email: `${userId}@example.invalid`,
-            name: "Subscription removal RLS test",
-          },
-        });
-        await adminPrisma.user.create({
-          data: {
-            id: otherUserId,
-            email: `${otherUserId}@example.invalid`,
-            name: "Other subscription removal RLS test",
-          },
-        });
+        expect(table).toEqual({ rlsEnabled: true, rlsForced: true });
 
         await adminPrisma.userSectionSubscription.create({
           data: {
@@ -151,12 +117,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             }),
           ),
         ).resolves.toEqual([]);
-      } finally {
-        await Promise.all([
-          adminPrisma.user.delete({ where: { id: userId } }),
-          adminPrisma.user.delete({ where: { id: otherUserId } }),
-        ]);
-      }
+      });
     });
   },
 );
