@@ -25,7 +25,7 @@ export let user: ProfileSummaryUser;
         <Avatar.Fallback>{initials}</Avatar.Fallback>
       </Avatar.Root>
       <div class="min-w-0">
-        <h1 class="truncate text-lg font-semibold">{displayName}</h1>
+        <h1 class="truncate text-2xl font-semibold tracking-normal sm:text-3xl">{displayName}</h1>
         {#if user.username}
           <p class="truncate text-muted-foreground text-sm">@{user.username}</p>
         {/if}

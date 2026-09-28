@@ -846,7 +846,7 @@ test("ui.model-property-priority-discovery-views", async ({
           });
           const location = page.getByTestId("weather-location").first();
           const card = location.locator(
-            'xpath=ancestor::*[@data-slot="card"][1]',
+            'xpath=ancestor::*[@data-slot="page-section"][1]',
           );
           const heading = card.getByRole("heading", { level: 2 });
           const chart = location.getByTestId("weather-hourly-chart");
