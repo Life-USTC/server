@@ -41,7 +41,7 @@ export const domainStateTest = test.extend<{
       const connection = new URL(process.env.DATABASE_URL);
       if (connectionLabel)
         connection.searchParams.set("application_name", connectionLabel);
-      const tasks: Promise<unknown>[] = [];
+      const tasks: Promise<PromiseSettledResult<unknown>>[] = [];
       const result = await runWithCloudflareRuntimeEnv(
         {
           APP_PUBLIC_ORIGIN: "http://localhost:3000",
@@ -66,14 +66,16 @@ export const domainStateTest = test.extend<{
           // These direct domain tests have no Worker HTML cache. Production
           // invalidation is tested separately through real Worker entry points.
           setCloudflareCatalogInvalidator(async () => {});
-          const [outcome] = await Promise.allSettled([work()]);
+          const [outcome] = await Promise.allSettled([
+            Promise.resolve().then(work),
+          ]);
           const failures: unknown[] = [];
           // Drain tasks before runtime Prisma disconnects, including tasks
           // scheduled by other background work and rejected operations.
           for (let start = 0; start < tasks.length; ) {
             const batch = tasks.slice(start);
             start += batch.length;
-            for (const result of await Promise.allSettled(batch)) {
+            for (const result of await Promise.all(batch)) {
               if (result.status === "rejected") failures.push(result.reason);
             }
           }
@@ -88,7 +90,21 @@ export const domainStateTest = test.extend<{
             throw new AggregateError(failures, "Domain background work failed");
           return outcome.value;
         },
-        { waitUntil: (task: Promise<unknown>) => tasks.push(task) },
+        {
+          waitUntil: (task: Promise<unknown>) =>
+            tasks.push(
+              task.then(
+                (value): PromiseFulfilledResult<unknown> => ({
+                  status: "fulfilled",
+                  value,
+                }),
+                (reason): PromiseRejectedResult => ({
+                  status: "rejected",
+                  reason,
+                }),
+              ),
+            ),
+        },
       );
       if (result instanceof Response) responses.push(result);
       return result;
