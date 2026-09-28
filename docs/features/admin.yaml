@@ -187,7 +187,7 @@ requirements:
       error.
     - No issue row or warning log is generated.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-observability-outcomes.test.ts
       name: admin.feature-experience-outcomes
 - id: admin.feature-experience-retention
   category: consistency
@@ -207,7 +207,7 @@ requirements:
       records.
     - Metrics rendering marks absent retained history unavailable and omits unknown active-user values.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-observability-retention.test.ts
       name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
@@ -238,7 +238,7 @@ requirements:
       search, IP, credentials, and stacks do not.
     - Writer failures and telemetry diagnostics never generate recursive issue rows.
     test:
-      file: tests/integration/admin-observability-contracts.test.ts
+      file: tests/integration/admin-runtime-logs-contract.test.ts
       name: admin.platform-runtime-logs
 - id: admin.prometheus-export
   category: behavior
