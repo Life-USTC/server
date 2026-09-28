@@ -1,18 +1,8 @@
 import type { TestPrismaClient } from "../../shared/prisma";
-import { withE2ePrisma } from "./e2e-db/prisma";
 import {
   test as browseTest,
-  cleanupPublicBrowsePolicyFixture,
-  createPublicBrowsePolicyFixture,
   type PublicBrowsePolicyFixture,
 } from "./public-browse-policy-fixture";
-
-export async function createOtherCollectionPolicyFixture() {
-  const catalog = await createPublicBrowsePolicyFixture();
-  return withE2ePrisma((db) =>
-    arrangeOtherCollectionPolicyFixture(db, catalog),
-  );
-}
 
 export async function arrangeOtherCollectionPolicyFixture(
   db: TestPrismaClient,
@@ -95,17 +85,6 @@ export async function arrangeOtherCollectionPolicyFixture(
 export type OtherCollectionPolicyFixture = Awaited<
   ReturnType<typeof arrangeOtherCollectionPolicyFixture>
 >;
-export async function cleanupOtherCollectionPolicyFixture(
-  f: OtherCollectionPolicyFixture,
-) {
-  await withE2ePrisma((db) =>
-    db.user.deleteMany({
-      where: { id: { in: [f.admin.id, ...f.members.map((user) => user.id)] } },
-    }),
-  );
-  await cleanupPublicBrowsePolicyFixture(f.catalog);
-}
-
 export const test = browseTest.extend<{
   collection: OtherCollectionPolicyFixture;
 }>({

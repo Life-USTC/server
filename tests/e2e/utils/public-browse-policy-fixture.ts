@@ -1,28 +1,11 @@
 import type { YoungOrganizer } from "../../../src/generated/prisma-node/client";
 import type { TestPrismaClient } from "../../shared/prisma";
-import { withE2ePrisma } from "./e2e-db/prisma";
 import {
   arrangePublicationFixture,
-  deletePublicationFixture,
   type PutPublicationObject,
-  publicationFixtureObjectCommand,
 } from "./e2e-db/publications";
 import { test as workerTest } from "./isolated-worker";
 import { publicationStorageTest } from "./publication-fixture";
-
-export async function createPublicBrowsePolicyFixture() {
-  const marker = `browse-${crypto.randomUUID().slice(0, 10)}`;
-  const base = 1_400_000_000 + Math.floor(Math.random() * 100_000_000);
-  return withE2ePrisma((db) =>
-    arrangePublicBrowsePolicyFixture(
-      db,
-      async (key, body, contentType) =>
-        publicationFixtureObjectCommand("put", key, body, contentType),
-      marker,
-      base,
-    ),
-  );
-}
 
 export async function arrangePublicBrowsePolicyFixture(
   db: TestPrismaClient,
@@ -217,35 +200,6 @@ export const youngTest = workerTest.extend<{
     );
   },
 });
-
-export async function cleanupPublicBrowsePolicyFixture(
-  fixture: PublicBrowsePolicyFixture,
-) {
-  await deletePublicationFixture(fixture.publications);
-  await withE2ePrisma(async (db) => {
-    await db.youngEvent.deleteMany({
-      where: { youngId: { startsWith: fixture.marker } },
-    });
-    await db.youngOrganizer.deleteMany({
-      where: { id: { in: fixture.organizers.map((x) => x.id) } },
-    });
-    await db.section.deleteMany({
-      where: { id: { in: fixture.sections.map((x) => x.id) } },
-    });
-    await db.teacher.deleteMany({
-      where: { id: { in: fixture.teachers.map((x) => x.id) } },
-    });
-    await db.course.deleteMany({
-      where: { id: { in: fixture.courses.map((x) => x.id) } },
-    });
-    await db.semester.delete({ where: { id: fixture.semester.id } });
-    await db.campus.delete({ where: { id: fixture.campus.id } });
-    await db.department.delete({ where: { id: fixture.department.id } });
-    await db.classType.delete({ where: { id: fixture.classType.id } });
-    await db.courseCategory.delete({ where: { id: fixture.category.id } });
-    await db.educationLevel.delete({ where: { id: fixture.education.id } });
-  });
-}
 
 const query = (path: string, params: Record<string, string | number>) =>
   `${path}?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`;
