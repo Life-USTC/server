@@ -261,15 +261,16 @@ requirements:
     for the other. Any permitted ephemeral-port behavior is limited to the registered native loopback
     client pattern.
   acceptance:
-    given: Actual provider-registered native IPv4, IPv6, and localhost clients and a signed browser session.
-    when: Authorize, submit provider-signed consent, and exchange authorization codes with unchanged and
-      changed callback components.
+    given: Actual provider-registered native IPv4, IPv6, and localhost clients and a signed session in
+      each scenario's private Worker and database.
+    when: Authorize, submit provider-signed consent, and exchange authorization codes over HTTP with
+      unchanged and changed callback components.
     then:
     - IPv4 and IPv6 callbacks permit native ephemeral ports end to end and preserve the requested host/port/path/query.
     - Host substitution, scheme/path/query changes, and localhost port changes reject before consent;
       token exchanges reject any URI different from the code authorization.
     test:
-      file: tests/integration/oauth-loopback-contracts.test.ts
+      file: tests/integration/rest/oauth/loopback.test.ts
       name: oauth.loopback-redirect-tolerance
 - id: oauth.device-grant-custom
   category: behavior
@@ -279,10 +280,10 @@ requirements:
   rationale: The implementation belongs to the shared provider adapter; package-version limitations are
     not product requirements.
   acceptance:
-    given: Real enabled and ineligible device clients, a signed browser session, and separate REST, GraphQL,
-      and MCP resources.
+    given: Real enabled and ineligible device clients, a signed session, and separate REST, GraphQL,
+      and MCP resources in each scenario's private Worker and database.
     when: Request device authorization, approve or deny through the production action, and exchange or
-      replay codes through the actual token route.
+      replay codes over HTTP; verify issued JWTs against the Worker's HTTP JWKS.
     then:
     - Only enabled public device clients obtain codes; DPoP client policy and proof headers reject without
       issuing credentials.
@@ -290,7 +291,7 @@ requirements:
       records; each other audience rejects the JWT.
     - Pending, denied, expired, disabled, mismatched-resource, and replayed grants never issue credentials.
     test:
-      file: tests/integration/oauth-device-contracts.test.ts
+      file: tests/integration/rest/oauth/device-grant.test.ts
       name: oauth.device-grant-custom
 - id: oauth.rest-bearer-scopes
   category: authorization
