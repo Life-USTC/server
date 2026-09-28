@@ -1,32 +1,17 @@
-import { expect, test } from "@playwright/test";
-import {
-  createPublicationFixture,
-  deletePublicationFixture,
-  type PublicationFixture,
-} from "../../../../utils/e2e-db";
+import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { test } from "../../../../utils/publication-fixture";
 import { assertPageContract } from "../../_shared/page-contract";
-
-test.describe.configure({ mode: "serial" });
-
-let fixture: PublicationFixture;
-
-test.beforeAll(async () => {
-  fixture = await createPublicationFixture(
-    `news-sources-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
-  );
-});
-
-test.afterAll(async () => {
-  await deletePublicationFixture(fixture);
-});
 
 test.describe("/news/sources 来源目录", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/news/sources", testInfo });
   });
 
-  test("按组织层级分组并显示各来源的内容数", async ({ page }, testInfo) => {
+  test("按组织层级分组并显示各来源的内容数", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/news/sources", {
       testInfo,
       screenshotLabel: "news-sources-directory",
@@ -69,7 +54,10 @@ test.describe("/news/sources 来源目录", () => {
     ).toBeVisible();
   });
 
-  test("来源条目链接到该来源的列表筛选", async ({ page }, testInfo) => {
+  test("来源条目链接到该来源的列表筛选", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/news/sources", {
       testInfo,
       screenshotLabel: "news-sources-cross-link",
@@ -102,13 +90,12 @@ test.describe("/news/sources 来源目录", () => {
     ).toHaveCount(0);
   });
 
-  test("REST 来源目录与页面显示一致", async ({ request }) => {
-    // The directory advertises a 120s shared-cache TTL and the Worker honors
-    // it, so a fixed URL would serve another run's snapshot. The unused query
-    // param only changes the cache key; the route takes no query parameters.
-    const response = await request.get(
-      `/api/publications/sources?e2e=${Date.now()}`,
-    );
+  test("REST 来源目录与页面显示一致", async ({
+    request,
+    publication: fixture,
+  }) => {
+    // The private Worker serves the real fixed URL and its 120-second cache.
+    const response = await request.get("/api/publications/sources");
     expect(response.status()).toBe(200);
     expect(response.headers()["cache-control"]).toContain("s-maxage=120");
 
@@ -144,6 +131,10 @@ test.describe("/news/sources 来源目录", () => {
     expect(officeSource?.publicationCount).toBe(fixture.officeTotal);
     expect(officeSource?.hosts).toEqual(["office.example.test"]);
     expect(officeSource?.lastPublishedAt).toBeTruthy();
+    expect(new Date(officeSource?.lastPublishedAt ?? "").toISOString()).toBe(
+      "2026-08-30T16:00:00.000Z",
+    );
+    expect(body.totals).toEqual({ sourceCount: 2, publicationCount: 23 });
 
     // Group counts are derived, so they must add up to their members.
     for (const group of body.groups) {
