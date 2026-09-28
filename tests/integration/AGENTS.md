@@ -58,6 +58,17 @@ by default. Explicitly setting any of those four gates to a value other than
 `true` is rejected so required tests cannot be silently skipped.
 The local runner requires Bash, Docker, Bun, `psql`, and Linux `setsid`.
 
+Global maintenance and aggregate tests can use `isolatedDatabaseTest` from
+`tests/shared/isolated-database.ts`. A file-scoped, schema-only PostgreSQL dump
+preserves the source functions, owners, grants and RLS; each case clones its own
+empty database and uses explicit owner/app/auth/maintenance clients. Tests arrange
+their own rows. Teardown closes clients and drops only those generated databases.
+The elevated fixture account needs database creation/deletion privileges.
+Put `pg_dump` matching the PostgreSQL server major on `PATH` (PostgreSQL 16 in CI
+and the local Docker runners); `psql` must also be available. For Debian/Ubuntu,
+install `postgresql-client-16` and prepend `/usr/lib/postgresql/16/bin` to `PATH`.
+The harness rejects a mismatched dump client; it does not rewrite schema SQL.
+
 ## Conventions
 
 - `DEV_SEED_ANCHOR` from `tests/fixtures/dev-seed.ts`
