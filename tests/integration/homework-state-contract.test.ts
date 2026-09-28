@@ -29,8 +29,10 @@ function homeworkHelpers(state: DomainState, sectionId: number) {
   return { ...state, sectionId, create };
 }
 const it = domainStateTest.extend<{
+  suspendedIsAdmin: boolean;
   homework: ReturnType<typeof homeworkHelpers>;
 }>({
+  suspendedIsAdmin: false,
   homework: async ({ state }, use) => {
     const { db, marker } = state;
     const course = await db.course.findUniqueOrThrow({
@@ -214,6 +216,9 @@ it("homework.completion-owner", async ({ homework }) => {
 it("homework.active-collaborator-write", async ({ homework }) => {
   const { db, users, sectionId, create } = homework;
   await homework.runtime(async () => {
+    expect(
+      await db.user.findUniqueOrThrow({ where: { id: users[3] } }),
+    ).toMatchObject({ isAdmin: false });
     await assertHomeworkWriteTransportAuthorization();
     const homework = await create();
     for (const index of [1, 2]) {

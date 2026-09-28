@@ -16,9 +16,12 @@ export type DomainState = {
   queueMessages: unknown[];
 };
 
-export const domainStateTest = test.extend<{ state: DomainState }>({
-  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
-  state: async ({}, use) => {
+export const domainStateTest = test.extend<{
+  suspendedIsAdmin: boolean;
+  state: DomainState;
+}>({
+  suspendedIsAdmin: true,
+  state: async ({ suspendedIsAdmin }, use) => {
     const db = createFixturePrisma();
     const marker = crypto.randomUUID();
     const users = ["owner", "other", "admin", "suspended"].map(
@@ -130,7 +133,7 @@ export const domainStateTest = test.extend<{ state: DomainState }>({
               id,
               name: id,
               email: `${id}@test.invalid`,
-              isAdmin: index >= 2,
+              isAdmin: index === 2 || (index === 3 && suspendedIsAdmin),
             },
           });
           const token = crypto.randomUUID();
