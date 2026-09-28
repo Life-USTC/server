@@ -1,20 +1,27 @@
-import { expect, type Page, test } from "@playwright/test";
-import {
-  expectRequiresSignIn,
-  signInAsDebugUser,
-  signInAsDevAdmin,
-} from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  createTempUsersFixture,
-  deleteUsersByPrefix,
-} from "../../../../utils/e2e-db";
+import { expect, type Page } from "@playwright/test";
+import type { User } from "../../../../../../src/generated/prisma-node/client";
+import { test as adminTest } from "../../../../utils/admin-fixture";
+import { expectRequiresSignIn } from "../../../../utils/auth";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
 
-test.describe.configure({ mode: "serial" });
+const test = adminTest.extend<{ managedUser: User & { username: string } }>({
+  managedUser: async ({ isolatedWorker, admin: _admin }, use) => {
+    const marker = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
+    const user = await isolatedWorker.database.owner.user.create({
+      data: {
+        name: "Independent managed user",
+        username: `managed${marker}`,
+        email: `${marker}@managed-user.test`,
+        emailVerified: true,
+      },
+    });
+    if (!user.username)
+      throw new Error("The managed user must have a username");
+    await use({ ...user, username: user.username });
+  },
+});
 
 function adminUserTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
@@ -50,35 +57,47 @@ test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) =
   await captureStepScreenshot(page, testInfo, "admin-users-unauthorized");
 });
 
-test("/admin/users 普通用户访问返回 403", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/admin/users", "/admin/users");
+test("/admin/users 普通用户访问返回 403", async ({
+  page,
+  account: _account,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/users");
   await expect(page.locator("h1")).toHaveText("403");
   await captureStepScreenshot(page, testInfo, "admin-users-403");
 });
 
-test("/admin/users 管理员可看到 seed 用户", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/users");
+test("/admin/users 管理员可看到独立用户与管理员", async ({
+  page,
+  managedUser,
+  admin,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/users");
 
   await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
-  await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
-  await expect(visibleText(page, DEV_SEED.adminUsername)).toBeVisible();
+  await expect(visibleText(page, managedUser.username)).toBeVisible();
+  await expect(visibleText(page, admin.username)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-seed");
 });
 
 test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
   page,
+  managedUser,
 }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/users");
+  await gotoAndWaitForReady(page, "/admin/users");
 
-  await openAdminUserDialog(page, DEV_SEED.debugUsername, "keyboard");
+  await openAdminUserDialog(page, managedUser.username, "keyboard");
   await captureStepScreenshot(page, testInfo, "admin-users-keyboard-manage");
 });
 
-test("/admin/users 变更管理员权限需要二次确认", async ({ page }) => {
-  await signInAsDevAdmin(page, "/admin/users");
+test("/admin/users 变更管理员权限需要二次确认", async ({
+  page,
+  managedUser,
+  isolatedWorker,
+}) => {
+  await gotoAndWaitForReady(page, "/admin/users");
 
-  const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
+  const dialog = await openAdminUserDialog(page, managedUser.username);
   const adminCheckbox = dialog.getByRole("checkbox", {
     name: /设为管理员|Grant admin access/i,
   });
@@ -95,19 +114,27 @@ test("/admin/users 变更管理员权限需要二次确认", async ({ page }) =>
   await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
   await expect(confirmDialog).toBeHidden();
   await expect(dialog).toBeVisible();
+  expect(
+    await isolatedWorker.database.owner.user.findUniqueOrThrow({
+      where: { id: managedUser.id },
+    }),
+  ).toMatchObject({ isAdmin: false });
 });
 
-test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/users");
+test("/admin/users 搜索表单可过滤用户", async ({
+  page,
+  managedUser,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/users");
 
-  await page.getByRole("searchbox").fill(DEV_SEED.debugUsername);
+  await page.getByRole("searchbox").fill(managedUser.username);
   await page
     .getByTestId("admin-workspace")
     .getByRole("button", { name: /^(搜索|Search)$/ })
     .click();
 
-  await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.debugUsername}`));
-  await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`search=${managedUser.username}`));
+  await expect(visibleText(page, managedUser.username)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-search");
 
   const clearLink = page.getByRole("link", { name: /^(清除|Clear)$/i });
@@ -120,20 +147,21 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
 
 test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
   page,
+  managedUser,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDevAdmin(page, "/admin/users");
+  await gotoAndWaitForReady(page, "/admin/users");
 
   const workspace = page.getByTestId("admin-workspace");
   await expect(workspace).toBeVisible();
   await expect(workspace.locator("table")).toBeHidden();
-  await page.getByRole("searchbox").fill(DEV_SEED.debugUsername);
+  await page.getByRole("searchbox").fill(managedUser.username);
   await workspace.getByRole("button", { name: /^(搜索|Search)$/ }).click();
 
   const record = page
     .getByTestId("admin-users-mobile-list")
     .locator('[data-slot="item"]')
-    .filter({ hasText: DEV_SEED.debugUsername })
+    .filter({ hasText: managedUser.username })
     .first();
   await expect(record).toBeVisible();
   await expect(record).toBeInViewport();
@@ -165,13 +193,16 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
 
 test("/admin/users 状态列对齐且平板使用可读列表", async ({
   page,
+  managedUser,
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAsDevAdmin(page, "/admin/users");
+  await gotoAndWaitForReady(page, "/admin/users");
 
   const table = page.locator("table:visible");
   const headers = table.locator("thead th");
-  const firstRowCells = table.locator("tbody tr").first().locator("td");
+  const firstRowCells = adminUserTableRow(page, managedUser.username).locator(
+    "td",
+  );
   await expect(table).toBeVisible();
   expect(
     await headers.nth(3).evaluate((node) => getComputedStyle(node).textAlign),
@@ -224,7 +255,11 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   await expect(table).toBeHidden();
   const list = page.getByTestId("admin-users-mobile-list");
   await expect(list).toBeVisible();
-  const metadataColumns = list.locator("dl").first().locator(":scope > div");
+  const metadataColumns = list
+    .locator('[data-slot="item"]')
+    .filter({ hasText: managedUser.username })
+    .locator("dl")
+    .locator(":scope > div");
   expect(["left", "start"]).toContain(
     await metadataColumns
       .nth(0)
@@ -242,45 +277,52 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   await captureStepScreenshot(page, testInfo, "admin-users-alignment-tablet");
 });
 
-test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {
+test("/admin/users 分页控件可进入下一页", async ({
+  page,
+  managedUser,
+  isolatedWorker,
+}, testInfo) => {
   test.setTimeout(60000);
-  const prefix = `e2e-p-${Date.now().toString(36)}`;
+  const prefix = managedUser.username;
+  await isolatedWorker.database.owner.user.createMany({
+    data: Array.from({ length: 20 }, (_, index) => ({
+      name: `Pagination user ${index}`,
+      username: `p${crypto.randomUUID().replaceAll("-", "").slice(0, 19)}`,
+      email: `${prefix}-${index}@pagination.test`,
+    })),
+  });
+  await gotoAndWaitForReady(page, `/admin/users?search=${prefix}`);
 
-  try {
-    await createTempUsersFixture({ prefix, count: 21 });
-    await signInAsDevAdmin(page, `/admin/users?search=${prefix}`);
-
-    const pagination = page.locator('[data-slot="list-pagination"]');
-    const nextPage = pagination.getByRole("link", {
-      name: /下一页|Next page/i,
-    });
-    await expect(nextPage).toHaveAttribute(
-      "href",
-      new RegExp(`search=${prefix}`),
-    );
-    await expect(nextPage).toHaveAttribute("href", /page=2/);
-    await nextPage.click();
-    await expect(page).toHaveURL(/page=2/);
-    expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
-    await expect(page.getByRole("searchbox")).toHaveValue(prefix);
-    await expect(page.locator("tbody tr").first()).toBeVisible();
-    await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
-    await pagination
-      .getByRole("link", { name: /上一页|Previous page/i })
-      .click();
-    await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
-    expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
-    await captureStepScreenshot(page, testInfo, "admin-users-pagination");
-  } finally {
-    await deleteUsersByPrefix(prefix);
-  }
+  const pagination = page.locator('[data-slot="list-pagination"]');
+  const nextPage = pagination.getByRole("link", {
+    name: /下一页|Next page/i,
+  });
+  await expect(nextPage).toHaveAttribute(
+    "href",
+    new RegExp(`search=${prefix}`),
+  );
+  await expect(nextPage).toHaveAttribute("href", /page=2/);
+  await nextPage.click();
+  await expect(page).toHaveURL(/page=2/);
+  expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
+  await expect(page.getByRole("searchbox")).toHaveValue(prefix);
+  await expect(page.locator("tbody tr").first()).toBeVisible();
+  await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+  await pagination.getByRole("link", { name: /上一页|Previous page/i }).click();
+  await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
+  expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
+  await captureStepScreenshot(page, testInfo, "admin-users-pagination");
 });
 
-test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) => {
+test("/admin/users 用户名非法保存返回 400", async ({
+  page,
+  managedUser,
+  isolatedWorker,
+}, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDevAdmin(page, "/admin/users");
+  await gotoAndWaitForReady(page, "/admin/users");
 
-  const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
+  const dialog = await openAdminUserDialog(page, managedUser.username);
 
   const usernameInput = dialog.getByLabel(/ID/i).first();
   await expect(usernameInput).toBeVisible();
@@ -294,180 +336,216 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
   );
   await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
   await saveResponse;
+  expect(
+    await isolatedWorker.database.owner.user.findUniqueOrThrow({
+      where: { id: managedUser.id },
+    }),
+  ).toMatchObject({ username: managedUser.username });
   await captureStepScreenshot(page, testInfo, "admin-users-invalid-username");
 });
 
-test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testInfo) => {
+test("/admin/users 可打开管理弹窗并保存姓名", async ({
+  page,
+  managedUser,
+  isolatedWorker,
+}, testInfo) => {
   test.setTimeout(60000);
-  const prefix = `e2e-n-${Date.now().toString(36)}`;
-  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 
-  try {
-    await signInAsDevAdmin(page, "/admin/users");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-    );
+  await gotoAndWaitForReady(page, "/admin/users");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
+  );
 
-    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
+  const dialog = await openAdminUserDialog(page, managedUser.username);
 
-    const nameInput = dialog.getByLabel(/昵称|Nickname/i).first();
-    const newName = `e2e-${Date.now()}`;
-    await nameInput.fill(newName);
+  const nameInput = dialog.getByLabel(/昵称|Nickname/i).first();
+  const newName = `e2e-${Date.now()}`;
+  await nameInput.fill(newName);
 
-    const saveResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/admin/users/") &&
-        response.request().method() === "PATCH",
-    );
-    await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
-    const save = await saveResponse;
-    expect(save.status()).toBe(200);
-    await expect(dialog).toBeHidden();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /更新成功|Updated successfully/i }),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-users-updated");
+  const saveResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/admin/users/") &&
+      response.request().method() === "PATCH",
+  );
+  await dialog.getByRole("button", { name: /保存更改|Save/i }).click();
+  const save = await saveResponse;
+  expect(save.status()).toBe(200);
+  expect(
+    await isolatedWorker.database.owner.user.findUniqueOrThrow({
+      where: { id: managedUser.id },
+    }),
+  ).toMatchObject({ name: newName });
+  await expect(dialog).toBeHidden();
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /更新成功|Updated successfully/i }),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-users-updated");
 
-    await gotoAndWaitForReady(
-      page,
-      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-    );
-    await expect(
-      page.locator("tr:visible").filter({ hasText: newName }),
-    ).toBeVisible();
-  } finally {
-    await deleteUsersByPrefix(prefix);
-  }
+  await gotoAndWaitForReady(
+    page,
+    `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
+  );
+  await expect(
+    page.locator("tr:visible").filter({ hasText: newName }),
+  ).toBeVisible();
 });
 
 test("/admin/users 自定义封禁时长会展示到期时间输入框", async ({
   page,
+  managedUser,
+  isolatedWorker,
 }, testInfo) => {
-  const prefix = `e2e-cs-${Date.now().toString(36)}`;
-  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
+  await gotoAndWaitForReady(page, "/admin/users");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
+  );
 
-  try {
-    await signInAsDevAdmin(page, "/admin/users");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-    );
+  const dialog = await openAdminUserDialog(page, managedUser.username);
 
-    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
+  const durationSelect = dialog.getByRole("combobox", {
+    name: /封禁时长|Duration/i,
+  });
+  await expect(durationSelect).toBeVisible();
+  await durationSelect.selectOption("custom");
+  await expect(durationSelect).toHaveValue("custom");
 
-    const durationSelect = dialog.getByRole("combobox", {
-      name: /封禁时长|Duration/i,
-    });
-    await expect(durationSelect).toBeVisible();
-    await durationSelect.selectOption("custom");
-    await expect(durationSelect).toHaveValue("custom");
+  const expiresAtInput = dialog.getByRole("textbox", {
+    name: /到期时间|Expires At/i,
+  });
+  await expect(expiresAtInput).toBeVisible();
+  await expiresAtInput.fill("2030-01-01T00:00");
+  await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");
 
-    const expiresAtInput = dialog.getByRole("textbox", {
-      name: /到期时间|Expires At/i,
-    });
-    await expect(expiresAtInput).toBeVisible();
-    await expiresAtInput.fill("2030-01-01T00:00");
-    await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");
+  const reason = `e2e-suspend-${Date.now()}`;
+  const reasonInput = dialog.getByLabel(/原因|Reason/i);
+  await expect(reasonInput).toBeVisible();
+  await reasonInput.fill(reason);
 
-    const reason = `e2e-suspend-${Date.now()}`;
-    const reasonInput = dialog.getByLabel(/原因|Reason/i);
-    await expect(reasonInput).toBeVisible();
-    await reasonInput.fill(reason);
-
-    const suspendButton = dialog
-      .getByRole("button", { name: /封禁|Suspend|Ban/i })
-      .first();
-    await expect(suspendButton).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-users-suspended-custom");
-  } finally {
-    await deleteUsersByPrefix(prefix);
-  }
+  const suspendButton = dialog
+    .getByRole("button", { name: /封禁|Suspend|Ban/i })
+    .first();
+  await expect(suspendButton).toBeVisible();
+  expect(
+    await isolatedWorker.database.owner.userSuspension.count({
+      where: { userId: managedUser.id },
+    }),
+  ).toBe(0);
+  await captureStepScreenshot(page, testInfo, "admin-users-suspended-custom");
 });
 
 test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
   page,
+  managedUser,
+  admin,
+  isolatedWorker,
 }, testInfo) => {
   test.setTimeout(60000);
-  const prefix = `e2e-s-${Date.now().toString(36)}`;
-  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
-  let suspensionId: string | undefined;
 
-  try {
-    await signInAsDevAdmin(page, "/admin/users");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-    );
+  await gotoAndWaitForReady(page, "/admin/users");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
+  );
 
-    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
+  const dialog = await openAdminUserDialog(page, managedUser.username);
 
-    const reason = `e2e-admin-users-suspend-${Date.now()}`;
-    const reasonInput = dialog.getByLabel(/原因|Reason/i);
-    await expect(reasonInput).toBeVisible();
-    await reasonInput.fill(reason);
+  const reason = `e2e-admin-users-suspend-${Date.now()}`;
+  const reasonInput = dialog.getByLabel(/原因|Reason/i);
+  await expect(reasonInput).toBeVisible();
+  await reasonInput.fill(reason);
 
-    const suspendButton = dialog
-      .getByRole("button", { name: /封禁|Suspend|Ban/i })
-      .first();
-    await expect(suspendButton).toBeVisible();
+  const suspendButton = dialog
+    .getByRole("button", { name: /封禁|Suspend|Ban/i })
+    .first();
+  await expect(suspendButton).toBeVisible();
 
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/admin/suspensions") &&
-        response.request().method() === "POST" &&
-        response.status() === 201,
-    );
-    await suspendButton.click({ force: true });
-    const response = await responsePromise;
-    const body = (await response.json()) as {
-      suspension?: { id?: string; reason?: string | null };
-    };
-    expect(body.suspension?.reason).toBe(reason);
-    expect(typeof body.suspension?.id).toBe("string");
-    suspensionId = body.suspension?.id;
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /封禁成功|Suspended successfully/i }),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/admin/suspensions") &&
+      response.request().method() === "POST" &&
+      response.status() === 201,
+  );
+  await suspendButton.click();
+  const response = await responsePromise;
+  const body = (await response.json()) as {
+    suspension?: { id?: string; reason?: string | null };
+  };
+  expect(body.suspension?.reason).toBe(reason);
+  expect(typeof body.suspension?.id).toBe("string");
+  const suspensionId = body.suspension?.id;
+  expect(
+    await isolatedWorker.database.owner.userSuspension.findMany({
+      where: { userId: managedUser.id },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      createdById: admin.id,
+      reason,
+      liftedAt: null,
+    }),
+  ]);
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /封禁成功|Suspended successfully/i }),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
 
-    await gotoAndWaitForReady(
-      page,
-      `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-    );
-    const suspendedDialog = await openAdminUserDialog(
-      page,
-      usernames[0] ?? prefix,
-    );
-    await suspendedDialog
-      .getByRole("button", { name: /更新封禁|Update suspension/i })
-      .click();
-    const updateDialog = page.getByRole("alertdialog", {
-      name: /替换当前封禁|Replace the active suspension/i,
-    });
-    await expect(updateDialog).toContainText(
-      /使用新的原因与到期时间创建替代记录|replaced with the new reason and expiration/i,
-    );
-    await updateDialog.getByRole("button", { name: /取消|Cancel/i }).click();
-    await expect(updateDialog).toBeHidden();
+  await gotoAndWaitForReady(
+    page,
+    `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
+  );
+  const suspendedDialog = await openAdminUserDialog(page, managedUser.username);
+  await suspendedDialog
+    .getByRole("button", { name: /更新封禁|Update suspension/i })
+    .click();
+  const updateDialog = page.getByRole("alertdialog", {
+    name: /替换当前封禁|Replace the active suspension/i,
+  });
+  await expect(updateDialog).toContainText(
+    /使用新的原因与到期时间创建替代记录|replaced with the new reason and expiration/i,
+  );
+  await updateDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+  await expect(updateDialog).toBeHidden();
 
-    const lift = await page.request.patch(
-      `/api/admin/suspensions/${suspensionId}`,
-    );
-    expect(lift.status()).toBe(200);
-    suspensionId = undefined;
-  } finally {
-    if (suspensionId) {
-      await page.request.patch(`/api/admin/suspensions/${suspensionId}`);
-    }
-    await deleteUsersByPrefix(prefix);
-  }
+  const lift = await page.request.patch(
+    `/api/admin/suspensions/${suspensionId}`,
+  );
+  expect(lift.status()).toBe(200);
+  expect(
+    await isolatedWorker.database.owner.userSuspension.findMany({
+      where: { userId: managedUser.id },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      liftedById: admin.id,
+      liftedAt: expect.any(Date),
+    }),
+  ]);
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/admin/users", testInfo });
+test("页面契约", async ({ page, admin: _admin }, testInfo) => {
+  const response = await gotoAndWaitForReady(page, "/admin/users", {
+    browserHealth: {},
+    expectMeaningfulContent: true,
+    expectNoHorizontalOverflow: true,
+    uiQuality: {},
+    testInfo,
+  });
+  expect(response?.ok()).toBe(true);
+  await expect(page.locator("#main-content")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: /用户管理|User Management|用户列表|Users/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.locator("table, [role='table'], [data-slot='table']"),
+  ).toBeVisible();
 });
