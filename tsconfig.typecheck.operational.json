@@ -12,6 +12,8 @@
     "tests/ci/fixtures/e2e-storage-worker.ts",
     "tests/ci/fixtures/isolated-worker-timeout.config.ts",
     "tests/ci/fixtures/isolated-worker-timeout.scenario.ts",
+    "tests/ci/fixtures/isolated-database-timeout.config.ts",
+    "tests/ci/fixtures/isolated-database-timeout.scenario.ts",
     "tests/e2e/**/*.ts",
     "scripts/specifications/**/*.ts"
   ],

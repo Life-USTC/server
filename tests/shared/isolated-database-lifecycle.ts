@@ -286,26 +286,6 @@ export function ownDatabaseTemplate(
   };
   return template;
 }
-/** Immutable schema/functions/ACL snapshot; no source data is copied. */
-export async function createDatabaseTemplate(
-  connections: DatabaseConnections,
-): Promise<DatabaseTemplate> {
-  const template = ownDatabaseTemplate(connections);
-  try {
-    await template.initialize();
-    return template;
-  } catch (error) {
-    try {
-      await template.dispose();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "Database template setup and cleanup failed",
-      );
-    }
-    throw error;
-  }
-}
 export type OwnedDatabase = IsolatedDatabase & {
   initialize: (signal?: AbortSignal) => Promise<void>;
   dispose: () => Promise<void>;
@@ -370,22 +350,4 @@ export function ownIsolatedDatabase(template: DatabaseTemplate): OwnedDatabase {
     return disposing;
   };
   return { name, connections, ...clients, initialize, dispose };
-}
-/** Each case owns one empty clone with unchanged roles and grants. */
-export async function createIsolatedDatabase(template: DatabaseTemplate) {
-  const database = ownIsolatedDatabase(template);
-  try {
-    await database.initialize();
-    return database;
-  } catch (error) {
-    try {
-      await database.dispose();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "Isolated database setup and cleanup failed",
-      );
-    }
-    throw error;
-  }
 }
