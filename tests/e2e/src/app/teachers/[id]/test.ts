@@ -30,10 +30,12 @@ import {
   openCommentComposer,
 } from "../../../../utils/comments";
 import {
-  restoreDescriptionTargetSnapshot,
-  snapshotDescriptionTargetForE2e,
-  waitForDescriptionAuditRows,
-} from "../../../../utils/description-state";
+  arrangeDescription,
+  test as communityTest,
+  storedDescription,
+  storedDescriptionAudits,
+  supplement,
+} from "../../../../utils/community-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import {
@@ -247,25 +249,18 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Description ─────────────────────────────────────────────────────────────
 
-  test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(90_000);
-    await signInAsDebugUser(page, "/catalog/teachers");
-    await navigateToSeedTeacher(page);
-    const teacherId = page.url().match(/\/catalog\/teachers\/(\d+)/)?.[1];
-    expect(teacherId).toBeTruthy();
-    if (!teacherId) {
-      throw new Error("Expected teacher id in URL");
-    }
-    const snapshot = await snapshotDescriptionTargetForE2e(
-      page.request,
-      { targetType: "teacher", teacherId },
-      ["description_edit"],
-    );
-
-    try {
-      await jumpToTeacherSection(page, /简介|Description/i, "#introduction");
+  communityTest(
+    "已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）",
+    async ({ page, account, community }, testInfo) => {
+      const description = await arrangeDescription(
+        "teacher",
+        community.teacher.id,
+        account.id,
+      );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/teachers/${community.teacher.id}#introduction`,
+      );
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
 
@@ -298,7 +293,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       ).toBeVisible();
       // description.lastEditedBy.name
       await expect(
-        page.getByText(DEV_SEED.debugName, { exact: false }).first(),
+        page.getByText(account.name, { exact: false }).first(),
       ).toBeVisible();
       // description.lastEditedAt — some date/time text present near description
       await expect(introduction.getByText(/\d{4}/).first()).toBeVisible();
@@ -308,13 +303,36 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         testInfo,
         "teacher/description-updated",
       );
-      if (snapshot.original) {
-        await waitForDescriptionAuditRows(snapshot.original, 1);
-      }
-    } finally {
-      await restoreDescriptionTargetSnapshot(page.request, snapshot);
-    }
-  });
+      const persisted = await storedDescription(description.id);
+      expect(persisted).toMatchObject({
+        content,
+        lastEditedById: account.id,
+        lastEditedAt: expect.any(Date),
+      });
+      expect(persisted?.edits).toEqual([
+        expect.objectContaining({
+          editorId: account.id,
+          previousContent: supplement,
+          nextContent: content,
+        }),
+      ]);
+      await expect
+        .poll(() => storedDescriptionAudits(description.id))
+        .toEqual([
+          expect.objectContaining({
+            userId: account.id,
+            action: "description_edit",
+            outcome: "success",
+          }),
+        ]);
+      await page.reload();
+      await expect(
+        introduction
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
+    },
+  );
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 
