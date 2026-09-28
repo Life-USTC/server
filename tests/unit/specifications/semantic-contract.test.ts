@@ -128,6 +128,21 @@ describe("semantic assertion evidence", () => {
     ).toEqual([]);
   });
 
+  test("rejects receipt comparison modes that cannot verify the addressed field", () => {
+    const rule = requirement();
+    for (const comparison of ["minimum", "maximum", "set"]) {
+      const issues = validateSemanticReceipt(
+        {
+          version: 1,
+          requirement: rule.id,
+          expectation: expectationDigest(rule.expectation),
+          checks: [{ path: "", comparison }],
+        },
+        rule,
+      );
+      expect(issues.join(" ")).toContain("comparison requires");
+    }
+  });
   test("does not accept self-declared reference checks for business values", () => {
     const rule = requirement();
     expect(

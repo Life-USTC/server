@@ -143,6 +143,17 @@ describe("native execution evidence", () => {
       ),
     ).toMatchObject({ status: "not-run" });
   });
+  test("aggregate native failure cannot be overruled by passing assertions or a successful phase", () => {
+    const native = vitest();
+    native.success = false;
+    const report = buildEvidenceReport(
+      specifications(),
+      parseNativeReport(native, "vitest", root),
+      successfulExecutions(),
+    );
+    expect(report.requirements[0].status).toBe("failed");
+    expect(report.gatePassed).toBe(false);
+  });
   test("retains failures from earlier successful Vitest retries", () => {
     const report = vitest();
     report.testResults[0].assertionResults[0].failureMessages.push(
@@ -319,7 +330,10 @@ describe("requirement coverage", () => {
     expect(
       buildEvidenceReport(
         specifications({ test: reference }, false),
-        parseNativeReport(vitest(), "vitest", root),
+        parseNativeReport(vitest(), "vitest", root).map((observation) => ({
+          ...observation,
+          semanticReceipt: undefined,
+        })),
         successfulExecutions(),
       ).gatePassed,
     ).toBe(true);
@@ -389,6 +403,31 @@ describe("semantic evidence gate", () => {
       expect(report.requirements[0].semantics.status).toBe("failed");
       expect(report.gatePassed).toBe(false);
     }
+  });
+  test("rejects orphan semantic receipts while permitting ordinary regression observations", () => {
+    const observations = parseNativeReport(vitest(), "vitest", root);
+    const orphan = { ...observations[0], name: "example.unknown" };
+    expect(
+      buildEvidenceReport(
+        specifications(),
+        [...observations, orphan],
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(false);
+    expect(
+      buildEvidenceReport(
+        specifications(),
+        [...observations, { ...orphan, semanticReceipt: undefined }],
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(true);
+    expect(
+      buildEvidenceReport(
+        specifications({ test: reference }, false),
+        observations,
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(false);
   });
   test("cannot bless failed execution with a complete receipt", () => {
     const native = vitest();

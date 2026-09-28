@@ -145,6 +145,7 @@ export function parseNativeReport(
           // Vitest preserves retry errors in native failureMessages. A suite
           // hook failure also invalidates otherwise passing tests in that file.
           status:
+            !report.success ||
             suite.status === "failed" ||
             suite.message ||
             test.status === "failed" ||
@@ -364,6 +365,20 @@ export function buildEvidenceReport(
       };
     }),
   );
+  const typedBindings = files
+    .flatMap(({ data }) => collectRequirements(data))
+    .filter((requirement) => requirement.expectation);
+  const orphanSemanticObservations = observations
+    .filter(
+      (observation) =>
+        observation.semanticReceipt !== undefined &&
+        typedBindings.filter(
+          (requirement) =>
+            requirement.acceptance?.test.file === observation.file &&
+            requirement.acceptance.test.name === observation.name,
+        ).length !== 1,
+    )
+    .map(({ file, name }) => ({ file, name }));
   const unstructuredTextCandidates = files.flatMap(({ path, data }) =>
     residualTextLocations(data).map((location) => ({
       document: path,
@@ -403,11 +418,13 @@ export function buildEvidenceReport(
     executions,
     executionFailures,
     missingArtifacts,
+    orphanSemanticObservations,
     unstructuredTextCandidates,
     requirements,
     summary: {
       total: requirements.length,
       unsuccessfulExecutions: executionFailures.length,
+      orphanSemanticObservations: orphanSemanticObservations.length,
       missingArtifacts: missingArtifacts.length,
       unstructuredTextCandidates: unstructuredTextCandidates.length,
       typedDeclarations: typed.length,
@@ -426,6 +443,7 @@ export function buildEvidenceReport(
     // Completeness applies to every requirement, regardless of its representation.
     gatePassed:
       executionFailures.length === 0 &&
+      orphanSemanticObservations.length === 0 &&
       missingArtifacts.length === 0 &&
       requirements.length > 0 &&
       requirements.every(

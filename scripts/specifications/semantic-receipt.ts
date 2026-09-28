@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 
 function canonical(value: unknown): unknown {
@@ -72,7 +73,26 @@ export function coveredExpectationPaths(
   const leaves = expectationLeaves(expectation);
   const covered = new Set<string>();
   for (const check of checks) {
-    expectationValue(expectation, check.path);
+    const value = expectationValue(expectation, check.path);
+    if (
+      (check.comparison === "minimum" || check.comparison === "maximum") &&
+      (typeof value !== "number" || !Number.isFinite(value))
+    )
+      throw new Error(
+        `Numeric comparison requires a finite numeric expectation: ${check.path}`,
+      );
+    if (
+      check.comparison === "set" &&
+      (!Array.isArray(value) ||
+        value.some((item, index) =>
+          value
+            .slice(0, index)
+            .some((previous) => isDeepStrictEqual(item, previous)),
+        ))
+    )
+      throw new Error(
+        `Set comparison requires a unique array expectation: ${check.path}`,
+      );
     for (const leaf of leaves)
       if (leaf === check.path || leaf.startsWith(`${check.path}/`))
         covered.add(leaf);
