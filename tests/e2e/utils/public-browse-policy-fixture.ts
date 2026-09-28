@@ -1,13 +1,36 @@
+import type { YoungOrganizer } from "../../../src/generated/prisma-node/client";
+import type { TestPrismaClient } from "../../shared/prisma";
 import { withE2ePrisma } from "./e2e-db/prisma";
 import {
-  createPublicationFixture,
+  arrangePublicationFixture,
   deletePublicationFixture,
+  type PutPublicationObject,
+  publicationFixtureObjectCommand,
 } from "./e2e-db/publications";
+import { test as workerTest } from "./isolated-worker";
+import { publicationStorageTest } from "./publication-fixture";
 
 export async function createPublicBrowsePolicyFixture() {
   const marker = `browse-${crypto.randomUUID().slice(0, 10)}`;
   const base = 1_400_000_000 + Math.floor(Math.random() * 100_000_000);
-  const fixture = await withE2ePrisma(async (db) => {
+  return withE2ePrisma((db) =>
+    arrangePublicBrowsePolicyFixture(
+      db,
+      async (key, body, contentType) =>
+        publicationFixtureObjectCommand("put", key, body, contentType),
+      marker,
+      base,
+    ),
+  );
+}
+
+export async function arrangePublicBrowsePolicyFixture(
+  db: TestPrismaClient,
+  putObject: PutPublicationObject,
+  marker: string,
+  base: number,
+) {
+  const fixture = await db.$transaction(async (db) => {
     const education = await db.educationLevel.create({
       data: { nameCn: `层次${marker}`, nameEn: `Level ${marker}` },
     });
@@ -83,31 +106,13 @@ export async function createPublicBrowsePolicyFixture() {
       sections.push(section);
       organizers.push(
         await db.youngOrganizer.create({
-          data: {
-            id: `${marker}-O-${suffix}`,
-            normalizedName: `${marker}-O-${suffix}`,
-            name: `${marker} organizer ${suffix} with a complete public organization name`,
-          },
+          data: organizerData(marker, index),
         }),
       );
     }
     for (let index = 0; index < 25; index++) {
       await db.youngEvent.create({
-        data: {
-          youngId: `${marker}-E-${index}`,
-          name: `${marker} event ${String(index).padStart(2, "0")} with a complete public activity title`,
-          organizerId: organizers[0].id,
-          organizer: organizers[0].name,
-          category: marker,
-          module: "智",
-          activityLevel: "校级",
-          isActive: true,
-          startAt: new Date("2035-09-15T10:00:00+08:00"),
-          endAt: new Date("2035-09-15T12:00:00+08:00"),
-          applyStartAt: new Date("2035-09-14T08:00:00+08:00"),
-          applyEndAt: new Date("2035-09-14T12:00:00+08:00"),
-          rawJson: {},
-        },
+        data: eventData(marker, index, organizers[0]),
       });
       if (index > 0)
         await db.youngEvent.create({
@@ -133,13 +138,85 @@ export async function createPublicBrowsePolicyFixture() {
       organizers,
     };
   });
-  const publications = await createPublicationFixture(marker);
+  const publications = await arrangePublicationFixture(db, putObject, marker);
   return { ...fixture, publications, marker };
 }
 
 export type PublicBrowsePolicyFixture = Awaited<
-  ReturnType<typeof createPublicBrowsePolicyFixture>
+  ReturnType<typeof arrangePublicBrowsePolicyFixture>
 >;
+
+function organizerData(marker: string, index: number) {
+  const suffix = String(index).padStart(2, "0");
+  return {
+    id: `${marker}-O-${suffix}`,
+    normalizedName: `${marker}-O-${suffix}`,
+    name: `${marker} organizer ${suffix} with a complete public organization name`,
+  };
+}
+
+function eventData(marker: string, index: number, organizer: YoungOrganizer) {
+  return {
+    youngId: `${marker}-E-${index}`,
+    name: `${marker} event ${String(index).padStart(2, "0")} with a complete public activity title`,
+    organizerId: organizer.id,
+    organizer: organizer.name,
+    category: marker,
+    module: "智",
+    activityLevel: "校级",
+    isActive: true,
+    startAt: new Date("2035-09-15T10:00:00+08:00"),
+    endAt: new Date("2035-09-15T12:00:00+08:00"),
+    applyStartAt: new Date("2035-09-14T08:00:00+08:00"),
+    applyEndAt: new Date("2035-09-14T12:00:00+08:00"),
+    rawJson: {},
+  };
+}
+
+export async function arrangeYoungNavigationFixture(
+  db: TestPrismaClient,
+  marker: string,
+) {
+  return db.$transaction(async (db) => {
+    const organizer = await db.youngOrganizer.create({
+      data: organizerData(marker, 0),
+    });
+    await db.youngEvent.createMany({
+      data: Array.from({ length: 25 }, (_, index) =>
+        eventData(marker, index, organizer),
+      ),
+    });
+    return { marker, organizers: [organizer] };
+  });
+}
+
+export const test = publicationStorageTest.extend<{
+  browse: PublicBrowsePolicyFixture;
+}>({
+  browse: async ({ isolatedWorker, publicationObjects }, use) => {
+    await use(
+      await arrangePublicBrowsePolicyFixture(
+        isolatedWorker.database.owner,
+        publicationObjects.put,
+        "browse-0123456789",
+        1_400_000_000,
+      ),
+    );
+  },
+});
+
+export const youngTest = workerTest.extend<{
+  youngBrowse: Awaited<ReturnType<typeof arrangeYoungNavigationFixture>>;
+}>({
+  youngBrowse: async ({ isolatedWorker }, use) => {
+    await use(
+      await arrangeYoungNavigationFixture(
+        isolatedWorker.database.owner,
+        "browse-0123456789",
+      ),
+    );
+  },
+});
 
 export async function cleanupPublicBrowsePolicyFixture(
   fixture: PublicBrowsePolicyFixture,
@@ -170,9 +247,30 @@ export async function cleanupPublicBrowsePolicyFixture(
   });
 }
 
+const query = (path: string, params: Record<string, string | number>) =>
+  `${path}?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`;
+
+export function youngBrowseCase(f: {
+  marker: string;
+  organizers: { id: string }[];
+}) {
+  return {
+    name: "events",
+    path: query("/catalog/young-events", {
+      search: `${f.marker} event`,
+      active: "true",
+      dateUnknown: "false",
+      category: f.marker,
+      module: "智",
+      activityLevel: "校级",
+      organizerId: f.organizers[0].id,
+      timeBasis: "activity",
+    }),
+    total: 25,
+  };
+}
+
 export function publicBrowseCases(f: PublicBrowsePolicyFixture) {
-  const query = (path: string, params: Record<string, string | number>) =>
-    `${path}?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}`;
   return [
     {
       name: "courses",
@@ -211,20 +309,7 @@ export function publicBrowseCases(f: PublicBrowsePolicyFixture) {
       }),
       total: 25,
     },
-    {
-      name: "events",
-      path: query("/catalog/young-events", {
-        search: `${f.marker} event`,
-        active: "true",
-        dateUnknown: "false",
-        category: f.marker,
-        module: "智",
-        activityLevel: "校级",
-        organizerId: f.organizers[0].id,
-        timeBasis: "activity",
-      }),
-      total: 25,
-    },
+    youngBrowseCase(f),
     {
       name: "organizers",
       path: query("/catalog/young-events/organizers", { search: f.marker }),
