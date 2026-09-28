@@ -38,7 +38,14 @@ const SERVER_INSTRUCTIONS = [
 ].join(" ");
 
 export function createMcpServer() {
-  const server = new McpServer(
+  const server = createMcpServerInstance();
+  registerMcpServerCapabilities(server);
+  return server;
+}
+
+/** Construct the protocol instance before attaching application capabilities. */
+export function createMcpServerInstance() {
+  return new McpServer(
     {
       name: "life-ustc-mcp",
       version: "1.0.0",
@@ -47,7 +54,9 @@ export function createMcpServer() {
       instructions: SERVER_INSTRUCTIONS,
     },
   );
+}
 
+export function registerMcpServerCapabilities(server: McpServer) {
   installMcpToolDescriptorDefaults(server);
 
   registerBusTools(server);
@@ -69,6 +78,4 @@ export function createMcpServer() {
   registerGraphqlPrompts(server);
   assertRegisteredMcpToolMetadata(server);
   installMcpToolListCompatibility(server);
-
-  return server;
 }
