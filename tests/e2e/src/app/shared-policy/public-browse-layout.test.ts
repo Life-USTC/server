@@ -1,19 +1,9 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  cleanupPublicBrowsePolicyFixture,
-  createPublicBrowsePolicyFixture,
-  type PublicBrowsePolicyFixture,
   publicBrowseCases,
+  test,
 } from "../../../utils/public-browse-policy-fixture";
-
-let fixture: PublicBrowsePolicyFixture;
-test.beforeAll(async () => {
-  fixture = await createPublicBrowsePolicyFixture();
-});
-test.afterAll(async () => {
-  if (fixture) await cleanupPublicBrowsePolicyFixture(fixture);
-});
 
 function records(page: Page, name: string, width = 1280) {
   if (name === "news")
@@ -53,7 +43,7 @@ async function rowLinks(page: Page, name: string) {
   );
 }
 
-test("ui.list-table-1", async ({ page, baseURL }) => {
+test("ui.list-table-1", async ({ page, baseURL, browse: fixture }) => {
   for (const width of [390, 1280]) {
     await prepare(page, baseURL, width);
     for (const item of publicBrowseCases(fixture)) {
@@ -128,7 +118,11 @@ test("ui.list-table-1", async ({ page, baseURL }) => {
   }
 });
 
-test("ui.public-browse-responsive-lists", async ({ page, baseURL }) => {
+test("ui.public-browse-responsive-lists", async ({
+  page,
+  baseURL,
+  browse: fixture,
+}) => {
   for (const width of [320, 390]) {
     await prepare(page, baseURL, width);
     for (const item of publicBrowseCases(fixture)) {
@@ -155,7 +149,11 @@ test("ui.public-browse-responsive-lists", async ({ page, baseURL }) => {
   }
 });
 
-test("ui.public-browse-pagination-state", async ({ page, baseURL }) => {
+test("ui.public-browse-pagination-state", async ({
+  page,
+  baseURL,
+  browse: fixture,
+}) => {
   await prepare(page, baseURL, 1280);
   for (const item of publicBrowseCases(fixture)) {
     await gotoAndWaitForReady(page, item.path);

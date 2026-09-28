@@ -1,22 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
 import {
-  cleanupPublicBrowsePolicyFixture,
-  createPublicBrowsePolicyFixture,
-  type PublicBrowsePolicyFixture,
-  publicBrowseCases,
+  youngTest as test,
+  youngBrowseCase,
 } from "../../../utils/public-browse-policy-fixture";
-
-let fixture: PublicBrowsePolicyFixture;
-test.beforeAll(async () => {
-  fixture = await createPublicBrowsePolicyFixture();
-});
-test.afterAll(async () => {
-  if (fixture) await cleanupPublicBrowsePolicyFixture(fixture);
-});
 
 function destination(value: string | null) {
   if (!value) throw new Error("Expected a navigation destination");
@@ -24,16 +14,17 @@ function destination(value: string | null) {
   return { path: url.pathname, params: [...url.searchParams.entries()].sort() };
 }
 
-test("ui.navigation-landmarks-7", async ({ page, baseURL }) => {
+test("ui.navigation-landmarks-7", async ({
+  page,
+  baseURL,
+  youngBrowse: fixture,
+}) => {
   if (!baseURL) throw new Error("Missing Playwright baseURL");
   await page
     .context()
     .addCookies([{ name: "NEXT_LOCALE", value: "en-us", url: baseURL }]);
   await page.setViewportSize({ width: 1280, height: 900 });
-  const browse = publicBrowseCases(fixture).find(
-    (item) => item.name === "events",
-  );
-  if (!browse) throw new Error("Missing events fixture");
+  const browse = youngBrowseCase(fixture);
   const list = new URL(browse.path, baseURL);
   list.searchParams.set("page", "2");
   const cases = [
