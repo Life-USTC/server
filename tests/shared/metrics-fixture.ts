@@ -2,6 +2,7 @@ import { servePrometheusMetrics } from "@/features/admin/server/prometheus-metri
 import { readPrometheusMetrics } from "@/features/admin/server/prometheus-metrics-data";
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { writeObservabilityBatch } from "@/lib/db/feature-event-store";
+import { GET } from "@/routes/metrics/+server";
 import { isolatedDatabaseTest } from "./isolated-database";
 import type { TestPrismaClient } from "./prisma";
 
@@ -11,6 +12,7 @@ type MetricsFixture = {
   read: typeof readPrometheusMetrics;
   write: typeof writeObservabilityBatch;
   serve: typeof servePrometheusMetrics;
+  scrape: (request: Request, secret?: string) => Promise<Response>;
 };
 
 export const metricsTest = isolatedDatabaseTest.extend<{
@@ -28,6 +30,11 @@ export const metricsTest = isolatedDatabaseTest.extend<{
       METRICS_SECRET: "metrics-fixture-secret",
     };
     const responses: Response[] = [];
+    async function ownResponse(operation: Promise<Response>) {
+      const response = await operation;
+      responses.push(response);
+      return response;
+    }
     try {
       await use({
         db: owner,
@@ -37,13 +44,19 @@ export const metricsTest = isolatedDatabaseTest.extend<{
           runWithCloudflareRuntimeEnv(env, () =>
             writeObservabilityBatch(batch),
           ),
-        serve: async (request) => {
-          const response = await runWithCloudflareRuntimeEnv(env, () =>
-            servePrometheusMetrics(request),
-          );
-          responses.push(response);
-          return response;
-        },
+        serve: (request) =>
+          ownResponse(
+            runWithCloudflareRuntimeEnv(env, () =>
+              servePrometheusMetrics(request),
+            ),
+          ),
+        scrape: (request, secret = env.METRICS_SECRET) =>
+          ownResponse(
+            runWithCloudflareRuntimeEnv(
+              { ...env, METRICS_SECRET: secret },
+              async () => GET({ request } as Parameters<typeof GET>[0]),
+            ),
+          ),
       });
     } finally {
       // Runtime Prisma cleanup follows response consumption. An assertion may
