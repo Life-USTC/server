@@ -20,6 +20,8 @@ const kinds = new Set([
   "private_setting_authority",
   "localized_regions",
   "membership_kind_transition",
+  "storage_delete_sequence",
+  "attachment_download_authority",
 ]);
 export function isDomainExpectationKind(kind: unknown): boolean {
   return typeof kind === "string" && kinds.has(kind);
@@ -40,6 +42,67 @@ export function validateDomainExpectation(
   const bindingPaths: string[] = [];
   if (!isDomainExpectationKind(expectation.kind))
     return { errors, validatedPaths, bindingPaths };
+  if (expectation.kind === "localized_regions") {
+    const count = expectation.regions;
+    if (
+      Array.isArray(expectation.location_keys) &&
+      expectation.location_keys.length !== count
+    )
+      errors.push("location_keys length must equal regions");
+    if (object(expectation.labels))
+      for (const [locale, labels] of Object.entries(expectation.labels)) {
+        if (Array.isArray(labels) && labels.length !== count)
+          errors.push(`labels/${locale} length must equal regions`);
+      }
+  }
+  if (expectation.kind === "ordered_page" && Array.isArray(expectation.order)) {
+    const fields = new Set<unknown>();
+    for (const item of expectation.order)
+      if (object(item)) {
+        if (fields.has(item.field))
+          errors.push(`order: duplicate field ${String(item.field)}`);
+        fields.add(item.field);
+      }
+  }
+  if (
+    expectation.kind === "membership_kind_transition" &&
+    Array.isArray(expectation.cases)
+  ) {
+    const before = new Set<unknown>();
+    for (const entry of expectation.cases)
+      if (object(entry)) {
+        if (before.has(entry.before))
+          errors.push(`cases: duplicate before state ${String(entry.before)}`);
+        before.add(entry.before);
+      }
+  }
+  if (expectation.kind === "delete_replay") {
+    const protocol = expectation.protocol;
+    if (expectation.replay === "not_found" || expectation.replay === "locked") {
+      const status = expectation.replay === "not_found" ? 404 : 403;
+      const code =
+        expectation.replay === "not_found" ? "NOT_FOUND" : "FORBIDDEN";
+      if (
+        !object(protocol) ||
+        protocol.rest_status !== status ||
+        protocol.graphql_status !== status ||
+        protocol.graphql_code !== code
+      )
+        errors.push("protocol must match the replay error meaning");
+    } else if (protocol !== undefined)
+      errors.push("successful replay must not declare an error protocol");
+  }
+  if (expectation.kind === "storage_delete_sequence") {
+    const failure = expectation.failure;
+    const protocol = object(failure) ? failure.protocol : undefined;
+    if (
+      !object(protocol) ||
+      protocol.rest_status !== 502 ||
+      protocol.graphql_status !== 503 ||
+      protocol.graphql_code !== "SERVICE_UNAVAILABLE"
+    )
+      errors.push("protocol must match storage_delete_failed");
+  }
   function source(value: unknown, path: string) {
     if (
       !object(value) ||
@@ -91,7 +154,8 @@ export function validateDomainExpectation(
   }
   if (
     expectation.kind !== "private_setting_authority" &&
-    expectation.kind !== "localized_regions"
+    expectation.kind !== "localized_regions" &&
+    expectation.kind !== "attachment_download_authority"
   )
     source(expectation.operation, "/operation");
   if (expectation.kind === "private_setting_authority") {
@@ -130,6 +194,23 @@ export function validateDomainExpectation(
           );
         else bindingPaths.push(`/operations/${surface}`);
       }
+  }
+  if (expectation.kind === "attachment_download_authority") {
+    if (!context.openapi)
+      errors.push(
+        "attachment_download_authority requires the generated OpenAPI document",
+      );
+    const route = expectation.route;
+    const paths = context.openapi?.paths;
+    const path =
+      object(route) && object(paths) ? paths[String(route.path)] : undefined;
+    if (
+      !object(route) ||
+      !object(path) ||
+      !object(path[String(route.method).toLowerCase()])
+    )
+      errors.push("route: missing OpenAPI operation");
+    else bindingPaths.push("/route/method", "/route/path");
   }
   if (expectation.kind === "localized_regions") {
     try {

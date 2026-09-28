@@ -402,6 +402,12 @@
         },
         {
           "$ref": "#/$defs/membership_kind_transition"
+        },
+        {
+          "$ref": "#/$defs/storage_delete_sequence"
+        },
+        {
+          "$ref": "#/$defs/attachment_download_authority"
         }
       ]
     },
@@ -588,6 +594,333 @@
               }
             }
           }
+        }
+      }
+    },
+    "storage_delete_sequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "surfaces",
+        "storage_before_metadata",
+        "failure",
+        "retry",
+        "replay"
+      ],
+      "properties": {
+        "kind": {
+          "const": "storage_delete_sequence"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "storage_before_metadata": {
+          "type": "boolean"
+        },
+        "failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "protocol",
+            "preserves_metadata",
+            "preserves_object",
+            "audits",
+            "hides_internal_error"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "storage_delete_failed"
+            },
+            "protocol": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rest_status", "graphql_status", "graphql_code"],
+              "properties": {
+                "rest_status": {
+                  "enum": [403, 404, 502]
+                },
+                "graphql_status": {
+                  "enum": [403, 404, 503]
+                },
+                "graphql_code": {
+                  "enum": ["FORBIDDEN", "NOT_FOUND", "SERVICE_UNAVAILABLE"]
+                }
+              }
+            },
+            "preserves_metadata": {
+              "type": "boolean"
+            },
+            "preserves_object": {
+              "type": "boolean"
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hides_internal_error": {
+              "type": "boolean"
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "removes_metadata",
+            "removes_object",
+            "audits",
+            "deleted_size_matches"
+          ],
+          "properties": {
+            "removes_metadata": {
+              "type": "boolean"
+            },
+            "removes_object": {
+              "type": "boolean"
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deleted_size_matches": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rest", "mcp"],
+              "properties": {
+                "rest": {
+                  "type": "boolean"
+                },
+                "mcp": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "replay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["outcome", "storage_calls", "audits"],
+          "properties": {
+            "outcome": {
+              "const": "not_found"
+            },
+            "storage_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "attachment_download_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "route",
+        "preview_parameter",
+        "states",
+        "preview_matches_download",
+        "authorized_bytes_preserved",
+        "denied_responses_hide_bytes",
+        "same_url_across_states"
+      ],
+      "properties": {
+        "kind": {
+          "const": "attachment_download_authority"
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "path"],
+          "properties": {
+            "method": {
+              "const": "GET"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "preview_parameter": {
+          "const": "preview"
+        },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unattached",
+            "public",
+            "logged_in_only",
+            "softbanned",
+            "restored",
+            "parent_deleted",
+            "upload_deleted"
+          ],
+          "properties": {
+            "unattached": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "public": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "logged_in_only": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "softbanned": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "restored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "parent_deleted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "upload_deleted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            }
+          }
+        },
+        "preview_matches_download": {
+          "type": "boolean"
+        },
+        "authorized_bytes_preserved": {
+          "type": "boolean"
+        },
+        "denied_responses_hide_bytes": {
+          "type": "boolean"
+        },
+        "same_url_across_states": {
+          "type": "boolean"
         }
       }
     }

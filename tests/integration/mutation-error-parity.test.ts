@@ -671,7 +671,18 @@ it("homework.single-delete-replay", async (context) => {
   contract.recordVitest(context);
 });
 
-it("upload.storage-delete-retry", async () => {
+it("upload.storage-delete-retry", async (context) => {
+  const contract = await semanticContract(
+    "upload.storage-delete-retry",
+    "storage_delete_sequence",
+  );
+  const route = routes.find((route) => route.path === domains.upload.path);
+  if (!route) throw new Error("Missing upload delete handler");
+  contract.equal("/operation", {
+    module: "src/lib/api/routes/upload-management-routes.ts",
+    export: route.handler.name,
+  });
+  const observedSurfaces: string[] = [];
   const f = await fixture();
   const objects = new Map<string, string>();
   let failStorage = true;
@@ -714,6 +725,26 @@ it("upload.storage-delete-retry", async () => {
         f.tokens,
         "storage_delete_failed",
       );
+      contract.equal("/failure/outcome", rejected.mcp.error);
+      contract.equal("/failure/protocol", rejected.protocol);
+      contract.equal(
+        "/failure/preserves_metadata",
+        isDeepStrictEqual(
+          await db.upload.findUnique({ where: { id: row.id } }),
+          row,
+        ),
+      );
+      contract.equal("/failure/preserves_object", objects.get(key) === content);
+      contract.equal(
+        "/failure/audits",
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      );
+      contract.equal(
+        "/failure/hides_internal_error",
+        !JSON.stringify(rejected).includes("private-storage-failure"),
+      );
       expect(JSON.stringify(rejected)).not.toContain("private-storage-failure");
       expect(await db.upload.findUnique({ where: { id: row.id } })).toEqual(
         row,
@@ -732,8 +763,29 @@ it("upload.storage-delete-retry", async () => {
         f.tokens,
         surface,
       );
-      if (surface !== "graphql")
+      observedSurfaces.push(surface);
+      if (surface !== "graphql") {
         expect(deleted.deletedSize).toBe(content.length);
+        contract.equal(
+          `/retry/deleted_size_matches/${surface}`,
+          deleted.deletedSize === content.length,
+        );
+      }
+      contract.equal(
+        "/retry/removes_metadata",
+        (await db.upload.findUnique({ where: { id: row.id } })) === null,
+      );
+      contract.equal("/retry/removes_object", !objects.has(key));
+      contract.equal(
+        "/retry/audits",
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      );
+      contract.equal(
+        "/storage_before_metadata",
+        metadataAtStorageDelete.every((count) => count === 1),
+      );
       expect(objects.has(key)).toBe(false);
       expect(await db.upload.findUnique({ where: { id: row.id } })).toBeNull();
       expect(
@@ -742,7 +794,24 @@ it("upload.storage-delete-retry", async () => {
         }),
       ).toBe(1);
       expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
-      await rejectDelete("upload", row.id, f.tokens, "not_found");
+      const callsBeforeReplay = metadataAtStorageDelete.length;
+      const replay = await rejectDelete(
+        "upload",
+        row.id,
+        f.tokens,
+        "not_found",
+      );
+      contract.equal("/replay/outcome", replay.mcp.error);
+      contract.equal(
+        "/replay/storage_calls",
+        metadataAtStorageDelete.length - callsBeforeReplay,
+      );
+      contract.equal(
+        "/replay/audits",
+        await db.auditLog.count({
+          where: { action: "upload_delete", targetId: row.id },
+        }),
+      );
       expect(metadataAtStorageDelete).toEqual([1, 1, 1, 1]);
       expect(
         await db.auditLog.count({
@@ -750,6 +819,8 @@ it("upload.storage-delete-retry", async () => {
         }),
       ).toBe(1);
     }
+    contract.set("/surfaces", observedSurfaces);
+    contract.recordVitest(context);
   } finally {
     storage = undefined;
     await f.cleanup();

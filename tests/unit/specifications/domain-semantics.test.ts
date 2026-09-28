@@ -265,3 +265,121 @@ it("does not declare missing or nonmatching projection values preserved", async 
     ),
   ).toThrow("Missing observed projection path");
 });
+
+it("rejects mismatched localized panel counts", () => {
+  const regions = {
+    kind: "localized_regions",
+    route: "/catalog/weather",
+    regions: 2,
+    location_keys: ["ustc-main", "ustc-gaoxin"],
+    labels: { "zh-cn": ["本部", "高新校区"], "en-us": ["Main campus"] },
+  };
+  expect(validateDomainExpectation(regions, { root }).errors).toContain(
+    "labels/en-us length must equal regions",
+  );
+  expect(
+    validateDomainExpectation(
+      { ...regions, location_keys: ["ustc-main"] },
+      { root },
+    ).errors,
+  ).toContain("location_keys length must equal regions");
+});
+
+it("rejects conflicting order fields and transitions with the same initial state", () => {
+  const models = new Map([["Semester", new Set(["jwId"])]]);
+  expect(
+    validateDomainExpectation(
+      {
+        kind: "ordered_page",
+        operation,
+        model: "Semester",
+        order: [
+          { field: "jwId", direction: "asc" },
+          { field: "jwId", direction: "desc" },
+        ],
+      },
+      { root, models },
+    ).errors,
+  ).toContain("order: duplicate field jwId");
+  expect(
+    validateDomainExpectation(
+      {
+        kind: "membership_kind_transition",
+        operation,
+        cases: [
+          { before: "regular", after: "regular", rows: 1 },
+          { before: "regular", after: "auditor", rows: 1 },
+        ],
+      },
+      { root },
+    ).errors,
+  ).toContain("cases: duplicate before state regular");
+});
+
+it("rejects individually valid status codes that contradict their error meaning", () => {
+  for (const replay of ["not_found", "locked"]) {
+    const status = replay === "not_found" ? 404 : 403;
+    const graphqlCode = replay === "not_found" ? "NOT_FOUND" : "FORBIDDEN";
+    const validProtocol = {
+      rest_status: status,
+      graphql_status: status,
+      graphql_code: graphqlCode,
+    };
+    expect(
+      validateDomainExpectation(
+        { kind: "delete_replay", operation, replay, protocol: validProtocol },
+        { root },
+      ).errors,
+    ).toEqual([]);
+    for (const protocol of [
+      { ...validProtocol, rest_status: status === 404 ? 403 : 404 },
+      { ...validProtocol, graphql_status: status === 404 ? 403 : 404 },
+      {
+        ...validProtocol,
+        graphql_code: graphqlCode === "NOT_FOUND" ? "FORBIDDEN" : "NOT_FOUND",
+      },
+    ]) {
+      expect(
+        validateDomainExpectation(
+          { kind: "delete_replay", operation, replay, protocol },
+          { root },
+        ).errors,
+      ).toContain("protocol must match the replay error meaning");
+    }
+  }
+  expect(
+    validateDomainExpectation(
+      {
+        kind: "storage_delete_sequence",
+        operation,
+        failure: {
+          protocol: {
+            rest_status: 403,
+            graphql_status: 503,
+            graphql_code: "SERVICE_UNAVAILABLE",
+          },
+        },
+      },
+      { root },
+    ).errors,
+  ).toContain("protocol must match storage_delete_failed");
+});
+
+it("requires a real OpenAPI operation for attachment downloads", () => {
+  const value = {
+    kind: "attachment_download_authority",
+    route: { method: "GET", path: "/api/workspace/uploads/{id}/download" },
+  };
+  expect(validateDomainExpectation(value, { root }).errors).toContain(
+    "attachment_download_authority requires the generated OpenAPI document",
+  );
+  expect(validateDomainExpectation(value, { root, openapi }).errors).toEqual(
+    [],
+  );
+  expect(
+    validateDomainExpectation(
+      { ...value, route: { ...value.route, path: "/api/private/invented" } },
+      { root, openapi },
+    ).errors,
+  ).toContain("route: missing OpenAPI operation");
+});
