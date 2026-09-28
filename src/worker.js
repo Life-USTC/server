@@ -20,6 +20,7 @@ import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/uplo
 import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
 import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import {
+  getCloudflareRuntimeTaskScheduler,
   runWithCloudflareRuntimeEnv,
   setCloudflareRequestContext,
 } from "./lib/adapters/cloudflare-runtime";
@@ -539,15 +540,12 @@ export default {
               new URL(request.url).pathname,
             ),
           });
-          return runWithObservability(
-            () => {
-              identifyObservedRequest(requestId);
-              return observeHttpFeature(request, requestId, () =>
-                handleFetch(request, env, context, requestId, edgeObservation),
-              );
-            },
-            (task) => context.waitUntil(task),
-          );
+          return runWithObservability(() => {
+            identifyObservedRequest(requestId);
+            return observeHttpFeature(request, requestId, () =>
+              handleFetch(request, env, context, requestId, edgeObservation),
+            );
+          }, getCloudflareRuntimeTaskScheduler());
         },
         context,
       );
@@ -602,7 +600,7 @@ export default {
               }
               throw new Error("Unsupported queue");
             },
-            (task) => context.waitUntil(task),
+            getCloudflareRuntimeTaskScheduler(),
             "queue.unhandled",
           ),
         context,
@@ -690,7 +688,7 @@ export default {
 
               logUnknownScheduledTask(elapsedMs(startMs));
             },
-            (task) => context.waitUntil(task),
+            getCloudflareRuntimeTaskScheduler(),
             "scheduled.unhandled",
           ),
         context,
