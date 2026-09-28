@@ -1,8 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { TestPrismaClient } from "../../../shared/prisma";
-import { withE2ePrisma } from "./prisma";
 
 export type PublicationFixture = {
   canonicalUrl: string;
@@ -24,49 +22,11 @@ export type PublicationFixture = {
   markdownHash: string;
 };
 
-export function publicationFixtureObjectCommand(
-  action: "put" | "delete",
-  key: string,
-  body?: Buffer,
-  contentType?: string,
-) {
-  execFileSync(
-    "bunx",
-    [
-      "wrangler",
-      "r2",
-      "object",
-      action,
-      `life-ustc-publications/${key}`,
-      "--local",
-      "--config",
-      process.env.E2E_WRANGLER_CONFIG ?? "wrangler.e2e.jsonc",
-      ...(process.env.E2E_PERSIST_TO
-        ? ["--persist-to", process.env.E2E_PERSIST_TO]
-        : []),
-      ...(body && contentType ? ["--pipe", "--content-type", contentType] : []),
-    ],
-    { input: body, timeout: 30_000, stdio: ["pipe", "pipe", "pipe"] },
-  );
-}
-
 export type PutPublicationObject = (
   key: string,
   body: Buffer,
   contentType: string,
 ) => Promise<void>;
-
-export function createPublicationFixture(prefix: string) {
-  return withE2ePrisma((db) =>
-    arrangePublicationFixture(
-      db,
-      async (key, body, contentType) => {
-        publicationFixtureObjectCommand("put", key, body, contentType);
-      },
-      prefix,
-    ),
-  );
-}
 
 /** Arrange known content through explicit database and object-store adapters. */
 export async function arrangePublicationFixture(
@@ -232,29 +192,4 @@ export async function arrangePublicationFixture(
       markdownHash,
     } satisfies PublicationFixture;
   });
-}
-
-export async function deletePublicationFixture(fixture: PublicationFixture) {
-  await withE2ePrisma(async (prisma) => {
-    await prisma.publicationSource.delete({ where: { id: fixture.sourceId } });
-    await prisma.publicationSource.delete({
-      where: { id: fixture.officeSourceId },
-    });
-    await prisma.publicationImageSource.delete({
-      where: { id: fixture.imageId },
-    });
-    await prisma.publicationObject.delete({
-      where: {
-        kind_sha256: { kind: "body_markdown", sha256: fixture.markdownHash },
-      },
-    });
-  });
-  publicationFixtureObjectCommand(
-    "delete",
-    `publications/body_markdown/sha256/${fixture.markdownHash.slice(0, 2)}/${fixture.markdownHash}`,
-  );
-  publicationFixtureObjectCommand(
-    "delete",
-    `publications/images/url-sha256/${fixture.imageId}`,
-  );
 }
