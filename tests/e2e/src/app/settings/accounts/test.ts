@@ -22,24 +22,18 @@
  * - Cancel in unlink dialog → dialog closes, account stays linked
  * - Confirm unlink → account removed, button changes to Connect
  */
-import { expect, test } from "@playwright/test";
-import {
-  expectPagePath,
-  expectRequiresSignIn,
-  signInAsDebugUser,
-} from "../../../../utils/auth";
-import {
-  deleteLinkedAccountFixture,
-  ensureLinkedAccountFixture,
-  getCurrentSessionUser,
-} from "../../../../utils/e2e-db";
+import { expect } from "@playwright/test";
+import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
+
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
+import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+
+test.describe.configure({ mode: "parallel" });
 
 test.describe("/account/settings/accounts 关联账号设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
@@ -51,8 +45,8 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     );
   });
 
-  test("显示所有提供商卡片", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/account/settings/accounts");
+  test("显示所有提供商卡片", async ({ page, account: _account }, testInfo) => {
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
 
     await expectPagePath(page, "/account/settings/accounts");
     await expect(page.getByText("GitHub").first()).toBeVisible();
@@ -61,12 +55,15 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     await captureStepScreenshot(page, testInfo, "settings-accounts-platforms");
   });
 
-  test("连接按钮启动账号关联 OAuth 流程", async ({ page }, testInfo) => {
+  test("连接按钮启动账号关联 OAuth 流程", async ({
+    page,
+    account: _account,
+  }, testInfo) => {
     test.skip(
       !process.env.E2E_LIVE_OAUTH,
       "Live OAuth account linking requires E2E_LIVE_OAUTH and real provider credentials.",
     );
-    await signInAsDebugUser(page, "/account/settings/accounts");
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
 
     const providerCard = page
       .locator("#main-content .rounded-lg.border")
@@ -103,130 +100,116 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     }
   });
 
-  test("仅关联一个账号时断开连接被禁用", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/account/settings/accounts");
-    const user = await getCurrentSessionUser(page);
-    const original = await withE2ePrisma(async (prisma) => ({
-      accounts: await prisma.account.findMany({ where: { userId: user.id } }),
-      verifiedEmails: await prisma.verifiedEmail.findMany({
-        where: { userId: user.id },
-      }),
-    }));
-
-    await withE2ePrisma(async (prisma) => {
-      await prisma.account.deleteMany({ where: { userId: user.id } });
-      await prisma.verifiedEmail.deleteMany({ where: { userId: user.id } });
+  test("仅关联一个账号时断开连接被禁用", async ({
+    page,
+    account: _account,
+    ustcAccount: _ustcAccount,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
+    const providerCard = page
+      .locator("#main-content .rounded-lg.border")
+      .filter({ has: page.getByText("USTC", { exact: true }) })
+      .first();
+    const disconnectButton = providerCard.getByRole("button", {
+      name: /断开连接|Disconnect/i,
     });
-    await ensureLinkedAccountFixture({ userId: user.id, provider: "oidc" });
 
-    try {
-      await gotoAndWaitForReady(page, "/account/settings/accounts");
-      const providerCard = page
-        .locator("#main-content .rounded-lg.border")
-        .filter({ has: page.getByText("USTC", { exact: true }) })
-        .first();
-      const disconnectButton = providerCard.getByRole("button", {
-        name: /断开连接|Disconnect/i,
-      });
-
-      await expect(disconnectButton).toBeVisible();
-      await expect(disconnectButton).toBeDisabled();
-      await expect(
-        providerCard.getByText(
-          /至少.*登录方式|Keep at least one usable sign-in method/i,
-        ),
-      ).toBeVisible();
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "settings-accounts-disconnect-disabled",
-      );
-    } finally {
-      await withE2ePrisma(async (prisma) => {
-        await prisma.account.deleteMany({ where: { userId: user.id } });
-        await prisma.verifiedEmail.deleteMany({ where: { userId: user.id } });
-        if (original.accounts.length > 0) {
-          await prisma.account.createMany({ data: original.accounts });
-        }
-        if (original.verifiedEmails.length > 0) {
-          await prisma.verifiedEmail.createMany({
-            data: original.verifiedEmails,
-          });
-        }
-      });
-    }
+    await expect(disconnectButton).toBeVisible();
+    await expect(disconnectButton).toBeDisabled();
+    await expect(
+      providerCard.getByText(
+        /至少.*登录方式|Keep at least one usable sign-in method/i,
+      ),
+    ).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings-accounts-disconnect-disabled",
+    );
   });
 
-  test("多账号：取消与确认解绑流程", async ({ page }, testInfo) => {
+  test("多账号：取消与确认解绑流程", async ({
+    page,
+    account,
+    ustcAccount: _ustcAccount,
+    githubAccount: _githubAccount,
+    credential: _credential,
+  }, testInfo) => {
     test.setTimeout(60_000);
-    const provider = "github";
-    await signInAsDebugUser(page, "/account/settings/accounts");
-    const user = await getCurrentSessionUser(page);
+    await gotoAndWaitForReady(page, "/account/settings/accounts");
+    await waitForUiSettled(page);
+    await expectPagePath(page, "/account/settings/accounts");
 
-    // Ensure a second account exists for the test
-    await deleteLinkedAccountFixture({ userId: user.id, provider });
-    await ensureLinkedAccountFixture({ userId: user.id, provider });
+    const providerCard = page
+      .locator("#main-content .rounded-lg.border")
+      .filter({ has: page.getByText("GitHub", { exact: true }) })
+      .first();
+    await expect(providerCard).toBeVisible();
 
-    try {
-      await signInAsDebugUser(page, "/account/settings/accounts", undefined, {
-        ui: true,
-      });
-      await waitForUiSettled(page);
-      await expectPagePath(page, "/account/settings/accounts");
+    const disconnectButton = providerCard.getByRole("button", {
+      name: /断开连接|Disconnect/i,
+    });
+    await expect(disconnectButton).toBeEnabled();
 
-      const providerCard = page
-        .locator("#main-content .rounded-lg.border")
-        .filter({ has: page.getByText("GitHub", { exact: true }) })
-        .first();
-      await expect(providerCard).toBeVisible();
+    // Cancel flow
+    await disconnectButton.click();
+    const dialog = page
+      .getByRole("dialog")
+      .or(page.getByRole("alertdialog"))
+      .first();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(dialog).not.toBeVisible();
+    expect(
+      await withE2ePrisma((db) =>
+        db.account.count({ where: { userId: account.id, provider: "github" } }),
+      ),
+    ).toBe(1);
 
-      const disconnectButton = providerCard.getByRole("button", {
+    // Confirm unlink flow
+    await disconnectButton.click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /断开连接|Disconnect/i }).click();
+
+    await expect(dialog).not.toBeVisible({ timeout: 15_000 });
+    await expect(
+      providerCard.getByRole("button", { name: /连接|Connect/i }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      providerCard.getByRole("button", {
         name: /断开连接|Disconnect/i,
-      });
-      await expect(disconnectButton).toBeEnabled();
-
-      // Cancel flow
-      await disconnectButton.click();
-      const dialog = page
-        .getByRole("dialog")
-        .or(page.getByRole("alertdialog"))
-        .first();
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
-      await expect(dialog).not.toBeVisible();
-
-      // Confirm unlink flow
-      await disconnectButton.click();
-      await expect(dialog).toBeVisible();
-      await dialog
-        .getByRole("button", { name: /断开连接|Disconnect/i })
-        .click();
-
-      await expect(dialog).not.toBeVisible({ timeout: 15_000 });
-      await expect(
-        providerCard.getByRole("button", { name: /连接|Connect/i }),
-      ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        providerCard.getByRole("button", {
-          name: /断开连接|Disconnect/i,
+      }),
+    ).toHaveCount(0);
+    await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
+    await expect(
+      page
+        .locator("[data-sonner-toast]")
+        .filter({ hasText: /已断开连接|Disconnected/i }),
+    ).toBeVisible();
+    expect(
+      await withE2ePrisma((db) =>
+        db.account.count({ where: { userId: account.id, provider: "github" } }),
+      ),
+    ).toBe(0);
+    expect(
+      await withE2ePrisma((db) =>
+        db.verifiedEmail.count({
+          where: { userId: account.id, provider: "github" },
         }),
-      ).toHaveCount(0);
-      await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
-      await expect(
-        page
-          .locator("[data-sonner-toast]")
-          .filter({ hasText: /已断开连接|Disconnected/i }),
-      ).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
-    } finally {
-      await deleteLinkedAccountFixture({ userId: user.id, provider });
-    }
+      ),
+    ).toBe(0);
+    expect(
+      await withE2ePrisma((db) =>
+        db.account.count({ where: { userId: account.id, provider: "oidc" } }),
+      ),
+    ).toBe(1);
+    await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/account/settings/accounts",
-    testInfo,
-  });
+test("页面契约", async ({ page, account: _account }, testInfo) => {
+  await expectSettingsPage(page, "/account/settings/accounts", testInfo);
+  await expect(
+    page.getByRole("region", { name: /关联账户|Linked accounts/i }),
+  ).toBeVisible();
 });
