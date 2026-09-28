@@ -7,6 +7,7 @@ import {
   ownAnonymousMcpHarness,
   ownMcpHarness,
 } from "./client";
+import { createPrivateMcpSchedules } from "./schedule-fixture";
 
 type Runtime = ReturnType<typeof createNodeRuntime>;
 type Sessions = {
@@ -34,6 +35,7 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   mcpOtherActor: PrivateMcpActor;
   mcpSection: { id: number; jwId: number; code: string };
   mcpBus: Awaited<ReturnType<typeof createPrivateMcpBus>>;
+  mcpSchedules: Awaited<ReturnType<typeof createPrivateMcpSchedules>>;
 }>({
   _mcpCatalogRevision: async ({ isolatedDatabase }, use) => {
     // Database-local IDs repeat across tests, while production L1 cache lives
@@ -182,5 +184,10 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   },
   mcpBus: async ({ isolatedDatabase }, use) => {
     await use(await createPrivateMcpBus(isolatedDatabase.owner));
+  },
+  mcpSchedules: async ({ isolatedDatabase, mcpSection }, use) => {
+    await use(
+      await createPrivateMcpSchedules(isolatedDatabase.owner, mcpSection.id),
+    );
   },
 });
