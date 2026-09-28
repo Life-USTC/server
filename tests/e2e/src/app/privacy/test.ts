@@ -4,7 +4,7 @@
  * Static legal page rendering the privacy policy from i18n keys.
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
+import { test as privateTest } from "../../../utils/isolated-worker";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -60,34 +60,41 @@ test.describe("/privacy 隐私政策页", () => {
     await expect(page.locator('[data-slot="card"] li').first()).toBeVisible();
   });
 
-  test("登录用户共享匿名 SSR 并通过私有请求恢复身份", async ({ page }) => {
-    await signInAsDebugUser(page, "/privacy", "/privacy");
+  privateTest(
+    "登录用户共享匿名 SSR 并通过私有请求恢复身份",
+    async ({ page, isolatedWorker }) => {
+      const actor = await isolatedWorker.createActor();
+      await page.context().addCookies([actor.cookie]);
+      await gotoAndWaitForReady(page, "/privacy");
 
-    const documentResponse = await page.request.get("/privacy");
-    expect(documentResponse.status()).toBe(200);
-    expect(documentResponse.headers()["cache-control"]).toMatch(/no-store/);
-    const html = await documentResponse.text();
-    expect(html).toContain('data-testid="viewer-loading"');
-    expect(html).not.toContain('id="app-user-menu"');
-    const session = await page.request.get("/api/auth/get-session");
-    const { user } = await session.json();
-    expect(user.id).toBeTruthy();
-    expect(html).not.toContain(user.id);
+      const documentResponse = await page.request.get("/privacy");
+      expect(documentResponse.status()).toBe(200);
+      expect(documentResponse.headers()["cache-control"]).toMatch(/no-store/);
+      const html = await documentResponse.text();
+      expect(html).toContain('data-testid="viewer-loading"');
+      expect(html).not.toContain('id="app-user-menu"');
+      const session = await page.request.get("/api/auth/get-session");
+      expect(session.status()).toBe(200);
+      const { user } = await session.json();
+      expect(user.id).toBeTruthy();
+      expect(user.id).toBe(actor.id);
+      expect(html).not.toContain(user.id);
 
-    const bootstrapResponse = page.waitForResponse((response) =>
-      response.url().endsWith("/_internal/shell-bootstrap"),
-    );
-    await gotoAndWaitForReady(page, "/privacy");
-    const bootstrap = await bootstrapResponse;
-    expect(bootstrap.status()).toBe(200);
-    expect(bootstrap.headers()["cache-control"]).toBe("private, no-store");
-    expect((await bootstrap.json()).viewer.id).toBe(user.id);
-    await expect(page.getByTestId("viewer-loading")).toHaveCount(0);
-    await expect(page.locator("#app-user-menu")).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
-    ).toHaveCount(0);
-  });
+      const bootstrapResponse = page.waitForResponse((response) =>
+        response.url().endsWith("/_internal/shell-bootstrap"),
+      );
+      await gotoAndWaitForReady(page, "/privacy");
+      const bootstrap = await bootstrapResponse;
+      expect(bootstrap.status()).toBe(200);
+      expect(bootstrap.headers()["cache-control"]).toBe("private, no-store");
+      expect((await bootstrap.json()).viewer.id).toBe(user.id);
+      await expect(page.getByTestId("viewer-loading")).toHaveCount(0);
+      await expect(page.locator("#app-user-menu")).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      ).toHaveCount(0);
+    },
+  );
 });
 
 test.describe("/privacy 无 JavaScript", () => {
