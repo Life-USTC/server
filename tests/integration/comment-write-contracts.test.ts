@@ -81,17 +81,10 @@ const it = domainStateTest.extend<{
 }>({
   comment: async ({ state }, use) => {
     const { db, marker } = state;
-    try {
-      const teacher = await db.teacher.create({
-        data: {
-          nameCn: marker,
-          jwId: -Math.floor(Math.random() * 1e9) - 1,
-        },
-      });
-      await use(commentHelpers(state, teacher.id));
-    } finally {
-      await db.teacher.deleteMany({ where: { nameCn: marker } });
-    }
+    const teacher = await db.teacher.create({
+      data: { nameCn: marker, jwId: 101 },
+    });
+    await use(commentHelpers(state, teacher.id));
   },
 });
 

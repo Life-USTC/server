@@ -3,7 +3,6 @@ import { setHomeworkCompletion } from "@/features/homeworks/server/homework-comp
 import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { withUserDbContext } from "@/lib/db/prisma";
-import { DEV_SEED } from "../fixtures/dev-seed";
 import {
   type DomainState,
   domainStateTest,
@@ -34,22 +33,16 @@ const it = domainStateTest.extend<{
   suspendedIsAdmin: false,
   homework: async ({ state }, use) => {
     const { db, marker } = state;
-    const course = await db.course.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.course.jwId },
-    });
-    const code = `HOMEWORK.${marker}`;
-    try {
-      const section = await db.section.create({
-        data: {
-          courseId: course.id,
-          jwId: -Math.floor(Math.random() * 1e9) - 1,
-          code,
+    const section = await db.section.create({
+      data: {
+        course: {
+          create: { jwId: 101, code: "HOMEWORK", nameCn: "独立作业课程" },
         },
-      });
-      await use(homeworkHelpers(state, section.id));
-    } finally {
-      await db.section.deleteMany({ where: { code } });
-    }
+        jwId: 102,
+        code: `HOMEWORK.${marker}`,
+      },
+    });
+    await use(homeworkHelpers(state, section.id));
   },
 });
 

@@ -1,11 +1,9 @@
 import { makeSignature } from "better-auth/crypto";
-import { test } from "vitest";
-import {
-  runWithCloudflareRuntimeEnv,
-  setCloudflareCatalogInvalidator,
-} from "@/lib/adapters/cloudflare-runtime";
+import { setCloudflareCatalogInvalidator } from "@/lib/adapters/cloudflare-runtime";
 import { getBetterAuthInstance } from "@/lib/auth/core";
-import { createFixturePrisma, type TestPrismaClient } from "./prisma";
+import { isolatedDatabaseTest } from "./isolated-database";
+import { createNodeRuntime } from "./node-runtime";
+import type { TestPrismaClient } from "./prisma";
 
 export type DomainState = {
   db: TestPrismaClient;
@@ -16,136 +14,90 @@ export type DomainState = {
   queueMessages: unknown[];
 };
 
-export const domainStateTest = test.extend<{
+export const domainStateTest = isolatedDatabaseTest.extend<{
   suspendedIsAdmin: boolean;
+  domainQueue: { messages: unknown[]; send(message: unknown): Promise<void> };
+  domainRuntime: DomainState["runtime"];
   state: DomainState;
 }>({
   suspendedIsAdmin: true,
-  state: async ({ suspendedIsAdmin }, use) => {
-    const db = createFixturePrisma();
-    const marker = crypto.randomUUID();
-    const users = ["owner", "other", "admin", "suspended"].map(
-      (role) => `${role}-${marker}`,
-    );
-    const cookies = new Map<string, string>();
-    const queueMessages: unknown[] = [];
-    const responses: Response[] = [];
-    async function runtime<T>(
-      work: () => Promise<T>,
-      connectionLabel?: string,
-    ) {
-      if (!process.env.DATABASE_URL || !process.env.AUTH_DATABASE_URL)
-        throw new Error(
-          "Domain tests require restricted runtime database URLs",
-        );
-      const connection = new URL(process.env.DATABASE_URL);
+  // Direct domain contracts observe enqueue intent; real queue delivery and
+  // rate limits remain separate Worker contracts.
+  // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
+  domainQueue: async ({}, use) => {
+    const messages: unknown[] = [];
+    await use({
+      messages,
+      send: async (message) => {
+        messages.push(message);
+      },
+    });
+  },
+  domainRuntime: async ({ isolatedDatabase, domainQueue }, use) => {
+    const runtimes: ReturnType<typeof createNodeRuntime>[] = [];
+    let closed = false;
+    const run: DomainState["runtime"] = (work, connectionLabel) => {
+      if (closed) return Promise.reject(new Error("Domain runtime is closed"));
+      const connection = new URL(isolatedDatabase.connections.app);
       if (connectionLabel)
         connection.searchParams.set("application_name", connectionLabel);
-      const tasks: Promise<PromiseSettledResult<unknown>>[] = [];
-      const result = await runWithCloudflareRuntimeEnv(
-        {
-          APP_PUBLIC_ORIGIN: "http://localhost:3000",
-          HYPERDRIVE: { connectionString: connection.href },
-          HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
-          HYPERDRIVE_MAINTENANCE: {
-            connectionString: process.env.MAINTENANCE_DATABASE_URL,
-          },
-          // Rate-limit behavior has its own binding tests; this fixture
-          // exercises real authentication, permissions and domain mutations.
-          USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
-          USER_BATCH_WRITE_RATE_LIMITER: {
-            limit: async () => ({ success: true }),
-          },
-          CALENDAR_EXPORT_REBUILD: {
-            send: async (message: unknown) => {
-              queueMessages.push(message);
-            },
-          },
+      const runtime = createNodeRuntime({
+        APP_PUBLIC_ORIGIN: "http://localhost:3000",
+        HYPERDRIVE: { connectionString: connection.href },
+        HYPERDRIVE_AUTH: {
+          connectionString: isolatedDatabase.connections.auth,
         },
-        async () => {
-          // These direct domain tests have no Worker HTML cache. Production
-          // invalidation is tested separately through real Worker entry points.
-          setCloudflareCatalogInvalidator(async () => {});
-          const [outcome] = await Promise.allSettled([
-            Promise.resolve().then(work),
-          ]);
-          const failures: unknown[] = [];
-          // Drain tasks before runtime Prisma disconnects, including tasks
-          // scheduled by other background work and rejected operations.
-          for (let start = 0; start < tasks.length; ) {
-            const batch = tasks.slice(start);
-            start += batch.length;
-            for (const result of await Promise.all(batch)) {
-              if (result.status === "rejected") failures.push(result.reason);
-            }
-          }
-          if (outcome.status === "rejected") {
-            if (!failures.length) throw outcome.reason;
-            throw new AggregateError(
-              [outcome.reason, ...failures],
-              "Domain work and background work failed",
-            );
-          }
-          if (failures.length) {
-            // The runtime cannot wrap a response when this callback throws.
-            // Retain its original body only on this failure path for teardown.
-            if (outcome.value instanceof Response)
-              responses.push(outcome.value);
-            throw new AggregateError(failures, "Domain background work failed");
-          }
-          return outcome.value;
+        HYPERDRIVE_MAINTENANCE: {
+          connectionString: isolatedDatabase.connections.maintenance,
         },
-        {
-          waitUntil: (task: Promise<unknown>) =>
-            tasks.push(
-              task.then(
-                (value): PromiseFulfilledResult<unknown> => ({
-                  status: "fulfilled",
-                  value,
-                }),
-                (reason): PromiseRejectedResult => ({
-                  status: "rejected",
-                  reason,
-                }),
-              ),
-            ),
+        USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
+        USER_BATCH_WRITE_RATE_LIMITER: {
+          limit: async () => ({ success: true }),
         },
-      );
-      if (result instanceof Response) responses.push(result);
-      return result;
-    }
-    async function cleanup() {
-      try {
-        const cancellations = await Promise.allSettled(
-          responses.map((response) =>
-            response.body && !response.bodyUsed
-              ? response.body.cancel()
-              : undefined,
-          ),
-        );
-        await db.$transaction(async (tx) => {
-          await tx.auditLog.deleteMany({
-            where: {
-              OR: [{ userId: { in: users } }, { subjectUserId: { in: users } }],
-            },
-          });
-          await tx.featureOperationEvent.deleteMany({
-            where: { userId: { in: users } },
-          });
-          await tx.upload.deleteMany({ where: { userId: { in: users } } });
-          await tx.user.deleteMany({ where: { id: { in: users } } });
-        });
-        const failures = cancellations.flatMap((result) =>
-          result.status === "rejected" ? [result.reason] : [],
-        );
-        if (failures.length)
-          throw new AggregateError(failures, "Domain response cleanup failed");
-      } finally {
-        await db.$disconnect();
-      }
-    }
+        CALENDAR_EXPORT_REBUILD: domainQueue,
+      });
+      // Own each labelled request before any asynchronous work can start.
+      runtimes.push(runtime);
+      return runtime.run(async () => {
+        // Direct Node contracts have no Worker HTML cache.
+        setCloudflareCatalogInvalidator(async () => {});
+        return work();
+      });
+    };
+    const failures: unknown[] = [];
     try {
-      const context = await runtime(() => getBetterAuthInstance().$context);
+      await use(run);
+    } catch (error) {
+      failures.push(error);
+    }
+    closed = true;
+    const results = await Promise.allSettled(runtimes.map((r) => r.close()));
+    failures.push(
+      ...results.flatMap((r) => (r.status === "rejected" ? [r.reason] : [])),
+    );
+    if (failures.length)
+      throw new AggregateError(failures, "Domain runtime cleanup failed");
+  },
+  state: async (
+    { suspendedIsAdmin, isolatedDatabase, domainRuntime, domainQueue },
+    use,
+  ) => {
+    const db = isolatedDatabase.owner;
+    const marker = crypto.randomUUID();
+    const users = ["owner", "other", "admin", "suspended"];
+    const cookies = new Map<string, string>();
+    await domainRuntime(async () => {
+      // Private local IDs can repeat across cases. Give persisted catalog
+      // revisions independent cache keys before any application read.
+      await db.staticImportState.create({
+        data: {
+          id: "global",
+          snapshotSha256: marker.replaceAll("-", "").repeat(2),
+          snapshotGeneratedAt: new Date(),
+          transformRevision: 6,
+        },
+      });
+      const context = await getBetterAuthInstance().$context;
       // Atomic acquisition leaves no partially constructed actor set.
       await db.$transaction(async (tx) => {
         for (const [index, id] of users.entries()) {
@@ -174,9 +126,14 @@ export const domainStateTest = test.extend<{
           data: { userId: users[3], createdById: users[2], reason: marker },
         });
       });
-      await use({ db, marker, users, cookies, runtime, queueMessages });
-    } finally {
-      await cleanup();
-    }
+    });
+    await use({
+      db,
+      marker,
+      users,
+      cookies,
+      runtime: domainRuntime,
+      queueMessages: domainQueue.messages,
+    });
   },
 });
