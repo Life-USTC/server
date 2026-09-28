@@ -1,20 +1,83 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import {
   createFixturePrisma,
   createTestPrisma,
-  disconnectTestPrisma,
+  type TestPrismaClient,
 } from "../shared/prisma";
 
-const authDatabaseUrl = process.env.AUTH_DATABASE_URL;
-if (!authDatabaseUrl) {
-  throw new Error("AUTH_DATABASE_URL is required for auth role tests");
-}
-const authPrisma = createTestPrisma(authDatabaseUrl, {
-  user: { calendarFeedToken: true },
+type RoleClients = {
+  authPrisma: TestPrismaClient;
+  adminPrisma: TestPrismaClient;
+};
+type Records = {
+  marker: string;
+  userId: string;
+  auditId: string;
+  clientId: string;
+  grantId: string;
+  adminInsertId: string;
+  picturesInsertId: string;
+};
+const it = test.extend<{
+  $file: { roleClients: RoleClients };
+  $test: { records: Records };
+}>({
+  roleClients: [
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
+    async ({}, use) => {
+      if (!process.env.AUTH_DATABASE_URL)
+        throw new Error("AUTH_DATABASE_URL is required for auth role tests");
+      const authPrisma = createTestPrisma(process.env.AUTH_DATABASE_URL, {
+        user: { calendarFeedToken: true },
+      });
+      const adminPrisma = createFixturePrisma();
+      try {
+        await use({ authPrisma, adminPrisma });
+      } finally {
+        await Promise.all([
+          authPrisma.$disconnect(),
+          adminPrisma.$disconnect(),
+        ]);
+      }
+    },
+    { scope: "file" },
+  ],
+  records: async ({ roleClients: { adminPrisma } }, use) => {
+    const marker = `auth-role-${crypto.randomUUID()}`;
+    const owned = {
+      marker,
+      userId: `${marker}-user`,
+      auditId: `${marker}-audit`,
+      clientId: `${marker}-client`,
+      grantId: `${marker}-grant`,
+      adminInsertId: `${marker}-admin-insert`,
+      picturesInsertId: `${marker}-pictures-insert`,
+    };
+    const userIds = [owned.userId, owned.adminInsertId, owned.picturesInsertId];
+    try {
+      // Register IDs before the test acquires anything using the auth role.
+      await use(owned);
+    } finally {
+      await adminPrisma.$transaction(async (tx) => {
+        await tx.auditLog.deleteMany({
+          where: {
+            OR: [
+              { id: owned.auditId },
+              { userId: { in: userIds } },
+              { subjectUserId: { in: userIds } },
+            ],
+          },
+        });
+        await tx.oAuthClient.deleteMany({
+          where: { clientId: owned.clientId },
+        });
+        await tx.user.deleteMany({ where: { id: { in: userIds } } });
+      });
+    }
+  },
 });
-const adminPrisma = createFixturePrisma();
 
 const expectedTablePrivileges = [
   "Account:DELETE",
@@ -107,14 +170,9 @@ const expectedColumnPrivileges = [
 describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
   "authentication runtime role contract",
   () => {
-    afterAll(async () => {
-      await Promise.all([
-        disconnectTestPrisma(authPrisma),
-        disconnectTestPrisma(adminPrisma),
-      ]);
-    });
-
-    it("is an unprivileged standalone login role", async () => {
+    it("is an unprivileged standalone login role", async ({
+      roleClients: { authPrisma },
+    }) => {
       const [role] = await authPrisma.$queryRaw<
         Array<{
           bypassRls: boolean;
@@ -155,7 +213,9 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       });
     });
 
-    it("has only the audited auth table and unlink-function grants", async () => {
+    it("has only the audited auth table and unlink-function grants", async ({
+      roleClients: { authPrisma },
+    }) => {
       const tableGrants = await authPrisma.$queryRaw<
         Array<{ privilege: string; tableName: string }>
       >`
@@ -232,68 +292,64 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
       ]);
     });
 
-    it("can append audit records but cannot read or mutate them", async () => {
-      const marker = `auth-role-${crypto.randomUUID()}`;
-      const auditId = `${marker}-audit`;
+    it("can append audit records but cannot read or mutate them", async ({
+      roleClients: { authPrisma, adminPrisma },
+      records: { marker, userId, auditId },
+    }) => {
       const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
+        data: { id: userId, email: `${marker}@example.test`, name: marker },
         select: { id: true },
       });
-      try {
-        await expect(
-          authPrisma.account.create({
-            data: {
-              issuer: "https://issuer.example.test",
-              provider: "test",
-              providerAccountId: marker,
-              userId: user.id,
-            },
-          }),
-        ).resolves.toMatchObject({ userId: user.id });
-        await writeAuditLog(
-          {
-            action: "account_sign_in",
-            channel: "auth",
-            id: auditId,
-            subjectUserId: user.id,
+      await expect(
+        authPrisma.account.create({
+          data: {
+            issuer: "https://issuer.example.test",
+            provider: "test",
+            providerAccountId: marker,
             userId: user.id,
           },
-          authPrisma,
-        );
-        await expect(
-          adminPrisma.auditLog.findUnique({ where: { id: auditId } }),
-        ).resolves.toMatchObject({
+        }),
+      ).resolves.toMatchObject({ userId: user.id });
+      await writeAuditLog(
+        {
           action: "account_sign_in",
           channel: "auth",
           id: auditId,
           subjectUserId: user.id,
           userId: user.id,
-        });
-        await expect(authPrisma.todo.count()).rejects.toThrow();
-        await expect(authPrisma.auditLog.count()).rejects.toThrow(
-          "permission denied for table AuditLog",
-        );
-        await expect(
-          authPrisma.auditLog.updateMany({
-            where: { id: auditId },
-            data: { outcome: "failure" },
-          }),
-        ).rejects.toThrow("permission denied for table AuditLog");
-        await expect(
-          authPrisma.auditLog.deleteMany({ where: { id: auditId } }),
-        ).rejects.toThrow("permission denied for table AuditLog");
-      } finally {
-        await adminPrisma.auditLog.deleteMany({ where: { id: auditId } });
-        await adminPrisma.user.delete({ where: { id: user.id } });
-      }
+        },
+        authPrisma,
+      );
+      await expect(
+        adminPrisma.auditLog.findUnique({ where: { id: auditId } }),
+      ).resolves.toMatchObject({
+        action: "account_sign_in",
+        channel: "auth",
+        id: auditId,
+        subjectUserId: user.id,
+        userId: user.id,
+      });
+      await expect(authPrisma.todo.count()).rejects.toThrow();
+      await expect(authPrisma.auditLog.count()).rejects.toThrow(
+        "permission denied for table AuditLog",
+      );
+      await expect(
+        authPrisma.auditLog.updateMany({
+          where: { id: auditId },
+          data: { outcome: "failure" },
+        }),
+      ).rejects.toThrow("permission denied for table AuditLog");
+      await expect(
+        authPrisma.auditLog.deleteMany({ where: { id: auditId } }),
+      ).rejects.toThrow("permission denied for table AuditLog");
     });
 
-    it("can atomically manage OAuth usage while retaining no app-table access", async () => {
-      const marker = `auth-role-usage-${crypto.randomUUID()}`;
-      const clientId = `${marker}-client`;
-      const grantId = `${marker}-grant`;
+    it("can atomically manage OAuth usage while retaining no app-table access", async ({
+      roleClients: { authPrisma },
+      records: { marker, userId, clientId, grantId },
+    }) => {
       const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
+        data: { id: userId, email: `${marker}@example.test`, name: marker },
         select: { id: true },
       });
       await authPrisma.oAuthClient.create({
@@ -303,130 +359,125 @@ describe.skipIf(process.env.AUTH_ROLE_TEST_ENABLED !== "true")(
           redirectUris: ["https://client.example.test/callback"],
         },
       });
-      try {
-        await recordOAuthGrantUsage(
-          {
-            userId: user.id,
-            clientId,
-            grantId,
-            channel: "rest",
-            feature: "account.profile",
-            action: "read",
-          },
-          authPrisma,
-        );
-        await expect(
-          authPrisma.oAuthGrantUsageDaily.findFirstOrThrow({
-            where: { userId: user.id, clientId, grantId },
-          }),
-        ).resolves.toMatchObject({ readCount: 1 });
-        await expect(
-          authPrisma.oAuthGrantUsageDaily.deleteMany({
-            where: { userId: user.id, clientId, grantId },
-          }),
-        ).resolves.toMatchObject({ count: 1 });
-        await expect(authPrisma.auditLog.count()).rejects.toThrow();
-      } finally {
-        await authPrisma.oAuthClient.deleteMany({ where: { clientId } });
-        await adminPrisma.user.deleteMany({ where: { id: user.id } });
-      }
+      await recordOAuthGrantUsage(
+        {
+          userId: user.id,
+          clientId,
+          grantId,
+          channel: "rest",
+          feature: "account.profile",
+          action: "read",
+        },
+        authPrisma,
+      );
+      await expect(
+        authPrisma.oAuthGrantUsageDaily.findFirstOrThrow({
+          where: { userId: user.id, clientId, grantId },
+        }),
+      ).resolves.toMatchObject({ readCount: 1 });
+      await expect(
+        authPrisma.oAuthGrantUsageDaily.deleteMany({
+          where: { userId: user.id, clientId, grantId },
+        }),
+      ).resolves.toMatchObject({ count: 1 });
+      await expect(authPrisma.auditLog.count()).rejects.toThrow();
     });
 
-    it("can update profile columns but not application-owned User fields", async () => {
-      const marker = `auth-role-user-update-${crypto.randomUUID()}`;
+    it("can update profile columns but not application-owned User fields", async ({
+      roleClients: { authPrisma },
+      records: { marker, userId, adminInsertId, picturesInsertId },
+    }) => {
       const user = await authPrisma.user.create({
-        data: { email: `${marker}@example.test`, name: marker },
+        data: { id: userId, email: `${marker}@example.test`, name: marker },
         select: { id: true },
       });
-      try {
-        await expect(
-          authPrisma.user.create({
-            data: {
-              email: `${marker}-admin-insert@example.test`,
-              isAdmin: true,
-              name: marker,
-            },
-            select: { id: true },
-          }),
-        ).rejects.toThrow("permission denied for table User");
-        await expect(
-          authPrisma.user.create({
-            data: {
-              email: `${marker}-pictures-insert@example.test`,
-              name: marker,
-              profilePictures: ["https://attacker.example/avatar.svg"],
-            },
-            select: { id: true },
-          }),
-        ).rejects.toThrow("permission denied for table User");
+      await expect(
+        authPrisma.user.create({
+          data: {
+            id: adminInsertId,
+            email: `${marker}-admin-insert@example.test`,
+            isAdmin: true,
+            name: marker,
+          },
+          select: { id: true },
+        }),
+      ).rejects.toThrow("permission denied for table User");
+      await expect(
+        authPrisma.user.create({
+          data: {
+            id: picturesInsertId,
+            email: `${marker}-pictures-insert@example.test`,
+            name: marker,
+            profilePictures: ["https://attacker.example/avatar.svg"],
+          },
+          select: { id: true },
+        }),
+      ).rejects.toThrow("permission denied for table User");
 
-        await expect(
-          authPrisma.user.update({
-            where: { id: user.id },
-            data: {
-              emailVerified: true,
-              image: "https://example.test/auth-runtime-avatar.svg",
-              name: `${marker}-updated`,
-              username: marker,
-            },
-            select: {
-              emailVerified: true,
-              image: true,
-              isAdmin: true,
-              name: true,
-              username: true,
-            },
-          }),
-        ).resolves.toMatchObject({
-          emailVerified: true,
-          image: "https://example.test/auth-runtime-avatar.svg",
-          isAdmin: false,
-          name: `${marker}-updated`,
-          username: marker,
-        });
+      await expect(
+        authPrisma.user.update({
+          where: { id: user.id },
+          data: {
+            emailVerified: true,
+            image: "https://example.test/auth-runtime-avatar.svg",
+            name: `${marker}-updated`,
+            username: marker,
+          },
+          select: {
+            emailVerified: true,
+            image: true,
+            isAdmin: true,
+            name: true,
+            username: true,
+          },
+        }),
+      ).resolves.toMatchObject({
+        emailVerified: true,
+        image: "https://example.test/auth-runtime-avatar.svg",
+        isAdmin: false,
+        name: `${marker}-updated`,
+        username: marker,
+      });
 
-        await expect(
-          authPrisma.user.update({
-            where: { id: user.id },
-            data: { isAdmin: true },
-          }),
-        ).rejects.toThrow("permission denied for table User");
-        await expect(
-          authPrisma.user.update({
-            where: { id: user.id },
-            data: {
-              profilePictures: {
-                set: ["https://attacker.example/avatar.svg"],
-              },
+      await expect(
+        authPrisma.user.update({
+          where: { id: user.id },
+          data: { isAdmin: true },
+        }),
+      ).rejects.toThrow("permission denied for table User");
+      await expect(
+        authPrisma.user.update({
+          where: { id: user.id },
+          data: {
+            profilePictures: {
+              set: ["https://attacker.example/avatar.svg"],
             },
-          }),
-        ).rejects.toThrow("permission denied for table User");
-        await expect(
-          authPrisma.user.update({
-            where: { id: user.id },
-            data: { calendarFeedToken: marker },
-          }),
-        ).rejects.toThrow("permission denied for table User");
+          },
+        }),
+      ).rejects.toThrow("permission denied for table User");
+      await expect(
+        authPrisma.user.update({
+          where: { id: user.id },
+          data: { calendarFeedToken: marker },
+        }),
+      ).rejects.toThrow("permission denied for table User");
 
-        await expect(
-          authPrisma.$queryRaw`
+      await expect(
+        authPrisma.$queryRaw`
             SELECT "calendarFeedToken"
             FROM "User"
             WHERE id = ${user.id}
           `,
-        ).rejects.toThrow("permission denied for table User");
-        await expect(
-          authPrisma.user.findUniqueOrThrow({
-            where: { id: user.id },
-            select: { isAdmin: true, profilePictures: true },
-          }),
-        ).resolves.toEqual({
-          isAdmin: false,
-          profilePictures: [],
-        });
-      } finally {
-        await adminPrisma.user.deleteMany({ where: { id: user.id } });
-      }
+      ).rejects.toThrow("permission denied for table User");
+      await expect(
+        authPrisma.user.findUniqueOrThrow({
+          where: { id: user.id },
+          select: { isAdmin: true, profilePictures: true },
+        }),
+      ).resolves.toEqual({
+        isAdmin: false,
+        profilePictures: [],
+      });
     });
   },
 );
