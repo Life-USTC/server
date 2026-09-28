@@ -149,7 +149,20 @@ requirements:
       name: young-workspace.private-response-cache
 - id: young-workspace.reminder-deadline-window
   category: behavior
-  rule: Deadline reminders become eligible 24 hours before the deadline.
+  applies_to:
+  - workspace-young-notification-list
+  expectation:
+    kind: reminder_window
+    operation:
+      module: src/features/young/server/young-notification-state.ts
+      export: youngReminderCandidates
+    anchor: applyEndAt
+    notification: signup_deadline
+    lead_seconds: 86400
+    before_window: false
+    at_open: true
+    before_close: true
+    at_close: false
   acceptance:
     given: A subscribed event has a known future signup deadline and deadline reminders enabled.
     when: Reminder candidates are evaluated immediately before and at the 24-hour threshold.
@@ -161,7 +174,20 @@ requirements:
       name: young-workspace.reminder-deadline-window
 - id: young-workspace.reminder-start-window
   category: behavior
-  rule: Event-start reminders become eligible one hour before the event starts.
+  applies_to:
+  - workspace-young-notification-list
+  expectation:
+    kind: reminder_window
+    operation:
+      module: src/features/young/server/young-notification-state.ts
+      export: youngReminderCandidates
+    anchor: startAt
+    notification: event_start
+    lead_seconds: 3600
+    before_window: false
+    at_open: true
+    before_close: true
+    at_close: false
   acceptance:
     given: An event has a known start and start reminders are enabled.
     when: The actual reminder policy evaluates just before one hour, exactly one hour, just before start

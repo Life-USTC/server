@@ -115,8 +115,33 @@ requirements:
       name: description.server-rendered-markdown
 - id: description.failed-write-invalidation
   category: consistency
-  rule: A failed description transaction triggers neither public representation invalidation nor a homework
-    calendar rebuild.
+  applies_to:
+  - object-description-section
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/descriptions/server/description-upsert.ts
+      export: upsertDescriptionContent
+    completion: rollback
+    failure_propagated: true
+    before_commit:
+    - operation:
+        module: src/lib/adapters/cloudflare-runtime.ts
+        export: invalidateCloudflareCatalogRepresentations
+      calls: 0
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateCalendarExportsForSection
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/lib/adapters/cloudflare-runtime.ts
+        export: invalidateCloudflareCatalogRepresentations
+      calls: 0
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateCalendarExportsForSection
+      calls: 0
   acceptance:
     given: The description transaction rejects.
     when: Both public-object and homework description writes are attempted.
@@ -189,8 +214,16 @@ requirements:
       name: description.mcp-markdown-projection
 - id: description.unchanged-write-history
   category: consistency
-  rule: An unchanged description write returns updated=false and adds neither DescriptionEdit history
-    nor a description_edit audit entry.
+  applies_to:
+  - object-description-section
+  expectation:
+    kind: unchanged_write
+    operation:
+      module: src/features/descriptions/server/description-upsert.ts
+      export: upsertDescriptionContent
+    updated: false
+    history_created: 0
+    audits_created: 0
   acceptance:
     given: The submitted description equals stored content.
     when: The description use case processes the write.

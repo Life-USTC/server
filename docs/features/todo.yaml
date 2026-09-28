@@ -407,8 +407,25 @@ requirements:
       name: todo.web-completed-title
 - id: todo.update-calendar-after-commit
   category: consistency
-  rule: A todo update enqueues exactly one owner calendar rebuild after commit and none while commit is
-    pending.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: commit
+    failure_propagated: false
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 1
   acceptance:
     given: A todo update has finished its transaction callback while commit is pending.
     when: The commit succeeds.
@@ -420,7 +437,25 @@ requirements:
       name: todo.update-calendar-after-commit
 - id: todo.update-calendar-rollback
   category: consistency
-  rule: A failed todo update commit reports its failure and enqueues no calendar rebuild.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: rollback
+    failure_propagated: true
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
   acceptance:
     given: A todo update has finished its transaction callback while commit is pending.
     when: The commit fails.

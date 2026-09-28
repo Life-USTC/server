@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/domain-expectations.schema.json",
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "pattern": "^src/.+\\.ts$"
+        },
+        "export": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reminder_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "anchor",
+        "notification",
+        "lead_seconds",
+        "before_window",
+        "at_open",
+        "before_close",
+        "at_close"
+      ],
+      "properties": {
+        "kind": {
+          "const": "reminder_window"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "anchor": {
+          "enum": ["applyEndAt", "startAt"]
+        },
+        "notification": {
+          "enum": ["signup_deadline", "event_start"]
+        },
+        "lead_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "before_window": {
+          "type": "boolean"
+        },
+        "at_open": {
+          "type": "boolean"
+        },
+        "before_close": {
+          "type": "boolean"
+        },
+        "at_close": {
+          "type": "boolean"
+        }
+      }
+    },
+    "transaction_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "completion",
+        "failure_propagated",
+        "before_commit",
+        "after_completion"
+      ],
+      "properties": {
+        "kind": {
+          "const": "transaction_effects"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "completion": {
+          "enum": ["commit", "rollback"]
+        },
+        "failure_propagated": {
+          "type": "boolean"
+        },
+        "before_commit": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "calls"],
+            "properties": {
+              "operation": {
+                "$ref": "#/$defs/source"
+              },
+              "calls": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "after_completion": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "calls"],
+            "properties": {
+              "operation": {
+                "$ref": "#/$defs/source"
+              },
+              "calls": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "unchanged_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "updated",
+        "history_created",
+        "audits_created"
+      ],
+      "properties": {
+        "kind": {
+          "const": "unchanged_write"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "updated": {
+          "type": "boolean"
+        },
+        "history_created": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audits_created": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "delete_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "surfaces",
+        "committed_state",
+        "replay",
+        "preserves_committed_state"
+      ],
+      "properties": {
+        "kind": {
+          "const": "delete_replay"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "committed_state": {
+          "enum": ["absent", "tombstone"]
+        },
+        "replay": {
+          "enum": ["not_found", "locked", "success"]
+        },
+        "preserves_committed_state": {
+          "type": "boolean"
+        },
+        "audit_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confirmation_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "public_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "response",
+        "fields",
+        "preserves",
+        "concealed_source_values"
+      ],
+      "properties": {
+        "kind": {
+          "const": "public_projection"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "path"],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "preserves": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "concealed_source_values": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ordered_page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "model",
+        "surfaces",
+        "order",
+        "page_size",
+        "complete_total",
+        "exhausted_items"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ordered_page"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "order": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "direction"],
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "direction": {
+                "enum": ["asc", "desc"]
+              },
+              "nulls": {
+                "enum": ["first", "last"]
+              }
+            }
+          }
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "complete_total": {
+          "type": "boolean"
+        },
+        "exhausted_items": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "expectation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/reminder_window"
+        },
+        {
+          "$ref": "#/$defs/transaction_effects"
+        },
+        {
+          "$ref": "#/$defs/unchanged_write"
+        },
+        {
+          "$ref": "#/$defs/delete_replay"
+        },
+        {
+          "$ref": "#/$defs/public_projection"
+        },
+        {
+          "$ref": "#/$defs/ordered_page"
+        }
+      ]
+    }
+  }
+}
