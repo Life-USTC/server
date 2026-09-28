@@ -1,12 +1,14 @@
 import { mergeTests } from "@playwright/test";
 import type {
   CommentAttachment,
+  Section,
   Upload,
   UploadPending,
+  User,
 } from "../../../src/generated/prisma-node/client";
 import { test as storageTest } from "../../integration/rest/uploads/_fixture";
-import { test as communityTest } from "./community-fixture";
-import { withE2ePrisma } from "./e2e-db/prisma";
+import type { TestPrismaClient } from "../../shared/prisma";
+import { test as workerTest } from "./isolated-worker";
 import { withSettledPageWrites } from "./settled-page-writes";
 
 type UploadSnapshot = {
@@ -17,56 +19,86 @@ type UploadSnapshot = {
 };
 type UploadStep = { path: string; status: number; state: UploadSnapshot };
 
-const combined = mergeTests(communityTest, storageTest);
+const combined = mergeTests(storageTest, workerTest);
 export const test = combined.extend<{
+  account: User;
+  community: { section: Section };
   upload: {
     prefix: string;
     steps: UploadStep[];
     observe: () => Promise<UploadSnapshot>;
   };
 }>({
-  // The storage observer accepts UUID-owned prefixes. Reuse the native REST
-  // actor lifecycle and install its real signed session in this browser.
-  account: async ({ createActor, page }, use) => {
-    const actor = await createActor();
-    const account = await withE2ePrisma((db) =>
-      db.user.update({
+  account: async ({ isolatedWorker, page }, use) => {
+    const actor = await isolatedWorker.createActor();
+    await page.context().addCookies([actor.cookie]);
+    await use(
+      await isolatedWorker.database.owner.user.findUniqueOrThrow({
         where: { id: actor.id },
-        data: { username: `cu${actor.id.replaceAll("-", "").slice(0, 17)}` },
       }),
     );
-    try {
-      await page
-        .context()
-        .addCookies((await actor.request.storageState()).cookies);
-      await use(account);
-    } finally {
-      await page.close();
-    }
   },
-  upload: async (
-    { account, community: _community, page, uploadBucket: bucket },
-    use,
-  ) => {
-    // Ownership exists before the browser can initialize an upload; no response
-    // ID is needed to remove pending reservations or partially uploaded objects.
-    const prefix = `uploads/${account.id}/`;
-    const steps: UploadStep[] = [];
-    const objectKeys = async () => {
-      const keys: string[] = [];
-      let cursor: string | undefined;
-      do {
-        const result = await bucket.list({
-          prefix,
-          ...(cursor ? { cursor } : {}),
+  community: async ({ isolatedWorker, page, upload }, use) => {
+    const section = await isolatedWorker.database.owner.$transaction(
+      async (db) => {
+        const semester = await db.semester.create({
+          data: { jwId: 1, code: "421", nameCn: "2026年春季学期" },
         });
-        keys.push(...result.objects.map((object) => object.key));
-        cursor = result.truncated ? result.cursor : undefined;
-      } while (cursor);
-      return keys;
-    };
+        const course = await db.course.create({
+          data: {
+            jwId: 1,
+            code: "CM1",
+            nameCn: "独立社区课程",
+            nameEn: "Independent community course",
+          },
+        });
+        const teacher = await db.teacher.create({
+          data: {
+            jwId: -1,
+            nameCn: "社区教师",
+            nameEn: "Community teacher",
+          },
+        });
+        return db.section.create({
+          data: {
+            jwId: 1,
+            code: "CM1.01",
+            courseId: course.id,
+            semesterId: semester.id,
+            teachers: { connect: { id: teacher.id } },
+          },
+        });
+      },
+    );
+    // One owner drains comments and uploads, including their response observer,
+    // before closing the page and disposing the private Worker.
+    await withSettledPageWrites(
+      page,
+      (url) =>
+        url.pathname === "/api/community/comments" ||
+        url.pathname.startsWith("/api/community/comments/") ||
+        /^\/api\/workspace\/uploads(?:\/(?:object|complete))?$/.test(
+          url.pathname,
+        ),
+      () => use({ section }),
+      async (response, request) => {
+        const path = new URL(request.url()).pathname;
+        if (!path.startsWith("/api/workspace/uploads")) return;
+        // Observe every persisted upload phase before the browser can start
+        // the next phase. Teardown awaits this observer too.
+        upload.steps.push({
+          path,
+          status: response.status(),
+          state: await upload.observe(),
+        });
+      },
+    );
+  },
+  upload: async ({ account, isolatedWorker, uploadBucket: bucket }, use) => {
+    const db = isolatedWorker.database.owner;
+    const prefix = `uploads/${account.id}/`;
     const observe = async (): Promise<UploadSnapshot> => {
-      const data = await withE2ePrisma(async (db) => ({
+      const data = {
         uploads: await db.upload.findMany({ where: { userId: account.id } }),
         pending: await db.uploadPending.findMany({
           where: { userId: account.id },
@@ -74,71 +106,32 @@ export const test = combined.extend<{
         attachments: await db.commentAttachment.findMany({
           where: { upload: { userId: account.id } },
         }),
-      }));
-      const objects = [];
-      for (const key of await objectKeys()) {
-        const object = await bucket.get(key);
-        if (!object)
-          throw new Error(`Owned object ${key} disappeared during observation`);
-        objects.push({ key, body: Array.from(object.body) });
-      }
+      };
+      const objects: UploadSnapshot["objects"] = [];
+      let cursor: string | undefined;
+      do {
+        const result = await bucket.list({
+          prefix,
+          ...(cursor ? { cursor } : {}),
+        });
+        for (const { key } of result.objects) {
+          const object = await bucket.get(key);
+          if (!object)
+            throw new Error(
+              `Owned object ${key} disappeared during observation`,
+            );
+          objects.push({ key, body: Array.from(object.body) });
+        }
+        cursor = result.truncated ? result.cursor : undefined;
+      } while (cursor);
       return { ...data, objects };
     };
-    const cleanup = async () => {
-      const results: PromiseSettledResult<unknown>[] = await Promise.allSettled(
-        page
-          .context()
-          .pages()
-          .map((openPage) => openPage.close()),
-      );
-      results.push(...(await Promise.allSettled([page.context().close()])));
-      results.push(
-        ...(await Promise.allSettled([
-          (async () => {
-            await Promise.all(
-              (await objectKeys()).map((key) => bucket.delete(key)),
-            );
-          })(),
-          withE2ePrisma((db) =>
-            db.$transaction([
-              db.uploadPending.deleteMany({ where: { userId: account.id } }),
-              db.upload.deleteMany({ where: { userId: account.id } }),
-            ]),
-          ),
-        ])),
-      );
-      const errors = results.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
-      if (errors.length)
-        throw new AggregateError(errors, "Owned comment upload cleanup failed");
-    };
-    const failures: unknown[] = [];
-    try {
-      await withSettledPageWrites(
-        page,
-        /\/api\/workspace\/uploads(?:\/(?:object|complete))?(?:\?|$)/,
-        () => use({ prefix, steps, observe }),
-        async (response, request) => {
-          // Observe every persisted upload phase before the browser can start
-          // the next phase. The shared lifecycle drains this observer too.
-          steps.push({
-            path: new URL(request.url()).pathname,
-            status: response.status(),
-            state: await observe(),
-          });
-        },
-      );
-    } catch (error) {
-      failures.push(error);
-    }
-    try {
-      await cleanup();
-    } catch (error) {
-      failures.push(error);
-    }
-    if (failures.length === 1) throw failures[0];
-    if (failures.length)
-      throw new AggregateError(failures, "Comment upload fixture failed");
+    await use({ prefix, steps: [], observe });
+    // The private Worker owns all rows, deferred writes, and storage. Stopping
+    // it isolates those effects; it does not prove queued consumers completed.
   },
 });
+
+export function storedComment(db: TestPrismaClient, id: string) {
+  return db.comment.findUnique({ where: { id }, include: { reactions: true } });
+}
