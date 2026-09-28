@@ -3,6 +3,34 @@ import { withUserDbContext } from "@/lib/db/prisma";
 import { createDeferred } from "../../shared/deferred";
 import { isolatedMcpTest } from "./_harness/isolated-context";
 
+isolatedMcpTest(
+  "MCP session disposal rejects acquisition after delayed actor creation",
+  async ({ mcpSessions, isolatedDatabase, expect }) => {
+    const created = createDeferred();
+    const release = createDeferred();
+    const lateActor = (async () => {
+      const user = await isolatedDatabase.owner.user.create({
+        data: { id: "late-mcp-user", email: "late-mcp@example.test" },
+      });
+      created.resolve();
+      await release.promise;
+      const session = mcpSessions.own(user.id);
+      await session.initialize();
+    })();
+    void lateActor.catch(() => undefined);
+    try {
+      await created.promise;
+      await mcpSessions.close();
+      release.resolve();
+      await expect(lateActor).rejects.toThrow("sessions are closed");
+      expect(() => mcpSessions.ownAnonymous()).toThrow("sessions are closed");
+    } finally {
+      release.resolve();
+      await lateActor.catch(() => undefined);
+    }
+  },
+);
+
 for (const authenticated of [true, false]) {
   isolatedMcpTest(
     `MCP ${authenticated ? "authenticated" : "anonymous"} close waits for the server's delayed database write`,

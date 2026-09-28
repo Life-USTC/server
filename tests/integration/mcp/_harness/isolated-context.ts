@@ -13,6 +13,7 @@ type Sessions = {
     scopes?: readonly string[],
   ): ReturnType<typeof ownMcpHarness>;
   ownAnonymous(): ReturnType<typeof ownAnonymousMcpHarness>;
+  close(): Promise<void>;
 };
 
 export type PrivateMcpActor = {
@@ -53,19 +54,27 @@ export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   },
   mcpSessions: async ({ mcpRuntime }, use) => {
     const clients: McpHarness[] = [];
+    let closed = false;
+    function requireOpen() {
+      if (closed) throw new Error("Private MCP sessions are closed");
+    }
     const sessions: Sessions = {
       own(userId, scopes) {
+        requireOpen();
         const owned = ownMcpHarness(userId, scopes, mcpRuntime);
         clients.push(owned.client);
         return owned;
       },
       ownAnonymous() {
+        requireOpen();
         const owned = ownAnonymousMcpHarness(mcpRuntime);
         clients.push(owned.client);
         return owned;
       },
+      close: closeSessions,
     };
     async function closeSessions() {
+      closed = true;
       const results = await Promise.allSettled(
         clients.map((client) => client.close()),
       );
