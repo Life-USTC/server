@@ -1,36 +1,21 @@
-import { expect, test } from "@playwright/test";
-import {
-  createPublicationFixture,
-  deletePublicationFixture,
-  type PublicationFixture,
-} from "../../../utils/e2e-db";
+import { expect } from "@playwright/test";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
+import { test } from "../../../utils/publication-fixture";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
-
-test.describe.configure({ mode: "serial" });
-
-let fixture: PublicationFixture;
-
-test.beforeAll(async () => {
-  fixture = await createPublicationFixture(
-    `news-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
-  );
-});
-
-test.afterAll(async () => {
-  await deletePublicationFixture(fixture);
-});
 
 test.describe("/news 新闻与通知预览", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/news", testInfo });
   });
 
-  test("支持来源多选筛选并明确显示新闻类型", async ({ page }, testInfo) => {
+  test("支持来源多选筛选并明确显示新闻类型", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(
       page,
       `/news?source=${encodeURIComponent(fixture.sourceId)}`,
@@ -121,7 +106,10 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeVisible();
   });
 
-  test("高级筛选应用当前搜索草稿并重置页码", async ({ page }, testInfo) => {
+  test("高级筛选应用当前搜索草稿并重置页码", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(
       page,
       `/news?source=${encodeURIComponent(fixture.sourceId)}&page=2`,
@@ -151,7 +139,10 @@ test.describe("/news 新闻与通知预览", () => {
     ).toHaveValue("publication");
   });
 
-  test("浏览器返回关闭筛选并恢复网址中的已应用条件", async ({ page }) => {
+  test("浏览器返回关闭筛选并恢复网址中的已应用条件", async ({
+    page,
+    publication: fixture,
+  }) => {
     await gotoAndWaitForReady(
       page,
       `/news?source=${encodeURIComponent(fixture.sourceId)}`,
@@ -191,7 +182,10 @@ test.describe("/news 新闻与通知预览", () => {
     ).not.toBeChecked();
   });
 
-  test("支持按组织层级聚合筛选", async ({ page }, testInfo) => {
+  test("支持按组织层级聚合筛选", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/news?organizationLevel=office", {
       testInfo,
       screenshotLabel: "news-organization-level-filter",
@@ -228,7 +222,10 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeVisible();
   });
 
-  test("分页使用键盘链接导航并保留筛选条件", async ({ page }, testInfo) => {
+  test("分页使用键盘链接导航并保留筛选条件", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
     await gotoAndWaitForReady(page, `/news?${sourceQuery}`, {
       testInfo,
@@ -281,6 +278,7 @@ test.describe("/news 新闻与通知预览", () => {
 
   test("从详情返回保留筛选和分页，可逐项移除筛选", async ({
     page,
+    publication: fixture,
   }, testInfo) => {
     const listHref = `/news?type=news&source=${encodeURIComponent(fixture.sourceId)}&page=2`;
     await gotoAndWaitForReady(page, listHref, { testInfo });
@@ -319,7 +317,7 @@ test.describe("/news 新闻与通知预览", () => {
     ).toBeChecked();
   });
 
-  test("ui.list-table-7", async ({ page }) => {
+  test("ui.list-table-7", async ({ page, publication: fixture }) => {
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await gotoAndWaitForReady(
@@ -368,6 +366,7 @@ test.describe("/news 新闻与通知预览", () => {
 
   test("移动端默认首屏能看到文章且长摘要不撑宽页面", async ({
     page,
+    publication: fixture,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
@@ -386,7 +385,10 @@ test.describe("/news 新闻与通知预览", () => {
     await expectNoPageHorizontalOverflow(page);
   });
 
-  test("越界页重定向到保留筛选条件的最后一页", async ({ page }, testInfo) => {
+  test("越界页重定向到保留筛选条件的最后一页", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
     await gotoAndWaitForReady(page, `/news?${sourceQuery}&page=9999`, {
       testInfo,
@@ -404,7 +406,10 @@ test.describe("/news 新闻与通知预览", () => {
     ).toHaveAttribute("href", `/news?${sourceQuery}`);
   });
 
-  test("详情页显示正文和来源链接", async ({ page }, testInfo) => {
+  test("详情页显示正文和来源链接", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
       testInfo,
       screenshotLabel: "news-detail",
@@ -461,7 +466,10 @@ test.describe("/news 新闻与通知预览", () => {
     await captureStepScreenshot(page, testInfo, "news-inline-markdown");
   });
 
-  test("本站图片接口读取缓存并支持条件请求", async ({ request }) => {
+  test("本站图片接口读取缓存并支持条件请求", async ({
+    request,
+    publication: fixture,
+  }) => {
     const response = await request.get(fixture.imageUrl);
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe("image/png");
@@ -483,7 +491,10 @@ test.describe("/news 新闻与通知预览", () => {
     );
   });
 
-  test("移动端新闻详情保持正文可读且无横向溢出", async ({ page }, testInfo) => {
+  test("移动端新闻详情保持正文可读且无横向溢出", async ({
+    page,
+    publication: fixture,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, `/news/${fixture.id}`, {
       testInfo,
