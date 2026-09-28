@@ -93,12 +93,12 @@ test("cases.content-security.upload-attachment-download-1", async ({
           "/preview_matches_download",
           preview.status() === response.status(),
         );
-        if (preview.status() === 200)
-          contract.equal(
-            "/authorized_bytes_preserved",
-            (await preview.text()) === contents,
+        if (preview.status() === 200) {
+          expect(preview.headers()["content-type"]).toContain("text/html");
+          expect(await preview.text()).toContain(
+            `href="${new URL(url, preview.url()).href}"`,
           );
-        else
+        } else
           contract.equal(
             "/denied_responses_hide_bytes",
             !(await preview.text()).includes(contents),

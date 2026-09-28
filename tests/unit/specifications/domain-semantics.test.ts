@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 import { validateDomainExpectation } from "../../../scripts/specifications/domain-semantics";
@@ -64,14 +66,30 @@ describe("domain expectation references", () => {
         {
           ...window,
           operation: {
-            module:
-              "../server/src/features/young/server/young-notification-state.ts",
+            module: "README.md",
             export: operation.export,
           },
         },
         { root },
       ).bindingPaths,
     ).toEqual([]);
+  });
+  it("rejects an existing source file outside the repository", () => {
+    const directory = mkdtempSync(join(tmpdir(), "spec-source-boundary-"));
+    try {
+      const module = join(directory, "source.ts");
+      writeFileSync(module, `export function ${operation.export}() {}`);
+      const result = validateDomainExpectation(
+        { ...window, operation: { module, export: operation.export } },
+        { root },
+      );
+      expect(result.errors.join(" ")).toContain(
+        "source reference escapes repository source",
+      );
+      expect(result.bindingPaths).toEqual([]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
   it("requires OpenAPI and resolves nested projection fields without consuming them", () => {
     expect(
