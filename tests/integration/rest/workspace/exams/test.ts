@@ -54,7 +54,7 @@ test("known exams paginate privately with section and semester context", async (
         semester: { id: section.semesterId, nameCn: expect.any(String) },
       },
     });
-    expect(body.data[0].section.semester.nameCn).not.toBe("");
+    expect(body.data[0].section.semester?.nameCn).not.toBe("");
   }
   const unrelated = await other.request.get(base);
   expect(unrelated.status()).toBe(200);
