@@ -1,210 +1,11 @@
-import { createServer, type Server } from "node:http";
-import { getRequest, setResponse } from "@sveltejs/kit/node";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import {
-  type CloudflareR2Bucket,
-  runWithCloudflareRuntimeEnv,
-} from "@/lib/adapters/cloudflare-runtime";
-import {
-  mcpDeleteRoute,
-  mcpGetRoute,
-  mcpOptionsRoute,
-  mcpPostRoute,
-} from "@/lib/api/routes/mcp";
-import { getUploadDownloadRoute } from "@/lib/api/routes/upload-download-route";
-import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
-import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
-import { createFixturePrisma } from "../shared/prisma";
+import { expect } from "vitest";
+import { mcpPostRoute } from "@/lib/api/routes/mcp";
+import { DEV_SEED_ANCHOR } from "../fixtures/dev-seed";
+import { createCatalogContractFixture } from "../shared/catalog-contract-fixture";
+import { call, mcpHttpTest as it, payload } from "../shared/mcp-http-fixture";
 
-const db = createFixturePrisma();
-const marker = crypto.randomUUID();
-const userId = `mcp-http-${marker}`;
-const clientId = `mcp-http-client-${marker}`;
-const scopes = [
-  "workspace.todo:read",
-  "workspace.todo:write",
-  "account.profile:read",
-  "workspace.upload:write",
-  "workspace.upload:read",
-  "workspace.overview:read",
-  "workspace.schedule:read",
-  "workspace.calendar:read",
-];
-let server: Server;
-let origin: string;
-let grantId: string;
-let token: string;
-let publicJwksRequests = 0;
-const objects = new Map<string, Uint8Array>();
-const bucket: CloudflareR2Bucket = {
-  async head(key) {
-    const bytes = objects.get(key);
-    return bytes
-      ? { size: bytes.byteLength, httpMetadata: { contentType: "text/plain" } }
-      : null;
-  },
-  async get(key) {
-    const bytes = objects.get(key);
-    return bytes
-      ? {
-          size: bytes.byteLength,
-          body: new Response(new Uint8Array(bytes).buffer)
-            .body as ReadableStream<Uint8Array>,
-          httpMetadata: { contentType: "text/plain" },
-        }
-      : null;
-  },
-  async put(key, value) {
-    objects.set(
-      key,
-      new Uint8Array(await new Response(value as BodyInit).arrayBuffer()),
-    );
-  },
-  async delete(key) {
-    objects.delete(key);
-  },
-};
-function runtime<T>(work: () => T) {
-  return runWithCloudflareRuntimeEnv(
-    {
-      HYPERDRIVE: { connectionString: process.env.DATABASE_URL ?? "" },
-      HYPERDRIVE_AUTH: {
-        connectionString: process.env.AUTH_DATABASE_URL ?? "",
-      },
-      R2_UPLOADS: bucket,
-      USER_WRITE_RATE_LIMITER: { limit: async () => ({ success: true }) },
-    },
-    work,
-  );
-}
-const call = (name: string, args: Record<string, unknown> = {}) => ({
-  jsonrpc: "2.0",
-  id: 1,
-  method: "tools/call",
-  params: { name, arguments: args },
-});
-async function post(body: unknown, authorization?: string) {
-  return fetch(`${origin}/api/mcp`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      accept: "application/json, text/event-stream",
-      ...(authorization ? { authorization } : {}),
-    },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
-}
-async function payload(response: Response) {
-  const text = await response.text();
-  if (response.headers.get("content-type")?.includes("text/event-stream")) {
-    const data = text
-      .split("\n")
-      .filter((line) => line.startsWith("data: "))
-      .at(-1)
-      ?.slice(6);
-    if (!data) throw new Error(`Missing MCP SSE data: ${text}`);
-    return JSON.parse(data);
-  }
-  return JSON.parse(text);
-}
-async function sign(
-  input: {
-    resource?: string;
-    scopes?: string[];
-    expired?: boolean;
-    grantId?: string;
-  } = {},
-) {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const signed = await signResourceBoundOAuthAccessToken({
-    userId,
-    clientId,
-    grantId: input.grantId ?? grantId,
-    scopes: input.scopes ?? scopes,
-    resources: [input.resource ?? `${origin}/api/mcp`],
-    issuedAt: input.expired ? issuedAt - 600 : issuedAt,
-    expiresAt: input.expired ? issuedAt - 300 : issuedAt + 300,
-  });
-  if (!signed) throw new Error("Expected signed MCP token");
-  return signed;
-}
-beforeAll(async () => {
-  server = createServer(async (incoming, outgoing) => {
-    try {
-      const request = await getRequest({ request: incoming, base: origin });
-      let response: Response;
-      if (new URL(request.url).pathname === "/api/auth/jwks") {
-        publicJwksRequests++;
-        const { getBetterAuthInstance } = await import("@/lib/auth/core");
-        response = await getBetterAuthInstance().handler(request);
-      } else if (
-        new URL(request.url).pathname === "/api/workspace/uploads/object"
-      ) {
-        response = await runtime(() => putUploadObjectRoute(request));
-      } else if (
-        /^\/api\/workspace\/uploads\/[^/]+\/download$/.test(
-          new URL(request.url).pathname,
-        )
-      ) {
-        response = await runtime(() =>
-          getUploadDownloadRoute(request, {
-            id: new URL(request.url).pathname.split("/")[4],
-          }),
-        );
-      } else {
-        response = await runtime(() =>
-          (
-            ({
-              POST: mcpPostRoute,
-              GET: mcpGetRoute,
-              DELETE: mcpDeleteRoute,
-              OPTIONS: mcpOptionsRoute,
-            })[request.method] ?? (() => new Response(null, { status: 405 }))
-          )(request),
-        );
-      }
-      await setResponse(outgoing, response);
-    } catch (error) {
-      outgoing.statusCode = 500;
-      outgoing.end(String(error));
-    }
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("Missing HTTP address");
-  origin = `http://127.0.0.1:${address.port}`;
-  vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-  await db.user.create({
-    data: { id: userId, email: `${userId}@example.test` },
-  });
-  const client = await db.oAuthClient.create({
-    data: {
-      clientId,
-      name: "MCP HTTP contract",
-      redirectUris: ["https://example.test/callback"],
-      consents: { create: { userId, scopes } },
-    },
-    select: { consents: { select: { grantId: true } } },
-  });
-  grantId = client.consents[0].grantId;
-  token = await sign();
-});
-afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-      server.closeAllConnections();
-    });
-  await db.oAuthClient.deleteMany({ where: { clientId } });
-  await db.user.deleteMany({ where: { id: userId } });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
-});
-
-it("mcp.public-catalog-access", async () => {
+it("mcp.public-catalog-access", async ({ http }) => {
+  const { post } = http;
   const publicTools = [
     "catalog_section_calendar_feed_get",
     "catalog_link_list",
@@ -350,7 +151,8 @@ it("mcp.public-catalog-access", async () => {
   expect(failure.error.code).toBe(-32000);
 });
 
-it("mcp.invalid-credentials-no-downgrade", async () => {
+it("mcp.invalid-credentials-no-downgrade", async ({ http }) => {
+  const { post } = http;
   for (const credential of [
     "Bearer invalid",
     "Basic invalid",
@@ -362,23 +164,20 @@ it("mcp.invalid-credentials-no-downgrade", async () => {
   }
 });
 
-it("mcp.resource-bound-access-token", async () => {
+it("mcp.resource-bound-access-token", async ({ http }) => {
+  const { origin, token, sign, post } = http;
+  expect(http.publicJwksRequests).toBe(0);
   const valid = await post(call("workspace_todo_list"), `Bearer ${token}`);
   expect(valid.status).toBe(200);
   expect((await payload(valid)).result.structuredContent).toMatchObject({
     success: true,
     todos: [],
   });
-  expect(publicJwksRequests).toBeGreaterThan(0);
-  const { getBetterAuthInstance } = await import("@/lib/auth/core");
+  expect(http.publicJwksRequests).toBeGreaterThan(0);
   const { decodeJwt } = await import("jose");
-  const signJwt = getBetterAuthInstance().api.signJWT as (input: {
-    body: { payload: Record<string, unknown> };
-  }) => Promise<{ token: string }>;
-  const wrongIssuer = await signJwt({
-    body: {
-      payload: { ...decodeJwt(token), iss: "https://wrong.example/api/auth" },
-    },
+  const wrongIssuer = await http.signJwt({
+    ...decodeJwt(token),
+    iss: "https://wrong.example/api/auth",
   });
   for (const invalid of [
     wrongIssuer.token,
@@ -397,7 +196,8 @@ it("mcp.resource-bound-access-token", async () => {
   }
 });
 
-it("mcp.bootstrap-auth-challenge", async () => {
+it("mcp.bootstrap-auth-challenge", async ({ http }) => {
+  const { post } = http;
   for (const credential of [undefined, "Bearer invalid"]) {
     const response = await post(call("workspace_todo_list"), credential);
     expect(response.status).toBe(401);
@@ -411,7 +211,8 @@ it("mcp.bootstrap-auth-challenge", async () => {
   }
 });
 
-it("mcp.http-methods", async () => {
+it("mcp.http-methods", async ({ http }) => {
+  const { origin, token, fetch } = http;
   const get = await fetch(`${origin}/api/mcp`);
   expect(get.status).toBe(405);
   expect(get.headers.get("allow")).toBe("POST, DELETE, OPTIONS");
@@ -438,7 +239,8 @@ it("mcp.http-methods", async () => {
   }
 });
 
-it("mcp.complete-batch-scope-enforcement", async () => {
+it("mcp.complete-batch-scope-enforcement", async ({ http }) => {
+  const { db, userId, sign, post } = http;
   const readToken = await sign({ scopes: ["workspace.todo:read"] });
   const batch = [
     call("workspace_todo_list"),
@@ -459,7 +261,8 @@ it("mcp.complete-batch-scope-enforcement", async () => {
   expect((await payload(allowed)).result.structuredContent.success).toBe(true);
 });
 
-it("mcp.request-body-limit", async () => {
+it("mcp.request-body-limit", async ({ http }) => {
+  const { origin, token, post, run } = http;
   const prefix = JSON.stringify({
     jsonrpc: "2.0",
     id: 1,
@@ -492,14 +295,15 @@ it("mcp.request-body-limit", async () => {
     body: stream,
     duplex: "half",
   };
-  const streamed = await mcpPostRoute(
-    new Request(`${origin}/api/mcp`, streamedRequest),
+  const streamed = await run(() =>
+    mcpPostRoute(new Request(`${origin}/api/mcp`, streamedRequest)),
   );
   expect(streamed.status).toBe(413);
   expect((await payload(streamed)).error.code).toBe(-32000);
 });
 
-it("mcp.request-batch-limit", async () => {
+it("mcp.request-batch-limit", async ({ http }) => {
+  const { post } = http;
   for (const [count, status, code] of [
     [0, 400, -32600],
     [51, 413, -32000],
@@ -542,7 +346,8 @@ it("mcp.request-batch-limit", async () => {
   );
 });
 
-it("mcp.catalog-search-length", async () => {
+it("mcp.catalog-search-length", async ({ http }) => {
+  const { post } = http;
   for (const name of [
     "catalog_course_search",
     "catalog_section_search",
@@ -568,7 +373,9 @@ it("mcp.catalog-search-length", async () => {
   }
 });
 
-it("mcp.catalog-pagination", async () => {
+it("mcp.catalog-pagination", async ({ http }) => {
+  const { db, post } = http;
+  await createCatalogContractFixture(db);
   for (const name of [
     "catalog_semester_list",
     "catalog_course_search",
@@ -605,12 +412,18 @@ it("mcp.catalog-pagination", async () => {
         expect(result.result.structuredContent.data.length).toBeLessThanOrEqual(
           args.limit ?? 20,
         );
+        if ((args.page ?? 1) === 1)
+          expect(
+            result.result.structuredContent.data.length,
+            name,
+          ).toBeGreaterThan(0);
       }
     }
   }
 });
 
-it("mcp.graphql-authorization", async () => {
+it("mcp.graphql-authorization", async ({ http }) => {
+  const { userId, sign, post } = http;
   const credential = await sign({ scopes: ["workspace.todo:read"] });
   for (const args of [
     { operationId: "account.profile.get.v1" },
@@ -638,7 +451,8 @@ it("mcp.graphql-authorization", async () => {
   }
 });
 
-it("mcp.upload-put-resource-isolation", async () => {
+it("mcp.upload-put-resource-isolation", async ({ http }) => {
+  const { db, userId, origin, sign, fetch } = http;
   const credential = await sign({ scopes: ["workspace.upload:write"] });
   const key = `uploads/${userId}/${crypto.randomUUID()}`;
   const pending = await db.uploadPending.create({
@@ -652,34 +466,28 @@ it("mcp.upload-put-resource-isolation", async () => {
       phase: "reserved",
     },
   });
-  try {
-    const response = await fetch(
-      `${origin}/api/workspace/uploads/object?key=${encodeURIComponent(key)}`,
-      {
-        method: "PUT",
-        headers: {
-          authorization: `Bearer ${credential}`,
-          "content-type": "text/plain",
-        },
-        body: "x",
+  const response = await fetch(
+    `${origin}/api/workspace/uploads/object?key=${encodeURIComponent(key)}`,
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${credential}`,
+        "content-type": "text/plain",
       },
-    );
-    expect(response.status).toBe(401);
-    await response.text();
-    expect(
-      await db.uploadPending.findUnique({ where: { id: pending.id } }),
-    ).toEqual(pending);
-    expect(await db.upload.findUnique({ where: { key } })).toBeNull();
-  } finally {
-    await db.uploadPending.deleteMany({ where: { id: pending.id } });
-  }
+      body: "x",
+    },
+  );
+  expect(response.status).toBe(401);
+  await response.text();
+  expect(
+    await db.uploadPending.findUnique({ where: { id: pending.id } }),
+  ).toEqual(pending);
+  expect(await db.upload.findUnique({ where: { key } })).toBeNull();
 });
 
-it("mcp.time-override", { timeout: 30_000 }, async () => {
-  const section = await db.section.findUniqueOrThrow({
-    where: { jwId: DEV_SEED.section.jwId },
-    select: { id: true },
-  });
+it("mcp.time-override", { timeout: 30_000 }, async ({ http }) => {
+  const { db, userId, token, sign, post } = http;
+  const section = await http.arrangeClock();
   await db.userSectionSubscription.create({
     data: { userId, sectionId: section.id },
   });
@@ -702,8 +510,8 @@ it("mcp.time-override", { timeout: 30_000 }, async () => {
     [
       "catalog_bus_departure_next",
       {
-        originCampusId: DEV_SEED.bus.originCampusId,
-        destinationCampusId: DEV_SEED.bus.destinationCampusId,
+        originCampusId: 1,
+        destinationCampusId: 2,
       },
     ],
   ];
@@ -718,89 +526,85 @@ it("mcp.time-override", { timeout: 30_000 }, async () => {
     );
     expect(response.status, name).toBe(200);
     const body = await payload(response);
-    expect(body.result.isError, name).not.toBe(true);
+    expect(body.result.isError, `${name}: ${JSON.stringify(body)}`).not.toBe(
+      true,
+    );
     expect(body.result.structuredContent.success, name).toBe(true);
     return body.result.structuredContent;
   }
-  try {
-    const before = Object.fromEntries(
-      await Promise.all(
-        tools.map(async ([name, args]) => [
-          name,
-          await invoke(name, args, DEV_SEED_ANCHOR.recommendedAtTime),
-        ]),
-      ),
-    );
-    const after = Object.fromEntries(
-      await Promise.all(
-        tools.map(async ([name, args]) => [
-          name,
-          await invoke(name, args, "2099-01-01T08:00:00+08:00"),
-        ]),
-      ),
-    );
-    for (const name of ["workspace_snapshot_get", "workspace_schedule_next"]) {
-      expect(before[name].nextClass.at).toMatch(
-        new RegExp(`^${DEV_SEED_ANCHOR.date}`),
-      );
-      expect(after[name].nextClass).toBeNull();
-    }
-    expect(before.workspace_calendar_timeline_get.range.from).toBe(
-      `${DEV_SEED_ANCHOR.date}T00:00:00+08:00`,
-    );
-    expect(after.workspace_calendar_timeline_get.range.from).toBe(
-      "2099-01-01T00:00:00+08:00",
-    );
-    expect(before.workspace_deadline_list.deadlines).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: "todo_due",
-          at: dueAt,
-          payload: expect.objectContaining({ id: todo.id }),
-        }),
+  const before = Object.fromEntries(
+    await Promise.all(
+      tools.map(async ([name, args]) => [
+        name,
+        await invoke(name, args, DEV_SEED_ANCHOR.recommendedAtTime),
       ]),
+    ),
+  );
+  const after = Object.fromEntries(
+    await Promise.all(
+      tools.map(async ([name, args]) => [
+        name,
+        await invoke(name, args, "2099-01-01T08:00:00+08:00"),
+      ]),
+    ),
+  );
+  for (const name of ["workspace_snapshot_get", "workspace_schedule_next"]) {
+    expect(before[name].nextClass.at).toMatch(
+      new RegExp(`^${DEV_SEED_ANCHOR.date}`),
     );
-    expect(after.workspace_deadline_list.deadlines).toEqual([]);
-    expect(
-      before.workspace_overview_get.overview.todaySchedulesCount,
-    ).toBeGreaterThan(0);
-    expect(after.workspace_overview_get.overview.todaySchedulesCount).toBe(0);
-    expect(
-      new Date(before.catalog_bus_departure_next.atTime).toISOString(),
-    ).toBe(new Date(DEV_SEED_ANCHOR.recommendedAtTime).toISOString());
-    expect(
-      new Date(after.catalog_bus_departure_next.atTime).toISOString(),
-    ).toBe("2099-01-01T00:00:00.000Z");
-    for (const [name, args] of tools) {
-      for (const atTime of [
-        DEV_SEED_ANCHOR.recommendedAtTime,
-        "2099-01-01T08:00:00+08:00",
-      ]) {
-        const rejected = await post(
+    expect(after[name].nextClass).toBeNull();
+  }
+  expect(before.workspace_calendar_timeline_get.range.from).toBe(
+    `${DEV_SEED_ANCHOR.date}T00:00:00+08:00`,
+  );
+  expect(after.workspace_calendar_timeline_get.range.from).toBe(
+    "2099-01-01T00:00:00+08:00",
+  );
+  expect(before.workspace_deadline_list.deadlines).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: "todo_due",
+        at: dueAt,
+        payload: expect.objectContaining({ id: todo.id }),
+      }),
+    ]),
+  );
+  expect(after.workspace_deadline_list.deadlines).toEqual([]);
+  expect(
+    before.workspace_overview_get.overview.todaySchedulesCount,
+  ).toBeGreaterThan(0);
+  expect(after.workspace_overview_get.overview.todaySchedulesCount).toBe(0);
+  expect(new Date(before.catalog_bus_departure_next.atTime).toISOString()).toBe(
+    new Date(DEV_SEED_ANCHOR.recommendedAtTime).toISOString(),
+  );
+  expect(new Date(after.catalog_bus_departure_next.atTime).toISOString()).toBe(
+    "2099-01-01T00:00:00.000Z",
+  );
+  for (const [name, args] of tools) {
+    for (const atTime of [
+      DEV_SEED_ANCHOR.recommendedAtTime,
+      "2099-01-01T08:00:00+08:00",
+    ]) {
+      const rejected = await post(
+        call(name, { ...args, atTime }),
+        `Bearer ${expired}`,
+      );
+      expect(rejected.status, name).toBe(401);
+      expect((await payload(rejected)).result).toBeUndefined();
+      if (name.startsWith("workspace_")) {
+        const denied = await post(
           call(name, { ...args, atTime }),
-          `Bearer ${expired}`,
+          `Bearer ${limited}`,
         );
-        expect(rejected.status, name).toBe(401);
-        expect((await payload(rejected)).result).toBeUndefined();
-        if (name.startsWith("workspace_")) {
-          const denied = await post(
-            call(name, { ...args, atTime }),
-            `Bearer ${limited}`,
-          );
-          expect(denied.status, name).toBe(403);
-          expect((await payload(denied)).result).toBeUndefined();
-        }
+        expect(denied.status, name).toBe(403);
+        expect((await payload(denied)).result).toBeUndefined();
       }
     }
-  } finally {
-    await db.todo.delete({ where: { id: todo.id } });
-    await db.userSectionSubscription.delete({
-      where: { userId_sectionId: { userId, sectionId: section.id } },
-    });
   }
 });
 
-it("oauth.transport-cors", async () => {
+it("oauth.transport-cors", async ({ http }) => {
+  const { origin, token, fetch } = http;
   const preflight = await fetch(`${origin}/api/mcp`, {
     method: "OPTIONS",
     headers: {
@@ -813,8 +617,8 @@ it("oauth.transport-cors", async () => {
   expect(preflight.status).toBe(204);
   expect(preflight.headers.get("access-control-allow-origin")).toBe(origin);
   const allowed = preflight.headers
-    .get("access-control-allow-headers")!
-    .toLowerCase()
+    .get("access-control-allow-headers")
+    ?.toLowerCase()
     .split(/,\s*/);
   expect(allowed).toEqual(
     expect.arrayContaining([
@@ -851,69 +655,63 @@ it("oauth.transport-cors", async () => {
   }
 });
 
-it("oauth.transport-origin-validation", async () => {
-  const priorCanonical = process.env.APP_CANONICAL_ORIGIN;
+it("oauth.transport-origin-validation", async ({ http }) => {
+  const { origin, fetch } = http;
   const canonical = "https://canonical.example";
-  vi.stubEnv("APP_CANONICAL_ORIGIN", canonical);
-  try {
-    for (const requestOrigin of [
-      undefined,
-      canonical,
-      origin,
-      origin.replace("127.0.0.1", "localhost"),
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://evil.example",
-      "null",
-      "invalid-origin",
-    ]) {
-      const trusted =
-        requestOrigin === undefined ||
-        requestOrigin === canonical ||
-        requestOrigin.startsWith("http://localhost:") ||
-        requestOrigin.startsWith("http://127.0.0.1:");
-      for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
-        const response = await fetch(`${origin}/api/mcp`, {
-          method,
-          headers: {
-            ...(requestOrigin ? { Origin: requestOrigin } : {}),
-            "content-type": "application/json",
-            Accept: "application/json, text/event-stream",
-          },
-          ...(method === "POST"
-            ? { body: JSON.stringify(call("catalog_semester_list")) }
-            : {}),
-        });
-        expect(response.status, `${method}:${requestOrigin}`).toBe(
-          trusted
-            ? method === "OPTIONS"
-              ? 204
-              : method === "GET"
-                ? 405
-                : 200
-            : 403,
-        );
-        if (!trusted) {
-          expect(await response.json()).toEqual({ error: "invalid_origin" });
-          expect(
-            response.headers.get("access-control-allow-origin"),
-          ).toBeNull();
-        } else await response.text();
-      }
+  http.setOrigins({ canonical });
+  for (const requestOrigin of [
+    undefined,
+    canonical,
+    origin,
+    origin.replace("127.0.0.1", "localhost"),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://evil.example",
+    "null",
+    "invalid-origin",
+  ]) {
+    const trusted =
+      requestOrigin === undefined ||
+      requestOrigin === canonical ||
+      requestOrigin.startsWith("http://localhost:") ||
+      requestOrigin.startsWith("http://127.0.0.1:");
+    for (const method of ["POST", "OPTIONS", "GET", "DELETE"]) {
+      const response = await fetch(`${origin}/api/mcp`, {
+        method,
+        headers: {
+          ...(requestOrigin ? { Origin: requestOrigin } : {}),
+          "content-type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        ...(method === "POST"
+          ? { body: JSON.stringify(call("catalog_semester_list")) }
+          : {}),
+      });
+      expect(response.status, `${method}:${requestOrigin}`).toBe(
+        trusted
+          ? method === "OPTIONS"
+            ? 204
+            : method === "GET"
+              ? 405
+              : 200
+          : 403,
+      );
+      if (!trusted) {
+        expect(await response.json()).toEqual({ error: "invalid_origin" });
+        expect(response.headers.get("access-control-allow-origin")).toBeNull();
+      } else await response.text();
     }
-    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview.example");
-    const preview = await fetch(`${origin}/api/mcp`, {
-      method: "OPTIONS",
-      headers: { Origin: "https://preview.example" },
-    });
-    expect(preview.status).toBe(204);
-  } finally {
-    vi.stubEnv("APP_PUBLIC_ORIGIN", origin);
-    vi.stubEnv("APP_CANONICAL_ORIGIN", priorCanonical);
   }
+  http.setOrigins({ public: "https://preview.example", canonical });
+  const preview = await fetch(`${origin}/api/mcp`, {
+    method: "OPTIONS",
+    headers: { Origin: "https://preview.example" },
+  });
+  expect(preview.status).toBe(204);
 });
 
-it("upload.mcp-transfer-boundary", async () => {
+it("upload.mcp-transfer-boundary", async ({ http }) => {
+  const { db, userId, origin, objects, sign, post, fetch } = http;
   const credentials = await sign({
     scopes: ["workspace.upload:write", "workspace.upload:read"],
   });
@@ -940,140 +738,127 @@ it("upload.mcp-transfer-boundary", async () => {
     ).toBe(true);
     return result;
   }
-  let key: string | undefined;
-  let uploadId: string | undefined;
-  try {
-    const pendingBefore = await db.uploadPending.count({ where: { userId } });
-    for (const field of ["bytes", "file", "body"]) {
-      const denied = await operation("workspace.upload.session.create.v1", {
-        input: {
-          filename: "boundary.txt",
-          size: content.length,
-          [field]: "unaccepted-binary-input",
-        },
-      });
-      expect(denied.isError).toBe(true);
-    }
-    expect(await db.uploadPending.count({ where: { userId } })).toBe(
-      pendingBefore,
-    );
-    expect(objects.size).toBe(0);
-    const created = await operation("workspace.upload.session.create.v1", {
+  const pendingBefore = await db.uploadPending.count({ where: { userId } });
+  for (const field of ["bytes", "file", "body"]) {
+    const denied = await operation("workspace.upload.session.create.v1", {
       input: {
         filename: "boundary.txt",
-        contentType: "text/plain",
         size: content.length,
+        [field]: "unaccepted-binary-input",
       },
     });
-    expect(created.isError).not.toBe(true);
-    expect(created.structuredContent.success).toBe(true);
-    const session = created.structuredContent.data.uploadSessionCreate;
-    key = session.key;
-    expect(Object.keys(session).sort()).toEqual([
-      "key",
-      "maxFileSizeBytes",
-      "quotaBytes",
-      "url",
-      "usedBytes",
-    ]);
-    expect(new URL(session.url).origin).toBe(origin);
-    expect(new URL(session.url).pathname).toBe("/api/workspace/uploads/object");
-    expect(new URL(session.url).searchParams.get("key")).toBe(key);
-    expect(
-      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
-    ).toBe("reserved");
-    const rejectedPut = await fetch(session.url, {
-      method: "PUT",
-      headers: { authorization, "content-type": "text/plain" },
-      body: content,
-    });
-    expect(rejectedPut.status).toBe(401);
-    await rejectedPut.text();
-    expect(objects.size).toBe(0);
-    expect(
-      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
-    ).toBe("reserved");
-    const restToken = await sign({
-      resource: getOAuthRestAudienceUrls()[0],
-      scopes: ["workspace.upload:write", "workspace.upload:read"],
-    });
-    const put = await fetch(session.url, {
-      method: "PUT",
-      headers: {
-        authorization: `Bearer ${restToken}`,
-        "content-type": "text/plain",
-      },
-      body: content,
-    });
-    expect(put.status).toBe(200);
-    await put.text();
-    expect(
-      (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
-    ).toBe("uploaded");
-    const completionInput = {
-      key,
+    expect(denied.isError).toBe(true);
+  }
+  expect(await db.uploadPending.count({ where: { userId } })).toBe(
+    pendingBefore,
+  );
+  expect(objects.size).toBe(0);
+  const created = await operation("workspace.upload.session.create.v1", {
+    input: {
       filename: "boundary.txt",
       contentType: "text/plain",
-    };
-    for (const field of ["bytes", "file", "body"])
-      expect(
-        (
-          await operation("workspace.upload.complete.v1", {
-            input: { ...completionInput, [field]: "unaccepted-binary-input" },
-          })
-        ).isError,
-      ).toBe(true);
-    expect(await db.upload.count({ where: { key } })).toBe(0);
-    const completed = await operation("workspace.upload.complete.v1", {
-      input: completionInput,
-    });
-    expect(completed.structuredContent.success).toBe(true);
-    const upload =
-      completed.structuredContent.data.uploadSessionComplete.upload;
-    uploadId = upload.id;
-    expect(upload.size).toBe(content.length);
-    expect(Object.keys(upload).sort()).toEqual([
-      "createdAt",
-      "filename",
-      "id",
-      "key",
-      "size",
-    ]);
-    const renamed = await operation("workspace.upload.rename.v1", {
-      id: uploadId,
-      filename: "renamed.txt",
-    });
-    expect(renamed.structuredContent.data.uploadRename.upload.filename).toBe(
-      "renamed.txt",
-    );
-    const downloadUrl = `${origin}/api/workspace/uploads/${uploadId}/download`;
-    const deniedDownload = await fetch(downloadUrl, {
-      headers: { authorization },
-    });
-    expect(deniedDownload.status).toBe(401);
-    await deniedDownload.text();
-    const download = await fetch(downloadUrl, {
-      headers: { authorization: `Bearer ${restToken}` },
-    });
-    expect(download.status).toBe(200);
-    expect(await download.text()).toBe(content);
-    const deleted = await operation("workspace.upload.delete.v1", {
-      id: uploadId,
-    });
-    expect(deleted.structuredContent.data.uploadDelete).toMatchObject({
-      id: uploadId,
-      success: true,
-      deletedSize: content.length,
-    });
-    expect(objects.size).toBe(0);
-    expect(await db.upload.count({ where: { key } })).toBe(0);
-  } finally {
-    if (uploadId)
-      await db.auditLog.deleteMany({ where: { targetId: uploadId } });
-    if (key) {
-      await db.upload.deleteMany({ where: { key } });
-      await db.uploadPending.deleteMany({ where: { key } });
-      objects.delete(key);
-    }
-  }
+      size: content.length,
+    },
+  });
+  expect(created.isError).not.toBe(true);
+  expect(created.structuredContent.success).toBe(true);
+  const session = created.structuredContent.data.uploadSessionCreate;
+  const key: string = session.key;
+  expect(Object.keys(session).sort()).toEqual([
+    "key",
+    "maxFileSizeBytes",
+    "quotaBytes",
+    "url",
+    "usedBytes",
+  ]);
+  expect(new URL(session.url).origin).toBe(origin);
+  expect(new URL(session.url).pathname).toBe("/api/workspace/uploads/object");
+  expect(new URL(session.url).searchParams.get("key")).toBe(key);
+  expect(
+    (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+  ).toBe("reserved");
+  const rejectedPut = await fetch(session.url, {
+    method: "PUT",
+    headers: { authorization, "content-type": "text/plain" },
+    body: content,
+  });
+  expect(rejectedPut.status).toBe(401);
+  await rejectedPut.text();
+  expect(objects.size).toBe(0);
+  expect(
+    (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+  ).toBe("reserved");
+  const restToken = await sign({
+    resource: `${origin}/api/auth`,
+    scopes: ["workspace.upload:write", "workspace.upload:read"],
+  });
+  const put = await fetch(session.url, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${restToken}`,
+      "content-type": "text/plain",
+    },
+    body: content,
+  });
+  expect(put.status).toBe(200);
+  await put.text();
+  expect(
+    (await db.uploadPending.findUniqueOrThrow({ where: { key } })).phase,
+  ).toBe("uploaded");
+  const completionInput = {
+    key,
+    filename: "boundary.txt",
+    contentType: "text/plain",
+  };
+  for (const field of ["bytes", "file", "body"])
+    expect(
+      (
+        await operation("workspace.upload.complete.v1", {
+          input: { ...completionInput, [field]: "unaccepted-binary-input" },
+        })
+      ).isError,
+    ).toBe(true);
+  expect(await db.upload.count({ where: { key } })).toBe(0);
+  const completed = await operation("workspace.upload.complete.v1", {
+    input: completionInput,
+  });
+  expect(completed.structuredContent.success).toBe(true);
+  const upload = completed.structuredContent.data.uploadSessionComplete.upload;
+  const uploadId: string = upload.id;
+  expect(upload.size).toBe(content.length);
+  expect(Object.keys(upload).sort()).toEqual([
+    "createdAt",
+    "filename",
+    "id",
+    "key",
+    "size",
+  ]);
+  const renamed = await operation("workspace.upload.rename.v1", {
+    id: uploadId,
+    filename: "renamed.txt",
+  });
+  expect(renamed.structuredContent.data.uploadRename.upload.filename).toBe(
+    "renamed.txt",
+  );
+  const downloadUrl = `${origin}/api/workspace/uploads/${uploadId}/download`;
+  const deniedDownload = await fetch(downloadUrl, {
+    headers: { authorization },
+  });
+  expect(deniedDownload.status).toBe(401);
+  await deniedDownload.text();
+  const download = await fetch(downloadUrl, {
+    headers: { authorization: `Bearer ${restToken}` },
+  });
+  expect(download.status).toBe(200);
+  expect(await download.text()).toBe(content);
+  const deleted = await operation("workspace.upload.delete.v1", {
+    id: uploadId,
+  });
+  expect(deleted.structuredContent.data.uploadDelete).toMatchObject({
+    id: uploadId,
+    success: true,
+    deletedSize: content.length,
+  });
+  expect(objects.size).toBe(0);
+  expect(await db.upload.count({ where: { key } })).toBe(0);
 });
