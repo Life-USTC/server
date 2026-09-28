@@ -77,18 +77,20 @@ describe("feature operation recording", () => {
       headers: { "cache-control": "public, max-age=60", etag: "test" },
     });
     const clone = vi.spyOn(response, "clone");
-    const result = await run(() =>
-      observeHttpFeature(
+    await run(async () => {
+      const result = await observeHttpFeature(
         new Request("https://example.com/catalog/courses"),
         requestId,
         () => response,
-      ),
-    );
-    expect(result).toBe(response);
-    expect(response.bodyUsed).toBe(false);
-    expect(clone).not.toHaveBeenCalled();
-    expect(result.headers.get("cache-control")).toBe("public, max-age=60");
-    expect(await result.text()).toBe("hello");
+      );
+      // The observer preserves identity. The enclosing runtime separately owns
+      // response EOF and may wrap streams to clean up request-local clients.
+      expect(result).toBe(response);
+      expect(response.bodyUsed).toBe(false);
+      expect(clone).not.toHaveBeenCalled();
+      expect(result.headers.get("cache-control")).toBe("public, max-age=60");
+      expect(await result.text()).toBe("hello");
+    });
   });
   it("never changes successful values or thrown errors when the sink fails", async () => {
     collectFeatureEventMock.mockImplementation(() => {
@@ -282,18 +284,19 @@ it.each([
     vi.mocked(logAppEvent).mockClear();
     const response = Response.json(payload);
     const clone = vi.spyOn(response, "clone");
-    const result = await run(() =>
-      observeHttpFeature(
+    await run(async () => {
+      const result = await observeHttpFeature(
         new Request(
           "https://example.com/catalog/courses/__data.json?x-sveltekit-invalidated=01",
         ),
         requestId,
         () => response,
-      ),
-    );
-    expect(result).toBe(response);
-    expect(response.bodyUsed).toBe(false);
-    expect(clone).not.toHaveBeenCalled();
+      );
+      expect(result).toBe(response);
+      expect(response.bodyUsed).toBe(false);
+      expect(clone).not.toHaveBeenCalled();
+      expect(await result.json()).toEqual(payload);
+    });
     expect(collectFeatureEventMock).toHaveBeenCalledTimes(1);
     expect(collectFeatureEventMock.mock.calls[0]?.[0]).toMatchObject({
       outcome: "unknown",
