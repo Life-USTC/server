@@ -142,6 +142,31 @@ export async function createMcpHarness(
   userId: string,
   featureScopes: readonly string[] = MCP_TEST_SCOPES,
 ): Promise<McpHarness> {
+  return initializeMcpHarness(ownMcpHarness(userId, featureScopes));
+}
+
+async function initializeMcpHarness(owned: ReturnType<typeof ownMcpHarness>) {
+  try {
+    await owned.initialize();
+    return owned.client;
+  } catch (error) {
+    try {
+      await owned.client.close();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "MCP initialization and cleanup failed",
+      );
+    }
+    throw error;
+  }
+}
+
+/** Register client.close with the fixture before awaiting initialize. */
+export function ownMcpHarness(
+  userId: string,
+  featureScopes: readonly string[] = MCP_TEST_SCOPES,
+) {
   const authInfo = makeTestAuthInfo(userId, featureScopes);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
@@ -150,20 +175,41 @@ export async function createMcpHarness(
     authInfo,
   );
 
-  const mcpServer = createMcpServer();
-  const client = new Client({
-    name: "integration-test-harness",
-    version: "1.0.0",
-  });
+  return ownMcpTransport(
+    authenticatedClientTransport,
+    serverTransport,
+    "integration-test-harness",
+  );
+}
 
-  try {
-    await mcpServer.connect(serverTransport);
-    await client.connect(authenticatedClientTransport);
-    return createMcpHarnessClient(client, () => mcpServer.close());
-  } catch (error) {
-    await Promise.allSettled([client.close(), mcpServer.close()]);
-    throw error;
+function ownMcpTransport(
+  clientTransport: Transport,
+  serverTransport: Transport,
+  name: string,
+) {
+  const mcpServer = createMcpServer();
+  const client = new Client({ name, version: "1.0.0" });
+  const harness = createMcpHarnessClient(client, () => mcpServer.close());
+  let closed = false;
+  function requireOpen() {
+    if (closed) throw new Error("MCP fixture was closed during initialization");
   }
+  return {
+    client: {
+      ...harness,
+      close: async () => {
+        closed = true;
+        await harness.close();
+      },
+    },
+    initialize: async () => {
+      requireOpen();
+      await mcpServer.connect(serverTransport);
+      requireOpen();
+      await client.connect(clientTransport);
+      requireOpen();
+    },
+  };
 }
 
 function isTextContentItem(
@@ -244,21 +290,16 @@ function createMcpHarnessClient(
  * Tool handlers that require a user context should reject these calls.
  */
 export async function createAnonymousMcpHarness(): Promise<McpHarness> {
+  return initializeMcpHarness(ownAnonymousMcpHarness());
+}
+
+/** Anonymous transports have the same native fixture ownership lifecycle. */
+export function ownAnonymousMcpHarness() {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-
-  const mcpServer = createMcpServer();
-  const client = new Client({
-    name: "integration-test-anonymous",
-    version: "1.0.0",
-  });
-
-  try {
-    await mcpServer.connect(serverTransport);
-    await client.connect(clientTransport);
-    return createMcpHarnessClient(client, () => mcpServer.close());
-  } catch (error) {
-    await Promise.allSettled([client.close(), mcpServer.close()]);
-    throw error;
-  }
+  return ownMcpTransport(
+    clientTransport,
+    serverTransport,
+    "integration-test-anonymous",
+  );
 }
