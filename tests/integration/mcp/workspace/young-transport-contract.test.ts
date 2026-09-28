@@ -135,6 +135,9 @@ const contractTest = mcpTest
           }
         },
         async () => {
+          await db.featureOperationEvent.deleteMany({
+            where: { userId: { in: users } },
+          });
           await db.user.deleteMany({ where: { id: { in: users } } });
         },
         async () => {

@@ -301,6 +301,9 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
         }
       } finally {
         await fixtures.deleteIntegrationHomework(homework.id);
+        await fixtures.prisma.featureOperationEvent.deleteMany({
+          where: { userId: otherUser.id },
+        });
         await fixtures.prisma.user.deleteMany({ where: { id: otherUser.id } });
       }
     },

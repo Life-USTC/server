@@ -37,7 +37,6 @@ import {
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
-import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 import {
   cleanupCatalogContractFixture,
   createCatalogContractFixture,
@@ -79,7 +78,6 @@ export async function createWriteTransportHarness(features: string[]) {
   const db = createFixturePrisma();
   const fixture = await createCatalogContractFixture(db);
   const [section] = fixture.sections;
-  const previousOrigin = process.env.APP_PUBLIC_ORIGIN;
   const graphql = createGraphqlRequestHandler(false);
   let origin = "";
   let invalidations = 0;
@@ -88,6 +86,7 @@ export async function createWriteTransportHarness(features: string[]) {
       throw new Error("Missing restricted runtime database URLs");
     return runWithCloudflareRuntimeEnv(
       {
+        APP_PUBLIC_ORIGIN: origin,
         HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
         HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL },
         // The rate-limit contract is independent of business authorization.
@@ -196,7 +195,6 @@ export async function createWriteTransportHarness(features: string[]) {
   if (!address || typeof address === "string")
     throw new Error("Missing server address");
   origin = `http://127.0.0.1:${address.port}`;
-  process.env.APP_PUBLIC_ORIGIN = origin;
   const scopes = features.flatMap((feature) => [
     `${feature}:write`,
     `${feature}:read`,
@@ -210,6 +208,7 @@ export async function createWriteTransportHarness(features: string[]) {
       redirectUris: ["https://example.test/callback"],
     },
   });
+  const restAudience = await runtime(() => getOAuthRestAudienceUrls()[0]);
   const actors: Actor[] = [];
   for (let index = 0; index < 2; index++) {
     const id = `${fixture.marker}-writer-${index}`;
@@ -232,7 +231,7 @@ export async function createWriteTransportHarness(features: string[]) {
     const tokens = {} as Tokens;
     const readTokens = {} as Tokens;
     for (const [transport, resource] of Object.entries({
-      rest: getOAuthRestAudienceUrls()[0],
+      rest: restAudience,
       graphql: `${origin}/api/graphql`,
       mcp: `${origin}/api/mcp`,
     })) {
@@ -488,6 +487,9 @@ export async function createWriteTransportHarness(features: string[]) {
         },
       });
       await db.oAuthClient.delete({ where: { clientId } });
+      await db.featureOperationEvent.deleteMany({
+        where: { userId: { in: actors.map((actor) => actor.id) } },
+      });
       await db.user.deleteMany({
         where: { id: { in: actors.map((actor) => actor.id) } },
       });
@@ -496,9 +498,6 @@ export async function createWriteTransportHarness(features: string[]) {
         server.closeAllConnections();
       });
       await db.$disconnect();
-      if (previousOrigin === undefined) delete process.env.APP_PUBLIC_ORIGIN;
-      else process.env.APP_PUBLIC_ORIGIN = previousOrigin;
-      resetPublicRuntimeCacheForTest();
     },
   };
 }

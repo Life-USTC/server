@@ -53,6 +53,10 @@ export async function createEphemeralMcpUser(
       () => fixturePrisma.comment.deleteMany({ where: { userId: user.id } }),
       () =>
         fixturePrisma.homework.deleteMany({ where: { createdById: user.id } }),
+      () =>
+        fixturePrisma.featureOperationEvent.deleteMany({
+          where: { userId: user.id },
+        }),
       () => fixturePrisma.user.deleteMany({ where: { id: user.id } }),
     ]);
   }
@@ -108,7 +112,7 @@ export function readerFixture() {
     { onCleanup }: FixtureCleanup,
   ) => {
     const name = "MCP reader";
-    const username = `reader${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+    const username = `reader${crypto.randomUUID().replaceAll("-", "").slice(0, 14)}`;
     const actor = await createEphemeralMcpUser({
       emailPrefix: "mcp-reader",
       name,
