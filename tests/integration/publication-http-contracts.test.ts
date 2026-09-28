@@ -1,128 +1,10 @@
-import { createServer, type Server } from "node:http";
-import type { RequestEvent } from "@sveltejs/kit";
-import { getRequest, setResponse } from "@sveltejs/kit/node";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { expect } from "vitest";
 import { postPublicationIngestionBatchRoute } from "@/lib/api/routes/publication-ingestion-routes";
-import {
-  getPublicationSourcesRoute,
-  getPublicationsRoute,
-  getPublicPublicationRoute,
-} from "@/lib/api/routes/publication-public-routes";
 import { graphqlSchema } from "@/lib/graphql/schema";
+import { publicationHttpTest as it } from "./publication-http-fixture";
 
-import { createGraphqlRequestHandler } from "@/lib/graphql/server";
-import { createFixturePrisma } from "../shared/prisma";
-import {
-  createAnonymousMcpHarness,
-  createMcpHarness,
-} from "./mcp/_harness/client";
-
-const graphqlHandler = createGraphqlRequestHandler(false);
-const db = createFixturePrisma();
-const marker = crypto.randomUUID();
-const secret = `private-ingestion-${marker}`;
-const sources: string[] = [];
-const batches: string[] = [];
-let server: Server;
-let origin: string;
-function batch(label: string) {
-  const sourceId = `http-${marker.slice(0, 20)}-${label}`;
-  sources.push(sourceId);
-  const batchId = `${marker}-${label}`;
-  batches.push(batchId);
-  return {
-    protocolVersion: "1",
-    producerVersion: "integration-test",
-    clientRunId: batchId,
-    batchId,
-    observedAt: "2026-09-01",
-    sources: [
-      {
-        id: sourceId,
-        name: label,
-        organizationLevel: "university",
-        allowedHosts: ["publication.example"],
-      },
-    ],
-    items: [
-      {
-        sourceId,
-        canonicalUrl: `https://publication.example/${marker}/${label}`,
-        revisionHash: "a".repeat(64),
-        observedAt: "2026-09-01",
-        publicationType: "news",
-        title: `${marker} ${label}`,
-        objects: [],
-      },
-    ],
-  };
-}
-async function post(
-  body: unknown,
-  headers: Record<string, string> = {
-    "X-Publication-Ingestion-Secret": secret,
-  },
-) {
-  return fetch(`${origin}/api/ingestion/publications/batches`, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...headers },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
-}
-beforeAll(async () => {
-  vi.stubEnv("PUBLICATION_INGESTION_SECRET", secret);
-  server = createServer(async (incoming, outgoing) => {
-    try {
-      const request = await getRequest({ request: incoming, base: origin });
-      const path = new URL(request.url).pathname;
-      const response =
-        path === "/api/graphql"
-          ? await graphqlHandler({
-              request,
-              locals: { authUser: null, locale: "en-us", requestId: marker },
-            } as unknown as RequestEvent)
-          : path === "/api/publications/sources"
-            ? await getPublicationSourcesRoute(request)
-            : request.method === "POST"
-              ? await postPublicationIngestionBatchRoute(request)
-              : path === "/api/publications"
-                ? await getPublicationsRoute(request)
-                : await getPublicPublicationRoute(request, {
-                    id: path.split("/").at(-1)!,
-                  });
-      await setResponse(outgoing, response);
-    } catch {
-      outgoing.statusCode = 500;
-      outgoing.end("Internal error");
-    }
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string")
-    throw new Error("Missing address");
-  origin = `http://127.0.0.1:${address.port}`;
-});
-afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-      server.closeAllConnections();
-    });
-  const publications = await db.publication.findMany({
-    where: { sourceId: { in: sources } },
-    select: { id: true },
-  });
-  await db.publicationEventOutbox.deleteMany({
-    where: { aggregateId: { in: publications.map((row) => row.id) } },
-  });
-  await db.publicationSource.deleteMany({ where: { id: { in: sources } } });
-  await db.ingestionBatch.deleteMany({ where: { batchId: { in: batches } } });
-  await db.ingestionRun.deleteMany({ where: { clientRunId: { in: batches } } });
-  await db.$disconnect();
-  vi.unstubAllEnvs();
-});
-
-it("publications.service-auth", async () => {
+it("publications.service-auth", async ({ http }) => {
+  const { batch, post, db, secret } = http;
   const payload = batch("auth");
   const authorizationCases: Record<string, string>[] = [
     {},
@@ -134,14 +16,14 @@ it("publications.service-auth", async () => {
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   }
-  vi.stubEnv("PUBLICATION_INGESTION_SECRET", "");
+  http.configureSecret("");
   const unconfigured = await post(payload);
   expect(unconfigured.status).toBe(401);
   expect(await unconfigured.json()).toEqual({ error: "Unauthorized" });
   expect(
     await db.ingestionBatch.count({ where: { batchId: payload.batchId } }),
   ).toBe(0);
-  vi.stubEnv("PUBLICATION_INGESTION_SECRET", secret);
+  http.configureSecret(secret);
   const accepted = await post(payload);
   expect(accepted.status).toBe(200);
   expect(await accepted.text()).not.toContain(secret);
@@ -150,7 +32,8 @@ it("publications.service-auth", async () => {
   ).toBe(1);
 });
 
-it("publications.batch-size", { timeout: 30_000 }, async () => {
+it("publications.batch-size", { timeout: 30_000 }, async ({ http }) => {
+  const { batch, post, db, origin, secret } = http;
   const payload = batch("body-limit");
   const bytes = 8 * 1024 * 1024;
   const exact = JSON.stringify(payload).padEnd(bytes, " ");
@@ -179,26 +62,29 @@ it("publications.batch-size", { timeout: 30_000 }, async () => {
       cancelled = true;
     },
   });
-  const streamed = await postPublicationIngestionBatchRoute(
-    new Request(`${origin}/api/ingestion/publications/batches`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-Publication-Ingestion-Secret": secret,
-      },
-      body: stream,
-      duplex: "half",
-    } as RequestInit),
+  const streamed = await http.run(() =>
+    postPublicationIngestionBatchRoute(
+      new Request(`${origin}/api/ingestion/publications/batches`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "X-Publication-Ingestion-Secret": secret,
+        },
+        body: stream,
+        duplex: "half",
+      } as RequestInit),
+    ),
   );
   expect(streamed.status).toBe(413);
+  await streamed.arrayBuffer();
   expect(cancelled).toBe(true);
   expect(consumed).toBeLessThanOrEqual(bytes + 2 * 64 * 1024);
 });
 
-it("publications.public-read", async () => {
+it("publications.public-read", async ({ http }) => {
+  const { batch, post, db, marker, origin } = http;
   const payload = batch("public");
   const collegeId = `${payload.sources[0].id}-college`;
-  sources.push(collegeId);
   payload.sources.push({
     id: collegeId,
     name: "college",
@@ -234,7 +120,7 @@ it("publications.public-read", async () => {
     data: { deletedAt: new Date() },
   });
   const base = `${origin}/api/publications?query=${marker}&source=${payload.sources[0].id},${collegeId}`;
-  const list = await fetch(base);
+  const list = await http.fetch(base);
   expect(list.status).toBe(200);
   const listed = await list.json();
   expect(new Set(listed.data.map((row: { id: string }) => row.id))).toEqual(
@@ -242,21 +128,21 @@ it("publications.public-read", async () => {
   );
   expect(listed.pagination.total).toBe(2);
   for (const id of [news, notice]) {
-    const detail = await fetch(`${origin}/api/publications/${id}`);
+    const detail = await http.fetch(`${origin}/api/publications/${id}`);
     expect(detail.status).toBe(200);
     expect((await detail.json()).id).toBe(id);
   }
   for (const id of [other, deleted, "missing-publication"]) {
-    const hidden = await fetch(`${origin}/api/publications/${id}`);
+    const hidden = await http.fetch(`${origin}/api/publications/${id}`);
     expect(hidden.status).toBe(404);
     await hidden.arrayBuffer();
   }
 });
 
-it("publications.public-list-filters", async () => {
+it("publications.public-list-filters", async ({ http }) => {
+  const { batch, post, marker, origin } = http;
   const payload = batch("filters");
   const collegeId = `${payload.sources[0].id}-college`;
-  sources.push(collegeId);
   payload.sources.push({
     id: collegeId,
     name: "college",
@@ -277,8 +163,8 @@ it("publications.public-list-filters", async () => {
     (row: { publicationId: string }) => row.publicationId,
   );
   const base = `${origin}/api/publications?query=${marker}&source=${payload.sources[0].id},${collegeId}`;
-  const pageOne = await (await fetch(`${base}&page=1&pageSize=1`)).json();
-  const pageTwo = await (await fetch(`${base}&page=2&pageSize=1`)).json();
+  const pageOne = await (await http.fetch(`${base}&page=1&pageSize=1`)).json();
+  const pageTwo = await (await http.fetch(`${base}&page=2&pageSize=1`)).json();
   expect(pageOne.pagination).toMatchObject({ page: 1, pageSize: 1, total: 2 });
   expect(pageTwo.pagination).toMatchObject({ page: 2, pageSize: 1, total: 2 });
   expect(
@@ -286,7 +172,7 @@ it("publications.public-list-filters", async () => {
       [...pageOne.data, ...pageTwo.data].map((row: { id: string }) => row.id),
     ),
   ).toEqual(new Set([news, notice]));
-  const repeated = await fetch(
+  const repeated = await http.fetch(
     `${origin}/api/publications?query=${marker}&source=${payload.sources[0].id}&source=${collegeId}&source=${collegeId}&organizationLevel=college&type=notice&page=1&pageSize=1`,
   );
   expect(repeated.status).toBe(200);
@@ -296,25 +182,29 @@ it("publications.public-list-filters", async () => {
   const duplicateIds = new URLSearchParams({ query: marker });
   for (let index = 0; index < 21; index++)
     duplicateIds.append("source", collegeId);
-  const deduped = await fetch(`${origin}/api/publications?${duplicateIds}`);
+  const deduped = await http.fetch(
+    `${origin}/api/publications?${duplicateIds}`,
+  );
   expect(deduped.status).toBe(200);
   expect(
     (await deduped.json()).data.map((row: { id: string }) => row.id),
   ).toEqual([notice]);
-  const boundary = await fetch(
+  const boundary = await http.fetch(
     `${origin}/api/publications?source=${[collegeId, ...Array.from({ length: 19 }, (_, index) => `source-${index}`)].join(",")}`,
   );
   expect(boundary.status).toBe(200);
   expect(
     (await boundary.json()).data.map((row: { id: string }) => row.id),
   ).toEqual([notice]);
-  const overflow = await fetch(
+  const overflow = await http.fetch(
     `${origin}/api/publications?source=${Array.from({ length: 21 }, (_, index) => `source-${index}`).join(",")}`,
   );
   expect(overflow.status).toBe(400);
+  await overflow.arrayBuffer();
 });
 
-it("publications.batch-idempotency", async () => {
+it("publications.batch-idempotency", async ({ http }) => {
+  const { batch, post, db } = http;
   const payload = batch("idempotency");
   const response = await post(payload);
   expect(response.status).toBe(200);
@@ -343,23 +233,29 @@ it("publications.batch-idempotency", async () => {
   ).toBe(1);
 });
 
-it("publications.read-transport-boundary", async () => {
+it("publications.read-transport-boundary", async ({
+  http,
+  publicationMcp: clients,
+}) => {
+  const { batch, post, origin } = http;
   const payload = batch("transport");
   const ingested = await post(payload);
   expect(ingested.status).toBe(200);
   const result = await ingested.json();
   const publicationId = result.results[0].publicationId;
-  const list = await fetch(
+  const list = await http.fetch(
     `${origin}/api/publications?source=${payload.sources[0].id}`,
   );
   expect(list.status).toBe(200);
   expect((await list.json()).data.map((row: { id: string }) => row.id)).toEqual(
     [publicationId],
   );
-  const detail = await fetch(`${origin}/api/publications/${publicationId}`);
+  const detail = await http.fetch(
+    `${origin}/api/publications/${publicationId}`,
+  );
   expect(detail.status).toBe(200);
   expect(await detail.json()).toMatchObject({ id: publicationId });
-  const sources = await fetch(`${origin}/api/publications/sources`);
+  const sources = await http.fetch(`${origin}/api/publications/sources`);
   expect(sources.status).toBe(200);
   expect(JSON.stringify(await sources.json())).toContain(payload.sources[0].id);
   expect(
@@ -368,7 +264,7 @@ it("publications.read-transport-boundary", async () => {
     ),
   ).toEqual([]);
   for (const field of ["publications", "publicationSources"]) {
-    const response = await fetch(`${origin}/api/graphql`, {
+    const response = await http.fetch(`${origin}/api/graphql`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ query: `{ ${field} { id } }` }),
@@ -377,31 +273,24 @@ it("publications.read-transport-boundary", async () => {
     expect(body.data).toBeUndefined();
     expect(body.errors[0].message).toContain(`Cannot query field "${field}"`);
   }
-  const clients = await Promise.all([
-    createAnonymousMcpHarness(),
-    createMcpHarness("publication-read-transport-test"),
-  ]);
-  try {
-    for (const client of clients) {
-      const discovery = await client.listTools();
-      expect(
-        discovery.tools.filter((tool) => /publication/i.test(tool.name)),
-      ).toEqual([]);
-      const missing = await client.callToolResult("publication_list", {});
-      expect(missing.isError).toBe(true);
-      expect(missing.content).toEqual([
-        expect.objectContaining({
-          type: "text",
-          text: expect.stringContaining("not found"),
-        }),
-      ]);
-    }
-  } finally {
-    await Promise.all(clients.map((client) => client.close()));
+  for (const client of clients) {
+    const discovery = await client.listTools();
+    expect(
+      discovery.tools.filter((tool) => /publication/i.test(tool.name)),
+    ).toEqual([]);
+    const missing = await client.callToolResult("publication_list", {});
+    expect(missing.isError).toBe(true);
+    expect(missing.content).toEqual([
+      expect.objectContaining({
+        type: "text",
+        text: expect.stringContaining("not found"),
+      }),
+    ]);
   }
 });
 
-it("publications.public-cache", async () => {
+it("publications.public-cache", async ({ http }) => {
+  const { batch, post, marker, origin } = http;
   const payload = batch("json-cache");
   const created = await post(payload);
   expect(created.status).toBe(200);
@@ -410,7 +299,7 @@ it("publications.public-cache", async () => {
     `/api/publications?query=${marker}`,
     `/api/publications/${id}`,
   ]) {
-    const response = await fetch(`${origin}${path}`);
+    const response = await http.fetch(`${origin}${path}`);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(response.headers.get("cache-control")).toBe(
@@ -422,7 +311,7 @@ it("publications.public-cache", async () => {
     expect(response.headers.get("set-cookie")).toBeNull();
     await response.json();
   }
-  const missing = await fetch(
+  const missing = await http.fetch(
     `${origin}/api/publications/${crypto.randomUUID()}`,
   );
   expect(missing.status).toBe(404);
