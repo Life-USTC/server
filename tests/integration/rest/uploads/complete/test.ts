@@ -3,27 +3,33 @@ import { base, test } from "../_fixture";
 
 const path = `${base}/complete`;
 
-test("anonymous completion returns JSON 401 and preserves the object and reservation", async ({
-  request,
-  uploadState,
-}) => {
-  const { db, pending, bucket } = uploadState;
-  const reservation = await pending({ phase: "uploaded", contents: "hello" });
-  const before = await db.uploadPending.findUniqueOrThrow({
-    where: { id: reservation.id },
-  });
-  for (const data of [{}, { key: reservation.key, filename: "denied.txt" }]) {
+for (const payload of ["empty", "valid"] as const) {
+  test(`anonymous completion with ${payload} payload returns JSON 401 and preserves the object and reservation`, async ({
+    request,
+    uploadState,
+  }) => {
+    const { db, pending, bucket } = uploadState;
+    const reservation = await pending({ phase: "uploaded", contents: "hello" });
+    const before = await db.uploadPending.findUniqueOrThrow({
+      where: { id: reservation.id },
+    });
+    const data =
+      payload === "empty"
+        ? {}
+        : { key: reservation.key, filename: "denied.txt" };
     const response = await request.post(path, { data });
     expect(response.status()).toBe(401);
     expect((await response.json()).error).toEqual(expect.any(String));
-  }
-  expect(
-    await db.uploadPending.findUniqueOrThrow({ where: { id: reservation.id } }),
-  ).toEqual(before);
-  expect(
-    await new Response((await bucket.get(reservation.key))?.body).text(),
-  ).toBe("hello");
-});
+    expect(
+      await db.uploadPending.findUniqueOrThrow({
+        where: { id: reservation.id },
+      }),
+    ).toEqual(before);
+    expect(
+      await new Response((await bucket.get(reservation.key))?.body).text(),
+    ).toBe("hello");
+  });
+}
 
 test("completion rejects another owner's key without changing its state", async ({
   uploadState,
