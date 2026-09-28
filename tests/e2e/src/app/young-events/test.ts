@@ -255,34 +255,6 @@ for (const width of [1280, 390]) {
   });
 }
 
-test("calendar sheet preserves selected dates and unsubmitted primary filters", async ({
-  page,
-}) => {
-  await gotoAndWaitForReady(
-    page,
-    "/catalog/young-events/calendar?view=week&date=2035-09-15&category=sport",
-  );
-  await page.getByRole("searchbox").fill("calendar draft");
-  await page.locator("#young-calendar-active").selectOption("false");
-  await page.locator("#young-calendar-time-basis").selectOption("registration");
-  await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
-  const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
-  await sheet.locator("#young-calendar-module").selectOption("智");
-  await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-  await expect(page).toHaveURL(
-    (url) => url.searchParams.get("module") === "智",
-  );
-  const params = new URL(page.url()).searchParams;
-  expect(Object.fromEntries(params)).toMatchObject({
-    view: "week",
-    date: "2035-09-15",
-    search: "calendar draft",
-    active: "false",
-    timeBasis: "registration",
-    category: "sport",
-  });
-});
-
 for (const width of [1280, 390]) {
   test(`calendar has all pages, day drilldown, and independent registration times at ${width}px`, async ({
     page,
@@ -327,16 +299,10 @@ for (const width of [1280, 390]) {
       ).toBeVisible();
       await root.getByRole("link", { name: /^(周|Week)$/ }).click();
       await expect(page).toHaveURL(/view=week/);
-      await page
-        .locator("#young-calendar-time-basis")
-        .selectOption("registration");
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(page).toHaveURL(/timeBasis=registration/);
-      await expect(
-        root.getByRole("link", { name: /^(日|Day)$/ }),
-      ).toHaveAttribute("href", /timeBasis=registration/);
-      await root.getByRole("link", { name: /^(日|Day)$/ }).click();
-      await expect(page).toHaveURL(/view=day/);
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/young-events/calendar?view=day&date=2035-09-15&organizerId=${marker}&timeBasis=registration`,
+      );
       await expect(
         root
           .getByRole("link", { name: /Calendar activity/ })

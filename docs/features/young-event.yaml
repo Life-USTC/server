@@ -97,9 +97,9 @@ requirements:
     claims.
 - id: young-event.web-browse-context
   category: presentation
-  rule: Activity list and calendar retain shared search/category/module/level/organizer/source-list filters;
-    detail return links preserve the originating catalog browse route. Unknown-date results show their
-    active filter explicitly.
+  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar
+    does not show that toolbar. Detail return links preserve the originating catalog browse route.
+    Unknown-date results show their active filter explicitly.
 - id: young-event.web-organizer-order
   category: presentation
   rule: Web organizer browsing orders organizers with at least one isActive event first, then others;
@@ -107,9 +107,10 @@ requirements:
     MCP organizer ordering remains alphabetical.
 - id: young-event.web-detail-priority
   category: presentation
-  rule: Detail pages prioritize time, venue, hours and signup deadline. Official signup remains external;
-    poster, statistics and record metadata are expandable. The poster and description images stay inside
-    a bounded frame; the poster link opens the full picture.
+  rule: Detail pages prioritize time, venue, hours and signup deadline. A same-day activity shows one date
+    and two times on one line. Venue details sit with that summary. Official signup remains external.
+    The poster is shown under the title inside a bounded frame and its link opens the full picture.
+    Statistics and record metadata stay expandable. Description images stay inside a bounded frame.
 - id: young-event.web-list-scan
   category: presentation
   rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of
@@ -233,4 +234,4 @@ capabilities:
       - status and source freshness
       - organizer and stable organizer ID
       - sourceMissing and lastSeenAt when applicable
-      - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home
+      - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list

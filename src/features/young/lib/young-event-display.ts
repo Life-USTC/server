@@ -59,7 +59,14 @@ export function youngDateRange(
 ): string | null {
   const from = youngDateTime(start);
   const to = youngDateTime(end);
-  if (from && to) return `${from} – ${to}`;
+  if (from && to) {
+    const [fromDate, fromTime] = from.split(" ");
+    const [toDate, toTime] = to.split(" ");
+    if (fromDate && fromDate === toDate && fromTime && toTime) {
+      return `${fromDate} ${fromTime.slice(0, 5)}–${toTime.slice(0, 5)}`;
+    }
+    return `${from} – ${to}`;
+  }
   if (from) return copy.startsAt.replace("{value}", from);
   if (to) return copy.endsAt.replace("{value}", to);
   return null;

@@ -7,7 +7,6 @@ import {
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
 import type {
   YoungEventSummary,
-  YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { YoungCalendarPageFilters } from "@/features/young/server/young-page-load";
@@ -15,18 +14,15 @@ import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { page } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { youngDetailHref } from "../lib/young-navigation";
-import YoungEventFilters from "./YoungEventFilters.svelte";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
   anchorDate: string;
-  categories: string[];
   copy: AppPageCopy;
   data: YoungEventSummary[];
   filters: YoungCalendarPageFilters;
   locale: string;
-  organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   range: { start: string; end: string };
   source: YoungSourceFreshness;
   unknownDateCount: number;
@@ -35,12 +31,10 @@ type Props = {
 
 let {
   anchorDate,
-  categories,
   copy,
   data,
   filters,
   locale,
-  organizers,
   range,
   source,
   unknownDateCount,
@@ -91,10 +85,6 @@ $effect(() => {
     });
   return () => controller.abort();
 });
-
-function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
-}
 
 const calendarHref = $derived.by(() => {
   const currentFilters = filters;
@@ -148,38 +138,16 @@ const calendarLabels = $derived({
 });
 </script>
 
+{#snippet calendarFooter()}
+  <YoungSourceNote labels={youngCopy} {source} />
+{/snippet}
+
 <CollectionPage
   description={youngCopy.calendarDescription}
+  footer={calendarFooter}
   title={youngCopy.calendarTitle}
 >
-  {#snippet before()}
-  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-    <span class="text-muted-foreground">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-    </span>
-  </div>
-  {/snippet}
-  {#snippet toolbar()}
-      <YoungEventFilters {copy} {filters} {organizers} {categories} calendar={{ view, date: anchorDate }} />
-  {/snippet}
-
     <div class="grid gap-3">
-    <ResultsSummary summary={youngCopy.showing.replace("{count}", String(data.length)).replace("{total}", String(data.length))} />
-    {#if filters.timeBasis === "activity"}
-      <p class="text-sm text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
-        {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
-        {:else if conflictStatus === "signin"}<a class="underline" href={`/account/sign-in?callbackUrl=${encodeURIComponent(calendarHref(view, anchorDate))}`}>{youngCopy.conflictSignin}</a>
-        {:else if conflictStatus === "failed"}{youngCopy.conflictUnavailable}
-        {:else}{youngCopy.conflictScope}{/if}
-      </p>
-    {/if}
     <YoungCalendar
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
@@ -194,5 +162,13 @@ const calendarLabels = $derived({
       unknownDatesHref={unknownDatesHref()}
       {view}
     />
+    {#if filters.timeBasis === "activity"}
+      <p class="text-right text-xs text-muted-foreground" aria-live="polite" data-testid="young-calendar-conflict-status">
+        {#if conflictStatus === "loading"}{youngCopy.conflictLoading}
+        {:else if conflictStatus === "signin"}<a class="underline" href={`/account/sign-in?callbackUrl=${encodeURIComponent(calendarHref(view, anchorDate))}`}>{youngCopy.conflictSignin}</a>
+        {:else if conflictStatus === "failed"}{youngCopy.conflictUnavailable}
+        {:else}{youngCopy.conflictScope}{/if}
+      </p>
+    {/if}
     </div>
 </CollectionPage>

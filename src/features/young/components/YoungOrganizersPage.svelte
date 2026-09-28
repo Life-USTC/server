@@ -11,13 +11,13 @@ import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
 import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { removeYoungFilter } from "../lib/young-navigation";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
   copy: AppPageCopy;
@@ -51,10 +51,6 @@ function eventsHref(id: string) {
   return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
 
-function formatSourceDate(value: string | null) {
-  return value ? value.slice(0, 16).replace("T", " ") : "-";
-}
-
 const summary = $derived(
   youngCopy.organizersShowing
     .replace("{count}", String(data.length))
@@ -63,17 +59,19 @@ const summary = $derived(
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination
-    ariaLabel={commonLabels.pagination}
-    class="py-0"
-    nextLabel={commonLabels.next}
-    nextPageLabel={commonLabels.nextPage}
-    page={pagination.page}
-    {pageHref}
-    previousLabel={commonLabels.previous}
-    previousPageLabel={commonLabels.previousPage}
-    totalPages={pagination.totalPages}
-  />
+  {#if pagination.totalPages > 1}
+    <ListPagination
+      ariaLabel={commonLabels.pagination}
+      class="py-0"
+      nextLabel={commonLabels.next}
+      nextPageLabel={commonLabels.nextPage}
+      page={pagination.page}
+      {pageHref}
+      previousLabel={commonLabels.previous}
+      previousPageLabel={commonLabels.previousPage}
+      totalPages={pagination.totalPages}
+    />
+  {/if}
 {/snippet}
 
 <CollectionPage
@@ -81,20 +79,6 @@ const summary = $derived(
   footer={pagination.totalPages > 1 ? paginationFooter : undefined}
   title={youngCopy.organizersTitle}
 >
-  {#snippet before()}
-  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-    <span class="text-muted-foreground">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatSourceDate(source.lastSyncedAt)}{/if}
-    </span>
-  </div>
-  {/snippet}
   {#snippet toolbar()}
       <FilterToolbar>
         {#snippet primary()}
@@ -107,13 +91,8 @@ const summary = $derived(
       <ActiveFilters items={search ? [{ href: removeYoungFilter($appPage.url, "search"), label: search, removeLabel: youngCopy.removeFilter.replace("{value}", search) }] : []} ariaLabel={youngCopy.activeFilters} clearHref="/catalog/young-events/organizers" clearLabel={commonLabels.clear} />
     {/snippet}
 
-    <section class="grid min-w-0 gap-3">
-      <p class="text-sm text-muted-foreground">{youngCopy.organizerCountsHint}</p>
-      <ResultsSummary
-        {summary}
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-      />
+    <section class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3">
+      <p class="text-right text-sm text-muted-foreground">{summary}</p>
       {#if data.length > 0}
         <ResponsiveCollection>
           {#snippet mobile()}
@@ -181,5 +160,9 @@ const summary = $derived(
           />
         </div>
       {/if}
+      <div class="mt-auto grid justify-items-end gap-1 pt-8">
+        <p class="text-xs text-muted-foreground">{youngCopy.organizerCountsHint}</p>
+        <YoungSourceNote labels={youngCopy} {source} />
+      </div>
     </section>
 </CollectionPage>

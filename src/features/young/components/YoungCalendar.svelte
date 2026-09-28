@@ -184,13 +184,13 @@ function eventMeta(event: YoungEventSummary) {
 {/snippet}
 
 <section class="grid gap-4" data-testid="young-calendar">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="flex flex-nowrap items-center justify-between gap-3">
     <div class="flex items-center gap-2">
       <Button aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
       <Button variant="outline" href={hrefFor(view, new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date()))}>{labels.today}</Button>
       <Button aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
     </div>
-    <h2 class="font-medium text-sm sm:text-base">{heading}</h2>
+    <h2 class="min-w-0 truncate text-center font-medium text-sm sm:text-base">{heading}</h2>
     <nav aria-label={labels.agenda} class="flex items-center gap-1">
       {#each ["day", "week", "month"] as targetView}
         <Button variant={view === targetView ? "secondary" : "ghost"} aria-current={view === targetView ? "page" : undefined} href={hrefFor(targetView as YoungCalendarView, anchorDate)}>{labels[targetView as YoungCalendarView]}</Button>
@@ -251,11 +251,8 @@ function eventMeta(event: YoungEventSummary) {
   </div>
 
   {#if unknownDateCount > 0}
-    <section class="grid gap-2" data-testid="young-calendar-unknown-dates">
-      <h3 class="font-medium text-sm">{labels.unknownDates}</h3>
-      <p class="text-muted-foreground text-sm">
-        <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
-      </p>
-    </section>
+    <p class="text-right text-xs text-muted-foreground" data-testid="young-calendar-unknown-dates">
+      <a class="underline underline-offset-4" href={unknownDatesHref}>{unknownDateCount} {labels.unknownDates}</a>
+    </p>
   {/if}
 </section>

@@ -55,12 +55,10 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     await expect(youngNav).toBeVisible();
     await expect(
       youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
-    ).toHaveAttribute("aria-current", "page");
+    ).not.toHaveAttribute("aria-current", "page");
     await expect(
-      youngNav.getByRole("link", {
-        name: new RegExp(DEV_SEED.youngEvent.name),
-      }),
-    ).toHaveCount(0);
+      youngNav.getByRole("link", { name: DEV_SEED.youngEvent.name }),
+    ).toHaveAttribute("aria-current", "page");
     await expect(
       page.getByRole("navigation", { name: /面包屑|Breadcrumb/ }),
     ).toHaveCount(0);
@@ -158,10 +156,6 @@ for (const width of [1280, 390]) {
         `/catalog/young-events?search=${encodeURIComponent("线上学术交流 · 参与信息测试")}`,
       );
       await expect(visibleText(page, /东区学生活动中心/)).toBeVisible();
-      if (width >= 1280)
-        await expect(
-          page.getByRole("cell", { name: /未提供 \/ 20|Not provided \/ 20/ }),
-        ).toBeVisible();
       // Imported public facts are cached by snapshot revision. Use a second
       // fixture for the false state rather than mutating an already-read row.
       await db.youngEvent.create({

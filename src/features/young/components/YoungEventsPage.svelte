@@ -10,17 +10,16 @@ import { page as appPage } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import {
   groupYoungEventsByStartDate,
   youngClockTime,
-  youngDateTime,
   youngListDayLabel,
   youngMonthDay,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
+import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
   categories: string[];
@@ -42,9 +41,6 @@ let { categories, copy, data, filters, organizers, pagination, source }: Props =
 
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
-function formatDateTime(value: string | null) {
-  return youngDateTime(value) ?? youngCopy.unknownTime;
-}
 
 function pageHref(targetPage: number) {
   const params = new URLSearchParams($appPage.url.searchParams);
@@ -52,11 +48,8 @@ function pageHref(targetPage: number) {
   return `${$appPage.url.pathname}?${params}`;
 }
 
-const summary = $derived(
-  youngCopy.showing
-    .replace("{count}", String(data.length))
-    .replace("{total}", String(pagination.total)),
-);
+const sourceHost = "young.ustc.edu.cn";
+const descriptionParts = $derived(youngCopy.description.split(sourceHost));
 const locale = $derived($appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
 const groups = $derived(groupYoungEventsByStartDate(data));
 
@@ -81,43 +74,40 @@ function rowMeta(event: (typeof data)[number]) {
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination
-    ariaLabel={commonLabels.pagination}
-    class="py-0"
-    nextLabel={commonLabels.next}
-    nextPageLabel={commonLabels.nextPage}
-    page={pagination.page}
-    {pageHref}
-    previousLabel={commonLabels.previous}
-    previousPageLabel={commonLabels.previousPage}
-    totalPages={pagination.totalPages}
-  />
+  <div class="grid w-full gap-3">
+    {#if pagination.totalPages > 1}
+      <ListPagination
+        ariaLabel={commonLabels.pagination}
+        class="py-0"
+        nextLabel={commonLabels.next}
+        nextPageLabel={commonLabels.nextPage}
+        page={pagination.page}
+        {pageHref}
+        previousLabel={commonLabels.previous}
+        previousPageLabel={commonLabels.previousPage}
+        totalPages={pagination.totalPages}
+      />
+    {/if}
+    <YoungSourceNote labels={youngCopy} {source} />
+  </div>
 {/snippet}
 
-<CollectionPage description={youngCopy.description} footer={pagination.totalPages > 1 ? paginationFooter : undefined} title={youngCopy.title}>
-  {#snippet before()}
-  <div class="flex flex-wrap items-center justify-between gap-3 text-sm" data-testid="young-source-freshness">
-    <span class="text-muted-foreground">
-      {#if source.status === "fresh"}
-        {youngCopy.sourceFresh}
-      {:else if source.status === "stale"}
-        {youngCopy.sourceStale}
-      {:else}
-        {youngCopy.sourceUnknown}
-      {/if}
-      {#if source.lastSyncedAt} · {formatDateTime(source.lastSyncedAt)}{/if}
-    </span>
-  </div>
+{#snippet description()}
+  <p class="mt-1 max-w-2xl text-muted-foreground [overflow-wrap:anywhere]">
+    {#each descriptionParts as part, index (index)}
+      {part}{#if index < descriptionParts.length - 1}<a class="underline underline-offset-4" href="https://{sourceHost}" rel="noreferrer noopener" target="_blank">{sourceHost}</a>{/if}
+    {/each}
+  </p>
+{/snippet}
+
+<CollectionPage footer={paginationFooter} title={youngCopy.title}>
+  {#snippet belowTitle()}
+    {@render description()}
   {/snippet}
   {#snippet toolbar()}
       <YoungEventFilters {copy} {filters} {organizers} {categories} />
   {/snippet}
     <section class="grid min-w-0 gap-3">
-      <ResultsSummary
-        {summary}
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-      />
       {#if data.length > 0}
         <div class="grid gap-6">
           {#each groups as group (group.key || "unknown")}

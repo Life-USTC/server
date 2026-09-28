@@ -160,7 +160,7 @@ $: youngSidebar = isYoungPath($page.url.pathname);
 $: navGroups = settingsSidebar
   ? buildSettingsNavGroups(data.copy)
   : youngSidebar
-    ? buildYoungNavGroups(data.copy)
+    ? buildYoungNavGroups(data.copy, $page.url.pathname, $page.data)
     : buildShellNavGroups(
         data.copy,
         Boolean(viewerUser),
@@ -258,7 +258,28 @@ function isYoungPath(pathname: string) {
   );
 }
 
-function buildYoungNavGroups(copy: LayoutCopy): ShellNavGroup[] {
+function youngEventSidebarItem(
+  pathname: string,
+  pageData: Record<string, unknown>,
+): ShellLink | null {
+  const match = pathname.match(/^\/catalog\/young-events\/([^/]+)$/);
+  if (!match || match[1] === "calendar" || match[1] === "organizers")
+    return null;
+  const event = pageData.event;
+  if (!event || typeof event !== "object") return null;
+  const record = event as { name?: unknown; youngId?: unknown };
+  if (typeof record.name !== "string" || record.name.trim() === "") return null;
+  if (typeof record.youngId === "string" && record.youngId !== match[1])
+    return null;
+  return { href: pathname, label: record.name.trim() };
+}
+
+function buildYoungNavGroups(
+  copy: LayoutCopy,
+  pathname: string,
+  pageData: Record<string, unknown>,
+): ShellNavGroup[] {
+  const currentEvent = youngEventSidebarItem(pathname, pageData);
   return [
     {
       defaultOpen: true,
@@ -267,6 +288,7 @@ function buildYoungNavGroups(copy: LayoutCopy): ShellNavGroup[] {
         {
           href: "/catalog/young-events",
           icon: SparklesIcon,
+          items: currentEvent ? [currentEvent] : undefined,
           label: copy.nav.youngActivities,
         },
         {

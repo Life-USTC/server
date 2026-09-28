@@ -138,10 +138,6 @@ const badges = $derived(
 const timeFields = $derived(
   fieldList([
     {
-      label: youngCopy.eventTime,
-      value: formatRange(event.startAt, event.endAt),
-    },
-    {
       label: youngCopy.signupWindow,
       value: formatRange(event.applyStartAt, event.applyEndAt),
     },
@@ -173,8 +169,6 @@ const registrationFields = $derived(
             ? youngCopy.signupNotRequired
             : null,
     },
-    { label: youngCopy.appliedCount, value: numberValue(event.appliedCount) },
-    { label: youngCopy.capacity, value: numberValue(event.capacity) },
     { label: youngCopy.grades, value: event.grades },
     {
       label: youngCopy.allowedAttachmentTypes,
@@ -252,18 +246,13 @@ const places = $derived(
             <Badge variant="secondary">{badge}</Badge>
           {/each}
         </div>
+        {#if event.imageUrl}
+          <a class="mt-4 inline-flex max-w-full" href={event.imageUrl} rel="noreferrer noopener" target="_blank">
+            <img alt={event.name} class="max-h-72 w-auto max-w-full rounded-lg bg-muted object-contain" src={event.imageUrl} />
+          </a>
+        {/if}
   {/snippet}
 
-  {#if event.imageUrl}
-    <Collapsible.Root class="grid gap-3">
-      <Collapsible.Trigger class={buttonVariants({ variant: "ghost", class: "justify-self-start" })}>{youngCopy.poster}</Collapsible.Trigger>
-      <Collapsible.Content>
-        <a class="inline-flex max-w-full" href={event.imageUrl} rel="noreferrer noopener" target="_blank">
-          <img alt={event.name} class="max-h-72 w-auto max-w-full rounded-lg bg-muted object-contain" src={event.imageUrl} />
-        </a>
-      </Collapsible.Content>
-    </Collapsible.Root>
-  {/if}
   {#if event.description}
     <Panel>
       {#snippet header()}
@@ -330,6 +319,19 @@ const places = $derived(
       <div data-testid="young-event-overview">
         <DetailDefinitionList items={overviewFields} />
       </div>
+      {#if places.length > 0}
+        <section class="mt-5 grid gap-3">
+          <h2 class="text-sm font-semibold tracking-tight">{youngCopy.sectionPlaces}</h2>
+          <ul class="grid gap-3">
+            {#each places as place, index (index)}
+              <li class="grid gap-1">
+                {#if place.info}<span class="text-sm font-medium">{place.info}</span>{/if}
+                {#if place.range}<span class="text-muted-foreground text-sm">{place.range}</span>{/if}
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
       {#if event.sourceMissing}
         <Alert.Root class="mt-4"><Alert.Description>{youngCopy.sourceMissing}</Alert.Description></Alert.Root>
       {/if}
@@ -354,24 +356,7 @@ const places = $derived(
       <p class="text-sm text-muted-foreground">{youngCopy.scopeHint}</p>
     {/if}
     {@render factSection(youngCopy.sectionOrganization, organizationFields)}
-    {#if places.length > 0 || event.location}
-      <section class="grid gap-3">
-        <h2 class="text-sm font-semibold tracking-tight">{youngCopy.sectionPlaces}</h2>
-        {#if places.length > 0}
-          <ul class="grid gap-3">
-            {#each places as place, index (index)}
-              <li class="grid gap-1">
-                {#if place.info}<span class="text-sm font-medium">{place.info}</span>{/if}
-                {#if place.range}<span class="text-muted-foreground text-sm">{place.range}</span>{/if}
-              </li>
-            {/each}
-          </ul>
-        {:else}
-          <DetailDefinitionList items={[{ label: youngCopy.location, value: event.location ?? "" }]} />
-        {/if}
-      </section>
-    {/if}
-    <p class="text-sm text-muted-foreground" data-testid="young-source-freshness">
+    <p class="text-right text-xs text-muted-foreground" data-testid="young-source-freshness">
       {#if source.status === "fresh"}
         {youngCopy.sourceFresh}
       {:else if source.status === "stale"}

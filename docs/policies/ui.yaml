@@ -78,7 +78,8 @@ requirements:
     control returns home, and its only group is the settings sections. Second-classroom
     routes replace the primary sidebar with a second-classroom sidebar. Its top control
     returns home, and its only group is the activity list, event calendar, and organizers.
-    Event and organizer names stay on the page. The home page keeps the primary sidebar.
+    An open event adds its name under the activity list and that name is the current page.
+    The home page keeps the primary sidebar.
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells
