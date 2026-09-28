@@ -7,15 +7,19 @@ import { test as workerTest } from "./isolated-worker";
 import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 /** Only credential records are arranged; sessions must come from the real UI. */
-export async function arrangeSignInCredential(
+async function arrangeSignInCredential(
   db: TestPrismaClient,
   admin: boolean,
+  signal: AbortSignal,
 ) {
+  signal.throwIfAborted();
   const username = admin ? "dev-admin" : "dev-user";
   const password = await hashPassword(
     admin ? "dev-admin-password" : "dev-debug-password",
   );
+  signal.throwIfAborted();
   return db.$transaction(async (db) => {
+    signal.throwIfAborted();
     const user = await db.user.create({
       data: {
         username,
@@ -25,6 +29,7 @@ export async function arrangeSignInCredential(
         isAdmin: admin,
       },
     });
+    signal.throwIfAborted();
     await db.account.create({
       data: {
         type: "credential",
@@ -39,16 +44,43 @@ export async function arrangeSignInCredential(
   });
 }
 
-export const test = workerTest.extend<{ debugUser: User; adminUser: User }>({
-  debugUser: async ({ isolatedWorker }, use) => {
-    await use(
-      await arrangeSignInCredential(isolatedWorker.database.owner, false),
-    );
+export const test = workerTest.extend<{
+  debugUser: User;
+  adminUser: User;
+  _signInCredentials: { create: (admin: boolean) => Promise<User> };
+}>({
+  _signInCredentials: async ({ isolatedWorker }, use) => {
+    const abort = new AbortController();
+    const pending = new Set<Promise<User>>();
+    try {
+      // Native teardown owns hashing before a dependent fixture starts it.
+      await use({
+        create: (admin) => {
+          abort.signal.throwIfAborted();
+          const credential = arrangeSignInCredential(
+            isolatedWorker.database.owner,
+            admin,
+            abort.signal,
+          );
+          pending.add(credential);
+          void credential
+            .finally(() => pending.delete(credential))
+            .catch(() => {});
+          return credential;
+        },
+      });
+    } finally {
+      abort.abort(new Error("Sign-in credential resources disposed"));
+      // Hashing cannot be cancelled, so await its continuation and any already
+      // started transaction before the underlying Worker/database are disposed.
+      await Promise.allSettled(pending);
+    }
   },
-  adminUser: async ({ isolatedWorker }, use) => {
-    await use(
-      await arrangeSignInCredential(isolatedWorker.database.owner, true),
-    );
+  debugUser: async ({ _signInCredentials }, use) => {
+    await use(await _signInCredentials.create(false));
+  },
+  adminUser: async ({ _signInCredentials }, use) => {
+    await use(await _signInCredentials.create(true));
   },
 });
 
