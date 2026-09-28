@@ -1,23 +1,21 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getIncompleteHomeworkCalendarItems } from "@/features/calendar/server/calendar-export-data";
 import { listSubscribedHomeworkPage } from "@/features/subscriptions/server/subscription-homework-page";
 import { updateSubscriptionKind } from "@/features/subscriptions/server/subscription-kind";
+import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createFixturePrisma } from "../shared/prisma";
-import { homeworkExpectation } from "../shared/specifications/homework";
-
-const specification = homeworkExpectation(
-  "homework.teaching-assistant-completion",
-  "subscription_completion",
-);
 
 const db = createFixturePrisma();
-const users = [crypto.randomUUID(), crypto.randomUUID()];
-const ids = Array.from({ length: 4 }, () => crypto.randomUUID());
 const now = new Date("2026-09-13T08:00:00Z");
 const future = new Date(now.getTime() + 60_000);
-let section: { id: number; jwId: number };
+let users: string[] = [];
+let ids: string[] = [];
+let section: { id: number; jwId: number } | undefined;
 
-beforeAll(async () => {
+beforeEach(async () => {
+  users = [crypto.randomUUID(), crypto.randomUUID()];
+  ids = Array.from({ length: 4 }, () => crypto.randomUUID());
+  section = undefined;
   const source = await db.section.findFirstOrThrow({
     where: { retiredAt: null },
     select: { courseId: true, semesterId: true },
@@ -40,15 +38,15 @@ beforeAll(async () => {
   await db.userSectionSubscription.createMany({
     data: users.map((userId, index) => ({
       userId,
-      sectionId: section.id,
-      kind: index === 0 ? specification.subscription_kind : "regular",
+      sectionId: sectionId(),
+      kind: index === 0 ? "teaching_assistant" : "regular",
     })),
   });
   await db.homework.createMany({
     data: ids.map((id, index) => ({
       id,
       title: `[integration-test] TA state ${index}`,
-      sectionId: section.id,
+      sectionId: sectionId(),
       submissionDueAt: index === 2 ? null : index === 1 ? future : now,
     })),
   });
@@ -57,12 +55,19 @@ beforeAll(async () => {
   });
 });
 
-afterAll(async () => {
-  if (section) await db.section.delete({ where: { id: section.id } });
+afterEach(async () => {
+  if (section) await db.section.deleteMany({ where: { id: section.id } });
+  await db.auditLog.deleteMany({ where: { userId: { in: users } } });
   await db.user.deleteMany({ where: { id: { in: users } } });
-  await db.$disconnect();
+});
+afterAll(async () => {
+  await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
 });
 
+function sectionId() {
+  if (!section) throw new Error("Missing isolated section");
+  return section.id;
+}
 function read(userId: string, completed?: boolean, pageSize = 20) {
   return listSubscribedHomeworkPage(userId, {
     completed,
@@ -70,84 +75,140 @@ function read(userId: string, completed?: boolean, pageSize = 20) {
     pagination: { page: 1, pageSize },
   });
 }
-
-it("derives TA pending membership before pagination and preserves actual completion across role/deadline changes", async () => {
-  const pending = await read(users[0], false, 1);
-  expect(pending.pagination.total).toBe(2);
-  expect(pending.data).toHaveLength(1);
-  expect(pending.data[0].id).toBe(ids[1]);
-  expect(pending.data[0].completionRequired).toBe(
-    specification.completion_required,
-  );
-
-  expect(
-    (await getIncompleteHomeworkCalendarItems(users[0], [section.id], now)).map(
-      (homework) => homework.id,
-    ),
-  ).toEqual([ids[1]]);
-
-  const all = await read(users[0]);
-  expect(all.pagination.total).toBe(4);
-  expect(
-    all.data.every(
-      (homework) =>
-        homework.completionRequired === specification.completion_required,
-    ),
-  ).toBe(true);
-  expect(
-    all.data.find((homework) => homework.id === ids[3])?.completion,
-  ).not.toBeNull();
-  expect(
-    (await read(users[0], true)).data.map((homework) => homework.id),
-  ).toEqual([ids[3]]);
-  expect((await read(users[1], false)).pagination.total).toBe(4);
-  expect(
-    (await read(users[1])).data.every(
-      (homework) => homework.completionRequired,
-    ),
-  ).toBe(true);
-
-  await db.homework.update({
-    where: { id: ids[0] },
-    data: { submissionDueAt: future },
-  });
-  expect((await read(users[0], false)).pagination.total).toBe(3);
-  await db.homework.update({
-    where: { id: ids[0] },
-    data: { submissionDueAt: null },
-  });
-  expect((await read(users[0], false)).pagination.total).toBe(3);
-  await db.homework.update({
-    where: { id: ids[0] },
-    data: { submissionDueAt: now },
-  });
-  expect((await read(users[0], false)).pagination.total).toBe(2);
-
-  await updateSubscriptionKind({
-    userId: users[0],
-    sectionJwId: section.jwId,
-    kind: "auditor",
-  });
-  expect((await read(users[0], false)).pagination.total).toBe(3);
-  expect(
-    (await read(users[0])).data.every(
-      (homework) => homework.completionRequired,
-    ),
-  ).toBe(true);
-  await updateSubscriptionKind({
-    userId: users[0],
-    sectionJwId: section.jwId,
-    kind: specification.subscription_kind,
-  });
-  expect((await read(users[0], false)).pagination.total).toBe(2);
+async function expectCompletionPreserved() {
   expect(
     await db.homeworkCompletion.findMany({
-      where: { userId: users[0] },
-      select: { homeworkId: true, completedAt: true },
+      where: { homeworkId: { in: ids } },
+      select: { userId: true, homeworkId: true, completedAt: true },
     }),
-  ).toEqual(
-    specification.preserve_records
-      ? [{ homeworkId: ids[3], completedAt: now }]
-      : [],
+  ).toEqual([{ userId: users[0], homeworkId: ids[3], completedAt: now }]);
+}
+
+describe("known homework state consumers", () => {
+  it("filters TA deadlines before pagination and excludes undated work from calendar", async () => {
+    const pending = await read(users[0], false, 1);
+    expect(pending.pagination.total).toBe(2);
+    expect(pending.data).toHaveLength(1);
+    expect(pending.data[0]).toMatchObject({
+      id: ids[1],
+      completionRequired: false,
+    });
+    expect(
+      (
+        await getIncompleteHomeworkCalendarItems(users[0], [sectionId()], now)
+      ).map((row) => row.id),
+    ).toEqual([ids[1]]);
+  });
+
+  it("shows real TA completion independently of the completion requirement", async () => {
+    const all = await read(users[0]);
+    expect(all.pagination.total).toBe(4);
+    expect(
+      all.data
+        .map((row) => ({
+          id: row.id,
+          completionRequired: row.completionRequired,
+        }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    ).toEqual(
+      ids
+        .map((id) => ({ id, completionRequired: false }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    );
+    expect(
+      all.data.find((row) => row.id === ids[3])?.completion,
+    ).not.toBeNull();
+    expect((await read(users[0], true)).data.map((row) => row.id)).toEqual([
+      ids[3],
+    ]);
+    await expectCompletionPreserved();
+  });
+
+  it("keeps a regular subscriber's pending work independent of another owner's completion", async () => {
+    const pending = await read(users[1], false);
+    expect(pending.pagination.total).toBe(4);
+    expect(pending.data.map((row) => row.id).sort()).toEqual([...ids].sort());
+    expect(
+      pending.data.every(
+        (row) => row.completionRequired && row.completion === null,
+      ),
+    ).toBe(true);
+    expect((await read(users[1], true)).data).toEqual([]);
+    await expectCompletionPreserved();
+  });
+
+  it.each([
+    { name: "before now", dueAt: new Date(now.getTime() - 1), include: false },
+    { name: "at now", dueAt: now, include: false },
+    { name: "in the future", dueAt: future, include: true },
+    { name: "without a deadline", dueAt: null, include: true },
+  ])(
+    "projects TA work $name without modifying completion",
+    async ({ dueAt, include }) => {
+      await db.homework.update({
+        where: { id: ids[0] },
+        data: { submissionDueAt: dueAt },
+      });
+      const expected = include ? [ids[0], ids[1], ids[2]] : [ids[1], ids[2]];
+      const pending = await read(users[0], false);
+      expect(pending.pagination.total).toBe(expected.length);
+      expect(pending.data.map((row) => row.id).sort()).toEqual(expected.sort());
+      await expectCompletionPreserved();
+    },
   );
 });
+
+it.each([
+  {
+    before: "teaching_assistant",
+    after: "auditor",
+    pendingBefore: 2,
+    pendingAfter: 3,
+    required: true,
+  },
+  {
+    before: "auditor",
+    after: "teaching_assistant",
+    pendingBefore: 3,
+    pendingAfter: 2,
+    required: false,
+  },
+] as const)(
+  "changing $before to $after updates consumers and preserves completion",
+  async (scenario) => {
+    await db.userSectionSubscription.update({
+      where: { userId_sectionId: { userId: users[0], sectionId: sectionId() } },
+      data: { kind: scenario.before },
+    });
+    expect((await read(users[0], false)).pagination.total).toBe(
+      scenario.pendingBefore,
+    );
+    if (!section) throw new Error("Missing isolated section");
+    await updateSubscriptionKind({
+      userId: users[0],
+      sectionJwId: section.jwId,
+      kind: scenario.after,
+    });
+    expect(
+      await db.userSectionSubscription.findMany({
+        where: { sectionId: section.id },
+        select: { userId: true, kind: true },
+        orderBy: { userId: "asc" },
+      }),
+    ).toEqual(
+      [
+        { userId: users[0], kind: scenario.after },
+        { userId: users[1], kind: "regular" },
+      ].sort((a, b) => a.userId.localeCompare(b.userId)),
+    );
+    expect((await read(users[0], false)).pagination.total).toBe(
+      scenario.pendingAfter,
+    );
+    expect(
+      (await read(users[0])).data.every(
+        (row) => row.completionRequired === scenario.required,
+      ),
+    ).toBe(true);
+    await expectCompletionPreserved();
+  },
+);
