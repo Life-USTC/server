@@ -1,268 +1,39 @@
-import { afterAll, afterEach, beforeEach, expect, it } from "vitest";
-import { getCoursePage } from "@/features/catalog/server/course-page-data";
+import { expect } from "vitest";
 import {
   findCourseDetailByJwId,
   findSectionDetailByJwId,
 } from "@/features/catalog/server/course-section-read-queries";
 import { listSectionSummaries } from "@/features/catalog/server/section-summary-read-model";
-import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { findTeacherDetailById } from "@/features/catalog/server/teacher-summary-read-model";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
-import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
-import {
-  type CatalogContractFixture,
-  cleanupCatalogContractFixture,
-  createCatalogContractFixture,
-} from "../shared/catalog-contract-fixture";
-import { createFixturePrisma } from "../shared/prisma";
+import { catalogReadTest as it } from "../shared/catalog-read-fixture";
 
-const db = createFixturePrisma();
-let fixture: CatalogContractFixture;
-let originalRevision: Awaited<
-  ReturnType<typeof db.staticImportState.findUnique>
->;
-beforeEach(async () => {
-  resetPublicRuntimeCacheForTest();
-  originalRevision = await db.staticImportState.findUnique({
-    where: { id: "global" },
-  });
-  fixture = await createCatalogContractFixture(db);
-});
-afterEach(async () => {
-  await cleanupCatalogContractFixture(db, fixture);
-  if (originalRevision)
-    await db.staticImportState.upsert({
-      where: { id: "global" },
-      create: originalRevision,
-      update: originalRevision,
-    });
-  else await db.staticImportState.deleteMany({ where: { id: "global" } });
-  resetPublicRuntimeCacheForTest();
-});
-afterAll(() => db.$disconnect());
-function request<T>(read: () => Promise<T>) {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("Missing app runtime database URL");
-  return runWithCloudflareRuntimeEnv(
-    { HYPERDRIVE: { connectionString } },
-    read,
-  );
-}
-async function commitRevision() {
-  const data = {
-    snapshotSha256: crypto.randomUUID().replaceAll("-", "").repeat(2),
-    snapshotGeneratedAt: new Date(),
-    transformRevision: 6,
-  };
-  await db.staticImportState.upsert({
-    where: { id: "global" },
-    create: { id: "global", ...data },
-    update: data,
-  });
-}
-
-it("course.public-detail-cache", async () => {
-  const [a, b] = fixture.courses;
-  expect(
-    (await request(() => findCourseDetailByJwId(a.jwId, "zh-cn")))?.namePrimary,
-  ).toBe(a.nameCn);
-  expect(
-    (await request(() => findCourseDetailByJwId(b.jwId, "en-us")))?.namePrimary,
-  ).toBe(b.nameEn);
-  expect(
-    (await request(() => findCourseDetailByJwId(a.jwId, "en-us")))?.namePrimary,
-  ).toBe(a.nameEn);
-  const page = await request(() => getCoursePage(a.jwId, "zh-cn"));
-  expect(page?.id).toBe(a.id);
-  expect(page?.sections).toHaveLength(1);
-  expect(page).not.toHaveProperty("classifyId");
-  const api = await request(() => findCourseDetailByJwId(a.jwId, "zh-cn"));
-  expect(api).toHaveProperty("sections");
-  expect(api).toHaveProperty("classifyId");
-  expect(api).not.toHaveProperty("course");
-  await db.course.update({
-    where: { id: a.id },
-    data: { nameCn: "已导入的新课程" },
-  });
-  expect(
-    (await request(() => findCourseDetailByJwId(a.jwId)))?.namePrimary,
-  ).toBe(a.nameCn);
-  const missing = fixture.base + 99;
-  expect(await request(() => findCourseDetailByJwId(missing))).toBeNull();
-  const addedCourse = await db.course.create({
-    data: { jwId: missing, code: `${fixture.marker}-new`, nameCn: "新课程" },
-  });
-  fixture.cleanupIds.courses.push(addedCourse.id);
-  await commitRevision();
-  expect(
-    (await request(() => findCourseDetailByJwId(a.jwId)))?.namePrimary,
-  ).toBe("已导入的新课程");
-  expect((await request(() => getCoursePage(a.jwId)))?.namePrimary).toBe(
-    "已导入的新课程",
-  );
-  expect(
-    (await request(() => findCourseDetailByJwId(missing)))?.namePrimary,
-  ).toBe("新课程");
-});
-
-it("section.public-detail-cache", async () => {
-  const [a, b] = fixture.sections;
-  const [courseA, courseB] = fixture.courses;
-  const group = await db.scheduleGroup.create({
-    data: {
-      jwId: fixture.base,
-      sectionId: a.id,
-      no: 1,
-      limitCount: 20,
-      stdCount: 10,
-      actualPeriods: 1,
-      isDefault: true,
-    },
-  });
-  await db.schedule.create({
-    data: {
-      sectionId: a.id,
-      scheduleGroupId: group.id,
-      startUnit: 1,
-      endUnit: 2,
-      date: new Date("2026-09-28"),
-      weekday: 1,
-      periods: 1,
-      weekIndex: 1,
-      startTime: 800,
-      endTime: 900,
-    },
-  });
-  await db.teacherAssignment.create({
-    data: {
-      sectionId: a.id,
-      teacherId: fixture.teachers[0].id,
-      role: "lecturer",
-      period: 1,
-    },
-  });
-  const shape = {
-    includeExams: false,
-    includeSchedules: false,
-    includeTeacherDepartments: false,
-  };
-  const lean = await request(() =>
-    findSectionDetailByJwId(a.jwId, "zh-cn", shape),
-  );
-  expect(lean?.schedules).toEqual([]);
-  expect(lean?.teacherAssignments).toEqual([]);
-  const full = await request(() => findSectionDetailByJwId(a.jwId, "en-us"));
-  expect(full?.course.namePrimary).toBe(courseA.nameEn);
-  expect(full?.schedules).toHaveLength(1);
-  expect(full?.teacherAssignments).toHaveLength(1);
-  expect(
-    (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn")))?.schedules,
-  ).toHaveLength(1);
-  expect(full?.teachers[0].department?.id).toBe(fixture.departments[0].id);
-  expect(
-    (await request(() => findSectionDetailByJwId(b.jwId)))?.course.namePrimary,
-  ).toBe(courseB.nameCn);
-  expect(
-    (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn", shape)))
-      ?.schedules,
-  ).toEqual([]);
-  expect((await request(() => getSectionPage(a.jwId)))?.section.id).toBe(a.id);
-  await db.section.update({
-    where: { id: a.id },
-    data: { code: "UPDATED-SECTION" },
-  });
-  expect(
-    (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn", shape)))
-      ?.code,
-  ).toBe(a.code);
-  const missing = fixture.base + 99;
-  expect(await request(() => findSectionDetailByJwId(missing))).toBeNull();
-  const addedSection = await db.section.create({
-    data: {
-      jwId: missing,
-      code: "NEW-SECTION",
-      courseId: courseA.id,
-      semesterId: fixture.semester.id,
-    },
-  });
-  fixture.cleanupIds.sections.push(addedSection.id);
-  await commitRevision();
-  expect(
-    (await request(() => findSectionDetailByJwId(a.jwId, "zh-cn", shape)))
-      ?.code,
-  ).toBe("UPDATED-SECTION");
-  expect((await request(() => getSectionPage(a.jwId)))?.section.code).toBe(
-    "UPDATED-SECTION",
-  );
-  expect((await request(() => findSectionDetailByJwId(missing)))?.code).toBe(
-    "NEW-SECTION",
-  );
-});
-
-it("teacher.public-detail-cache", async () => {
-  const [a, b] = fixture.teachers;
-  expect(
-    (await request(() => findTeacherDetailById(a.id, "zh-cn")))?.department?.id,
-  ).toBe(a.departmentId);
-  expect(
-    (await request(() => findTeacherDetailById(b.id, "en-us")))?.department?.id,
-  ).toBe(b.departmentId);
-  expect(
-    (await request(() => findTeacherDetailById(a.id, "en-us")))?.namePrimary,
-  ).toBe(a.nameEn);
-  expect((await request(() => getTeacherPage(a.id)))?.id).toBe(a.id);
-  expect(await request(() => getTeacherPage(a.id))).not.toHaveProperty("jwId");
-  expect(await request(() => findTeacherDetailById(a.id))).toHaveProperty(
-    "jwId",
-    a.jwId,
-  );
-  expect(await request(() => findTeacherDetailById(a.id))).not.toHaveProperty(
-    "teacher",
-  );
-  await db.teacher.update({
-    where: { id: a.id },
-    data: { nameCn: "导入更新的教师" },
-  });
-  expect((await request(() => findTeacherDetailById(a.id)))?.namePrimary).toBe(
-    a.nameCn,
-  );
-  const missing = fixture.base + 99;
-  expect(await request(() => findTeacherDetailById(missing))).toBeNull();
-  const addedTeacher = await db.teacher.create({
-    data: { id: missing, jwId: missing, nameCn: "新增教师" },
-  });
-  fixture.cleanupIds.teachers.push(addedTeacher.id);
-  await commitRevision();
-  expect((await request(() => findTeacherDetailById(a.id)))?.namePrimary).toBe(
-    "导入更新的教师",
-  );
-  expect((await request(() => getTeacherPage(a.id)))?.namePrimary).toBe(
-    "导入更新的教师",
-  );
-  expect(
-    (await request(() => findTeacherDetailById(missing)))?.namePrimary,
-  ).toBe("新增教师");
-});
-
-it("section.relational-course-filter", async () => {
+it("section.relational-course-filter", async ({
+  catalogRead: { fixture, request },
+}) => {
   const [a, b] = fixture.courses;
   const pagination = { page: 1, pageSize: 20 };
-  const match = await listSectionSummaries({
-    filters: { courseId: String(a.id), courseJwId: String(a.jwId) },
-    pagination,
-  });
+  const match = await request(() =>
+    listSectionSummaries({
+      filters: { courseId: String(a.id), courseJwId: String(a.jwId) },
+      pagination,
+    }),
+  );
   expect(match.data.map((row) => row.id)).toEqual([fixture.sections[0].id]);
   expect(match.pagination.total).toBe(1);
-  const mismatch = await listSectionSummaries({
-    filters: { courseId: String(a.id), courseJwId: String(b.jwId) },
-    pagination,
-  });
+  const mismatch = await request(() =>
+    listSectionSummaries({
+      filters: { courseId: String(a.id), courseJwId: String(b.jwId) },
+      pagination,
+    }),
+  );
   expect(mismatch.data).toEqual([]);
   expect(mismatch.pagination.total).toBe(0);
 });
 
-it("section.bounded-related-sections", async () => {
+it("section.bounded-related-sections", async ({
+  catalogRead: { db, fixture, request },
+}) => {
   const courseId = fixture.courses[0].id;
   const semesterId = (
     await db.semester.create({
@@ -273,8 +44,7 @@ it("section.bounded-related-sections", async () => {
       },
     })
   ).id;
-  fixture.cleanupIds.semesters.push(semesterId);
-  const older = await db.section.create({
+  await db.section.create({
     data: {
       jwId: fixture.base + 29,
       code: "AAAA-OLDER",
@@ -282,11 +52,10 @@ it("section.bounded-related-sections", async () => {
       semesterId: fixture.semester.id,
     },
   });
-  fixture.cleanupIds.sections.push(older.id);
   // Reverse insert order makes an omitted unique tie-breaker observable.
   const expected: number[] = [];
   for (let offset = 28; offset >= 2; offset--) {
-    const section = await db.section.create({
+    await db.section.create({
       data: {
         jwId: fixture.base + offset,
         code: "EQUAL-CODE",
@@ -295,18 +64,21 @@ it("section.bounded-related-sections", async () => {
         retiredAt: offset >= 27 ? new Date() : null,
       },
     });
-    fixture.cleanupIds.sections.push(section.id);
     if (offset < 27) expected.push(fixture.base + offset);
   }
-  const result = await getSectionPage(fixture.sections[0].jwId);
+  const result = await request(() => getSectionPage(fixture.sections[0].jwId));
   expect(result?.section.otherCourseSectionCount).toBe(26);
   expect(
     result?.section.otherCourseSections.map((section) => section.jwId),
   ).toEqual(expected.sort((a, b) => a - b).slice(0, 20));
 });
 
-it("course.public-detail-fields", async () => {
-  const detail = await findCourseDetailByJwId(fixture.courses[0].jwId);
+it("course.public-detail-fields", async ({
+  catalogRead: { fixture, request },
+}) => {
+  const detail = await request(() =>
+    findCourseDetailByJwId(fixture.courses[0].jwId),
+  );
   const teachers = detail?.sections[0].teachers;
   expect(teachers).toHaveLength(1);
   expect(teachers?.[0]).toMatchObject({
@@ -327,11 +99,12 @@ it("course.public-detail-fields", async () => {
   expect(JSON.stringify(detail)).not.toContain("source-");
 });
 
-it("section.public-teacher-reference", async () => {
+it("section.public-teacher-reference", async ({
+  catalogRead: { fixture, request },
+}) => {
   for (const locale of ["zh-cn", "en-us"] as const) {
-    const detail = await findSectionDetailByJwId(
-      fixture.sections[0].jwId,
-      locale,
+    const detail = await request(() =>
+      findSectionDetailByJwId(fixture.sections[0].jwId, locale),
     );
     const teacher = fixture.teachers[0];
     const department = fixture.departments[0];
@@ -372,7 +145,9 @@ it("section.public-teacher-reference", async () => {
   }
 });
 
-it("teacher.public-detail-fields", async () => {
+it("teacher.public-detail-fields", async ({
+  catalogRead: { fixture, request },
+}) => {
   const teacher = fixture.teachers[0];
   for (const locale of ["zh-cn", "en-us"] as const) {
     const detail = await request(() =>

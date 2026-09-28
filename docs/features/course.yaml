@@ -189,7 +189,7 @@ requirements:
     - The new committed revision refreshes API and page data and makes the previously missing identity
       readable.
     test:
-      file: tests/integration/catalog-public-read-contracts.test.ts
+      file: tests/integration/course-public-detail-cache.test.ts
       name: course.public-detail-cache
 - id: course.history-cache-page-isolation
   category: consistency
