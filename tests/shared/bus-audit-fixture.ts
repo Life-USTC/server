@@ -1,10 +1,9 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { makeSignature } from "better-auth/crypto";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { isolatedDatabaseTest } from "./isolated-database";
+import { createNodeRuntime } from "./node-runtime";
 import type { TestPrismaClient } from "./prisma";
-import { createWaitUntil } from "./wait-until";
 
 type BusAudit = {
   db: TestPrismaClient;
@@ -24,42 +23,12 @@ export const busAuditTest = isolatedDatabaseTest.extend<{ bus: BusAudit }>({
     const marker = crypto.randomUUID();
     const userId = `bus-audit-${marker}`;
     const origin = "http://localhost:3000";
-    const operations: Promise<void>[] = [];
     let cookie = "";
-    function run<T>(work: () => T | Promise<T>): Promise<T> {
-      const pending = createWaitUntil();
-      const operation = (async () => {
-        const [result] = await Promise.allSettled([
-          runWithCloudflareRuntimeEnv(
-            {
-              APP_PUBLIC_ORIGIN: origin,
-              HYPERDRIVE: { connectionString: connections.app },
-              HYPERDRIVE_AUTH: { connectionString: connections.auth },
-            },
-            work,
-            pending,
-          ),
-        ]);
-        const [background] = await Promise.allSettled([pending.drain()]);
-        if (result.status === "rejected") {
-          if (background.status === "rejected")
-            throw new AggregateError(
-              [result.reason, background.reason],
-              "Bus action and background work failed",
-            );
-          throw result.reason;
-        }
-        if (background.status === "rejected") throw background.reason;
-        return result.value;
-      })();
-      operations.push(
-        operation.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return operation;
-    }
+    const { run, close } = createNodeRuntime({
+      APP_PUBLIC_ORIGIN: origin,
+      HYPERDRIVE: { connectionString: connections.app },
+      HYPERDRIVE_AUTH: { connectionString: connections.auth },
+    });
     function event(id?: number, requestId = "bus-audit-request") {
       const body = new FormData();
       if (id) body.set("id", String(id));
@@ -102,9 +71,7 @@ export const busAuditTest = isolatedDatabaseTest.extend<{ bus: BusAudit }>({
       cookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`;
       await use({ db, marker, userId, run, event });
     } finally {
-      // Finish actual app-role requests before the owning fixture drops its DB.
-      for (let index = 0; index < operations.length; index++)
-        await operations[index];
+      await close();
     }
   },
 });

@@ -1,11 +1,10 @@
 import { makeSignature } from "better-auth/crypto";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { getCanonicalOAuthIssuer } from "@/lib/oauth/resource-urls";
 import { isolatedDatabaseTest } from "./isolated-database";
+import { createNodeRuntime } from "./node-runtime";
 import type { TestPrismaClient } from "./prisma";
-import { createWaitUntil } from "./wait-until";
 
 type AdminGovernance = {
   db: TestPrismaClient;
@@ -44,55 +43,22 @@ export const adminGovernanceTest = isolatedDatabaseTest.extend<{
     const commentIds = [0, 1, 2].map(
       (index) => `governance-comment-${marker}-${index}`,
     );
-    const responses = new Set<Response>();
-    const operations: Promise<void>[] = [];
     let cookie = "";
     let userCookie = "";
 
-    function run<T>(work: () => T | Promise<T>): Promise<T> {
-      const pending = createWaitUntil();
-      const operation = (async () => {
-        const [result] = await Promise.allSettled([
-          runWithCloudflareRuntimeEnv(
-            {
-              APP_PUBLIC_ORIGIN: origin,
-              HYPERDRIVE: { connectionString: connections.app },
-              HYPERDRIVE_AUTH: { connectionString: connections.auth },
-              HYPERDRIVE_MAINTENANCE: {
-                connectionString: connections.maintenance,
-              },
-              // Rate-limit enforcement has separate binding contracts; these
-              // cases exercise the real session and governance checks.
-              USER_WRITE_RATE_LIMITER: {
-                limit: async () => ({ success: true }),
-              },
-            },
-            work,
-            pending,
-          ),
-        ]);
-        if (result.status === "fulfilled" && result.value instanceof Response)
-          responses.add(result.value);
-        const [background] = await Promise.allSettled([pending.drain()]);
-        if (result.status === "rejected") {
-          if (background.status === "rejected")
-            throw new AggregateError(
-              [result.reason, background.reason],
-              "Admin request and background work failed",
-            );
-          throw result.reason;
-        }
-        if (background.status === "rejected") throw background.reason;
-        return result.value;
-      })();
-      operations.push(
-        operation.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return operation;
-    }
+    const { run, close } = createNodeRuntime({
+      APP_PUBLIC_ORIGIN: origin,
+      HYPERDRIVE: { connectionString: connections.app },
+      HYPERDRIVE_AUTH: { connectionString: connections.auth },
+      HYPERDRIVE_MAINTENANCE: {
+        connectionString: connections.maintenance,
+      },
+      // Rate-limit enforcement has separate binding contracts; these
+      // cases exercise the real session and governance checks.
+      USER_WRITE_RATE_LIMITER: {
+        limit: async () => ({ success: true }),
+      },
+    });
     function request(
       path: string,
       method = "GET",
@@ -108,22 +74,6 @@ export const adminGovernanceTest = isolatedDatabaseTest.extend<{
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-    }
-    async function cleanup() {
-      for (let index = 0; index < operations.length; index++)
-        await operations[index];
-      const settled = await Promise.allSettled(
-        [...responses].map((response) =>
-          response.body && !response.bodyUsed
-            ? response.body.cancel()
-            : undefined,
-        ),
-      );
-      const failures = settled.flatMap((result) =>
-        result.status === "rejected" ? [result.reason] : [],
-      );
-      if (failures.length)
-        throw new AggregateError(failures, "Admin response cleanup failed");
     }
 
     try {
@@ -231,7 +181,7 @@ export const adminGovernanceTest = isolatedDatabaseTest.extend<{
         request,
       });
     } finally {
-      await cleanup();
+      await close();
     }
   },
 });
