@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { expect, type Locator, test } from "@playwright/test";
+import { test as base, expect, type Locator } from "@playwright/test";
 import {
   localizeCatalogLink,
   USTC_CATALOG_LINKS,
@@ -20,7 +20,7 @@ import {
 } from "../../../utils/e2e-db/publications";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type VisiblePriorityField,
 } from "../../../utils/property-priority";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
@@ -266,29 +266,50 @@ async function fixture() {
   };
 }
 
-test("ui.model-property-priority-discovery-views", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(240_000);
-  const f = await fixture();
-  const main = page.locator("#main-content");
-  const title = () => main.getByRole("heading", { level: 1 });
-  const clock = new Date();
-  clock.setUTCHours(3, 0, 0, 0);
-  await page.clock.setFixedTime(clock);
-  const image = readFileSync("public/images/icon.png");
-  await page.route("**/api/catalog/young-events/**", async (route) => {
-    if (route.request().resourceType() === "image")
-      await route.fulfill({ body: image, contentType: "image/png" });
-    else await route.fallback();
-  });
-  try {
-    for (const locale of ["zh-cn", "en-us"] as const) {
-      const copy = locale === "zh-cn" ? zh : en;
-      const y = copy.youngEvents;
-      const p = copy.publications;
-      const audit = createPriorityViewAudit("discovery");
-      for (const width of [1280, 390]) {
+// These consumers only read this state. Sharing its immutable objects avoids
+// repeating the R2 upload bootstrap; a focused run receives the same fresh state.
+// The active bus version still requires an isolated Worker/database partition.
+const test = base.extend<
+  object,
+  { discoveryState: Awaited<ReturnType<typeof fixture>> }
+>({
+  discoveryState: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads destructuring as the fixture dependency list.
+    async ({}, use) => {
+      const data = await fixture();
+      try {
+        await use(data);
+      } finally {
+        await data.close();
+      }
+    },
+    { scope: "worker" },
+  ],
+});
+
+for (const locale of ["zh-cn", "en-us"] as const)
+  for (const width of [1280, 390]) {
+    test(`ui.model-property-priority-discovery-views ${locale}/${width}`, async ({
+      page,
+      discoveryState: f,
+    }, testInfo) => {
+      test.setTimeout(240_000);
+      const main = page.locator("#main-content");
+      const title = () => main.getByRole("heading", { level: 1 });
+      const clock = new Date();
+      clock.setUTCHours(3, 0, 0, 0);
+      await page.clock.setFixedTime(clock);
+      const image = readFileSync("public/images/icon.png");
+      await page.route("**/api/catalog/young-events/**", async (route) => {
+        if (route.request().resourceType() === "image")
+          await route.fulfill({ body: image, contentType: "image/png" });
+        else await route.fallback();
+      });
+      {
+        const copy = locale === "zh-cn" ? zh : en;
+        const y = copy.youngEvents;
+        const p = copy.publications;
+
         await page.context().clearCookies();
         await page
           .context()
@@ -298,10 +319,7 @@ test("ui.model-property-priority-discovery-views", async ({
         await page.setViewportSize({ width, height: 1000 });
         await test.step(`${locale}/${width}: landing`, async () => {
           await gotoAndWaitForReady(page, "/");
-          await audit.check({
-            feature: "overview",
-            capability: "anonymous-overview",
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: title(),
             primary: {
@@ -332,10 +350,7 @@ test("ui.model-property-priority-discovery-views", async ({
             .getByRole("row")
             .filter({ hasText: "13:00" })
             .first();
-          await audit.check({
-            feature: "bus",
-            capability: "bus-timetable",
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: routeTitle,
             primary: {
@@ -362,10 +377,7 @@ test("ui.model-property-priority-discovery-views", async ({
           });
           if (width === 390) {
             const summary = page.getByTestId("bus-compact-summary");
-            await audit.check({
-              feature: "bus",
-              capability: "bus-next-departures",
-              view: "web",
+            await assertPriorityView({
               scope: summary,
               identity: summary.getByText("13:00", { exact: true }).first(),
               primary: {
@@ -403,10 +415,7 @@ test("ui.model-property-priority-discovery-views", async ({
               })
               .click();
           }
-          await audit.check({
-            feature: "bus",
-            capability: "bus-route-search",
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: routeTitle,
             primary: {
@@ -441,10 +450,7 @@ test("ui.model-property-priority-discovery-views", async ({
             .locator("text[data-campus-label]")
             .filter({ hasText: start })
             .first();
-          await audit.check({
-            feature: "bus",
-            capability: "bus-map",
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: label,
             primary: { "campus.namePrimary": visible(label, start) },
@@ -465,10 +471,7 @@ test("ui.model-property-priority-discovery-views", async ({
             exact: true,
           });
           const row = link.locator("xpath=ancestor::li[1]");
-          await audit.check({
-            feature: "publications",
-            capability: "publication-read",
-            view: "web-list",
+          await assertPriorityView({
             scope: row,
             identity: link,
             primary: { "revision.title": visible(link, f.publication.title) },
@@ -517,10 +520,7 @@ test("ui.model-property-priority-discovery-views", async ({
             "href",
             f.publication.canonicalUrl,
           );
-          await audit.check({
-            feature: "publications",
-            capability: "publication-read",
-            view: "web-detail",
+          await assertPriorityView({
             scope: main,
             identity: title(),
             primary: {
@@ -595,10 +595,7 @@ test("ui.model-property-priority-discovery-views", async ({
               : sourceRow.locator('[data-slot="item-description"]').last();
           const date =
             width === 1280 ? sourceRow.getByRole("cell").nth(2) : count;
-          await audit.check({
-            feature: "publications",
-            capability: "publication-source-directory",
-            view: "web",
+          await assertPriorityView({
             scope: sourceRow,
             identity:
               width === 1280
@@ -644,10 +641,7 @@ test("ui.model-property-priority-discovery-views", async ({
               : link.locator('[data-slot="item-title"]');
           const meta = (text: string) =>
             row.locator("span").filter({ hasText: text }).last();
-          await audit.check({
-            feature: "young-event",
-            capability: "young-event",
-            view: "web-list",
+          await assertPriorityView({
             scope: row,
             identity,
             primary: {
@@ -790,10 +784,7 @@ test("ui.model-property-priority-discovery-views", async ({
               y.signupInfoRequired,
             ),
           });
-          await audit.check({
-            feature: "young-event",
-            capability: "young-event",
-            view: "web-detail",
+          await assertPriorityView({
             scope: main,
             identity: title(),
             primary: {
@@ -854,10 +845,7 @@ test("ui.model-property-priority-discovery-views", async ({
             width === 1280
               ? event.locator(":scope > div").last()
               : event.locator('[data-slot="item-description"]').last();
-          await audit.check({
-            feature: "young-event",
-            capability: "young-event",
-            view: "web-calendar",
+          await assertPriorityView({
             scope: event,
             identity: eventTitle,
             primary: {
@@ -888,10 +876,7 @@ test("ui.model-property-priority-discovery-views", async ({
             width === 1280
               ? organizerRow.getByRole("cell")
               : organizerRow.locator('[data-slot="item-description"]');
-          await audit.check({
-            feature: "young-event",
-            capability: "young-event",
-            view: "web-organizers",
+          await assertPriorityView({
             scope: organizerRow,
             identity:
               width === 1280
@@ -941,10 +926,7 @@ test("ui.model-property-priority-discovery-views", async ({
             })
             .getByRole("listitem")
             .first();
-          await audit.check({
-            feature: "weather",
-            capability: "weather",
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: heading,
             primary: {
@@ -1040,10 +1022,7 @@ test("ui.model-property-priority-discovery-views", async ({
           const group = row
             .locator("xpath=ancestor::section[1]")
             .getByRole("heading", { level: 3 });
-          await audit.check({
-            feature: "catalog-link",
-            capability: "link-browse",
-            view: "web",
+          await assertPriorityView({
             scope: row,
             identity: actualIdentity,
             primary: { "link.title": visible(actualIdentity, item.title) },
@@ -1062,10 +1041,7 @@ test("ui.model-property-priority-discovery-views", async ({
             },
             tertiary: { "link.slug": { value: item.slug } },
           });
-          await audit.check({
-            feature: "catalog-link",
-            capability: "link-pin-and-visit",
-            view: "web",
+          await assertPriorityView({
             scope: row,
             identity: actualIdentity,
             primary: {
@@ -1085,9 +1061,5 @@ test("ui.model-property-priority-discovery-views", async ({
           });
         });
       }
-      audit.finish();
-    }
-  } finally {
-    await f.close();
+    });
   }
-});

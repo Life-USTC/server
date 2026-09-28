@@ -1,6 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { homeworkExpectation } from "../../../../../shared/specifications/homework";
-import { semanticContract } from "../../../../../shared/specifications/semantic-contract";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { visibleText } from "../../../../utils/locators";
@@ -12,16 +10,10 @@ test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
   test("homework.mobile-toolbar-priority", async ({ page }, testInfo) => {
-    const contract = await semanticContract(testInfo.title, "target_size");
-    contract.equal("/surface", "web");
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
-    const specification = homeworkExpectation(
-      "homework.mobile-toolbar-priority",
-      "target_size",
-    );
-    await page.setViewportSize(specification.viewport);
+    await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, "/workspace/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
@@ -33,11 +25,6 @@ test.describe("仪表盘作业", () => {
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
     const add = page.getByTestId("workspace-homeworks-add");
-    contract.equal("/target", {
-      by: "test_id",
-      value: "workspace-homeworks-add",
-    });
-    contract.equal("/viewport", page.viewportSize());
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-homeworks-view-menu")).toHaveCount(
@@ -45,9 +32,8 @@ test.describe("仪表盘作业", () => {
     );
 
     const addBox = await add.boundingBox();
-    contract.atLeast("/min_height", addBox?.height ?? 0);
-    contract.atLeast("/min_width", addBox?.width ?? 0);
-    contract.recordPlaywright(testInfo);
+    expect(addBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(addBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     const filterBox = await incomplete.boundingBox();
     expect(filterBox?.height).toBeGreaterThanOrEqual(44);
     expect(filterBox?.width).toBeGreaterThanOrEqual(44);

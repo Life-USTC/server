@@ -14,40 +14,41 @@ import {
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-test("ui.model-property-priority-community-views", async ({
-  page,
-  baseURL,
-}, testInfo) => {
-  test.setTimeout(240_000);
-  page.setDefaultTimeout(10_000);
-  if (!baseURL) throw new Error("Missing baseURL");
-  const f = await createCommunityPriorityFixture(page);
-  if (!f.author.name) throw new Error("Missing author name");
-  const authorName = f.author.name;
-  if (!f.description.lastEditedAt || !f.edit.previousContent)
-    throw new Error("Missing description fixture fields");
-  const editedAt = f.description.lastEditedAt;
-  const previousContent = f.edit.previousContent;
-  try {
-    for (const locale of ["en-us", "zh-cn"] as const) {
-      await page
-        .context()
-        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-      const m = locale === "en-us" ? enMessages : zhMessages;
-      const date = (v: Date) =>
-        new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: "Asia/Shanghai",
-        }).format(v);
-      for (const width of [390, 1280]) {
+for (const locale of ["en-us", "zh-cn"] as const)
+  for (const width of [390, 1280]) {
+    test(`ui.model-property-priority-community-views ${locale}/${width}`, async ({
+      page,
+      baseURL,
+    }, testInfo) => {
+      test.setTimeout(240_000);
+      page.setDefaultTimeout(10_000);
+      if (!baseURL) throw new Error("Missing baseURL");
+      const f = await createCommunityPriorityFixture(page);
+      if (!f.author.name) throw new Error("Missing author name");
+      const authorName = f.author.name;
+      if (!f.description.lastEditedAt || !f.edit.previousContent)
+        throw new Error("Missing description fixture fields");
+      const editedAt = f.description.lastEditedAt;
+      const previousContent = f.edit.previousContent;
+      try {
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+        const m = locale === "en-us" ? enMessages : zhMessages;
+        const date = (v: Date) =>
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Shanghai",
+          }).format(v);
+
         await page.setViewportSize({ width, height: 900 });
-        const audit = createPriorityViewAudit("community");
+
         const field = (scope: Locator, text: string, exact = false) => ({
           locator: scope
             .getByText(text, { exact })
@@ -62,7 +63,7 @@ test("ui.model-property-priority-community-views", async ({
             ),
           });
           try {
-            await audit.check(input);
+            await assertPriorityView(input);
           } catch (error) {
             expect
               .soft(error, `${locale}/${width}/${label}: ${String(error)}`)
@@ -77,9 +78,6 @@ test("ui.model-property-priority-community-views", async ({
         await expect(comment).toBeVisible();
         await check(
           {
-            feature: "comment",
-            capability: "object-comment-section",
-            view: "web",
             scope: comment,
             identity: comment.getByRole("heading", { name: authorName }),
             primary: {
@@ -120,9 +118,6 @@ test("ui.model-property-priority-community-views", async ({
           .filter({ hasText: f.upload.filename });
         await check(
           {
-            feature: "upload",
-            capability: "comment-attachment-download",
-            view: "web",
             scope: attachment,
             identity: attachment.locator('[data-slot="item-title"]'),
             primary: {
@@ -149,9 +144,6 @@ test("ui.model-property-priority-community-views", async ({
         ).toBeVisible();
         await check(
           {
-            feature: "description",
-            capability: "object-description-section",
-            view: "web-content",
             scope: introduction,
             identity: introduction
               .locator('[data-slot="markdown-preview"] p')
@@ -184,9 +176,6 @@ test("ui.model-property-priority-community-views", async ({
         const history = introduction.getByRole("tabpanel");
         await check(
           {
-            feature: "description",
-            capability: "object-description-section",
-            view: "web-history",
             scope: history,
             identity: history.getByText(date(f.edit.createdAt), {
               exact: true,
@@ -226,9 +215,6 @@ test("ui.model-property-priority-community-views", async ({
           .replace("{total}", formatBytes(meta.quotaBytes));
         await check(
           {
-            feature: "upload",
-            capability: "upload-list",
-            view: "web",
             scope: main,
             identity: row.getByText(f.upload.filename, { exact: true }),
             primary: { "upload.filename": field(row, f.upload.filename) },
@@ -287,9 +273,6 @@ test("ui.model-property-priority-community-views", async ({
           });
           await check(
             {
-              feature: "upload",
-              capability: "upload-manage",
-              view: "web",
               scope: dialog,
               identity: dialog.getByRole("textbox"),
               primary: {
@@ -348,9 +331,6 @@ test("ui.model-property-priority-community-views", async ({
         });
         await check(
           {
-            feature: "user",
-            capability: "public-profile",
-            view: "web",
             scope: profile,
             identity: summary.getByRole("heading", { name: authorName }),
             primary: { "user.name": field(summary, authorName) },
@@ -417,9 +397,6 @@ test("ui.model-property-priority-community-views", async ({
           const editor = composer.getByRole("textbox");
           await check(
             {
-              feature: "upload",
-              capability: "comment-attachment-upload",
-              view: "web-pending",
               scope: composer,
               identity: editor,
               primary: {
@@ -468,9 +445,6 @@ test("ui.model-property-priority-community-views", async ({
             .filter({ hasText: imageName });
           await check(
             {
-              feature: "upload",
-              capability: "comment-attachment-upload",
-              view: "web-ready",
               scope: composer,
               identity: filename,
               primary: {
@@ -499,14 +473,8 @@ test("ui.model-property-priority-community-views", async ({
               ).status(),
             ).toBe(200);
         }
-        try {
-          audit.finish();
-        } catch (error) {
-          expect.soft(error).toBeUndefined();
-        }
+      } finally {
+        await cleanupCommunityPriorityFixture(page, f);
       }
-    }
-  } finally {
-    await cleanupCommunityPriorityFixture(page, f);
+    });
   }
-});

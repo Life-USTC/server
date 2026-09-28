@@ -1,9 +1,9 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  VisiblePriorityField,
+import {
+  assertPriorityView,
+  type VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
@@ -20,7 +20,6 @@ const local = (
 ) => (locale === "en-us" ? (item.nameEn ?? item.nameCn) : item.nameCn);
 
 export async function checkWorkspaceCalendarPriorityViews(
-  audit: ReturnType<typeof createPriorityViewAudit>,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: Locale,
@@ -37,10 +36,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const row = table.getByRole("row").filter({ hasText: "08:00" });
   const date = row.getByRole("cell").nth(1);
   const lecture = row.getByRole("cell").first().locator("div").first();
-  await audit.check({
-    feature: "calendar",
-    capability: "section-calendar-view",
-    view: "web",
+  await assertPriorityView({
     scope: row,
     identity: date,
     primary: {
@@ -58,10 +54,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     },
     tertiary: { "event.id": { value: `class-${schedule.id}` } },
   });
-  await audit.check({
-    feature: "schedule",
-    capability: "section-schedule",
-    view: "web",
+  await assertPriorityView({
     scope: row,
     identity: date,
     primary: {
@@ -97,10 +90,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const calendarPrimary = {
     "calendar.url": { locator: calendarUrl, expected: publicUrl, input: true },
   };
-  await audit.check({
-    feature: "ical",
-    capability: "section-calendar-dialog",
-    view: "web",
+  await assertPriorityView({
     scope: calendar,
     identity: calendarTitle,
     primary: calendarPrimary,
@@ -114,10 +104,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     },
     tertiary: {},
   });
-  await audit.check({
-    feature: "section",
-    capability: "section-ical",
-    view: "web",
+  await assertPriorityView({
     scope: calendar,
     identity: calendarTitle,
     primary: calendarPrimary,
@@ -155,10 +142,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   });
   const regular = roleDialog.getByRole("radio", { name: /^(普通|Regular)$/ });
   await expect(regular).toBeChecked();
-  await audit.check({
-    feature: "subscription",
-    capability: "update-kind",
-    view: "web",
+  await assertPriorityView({
     scope: roleDialog,
     identity: roleDialog.getByRole("heading"),
     primary: {
@@ -182,10 +166,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     ).status(),
   ).toBe(200);
   await gotoAndWaitForReady(page, "/workspace/subscriptions");
-  await audit.check({
-    feature: "subscribed-sections",
-    capability: "subscribed-sections-tab",
-    view: "web",
+  await assertPriorityView({
     scope: semesterScope,
     identity: subscriptionTitle,
     primary: {
@@ -210,10 +191,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const personalUrl = personal.locator("#personal-subscription-url");
   const value = `${PLAYWRIGHT_BASE_URL}/api/calendar-feeds/${data.user.id}:${data.user.calendarFeedToken}.ics`;
   await expect(personalUrl).toHaveValue(value);
-  await audit.check({
-    feature: "ical",
-    capability: "personal-calendar-subscription",
-    view: "web",
+  await assertPriorityView({
     scope: personal,
     identity: personal.getByRole("heading").first(),
     primary: {
@@ -241,10 +219,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   const quickRow = quick
     .locator('[data-slot="item"]')
     .filter({ hasText: courseName });
-  await audit.check({
-    feature: "subscription",
-    capability: "batch-subscribe-by-codes",
-    view: "web-quick-add",
+  await assertPriorityView({
     scope: quick,
     identity: quickRow.locator('[data-slot="item-title"]'),
     primary: {
@@ -277,10 +252,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     .locator('[data-slot="field"]')
     .filter({ hasText: courseName });
   const matchTitle = match.locator("label");
-  await audit.check({
-    feature: "subscription",
-    capability: "batch-subscribe-by-codes",
-    view: "web-import",
+  await assertPriorityView({
     scope: confirm,
     identity: matchTitle,
     primary: { "section.course.namePrimary": field(matchTitle, courseName) },

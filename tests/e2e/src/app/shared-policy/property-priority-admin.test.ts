@@ -5,7 +5,7 @@ import {
 } from "../../../utils/admin-priority-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type PriorityViewCheck,
 } from "../../../utils/property-priority";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
@@ -15,32 +15,34 @@ function required<T>(value: T | null | undefined): T {
   return value;
 }
 
-test("ui.model-property-priority-admin-views", async ({
-  page,
-  baseURL,
-}, testInfo) => {
-  test.setTimeout(240_000);
-  page.setDefaultTimeout(10_000);
-  if (!baseURL) throw new Error("Missing Playwright baseURL");
-  const f = await createAdminPriorityFixture();
-  try {
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(f.admin.id)]);
-    for (const locale of ["en-us", "zh-cn"] as const) {
-      await page
-        .context()
-        .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-      const en = locale === "en-us";
-      const date = (value: Date) =>
-        new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: "Asia/Shanghai",
-        }).format(value);
-      for (const width of [390, 1280]) {
+for (const locale of ["en-us", "zh-cn"] as const)
+  for (const width of [390, 1280]) {
+    test(`ui.model-property-priority-admin-views ${locale}/${width}`, async ({
+      page,
+      baseURL,
+    }, testInfo) => {
+      test.setTimeout(240_000);
+      page.setDefaultTimeout(10_000);
+      if (!baseURL) throw new Error("Missing Playwright baseURL");
+      const f = await createAdminPriorityFixture();
+      try {
+        await page
+          .context()
+          .addCookies([await createSignedSessionCookie(f.admin.id)]);
+
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
+        const en = locale === "en-us";
+        const date = (value: Date) =>
+          new Intl.DateTimeFormat(locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Asia/Shanghai",
+          }).format(value);
+
         await page.setViewportSize({ width, height: 900 });
-        const audit = createPriorityViewAudit("admin");
+
         const row = (title: string) =>
           page
             .locator(
@@ -64,7 +66,7 @@ test("ui.model-property-priority-admin-views", async ({
           });
           try {
             await expect(input.identity).toContainText(title);
-            await audit.check(input);
+            await assertPriorityView(input);
           } catch (error) {
             expect
               .soft(error, `${locale}/${width}/${label}: ${String(error)}`)
@@ -80,13 +82,13 @@ test("ui.model-property-priority-admin-views", async ({
                 .getByText(title, { exact: true })
                 .first();
 
-        await gotoAndWaitForReady(page, "/admin/users?search=priorityauthor");
+        await gotoAndWaitForReady(
+          page,
+          `/admin/users?search=${f.author.username}`,
+        );
         let scope = row(required(f.author.name));
         await check(
           {
-            feature: "admin",
-            capability: "user-management",
-            view: "web",
             scope,
             identity: identity(scope, required(f.author.name)),
             primary: {
@@ -113,9 +115,6 @@ test("ui.model-property-priority-admin-views", async ({
         scope = row(required(f.client.name));
         await check(
           {
-            feature: "admin",
-            capability: "oauth-client-management",
-            view: "web",
             scope,
             identity: identity(scope, required(f.client.name)),
             primary: {
@@ -150,9 +149,6 @@ test("ui.model-property-priority-admin-views", async ({
         scope = row(f.bus.title);
         await check(
           {
-            feature: "admin",
-            capability: "bus-management",
-            view: "web",
             scope,
             identity: identity(scope, f.bus.title),
             primary: { "version.title": field(scope, f.bus.title) },
@@ -186,10 +182,6 @@ test("ui.model-property-priority-admin-views", async ({
         for (const feature of ["admin", "comment"]) {
           await check(
             {
-              feature,
-              capability:
-                feature === "admin" ? "moderation" : "comment-governance",
-              view: feature === "admin" ? "web-comments" : "web",
               scope,
               identity: identity(scope, f.comment.body),
               primary: {
@@ -229,10 +221,6 @@ test("ui.model-property-priority-admin-views", async ({
           for (const feature of ["admin", "description"]) {
             await check(
               {
-                feature,
-                capability:
-                  feature === "admin" ? "moderation" : "description-governance",
-                view: feature === "admin" ? "web-descriptions" : "web",
                 scope,
                 identity: identity(scope, required(description.content)),
                 primary: {
@@ -275,9 +263,6 @@ test("ui.model-property-priority-admin-views", async ({
         scope = row(f.homework.title);
         await check(
           {
-            feature: "homework",
-            capability: "homework-governance",
-            view: "web",
             scope,
             identity: identity(scope, f.homework.title),
             primary: {
@@ -294,14 +279,8 @@ test("ui.model-property-priority-admin-views", async ({
           f.homework.title,
           "homeworks",
         );
-        try {
-          audit.finish();
-        } catch (error) {
-          expect.soft(error).toBeUndefined();
-        }
+      } finally {
+        await cleanupAdminPriorityFixture(f);
       }
-    }
-  } finally {
-    await cleanupAdminPriorityFixture(f);
+    });
   }
-});
