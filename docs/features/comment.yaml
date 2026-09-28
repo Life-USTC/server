@@ -167,8 +167,11 @@ requirements:
       name: comment.thread-pagination
 - id: comment.interaction-gate
   category: authorization
-  rule: Comment writes require an authenticated, unsuspended actor and an active visible target. Public
-    editing and deletion additionally require ownership; replies and reactions do not confer ownership.
+  rule: Comment writes require an authenticated, unsuspended actor and, when the operation needs an existing
+    target, an active visible target. Removing one's own reaction is idempotent when the comment or that
+    actor's reaction is absent; this does not bypass authentication, suspension or an existing comment's
+    interaction gate. Public editing and deletion additionally require ownership; replies and reactions
+    do not confer ownership.
     Deleted or softbanned comments neither advertise nor accept ordinary edit, delete, reply, or reaction
     actions. Administrator moderation requires an unsuspended administrator using governance surfaces.
   acceptance:
@@ -180,12 +183,31 @@ requirements:
     - Replies and reactions to another author's public active comment succeed without conferring edit/delete
       ownership.
     - Deleted and softbanned comments reject ordinary mutations across all business transports.
-    - Read-only scopes, missing actors and missing comment/parent targets are rejected without changing comments, reactions, attachments, business audits or request-local cache purge-hook calls.
+    - Read-only scopes and missing actors are rejected. Operations that require an existing comment or parent reject missing targets without changing comments, reactions, attachments, business audits or request-local cache purge-hook calls.
+    - Removing one's own reaction from a missing comment or without an existing own reaction succeeds without deleting another actor's reaction or creating a business audit; anonymous and suspended actors remain rejected, and existing deleted or softbanned comments remain locked.
     - Edit responses retain the declared transport shape; returned comment bodies, public author identity and timestamps match committed rows. Reaction change flags, where exposed, match the performed change.
     - Only an unsuspended administrator can moderate through the governance route.
     test:
       file: tests/integration/rest/protocol-contracts/comment-authority.test.ts
       name: comment update suspended rejected through mcp
+- id: comment.reaction-removal-noop
+  category: behavior
+  rule: A permitted request to remove the caller's reaction succeeds without effects when the comment or
+    that caller's reaction does not exist. Repeated removals never delete another actor's reaction or add
+    business audits. Authentication, suspension, scope and existing-target interaction checks still apply.
+  acceptance:
+    given: Each REST scenario owns its actors and target state; a missing comment and an active comment
+      with only another actor's reaction are prepared independently.
+    when: Delete a reaction from the missing comment, or repeatedly delete the caller's absent reaction
+      from the active comment; separately attempt the same endpoint without authentication, while suspended,
+      and against deleted or softbanned comments.
+    then:
+    - Permitted missing-comment and absent-own-reaction requests return 200 with success=true.
+    - Existing comments and reactions remain exactly unchanged, missing comments stay absent, and no business audit is added.
+    - Anonymous requests return 401 and suspended requests return 403, including for missing comments; existing deleted or softbanned comments return 403 without changes.
+    test:
+      file: tests/integration/rest/comments/[id]/reactions/test.ts
+      name: /api/community/comments/[id]/reactions DELETE absent own reaction is idempotent and preserves another actor
 - id: comment.web-markdown-hydration
   category: presentation
   rule: Web comment surfaces consume the server-provided renderedBody and do not rerun Markdown rendering
@@ -754,6 +776,9 @@ capabilities:
       - path: /api/community/comments/[id]/reactions
         method: DELETE
         auth: user
+        requirement_refs:
+        - comment.interaction-gate
+        - comment.reaction-removal-noop
     mcp:
       tools:
       - name: community_comment_list
