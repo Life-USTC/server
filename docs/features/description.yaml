@@ -11,6 +11,29 @@ policy_refs:
 - rendering-and-cache
 - audit
 requirements:
+- id: description.moderation-content-bound
+  category: validation
+  applies_to:
+  - description-governance
+  expectation:
+    kind: string_input
+    surface: rest
+    operation: PATCH /api/admin/descriptions/[id]
+    input: content
+    min_length: 0
+    max_length: 4000
+    trim: false
+    length_unit: utf16_code_units
+  rationale: Moderators can clear an inappropriate description. The bounded Markdown field preserves authored whitespace; its technical length uses JavaScript string units, including supplementary Unicode characters.
+  acceptance:
+    given: Each case owns a description and an administrator session, with explicit ASCII and supplementary-Unicode boundary inputs.
+    when: The administrator submits the content through the real REST endpoint.
+    then:
+    - Empty content, surrounding whitespace, and exactly 4000 code units are preserved in the response, stored description and edit history with one moderation audit.
+    - Content with 4001 code units is rejected without changing the description, its history or moderation audits.
+    test:
+      file: tests/integration/rest/admin/descriptions/[id]/test.ts
+      name: '管理员 PATCH 拒绝过长的课程简介内容: 4001 Unicode code units'
 - id: description.homework-calendar-invalidation
   category: consistency
   rule: A committed homework description write enqueues a calendar export rebuild for its section after

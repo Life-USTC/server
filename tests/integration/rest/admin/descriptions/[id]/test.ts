@@ -1,5 +1,4 @@
 import { expect } from "@playwright/test";
-import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import {
   originalContent,
   storedAudits,
@@ -39,58 +38,72 @@ test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
     expect(await storedDescription(state)).toEqual(before);
   });
 
-  test("管理员可更新课程简介并记录历史", async ({
-    descriptionState: state,
-    admin,
-  }) => {
-    const content = "Independent admin description update";
-    const response = await admin.request.patch(
-      `${base}/${state.description.id}`,
-      { data: { content } },
-    );
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.description).toMatchObject({
-      id: state.description.id,
-      content,
-      lastEditedById: admin.id,
-    });
-    const persisted = await storedDescription(state);
-    expect(persisted).toMatchObject({
-      content,
-      lastEditedById: admin.id,
-      lastEditedAt: expect.any(Date),
-    });
-    expect(persisted?.edits).toEqual([
-      expect.objectContaining({
-        editorId: admin.id,
-        previousContent: originalContent,
-        nextContent: content,
-      }),
-    ]);
-    await expect
-      .poll(() => storedAudits(state, "admin_description_moderate"))
-      .toEqual([
-        expect.objectContaining({ userId: admin.id, outcome: "success" }),
+  for (const [label, content] of [
+    ["ordinary content", "Independent admin description update"],
+    ["empty content", ""],
+    ["preserved whitespace", "  Independent description  "],
+    ["4000 ASCII code units", "x".repeat(4000)],
+    ["4000 Unicode code units", "😀".repeat(2000)],
+  ] as const) {
+    test(`管理员可更新课程简介并记录历史: ${label}`, async ({
+      descriptionState: state,
+      admin,
+    }) => {
+      const response = await admin.request.patch(
+        `${base}/${state.description.id}`,
+        { data: { content } },
+      );
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+      expect(body.description).toMatchObject({
+        id: state.description.id,
+        content,
+        lastEditedById: admin.id,
+      });
+      const persisted = await storedDescription(state);
+      expect(persisted).toMatchObject({
+        content,
+        lastEditedById: admin.id,
+        lastEditedAt: expect.any(Date),
+      });
+      expect(persisted?.edits).toEqual([
+        expect.objectContaining({
+          editorId: admin.id,
+          previousContent: originalContent,
+          nextContent: content,
+        }),
       ]);
-    const read = await admin.request.get(
-      `/api/community/descriptions?targetType=section&targetId=${state.section.id}`,
-    );
-    expect(read.status()).toBe(200);
-    expect((await read.json()).description.content).toBe(content);
-  });
+      await expect
+        .poll(() => storedAudits(state, "admin_description_moderate"))
+        .toEqual([
+          expect.objectContaining({ userId: admin.id, outcome: "success" }),
+        ]);
+      const read = await admin.request.get(
+        `/api/community/descriptions?targetType=section&targetId=${state.section.id}`,
+      );
+      expect(read.status()).toBe(200);
+      expect((await read.json()).description.content).toBe(content);
+    });
+  }
 
-  test("管理员 PATCH 拒绝过长的课程简介内容", async ({
-    descriptionState: state,
-    admin,
-  }) => {
-    const before = await storedDescription(state);
-    const response = await admin.request.patch(
-      `${base}/${state.description.id}`,
-      { data: { content: "x".repeat(DESCRIPTION_CONTENT_MAX_LENGTH + 1) } },
-    );
-    expect(response.status()).toBe(400);
-    expect(await storedDescription(state)).toEqual(before);
-    expect(await storedAudits(state, "admin_description_moderate")).toEqual([]);
-  });
+  for (const [label, content] of [
+    ["4001 ASCII code units", "x".repeat(4001)],
+    ["4001 Unicode code units", `${"😀".repeat(2000)}x`],
+  ] as const) {
+    test(`管理员 PATCH 拒绝过长的课程简介内容: ${label}`, async ({
+      descriptionState: state,
+      admin,
+    }) => {
+      const before = await storedDescription(state);
+      const response = await admin.request.patch(
+        `${base}/${state.description.id}`,
+        { data: { content } },
+      );
+      expect(response.status()).toBe(400);
+      expect(await storedDescription(state)).toEqual(before);
+      expect(await storedAudits(state, "admin_description_moderate")).toEqual(
+        [],
+      );
+    });
+  }
 });
