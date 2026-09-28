@@ -7,7 +7,7 @@ import {
 } from "../../../utils/page-ready";
 import {
   storedBusPreference,
-  test,
+  busTest as test,
 } from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
@@ -495,8 +495,10 @@ test.describe("校车面板标签页", () => {
   test("登录规划器自动保存到校车偏好设置", async ({
     page,
     busPreferences,
+    isolatedWorker,
   }, testInfo) => {
-    expect(await storedBusPreference(busPreferences.id)).toEqual({
+    const db = isolatedWorker.database.owner;
+    expect(await storedBusPreference(db, busPreferences.id)).toEqual({
       preferredOriginCampusId: null,
       preferredDestinationCampusId: null,
       showDepartedTrips: false,
@@ -543,7 +545,7 @@ test.describe("校车面板标签页", () => {
     };
     expect(body.preference).toMatchObject(expected);
     await expect
-      .poll(() => storedBusPreference(busPreferences.id))
+      .poll(() => storedBusPreference(db, busPreferences.id))
       .toEqual(expected);
     await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
 
