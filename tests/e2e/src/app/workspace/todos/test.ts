@@ -20,8 +20,6 @@
  * - Empty state shown when filter yields no matching todos
  */
 import { expect, type Page, test } from "@playwright/test";
-import { semanticContract } from "../../../../../shared/specifications/semantic-contract";
-import { todoExpectation } from "../../../../../shared/specifications/todo";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   closeDetailDialog,
@@ -93,32 +91,23 @@ test.describe("仪表盘待办", () => {
   });
 
   test("todo.web-create-target", async ({ page }, testInfo) => {
-    const contract = await semanticContract(testInfo.title, "target_size");
-    contract.equal("/surface", "web");
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
-    const target = await todoExpectation(
-      "todo.web-create-target",
-      "target_size",
-    );
-    await page.setViewportSize(target.viewport);
+    await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, "/workspace/todos");
 
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
     const add = page.getByTestId("workspace-todos-add");
-    contract.equal("/target", { by: "test_id", value: "workspace-todos-add" });
-    contract.equal("/viewport", page.viewportSize());
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(0);
 
     const addBox = await add.boundingBox();
-    contract.atLeast("/min_height", addBox?.height ?? 0);
-    contract.atLeast("/min_width", addBox?.width ?? 0);
-    contract.recordPlaywright(testInfo);
+    expect(addBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(addBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     const filterBox = await incomplete.boundingBox();
     expect(filterBox?.height).toBeGreaterThanOrEqual(44);
     expect(filterBox?.width).toBeGreaterThanOrEqual(44);
@@ -203,22 +192,11 @@ test.describe("仪表盘待办", () => {
   });
 
   test("todo.web-completed-title", async ({ page }, testInfo) => {
-    const contract = await semanticContract(
-      testInfo.title,
-      "state_presentation",
-    );
-    contract.equal("/surface", "web");
     await signInAsDebugUser(page, "/workspace/todos");
 
-    const titleRule = await todoExpectation(
-      "todo.web-completed-title",
-      "state_presentation",
-    );
     const completedFilter = page
       .getByRole("radio", {
-        name: titleRule.state.completed
-          ? /已完成|Completed/i
-          : /未完成|Incomplete/i,
+        name: /已完成|Completed/i,
       })
       .first();
     const completedTodo = visibleText(page, DEV_SEED.todos.completedTitle);
@@ -236,27 +214,14 @@ test.describe("仪表盘待办", () => {
       name: DEV_SEED.todos.completedTitle,
     });
     await expect(completedDetail).toBeVisible();
-    await expect(completedDetail.locator(titleRule.target.value)).toHaveCSS(
-      "text-decoration-line",
-      titleRule.text_decoration,
-    );
-    contract.equal("/target", {
-      by: "css",
-      value: '[data-slot="dialog-title"]',
-    });
-    contract.equal(
-      "/state/completed",
-      await completedDetail
-        .getByRole("button", { name: /取消完成|Mark as incomplete/i })
-        .isVisible(),
-    );
-    contract.equal(
-      "/text_decoration",
-      await completedDetail
-        .locator('[data-slot="dialog-title"]')
-        .evaluate((node) => getComputedStyle(node).textDecorationLine),
-    );
-    contract.recordPlaywright(testInfo);
+    await expect(
+      completedDetail.locator('[data-slot="dialog-title"]'),
+    ).toHaveCSS("text-decoration-line", "line-through");
+    await expect(
+      completedDetail.getByRole("button", {
+        name: /取消完成|Mark as incomplete/i,
+      }),
+    ).toBeVisible();
     // The single-column popup moved the priority badge out of the dialog
     // description and into the facts table; the severity variant is unchanged.
     await expect(
@@ -271,8 +236,6 @@ test.describe("仪表盘待办", () => {
   });
 
   test("todo.web-detail-actions", async ({ page }, testInfo) => {
-    const contract = await semanticContract(testInfo.title, "ordered_items");
-    contract.equal("/surface", "web");
     await signInAsDebugUser(page, "/workspace/todos");
 
     await visibleText(page, DEV_SEED.todos.dueTodayTitle).first().click();
@@ -291,23 +254,16 @@ test.describe("仪表盘待办", () => {
       summary.getByText(/待处理|已完成|Pending|Completed/i).first(),
     ).toBeVisible();
 
-    const actionsRule = await todoExpectation(
-      "todo.web-detail-actions",
-      "ordered_items",
-    );
+    const actions = ["delete", "completion", "edit"] as const;
     const actionLabels = {
       delete: /删除待办|Delete todo/i,
       completion: /标记为完成|Mark as complete/i,
       edit: /编辑待办|Edit Todo/i,
     };
     const footer = dialog.locator('[data-slot="dialog-footer"]');
-    contract.equal("/target", {
-      by: "css",
-      value: '[data-slot="dialog-footer"]',
-    });
     const buttons = footer.getByRole("button");
-    await expect(buttons).toHaveCount(actionsRule.items.length);
-    for (const [index, action] of actionsRule.items.entries()) {
+    await expect(buttons).toHaveCount(actions.length);
+    for (const [index, action] of actions.entries()) {
       await expect(buttons.nth(index)).toHaveAccessibleName(
         actionLabels[action],
       );
@@ -322,8 +278,7 @@ test.describe("仪表盘待办", () => {
         )?.[0],
       );
     }
-    contract.equal("/items", observedActions);
-    contract.recordPlaywright(testInfo);
+    expect(observedActions).toEqual(actions);
     await expectDialogAction(dialog, /删除待办|Delete todo/i);
     await expectDialogAction(dialog, /编辑待办|Edit Todo/i);
     await expectDialogAction(dialog, /标记为完成|Mark as complete/i);

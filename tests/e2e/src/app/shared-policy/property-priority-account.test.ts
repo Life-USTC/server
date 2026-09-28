@@ -15,10 +15,9 @@ import {
 } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { createPriorityViewAudit } from "../../../utils/property-priority";
+import { assertPriorityView } from "../../../utils/property-priority";
 import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
 
-type Audit = ReturnType<typeof createPriorityViewAudit>;
 const oauthScopeLabel = (
   locale: "en-us" | "zh-cn",
   scope: "profile" | "workspace.calendar:read",
@@ -167,12 +166,7 @@ async function makeFixture() {
 }
 type Fixture = Awaited<ReturnType<typeof makeFixture>>;
 
-async function checkProfile(
-  audit: Audit,
-  page: Page,
-  fixture: Fixture,
-  welcome = false,
-) {
+async function checkProfile(page: Page, fixture: Fixture, welcome = false) {
   const scope = page.locator("#main-content");
   const name = scope.locator("#name");
   const username = scope.locator("#username");
@@ -180,10 +174,7 @@ async function checkProfile(
     await name.fill(fixture.user.name ?? "");
     await username.fill(fixture.user.username ?? "");
   }
-  await audit.check({
-    feature: "user",
-    capability: welcome ? "first-login-welcome" : "settings",
-    view: "web-profile",
+  await assertPriorityView({
     scope,
     identity: name,
     primary: {
@@ -210,7 +201,6 @@ async function checkProfile(
 }
 
 async function checkAuthorizations(
-  audit: Audit,
   page: Page,
   fixture: Fixture,
   locale: "en-us" | "zh-cn",
@@ -258,10 +248,7 @@ async function checkAuthorizations(
     "activity.writeCount": text(fact(scope, copy.authorizations.writes), "3"),
     "activity.errorCount": text(fact(scope, copy.authorizations.errors), "2"),
   };
-  await audit.check({
-    feature: "oauth",
-    capability: "authorization-management",
-    view: "web",
+  await assertPriorityView({
     scope,
     identity,
     primary,
@@ -271,10 +258,7 @@ async function checkAuthorizations(
       "consent.id": { value: fixture.authorization.consentId },
     },
   });
-  await audit.check({
-    feature: "user",
-    capability: "settings",
-    view: "web-authorizations",
+  await assertPriorityView({
     scope,
     identity,
     primary: {
@@ -304,23 +288,25 @@ async function checkAuthorizations(
   });
 }
 
-test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
-  test.setTimeout(180_000);
-  page.setDefaultTimeout(10_000);
-  const fixture = await makeFixture();
-  try {
-    await page.route("**/images/priority-*.svg", (route) =>
-      route.fulfill({
-        contentType: "image/svg+xml",
-        body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#357"/></svg>',
-      }),
-    );
-    await page
-      .context()
-      .addCookies([await createSignedSessionCookie(fixture.user.id)]);
-    for (const locale of ["en-us", "zh-cn"] as const)
-      for (const width of [1280, 390]) {
-        const audit = createPriorityViewAudit("account");
+for (const locale of ["en-us", "zh-cn"] as const)
+  for (const width of [1280, 390]) {
+    test(`ui.model-property-priority-account-views ${locale}/${width}`, async ({
+      page,
+    }, testInfo) => {
+      test.setTimeout(180_000);
+      page.setDefaultTimeout(10_000);
+      const fixture = await makeFixture();
+      try {
+        await page.route("**/images/priority-*.svg", (route) =>
+          route.fulfill({
+            contentType: "image/svg+xml",
+            body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#357"/></svg>',
+          }),
+        );
+        await page
+          .context()
+          .addCookies([await createSignedSessionCookie(fixture.user.id)]);
+
         const copy = locale === "en-us" ? en : zh;
         await page.setViewportSize({ width, height: 900 });
         expect(
@@ -331,7 +317,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           ).status(),
         ).toBe(200);
         await gotoAndWaitForReady(page, "/account/settings/profile");
-        await checkProfile(audit, page, fixture);
+        await checkProfile(page, fixture);
         await gotoAndWaitForReady(page, "/account/settings/accounts");
         const main = page.locator("#main-content");
         const account = main
@@ -344,10 +330,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           path: testInfo.outputPath(`account-fields-${locale}-${width}.png`),
           fullPage: true,
         });
-        await audit.check({
-          feature: "user",
-          capability: "settings",
-          view: "web-accounts",
+        await assertPriorityView({
           scope: main,
           identity: passkey.locator("input"),
           primary: {
@@ -376,10 +359,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
         const event = page
           .getByRole("listitem")
           .filter({ hasText: "203.0.113.*" });
-        await audit.check({
-          feature: "user",
-          capability: "settings",
-          view: "web-security",
+        await assertPriorityView({
           scope: event,
           identity: event.locator('[data-slot="item-title"]'),
           primary: {
@@ -427,7 +407,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           ),
           fullPage: true,
         });
-        await checkAuthorizations(audit, page, fixture, locale);
+        await checkAuthorizations(page, fixture, locale);
 
         await withE2ePrisma((db) =>
           db.user.update({
@@ -436,7 +416,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           }),
         );
         await gotoAndWaitForReady(page, "/account/welcome");
-        await checkProfile(audit, page, fixture, true);
+        await checkProfile(page, fixture, true);
         await page.getByRole("button", { name: /继续|Continue/i }).click();
         await expect(page).toHaveURL(/step=subscriptions/);
         const semester = await withE2ePrisma((db) =>
@@ -458,10 +438,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           .filter({ has: page.getByRole("checkbox") });
         const identity = matched.locator('[data-slot="field-label"]');
         const details = matched.locator('[data-slot="field-description"]');
-        await audit.check({
-          feature: "user",
-          capability: "first-login-welcome",
-          view: "web-subscriptions",
+        await assertPriorityView({
           scope: matched,
           identity,
           primary: {
@@ -494,10 +471,7 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
             name: copy.welcome.finishTitle,
           }),
         });
-        await audit.check({
-          feature: "user",
-          capability: "first-login-welcome",
-          view: "web-orientation",
+        await assertPriorityView({
           scope: finish,
           identity: finish.getByRole("heading", { level: 2 }),
           primary: {
@@ -515,16 +489,14 @@ test("ui.model-property-priority-account-views", async ({ page }, testInfo) => {
           tertiary: {},
         });
 
-        await checkOAuthViews(audit, page, fixture, locale);
-        audit.finish();
+        await checkOAuthViews(page, fixture, locale);
+      } finally {
+        await fixture.cleanup();
       }
-  } finally {
-    await fixture.cleanup();
+    });
   }
-});
 
 async function checkOAuthViews(
-  audit: Audit,
   page: Page,
   fixture: Fixture,
   locale: "en-us" | "zh-cn",
@@ -541,10 +513,7 @@ async function checkOAuthViews(
   const identity = main
     .locator('[data-slot="item-title"]')
     .filter({ hasText: fixture.client.name ?? "" });
-  await audit.check({
-    feature: "oauth",
-    capability: "authorization",
-    view: "web",
+  await assertPriorityView({
     scope: main,
     identity,
     primary: {
@@ -569,10 +538,7 @@ async function checkOAuthViews(
 
   await gotoAndWaitForReady(page, "/oauth/device");
   await page.locator("#code").fill("ABCD1234");
-  await audit.check({
-    feature: "oauth",
-    capability: "device-authorization-grant",
-    view: "web-code",
+  await assertPriorityView({
     scope: main,
     identity: main.getByRole("heading", { level: 1 }),
     primary: { "device.userCode": input(page.locator("#code"), "ABCD1234") },
@@ -597,10 +563,7 @@ async function checkOAuthViews(
   const code = (await response.json()) as { verification_uri_complete: string };
   const path = new URL(code.verification_uri_complete);
   await gotoAndWaitForReady(page, `${path.pathname}${path.search}`);
-  await audit.check({
-    feature: "oauth",
-    capability: "device-authorization-grant",
-    view: "web-approval",
+  await assertPriorityView({
     scope: main,
     identity: main.locator("strong"),
     primary: {
@@ -624,10 +587,7 @@ async function checkOAuthViews(
   await expect(main.getByRole("heading", { level: 2 })).toHaveText(
     copy.deviceApprovedTitle,
   );
-  await audit.check({
-    feature: "oauth",
-    capability: "device-authorization-grant",
-    view: "web-result",
+  await assertPriorityView({
     scope: main,
     identity: main.getByRole("heading", { level: 2 }),
     primary: {
@@ -659,10 +619,7 @@ async function checkOAuthViews(
     dialog.locator('input[name="tokenEndpointAuthMethod"]'),
   ).toHaveValue("none");
   await expect(dialog.locator("#admin-oauth-scope-profile")).toBeChecked();
-  await audit.check({
-    feature: "oauth",
-    capability: "client-registration",
-    view: "web",
+  await assertPriorityView({
     scope: dialog,
     identity: dialog.locator("#admin-oauth-client-name"),
     primary: {

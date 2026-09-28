@@ -7,16 +7,16 @@ export async function createAdminPriorityFixture() {
     const admin = await db.user.create({
       data: {
         name: "Priority administrator",
-        username: "priorityadmin",
-        email: "priority-admin@example.test",
+        username: `pa${marker.replaceAll("-", "").slice(0, 20)}`,
+        email: `priority-admin-${marker}@example.test`,
         isAdmin: true,
       },
     });
     const author = await db.user.create({
       data: {
         name: "Priority review author",
-        username: "priorityauthor",
-        email: "priority-author@example.test",
+        username: `pr${marker.replaceAll("-", "").slice(0, 20)}`,
+        email: `priority-author-${marker}@example.test`,
         createdAt: new Date("2026-01-02T00:00:00Z"),
       },
     });

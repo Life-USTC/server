@@ -1,24 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { readSpecification } from "../../../../../scripts/specifications/yaml";
-import { semanticContract } from "../../../../shared/specifications/semantic-contract";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 test("overview.card-order", async ({ page }, testInfo) => {
-  const contract = await semanticContract(testInfo.title, "ordered_items");
-  contract.equal("/surface", "web");
-  contract.equal("/target", { by: "css", value: "[data-overview-sections]" });
-  const spec = await readSpecification<{
-    requirements: {
-      id: string;
-      expectation?: { kind: string; items: string[] };
-    }[];
-  }>("docs/features/overview.yaml");
-  const rule = spec.requirements.find(
-    (item) => item.id === "overview.card-order",
-  )?.expectation;
-  if (rule?.kind !== "ordered_items")
-    throw new Error("Missing overview order expectation");
+  const items = [
+    "workspace-overview-focus",
+    "workspace-overview-today-overdue",
+    "workspace-overview-week",
+    "workspace-overview-summaries",
+    "workspace-overview-links",
+  ];
   await signInAsDebugUser(page, "/workspace/overview");
   await expect(page.getByTestId("workspace-overview-focus")).toBeVisible();
   for (const locale of ["zh-cn", "en-us"]) {
@@ -48,9 +39,9 @@ test("overview.card-order", async ({ page }, testInfo) => {
               null,
           ),
         );
-      contract.equal("/items", observed);
+      expect(observed).toEqual(items);
       let previousBottom = 0;
-      for (const id of rule.items) {
+      for (const id of items) {
         const section = page.getByTestId(id);
         await expect(section).toBeVisible();
         const box = await section.boundingBox();
@@ -64,5 +55,4 @@ test("overview.card-order", async ({ page }, testInfo) => {
       });
     }
   }
-  contract.recordPlaywright(testInfo);
 });

@@ -7,7 +7,7 @@ import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
-  createPriorityViewAudit,
+  assertPriorityView,
   type PriorityField,
   type VisiblePriorityField,
 } from "../../../utils/property-priority";
@@ -128,37 +128,40 @@ async function fixture() {
   });
 }
 
-test("ui.model-property-priority-catalog-views", async ({ page }) => {
-  test.setTimeout(120_000);
-  page.setDefaultTimeout(5_000);
-  const data = await fixture();
-  const {
-    catalog,
-    education,
-    category,
-    classType,
-    courseType,
-    campus,
-    examMode,
-    language,
-    roomType,
-    adminClass,
-  } = data;
-  const course = catalog.courses[0],
-    teacher = catalog.teachers[0],
-    section = catalog.sections[0];
-  try {
-    for (const locale of ["zh-cn", "en-us"] as const) {
-      await page.context().clearCookies();
-      await page
-        .context()
-        .addCookies([
-          { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-        ]);
-      const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
-      for (const width of [1280, 390]) {
+for (const locale of ["zh-cn", "en-us"] as const)
+  for (const width of [1280, 390]) {
+    test(`ui.model-property-priority-catalog-views ${locale}/${width}`, async ({
+      page,
+    }) => {
+      test.setTimeout(120_000);
+      page.setDefaultTimeout(5_000);
+      const data = await fixture();
+      const {
+        catalog,
+        education,
+        category,
+        classType,
+        courseType,
+        campus,
+        examMode,
+        language,
+        roomType,
+        adminClass,
+      } = data;
+      const course = catalog.courses[0],
+        teacher = catalog.teachers[0],
+        section = catalog.sections[0];
+      try {
+        await page.context().clearCookies();
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+          ]);
+        const semester = locale === "en-us" ? "Fall 2026" : "2026年秋季学期";
+
         await page.setViewportSize({ width, height: 844 });
-        const audit = createPriorityViewAudit("catalog");
+
         for (const kind of ["course", "teacher", "section"] as const) {
           const entity =
             kind === "course" ? course : kind === "teacher" ? teacher : section;
@@ -289,10 +292,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
             body: await page.screenshot(),
             contentType: "image/png",
           });
-          await audit.check({
-            feature: kind,
-            capability: `${kind}-list`,
-            view: "web",
+          await assertPriorityView({
             scope: row,
             identity,
             primary,
@@ -450,10 +450,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
                       locale === "en-us" ? "Yes" : "是",
                     ),
                   };
-          await audit.check({
-            feature: kind,
-            capability: `${kind}-detail`,
-            view: "web",
+          await assertPriorityView({
             scope: main,
             identity: heading,
             primary: detailPrimary,
@@ -489,10 +486,7 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
                 : offering
                     .getByText(name(course, locale), { exact: false })
                     .first();
-            await audit.check({
-              feature: kind,
-              capability: `${kind}-detail`,
-              view: "web-history",
+            await assertPriorityView({
               scope: offering,
               identity,
               primary:
@@ -547,21 +541,19 @@ test("ui.model-property-priority-catalog-views", async ({ page }) => {
             await page.evaluate(() => document.documentElement.scrollWidth),
           ).toBeLessThanOrEqual(width);
         }
-        audit.finish();
+      } finally {
+        await withE2ePrisma(async (db) => {
+          await cleanupCatalogContractFixture(db, catalog);
+          await db.adminClass.delete({ where: { id: adminClass.id } });
+          await db.roomType.delete({ where: { id: roomType.id } });
+          await db.teachLanguage.delete({ where: { id: language.id } });
+          await db.examMode.delete({ where: { id: examMode.id } });
+          await db.campus.delete({ where: { id: campus.id } });
+          await db.courseType.delete({ where: { id: courseType.id } });
+          await db.classType.delete({ where: { id: classType.id } });
+          await db.courseCategory.delete({ where: { id: category.id } });
+          await db.educationLevel.delete({ where: { id: education.id } });
+        });
       }
-    }
-  } finally {
-    await withE2ePrisma(async (db) => {
-      await cleanupCatalogContractFixture(db, catalog);
-      await db.adminClass.delete({ where: { id: adminClass.id } });
-      await db.roomType.delete({ where: { id: roomType.id } });
-      await db.teachLanguage.delete({ where: { id: language.id } });
-      await db.examMode.delete({ where: { id: examMode.id } });
-      await db.campus.delete({ where: { id: campus.id } });
-      await db.courseType.delete({ where: { id: courseType.id } });
-      await db.classType.delete({ where: { id: classType.id } });
-      await db.courseCategory.delete({ where: { id: category.id } });
-      await db.educationLevel.delete({ where: { id: education.id } });
     });
   }
-});

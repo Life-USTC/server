@@ -1,13 +1,12 @@
 import { type Locator, type Page, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "./page-ready";
-import type {
-  createPriorityViewAudit,
-  PriorityField,
-  VisiblePriorityField,
+import {
+  assertPriorityView,
+  type PriorityField,
+  type VisiblePriorityField,
 } from "./property-priority";
 import type { WorkspacePriorityFixture } from "./property-priority-workspace-fixture";
 
-type Audit = ReturnType<typeof createPriorityViewAudit>;
 type Locale = "zh-cn" | "en-us";
 const field = (
   locator: Locator,
@@ -41,7 +40,6 @@ const markComplete = /^(标记为完成|Mark as complete)$/i;
 const edit = /^(编辑待办|Edit Todo)$/i;
 
 export async function checkWorkspaceTaskPriorityViews(
-  audit: Audit,
   page: Page,
   data: WorkspacePriorityFixture,
   locale: Locale,
@@ -82,10 +80,7 @@ export async function checkWorkspaceTaskPriorityViews(
     exact: true,
   });
   if (width >= 768) await todoRow.hover();
-  await audit.check({
-    feature: "todo",
-    capability: "todo-list",
-    view: "web-list",
+  await assertPriorityView({
     scope: todoRow,
     identity: todoTitle,
     primary: {
@@ -105,10 +100,7 @@ export async function checkWorkspaceTaskPriorityViews(
     name: todo.title,
     exact: true,
   });
-  await audit.check({
-    feature: "todo",
-    capability: "todo-list",
-    view: "web-detail",
+  await assertPriorityView({
     scope: todoDialog,
     identity: todoDialog.getByRole("heading", {
       name: todo.title,
@@ -136,10 +128,7 @@ export async function checkWorkspaceTaskPriorityViews(
   });
   await todoDialog.getByRole("button", { name: edit }).click();
   const editor = page.getByRole("dialog", { name: edit });
-  await audit.check({
-    feature: "todo",
-    capability: "todo-edit",
-    view: "web",
+  await assertPriorityView({
     scope: editor,
     identity: editor.getByRole("heading", { name: edit }),
     primary: { "todo.title": input(editor, "title", todo.title) },
@@ -177,10 +166,7 @@ export async function checkWorkspaceTaskPriorityViews(
     "homework.submissionDueAt": text(homeworkRow, "12:30"),
     "homework.completed": completion(homeworkRow),
   };
-  await audit.check({
-    feature: "homework",
-    capability: "cross-section-homework-summary",
-    view: "web-list",
+  await assertPriorityView({
     scope: homeworkRow,
     identity: homeworkTitle,
     primary: homeworkPrimary,
@@ -191,10 +177,7 @@ export async function checkWorkspaceTaskPriorityViews(
     },
     tertiary: homeworkInternal,
   });
-  await audit.check({
-    feature: "homework",
-    capability: "homework-completion",
-    view: "web",
+  await assertPriorityView({
     scope: homeworkRow,
     identity: homeworkTitle,
     primary: homeworkPrimary,
@@ -202,16 +185,13 @@ export async function checkWorkspaceTaskPriorityViews(
     tertiary: {},
   });
   await homeworkTitle.click();
-  async function checkHomeworkDetail(capability: string, view: string) {
+  async function checkHomeworkDetail() {
     const dialog = page.getByRole("dialog", {
       name: homework.title,
       exact: true,
     });
     const secondary = dialog.getByTestId("homework-secondary-details");
-    await audit.check({
-      feature: "homework",
-      capability,
-      view,
+    await assertPriorityView({
       scope: dialog,
       identity: dialog.getByRole("heading", {
         name: homework.title,
@@ -242,7 +222,7 @@ export async function checkWorkspaceTaskPriorityViews(
     });
     await page.keyboard.press("Escape");
   }
-  await checkHomeworkDetail("cross-section-homework-summary", "web-detail");
+  await checkHomeworkDetail();
   await gotoAndWaitForReady(
     page,
     `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
@@ -257,7 +237,7 @@ export async function checkWorkspaceTaskPriorityViews(
       .isVisible())
   )
     await sectionHomework.click();
-  await checkHomeworkDetail("section-homework-tab", "web");
+  await checkHomeworkDetail();
 
   await gotoAndWaitForReady(page, "/workspace/exams");
   const examRow =
@@ -272,10 +252,7 @@ export async function checkWorkspaceTaskPriorityViews(
     exact: true,
   });
   if (width >= 768) await examRow.locator("summary").click();
-  await audit.check({
-    feature: "exam",
-    capability: "cross-section-exam-list",
-    view: "web",
+  await assertPriorityView({
     scope: examRow,
     identity: examTitle,
     primary: {
@@ -319,10 +296,7 @@ export async function checkWorkspaceTaskPriorityViews(
     .getByRole("row")
     .filter({ hasText: exam.examMode ?? "" });
   const date = sectionExam.getByRole("cell").nth(1);
-  await audit.check({
-    feature: "exam",
-    capability: "section-exam-info",
-    view: "web",
+  await assertPriorityView({
     scope: sectionExam,
     identity: date,
     primary: {
