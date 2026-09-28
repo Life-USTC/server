@@ -98,6 +98,9 @@ const contractTest = mcpTest.extend(
           await db.comment.deleteMany({ where: { userId } });
         },
         async () => {
+          await db.featureOperationEvent.deleteMany({
+            where: { userId: userId },
+          });
           await db.user.deleteMany({ where: { id: userId } });
         },
         async () => {

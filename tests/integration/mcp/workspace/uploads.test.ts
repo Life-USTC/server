@@ -212,6 +212,9 @@ describe("MCP upload metadata mutations", () => {
         await fixtures.prisma.upload.deleteMany({
           where: { id: { in: [otherUpload.id, suspendedUpload.id] } },
         });
+        await fixtures.prisma.featureOperationEvent.deleteMany({
+          where: { userId: { in: [otherUser.id, suspendedUser.id] } },
+        });
         await fixtures.prisma.user.deleteMany({
           where: { id: { in: [otherUser.id, suspendedUser.id] } },
         });

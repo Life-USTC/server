@@ -72,6 +72,9 @@ const contractTest = mcpTest.extend(
           await client?.close();
         },
         async () => {
+          await db.featureOperationEvent.deleteMany({
+            where: { userId: { in: [ownerId, otherId] } },
+          });
           await db.user.deleteMany({
             where: { id: { in: [ownerId, otherId] } },
           });
