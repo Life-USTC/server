@@ -1,37 +1,25 @@
-import { expect, test } from "@playwright/test";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db";
+import { expect } from "@playwright/test";
+import { test } from "../../../utils/community-fixture";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { absoluteTestUrl } from "../../../utils/request-url";
 
-test("comment.public-permission-recovery", async ({ page }) => {
+test("comment.public-permission-recovery", async ({
+  page,
+  account: user,
+  community,
+  baseURL,
+}) => {
   test.setTimeout(90_000);
-  const user = await withE2ePrisma((db) =>
-    db.user.create({
-      data: {
-        name: "Comment permission recovery",
-        username: `cg${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
-        email: `${crypto.randomUUID()}@example.test`,
-      },
-    }),
-  );
-  const teacher = await withE2ePrisma((db) =>
-    db.teacher.findUniqueOrThrow({ where: { jwId: DEV_SEED.teacher.jwId } }),
-  );
   let release = () => {};
   try {
-    await page.context().clearCookies();
-    await page
-      .context()
-      .addCookies([
-        await createSignedSessionCookie(user.id),
-        { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
-      ]);
-    for (const path of [
-      `/catalog/courses/${DEV_SEED.course.jwId}`,
-      `/catalog/sections/${DEV_SEED.section.jwId}`,
-      `/catalog/teachers/${teacher.id}`,
-    ]) {
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "en-us",
+        url: absoluteTestUrl("/", baseURL),
+      },
+    ]);
+    for (const { path } of community.targets) {
       let entered = () => {};
       const reading = new Promise<void>((resolve) => {
         entered = resolve;
@@ -139,12 +127,5 @@ test("comment.public-permission-recovery", async ({ page }) => {
   } finally {
     release();
     await page.unrouteAll({ behavior: "wait" });
-    await withE2ePrisma(async (db) => {
-      await db.auditLog.deleteMany({
-        where: { OR: [{ userId: user.id }, { subjectUserId: user.id }] },
-      });
-      await db.comment.deleteMany({ where: { userId: user.id } });
-      await db.user.delete({ where: { id: user.id } });
-    });
   }
 });

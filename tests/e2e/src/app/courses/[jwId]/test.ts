@@ -33,10 +33,12 @@ import {
   openCommentComposer,
 } from "../../../../utils/comments";
 import {
-  restoreDescriptionTargetSnapshot,
-  snapshotDescriptionTargetForE2e,
-  waitForDescriptionAuditRows,
-} from "../../../../utils/description-state";
+  arrangeDescription,
+  test as communityTest,
+  storedDescription,
+  storedDescriptionAudits,
+  supplement,
+} from "../../../../utils/community-fixture";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -263,16 +265,18 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/same-route-reset");
   });
 
-  test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
-    test.setTimeout(90_000);
-    await signInAsDebugUser(page, `${COURSE_URL}#introduction`);
-    const snapshot = await snapshotDescriptionTargetForE2e(
-      page.request,
-      { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
-      ["description_edit"],
-    );
-
-    try {
+  communityTest(
+    "登录用户可以编辑课程简介",
+    async ({ page, account, community }, testInfo) => {
+      const description = await arrangeDescription(
+        "course",
+        community.course.id,
+        account.id,
+      );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/courses/${community.course.jwId}#introduction`,
+      );
       const introduction = page.locator("#introduction");
       await expect(introduction).toBeVisible();
 
@@ -326,13 +330,36 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         historyPanel.getByText(/更新后|Updated/i).first(),
       ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
-      if (snapshot.original) {
-        await waitForDescriptionAuditRows(snapshot.original, 1);
-      }
-    } finally {
-      await restoreDescriptionTargetSnapshot(page.request, snapshot);
-    }
-  });
+      const persisted = await storedDescription(description.id);
+      expect(persisted).toMatchObject({
+        content,
+        lastEditedById: account.id,
+        lastEditedAt: expect.any(Date),
+      });
+      expect(persisted?.edits).toEqual([
+        expect.objectContaining({
+          editorId: account.id,
+          previousContent: supplement,
+          nextContent: content,
+        }),
+      ]);
+      await expect
+        .poll(() => storedDescriptionAudits(description.id))
+        .toEqual([
+          expect.objectContaining({
+            userId: account.id,
+            action: "description_edit",
+            outcome: "success",
+          }),
+        ]);
+      await page.reload();
+      await expect(
+        introduction
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
+    },
+  );
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 

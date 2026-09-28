@@ -1,88 +1,18 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../utils/auth";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
+import { expect } from "@playwright/test";
+import {
+  supplement as content,
+  discussion,
+  test,
+} from "../../../utils/community-fixture";
 import { waitForUiSettled } from "../../../utils/page-ready";
 
-const marker = crypto.randomUUID();
-const content = `Supplement-${marker}`;
-const discussion = `Discussion-${marker}`;
-const targets: {
-  type: "course" | "section" | "teacher";
-  id: number;
-  path: string;
-}[] = [];
-let courseId: number;
-let teacherId: number;
-test.beforeAll(async () => {
-  await withE2ePrisma(async (db) => {
-    const editor = await db.user.findFirstOrThrow({
-      where: { username: DEV_SEED.debugUsername },
-    });
-    const semester = await db.semester.findFirstOrThrow();
-    const jwId = 1_800_000_000 + Math.floor(Math.random() * 100000000);
-    const course = await db.course.create({
-      data: { jwId, code: marker, nameCn: `Course-${marker}` },
-    });
-    courseId = course.id;
-    const teacher = await db.teacher.create({
-      data: { jwId: -jwId, nameCn: `Teacher-${marker}` },
-    });
-    teacherId = teacher.id;
-    const section = await db.section.create({
-      data: {
-        courseId,
-        semesterId: semester.id,
-        jwId,
-        code: marker,
-        teachers: { connect: { id: teacherId } },
-      },
-    });
-    targets.push(
-      { type: "course", id: courseId, path: `/catalog/courses/${jwId}` },
-      { type: "section", id: section.id, path: `/catalog/sections/${jwId}` },
-      {
-        type: "teacher",
-        id: teacherId,
-        path: `/catalog/teachers/${teacherId}`,
-      },
-    );
-    for (const target of targets) {
-      const relation = { [`${target.type}Id`]: target.id };
-      const description = await db.description.create({
-        data: {
-          ...relation,
-          content: `**${content}**`,
-          lastEditedById: editor.id,
-          lastEditedAt: new Date("2026-09-20T08:00:00Z"),
-        },
-      });
-      await db.descriptionEdit.create({
-        data: {
-          descriptionId: description.id,
-          editorId: editor.id,
-          previousContent: "Before supplement",
-          nextContent: `**${content}**`,
-        },
-      });
-      await db.comment.create({
-        data: { ...relation, userId: editor.id, body: `**${discussion}**` },
-      });
-    }
-  });
-});
-test.afterAll(async () => {
-  await withE2ePrisma(async (db) => {
-    await db.section.deleteMany({ where: { courseId } });
-    await db.course.deleteMany({ where: { id: courseId } });
-    await db.teacher.deleteMany({ where: { id: teacherId } });
-  });
-});
+test.describe.configure({ mode: "parallel" });
 
 test("description.public-web-personal-overlay", async ({
   browser,
   page,
   baseURL,
+  presentation: { targets },
 }) => {
   const anonymous = await browser.newContext({
     javaScriptEnabled: false,
@@ -112,7 +42,6 @@ test("description.public-web-personal-overlay", async ({
   } finally {
     await anonymous.close();
   }
-  await signInAsDebugUser(page);
   const failed = new Set<string>();
   const resolved = new Set<string>();
   await page.route("**/api/community/descriptions?**", async (route) => {
@@ -145,14 +74,19 @@ test("description.public-web-personal-overlay", async ({
   }
 });
 
-test("description.supplement-not-comment", async ({ page }) => {
+test("description.supplement-not-comment", async ({
+  page,
+  account,
+  presentation: { targets },
+}) => {
+  await page.context().clearCookies();
   for (const target of targets) {
     await page.goto(target.path);
     await waitForUiSettled(page);
     const introduction = page.locator("#introduction");
     const comments = page.locator("#comments");
     await expect(introduction).toContainText(content);
-    await expect(introduction).toContainText(DEV_SEED.debugName);
+    await expect(introduction).toContainText(account.name);
     await expect(introduction).toContainText("2026");
     await expect(introduction).not.toContainText(discussion);
     await expect(comments).toContainText(discussion);
@@ -160,23 +94,28 @@ test("description.supplement-not-comment", async ({ page }) => {
   }
 });
 
-test("description.platform-maintained", async ({ page }) => {
-  await signInAsDebugUser(page);
+test("description.platform-maintained", async ({
+  page,
+  account,
+  presentation: { targets },
+}) => {
   await page.goto(`${targets[2].path}#introduction`);
   const introduction = page.locator("#introduction");
   await expect(introduction.getByTestId("description-edit")).toBeVisible();
-  await expect(introduction).toContainText(DEV_SEED.debugName);
+  await expect(introduction).toContainText(account.name);
   await expect(introduction).not.toContainText(
     /大学认证|官方认证|University.verified|University.approved/i,
   );
   await introduction.getByRole("tab", { name: /历史|History/i }).click();
   await expect(introduction).toContainText("Before supplement");
   await expect(introduction).toContainText(content);
-  await expect(introduction).toContainText(DEV_SEED.debugName);
+  await expect(introduction).toContainText(account.name);
 });
 
-test("description.web-markdown-hydration", async ({ page }) => {
-  await signInAsDebugUser(page);
+test("description.web-markdown-hydration", async ({
+  page,
+  presentation: { targets },
+}) => {
   await page.route("**/api/community/descriptions?**", async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
@@ -198,7 +137,11 @@ test("description.web-markdown-hydration", async ({ page }) => {
   await expect(page.getByTestId("server-description-html")).toBeVisible();
 });
 
-test("comment.web-markdown-hydration", async ({ page }) => {
+test("comment.web-markdown-hydration", async ({
+  page,
+  presentation: { targets },
+}) => {
+  await page.context().clearCookies();
   await page.route("**/api/community/comments?**", async (route) => {
     const response = await route.fetch();
     const payload = await response.json();
