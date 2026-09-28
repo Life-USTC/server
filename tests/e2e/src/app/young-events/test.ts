@@ -117,7 +117,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       .first()
       .click();
     await expect(page).toHaveURL(/returnTo=/);
-    await expect(page.getByTestId("young-event-overview")).toBeVisible();
+    await expect(page.getByTestId("young-event-banner")).toBeVisible();
     await page
       .getByRole("link", { name: /返回活动列表|Back to all events/ })
       .click();

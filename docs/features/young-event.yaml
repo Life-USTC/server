@@ -90,9 +90,10 @@ requirements:
     stay in rawJson.
 - id: young-event.display-known-values
   category: presentation
-  rule: The default detail page shows event time, venue, hours, and signup deadline. It does not repeat
-    the signup window, registration requirements, meeting information, attachment formats, external sponsor,
-    organization contacts, occupancy, seat limit, or favorite count. isOnline reflects the upstream
+  rule: The default detail page shows the poster banner, title, and status badges. It does not show an
+    activity summary, official signup button, subscription control, or expandable statistics. It does not
+    repeat the signup window, registration requirements, meeting information, attachment formats, external
+    sponsor, organization contacts, occupancy, seat limit, or favorite count. isOnline reflects the upstream
     online-meeting option, not an exclusive activity format; false never implies in-person attendance.
     Unknown occupancy is not shown as zero. Partial time ranges label their known endpoint in Asia/Shanghai;
     unknown scope codes are not translated into eligibility claims.
@@ -108,13 +109,10 @@ requirements:
     MCP organizer ordering remains alphabetical.
 - id: young-event.web-detail-priority
   category: presentation
-  rule: Detail pages prioritize time, venue, hours and signup deadline. A same-day activity shows one date
-    and two times on one line. A venue already named in that summary is not repeated in a second venue
-    block. Official signup remains external. The poster is a full-width banner at the top of the page.
-    A fade from white, or black in dark mode, up to transparent covers the image, and the title sits on
-    that lower edge. The image link opens the full picture. The signup window, registration requirements, and organization
-    contacts stay off the default page. Statistics and record metadata stay expandable. Description images
-    stay inside a bounded frame.
+  rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark
+    mode, up to transparent covers the image. The title and status badges sit on that lower edge, and the
+    image link opens the full picture. The activity summary, official signup button, subscription control,
+    and expandable statistics stay off the page. Description images stay inside a bounded frame.
 - id: young-event.web-list-scan
   category: presentation
   rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of
@@ -230,9 +228,7 @@ capabilities:
       - event name
       - category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form
       - rich-text description and participation notes, sanitized with proxied inline images
-      - event time and signup deadline on the default detail page; signup window stays off that page
-      - credited hours, total credited hours, volunteer hours, and activity duration
-      - venue in the summary, without a second venue block that only repeats that name
+      - title and status badges on the lower edge of the poster banner
       - status and source freshness as a short footnote
       - organizer and stable organizer ID
       - sourceMissing and lastSeenAt when applicable

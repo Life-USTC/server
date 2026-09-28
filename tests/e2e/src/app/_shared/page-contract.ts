@@ -458,8 +458,11 @@ export async function assertPageContract(
           name: DEV_SEED.youngEvent.name,
         }),
       ).toBeVisible();
+      await expect(page.getByTestId("young-event-banner")).toBeVisible();
       await expect(
-        visibleText(page, DEV_SEED.youngEvent.location),
+        page
+          .getByTestId("young-event-banner")
+          .getByText(DEV_SEED.youngEvent.activityLevel),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "young-events-youngId");
       return;
