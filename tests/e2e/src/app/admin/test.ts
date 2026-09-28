@@ -75,11 +75,12 @@ test("admin.primary-admin-navigation", async ({ page }, testInfo) => {
 
     const navigation = adminPrimaryNav(page);
     const adminLinks = navigation.locator('a[href^="/admin"]');
-    await expect(adminLinks).toHaveCount(4);
-    await expect(navigation.getByRole("link", { name })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(adminLinks).toHaveCount(8);
+    const currentName =
+      path === "/admin/moderation" ? /^(评论|Comments)$/ : name;
+    await expect(
+      navigation.getByRole("link", { name: currentName }),
+    ).toHaveAttribute("aria-current", "page");
     await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(1);
     await expect(
       page.locator("#main-content").getByRole("heading", { level: 1 }),
@@ -107,7 +108,7 @@ test("/admin 主导航支持键盘切换", async ({ page }, testInfo) => {
   await expect(page).toHaveURL(/\/admin\/moderation(?:\?.*)?$/);
   await expect(navigation.locator('a[aria-current="page"]')).toHaveAttribute(
     "href",
-    "/admin/moderation",
+    "/admin/moderation?tab=comments",
   );
   await captureStepScreenshot(page, testInfo, "admin/navigation-keyboard");
 });
@@ -174,7 +175,7 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", asyn
     const panel = page.getByTestId("admin-mobile-navigation-panel");
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("link", { name })).toBeVisible();
-    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(4);
+    await expect(panel.getByRole("link", { name: /./ })).toHaveCount(8);
     await panel.getByRole("link", { name }).click();
     await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
   }

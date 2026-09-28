@@ -225,7 +225,9 @@ requirements:
   rule: Pages without a workspace SSR projection hydrate viewer and navigation state through the same-origin,
     session-cookie-only /_internal/shell-bootstrap endpoint. It returns only viewer id, name, username, image
     and isAdmin plus matching navigation userId and calendar, pending homework, pending todo, upcoming exam, subscribed section,
-    and unread activity notification counts. Anonymous results have null viewer and navigation. Every response
+    and unread activity notification counts, and subscribed section links limited to href and course label.
+    Anonymous results have null viewer, null navigation, and an empty subscribed section list. Workspace SSR
+    includes that same section list so hydration does not request shell bootstrap again. Every response
     uses Cache-Control private, no-store, Cloudflare-CDN-Cache-Control no-store, and Vary Cookie. Bearer
     authentication is rejected even alongside a session cookie.
   acceptance:

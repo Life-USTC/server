@@ -164,6 +164,7 @@ async function save(next: boolean) {
 
 {#if compact}
   {#if failed}
+    <span class="sr-only" role="alert">{copy.failed}</span>
     <Button variant="outline" onclick={retry}>{copy.retry}</Button>
   {:else}
     <Button class="shrink-0" disabled={!loaded || busy} onclick={() => save(!subscribed)}>

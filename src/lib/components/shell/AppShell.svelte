@@ -84,6 +84,7 @@ type AppShellData = {
   copy: LayoutCopy;
   locale: "en-us" | "zh-cn";
   resolveViewerOnClient: boolean;
+  subscribedSections?: ShellSectionDirectoryItem[] | null;
   user: LayoutUserSummary;
 };
 
@@ -112,8 +113,10 @@ $: shellViewer.set({
   status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
 });
 let workspaceNavigation: WorkspaceNavigationSummary | null = null;
-let subscribedSections: ShellSectionDirectoryItem[] = [];
-let subscribedSectionsUserId: string | null = null;
+let subscribedSections: ShellSectionDirectoryItem[] =
+  data.subscribedSections ?? [];
+let subscribedSectionsUserId: string | null =
+  data.user && data.subscribedSections ? data.user.id : null;
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
 
@@ -121,12 +124,21 @@ $: if (!data.resolveViewerOnClient || data.user) {
   if (viewerUser?.id !== data.user?.id) {
     cancelShellBootstrap();
     workspaceNavigation = null;
-    subscribedSections = [];
-    subscribedSectionsUserId = null;
+    subscribedSections = data.subscribedSections ?? [];
+    subscribedSectionsUserId =
+      data.user && data.subscribedSections ? data.user.id : null;
   }
   viewerUser = data.user;
   viewerLoading = false;
   viewerFailed = false;
+}
+$: if (
+  data.user &&
+  data.subscribedSections &&
+  viewerUser?.id === data.user.id
+) {
+  subscribedSections = data.subscribedSections;
+  subscribedSectionsUserId = data.user.id;
 }
 $: pageWorkspaceNavigation = workspaceNavigationFromPageData(
   $page.data,

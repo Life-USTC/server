@@ -51,6 +51,11 @@ onMount(() => {
   void loadDetailModules();
 });
 
+function hideBrokenImage(event: Event) {
+  const target = event.target;
+  if (target instanceof HTMLImageElement) target.hidden = true;
+}
+
 const youngCopy = $derived(copy.youngEvents);
 const badges = $derived(
   [
@@ -68,7 +73,7 @@ const badges = $derived(
   <header class="relative isolate overflow-hidden bg-muted" data-testid="young-event-banner">
     {#if event.imageUrl}
       <a class="absolute inset-0" href={event.imageUrl} rel="noreferrer noopener" target="_blank" aria-label={youngCopy.poster}>
-        <img alt="" class="h-full w-full object-cover" src={event.imageUrl} />
+        <img alt="" class="h-full w-full object-cover" onerror={hideBrokenImage} src={event.imageUrl} />
       </a>
     {/if}
     <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,white_0%,white_28%,transparent_72%)] dark:bg-[linear-gradient(to_top,black_0%,black_28%,transparent_72%)]"></div>
@@ -91,7 +96,7 @@ const badges = $derived(
       {#snippet header()}
         <h2 class="text-lg font-semibold tracking-tight">{youngCopy.sectionDescription}</h2>
       {/snippet}
-      <div class="young-event-copy">
+      <div class="young-event-copy" onerrorcapture={hideBrokenImage}>
         <RenderedMarkdown html={event.description} />
       </div>
     </Panel>
@@ -101,7 +106,7 @@ const badges = $derived(
       {#snippet header()}
         <h2 class="text-lg font-semibold tracking-tight">{youngCopy.sectionNotes}</h2>
       {/snippet}
-      <div class="young-event-copy">
+      <div class="young-event-copy" onerrorcapture={hideBrokenImage}>
         <RenderedMarkdown html={event.participationNotes} />
       </div>
     </Panel>
