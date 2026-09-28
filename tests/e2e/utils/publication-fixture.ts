@@ -11,8 +11,7 @@ type PublicationObjects = {
   get: (key: string) => Promise<Buffer | null>;
 };
 
-export const test = workerTest.extend<{
-  publication: PublicationFixture;
+export const publicationStorageTest = workerTest.extend<{
   publicationObjects: PublicationObjects;
 }>({
   publicationObjects: async ({ request }, use) => {
@@ -35,6 +34,11 @@ export const test = workerTest.extend<{
       },
     });
   },
+});
+
+export const test = publicationStorageTest.extend<{
+  publication: PublicationFixture;
+}>({
   publication: [
     async ({ isolatedWorker, publicationObjects }, use) => {
       // Identical keys and URLs are intentional: each native owner already
