@@ -173,7 +173,7 @@ export const test = isolatedTest.extend<{
       owner,
       other,
       anonymous,
-      bucket: createUploadBucket(anonymous),
+      bucket: createUploadBucket(anonymous, isolatedWorker.origin),
       catalog,
       section,
       course: catalog.courses[0],

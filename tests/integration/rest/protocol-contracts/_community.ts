@@ -1,6 +1,6 @@
-import { expect, mergeTests } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { createUploadBucket } from "../../../e2e/utils/upload-bucket";
 import { createSignedSessionCookie } from "../../../e2e/utils/workspace-task-filters";
-import { test as uploadTest } from "../uploads/_fixture";
 import { expectSuccessfulOperation } from "./_assertions";
 import {
   type Actor,
@@ -137,10 +137,13 @@ type Community = {
   ) => Promise<{ id: string; key: string; contents: string }>;
   objectsUnchanged: () => Promise<void>;
 };
-export const test = mergeTests(protocolTest, uploadTest).extend<{
+export const test = protocolTest.extend<{
   community: Community;
 }>({
-  community: async ({ h, uploadBucket }, use) => {
+  community: async ({ h, request }, use) => {
+    // Observe the same Worker as the protocol operations. Upload fixtures own a
+    // separate runtime and must not provide this protocol's storage binding.
+    const uploadBucket = createUploadBucket(request, h.origin);
     const probeIds: string[] = [];
     const probeRequest = async (id: string, method: string) =>
       fetch(`${h.origin}/__test/community-effects?id=${id}`, {
