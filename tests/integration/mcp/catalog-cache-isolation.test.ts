@@ -23,3 +23,21 @@ for (const code of ["CACHE.A", "CACHE.B"]) {
     },
   );
 }
+
+for (const title of ["Timetable A", "Timetable B"]) {
+  isolatedMcpTest(
+    `private MCP bus reads retain ${title} with matching import timestamps`,
+    async ({ mcpActor, mcpBus, isolatedDatabase, expect }) => {
+      await isolatedDatabase.owner.busScheduleVersion.update({
+        where: { key: mcpBus.versionKey },
+        data: { title, importedAt: new Date("2026-04-29T00:00:00.000Z") },
+      });
+      for (let read = 0; read < 2; read++) {
+        const result = await mcpActor.client.call<{
+          version: { key: string; title: string };
+        }>("catalog_bus_timetable_get", { mode: "full" });
+        expect(result.version).toMatchObject({ key: mcpBus.versionKey, title });
+      }
+    },
+  );
+}
