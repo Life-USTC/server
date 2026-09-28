@@ -25,7 +25,6 @@
 import { expect } from "@playwright/test";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
 
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -134,6 +133,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     ustcAccount: _ustcAccount,
     githubAccount: _githubAccount,
     credential: _credential,
+    isolatedWorker,
   }, testInfo) => {
     test.setTimeout(60_000);
     await gotoAndWaitForReady(page, "/account/settings/accounts");
@@ -161,9 +161,9 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).not.toBeVisible();
     expect(
-      await withE2ePrisma((db) =>
-        db.account.count({ where: { userId: account.id, provider: "github" } }),
-      ),
+      await isolatedWorker.database.owner.account.count({
+        where: { userId: account.id, provider: "github" },
+      }),
     ).toBe(1);
 
     // Confirm unlink flow
@@ -187,21 +187,19 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
         .filter({ hasText: /已断开连接|Disconnected/i }),
     ).toBeVisible();
     expect(
-      await withE2ePrisma((db) =>
-        db.account.count({ where: { userId: account.id, provider: "github" } }),
-      ),
+      await isolatedWorker.database.owner.account.count({
+        where: { userId: account.id, provider: "github" },
+      }),
     ).toBe(0);
     expect(
-      await withE2ePrisma((db) =>
-        db.verifiedEmail.count({
-          where: { userId: account.id, provider: "github" },
-        }),
-      ),
+      await isolatedWorker.database.owner.verifiedEmail.count({
+        where: { userId: account.id, provider: "github" },
+      }),
     ).toBe(0);
     expect(
-      await withE2ePrisma((db) =>
-        db.account.count({ where: { userId: account.id, provider: "oidc" } }),
-      ),
+      await isolatedWorker.database.owner.account.count({
+        where: { userId: account.id, provider: "oidc" },
+      }),
     ).toBe(1);
     await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
   });

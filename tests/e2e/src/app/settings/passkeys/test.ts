@@ -1,30 +1,20 @@
-import { createLocalAccountIssuer } from "@better-auth/core/db";
 import { expect } from "@playwright/test";
-import { hashPassword } from "better-auth/crypto";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { test } from "../../../../utils/isolated-account";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { test } from "../../../../utils/settings-fixture";
 
 test.describe("/account/settings/accounts 通行密钥", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("user.passkey-user-flow", async ({ page, account }, testInfo) => {
+  test("user.passkey-user-flow", async ({
+    page,
+    account,
+    credential: _credential,
+    isolatedWorker,
+  }, testInfo) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1280, height: 1000 });
     // Successful deletion requires another usable sign-in method.
-    const password = await hashPassword(crypto.randomUUID());
-    await withE2ePrisma((db) =>
-      db.account.create({
-        data: {
-          userId: account.id,
-          provider: "credential",
-          issuer: createLocalAccountIssuer("credential"),
-          providerAccountId: account.id,
-          password,
-        },
-      }),
-    );
     const cdp = await page.context().newCDPSession(page);
     let authenticatorId: string | undefined;
     try {
@@ -66,9 +56,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
         authenticatorId,
       });
       expect(credentials.credentials).toHaveLength(1);
-      const stored = await withE2ePrisma((db) =>
-        db.passkey.findMany({ where: { userId: account.id } }),
-      );
+      const stored = await isolatedWorker.database.owner.passkey.findMany({
+        where: { userId: account.id },
+      });
       expect(stored).toHaveLength(1);
       expect(stored[0]).toMatchObject({
         userId: account.id,
@@ -102,9 +92,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
       ).toHaveValue("E2E security key");
 
       expect(
-        await withE2ePrisma((db) =>
-          db.passkey.findUnique({ where: { id: stored[0].id } }),
-        ),
+        await isolatedWorker.database.owner.passkey.findUnique({
+          where: { id: stored[0].id },
+        }),
       ).toMatchObject({ name: "E2E security key", userId: account.id });
       await page.locator("#app-user-menu").getByRole("button").click();
       await page.getByRole("menuitem", { name: /登出|Sign Out/i }).click();
@@ -156,9 +146,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           .filter({ hasText: /通行密钥已删除|Passkey deleted/i }),
       ).toBeVisible();
       expect(
-        await withE2ePrisma((db) =>
-          db.passkey.findMany({ where: { userId: account.id } }),
-        ),
+        await isolatedWorker.database.owner.passkey.findMany({
+          where: { userId: account.id },
+        }),
       ).toEqual([]);
     } finally {
       try {
@@ -307,7 +297,11 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     );
   });
 
-  test("user.passkey-stale-session-guidance", async ({ page, account }) => {
+  test("user.passkey-stale-session-guidance", async ({
+    page,
+    account,
+    isolatedWorker,
+  }) => {
     await gotoAndWaitForReady(page, "/account/settings/accounts");
     await page.route(
       "**/api/auth/passkey/generate-register-options**",
@@ -334,9 +328,9 @@ test.describe("/account/settings/accounts 通行密钥", () => {
       passkeyCard.getByText(/先退出并重新登录|sign out and sign in again/i),
     ).toBeVisible();
     expect(
-      await withE2ePrisma((db) =>
-        db.passkey.count({ where: { userId: account.id } }),
-      ),
+      await isolatedWorker.database.owner.passkey.count({
+        where: { userId: account.id },
+      }),
     ).toBe(0);
   });
 

@@ -25,9 +25,8 @@ import { createLocalAccountIssuer } from "@better-auth/core/db";
  * - Deleted credentials stop working; a newly arranged private identity can sign in
  */
 import { expect } from "@playwright/test";
-import { hashPassword } from "better-auth/crypto";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -45,7 +44,11 @@ test.describe("/account/settings/danger 危险区设置", () => {
     await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
   });
 
-  test("删除账号确认流程", async ({ page, account }, testInfo) => {
+  test("删除账号确认流程", async ({
+    page,
+    account,
+    isolatedWorker,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/account/settings/danger");
 
@@ -131,14 +134,18 @@ test.describe("/account/settings/danger 危险区设置", () => {
     // Cancel closes dialog without action.
     await narrowDialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(narrowDialog).toBeHidden();
-    expect(await storedProfile(account.id)).toMatchObject({ id: account.id });
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({ id: account.id });
   });
 
   test("实际删除账号后退出登录并可重新登录", async ({
     page,
     account,
     credential,
+    credentialHash,
     baseURL,
+    isolatedWorker,
   }, testInfo) => {
     test.setTimeout(60_000);
 
@@ -212,16 +219,18 @@ test.describe("/account/settings/danger 危险区设置", () => {
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-danger-deleted");
 
-    expect(await storedProfile(account.id)).toBeNull();
     expect(
-      await withE2ePrisma((db) =>
-        db.account.count({ where: { userId: account.id } }),
-      ),
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toBeNull();
+    expect(
+      await isolatedWorker.database.owner.account.count({
+        where: { userId: account.id },
+      }),
     ).toBe(0);
     expect(
-      await withE2ePrisma((db) =>
-        db.session.count({ where: { userId: account.id } }),
-      ),
+      await isolatedWorker.database.owner.session.count({
+        where: { userId: account.id },
+      }),
     ).toBe(0);
     const origin = absoluteTestUrl("/", baseURL).replace(/\/$/, "");
     expect(
@@ -234,29 +243,26 @@ test.describe("/account/settings/danger 危险区设置", () => {
     ).toBe(401);
 
     // A new private identity with the released address can authenticate again.
-    const password = await hashPassword(credential.password);
-    await withE2ePrisma((db) =>
-      db.$transaction(async (tx) => {
-        await tx.user.create({
-          data: {
-            id: account.id,
-            email: account.email,
-            emailVerified: true,
-            name: account.name,
-            username: account.username,
-          },
-        });
-        await tx.account.create({
-          data: {
-            userId: account.id,
-            provider: "credential",
-            issuer: createLocalAccountIssuer("credential"),
-            providerAccountId: account.id,
-            password,
-          },
-        });
-      }),
-    );
+    await isolatedWorker.database.owner.$transaction(async (tx) => {
+      await tx.user.create({
+        data: {
+          id: account.id,
+          email: account.email,
+          emailVerified: true,
+          name: account.name,
+          username: account.username,
+        },
+      });
+      await tx.account.create({
+        data: {
+          userId: account.id,
+          provider: "credential",
+          issuer: createLocalAccountIssuer("credential"),
+          providerAccountId: account.id,
+          password: credentialHash,
+        },
+      });
+    });
     const signedIn = await page.request.post("/api/auth/sign-in/email", {
       data: credential,
       headers: { origin },

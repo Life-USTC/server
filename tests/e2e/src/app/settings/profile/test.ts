@@ -23,7 +23,6 @@
 import { expect } from "@playwright/test";
 import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
 
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -70,7 +69,11 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await captureStepScreenshot(page, testInfo, "settings/profile-fields");
   });
 
-  test("可保存姓名并回滚", async ({ page, account }, testInfo) => {
+  test("可保存姓名并回滚", async ({
+    page,
+    account,
+    isolatedWorker,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/account/settings/profile");
 
     const nameInput = page.locator("input#name");
@@ -90,7 +93,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await saveResponsePromise;
     await expect(successToast).toBeVisible();
-    expect(await storedProfile(account.id)).toMatchObject({ name: newName });
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({ name: newName });
     await expect(page).toHaveURL(/\/account\/settings\/profile$/);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(newName, {
@@ -107,7 +112,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await rollbackResponsePromise;
     await expect(successToast).toBeVisible();
-    expect(await storedProfile(account.id)).toMatchObject({
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({
       name: originalName,
     });
     await expect(page).toHaveURL(/\/account\/settings\/profile$/);
@@ -117,7 +124,11 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     });
   });
 
-  test("保存前要求填写用户名", async ({ page, account }, testInfo) => {
+  test("保存前要求填写用户名", async ({
+    page,
+    account,
+    isolatedWorker,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/account/settings/profile");
 
     const usernameInput = page.locator("input#username");
@@ -125,7 +136,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await page.getByRole("button", { name: /保存|Save/i }).click();
 
     await expect(usernameInput).toBeFocused();
-    expect(await storedProfile(account.id)).toMatchObject({
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({
       name: account.name,
       username: account.username,
     });
@@ -148,13 +161,12 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     profile: account,
     credential,
     baseURL,
+    isolatedWorker,
   }) => {
-    await withE2ePrisma((db) =>
-      db.user.update({
-        where: { id: account.id },
-        data: { image: null, profilePictures: [] },
-      }),
-    );
+    await isolatedWorker.database.owner.user.update({
+      where: { id: account.id },
+      data: { image: null, profilePictures: [] },
+    });
     const signOut = await page.request.post("/account/sign-out", {
       maxRedirects: 0,
     });
@@ -168,7 +180,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     expect((await signedIn.json()).user.id).toBe(account.id);
     await gotoAndWaitForReady(page, "/account/settings/profile");
     await expectPagePath(page, "/account/settings/profile");
-    expect(await storedProfile(account.id)).toMatchObject({
+    expect(
+      await storedProfile(isolatedWorker.database.owner, account.id),
+    ).toMatchObject({
       image: null,
       profilePictures: [],
     });
