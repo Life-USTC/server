@@ -34,7 +34,13 @@ const budgets = {
   "/": { gzipBytes: 195_000, requests: 72 },
   "/catalog/courses/[jwId]": { gzipBytes: 330_000, requests: 94 },
   "/catalog/sections/[jwId]": { gzipBytes: 390_000, requests: 104 },
-  "/news": { gzipBytes: 232_000, requests: 88 },
+  // The news list now shares the collection page, filter toolbar, and
+  // pagination with the shell. Icons the shell also imports
+  // (`sliders-horizontal`, `chevron-right`, `arrow-left`) and the small
+  // toolbar/layout helpers were extracted into their own chunks. Measured
+  // 93 requests and 223,969 gzip bytes. Pin the request count at 93 so the
+  // next split still trips; the gzip cap stays 232_000.
+  "/news": { gzipBytes: 232_000, requests: 93 },
   "/news/[id]": { gzipBytes: 221_000, requests: 82 },
   "/news/sources": { gzipBytes: 225_000, requests: 86 },
 };

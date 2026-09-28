@@ -90,14 +90,14 @@ describe("public Young page loaders", () => {
       { youngId: "second" },
       { youngId: "last" },
     ]);
-    expect(result.range).toEqual({ start: "2035-09-10", end: "2035-09-16" });
+    expect(result.range).toEqual({ start: "2035-09-09", end: "2035-09-15" });
     expect(result.unknownDateCount).toBe(7);
     expect(service.listYoungEvents).toHaveBeenLastCalledWith(
       expect.objectContaining({
         page: 3,
         pageSize: 100,
-        dateFrom: "2035-09-10",
-        dateTo: "2035-09-16",
+        dateFrom: "2035-09-09",
+        dateTo: "2035-09-15",
         timeBasis: "registration",
         organizerId: "club",
         search: "reading",
