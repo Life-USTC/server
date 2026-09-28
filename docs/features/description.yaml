@@ -40,14 +40,15 @@ requirements:
     the changed content is visible. Unchanged retries enqueue the same rebuild so a previously failed
     enqueue can recover.
   acceptance:
-    given: A subscribed section has a homework description that is created, changed, and submitted unchanged.
-    when: The production description use case writes and schedules calendar rebuilds.
+    given: Independent cases each own a database, subscribed section and homework with absent, existing,
+      or unchanged description content.
+    when: The production description use case creates, changes or resubmits the prepared content and schedules calendar rebuilds.
     then:
     - Each request schedules the correct section.
     - A separate database read observes committed content before the rebuild callback.
     test:
       file: tests/integration/calendar-write-state.test.ts
-      name: description.homework-calendar-invalidation
+      name: homework description unchanged retry rebuild observes committed content
 - id: description.public-cache-invalidation
   category: consistency
   rule: A committed course, section, or teacher description write invalidates its cached public HTML and

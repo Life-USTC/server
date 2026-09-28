@@ -26,17 +26,17 @@ requirements:
   rule: Calendar export rebuild requests are enqueued only after the source write commits; rolled-back
     writes never request a rebuild.
   acceptance:
-    given: Actual todo/homework creation and section/activity subscription services write to PostgreSQL
-      with a recording rebuild sender.
-    when: Each source write succeeds, then repeats under a deferred constraint trigger that rejects at
-      commit.
+    given: Each todo/homework creation and section/activity subscription case owns its PostgreSQL database
+      and request-local recording queue binding.
+    when: Independent success and rejection cases execute each source write; rejection uses a deferred
+      constraint trigger that fails at commit.
     then:
     - An independent database connection sees the committed source row when each successful rebuild is
       requested.
     - Commit rejection rolls back the row and emits no rebuild request for any of the four source domains.
     test:
       file: tests/integration/calendar-commit-contract.test.ts
-      name: ical.committed-write-rebuilds
+      name: Todo rebuild observes the committed source row
 - id: ical.copyable-links
   category: presentation
   rule: iCal links should be presented as copyable links rather than requiring users to manually construct

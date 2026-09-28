@@ -525,15 +525,16 @@ requirements:
   rule: A successful todo delete requests an owner calendar rebuild only after commit; a rolled-back delete
     requests none.
   acceptance:
-    given: The owner has a todo and a rebuild sender reads that row through a separate database connection.
-    when: The actual delete service succeeds, then a second delete is rejected by a deferred constraint
-      trigger at commit.
+    given: Independent cases each own a database and todo; a request-local rebuild queue observer reads
+      that row through a separate database connection.
+    when: The delete service succeeds in one case and is rejected at commit by a deferred constraint
+      trigger in the other.
     then:
     - The successful rebuild observes that deletion has committed.
     - The failed deletion preserves the todo and emits no rebuild.
     test:
       file: tests/integration/calendar-commit-contract.test.ts
-      name: todo.delete-calendar-after-commit
+      name: todo deletion rebuild observes the committed absence
 - id: todo.batch-result-replay
   category: consistency
   rule: REST and GraphQL todo completion and deletion batches return one ordered result per input target.
