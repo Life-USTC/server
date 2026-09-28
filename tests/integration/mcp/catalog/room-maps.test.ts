@@ -1,15 +1,15 @@
-import { describe, vi } from "vitest";
+import { describe, test, vi } from "vitest";
 import { getRoomMapRoute } from "@/lib/api/routes/room-map-route";
 import { createGraphqlYoga } from "@/lib/graphql/server";
-import { cleanupMcpResources } from "../_harness/cleanup";
-import { createAnonymousMcpHarness, type McpHarness } from "../_harness/client";
-import { mcpTest } from "../_harness/context";
+import { createNodeRuntime } from "../../../shared/node-runtime";
+import { ownAnonymousMcpHarness } from "../_harness/client";
 
-const contractTest = mcpTest
+const contractTest = test
   .extend(
     "transportRuntime",
     { scope: "file", auto: true },
-    ({ mcpConnections: _connections }, { onCleanup }) => {
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest parses fixture dependencies.
+    ({}, { onCleanup }) => {
       onCleanup(async () => {
         vi.unstubAllGlobals();
       });
@@ -38,8 +38,24 @@ const contractTest = mcpTest
       return true;
     },
   )
-  .extend("state", async ({ mcpConnections: _connections }, { onCleanup }) => {
-    let client: McpHarness;
+  .extend(
+    "requestRuntime",
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest parses fixture dependencies.
+    ({}, { onCleanup }) => {
+      const runtime = createNodeRuntime({
+        APP_PUBLIC_ORIGIN: "https://example.test",
+        APP_CANONICAL_ORIGIN: "https://example.test",
+      });
+      onCleanup(() => runtime.close());
+      return runtime;
+    },
+  )
+  .extend("anonymousSession", ({ requestRuntime }, { onCleanup }) => {
+    const session = ownAnonymousMcpHarness(requestRuntime);
+    onCleanup(() => session.client.close());
+    return session;
+  })
+  .extend("state", async ({ anonymousSession, requestRuntime }) => {
     async function graphql({
       source,
       variableValues,
@@ -47,37 +63,37 @@ const contractTest = mcpTest
       source: string;
       variableValues?: Record<string, string>;
     }) {
-      const response = await createGraphqlYoga(false).fetch(
-        "https://example.test/api/graphql",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ query: source, variables: variableValues }),
-        },
-        { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+      const response = await requestRuntime.run(() =>
+        createGraphqlYoga(false).fetch(
+          "https://example.test/api/graphql",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ query: source, variables: variableValues }),
+          },
+          { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+        ),
       );
       return response.json();
     }
-    onCleanup(async () => {
-      await cleanupMcpResources([
-        async () => {
-          await client?.close();
-        },
-      ]);
-    });
-    client = await createAnonymousMcpHarness();
-
-    return { client, graphql };
+    await anonymousSession.initialize();
+    return {
+      client: anonymousSession.client,
+      graphql,
+      request: requestRuntime.run,
+    };
   });
 
 describe("public room map transport parity", () => {
   contractTest("room-map.public", async ({ state, expect }) => {
-    const { client, graphql } = state;
+    const { client, graphql, request } = state;
 
     for (const code of ["3A204", "3A299", "UNKNOWN", " ３ａ２０４ "]) {
-      const response = await getRoomMapRoute(
-        new Request("https://example.test/api/catalog/rooms/map"),
-        { code },
+      const response = await request(() =>
+        getRoomMapRoute(
+          new Request("https://example.test/api/catalog/rooms/map"),
+          { code },
+        ),
       );
       expect(response.status).toBe(200);
       const rest = await response.json();
@@ -103,11 +119,12 @@ describe("public room map transport parity", () => {
     }
   });
   contractTest("openapi.room-maps", async ({ state, expect }) => {
-    const { client, graphql } = state;
+    const { client, graphql, request } = state;
 
-    const response = await getRoomMapRoute(
-      new Request("https://example.test/"),
-      { code: "../invalid" },
+    const response = await request(() =>
+      getRoomMapRoute(new Request("https://example.test/"), {
+        code: "../invalid",
+      }),
     );
     expect(response.status).toBe(400);
     const result = await graphql({
