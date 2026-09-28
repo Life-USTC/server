@@ -3,13 +3,11 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import {
   issueAccessTokenForClient,
+  type OAuthOwner,
   parseTextContent,
   registerPublicClient,
 } from "../src/app/api/mcp/helpers";
-import { createCalendarContractFixture } from "./calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
-import { withE2ePrisma } from "./e2e-db/prisma";
-import { createSignedSessionCookie } from "./workspace-task-filters";
+import type { createCalendarContractFixture } from "./calendar-contract";
 
 export const subscriptionTransports = [
   "REST session",
@@ -26,74 +24,45 @@ export type SubscriptionRelation = {
 };
 
 export async function createSubscriptionMutationFixture(
+  owner: OAuthOwner,
+  createCalendar: () => ReturnType<typeof createCalendarContractFixture>,
   role: "regular" | "suspended admin" = "regular",
 ) {
-  const own = await createCalendarContractFixture();
-  let foreign:
-    | Awaited<ReturnType<typeof createCalendarContractFixture>>
-    | undefined;
-  const cleanup = async () => {
-    const results = await Promise.allSettled([
-      own.cleanup(),
-      foreign?.cleanup(),
-    ]);
-    const errors = results.flatMap((result) =>
-      result.status === "rejected" ? [result.reason] : [],
-    );
-    if (errors.length)
-      throw new AggregateError(errors, "Subscription fixture cleanup failed");
-  };
-  try {
-    foreign = await createCalendarContractFixture();
-    if (role === "suspended admin") {
-      await withE2ePrisma(async (db) => {
-        await db.user.update({
-          where: { id: own.users[0].id },
-          data: { isAdmin: true },
-        });
-        await db.userSuspension.create({
-          data: {
-            userId: own.users[0].id,
-            reason: "Personal subscriptions remain available during suspension",
-          },
-        });
-      });
-    }
-    const userIds = [...own.users, ...foreign.users].map(({ id }) => id);
-    const stableRows = await withE2ePrisma((db) =>
-      db.userSectionSubscription.findMany({
-        where: {
-          userId: { in: userIds },
-        },
-        orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
-      }),
-    );
-    return {
-      own,
-      foreign,
-      stableRows,
-      userIds,
-      initial: [
-        { userId: own.users[0].id, sectionId: own.section.id, kind: "regular" },
-        {
-          userId: foreign.users[0].id,
-          sectionId: foreign.section.id,
-          kind: "regular",
-        },
-      ] satisfies SubscriptionRelation[],
-      cleanup,
-    };
-  } catch (error) {
-    try {
-      await cleanup();
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "Subscription fixture setup and cleanup failed",
-      );
-    }
-    throw error;
+  const db = owner.worker.database.owner;
+  const own = await createCalendar();
+  const foreign = await createCalendar();
+  if (role === "suspended admin") {
+    await db.user.update({
+      where: { id: own.users[0].id },
+      data: { isAdmin: true },
+    });
+    await db.userSuspension.create({
+      data: {
+        userId: own.users[0].id,
+        reason: "Personal subscriptions remain available during suspension",
+      },
+    });
   }
+  const userIds = [...own.users, ...foreign.users].map(({ id }) => id);
+  const stableRows = await db.userSectionSubscription.findMany({
+    where: { userId: { in: userIds } },
+    orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+  });
+  return {
+    owner,
+    own,
+    foreign,
+    stableRows,
+    userIds,
+    initial: [
+      { userId: own.users[0].id, sectionId: own.section.id, kind: "regular" },
+      {
+        userId: foreign.users[0].id,
+        sectionId: foreign.section.id,
+        kind: "regular",
+      },
+    ] satisfies SubscriptionRelation[],
+  };
 }
 export type SubscriptionMutationFixture = Awaited<
   ReturnType<typeof createSubscriptionMutationFixture>
@@ -105,12 +74,11 @@ export async function expectSubscriptionRelations(
   fixture: SubscriptionMutationFixture,
   expected: SubscriptionRelation[],
 ) {
-  const actual = await withE2ePrisma((db) =>
-    db.userSectionSubscription.findMany({
-      where: { userId: { in: fixture.userIds } },
-      orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
-    }),
-  );
+  const db = fixture.owner.worker.database.owner;
+  const actual = await db.userSectionSubscription.findMany({
+    where: { userId: { in: fixture.userIds } },
+    orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+  });
   const ordered = (rows: SubscriptionRelation[]) =>
     [...rows].sort(
       (a, b) => a.userId.localeCompare(b.userId) || a.sectionId - b.sectionId,
@@ -138,18 +106,20 @@ export async function expectSubscriptionRelations(
 
 export async function subscriptionGraphql(
   request: APIRequestContext,
+  origin: string,
   query: string,
   variables: Record<string, unknown>,
   headers: Record<string, string> = {},
 ) {
   const response = await request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL, ...headers },
+    headers: { origin, ...headers },
     data: { query, variables },
   });
   return { response, body: await response.json() };
 }
 
 export async function openSubscriptionTransport(
+  owner: OAuthOwner,
   page: Page,
   anonymousRequest: APIRequestContext,
   userId: string,
@@ -159,32 +129,28 @@ export async function openSubscriptionTransport(
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(userId),
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+      (await owner.worker.createSession(userId)).cookie,
+      { name: "NEXT_LOCALE", value: "en-us", url: owner.worker.origin },
     ]);
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
-  let clientId: string | undefined;
+  const resource = `${owner.worker.origin}/api/${transport.startsWith("REST") ? "auth" : transport.startsWith("GraphQL") ? "graphql" : "mcp"}`;
   let client: Client | undefined;
   const headers: Record<string, string> = {};
   const close = async () => {
-    try {
-      await client?.close();
-    } finally {
-      if (clientId) {
-        await withE2ePrisma((db) =>
-          db.oAuthClient.deleteMany({ where: { clientId } }),
-        );
-      }
-    }
+    await client?.close();
   };
   try {
     if (transport.endsWith("bearer")) {
-      clientId = await registerPublicClient(anonymousRequest, scope);
+      const clientId = await registerPublicClient(
+        anonymousRequest,
+        scope,
+        owner,
+      );
       const { response, tokenBody } = await issueAccessTokenForClient(
         page,
         anonymousRequest,
         {
           clientId,
+          owner,
           scope,
           resource,
         },
@@ -205,6 +171,7 @@ export async function openSubscriptionTransport(
       );
     }
     return {
+      origin: owner.worker.origin,
       transport,
       request,
       headers,
@@ -236,7 +203,7 @@ export async function mutateSubscription(
   wasSubscribed = true,
 ) {
   const { own, foreign } = fixture;
-  const { transport, request, headers, client } = connection;
+  const { transport, request, headers, client, origin } = connection;
   if (transport.startsWith("REST")) {
     const response =
       action === "kind"
@@ -291,6 +258,7 @@ export async function mutateSubscription(
           : "subscriptionRemove";
     const { response, body } = await subscriptionGraphql(
       request,
+      origin,
       `mutation($jwId: Int!) { ${field}(jwId: $jwId${action === "kind" ? ", kind: auditor" : ""}) { ${action === "kind" ? "sectionJwId kind" : "subscribed"} } }`,
       { jwId: foreign.section.jwId },
       headers,
@@ -334,7 +302,7 @@ export async function expectMissingSubscriptionKind(
   connection: SubscriptionConnection,
   jwId: number,
 ) {
-  const { transport, request, headers, client } = connection;
+  const { transport, request, headers, client, origin } = connection;
   if (transport.startsWith("REST")) {
     const response = await request.patch(
       `/api/workspace/subscriptions/${jwId}`,
@@ -347,6 +315,7 @@ export async function expectMissingSubscriptionKind(
   } else if (transport.startsWith("GraphQL")) {
     const { body } = await subscriptionGraphql(
       request,
+      origin,
       "mutation($jwId: Int!) { subscriptionKindUpdate(jwId: $jwId, kind: auditor) { kind } }",
       { jwId },
       headers,

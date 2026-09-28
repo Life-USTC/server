@@ -1,10 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
 type CalendarEvent = {
@@ -23,15 +20,20 @@ type NativeEvent = {
 test("interface-hierarchy.representative-cross-surface-contract-6", async ({
   page,
   request,
+  isolatedWorker,
+  createCalendar,
+  oauthOwner,
 }) => {
-  const fixture = await createCalendarContractFixture();
-  let clientId: string | undefined;
+  const db = isolatedWorker.database.owner;
+  const fixture = await createCalendar();
   let client: Client | undefined;
   try {
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-    const extra = await withE2ePrisma(async (db) => {
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
+      ]);
+    const extra = await (async () => {
       const items = [];
       for (let index = 0; index < 125; index++)
         items.push(
@@ -78,7 +80,7 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
         where: { sectionId: fixture.section.id },
       });
       return { items, schedule, exam };
-    });
+    })();
     const expected = [
       ...extra.items.map((item) => ({
         id: `todo-${item.id}`,
@@ -150,7 +152,7 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
       expect(body.data).toHaveLength(pageNumber < 8 ? 17 : 11);
       restEvents.push(...body.data);
       const graphResponse = await page.request.post("/api/graphql", {
-        headers: { origin: PLAYWRIGHT_BASE_URL },
+        headers: { origin: isolatedWorker.origin },
         data: {
           query,
           variables: {
@@ -180,13 +182,13 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
     expect(project(graphEvents)).toEqual(expected);
     expect(new Set(restEvents.map((event) => event.id)).size).toBe(130);
     const scope = "workspace.calendar:read";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const resource = `${isolatedWorker.origin}/api/mcp`;
     const token = await issueAccessToken(page, request, {
+      owner: oauthOwner,
       scope,
       clientScopes: [scope],
       resource,
     });
-    clientId = token.clientId;
     client = new Client({ name: "calendar-completeness", version: "1" });
     await client.connect(
       new StreamableHTTPClientTransport(new URL(resource), {
@@ -222,7 +224,9 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
     await page.context().clearCookies();
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[1].id)]);
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.users[1].id)).cookie,
+      ]);
     const foreign = await page.request.get(
       `/api/workspace/calendar/events?dateFrom=${fixture.date}&dateTo=${fixture.activityDate}`,
     );
@@ -233,10 +237,5 @@ test("interface-hierarchy.representative-cross-surface-contract-6", async ({
     ).toEqual([fixture.young.name, "Foreign calendar task"].sort());
   } finally {
     await client?.close();
-    if (clientId)
-      await withE2ePrisma((db) =>
-        db.oAuthClient.delete({ where: { clientId } }),
-      );
-    await fixture.cleanup();
   }
 });

@@ -1,10 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect } from "@playwright/test";
-import { test as calendarTest } from "../../../../utils/calendar-fixture";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { test as calendarTest } from "../../../../utils/private-calendar-fixture";
 import {
   issueAccessTokenForClient,
   parseTextContent,
@@ -16,13 +13,18 @@ type CallTool = <Result>(
   args?: Record<string, unknown>,
 ) => Promise<Result>;
 const test = calendarTest.extend<{ call: CallTool }>({
-  call: async ({ page, request, calendar }, use) => {
+  call: async (
+    { page, request, calendar, isolatedWorker, oauthOwner },
+    use,
+  ) => {
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(calendar.users[0].id)]);
+      .addCookies([
+        (await isolatedWorker.createSession(calendar.users[0].id)).cookie,
+      ]);
     const scope = "workspace.overview:read workspace.schedule:read";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    const clientId = await registerPublicClient(request, scope);
+    const resource = `${isolatedWorker.origin}/api/mcp`;
+    const clientId = await registerPublicClient(request, scope, oauthOwner);
     const client = new Client({ name: "overview-contract", version: "1" });
     try {
       const { response, tokenBody } = await issueAccessTokenForClient(
@@ -30,6 +32,7 @@ const test = calendarTest.extend<{ call: CallTool }>({
         request,
         {
           clientId,
+          owner: oauthOwner,
           scope,
           resource,
         },
@@ -53,13 +56,7 @@ const test = calendarTest.extend<{ call: CallTool }>({
       };
       await use(call);
     } finally {
-      try {
-        await client.close();
-      } finally {
-        await withE2ePrisma((db) =>
-          db.oAuthClient.delete({ where: { clientId } }),
-        );
-      }
+      await client.close();
     }
   },
 });
@@ -78,7 +75,9 @@ test("overview.upcoming-exam-counts", async ({
   page,
   calendar: fixture,
   call,
+  isolatedWorker,
 }) => {
+  const db = isolatedWorker.database.owner;
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
@@ -87,7 +86,7 @@ test("overview.upcoming-exam-counts", async ({
     day: "2-digit",
   }).format(now);
   const todayDate = new Date(`${today}T00:00:00Z`);
-  const exams = await withE2ePrisma(async (db) => {
+  const exams = await (async () => {
     await db.exam.deleteMany({ where: { sectionId: fixture.section.id } });
     const records = [];
     for (const [index, values] of [
@@ -118,7 +117,7 @@ test("overview.upcoming-exam-counts", async ({
       );
     }
     return records;
-  });
+  })();
   const shell = await page.request.get("/_internal/shell-bootstrap");
   expect(shell.status()).toBe(200);
   expect((await shell.json()).navigation.examsCount).toBe(4);
@@ -151,7 +150,7 @@ test("overview.upcoming-exam-counts", async ({
       .sort(),
   );
   const gql = await page.request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL },
+    headers: { origin: isolatedWorker.origin },
     data: {
       query:
         "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { upcomingExams } } }",
@@ -166,11 +165,13 @@ test("overview.upcoming-exam-counts", async ({
 test("overview.focused-extracts-share-window", async ({
   calendar: fixture,
   call,
+  isolatedWorker,
 }) => {
+  const db = isolatedWorker.database.owner;
   const atTime = "2026-04-29T08:00:00+08:00";
   const start = new Date(atTime).getTime();
   const day = 86400000;
-  const edgeTodos = await withE2ePrisma(async (db) => {
+  const edgeTodos = await (async () => {
     const created = [];
     for (const [label, offset] of [
       ["before", -1],
@@ -190,7 +191,7 @@ test("overview.focused-extracts-share-window", async ({
       );
     }
     return created;
-  });
+  })();
   for (const mode of ["default", "full"]) {
     const snapshot = await call<SnapshotResult>("workspace_snapshot_get", {
       atTime,
@@ -248,12 +249,10 @@ test("overview.focused-extracts-share-window", async ({
       })
     ).upcomingDeadlines,
   ).toEqual(snapshot.upcomingDeadlines);
-  await withE2ePrisma((db) =>
-    db.schedule.updateMany({
-      where: { sectionId: fixture.section.id },
-      data: { date: new Date("2026-05-06T00:00:00Z") },
-    }),
-  );
+  await db.schedule.updateMany({
+    where: { sectionId: fixture.section.id },
+    data: { date: new Date("2026-05-06T00:00:00Z") },
+  });
   const beyond = await call<SnapshotResult>("workspace_snapshot_get", {
     atTime,
     mode: "full",

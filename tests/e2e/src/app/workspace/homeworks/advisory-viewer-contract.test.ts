@@ -1,101 +1,71 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, type Page, test } from "@playwright/test";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { expect, type Page } from "@playwright/test";
+import type { IsolatedWorker } from "../../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { arrangeSection, facts } from "../../api/mcp/_data";
+import { test as oauthTest } from "../../api/mcp/_fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 import { selectHomeworkAction } from "../../sections/[jwId]/_helpers";
 
-let ownerId: string;
-let sectionId: number;
-let sectionJwId: number;
-let oauthClientId: string | undefined;
+type Target = {
+  worker: IsolatedWorker;
+  ownerId: string;
+  sectionId: number;
+  sectionJwId: number;
+};
 const description = "Just do the exercises. Submit however you prefer.";
-
-test.beforeEach(async ({ page }) => {
-  oauthClientId = undefined;
-  const marker = `homework-advisory-${crypto.randomUUID().slice(0, 8)}`;
-  const fixture = await withE2ePrisma(async (db) => {
-    const seed = await db.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.section.jwId },
-    });
-    const owner = await db.user.create({
-      data: {
-        name: marker,
-        username: marker,
-        email: `${marker}@example.test`,
-        emailVerified: true,
-      },
-    });
-    const section = await db.section.create({
-      data: {
-        code: marker,
-        jwId: 1_600_000_000 + Math.floor(Math.random() * 100_000_000),
-        courseId: seed.courseId,
-        semesterId: seed.semesterId,
-      },
-    });
+const test = oauthTest.extend<{ target: Target }>({
+  target: async ({ oauth }, use) => {
+    const db = oauth.worker.database.owner;
+    const section = await arrangeSection(db);
     await db.userSectionSubscription.create({
-      data: { sectionId: section.id, userId: owner.id },
+      data: { userId: oauth.user.id, sectionId: section.id },
     });
-    return { owner, section };
-  });
-  ownerId = fixture.owner.id;
-  sectionId = fixture.section.id;
-  sectionJwId = fixture.section.jwId;
-  await page.context().clearCookies();
-  await page.context().addCookies([await createSignedSessionCookie(ownerId)]);
+    await use({
+      worker: oauth.worker,
+      ownerId: oauth.user.id,
+      sectionId: section.id,
+      sectionJwId: section.jwId,
+    });
+  },
 });
 
-test.afterEach(async () => {
-  const homeworks = await withE2ePrisma((db) =>
-    db.homework.findMany({ where: { sectionId }, select: { id: true } }),
-  );
-  await cleanupHomeworksForE2e(homeworks.map(({ id }) => id));
-  await withE2ePrisma(async (db) => {
-    await db.auditLog.deleteMany({ where: { userId: ownerId } });
-    if (oauthClientId)
-      await db.oAuthClient.delete({ where: { clientId: oauthClientId } });
-    await db.userSectionSubscription.deleteMany({ where: { userId: ownerId } });
-    await db.section.delete({ where: { id: sectionId } });
-    await db.user.delete({ where: { id: ownerId } });
+async function stored(target: Target, title: string) {
+  const { ownerId, sectionId } = target;
+  const db = target.worker.database.owner;
+  const result = await db.homework.findFirstOrThrow({
+    where: { sectionId, title },
+    include: { description: true },
   });
-});
-
-async function stored(title: string) {
-  const result = await withE2ePrisma((db) =>
-    db.homework.findFirstOrThrow({
-      where: { sectionId, title },
-      include: { description: true },
-    }),
-  );
   expect(result.description?.content).toBe(description);
   expect(result.createdById).toBe(ownerId);
   return result;
 }
 
-async function setLocale(page: Page, locale: string) {
+async function setLocale(page: Page, locale: string, origin: string) {
   const response = await page.request.post("/api/account/preferences", {
     data: { locale },
   });
   expect(response.status()).toBe(200);
   await page
     .context()
-    .addCookies([
-      { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
-    ]);
+    .addCookies([{ name: "NEXT_LOCALE", value: locale, url: origin }]);
 }
 
-test("homework.homework-style-guide-advisory", async ({ page, request }) => {
+test("homework.homework-style-guide-advisory", async ({
+  page,
+  request,
+  target,
+  isolatedWorker,
+  oauthOwner,
+}) => {
+  const { sectionId, sectionJwId } = target;
   test.setTimeout(120_000);
-  await setLocale(page, "en-us");
+  await setLocale(page, "en-us", isolatedWorker.origin);
   const sectionUrl = `/catalog/sections/${sectionJwId}#homework`;
   const title = (surface: string) =>
-    `${DEV_SEED.course.nameCn} ${DEV_SEED.course.code} 第一章作业 ${surface}`;
+    `${facts.course.nameCn} ${facts.course.code} 第一章作业 ${surface}`;
 
   await gotoAndWaitForReady(page, sectionUrl);
   await page
@@ -111,7 +81,7 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
     .getByRole("button", { name: /创建作业|Create homework/i })
     .click();
   await expect(dialog).toBeHidden();
-  const sectionCreated = await stored(title("section-create"));
+  const sectionCreated = await stored(target, title("section-create"));
   await page
     .getByRole("button", { name: title("section-create"), exact: true })
     .click();
@@ -120,7 +90,9 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
   await dialog.locator('input[name="title"]').fill(title("section-edit"));
   await dialog.getByRole("button", { name: /保存修改|Save changes/i }).click();
   await expect(async () => {
-    expect((await stored(title("section-edit"))).id).toBe(sectionCreated.id);
+    expect((await stored(target, title("section-edit"))).id).toBe(
+      sectionCreated.id,
+    );
   }).toPass();
   await page.keyboard.press("Escape");
 
@@ -136,7 +108,7 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
     .fill(description);
   await dialog.getByTestId("workspace-homework-create").click();
   await expect(dialog).toBeHidden();
-  await stored(title("workspace"));
+  await stored(target, title("workspace"));
 
   const restCreate = await page.request.post(
     "/api/community/section-homeworks",
@@ -146,7 +118,7 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
   );
   expect(restCreate.status()).toBe(201);
   const restId = (await restCreate.json()).id;
-  await stored(title("rest-create"));
+  await stored(target, title("rest-create"));
   const restUpdate = await page.request.patch(
     `/api/community/section-homeworks/${restId}`,
     {
@@ -154,10 +126,10 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
     },
   );
   expect(restUpdate.status()).toBe(200);
-  expect((await stored(title("rest-edit"))).id).toBe(restId);
+  expect((await stored(target, title("rest-edit"))).id).toBe(restId);
 
   const gqlCreate = await page.request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL },
+    headers: { origin: isolatedWorker.origin },
     data: {
       query:
         "mutation($input: CreateHomeworkInput!) { homeworkCreate(input: $input) { id } }",
@@ -169,9 +141,9 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
   const created = await gqlCreate.json();
   expect(created.errors).toBeUndefined();
   const gqlId = created.data.homeworkCreate.id;
-  await stored(title("graphql-create"));
+  await stored(target, title("graphql-create"));
   const gqlUpdate = await page.request.post("/api/graphql", {
-    headers: { origin: PLAYWRIGHT_BASE_URL },
+    headers: { origin: isolatedWorker.origin },
     data: {
       query:
         "mutation($id: ID!, $input: UpdateHomeworkInput!) { homeworkUpdate(id: $id, input: $input) { id } }",
@@ -182,16 +154,16 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
     },
   });
   expect((await gqlUpdate.json()).errors).toBeUndefined();
-  expect((await stored(title("graphql-edit"))).id).toBe(gqlId);
+  expect((await stored(target, title("graphql-edit"))).id).toBe(gqlId);
 
   const scope = "community.section-homework:write";
-  const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+  const resource = `${isolatedWorker.origin}/api/mcp`;
   const token = await issueAccessToken(page, request, {
+    owner: oauthOwner,
     scope,
     clientScopes: [scope],
     resource,
   });
-  oauthClientId = token.clientId;
   const client = new Client({ name: "homework-advisory", version: "1.0.0" });
   const transport = new StreamableHTTPClientTransport(new URL(resource), {
     requestInit: { headers: { Authorization: `Bearer ${token.accessToken}` } },
@@ -204,22 +176,29 @@ test("homework.homework-style-guide-advisory", async ({ page, request }) => {
     });
     expect(result.isError).not.toBe(true);
     const mcpId = parseTextContent(result).id;
-    expect((await stored(title("mcp-create"))).id).toBe(mcpId);
+    expect((await stored(target, title("mcp-create"))).id).toBe(mcpId);
     const updated = await client.callTool({
       name: "community_section_homework_update",
       arguments: { homeworkId: mcpId, title: title("mcp-edit"), description },
     });
     expect(updated.isError).not.toBe(true);
-    expect((await stored(title("mcp-edit"))).id).toBe(mcpId);
+    expect((await stored(target, title("mcp-edit"))).id).toBe(mcpId);
   } finally {
     await client.close();
   }
 });
 
-test("homework.teaching-assistant-label", async ({ page, browser }) => {
+test("homework.teaching-assistant-label", async ({
+  page,
+  browser,
+  target,
+  isolatedWorker,
+}) => {
+  const db = isolatedWorker.database.owner;
+  const { ownerId, sectionId, sectionJwId } = target;
   test.setTimeout(120_000);
   const title = `TA homework ${crypto.randomUUID()}`;
-  await withE2ePrisma(async (db) => {
+  await (async () => {
     await db.userSectionSubscription.updateMany({
       where: { sectionId, userId: ownerId },
       data: { kind: "teaching_assistant" },
@@ -232,9 +211,9 @@ test("homework.teaching-assistant-label", async ({ page, browser }) => {
         submissionDueAt: new Date("2099-01-01T00:00:00Z"),
       },
     });
-  });
+  })();
   for (const locale of ["zh-cn", "en-us"]) {
-    await setLocale(page, locale);
+    await setLocale(page, locale, isolatedWorker.origin);
     const label = locale === "zh-cn" ? "无需完成" : "No completion required";
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 844 });
@@ -265,11 +244,11 @@ test("homework.teaching-assistant-label", async ({ page, browser }) => {
       }
     }
     const anonymous = await browser.newContext({
-      baseURL: PLAYWRIGHT_BASE_URL,
+      baseURL: isolatedWorker.origin,
     });
     try {
       await anonymous.addCookies([
-        { name: "NEXT_LOCALE", value: locale, url: PLAYWRIGHT_BASE_URL },
+        { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
       ]);
       const publicPage = await anonymous.newPage();
       await gotoAndWaitForReady(

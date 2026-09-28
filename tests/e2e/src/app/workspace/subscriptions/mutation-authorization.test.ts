@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import {
   createSubscriptionMutationFixture,
   expectSubscriptionRelations,
@@ -16,55 +17,58 @@ const mutationQuery = (field: (typeof mutationFields)[number]) =>
 
 test("Anonymous subscription writes are rejected without changing any memberships", async ({
   request,
+  oauthOwner,
+  createCalendar,
 }) => {
-  const fixture = await createSubscriptionMutationFixture();
-  try {
-    for (const method of ["patch", "delete"] as const) {
-      const response = await request[method]("/api/workspace/subscriptions", {
-        data: { sectionIds: [fixture.own.section.id] },
-      });
-      expect(response.status()).toBe(401);
-      await expectSubscriptionRelations(fixture, fixture.initial);
-    }
-    const kind = await request.patch(
-      `/api/workspace/subscriptions/${fixture.own.section.jwId}`,
-      { data: { kind: "auditor" } },
-    );
-    expect(kind.status()).toBe(401);
+  const fixture = await createSubscriptionMutationFixture(
+    oauthOwner,
+    createCalendar,
+  );
+
+  for (const method of ["patch", "delete"] as const) {
+    const response = await request[method]("/api/workspace/subscriptions", {
+      data: { sectionIds: [fixture.own.section.id] },
+    });
+    expect(response.status()).toBe(401);
     await expectSubscriptionRelations(fixture, fixture.initial);
-    for (const field of mutationFields) {
-      const { body } = await subscriptionGraphql(
-        request,
-        mutationQuery(field),
-        { jwId: fixture.own.section.jwId },
-      );
-      expect(body.errors).toHaveLength(1);
-      expect(body.errors[0].extensions.code).toBe("UNAUTHENTICATED");
-      expect(body.data).toBeNull();
-      await expectSubscriptionRelations(fixture, fixture.initial);
-    }
-    for (const action of ["add", "remove", "kind_update"]) {
-      const response = await request.post("/api/mcp", {
-        headers: { Accept: "application/json, text/event-stream" },
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "tools/call",
-          params: {
-            name: `workspace_subscription_${action}`,
-            arguments: {
-              jwId: fixture.own.section.jwId,
-              ...(action === "kind_update" ? { kind: "auditor" } : {}),
-            },
+  }
+  const kind = await request.patch(
+    `/api/workspace/subscriptions/${fixture.own.section.jwId}`,
+    { data: { kind: "auditor" } },
+  );
+  expect(kind.status()).toBe(401);
+  await expectSubscriptionRelations(fixture, fixture.initial);
+  for (const field of mutationFields) {
+    const { body } = await subscriptionGraphql(
+      request,
+      fixture.owner.worker.origin,
+      mutationQuery(field),
+      { jwId: fixture.own.section.jwId },
+    );
+    expect(body.errors).toHaveLength(1);
+    expect(body.errors[0].extensions.code).toBe("UNAUTHENTICATED");
+    expect(body.data).toBeNull();
+    await expectSubscriptionRelations(fixture, fixture.initial);
+  }
+  for (const action of ["add", "remove", "kind_update"]) {
+    const response = await request.post("/api/mcp", {
+      headers: { Accept: "application/json, text/event-stream" },
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: {
+          name: `workspace_subscription_${action}`,
+          arguments: {
+            jwId: fixture.own.section.jwId,
+            ...(action === "kind_update" ? { kind: "auditor" } : {}),
           },
         },
-      });
-      expect(response.status()).toBe(401);
-      expect(response.headers()["www-authenticate"]).toContain("Bearer");
-      await expectSubscriptionRelations(fixture, fixture.initial);
-    }
-  } finally {
-    await fixture.cleanup();
+      },
+    });
+    expect(response.status()).toBe(401);
+    expect(response.headers()["www-authenticate"]).toContain("Bearer");
+    await expectSubscriptionRelations(fixture, fixture.initial);
   }
 });
 
@@ -77,14 +81,20 @@ for (const transport of [
   test(`${transport}: owner injection into kind mutation is rejected without side effects`, async ({
     page,
     request,
+    oauthOwner,
+    createCalendar,
   }) => {
     test.setTimeout(90_000);
-    const fixture = await createSubscriptionMutationFixture();
+    const fixture = await createSubscriptionMutationFixture(
+      oauthOwner,
+      createCalendar,
+    );
     let connection:
       | Awaited<ReturnType<typeof openSubscriptionTransport>>
       | undefined;
     try {
       connection = await openSubscriptionTransport(
+        oauthOwner,
         page,
         request,
         fixture.own.users[0].id,
@@ -102,6 +112,7 @@ for (const transport of [
       } else {
         const { response, body } = await subscriptionGraphql(
           connection.request,
+          connection.origin,
           "mutation($jwId: Int!, $userId: String!) { subscriptionKindUpdate(jwId: $jwId, kind: auditor, userId: $userId) { kind } }",
           {
             jwId: fixture.foreign.section.jwId,
@@ -121,7 +132,6 @@ for (const transport of [
       await expectSubscriptionRelations(fixture, fixture.initial);
     } finally {
       await connection?.close();
-      await fixture.cleanup();
     }
   });
 }
@@ -134,14 +144,20 @@ for (const transport of [
   test(`${transport}: read-only authorization cannot add, remove, or change kind`, async ({
     page,
     request,
+    oauthOwner,
+    createCalendar,
   }) => {
     test.setTimeout(90_000);
-    const fixture = await createSubscriptionMutationFixture();
+    const fixture = await createSubscriptionMutationFixture(
+      oauthOwner,
+      createCalendar,
+    );
     let connection:
       | Awaited<ReturnType<typeof openSubscriptionTransport>>
       | undefined;
     try {
       connection = await openSubscriptionTransport(
+        oauthOwner,
         page,
         request,
         fixture.own.users[0].id,
@@ -183,6 +199,7 @@ for (const transport of [
       } else if (transport === "GraphQL bearer") {
         const read = await subscriptionGraphql(
           request,
+          fixture.owner.worker.origin,
           "{ workspace { subscribedSections { items { section { id } } } } }",
           {},
           connection.headers,
@@ -194,6 +211,7 @@ for (const transport of [
         for (const field of mutationFields) {
           const { body } = await subscriptionGraphql(
             request,
+            fixture.owner.worker.origin,
             mutationQuery(field),
             {
               jwId:
@@ -257,7 +275,6 @@ for (const transport of [
       }
     } finally {
       await connection?.close();
-      await fixture.cleanup();
     }
   });
 }

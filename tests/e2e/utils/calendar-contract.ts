@@ -19,8 +19,8 @@ export async function createCalendarContractFixture(
   const activityDate = "2026-04-30";
   const created = await withDatabase((client) =>
     client.$transaction(async (db) => {
-      const seed = await db.section.findUniqueOrThrow({
-        where: { jwId: DEV_SEED.section.jwId },
+      const semester = await db.semester.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.semesterJwId },
       });
       const users = [];
       for (const role of ["academic", "activity"]) {
@@ -50,7 +50,7 @@ export async function createCalendarContractFixture(
           jwId: jwId + 1,
           code: `${course.code}.01`,
           courseId: course.id,
-          semesterId: seed.semesterId,
+          semesterId: semester.id,
         },
       });
       await db.userSectionSubscription.create({
