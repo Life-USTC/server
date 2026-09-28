@@ -313,13 +313,32 @@ test("subscription.consume-unsubscribed-known-state", async ({ page }) => {
   try {
     // Arrange the absence directly; this consumer test does not depend on a
     // successful unsubscribe operation through any product entry point.
-    await withE2ePrisma((db) =>
-      db.userSectionSubscription.deleteMany({
-        where: { userId: { in: owners.map((owner) => owner.users[0].id) } },
-      }),
-    );
     for (const [index, own] of owners.entries()) {
       const foreign = owners[1 - index];
+      await withE2ePrisma(async (db) => {
+        await db.userSectionSubscription.deleteMany({
+          where: { userId: own.users[0].id },
+        });
+        const foreignMembership = {
+          userId: foreign.users[0].id,
+          sectionId: foreign.section.id,
+        };
+        await db.userSectionSubscription.upsert({
+          where: { userId_sectionId: foreignMembership },
+          create: {
+            ...foreignMembership,
+            kind: index === 0 ? "auditor" : "regular",
+          },
+          update: {},
+        });
+      });
+      const foreignBaseline = await observeSubscriptionState(foreign);
+      expect(foreignBaseline.sections).toEqual([
+        {
+          sectionId: foreign.section.id,
+          kind: index === 0 ? "auditor" : "regular",
+        },
+      ]);
       const baseline = await observeSubscriptionState(own);
       expect(baseline.sections).toEqual([]);
       await signInSubscriptionOwner(page, own);
@@ -371,6 +390,7 @@ test("subscription.consume-unsubscribed-known-state", async ({ page }) => {
         expect(JSON.stringify(body)).not.toContain(foreign.course.code);
       });
       expect(await observeSubscriptionState(own)).toEqual(baseline);
+      expect(await observeSubscriptionState(foreign)).toEqual(foreignBaseline);
     }
   } finally {
     for (const owner of owners) await owner.cleanup();

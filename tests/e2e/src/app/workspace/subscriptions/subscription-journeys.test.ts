@@ -18,6 +18,65 @@ import {
 } from "../../../../utils/subscription-consumption";
 import { issueAccessToken } from "../../api/mcp/helpers";
 
+test("subscription.journey-suspended-admin-personal-writes", async ({
+  page,
+}) => {
+  const fixture = await createCalendarContractFixture();
+  try {
+    await withE2ePrisma(async (db) => {
+      await db.user.update({
+        where: { id: fixture.users[0].id },
+        data: { isAdmin: true },
+      });
+      await db.userSuspension.create({
+        data: {
+          userId: fixture.users[0].id,
+          reason: "Personal subscription writes remain available",
+        },
+      });
+    });
+    const initial = await observeSubscriptionState(fixture);
+    expect(initial.sections).toEqual([
+      { sectionId: fixture.section.id, kind: "regular" },
+    ]);
+    await signInSubscriptionOwner(page, fixture);
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/sections/${fixture.section.jwId}`,
+    );
+    await test.step("Suspended administrator may cancel their own subscription through Web", async () => {
+      await page
+        .getByRole("button", { name: "Unsubscribe from section", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Subscribe to section", exact: true }),
+      ).toBeVisible();
+      expect(await observeSubscriptionState(fixture)).toEqual({
+        ...initial,
+        sections: [],
+      });
+    });
+    await test.step("The same user may subscribe again without changing independent personal records", async () => {
+      await page
+        .getByRole("button", { name: "Subscribe to section", exact: true })
+        .click();
+      await page
+        .getByRole("dialog", { name: "Subscribe to section" })
+        .getByRole("button", { name: "Subscribe to section", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", {
+          name: "Unsubscribe from section",
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(await observeSubscriptionState(fixture)).toEqual(initial);
+    });
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
 test("subscription.journey-web-projections-and-cancellation", async ({
   page,
 }) => {
