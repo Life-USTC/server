@@ -145,7 +145,7 @@ describe("todo CRUD — workspace_todo_update 返回更新后的实体", () => {
 describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
   it("community_section_homework_delete 删除创建者拥有的作业并记录审计", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     expect(section?.id).toBeTypeOf("number");
@@ -198,7 +198,7 @@ describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   it("community_section_homework_delete 序列化未找到及非所有者失败", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     expect(section?.id).toBeTypeOf("number");

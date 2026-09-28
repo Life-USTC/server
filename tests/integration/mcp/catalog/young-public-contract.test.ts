@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { listYoungEvents } from "@/features/young/server/young-event-service";
 import { getYoungEventDetailRoute } from "@/lib/api/routes/young-event-routes";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
@@ -55,7 +55,7 @@ const expectedRaw = {
   itemPlaceDTO: { itemId: youngId, places: [rawPlace] },
 };
 
-beforeAll(async () => {
+beforeEach(async () => {
   const table = "young_mobile_item_enrolment_list_result_records";
   const tables: Record<string, Record<string, unknown>[]> = {
     [table]: [{ ...upstream, store_id: 1 }],
@@ -85,7 +85,7 @@ beforeAll(async () => {
   });
   client = await createAnonymousMcpHarness();
 });
-afterAll(async () => {
+afterEach(async () => {
   await client?.close();
   const event = await db.youngEvent.findUnique({
     where: { youngId },

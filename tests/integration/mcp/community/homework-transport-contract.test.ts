@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import {
@@ -26,6 +26,7 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
 import { createFixturePrisma } from "../../../shared/prisma";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "../_harness/client";
 
 const db = createFixturePrisma();
@@ -42,7 +43,10 @@ let sectionId: number;
 let sectionJwId: number;
 let publicId: string;
 const title = `Public homework ${crypto.randomUUID()}`;
-beforeAll(async () => {
+beforeEach(async () => {
+  grants.length = 0;
+  clients.length = 0;
+  sectionId = 0;
   setCalendarExportRebuildSenderForTest(async () => {});
   await db.user.createMany({
     data: users.map((id, index) => ({
@@ -97,26 +101,46 @@ beforeAll(async () => {
     data: { userId: users[0], homeworkId: publicId },
   });
 });
-afterAll(async () => {
-  setCalendarExportRebuildSenderForTest();
-  await Promise.all([
-    ...clients.map((client) => client.close()),
-    onlyCommunity?.close(),
-    onlyCompletion?.close(),
-  ]);
-  vi.unstubAllGlobals();
-  await db.auditLog.deleteMany({ where: { userId: { in: users } } });
-  if (sectionId) {
-    await db.homework.deleteMany({ where: { sectionId } });
-    await db.section.delete({ where: { id: sectionId } });
-  }
-  await db.oAuthConsent.deleteMany({ where: { clientId } });
-  await db.oAuthClient.deleteMany({ where: { clientId } });
-  await db.user.deleteMany({ where: { id: { in: users } } });
-  await Promise.all([
-    db.$disconnect(),
-    prisma.$disconnect(),
-    authPrisma.$disconnect(),
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      setCalendarExportRebuildSenderForTest();
+    },
+    async () => {
+      await Promise.all([
+        ...clients.map((client) => client.close()),
+        onlyCommunity?.close(),
+        onlyCompletion?.close(),
+      ]);
+    },
+    async () => {
+      vi.unstubAllGlobals();
+    },
+    async () => {
+      await db.auditLog.deleteMany({ where: { userId: { in: users } } });
+    },
+    async () => {
+      if (sectionId) {
+        await db.homework.deleteMany({ where: { sectionId } });
+        await db.section.delete({ where: { id: sectionId } });
+      }
+    },
+    async () => {
+      await db.oAuthConsent.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.oAuthClient.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: { in: users } } });
+    },
+    async () => {
+      await Promise.all([
+        db.$disconnect(),
+        prisma.$disconnect(),
+        authPrisma.$disconnect(),
+      ]);
+    },
   ]);
 });
 async function fixtureHomework(title = `Fixture ${crypto.randomUUID()}`) {

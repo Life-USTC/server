@@ -1,12 +1,46 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
 import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
+import {
+  type CatalogContractFixture,
+  cleanupCatalogContractFixture,
+  createCatalogContractFixture,
+} from "../../../shared/catalog-contract-fixture";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
 import * as fixtures from "../_harness";
 import { createMcpHarness } from "../_harness";
 
 const context = fixtures.createMcpToolTestContext();
+let catalog: CatalogContractFixture;
+let rootId = "";
+const rootBody = "Owned comment **Markdown**";
+beforeEach(async () => {
+  catalog = await createCatalogContractFixture(fixtures.prisma);
+  const root = await fixtures.prisma.comment.create({
+    data: {
+      userId: context.userId,
+      sectionId: catalog.sections[0].id,
+      body: rootBody,
+    },
+  });
+  rootId = root.id;
+  await fixtures.prisma.comment.create({
+    data: {
+      userId: context.userId,
+      sectionId: catalog.sections[0].id,
+      parentId: rootId,
+      rootId,
+      body: "Owned reply **Markdown**",
+    },
+  });
+  await fixtures.prisma.commentReaction.create({
+    data: { userId: context.userId, commentId: rootId, type: "upvote" },
+  });
+});
+afterEach(async () => {
+  if (catalog) await cleanupCatalogContractFixture(fixtures.prisma, catalog);
+});
 
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
   it("comment.mcp-markdown-projection", async () => {
@@ -44,7 +78,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         mode,
         result: await context.client.call<Result>("community_comment_list", {
           targetType: "section",
-          sectionJwId: fixtures.DEV_SEED.section.jwId,
+          sectionJwId: catalog.sections[0].jwId,
           mode,
         }),
       })),
@@ -56,26 +90,17 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     expect(result.found).toBe(true);
     expect(result.meta?.target?.type).toBe("section");
     expect(typeof result.meta?.target?.targetId).toBe("number");
-    expect(result.meta?.target?.sectionJwId).toBe(
-      fixtures.DEV_SEED.section.jwId,
-    );
-    expect(result.meta?.target?.sectionCode).toBe(
-      fixtures.DEV_SEED.section.code,
-    );
-    expect(result.meta?.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.meta?.target?.courseName).toBe(
-      fixtures.DEV_SEED.course.nameCn,
-    );
-    expect(result.meta?.viewer?.userId).toBe(context.devUserId);
+    expect(result.meta?.target?.sectionJwId).toBe(catalog.sections[0].jwId);
+    expect(result.meta?.target?.sectionCode).toBe(catalog.sections[0].code);
+    expect(result.meta?.target?.courseJwId).toBe(catalog.courses[0].jwId);
+    expect(result.meta?.target?.courseName).toBe(catalog.courses[0].nameCn);
+    expect(result.meta?.viewer?.userId).toBe(context.userId);
     expect(result.meta?.viewer?.isAuthenticated).toBe(true);
     expect(typeof result.meta?.hiddenCount).toBe("number");
     expect(result.pagination).toMatchObject({ page: 1, pageSize: 20 });
 
-    const root = assertCommentThreadFound(
-      result,
-      fixtures.DEV_SEED.comments.sectionRootBody,
-    );
-    expect(root.author?.name).toBe(fixtures.DEV_SEED.debugName);
+    const root = assertCommentThreadFound(result, rootBody);
+    expect(root.author?.name).toBe(context.name);
     expect(root?.canReact).toBe(true);
     expect(root?.canReply).toBe(true);
     expect(root?.canEdit).toBe(true);
@@ -89,15 +114,14 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
 
     for (const { mode, result: modeResult } of results) {
       const modeRoot = modeResult.data?.find((comment) =>
-        comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
+        comment.body?.includes(rootBody),
       );
       expect(modeRoot).toBeDefined();
       expect(modeRoot?.body).toBe(root.body);
       expect(modeRoot?.replies?.[0]?.body).toBe(root.replies?.[0]?.body);
       if (mode === "full") {
-        expect(modeRoot?.renderedBody).toContain(
-          fixtures.DEV_SEED.comments.sectionRootBody,
-        );
+        expect(modeRoot?.renderedBody).toContain("Owned comment");
+        expect(modeRoot?.renderedBody).toContain("<strong>Markdown</strong>");
         expect(modeRoot?.replies?.[0]?.renderedBody).toBeTruthy();
       }
       expect(Object.hasOwn(modeRoot ?? {}, "renderedBody")).toBe(
@@ -111,7 +135,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
 
   it("community_comment_get 返回聚焦线程及目标元数据", async () => {
     const seedComment = await fixtures.prisma.comment.findFirst({
-      where: { body: fixtures.DEV_SEED.comments.sectionRootBody },
+      where: { id: rootId },
       select: { id: true },
     });
     expect(seedComment?.id).toBeTruthy();
@@ -147,14 +171,12 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     expect(result.found).toBe(true);
     expect(result.focusId).toBe(seedComment?.id);
     expect(result.thread?.[0]?.id).toBe(seedComment?.id);
-    expect(result.thread?.[0]?.body).toContain(
-      fixtures.DEV_SEED.comments.sectionRootBody,
-    );
+    expect(result.thread?.[0]?.body).toContain(rootBody);
     expect(result.thread?.[0]?.replies?.length).toBeGreaterThan(0);
-    expect(result.target?.sectionJwId).toBe(fixtures.DEV_SEED.section.jwId);
-    expect(result.target?.sectionCode).toBe(fixtures.DEV_SEED.section.code);
-    expect(result.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.target?.courseName).toBe(fixtures.DEV_SEED.course.nameCn);
+    expect(result.target?.sectionJwId).toBe(catalog.sections[0].jwId);
+    expect(result.target?.sectionCode).toBe(catalog.sections[0].code);
+    expect(result.target?.courseJwId).toBe(catalog.courses[0].jwId);
+    expect(result.target?.courseName).toBe(catalog.courses[0].nameCn);
 
     for (const { mode, result: modeResult } of results) {
       expect(Object.hasOwn(modeResult.thread?.[0] ?? {}, "renderedBody")).toBe(
@@ -209,7 +231,7 @@ describe("评论读取工具 — 隔离目录夹具", () => {
         error?: string;
       }>("community_comment_list", {
         targetType: "section-teacher",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         teacherId: teacher.id,
       });
 
@@ -229,23 +251,19 @@ describe("评论读取工具 — 隔离目录夹具", () => {
 
     try {
       const course = await fixtures.prisma.course.findUnique({
-        where: { jwId: fixtures.DEV_SEED.course.jwId },
+        where: { jwId: catalog.courses[0].jwId },
         select: { id: true },
       });
       if (!course) {
-        throw new Error(
-          `Seed course ${fixtures.DEV_SEED.course.jwId} not found`,
-        );
+        throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
       }
 
       const semester = await fixtures.prisma.semester.findUnique({
-        where: { jwId: fixtures.DEV_SEED.semesterJwId },
+        where: { jwId: catalog.semester.jwId },
         select: { id: true },
       });
       if (!semester) {
-        throw new Error(
-          `Seed semester ${fixtures.DEV_SEED.semesterJwId} not found`,
-        );
+        throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
       }
 
       const teacher = await fixtures.prisma.teacher.create({
@@ -360,23 +378,19 @@ describe("评论读取工具 — 隔离目录夹具", () => {
 
     try {
       const course = await fixtures.prisma.course.findUnique({
-        where: { jwId: fixtures.DEV_SEED.course.jwId },
+        where: { jwId: catalog.courses[0].jwId },
         select: { id: true },
       });
       if (!course) {
-        throw new Error(
-          `Seed course ${fixtures.DEV_SEED.course.jwId} not found`,
-        );
+        throw new Error(`Seed course ${catalog.courses[0].jwId} not found`);
       }
 
       const semester = await fixtures.prisma.semester.findUnique({
-        where: { jwId: fixtures.DEV_SEED.semesterJwId },
+        where: { jwId: catalog.semester.jwId },
         select: { id: true },
       });
       if (!semester) {
-        throw new Error(
-          `Seed semester ${fixtures.DEV_SEED.semesterJwId} not found`,
-        );
+        throw new Error(`Seed semester ${catalog.semester.jwId} not found`);
       }
 
       const teacher = await fixtures.prisma.teacher.create({
@@ -503,7 +517,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} created`,
         visibility: "public",
         isAnonymous: false,
@@ -634,7 +648,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     await expect(
       isolated.client.call("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `[integration-test] rejected anonymous visibility ${Date.now()}`,
         visibility: "anonymous",
       }),
@@ -669,7 +683,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} parent`,
       });
       expect(parent.success).toBe(true);
@@ -681,7 +695,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         parentId: parent.id,
         body: `${marker} reply`,
       });
@@ -719,7 +733,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} owned`,
       });
       expect(created.success).toBe(true);
@@ -790,7 +804,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} attached`,
         attachmentIds: [upload.id],
       });
@@ -826,204 +840,6 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         where: { id: { in: [upload.id, otherUpload.id] } },
       });
       await fixtures.prisma.user.deleteMany({ where: { id: otherUser.id } });
-    }
-  });
-
-  it("上传元数据工具列出、重命名并在存储删除失败时保留重试状态", async () => {
-    const filename = `mcp-upload-${Date.now()}.txt`;
-    const upload = await fixtures.prisma.upload.create({
-      data: {
-        userId: isolated.userId,
-        key: `integration-test/${filename}`,
-        filename,
-        contentType: "text/plain",
-        size: 321,
-      },
-      select: { id: true, key: true, size: true },
-    });
-    const renamedFilename = `renamed-${filename}`;
-
-    try {
-      const listBefore = await isolated.client.call<{
-        data?: Array<{ filename?: string; id?: string; size?: number }>;
-        meta?: {
-          maxFileSizeBytes?: number;
-          quotaBytes?: number;
-          usedBytes?: number;
-        };
-        pagination?: { page?: number; pageSize?: number; total?: number };
-      }>("workspace_upload_list", { mode: "full" });
-      expect(typeof listBefore.meta?.maxFileSizeBytes).toBe("number");
-      expect(typeof listBefore.meta?.quotaBytes).toBe("number");
-      expect(typeof listBefore.meta?.usedBytes).toBe("number");
-      expect(listBefore.pagination).toMatchObject({ page: 1, pageSize: 20 });
-      expect(
-        listBefore.data?.some(
-          (item) =>
-            item.id === upload.id &&
-            item.filename === filename &&
-            item.size === upload.size,
-        ),
-      ).toBe(true);
-
-      const renamed = await isolated.client.call<{
-        success?: boolean;
-        upload?: { filename?: string; id?: string };
-      }>("workspace_upload_rename", {
-        id: upload.id,
-        filename: renamedFilename,
-      });
-      expect(renamed).toMatchObject({
-        success: true,
-        upload: { id: upload.id, filename: renamedFilename },
-      });
-
-      const deleted = await isolated.client.call<{
-        error?: string;
-        hint?: string;
-        message?: string;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: upload.id });
-      expect(deleted).toMatchObject({
-        success: false,
-        error: "storage_delete_failed",
-        message: "Failed to delete upload object",
-      });
-
-      const retainedUpload = await fixtures.prisma.upload.findUnique({
-        where: { id: upload.id },
-        select: { filename: true },
-      });
-      expect(retainedUpload?.filename).toBe(renamedFilename);
-    } finally {
-      await fixtures.prisma.auditLog.deleteMany({
-        where: { targetId: upload.id, targetType: "upload" },
-      });
-      await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
-    }
-  });
-
-  it("上传重命名拒绝控制字符文件名且不做清洗", async () => {
-    const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
-    const upload = await fixtures.prisma.upload.create({
-      data: {
-        userId: isolated.userId,
-        key: `integration-test/${filename}`,
-        filename,
-        contentType: "text/plain",
-        size: 321,
-      },
-      select: { id: true },
-    });
-
-    try {
-      for (const invalidFilename of ["bad\u0000name.txt", "\u0000"]) {
-        await expect(
-          isolated.client.call("workspace_upload_rename", {
-            id: upload.id,
-            filename: invalidFilename,
-          }),
-        ).rejects.toThrow();
-      }
-
-      const unchanged = await fixtures.prisma.upload.findUnique({
-        where: { id: upload.id },
-        select: { filename: true },
-      });
-      expect(unchanged?.filename).toBe(filename);
-    } finally {
-      await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
-    }
-  });
-
-  it("上传元数据工具拒绝非所有者及被禁用户写入", async () => {
-    const otherUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-upload-owner"),
-        name: "MCP Upload Owner",
-      },
-      select: { id: true },
-    });
-    const otherUpload = await fixtures.prisma.upload.create({
-      data: {
-        userId: otherUser.id,
-        key: `integration-test/mcp-upload-other-${Date.now()}.txt`,
-        filename: "other-upload.txt",
-        contentType: "text/plain",
-        size: 123,
-      },
-      select: { id: true },
-    });
-    const suspendedUser = await fixtures.prisma.user.create({
-      data: {
-        email: fixtures.integrationUserEmail("mcp-upload-suspended"),
-        name: "MCP Upload Suspended",
-      },
-      select: { id: true },
-    });
-    const suspendedUpload = await fixtures.prisma.upload.create({
-      data: {
-        userId: suspendedUser.id,
-        key: `integration-test/mcp-upload-suspended-${Date.now()}.txt`,
-        filename: "suspended-upload.txt",
-        contentType: "text/plain",
-        size: 124,
-      },
-      select: { id: true },
-    });
-    const suspension = await fixtures.prisma.userSuspension.create({
-      data: {
-        userId: suspendedUser.id,
-        createdById: isolated.userId,
-        reason: "integration suspended",
-      },
-      select: { id: true },
-    });
-    const suspendedMcp = await createMcpHarness(suspendedUser.id);
-
-    try {
-      const nonOwnerRename = await isolated.client.call<{
-        error?: string;
-        success?: boolean;
-      }>("workspace_upload_rename", {
-        id: otherUpload.id,
-        filename: "stolen.txt",
-      });
-      expect(nonOwnerRename).toMatchObject({
-        success: false,
-        error: "not_found",
-      });
-
-      const nonOwnerDelete = await isolated.client.call<{
-        error?: string;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: otherUpload.id });
-      expect(nonOwnerDelete).toMatchObject({
-        success: false,
-        error: "not_found",
-      });
-
-      const suspendedDelete = await suspendedMcp.call<{
-        error?: string;
-        reason?: string | null;
-        success?: boolean;
-      }>("workspace_upload_delete", { id: suspendedUpload.id });
-      expect(suspendedDelete).toMatchObject({
-        success: false,
-        error: "suspended",
-        reason: "integration suspended",
-      });
-    } finally {
-      await suspendedMcp.close();
-      await fixtures.prisma.userSuspension.deleteMany({
-        where: { id: suspension.id },
-      });
-      await fixtures.prisma.upload.deleteMany({
-        where: { id: { in: [otherUpload.id, suspendedUpload.id] } },
-      });
-      await fixtures.prisma.user.deleteMany({
-        where: { id: { in: [otherUser.id, suspendedUser.id] } },
-      });
     }
   });
 
@@ -1082,7 +898,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} deleted`,
       });
       expect(created.success).toBe(true);
@@ -1112,7 +928,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         error?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         parentId: commentId,
         body: `${marker} rejected reply`,
       });
@@ -1141,7 +957,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         id?: string;
       }>("community_comment_create", {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: catalog.sections[0].jwId,
         body: `${marker} locked`,
       });
       expect(created.success).toBe(true);

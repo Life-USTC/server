@@ -90,7 +90,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     const homework = await fixtures.prisma.homework.create({
       data: {
         title: "[integration-test] calendar dateTo boundary homework",
-        sectionId: isolated.seedSectionId,
+        sectionId: isolated.sectionId,
         publishedAt: new Date(`${fixtures.SEED_DATE}T00:00:00+08:00`),
         submissionStartAt: new Date(`${fixtures.SEED_DATE}T00:00:00+08:00`),
         submissionDueAt: new Date(dueAt),
@@ -159,7 +159,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
   it("workspace_calendar_event_list 包含与精确窗口重叠的定时事件", async () => {
     const schedule = await fixtures.prisma.schedule.findFirst({
       where: {
-        section: { jwId: fixtures.DEV_SEED.section.jwId },
+        section: { jwId: isolated.sectionJwId },
         date: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
       },
       select: { id: true, startTime: true, endTime: true },
@@ -192,16 +192,14 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   it("workspace_calendar_event_list 为精确窗口放宽基于日期的查询", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     if (!section) {
-      throw new Error(
-        `Seed section ${fixtures.DEV_SEED.section.jwId} not found`,
-      );
+      throw new Error(`Seed section ${isolated.sectionJwId} not found`);
     }
 
-    const jwId = 926042901;
+    const jwId = isolated.sectionJwId + 91;
     await fixtures.deleteIntegrationExam(jwId);
 
     try {
@@ -235,16 +233,14 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   it("workspace_calendar_event_list 使无时间考试在当天保持可见", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     if (!section) {
-      throw new Error(
-        `Seed section ${fixtures.DEV_SEED.section.jwId} not found`,
-      );
+      throw new Error(`Seed section ${isolated.sectionJwId} not found`);
     }
 
-    const jwId = 926042900;
+    const jwId = isolated.sectionJwId + 90;
     await fixtures.deleteIntegrationExam(jwId);
 
     try {
@@ -280,16 +276,14 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
   it("workspace_calendar_event_list 对无 startTime 的考试尊重 endTime", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     if (!section) {
-      throw new Error(
-        `Seed section ${fixtures.DEV_SEED.section.jwId} not found`,
-      );
+      throw new Error(`Seed section ${isolated.sectionJwId} not found`);
     }
 
-    const jwId = 926042902;
+    const jwId = isolated.sectionJwId + 92;
     await fixtures.deleteIntegrationExam(jwId);
 
     try {

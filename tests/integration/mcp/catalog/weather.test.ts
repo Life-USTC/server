@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
@@ -44,11 +44,11 @@ async function graphql(locationKey: string) {
   );
   return response.json();
 }
-beforeAll(async () => {
+beforeEach(async () => {
   mocks.readCache.mockImplementation(async (key: string) => snapshot(key));
   client = await createAnonymousMcpHarness();
 });
-afterAll(async () => client?.close());
+afterEach(async () => client?.close());
 
 describe("weather transport contracts", () => {
   it("weather.public-no-signin", async () => {
