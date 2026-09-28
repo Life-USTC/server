@@ -87,8 +87,8 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
   if (sendError) throw sendError;
 }
 
-/** Global-state cases own the database and the actual workerd process/storage.
- * Ordinary user cases should keep using the cheaper shared Worker fixtures.
+/** Stateful cases own the database and the actual workerd process/storage.
+ * Stateless anonymous checks can use Playwright's base fixture.
  */
 export const test = base.extend<
   {
