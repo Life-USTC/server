@@ -1,21 +1,7 @@
 import { expect } from "@playwright/test";
-import {
-  createFixturePrisma,
-  type TestPrismaClient,
-} from "../../../shared/prisma";
-import { test as actorTest } from "../_harness/actor";
+import { test } from "./_fixture";
 
 const base = "/api/workspace/todos";
-const test = actorTest.extend<{ db: TestPrismaClient }>({
-  db: async ({ createActor: _createActor }, use) => {
-    const db = createFixturePrisma();
-    try {
-      await use(db);
-    } finally {
-      await db.$disconnect();
-    }
-  },
-});
 
 for (const method of ["get", "post"] as const) {
   test(`anonymous ${method} returns JSON 401`, async ({ request }) => {
