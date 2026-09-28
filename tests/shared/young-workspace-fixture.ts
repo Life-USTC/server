@@ -13,78 +13,46 @@ type YoungWorkspace = WorkspaceState & {
 export const youngWorkspaceTest = workspaceStateTest.extend<{
   young: YoungWorkspace;
 }>({
-  young: async ({ workspace }, use) => {
+  young: async ({ workspace, workspaceQueue }, use) => {
     const { db } = workspace;
     const marker = crypto.randomUUID();
     const otherId = `young-other-${marker}`;
     const youngId = `young-${marker}`;
     const organizerId = `organizer-${marker}`;
-    const queue = { send: async (_message: unknown) => {} };
-    try {
-      await db.$transaction(async (tx) => {
-        await tx.user.create({
-          data: { id: otherId, email: `${otherId}@test.invalid` },
-        });
-        await tx.youngOrganizer.create({
-          data: {
-            id: organizerId,
-            name: "Workshop club",
-            normalizedName: organizerId,
-          },
-        });
-        await tx.youngEvent.create({
-          data: {
-            youngId,
-            name: "[integration-test] Young workshop",
-            isActive: true,
-            rawJson: {},
-            organizerId,
-            sourceMissing: false,
-            location: "East",
-            startAt: new Date("2030-09-15T10:30:00+08:00"),
-            endAt: new Date("2030-09-15T12:00:00+08:00"),
-            applyStartAt: new Date("2030-09-14T08:00:00+08:00"),
-            applyEndAt: new Date("2030-09-15T10:15:00+08:00"),
-            createdAt: new Date("2030-09-14T09:00:00+08:00"),
-          },
-        });
+    await db.$transaction(async (tx) => {
+      await tx.user.create({
+        data: { id: otherId, email: `${otherId}@test.invalid` },
       });
-      await use({
-        ...workspace,
-        otherId,
-        youngId,
-        organizerId,
-        queue,
-        runtime: (work, options) =>
-          workspace.runtime(work, {
-            ...options,
-            send: (message) => queue.send(message),
-          }),
+      await tx.youngOrganizer.create({
+        data: {
+          id: organizerId,
+          name: "Workshop club",
+          normalizedName: organizerId,
+        },
       });
-    } finally {
-      // The parent owner is deleted after this fixture, so release its owned
-      // subscriptions before removing the public event and organizer.
-      const users = [workspace.userId, otherId];
-      await db.$transaction(async (tx) => {
-        await tx.userYoungEventSubscription.deleteMany({
-          where: { userId: { in: users } },
-        });
-        await tx.userYoungOrganizerSubscription.deleteMany({
-          where: { userId: { in: users } },
-        });
-        await tx.youngNotification.deleteMany({
-          where: { userId: { in: users } },
-        });
-        await tx.auditLog.deleteMany({
-          where: { OR: [{ userId: otherId }, { subjectUserId: otherId }] },
-        });
-        await tx.featureOperationEvent.deleteMany({
-          where: { userId: otherId },
-        });
-        await tx.user.deleteMany({ where: { id: otherId } });
-        await tx.youngEvent.deleteMany({ where: { youngId } });
-        await tx.youngOrganizer.deleteMany({ where: { id: organizerId } });
+      await tx.youngEvent.create({
+        data: {
+          youngId,
+          name: "[integration-test] Young workshop",
+          isActive: true,
+          rawJson: {},
+          organizerId,
+          sourceMissing: false,
+          location: "East",
+          startAt: new Date("2030-09-15T10:30:00+08:00"),
+          endAt: new Date("2030-09-15T12:00:00+08:00"),
+          applyStartAt: new Date("2030-09-14T08:00:00+08:00"),
+          applyEndAt: new Date("2030-09-15T10:15:00+08:00"),
+          createdAt: new Date("2030-09-14T09:00:00+08:00"),
+        },
       });
-    }
+    });
+    await use({
+      ...workspace,
+      otherId,
+      youngId,
+      organizerId,
+      queue: workspaceQueue,
+    });
   },
 });

@@ -3,8 +3,8 @@ import { readPrometheusMetrics } from "@/features/admin/server/prometheus-metric
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { writeObservabilityBatch } from "@/lib/db/feature-event-store";
 import { GET } from "@/routes/metrics/+server";
-import { isolatedDatabaseTest } from "./isolated-database";
 import type { TestPrismaClient } from "./prisma";
+import { workspaceRuntimeTest } from "./workspace-state-fixture";
 
 type MetricsFixture = {
   db: TestPrismaClient;
@@ -15,7 +15,7 @@ type MetricsFixture = {
   scrape: (request: Request, secret?: string) => Promise<Response>;
 };
 
-export const metricsTest = isolatedDatabaseTest.extend<{
+export const metricsTest = workspaceRuntimeTest.extend<{
   metrics: MetricsFixture;
 }>({
   metrics: async ({ isolatedDatabase: { owner, app, connections } }, use) => {

@@ -1,7 +1,6 @@
 import { runWithObservability } from "@/lib/db/observability-context";
 import { metricsTest } from "./metrics-fixture";
 import type { TestPrismaClient } from "./prisma";
-import { runWorkspaceRuntime } from "./workspace-state-fixture";
 
 type Observation = {
   db: TestPrismaClient;
@@ -14,9 +13,9 @@ type Observation = {
 export const observabilityTest = metricsTest.extend<{
   observation: Observation;
 }>({
-  observation: async ({ metrics, isolatedDatabase }, use) => {
+  observation: async ({ metrics, isolatedDatabase, workspaceRuntime }, use) => {
     const { db } = metrics;
-    const { connections, maintenance } = isolatedDatabase;
+    const { maintenance } = isolatedDatabase;
     const userId = `observation-${crypto.randomUUID()}`;
     const responses: Response[] = [];
     async function capture<T>(work: () => T | Promise<T>): Promise<T> {
@@ -80,11 +79,7 @@ export const observabilityTest = metricsTest.extend<{
         maintenance,
         userId,
         capture,
-        runtime: (work) =>
-          runWorkspaceRuntime(work, {
-            app: connections.app,
-            maintenance: connections.maintenance,
-          }),
+        runtime: workspaceRuntime.run,
       });
     } finally {
       await cleanup();
