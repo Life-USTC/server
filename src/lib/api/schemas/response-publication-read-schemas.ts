@@ -109,7 +109,7 @@ export const publicPublicationRevisionSummarySchema = z.strictObject({
  * default (unfolded) response shape is unchanged.
  */
 export const publicPublicationFoldSummarySchema = z.strictObject({
-  siblingCount: z.number().int().positive(),
+  siblingCount: z.number().int().min(1),
 });
 
 export const publicPublicationListItemSchema = z.strictObject({

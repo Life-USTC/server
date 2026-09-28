@@ -110,11 +110,11 @@ export const busNextDeparturesQuerySchema = z.object({
 });
 
 export const busPreferenceRequestSchema = z.object({
-  preferredOriginCampusId: z.number().int().positive().nullable().default(null),
+  preferredOriginCampusId: z.number().int().min(1).nullable().default(null),
   preferredDestinationCampusId: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .nullable()
     .default(null),
   showDepartedTrips: z.boolean(),
