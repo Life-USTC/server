@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { DEV_SEED, prisma } from "./fixtures";
+import { prisma } from "./fixtures";
 
 type AuditLogRow = { id: string; metadata: unknown };
 
@@ -174,34 +174,18 @@ export async function replaceUserSubscribedSections(
   ]);
 }
 
-export async function ensureDevUserSubscribedToSeedSection(userId: string) {
-  if (!userId) {
-    throw new Error(
-      "userId is required for ensureDevUserSubscribedToSeedSection",
-    );
+/** Attempt every resource release even if an earlier release failed. */
+export async function cleanupMcpResources(
+  steps: Array<() => Promise<unknown>>,
+) {
+  const errors: unknown[] = [];
+  for (const step of steps) {
+    try {
+      await step();
+    } catch (error) {
+      errors.push(error);
+    }
   }
-
-  const section = await prisma.section.findUnique({
-    where: { jwId: DEV_SEED.section.jwId },
-    select: { id: true },
-  });
-  if (!section) {
-    throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
-  }
-
-  const existing = await prisma.userSectionSubscription.findFirst({
-    where: { userId, sectionId: section.id },
-    select: { sectionId: true },
-  });
-
-  if (!existing) {
-    await prisma.userSectionSubscription.create({
-      data: {
-        userId,
-        sectionId: section.id,
-      },
-    });
-  }
-
-  return section.id;
+  if (errors.length)
+    throw new AggregateError(errors, "MCP fixture cleanup failed");
 }

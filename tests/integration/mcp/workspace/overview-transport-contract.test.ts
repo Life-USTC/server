@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { getMyCompactOverviewRoute } from "@/lib/api/routes/workspace-overview-route";
 import { authPrisma } from "@/lib/db/auth-prisma";
@@ -9,6 +9,7 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
 import { createFixturePrisma } from "../../../shared/prisma";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "../_harness/client";
 
 const db = createFixturePrisma();
@@ -37,7 +38,12 @@ let courseId: number;
 let sectionId: number;
 const at = (offset: number) => new Date(anchor.getTime() + offset);
 
-beforeAll(async () => {
+beforeEach(async () => {
+  grants.length = 0;
+  clients.length = 0;
+  examIds.length = 0;
+  sectionId = 0;
+  courseId = 0;
   await db.user.createMany({
     data: users.map((id, i) => ({
       id,
@@ -168,23 +174,39 @@ beforeAll(async () => {
     );
   }
 });
-afterAll(async () => {
-  await Promise.all(clients.map((client) => client.close()));
-  await db.oAuthConsent.deleteMany({ where: { clientId } });
-  await db.oAuthClient.deleteMany({ where: { clientId } });
-  await db.user.deleteMany({ where: { id: { in: users } } });
-  if (sectionId) {
-    await db.homework.deleteMany({ where: { sectionId } });
-    await db.schedule.deleteMany({ where: { sectionId } });
-    await db.scheduleGroup.deleteMany({ where: { sectionId } });
-    await db.exam.deleteMany({ where: { sectionId } });
-    await db.section.delete({ where: { id: sectionId } });
-  }
-  if (courseId) await db.course.delete({ where: { id: courseId } });
-  await Promise.all([
-    db.$disconnect(),
-    prisma.$disconnect(),
-    authPrisma.$disconnect(),
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      await Promise.all(clients.map((client) => client.close()));
+    },
+    async () => {
+      await db.oAuthConsent.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.oAuthClient.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: { in: users } } });
+    },
+    async () => {
+      if (sectionId) {
+        await db.homework.deleteMany({ where: { sectionId } });
+        await db.schedule.deleteMany({ where: { sectionId } });
+        await db.scheduleGroup.deleteMany({ where: { sectionId } });
+        await db.exam.deleteMany({ where: { sectionId } });
+        await db.section.delete({ where: { id: sectionId } });
+      }
+    },
+    async () => {
+      if (courseId) await db.course.delete({ where: { id: courseId } });
+    },
+    async () => {
+      await Promise.all([
+        db.$disconnect(),
+        prisma.$disconnect(),
+        authPrisma.$disconnect(),
+      ]);
+    },
   ]);
 });
 

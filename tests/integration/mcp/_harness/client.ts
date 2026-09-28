@@ -156,10 +156,14 @@ export async function createMcpHarness(
     version: "1.0.0",
   });
 
-  await mcpServer.connect(serverTransport);
-  await client.connect(authenticatedClientTransport);
-
-  return createMcpHarnessClient(client);
+  try {
+    await mcpServer.connect(serverTransport);
+    await client.connect(authenticatedClientTransport);
+    return createMcpHarnessClient(client, () => mcpServer.close());
+  } catch (error) {
+    await Promise.allSettled([client.close(), mcpServer.close()]);
+    throw error;
+  }
 }
 
 function isTextContentItem(
@@ -189,7 +193,10 @@ function parseToolResult(
   return JSON.parse(textItem.text);
 }
 
-function createMcpHarnessClient(client: Client): McpHarness {
+function createMcpHarnessClient(
+  client: Client,
+  closeServer: () => Promise<void>,
+): McpHarness {
   async function callTool(
     name: string,
     args: Record<string, unknown> = {},
@@ -210,7 +217,12 @@ function createMcpHarnessClient(client: Client): McpHarness {
   }
 
   async function close(): Promise<void> {
-    await client.close();
+    const results = await Promise.allSettled([client.close(), closeServer()]);
+    const errors = results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (errors.length)
+      throw new AggregateError(errors, "MCP transport cleanup failed");
   }
 
   return {
@@ -241,8 +253,12 @@ export async function createAnonymousMcpHarness(): Promise<McpHarness> {
     version: "1.0.0",
   });
 
-  await mcpServer.connect(serverTransport);
-  await client.connect(clientTransport);
-
-  return createMcpHarnessClient(client);
+  try {
+    await mcpServer.connect(serverTransport);
+    await client.connect(clientTransport);
+    return createMcpHarnessClient(client, () => mcpServer.close());
+  } catch (error) {
+    await Promise.allSettled([client.close(), mcpServer.close()]);
+    throw error;
+  }
 }

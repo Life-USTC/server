@@ -1,12 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as fixtures from "../_harness";
 
 const context = fixtures.createMcpToolTestContext();
 
-const ACTIVE_ID = "[integration-test]-young-active";
-const ENDED_ID = "[integration-test]-young-ended";
+const ACTIVE_ID = `young-active-${crypto.randomUUID()}`;
+const ENDED_ID = `young-ended-${crypto.randomUUID()}`;
 
-beforeAll(async () => {
+beforeEach(async () => {
   await fixtures.prisma.youngEvent.createMany({
     data: [
       {
@@ -58,7 +58,7 @@ beforeAll(async () => {
   });
 });
 
-afterAll(async () => {
+afterEach(async () => {
   await fixtures.prisma.youngEvent.deleteMany({
     where: { youngId: { in: [ACTIVE_ID, ENDED_ID] } },
   });

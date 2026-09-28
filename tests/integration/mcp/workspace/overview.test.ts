@@ -81,16 +81,14 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
   it("workspace_deadline_list 排除已开始考试", async () => {
     const section = await fixtures.prisma.section.findUnique({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
     if (!section) {
-      throw new Error(
-        `Seed section ${fixtures.DEV_SEED.section.jwId} not found`,
-      );
+      throw new Error(`Seed section ${isolated.sectionJwId} not found`);
     }
 
-    const jwId = 926042903;
+    const jwId = isolated.sectionJwId + 93;
     await fixtures.deleteIntegrationExam(jwId);
 
     try {
@@ -253,7 +251,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
         createdById: isolated.userId,
         isMajor: false,
         requiresTeam: false,
-        sectionId: isolated.seedSectionId,
+        sectionId: isolated.sectionId,
         submissionDueAt: new Date(
           `${fixtures.SEED_PLUS_SEVEN_DAYS}T09:00:00+08:00`,
         ),
@@ -329,22 +327,12 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     });
 
     const section = await fixtures.prisma.section.findUniqueOrThrow({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
-    await fixtures.prisma.exam.upsert({
-      where: { jwId: fixtures.PAST_SAME_DAY_EXAM_JW_ID },
-      update: {
-        examDate: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
-        endTime: 1000,
-        examMode: "closed",
-        examTakeCount: 1,
-        examType: 1,
-        sectionId: section.id,
-        startTime: 900,
-      },
-      create: {
-        jwId: fixtures.PAST_SAME_DAY_EXAM_JW_ID,
+    await fixtures.prisma.exam.create({
+      data: {
+        jwId: isolated.sectionJwId + 80,
         examDate: new Date(`${fixtures.SEED_DATE}T00:00:00.000Z`),
         endTime: 1000,
         examMode: "closed",
@@ -369,11 +357,11 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       );
       expect(
         result.samples?.upcomingExams?.some(
-          (exam) => exam.jwId === fixtures.PAST_SAME_DAY_EXAM_JW_ID,
+          (exam) => exam.jwId === isolated.sectionJwId + 80,
         ),
       ).toBe(false);
     } finally {
-      await fixtures.deleteIntegrationExam(fixtures.PAST_SAME_DAY_EXAM_JW_ID);
+      await fixtures.deleteIntegrationExam(isolated.sectionJwId + 80);
     }
   });
 
@@ -386,22 +374,12 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     });
 
     const section = await fixtures.prisma.section.findUniqueOrThrow({
-      where: { jwId: fixtures.DEV_SEED.section.jwId },
+      where: { jwId: isolated.sectionJwId },
       select: { id: true },
     });
-    await fixtures.prisma.exam.upsert({
-      where: { jwId: fixtures.UNKNOWN_DATE_EXAM_JW_ID },
-      update: {
-        endTime: 1000,
-        examDate: null,
-        examMode: "closed",
-        examTakeCount: 1,
-        examType: 1,
-        sectionId: section.id,
-        startTime: 900,
-      },
-      create: {
-        jwId: fixtures.UNKNOWN_DATE_EXAM_JW_ID,
+    await fixtures.prisma.exam.create({
+      data: {
+        jwId: isolated.sectionJwId + 81,
         endTime: 1000,
         examDate: null,
         examMode: "closed",
@@ -427,11 +405,11 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       );
       expect(
         result.samples?.upcomingExams?.some(
-          (exam) => exam.jwId === fixtures.UNKNOWN_DATE_EXAM_JW_ID,
+          (exam) => exam.jwId === isolated.sectionJwId + 81,
         ),
       ).toBe(false);
     } finally {
-      await fixtures.deleteIntegrationExam(fixtures.UNKNOWN_DATE_EXAM_JW_ID);
+      await fixtures.deleteIntegrationExam(isolated.sectionJwId + 81);
     }
   });
 });
@@ -545,8 +523,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
     const previousSection = await fixtures.prisma.section.findUniqueOrThrow({
       where: { jwId: fixtures.DEV_SEED.previousSection.jwId },
     });
-    const currentSectionId =
-      await fixtures.ensureDevUserSubscribedToSeedSection(isolated.userId);
+    const currentSectionId = isolated.sectionId;
 
     await fixtures.replaceUserSubscribedSections(isolated.userId, [
       previousSection.id,

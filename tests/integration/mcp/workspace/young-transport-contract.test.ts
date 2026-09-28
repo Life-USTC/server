@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/lib/mcp/urls";
 import { assertYoungWriteTransportAuthority } from "../../../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../../../shared/prisma";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import {
   createAnonymousMcpHarness,
   createMcpHarness,
@@ -53,7 +54,10 @@ const day = "2027-01-15";
 const homeworkId = crypto.randomUUID();
 const todoId = crypto.randomUUID();
 
-beforeAll(async () => {
+beforeEach(async () => {
+  grants.length = 0;
+  clients.length = 0;
+  sectionId = 0;
   setCalendarExportRebuildSenderForTest(async () => {});
   await db.user.createMany({
     data: users.map((id) => ({
@@ -176,28 +180,48 @@ beforeAll(async () => {
     data: { userId: users[0], sectionId },
   });
 });
-afterAll(async () => {
-  setCalendarExportRebuildSenderForTest();
-  await Promise.all([
-    ...clients.map((client) => client.close()),
-    anonymous?.close(),
-  ]);
-  await db.oAuthConsent.deleteMany({ where: { clientId } });
-  await db.oAuthClient.deleteMany({ where: { clientId } });
-  if (sectionId) {
-    await db.homework.deleteMany({ where: { sectionId } });
-    await db.schedule.deleteMany({ where: { sectionId } });
-    await db.exam.deleteMany({ where: { sectionId } });
-    await db.scheduleGroup.deleteMany({ where: { sectionId } });
-    await db.section.delete({ where: { id: sectionId } });
-  }
-  await db.user.deleteMany({ where: { id: { in: users } } });
-  await db.youngEvent.deleteMany({ where: { youngId: { in: youngIds } } });
-  await db.youngOrganizer.deleteMany({ where: { id: { in: organizers } } });
-  await Promise.all([
-    db.$disconnect(),
-    prisma.$disconnect(),
-    authPrisma.$disconnect(),
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      setCalendarExportRebuildSenderForTest();
+    },
+    async () => {
+      await Promise.all([
+        ...clients.map((client) => client.close()),
+        anonymous?.close(),
+      ]);
+    },
+    async () => {
+      await db.oAuthConsent.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.oAuthClient.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      if (sectionId) {
+        await db.homework.deleteMany({ where: { sectionId } });
+        await db.schedule.deleteMany({ where: { sectionId } });
+        await db.exam.deleteMany({ where: { sectionId } });
+        await db.scheduleGroup.deleteMany({ where: { sectionId } });
+        await db.section.delete({ where: { id: sectionId } });
+      }
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: { in: users } } });
+    },
+    async () => {
+      await db.youngEvent.deleteMany({ where: { youngId: { in: youngIds } } });
+    },
+    async () => {
+      await db.youngOrganizer.deleteMany({ where: { id: { in: organizers } } });
+    },
+    async () => {
+      await Promise.all([
+        db.$disconnect(),
+        prisma.$disconnect(),
+        authPrisma.$disconnect(),
+      ]);
+    },
   ]);
 });
 

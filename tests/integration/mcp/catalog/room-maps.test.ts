@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getRoomMapRoute } from "@/lib/api/routes/room-map-route";
 import { createGraphqlYoga } from "@/lib/graphql/server";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import { createAnonymousMcpHarness, type McpHarness } from "../_harness/client";
 
 let client: McpHarness;
@@ -22,7 +23,7 @@ async function graphql({
   );
   return response.json();
 }
-beforeAll(async () => {
+beforeEach(async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
@@ -47,9 +48,15 @@ beforeAll(async () => {
   );
   client = await createAnonymousMcpHarness();
 });
-afterAll(async () => {
-  await client?.close();
-  vi.unstubAllGlobals();
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      await client?.close();
+    },
+    async () => {
+      vi.unstubAllGlobals();
+    },
+  ]);
 });
 describe("public room map transport parity", () => {
   it("room-map.public", async () => {

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { getSchedulesRoute } from "@/lib/api/routes/academic-schedule-routes";
 import { getSectionSchedulesRoute } from "@/lib/api/routes/academic-section-routes";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
@@ -6,6 +6,7 @@ import { createGraphqlYoga } from "@/lib/graphql/server";
 import { mapSchedule, mergeSchedule } from "@/static-loader/mappers";
 import { writeSchedules } from "@/static-loader/schedule-writes";
 import { createFixturePrisma } from "../../../shared/prisma";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import { createAnonymousMcpHarness, type McpHarness } from "../_harness/client";
 
 const db = createFixturePrisma();
@@ -53,7 +54,10 @@ async function importMeeting(order: number[]) {
     ),
   );
 }
-beforeAll(async () => {
+beforeEach(async () => {
+  teacherIds.length = 0;
+  courseId = 0;
+  sectionId = 0;
   courseId = (
     await db.course.create({
       data: {
@@ -108,17 +112,31 @@ beforeAll(async () => {
   });
   client = await createAnonymousMcpHarness();
 });
-afterAll(async () => {
-  await client?.close();
-  await db.user.deleteMany({ where: { id: { in: [ownerId, otherId] } } });
-  if (sectionId) {
-    await db.schedule.deleteMany({ where: { sectionId } });
-    await db.scheduleGroup.deleteMany({ where: { sectionId } });
-    await db.section.delete({ where: { id: sectionId } });
-  }
-  await db.teacher.deleteMany({ where: { id: { in: teacherIds } } });
-  if (courseId) await db.course.delete({ where: { id: courseId } });
-  await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      await client?.close();
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: { in: [ownerId, otherId] } } });
+    },
+    async () => {
+      if (sectionId) {
+        await db.schedule.deleteMany({ where: { sectionId } });
+        await db.scheduleGroup.deleteMany({ where: { sectionId } });
+        await db.section.delete({ where: { id: sectionId } });
+      }
+    },
+    async () => {
+      await db.teacher.deleteMany({ where: { id: { in: teacherIds } } });
+    },
+    async () => {
+      if (courseId) await db.course.delete({ where: { id: courseId } });
+    },
+    async () => {
+      await Promise.all([db.$disconnect(), runtimePrisma.$disconnect()]);
+    },
+  ]);
 });
 
 type Teacher = { id: number; jwId: number; code: string; nameCn: string };

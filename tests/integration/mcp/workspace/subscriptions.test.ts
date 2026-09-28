@@ -1,6 +1,7 @@
+import { cleanupMcpResources } from "../_harness/cleanup";
 // Merged from mcp-12-subscriptions + mcp-18-calendar-subscriptions
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createFixturePrisma,
   disconnectTestPrisma,
@@ -97,7 +98,7 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
   let courseId = 0;
   let semesterId = 0;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const suffix = crypto.randomUUID();
     // Keep custom catalog rows isolated from shared seed rows. The fixture
     // client is the function-owner connection; MCP itself uses DATABASE_URL.
@@ -187,19 +188,27 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
     client = await createMcpHarness(userId);
   });
 
-  afterAll(async () => {
-    await client?.close();
-    await rlsFixturePrisma.$transaction(async (tx) => {
-      await tx.user.deleteMany({
-        where: { id: { in: [userId, otherUserId] } },
-      });
-      await tx.section.deleteMany({
-        where: { id: { in: [activeSectionId, retiredSectionId] } },
-      });
-      await tx.course.deleteMany({ where: { id: courseId } });
-      await tx.semester.deleteMany({ where: { id: semesterId } });
-    });
-    await disconnectTestPrisma(rlsFixturePrisma);
+  afterEach(async () => {
+    await cleanupMcpResources([
+      async () => {
+        await client?.close();
+      },
+      async () => {
+        await rlsFixturePrisma.$transaction(async (tx) => {
+          await tx.user.deleteMany({
+            where: { id: { in: [userId, otherUserId] } },
+          });
+          await tx.section.deleteMany({
+            where: { id: { in: [activeSectionId, retiredSectionId] } },
+          });
+          await tx.course.deleteMany({ where: { id: courseId } });
+          await tx.semester.deleteMany({ where: { id: semesterId } });
+        });
+      },
+      async () => {
+        await disconnectTestPrisma(rlsFixturePrisma);
+      },
+    ]);
   });
 
   it("runs subscribe/list/remove/list under RLS and preserves other owners", async () => {
@@ -342,7 +351,9 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
 
 describe("个人日历订阅 — 读取与批量订阅", () => {
   it("workspace_calendar_feed_get 返回订阅班级但不泄露个人 iCal 凭据", async () => {
-    await fixtures.ensureDevUserSubscribedToSeedSection(context.userId);
+    await fixtures.replaceUserSubscribedSections(context.userId, [
+      context.sectionId,
+    ]);
 
     const result = await context.client.call<{
       success?: boolean;
@@ -375,7 +386,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     );
     expect(
       result.subscription?.sections?.some(
-        (section) => section.jwId === fixtures.DEV_SEED.section.jwId,
+        (section) => section.jwId === context.sectionJwId,
       ),
     ).toBe(true);
     expect(result.subscription?.calendarPath).toBeUndefined();
@@ -384,7 +395,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   });
 
   it("workspace_calendar_feed_get summary 兼容输入返回 default 结构", async () => {
-    await fixtures.ensureDevUserSubscribedToSeedSection(context.userId);
+    await fixtures.replaceUserSubscribedSections(context.userId, [
+      context.sectionId,
+    ]);
 
     const result = await context.client.call<{
       success?: boolean;
@@ -414,7 +427,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   });
 
   it("workspace_subscription_list 列出当前订阅班级", async () => {
-    await fixtures.ensureDevUserSubscribedToSeedSection(context.userId);
+    await fixtures.replaceUserSubscribedSections(context.userId, [
+      context.sectionId,
+    ]);
 
     const result = await context.client.call<{
       success?: boolean;
@@ -431,9 +446,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
     expect(result.success).toBe(true);
     expect(
-      result.sections?.some(
-        (section) => section.jwId === fixtures.DEV_SEED.section.jwId,
-      ),
+      result.sections?.some((section) => section.jwId === context.sectionJwId),
     ).toBe(true);
     expect(result.note).toContain("not official");
   });
@@ -448,15 +461,15 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       calendarPath?: string;
       calendarUrl?: string;
     }>("catalog_section_calendar_feed_get", {
-      jwId: fixtures.DEV_SEED.section.jwId,
+      jwId: context.sectionJwId,
       locale: "zh-cn",
     });
 
     expect(result.found).toBe(true);
-    expect(result.section?.jwId).toBe(fixtures.DEV_SEED.section.jwId);
-    expect(result.section?.code).toBe(fixtures.DEV_SEED.section.code);
+    expect(result.section?.jwId).toBe(context.sectionJwId);
+    expect(result.section?.code).toBe(context.sectionCode);
     expect(result.calendarPath).toBe(
-      `/api/catalog/sections/${fixtures.DEV_SEED.section.jwId}/calendar.ics`,
+      `/api/catalog/sections/${context.sectionJwId}/calendar.ics`,
     );
     expect(result.calendarUrl).toContain(result.calendarPath ?? "");
   });
@@ -499,13 +512,13 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         sectionCount?: number;
       } | null;
     }>("workspace_subscription_import", {
-      codes: [fixtures.DEV_SEED.section.code],
+      codes: [context.sectionCode],
       locale: "zh-cn",
       mode: "full",
     });
 
     expect(result.success).toBe(true);
-    expect(result.matchedCodes).toContain(fixtures.DEV_SEED.section.code);
+    expect(result.matchedCodes).toContain(context.sectionCode);
     expect(result.unmatchedCodes).toEqual([]);
     expect(result.addedCount).toBeGreaterThanOrEqual(1);
     expect(result.alreadySubscribedCount).toBe(0);
@@ -517,7 +530,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
   });
 
   it("workspace_subscription_import 跳过已订阅班级", async () => {
-    await fixtures.ensureDevUserSubscribedToSeedSection(context.userId);
+    await fixtures.replaceUserSubscribedSections(context.userId, [
+      context.sectionId,
+    ]);
 
     const result = await context.client.call<{
       success?: boolean;
@@ -526,12 +541,12 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       addedCount?: number;
       alreadySubscribedCount?: number;
     }>("workspace_subscription_import", {
-      codes: [fixtures.DEV_SEED.section.code],
+      codes: [context.sectionCode],
       locale: "zh-cn",
     });
 
     expect(result.success).toBe(true);
-    expect(result.matchedCodes).toContain(fixtures.DEV_SEED.section.code);
+    expect(result.matchedCodes).toContain(context.sectionCode);
     expect(result.addedCount).toBe(0);
     expect(result.alreadySubscribedCount).toBeGreaterThanOrEqual(1);
   });
@@ -562,7 +577,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       success?: boolean;
       message?: string;
     }>("workspace_subscription_import", {
-      codes: [fixtures.DEV_SEED.section.code],
+      codes: [context.sectionCode],
       semesterId: 2_147_483_647,
       locale: "zh-cn",
     });
