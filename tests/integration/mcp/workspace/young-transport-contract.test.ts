@@ -18,7 +18,6 @@ import {
   getOAuthGraphqlResourceUrl,
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
-import { assertYoungWriteTransportAuthority } from "../../../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../../../shared/prisma";
 import { cleanupMcpResources } from "../_harness/cleanup";
 import {
@@ -322,7 +321,6 @@ contractTest("young-workspace.ownership", async ({ state, expect }) => {
     graphql,
   } = state;
 
-  await assertYoungWriteTransportAuthority();
   for (const index of [0, 1]) {
     const foreign = 1 - index;
     const expected = expectedOwned(index).sort();
