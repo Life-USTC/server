@@ -18,7 +18,7 @@ export type SubscriptionTransport = (typeof subscriptionTransports)[number];
 export type SubscriptionRelation = {
   userId: string;
   sectionId: number;
-  kind: "regular" | "auditor";
+  kind: "regular" | "auditor" | "teaching_assistant";
 };
 
 export async function createSubscriptionMutationFixture(

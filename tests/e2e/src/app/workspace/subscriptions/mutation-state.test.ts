@@ -5,6 +5,7 @@ import {
   expectSubscriptionRelations,
   mutateSubscription,
   openSubscriptionTransport,
+  type SubscriptionRelation,
   subscriptionTransports,
 } from "../../../../utils/subscription-mutations";
 
@@ -27,7 +28,7 @@ for (const transport of subscriptionTransports) {
           transport,
         );
         const activeConnection = connection;
-        const assertState = (extra: typeof fixture.initial = []) =>
+        const assertState = (extra: SubscriptionRelation[] = []) =>
           expectSubscriptionRelations(fixture, [...fixture.initial, ...extra]);
         await assertState();
         await test.step("Changing another user's subscribed section does not create my membership", async () => {

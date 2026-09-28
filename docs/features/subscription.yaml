@@ -76,8 +76,8 @@ requirements:
   rationale: Independent database observations verify committed effects; reading the mutation response
     alone cannot establish that the state was persisted. Native protocol responses remain separately checked.
   acceptance:
-    given: Two isolated owners have distinct memberships; one is a regular user and the other is a
-      suspended administrator managing their own private subscriptions.
+    given: An isolated acting owner and another owner have distinct memberships. The acting owner
+      is checked independently as a regular user and as a suspended administrator.
     when: REST and GraphQL session and OAuth clients and an HTTP MCP client independently add,
       update and remove memberships; anonymous and read-only clients attempt writes.
     then:
@@ -85,6 +85,9 @@ requirements:
     - The other owner's complete membership records and unrelated own membership remain unchanged.
     - Anonymous, insufficient-scope and missing-membership writes return their native rejection and
       preserve state.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/mutation-state.test.ts
+      name: 'REST session: regular modifies only personal subscription state'
 - id: subscription.cross-surface-refresh
   category: consistency
   rule: A successful subscription change is visible after the consumer's supported navigation or
