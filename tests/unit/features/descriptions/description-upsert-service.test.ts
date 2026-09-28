@@ -252,7 +252,16 @@ describe("upsertDescriptionContent", () => {
       "description.failed-write-invalidation",
       "transaction_effects",
     );
-    prismaMock.$transaction.mockRejectedValue(new Error("rollback"));
+    const transaction = prismaMock.$transaction.getMockImplementation();
+    if (!transaction) throw new Error("Missing transaction callback harness");
+    descriptionFindFirstMock.mockResolvedValue({
+      id: "description-1",
+      content: "before",
+    });
+    descriptionUpdateMock.mockResolvedValue({
+      id: "description-1",
+      content: "after",
+    });
     const purge = vi.fn();
     const { upsertDescriptionContent } = await import(
       "@/features/descriptions/server/description-upsert"
@@ -282,7 +291,11 @@ describe("upsertDescriptionContent", () => {
         });
         contract.equal(`/${phase}/${index}/calls`, observe());
       });
-    observe("before_commit");
+    prismaMock.$transaction.mockImplementation(async (...args) => {
+      await transaction(...args);
+      observe("before_commit");
+      throw new Error("rollback");
+    });
     await runWithCloudflareRuntimeEnv({}, async () => {
       setCloudflareCatalogInvalidator(purge);
       for (const target of [
@@ -305,6 +318,7 @@ describe("upsertDescriptionContent", () => {
       }
     });
     observe("after_completion");
+    expect(descriptionUpdateMock).toHaveBeenCalledTimes(2);
     contract.recordVitest(context);
     expect(purge).not.toHaveBeenCalled();
     expect(calendarRebuildMock).not.toHaveBeenCalled();
