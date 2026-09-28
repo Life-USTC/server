@@ -1,21 +1,10 @@
-import { expect, type Page, test } from "@playwright/test";
-import {
-  expectRequiresSignIn,
-  signInAsDebugUser,
-  signInAsDevAdmin,
-} from "../../../../utils/auth";
+import { expect, type Page } from "@playwright/test";
+import { expectRequiresSignIn } from "../../../../utils/auth";
 import { openCommentComposer } from "../../../../utils/comments";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  createTempUsersFixture,
-  deleteUsersByPrefix,
-} from "../../../../utils/e2e-db";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { visibleText } from "../../../../utils/locators";
+import { test } from "../../../../utils/moderation-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { resolveSeedSectionId } from "../../../../utils/seed-lookups";
-import { assertPageContract } from "../../_shared/page-contract";
 
 function moderationTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
@@ -50,9 +39,10 @@ async function openModerationCommentDialog(
 
 async function openModerationDescriptionDialog(
   page: Page,
+  text: string,
   activation: "click" | "keyboard" = "click",
 ) {
-  const row = page.locator("tbody tr:visible").first();
+  const row = moderationTableRow(page, text);
   await expect(row).toBeVisible({ timeout: 10_000 });
   const manageButton = row
     .getByRole("button", { name: /管理课程简介|Manage Description/i })
@@ -81,15 +71,21 @@ test("/admin/moderation 未登录重定向到登录页", async ({ page }, testIn
   await captureStepScreenshot(page, testInfo, "admin-moderation-unauthorized");
 });
 
-test("/admin/moderation 普通用户访问返回 403", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/admin/moderation", "/admin/moderation");
+test("/admin/moderation 普通用户访问返回 403", async ({
+  page,
+  account: _account,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/moderation");
   await expect(page.getByText("403").first()).toBeVisible();
   await expect(page.getByText("Forbidden").first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-moderation-403");
 });
 
-test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
+test("/admin/moderation 管理员访问成功", async ({
+  page,
+  moderation: _moderation,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/moderation");
   await expect(page).toHaveURL(/\/admin\/moderation(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await page.keyboard.press("ControlOrMeta+Shift+K");
@@ -97,8 +93,11 @@ test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin-moderation-home");
 });
 
-test("/admin/moderation 刷新队列并保留当前视图", async ({ page }) => {
-  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+test("/admin/moderation 刷新队列并保留当前视图", async ({
+  page,
+  moderation: _moderation,
+}) => {
+  await gotoAndWaitForReady(page, "/admin/moderation?tab=descriptions");
   const refreshButton = page.getByRole("button", {
     name: /刷新队列|Refresh queue/i,
   });
@@ -122,8 +121,11 @@ test("/admin/moderation 刷新队列并保留当前视图", async ({ page }) => 
   ).toHaveAttribute("aria-current", "page");
 });
 
-test("/admin/moderation 无效标签回退到评论", async ({ page }) => {
-  await signInAsDevAdmin(page, "/admin/moderation?tab=bad");
+test("/admin/moderation 无效标签回退到评论", async ({
+  page,
+  moderation: _moderation,
+}) => {
+  await gotoAndWaitForReady(page, "/admin/moderation?tab=bad");
   await expect(page.locator('input[type="hidden"][name="tab"]')).toHaveValue(
     "comments",
   );
@@ -132,19 +134,11 @@ test("/admin/moderation 无效标签回退到评论", async ({ page }) => {
 
 test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   page,
+  moderation,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDevAdmin(page, "/admin/moderation");
-  const activeResponse = await page.request.get(
-    "/api/admin/comments?status=active",
-  );
-  const activeBody = (await activeResponse.json()) as {
-    data?: Array<{ body?: string }>;
-  };
-  const keyword =
-    activeBody.data?.find((item) => item.body?.trim())?.body?.slice(0, 16) ??
-    "";
-  expect(keyword.length).toBeGreaterThan(0);
+  await gotoAndWaitForReady(page, "/admin/moderation");
+  const keyword = moderation.comment.body;
 
   await page
     .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
@@ -177,24 +171,18 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", async ({
   );
 });
 
-test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({ page }) => {
+test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
+  page,
+  moderation,
+}) => {
   const viewports = [
     { width: 320, height: 568 },
     { width: 320, height: 800 },
   ] as const;
   await page.setViewportSize(viewports[0]);
-  await signInAsDevAdmin(page, "/admin/moderation");
+  await gotoAndWaitForReady(page, "/admin/moderation");
 
-  const activeResponse = await page.request.get(
-    "/api/admin/comments?status=active",
-  );
-  const activeBody = (await activeResponse.json()) as {
-    data?: Array<{ body?: string }>;
-  };
-  const keyword =
-    activeBody.data?.find((item) => item.body?.trim())?.body?.slice(0, 16) ??
-    "";
-  expect(keyword.length).toBeGreaterThan(0);
+  const keyword = moderation.comment.body;
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
@@ -251,25 +239,15 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", async ({
   }
 });
 
-test("/admin/moderation 可更新评论状态与备注", async ({ page }, testInfo) => {
+test("/admin/moderation 可更新评论状态与备注", async ({
+  page,
+  moderation,
+}, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDevAdmin(page, "/admin/moderation");
+  await gotoAndWaitForReady(page, "/admin/moderation");
 
-  const sectionId = await resolveSeedSectionId(page);
-
-  const keyword = `e2e-moderation-${Date.now()}`;
-  const createResponse = await page.request.post("/api/community/comments", {
-    data: {
-      targetType: "section",
-      targetId: String(sectionId),
-      body: keyword,
-      visibility: "public",
-    },
-  });
-  expect(createResponse.status()).toBe(201);
-  const createdComment = (await createResponse.json()) as { id?: string };
-  expect(createdComment.id).toBeTruthy();
-
+  const keyword = moderation.comment.body;
+  const note = "Independent moderation note";
   await gotoAndWaitForReady(
     page,
     `/admin/moderation?search=${encodeURIComponent(keyword)}`,
@@ -285,7 +263,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   await dialog
     .getByLabel(/备注|Moderation note|Note/i)
     .first()
-    .fill(`e2e-note-${Date.now()}`);
+    .fill(note);
 
   const patchResponse = page.waitForResponse(
     (response) =>
@@ -295,6 +273,15 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   );
   await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
   await patchResponse;
+  expect(
+    await moderation.db.comment.findUnique({
+      where: { id: moderation.comment.id },
+    }),
+  ).toMatchObject({
+    status: "softbanned",
+    moderationNote: note,
+    moderatedById: moderation.admin.id,
+  });
   await expect(dialog).not.toBeVisible({ timeout: 15_000 });
   await expect(
     page
@@ -306,15 +293,16 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
 
 test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   page,
+  moderation,
 }, testInfo) => {
   test.setTimeout(60000);
-  const sectionPath = `/catalog/sections/${DEV_SEED.section.jwId}`;
-  await signInAsDevAdmin(page, sectionPath);
+  const sectionPath = `/catalog/sections/${moderation.section.jwId}`;
+  await gotoAndWaitForReady(page, sectionPath);
   await gotoAndWaitForReady(page, sectionPath);
 
   await gotoAndWaitForReady(page, `${sectionPath}#comments`);
 
-  const body = `e2e-target-link-${Date.now()}`;
+  const body = `Target link ${moderation.marker}`;
   const composer = await openCommentComposer(page);
   await composer.fill(body);
   const createResponse = page.waitForResponse(
@@ -331,6 +319,14 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   const createdBody = (await created.json()) as { id?: string };
   const id = createdBody.id;
   expect(typeof id).toBe("string");
+  expect(
+    await moderation.db.comment.findUnique({ where: { id: String(id) } }),
+  ).toMatchObject({
+    userId: moderation.admin.id,
+    sectionId: moderation.section.id,
+    body,
+    status: "active",
+  });
 
   await gotoAndWaitForReady(page, "/admin/moderation");
   await page
@@ -357,8 +353,11 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   );
 });
 
-test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
+test("/admin/moderation 可切换状态筛选下拉", async ({
+  page,
+  moderation: _moderation,
+}, testInfo) => {
+  await gotoAndWaitForReady(page, "/admin/moderation");
 
   const filter = page.getByRole("combobox").first();
   await expect(filter).toBeVisible();
@@ -373,30 +372,18 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
   );
 });
 
-test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo) => {
+test("/admin/moderation 封禁列表可解除封禁", async ({
+  page,
+  moderation,
+}, testInfo) => {
   test.setTimeout(60000);
-  const prefix = `e2e-moderation-sus-${Date.now()}`;
-  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
-  await signInAsDevAdmin(page, "/admin/moderation");
-
-  const usersResponse = await page.request.get(
-    `/api/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
-  );
-  expect(usersResponse.status()).toBe(200);
-  const usersBody = (await usersResponse.json()) as {
-    data?: Array<{ id?: string; username?: string | null }>;
-  };
-  const targetUser = usersBody.data?.find(
-    (item) => item.username === usernames[0],
-  );
-  expect(targetUser?.id).toBeTruthy();
-
-  const reason = `e2e-moderation-suspension-${Date.now()}`;
+  await gotoAndWaitForReady(page, "/admin/moderation");
+  const reason = moderation.marker;
   const createSuspensionResponse = await page.request.post(
     "/api/admin/suspensions",
     {
       data: {
-        userId: targetUser?.id,
+        userId: moderation.author.id,
         reason,
       },
     },
@@ -407,149 +394,192 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
   };
   const suspensionId = createdBody.suspension?.id;
   expect(suspensionId).toBeTruthy();
-  let lifted = false;
+  expect(
+    await moderation.db.userSuspension.findMany({
+      where: { userId: moderation.author.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      userId: moderation.author.id,
+      createdById: moderation.admin.id,
+      liftedAt: null,
+      reason,
+    }),
+  ]);
+  await gotoAndWaitForReady(page, "/admin/moderation?tab=suspensions");
+  const row = page.locator("tbody tr:visible").filter({ hasText: reason });
+  await expect(row).toBeVisible();
+  const liftButton = row.getByRole("button", {
+    name: /解除封禁|Lift suspension/i,
+  });
+  await liftButton.click();
+  const confirmDialog = page.getByRole("alertdialog", {
+    name: /解除这条封禁|Lift this suspension/i,
+  });
+  await expect(confirmDialog).toBeVisible();
+  await expect(confirmDialog).toContainText(moderation.author.name);
+  await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+  await expect(confirmDialog).toBeHidden();
 
-  try {
-    await gotoAndWaitForReady(page, "/admin/moderation?tab=suspensions");
-    const row = page.locator("tbody tr:visible").filter({ hasText: reason });
-    await expect(row).toBeVisible();
-    const liftButton = row.getByRole("button", {
-      name: /解除封禁|Lift suspension/i,
-    });
-    await liftButton.click();
-    const confirmDialog = page.getByRole("alertdialog", {
-      name: /解除这条封禁|Lift this suspension/i,
-    });
-    await expect(confirmDialog).toBeVisible();
-    await expect(confirmDialog).toContainText(usernames[0] ?? prefix);
-    await confirmDialog.getByRole("button", { name: /取消|Cancel/i }).click();
-    await expect(confirmDialog).toBeHidden();
-
-    await liftButton.click();
-    const liftResponse = page.waitForResponse(
-      (response) =>
-        response.request().method() === "POST" &&
-        response.url().includes("/admin/moderation") &&
-        response.url().includes("liftSuspension"),
-    );
-    await confirmDialog
-      .getByRole("button", {
-        name: /确认解除封禁|Lift suspension/i,
-      })
-      .click();
-    expect((await liftResponse).status()).toBe(200);
-    lifted = true;
-    await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /封禁已解除|Suspension lifted/i }),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-moderation-suspended");
-  } finally {
-    if (!lifted) {
-      const lift = await page.request.patch(
-        `/api/admin/suspensions/${suspensionId}`,
-      );
-      expect(lift.status()).toBe(200);
-    }
-    await deleteUsersByPrefix(prefix);
-  }
+  await liftButton.click();
+  const liftResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/admin/moderation") &&
+      response.url().includes("liftSuspension"),
+  );
+  await confirmDialog
+    .getByRole("button", {
+      name: /确认解除封禁|Lift suspension/i,
+    })
+    .click();
+  expect((await liftResponse).status()).toBe(200);
+  expect(
+    await moderation.db.userSuspension.findMany({
+      where: { userId: moderation.author.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      userId: moderation.author.id,
+      liftedAt: expect.any(Date),
+      liftedById: moderation.admin.id,
+    }),
+  ]);
+  await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /封禁已解除|Suspension lifted/i }),
+  ).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "admin-moderation-suspended");
 });
 
 test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
-  browser,
   page,
+  moderation,
 }, testInfo) => {
   test.setTimeout(60000);
-  const userContext = await browser.newContext();
-  const userPage = await userContext.newPage();
-  let suspensionId: string | undefined;
-  let commentId: string | undefined;
+  const body = moderation.comment.body;
+  const userPage = moderation.authorPage;
+  await gotoAndWaitForReady(page, "/admin/moderation");
+  await page
+    .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
+    .fill(body);
+  await expect(visibleText(page, body)).toBeVisible();
+  await openModerationCommentDialog(page, body);
 
-  try {
-    await signInAsDebugUser(userPage, "/");
-    const sectionId = await resolveSeedSectionId(userPage);
-    const body = `e2e-admin-suspend-${Date.now()}`;
-    const createCommentResponse = await userPage.request.post(
-      "/api/community/comments",
-      {
-        data: {
-          body,
-          targetId: String(sectionId),
-          targetType: "section",
-          visibility: "public",
-        },
-      },
-    );
-    expect(createCommentResponse.status()).toBe(201);
-    commentId = ((await createCommentResponse.json()) as { id?: string }).id;
-    expect(commentId).toBeTruthy();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByText(/封禁|Suspension|Suspend/i).first(),
+  ).toBeVisible();
 
-    await signInAsDevAdmin(page, "/admin/moderation");
-    await page
-      .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
-      .fill(body);
-    await expect(visibleText(page, body)).toBeVisible();
-    await openModerationCommentDialog(page, body);
+  const reason = moderation.marker;
+  const reasonInput = dialog.getByRole("textbox", { name: /原因|Reason/i });
+  await expect(reasonInput).toBeVisible();
+  await reasonInput.fill(reason);
 
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByText(/封禁|Suspension|Suspend/i).first(),
-    ).toBeVisible();
+  const suspendResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/admin/suspensions") &&
+      response.request().method() === "POST",
+  );
+  await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
+  const created = await suspendResponse;
+  expect(created.status()).toBe(201);
+  const createdBody = (await created.json()) as {
+    suspension?: { id?: string };
+  };
+  const suspensionId = createdBody.suspension?.id;
+  expect(typeof suspensionId).toBe("string");
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /封禁成功|Suspended successfully/i }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: /^(封禁|Suspend)$/i }),
+  ).toBeEnabled();
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-moderation-suspended-from-dialog",
+  );
 
-    const reason = `e2e-reason-${Date.now()}`;
-    const reasonInput = dialog.getByRole("textbox", { name: /原因|Reason/i });
-    await expect(reasonInput).toBeVisible();
-    await reasonInput.fill(reason);
-
-    const suspendResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/admin/suspensions") &&
-        response.request().method() === "POST",
-    );
-    await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
-    const created = await suspendResponse;
-    expect(created.status()).toBe(201);
-    const createdBody = (await created.json()) as {
-      suspension?: { id?: string };
-    };
-    suspensionId = createdBody.suspension?.id;
-    expect(typeof suspensionId).toBe("string");
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /封禁成功|Suspended successfully/i }),
-    ).toBeVisible();
-    await expect(
-      dialog.getByRole("button", { name: /^(封禁|Suspend)$/i }),
-    ).toBeEnabled();
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "admin-moderation-suspended-from-dialog",
-    );
-  } finally {
-    if (suspensionId) {
-      const lift = await page.request.patch(
-        `/api/admin/suspensions/${suspensionId}`,
-      );
-      expect(lift.status()).toBe(200);
-    }
-    if (commentId) {
-      await withE2ePrisma((prisma) =>
-        prisma.comment.deleteMany({ where: { id: commentId } }),
-      );
-    }
-    await userContext.close();
-  }
+  expect(
+    await moderation.db.userSuspension.findMany({
+      where: { userId: moderation.author.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      userId: moderation.author.id,
+      createdById: moderation.admin.id,
+      liftedAt: null,
+      reason,
+    }),
+  ]);
+  const rejectedBody = `Rejected while suspended ${moderation.marker}`;
+  const denied = await userPage.request.post("/api/community/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(moderation.comment.sectionId),
+      body: rejectedBody,
+      visibility: "public",
+    },
+  });
+  expect(denied.status()).toBe(403);
+  expect(
+    await moderation.db.comment.count({
+      where: { userId: moderation.author.id, body: rejectedBody },
+    }),
+  ).toBe(0);
+  const lift = await page.request.patch(
+    `/api/admin/suspensions/${suspensionId}`,
+  );
+  expect(lift.status()).toBe(200);
+  expect(
+    await moderation.db.userSuspension.findMany({
+      where: { userId: moderation.author.id },
+      orderBy: { createdAt: "asc" },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: suspensionId,
+      liftedAt: expect.any(Date),
+      liftedById: moderation.admin.id,
+    }),
+  ]);
+  const recovered = await userPage.request.post("/api/community/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(moderation.comment.sectionId),
+      body: `Recovered ${moderation.marker}`,
+      visibility: "public",
+    },
+  });
+  expect(recovered.status()).toBe(201);
+  expect(
+    await moderation.db.comment.findUnique({
+      where: { id: (await recovered.json()).id },
+    }),
+  ).toMatchObject({
+    userId: moderation.author.id,
+    sectionId: moderation.comment.sectionId,
+    status: "active",
+  });
 });
 
-// ── Description governance ──────────────────────────────────────────────────
-
-test("admin.moderation-centralized", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation");
+test("admin.moderation-centralized", async ({ page, moderation }, testInfo) => {
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?search=${moderation.marker}`,
+  );
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     /Moderation|内容审核/,
   );
@@ -565,7 +595,11 @@ test("admin.moderation-centralized", async ({ page }, testInfo) => {
   await expect(
     page.getByRole("link", { name: /课程简介|Descriptions/i }),
   ).toHaveAttribute("aria-current", "page");
-  const firstRow = page.locator("tbody tr:visible").first();
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?tab=descriptions&search=${moderation.marker}`,
+  );
+  const firstRow = moderationTableRow(page, moderation.description.content);
   await expect(firstRow).toBeVisible();
   await expect(
     firstRow.getByRole("button", {
@@ -581,10 +615,18 @@ test("admin.moderation-centralized", async ({ page }, testInfo) => {
 
 test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", async ({
   page,
+  moderation,
 }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?tab=descriptions&search=${moderation.marker}`,
+  );
 
-  await openModerationDescriptionDialog(page, "keyboard");
+  await openModerationDescriptionDialog(
+    page,
+    moderation.description.content,
+    "keyboard",
+  );
   await captureStepScreenshot(
     page,
     testInfo,
@@ -592,26 +634,23 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
   );
 });
 
-test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo) => {
+test("/admin/moderation 可更新课程简介内容", async ({
+  page,
+  moderation,
+}, testInfo) => {
   test.setTimeout(60_000);
-  await signInAsDevAdmin(page, "/admin/moderation?tab=descriptions");
+  await gotoAndWaitForReady(page, "/admin/moderation?tab=descriptions");
 
-  const listResponse = await page.request.get(
-    "/api/admin/descriptions?pageSize=1",
+  const description = moderation.description;
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?tab=descriptions&search=${moderation.marker}`,
   );
-  expect(listResponse.status()).toBe(200);
-  const description = (
-    (await listResponse.json()) as {
-      data?: Array<{ content?: string; id?: string }>;
-    }
-  ).data?.[0];
-  expect(description?.id).toBeTruthy();
-  if (!description?.id) {
-    throw new Error("Expected description id");
-  }
-
-  const nextContent = `e2e-admin-moderation-desc-${Date.now()}`;
-  const dialog = await openModerationDescriptionDialog(page);
+  const nextContent = `Updated ${moderation.marker}`;
+  const dialog = await openModerationDescriptionDialog(
+    page,
+    description.content,
+  );
   const editor = dialog.locator("#admin-description-content");
   await expect(editor).toBeVisible();
   await editor.fill(nextContent);
@@ -651,10 +690,14 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
       .filter({ hasText: /课程简介已更新|Description updated/i }),
   ).toBeVisible();
 
-  await page.request.patch(`/api/admin/descriptions/${description.id}`, {
-    data: { content: description.content ?? "" },
+  expect(
+    await moderation.db.description.findUnique({
+      where: { id: description.id },
+    }),
+  ).toMatchObject({
+    content: nextContent,
+    lastEditedById: moderation.admin.id,
   });
-
   await captureStepScreenshot(
     page,
     testInfo,
@@ -664,25 +707,35 @@ test("/admin/moderation 可更新课程简介内容", async ({ page }, testInfo)
 
 // ── Homework governance ─────────────────────────────────────────────────────
 
-test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
-  await signInAsDevAdmin(page, "/admin/moderation?tab=homeworks");
+test("/admin/moderation 作业治理可访问", async ({
+  page,
+  moderation,
+}, testInfo) => {
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?tab=homeworks&search=${moderation.marker}`,
+  );
 
   await expect(
     page.locator('a[aria-current="page"][href*="tab=homeworks"]'),
   ).toHaveAttribute("aria-current", "page");
-  const firstRow = page.locator("tbody tr:visible").first();
+  const firstRow = moderationTableRow(page, moderation.homework.title);
   await expect(firstRow).toBeVisible();
   await expect(
     page.getByRole("button", { name: /^(删除|Delete)$/i }).first(),
   ).toBeVisible();
 
   // Verify the homework governance API is accessible
-  const hwResponse = await page.request.get("/api/admin/homeworks");
+  const hwResponse = await page.request.get(
+    `/api/admin/homeworks?search=${moderation.marker}`,
+  );
   expect(hwResponse.status()).toBe(200);
   const hwBody = (await hwResponse.json()) as {
     data?: Array<{ id?: string }>;
   };
-  expect(Array.isArray(hwBody.data)).toBe(true);
+  expect(hwBody.data).toEqual([
+    expect.objectContaining({ id: moderation.homework.id }),
+  ]);
 
   await captureStepScreenshot(
     page,
@@ -691,114 +744,110 @@ test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
   );
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/admin/moderation", testInfo });
+test("页面契约", async ({ page, moderation }, testInfo) => {
+  const response = await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?search=${moderation.marker}`,
+    {
+      browserHealth: {},
+      expectMeaningfulContent: true,
+      expectNoHorizontalOverflow: true,
+      uiQuality: {},
+      testInfo,
+    },
+  );
+  expect(response?.ok()).toBe(true);
+  await expect(
+    page.getByRole("link", { name: /评论|Comments/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Moderation|内容审核/, level: 1 }),
+  ).toBeVisible();
 });
 
-test("admin.high-risk-feedback", async ({ page }, testInfo) => {
-  const marker = `governance-feedback-${crypto.randomUUID()}`;
-  const fixture = await withE2ePrisma(async (prisma) => {
-    const user = await prisma.user.create({
-      data: { name: marker, email: `${marker}@example.test` },
-    });
-    const section = await prisma.section.findFirstOrThrow();
-    const homework = await prisma.homework.create({
-      data: { title: marker, sectionId: section.id, createdById: user.id },
-    });
-    const comment = await prisma.comment.create({
-      data: { body: marker, userId: user.id, homeworkId: homework.id },
-    });
-    return { user, homework, comment };
+test("admin.high-risk-feedback", async ({ page, moderation }, testInfo) => {
+  const marker = moderation.marker;
+  const fixture = {
+    user: moderation.author,
+    homework: moderation.homework,
+    comment: moderation.comment,
+  };
+  await moderation.db.comment.update({
+    where: { id: fixture.comment.id },
+    data: { sectionId: null, homeworkId: fixture.homework.id },
   });
-  try {
-    await signInAsDevAdmin(
-      page,
-      `/admin/moderation?search=${encodeURIComponent(marker)}`,
-    );
-    const dialog = await openModerationCommentDialog(page, marker);
-    await dialog.getByRole("radio", { name: /仅自己可见|Private/i }).click();
-    await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
-    await expect(dialog).toBeHidden();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /评论已更新|Comment updated/i }),
-    ).toBeVisible();
-    expect(
-      (
-        await withE2ePrisma((prisma) =>
-          prisma.comment.findUniqueOrThrow({
-            where: { id: fixture.comment.id },
-          }),
-        )
-      ).status,
-    ).toBe("softbanned");
-    await captureStepScreenshot(page, testInfo, "admin-feedback-hidden");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/moderation?search=${encodeURIComponent(marker)}&status=softbanned`,
-    );
-    const reopened = await openModerationCommentDialog(page, marker);
-    await reopened.getByRole("textbox", { name: /原因|Reason/i }).fill(marker);
-    await reopened.getByRole("button", { name: /^(封禁|Suspend)$/i }).click();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /封禁成功|Suspended successfully/i }),
-    ).toBeVisible();
-    expect(
-      await withE2ePrisma((prisma) =>
-        prisma.userSuspension.count({
-          where: { userId: fixture.user.id, liftedAt: null, reason: marker },
-        }),
-      ),
-    ).toBe(1);
-    await captureStepScreenshot(page, testInfo, "admin-feedback-suspended");
-    await page.keyboard.press("Escape");
-    await gotoAndWaitForReady(
-      page,
-      `/admin/moderation?tab=homeworks&search=${encodeURIComponent(marker)}`,
-    );
-    const row = moderationTableRow(page, marker);
-    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
-    const confirmation = page.getByRole("alertdialog", {
-      name: /删除作业|Delete Homework/i,
-    });
-    await expect(confirmation).toContainText(marker);
-    await confirmation.getByRole("button", { name: /取消|Cancel/i }).click();
-    expect(
-      (
-        await withE2ePrisma((prisma) =>
-          prisma.homework.findUniqueOrThrow({
-            where: { id: fixture.homework.id },
-          }),
-        )
-      ).deletedAt,
-    ).toBeNull();
-    await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
-    await confirmation
-      .getByRole("button", { name: /^(删除|Delete)$/i })
-      .click();
-    await expect(confirmation).toBeHidden();
-    await expect(
-      page
-        .locator("[data-sonner-toast]")
-        .filter({ hasText: /作业已删除|Homework deleted/i }),
-    ).toBeVisible();
-    expect(
-      (
-        await withE2ePrisma((prisma) =>
-          prisma.homework.findUniqueOrThrow({
-            where: { id: fixture.homework.id },
-          }),
-        )
-      ).deletedAt,
-    ).not.toBeNull();
-    await captureStepScreenshot(page, testInfo, "admin-feedback-deleted");
-  } finally {
-    await withE2ePrisma(async (prisma) => {
-      await prisma.homework.deleteMany({ where: { id: fixture.homework.id } });
-      await prisma.user.deleteMany({ where: { id: fixture.user.id } });
-    });
-  }
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?search=${encodeURIComponent(marker)}`,
+  );
+  const dialog = await openModerationCommentDialog(page, marker);
+  await dialog.getByRole("radio", { name: /仅自己可见|Private/i }).click();
+  await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
+  await expect(dialog).toBeHidden();
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /评论已更新|Comment updated/i }),
+  ).toBeVisible();
+  expect(
+    (
+      await moderation.db.comment.findUniqueOrThrow({
+        where: { id: fixture.comment.id },
+      })
+    ).status,
+  ).toBe("softbanned");
+  await captureStepScreenshot(page, testInfo, "admin-feedback-hidden");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?search=${encodeURIComponent(marker)}&status=softbanned`,
+  );
+  const reopened = await openModerationCommentDialog(page, marker);
+  await reopened.getByRole("textbox", { name: /原因|Reason/i }).fill(marker);
+  await reopened.getByRole("button", { name: /^(封禁|Suspend)$/i }).click();
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /封禁成功|Suspended successfully/i }),
+  ).toBeVisible();
+  expect(
+    await moderation.db.userSuspension.count({
+      where: { userId: fixture.user.id, liftedAt: null, reason: marker },
+    }),
+  ).toBe(1);
+  await captureStepScreenshot(page, testInfo, "admin-feedback-suspended");
+  await page.keyboard.press("Escape");
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?tab=homeworks&search=${encodeURIComponent(marker)}`,
+  );
+  const row = moderationTableRow(page, marker);
+  await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+  const confirmation = page.getByRole("alertdialog", {
+    name: /删除作业|Delete Homework/i,
+  });
+  await expect(confirmation).toContainText(marker);
+  await confirmation.getByRole("button", { name: /取消|Cancel/i }).click();
+  expect(
+    (
+      await moderation.db.homework.findUniqueOrThrow({
+        where: { id: fixture.homework.id },
+      })
+    ).deletedAt,
+  ).toBeNull();
+  await row.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+  await confirmation.getByRole("button", { name: /^(删除|Delete)$/i }).click();
+  await expect(confirmation).toBeHidden();
+  await expect(
+    page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /作业已删除|Homework deleted/i }),
+  ).toBeVisible();
+  expect(
+    (
+      await moderation.db.homework.findUniqueOrThrow({
+        where: { id: fixture.homework.id },
+      })
+    ).deletedAt,
+  ).not.toBeNull();
+  await captureStepScreenshot(page, testInfo, "admin-feedback-deleted");
 });
