@@ -19,19 +19,26 @@ export type UploadBucket = {
 };
 
 /** Observe the real R2 binding through an explicitly supplied Worker request. */
-export function createUploadBucket(request: APIRequestContext): UploadBucket {
-  const path = "/__test/storage/uploads";
+export function createUploadBucket(
+  request: APIRequestContext,
+  origin: string,
+): UploadBucket {
+  const path = new URL("/__test/storage/uploads", origin).href;
+  const headers = { "x-test-storage-secret": "local-test-storage-observer" };
   return {
     async put(key, contents, options) {
       const response = await request.put(path, {
         params: { key },
         data: Buffer.from(contents),
-        headers: { "content-type": options.httpMetadata.contentType },
+        headers: {
+          ...headers,
+          "content-type": options.httpMetadata.contentType,
+        },
       });
       expect(response.status(), await response.text()).toBe(204);
     },
     async get(key) {
-      const response = await request.get(path, { params: { key } });
+      const response = await request.get(path, { params: { key }, headers });
       if (response.status() === 404) return null;
       expect(response.status(), await response.text()).toBe(200);
       return { body: Uint8Array.from(await response.body()) };
@@ -39,16 +46,17 @@ export function createUploadBucket(request: APIRequestContext): UploadBucket {
     async head(key) {
       const response = await request.get(path, {
         params: { key, metadata: "1" },
+        headers,
       });
       expect(response.status(), await response.text()).toBe(200);
       return response.json();
     },
     async delete(key) {
-      const response = await request.delete(path, { params: { key } });
+      const response = await request.delete(path, { params: { key }, headers });
       expect(response.status(), await response.text()).toBe(204);
     },
     async list(options) {
-      const response = await request.get(path, { params: options });
+      const response = await request.get(path, { params: options, headers });
       expect(response.status(), await response.text()).toBe(200);
       return response.json();
     },
