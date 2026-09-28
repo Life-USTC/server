@@ -1,20 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest";
-import { readPrometheusMetrics } from "@/features/admin/server/prometheus-metrics-data";
-import {
-  type FeatureEventInput,
-  writeObservabilityBatch,
-} from "@/lib/db/feature-event-store";
-import { prisma as runtime } from "@/lib/db/prisma";
-import { createFixturePrisma } from "../shared/prisma";
+import { describe, expect } from "vitest";
+import type { PrometheusMetricsSnapshot } from "@/features/admin/server/prometheus-metrics-data";
+import type { FeatureEventInput } from "@/lib/db/feature-event-store";
+import { metricsTest as it } from "../shared/metrics-fixture";
 
-const fixture = createFixturePrisma();
-const ids: string[] = [];
-const userIds: string[] = [];
-const clientIds: string[] = [];
 const day = 86400000;
 function event(durationMs = 10): FeatureEventInput {
   const id = crypto.randomUUID();
-  ids.push(id);
   return {
     id,
     feature: "catalog.search",
@@ -27,7 +18,7 @@ function event(durationMs = 10): FeatureEventInput {
     durationMs,
   };
 }
-const total = (snapshot: Awaited<ReturnType<typeof readPrometheusMetrics>>) =>
+const total = (snapshot: PrometheusMetricsSnapshot) =>
   snapshot.features.find(
     (row) =>
       row.feature === "catalog.search" &&
@@ -37,30 +28,45 @@ const total = (snapshot: Awaited<ReturnType<typeof readPrometheusMetrics>>) =>
       row.authMode === "anonymous" &&
       row.outcome === "success",
   )?.events ?? 0;
-const histogram = (
-  snapshot: Awaited<ReturnType<typeof readPrometheusMetrics>>,
-) =>
+const histogram = (snapshot: PrometheusMetricsSnapshot) =>
   snapshot.featureDurations.find(
     (row) =>
       row.feature === "catalog.search" &&
       row.operation === "search" &&
       row.protocol === "rest",
   );
-afterAll(async () => {
-  await fixture.featureOperationEvent.deleteMany({
-    where: { id: { in: ids } },
-  });
-  await fixture.auditLog.deleteMany({ where: { id: { in: ids } } });
-  await fixture.runtimeIssueEvent.deleteMany({ where: { id: { in: ids } } });
-  await fixture.oAuthClient.deleteMany({
-    where: { clientId: { in: clientIds } },
-  });
-  await fixture.user.deleteMany({ where: { id: { in: userIds } } });
-  await fixture.$executeRaw`DELETE FROM public."PrometheusMetricsCache"`;
-  await Promise.all([fixture.$disconnect(), runtime.$disconnect()]);
-});
 describe("Persistent Prometheus metrics", () => {
-  it("counts concurrent committed inserts exactly once, deduplicates replay, and reads counters while activity is cached", async () => {
+  it("counts server errors separately from rejected requests", async ({
+    metrics: { read, write },
+  }) => {
+    await write({
+      features: [
+        { ...event(), outcome: "rejected", errorClass: "unauthorized" },
+        { ...event(), outcome: "error", errorClass: "dependency" },
+      ],
+    });
+    const snapshot = await read();
+    expect(snapshot.featureErrors).toEqual([
+      {
+        feature: "catalog.search",
+        protocol: "rest",
+        errorClass: "dependency",
+        events: 1,
+      },
+    ]);
+    expect(snapshot.features).toHaveLength(2);
+    for (const outcome of ["rejected", "error"])
+      expect(
+        snapshot.features.find((row) => row.outcome === outcome)?.events,
+      ).toBe(1);
+  });
+  it("counts concurrent committed inserts exactly once, deduplicates replay, and reads counters while activity is cached", async ({
+    metrics: {
+      db: fixture,
+      read: readPrometheusMetrics,
+      write: writeObservabilityBatch,
+    },
+  }) => {
     const before = await readPrometheusMetrics();
     const events = Array.from({ length: 12 }, () => event());
     await Promise.all(
@@ -86,7 +92,13 @@ describe("Persistent Prometheus metrics", () => {
     });
     expect(total(await readPrometheusMetrics())).toBe(total(after));
   });
-  it("persists cumulative bucket boundaries, count and sum independently of raw retention", async () => {
+  it("persists cumulative bucket boundaries, count and sum independently of raw retention", async ({
+    metrics: {
+      db: fixture,
+      read: readPrometheusMetrics,
+      write: writeObservabilityBatch,
+    },
+  }) => {
     const before = histogram(await readPrometheusMetrics());
     const durations = [
       0, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 10001,
@@ -112,7 +124,9 @@ describe("Persistent Prometheus metrics", () => {
     });
     expect(histogram(await readPrometheusMetrics())).toEqual(after);
   });
-  it("preserves sub-microsecond duration sums", async () => {
+  it("preserves sub-microsecond duration sums", async ({
+    metrics: { read: readPrometheusMetrics, write: writeObservabilityBatch },
+  }) => {
     const before =
       histogram(await readPrometheusMetrics())?.durationSeconds ?? 0;
     await writeObservabilityBatch({ features: [event(0.123456789)] });
@@ -120,7 +134,13 @@ describe("Persistent Prometheus metrics", () => {
       histogram(await readPrometheusMetrics())?.durationSeconds ?? 0;
     expect(after - before).toBeCloseTo(0.000123456789, 12);
   });
-  it("uses rolling exact unique-user windows while deletion preserves cumulative counts", async () => {
+  it("uses rolling exact unique-user windows while deletion preserves cumulative counts", async ({
+    metrics: {
+      db: fixture,
+      read: readPrometheusMetrics,
+      write: writeObservabilityBatch,
+    },
+  }) => {
     await fixture.$executeRaw`DELETE FROM public."PrometheusMetricsCache"`;
     const initial = await readPrometheusMetrics();
     const users = await Promise.all(
@@ -133,7 +153,6 @@ describe("Persistent Prometheus metrics", () => {
         }),
       ),
     );
-    userIds.push(...users.map((user) => user.id));
     const rows = [0.5, 2, 8, 31].map((age, index) => ({
       ...event(),
       feature: "catalog.teacher",
@@ -176,7 +195,9 @@ describe("Persistent Prometheus metrics", () => {
     expect(after.deletions - beforeDelete.deletions).toBe(4);
     expect(after.features).toEqual(beforeDelete.features);
   });
-  it("counts OAuth upsert deltas and retains counts after usage/account removal", async () => {
+  it("counts OAuth upsert deltas and retains counts after usage/account removal", async ({
+    metrics: { db: fixture, read: readPrometheusMetrics },
+  }) => {
     const before = await readPrometheusMetrics();
     const user = await fixture.user.create({
       data: {
@@ -184,9 +205,7 @@ describe("Persistent Prometheus metrics", () => {
         name: "OAuth metrics fixture",
       },
     });
-    userIds.push(user.id);
     const clientId = crypto.randomUUID();
-    clientIds.push(clientId);
     await fixture.oAuthClient.create({
       data: {
         clientId,
@@ -216,10 +235,15 @@ describe("Persistent Prometheus metrics", () => {
     await fixture.oAuthGrantUsageDaily.delete({ where: { id } });
     expect(selected(await readPrometheusMetrics())).toEqual(selected(after));
   });
-  it("folds arbitrary runtime labels and retains totals after cleanup", async () => {
+  it("folds arbitrary runtime labels and retains totals after cleanup", async ({
+    metrics: {
+      db: fixture,
+      read: readPrometheusMetrics,
+      write: writeObservabilityBatch,
+    },
+  }) => {
     const before = await readPrometheusMetrics();
     const id = crypto.randomUUID();
-    ids.push(id);
     await writeObservabilityBatch({
       issues: [
         { id, level: "error", event: "arbitrary-private-name", status: 503 },
@@ -241,10 +265,11 @@ describe("Persistent Prometheus metrics", () => {
     await fixture.runtimeIssueEvent.delete({ where: { id } });
     expect(selected(await readPrometheusMetrics()) - selected(before)).toBe(1);
   });
-  it("counts audit inserts once and never decrements during audit retention", async () => {
+  it("counts audit inserts once and never decrements during audit retention", async ({
+    metrics: { db: fixture, read: readPrometheusMetrics },
+  }) => {
     const before = await readPrometheusMetrics();
     const id = crypto.randomUUID();
-    ids.push(id);
     const selected = (snapshot: typeof before) =>
       snapshot.audit.find(
         (row) =>
@@ -268,15 +293,17 @@ describe("Persistent Prometheus metrics", () => {
     await fixture.auditLog.delete({ where: { id } });
     expect(selected(await readPrometheusMetrics()) - selected(before)).toBe(1);
   });
-  it("denies direct aggregate table reads and writes to the application", async () => {
+  it("denies direct aggregate table reads and writes to the application", async ({
+    metrics: { app: runtime },
+  }) => {
     await expect(
       runtime.$queryRaw`SELECT * FROM public."PrometheusCounter"`,
-    ).rejects.toThrow();
+    ).rejects.toThrow(/permission denied/i);
     await expect(
       runtime.$executeRaw`UPDATE public."PrometheusCounter" SET value=0`,
-    ).rejects.toThrow();
+    ).rejects.toThrow(/permission denied/i);
     await expect(
       runtime.$queryRaw`SELECT * FROM public."PrometheusCounterEpoch"`,
-    ).rejects.toThrow();
+    ).rejects.toThrow(/permission denied/i);
   });
 });
