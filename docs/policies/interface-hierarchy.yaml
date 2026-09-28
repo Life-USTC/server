@@ -405,8 +405,9 @@ requirements:
   acceptance:
     given: Isolated public catalog, activity, organizer and user records have known existing and missing
       identifiers; real services use the restricted application database role.
-    when: Actual loopback REST, GraphQL and native MCP HTTP requests read each existing and missing
-      detail, with a resource-bound community.user read bearer for native profiles, then request an unknown bus route.
+    when: An independently prepared case per entity reads existing and missing details through real Worker
+      REST, GraphQL and MCP HTTP, with a resource-bound community.user read bearer for native profiles.
+      A separate case requests an unknown bus route.
     then:
     - Existing detail controls succeed on all supported transports.
     - Missing details return REST 404 and a not-found error, GraphQL 200 with null and no errors, or
@@ -414,8 +415,8 @@ requirements:
     - Unknown bus-route detail is null in GraphQL and not_found with hasData false in native MCP.
     - The reads leave the fixture's shared domain rows, completions, reactions, attachments and audit state unchanged.
     test:
-      file: tests/integration/public-detail-error-parity.test.ts
-      name: interface-hierarchy.public-detail-not-found-parity
+      file: tests/integration/rest/protocol-contracts/public-detail-error.test.ts
+      name: interface-hierarchy.public-detail-not-found-parity.course
 - id: interface-hierarchy.private-delete-error-parity
   category: authorization
   topic: semantic-parity
@@ -427,7 +428,7 @@ requirements:
     - Foreign and missing responses have equal public error payloads within each transport and reveal no foreign owner identity.
     - The exact stored foreign rows remain unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.private-delete-error-parity
 - id: interface-hierarchy.shared-delete-error-parity
   category: authorization
@@ -440,7 +441,7 @@ requirements:
     - Missing records return 404/NOT_FOUND/not_found; foreign shared records return 403/FORBIDDEN/forbidden.
     - The owned locked comment returns 403/FORBIDDEN/locked, and every rejected target remains unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.shared-delete-error-parity
 - id: interface-hierarchy.suspended-delete-error-parity
   category: authorization
@@ -453,7 +454,7 @@ requirements:
     - Every transport rejects the currently suspended actor with its declared permission encoding.
     - All three complete stored records remain unchanged.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: interface-hierarchy.suspended-delete-error-parity
 - id: interface-hierarchy.semantic-parity-9
   category: consistency
