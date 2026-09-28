@@ -58,7 +58,14 @@ function results(
   ];
 }
 
-for (const phase of ["template", "clone", "ready", "health"] as const) {
+for (const phase of [
+  "template",
+  "clone",
+  "ready",
+  "health",
+  "actor",
+  "session",
+] as const) {
   // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
   test(`private Worker native ${phase} setup timeout leaves no resources`, async ({}, testInfo) => {
     test.setTimeout(150_000);
@@ -103,10 +110,11 @@ for (const phase of ["template", "clone", "ready", "health"] as const) {
     expect(attempts).toHaveLength(1);
     expect(attempts[0].status).toBe("timedOut");
     expect(attempts[0].errors).toHaveLength(2);
+    const acquisitionPhase = phase === "actor" || phase === "session";
     expect(
       stripVTControlCharacters(attempts[0].errors[0].message).split("\n")[0],
     ).toBe(
-      `Fixture "${phase === "template" ? "databaseTemplate" : "isolatedWorker"}" timeout of ${phase === "template" ? 10000 : phase === "clone" ? 2000 : 20000}ms exceeded during setup.`,
+      `Fixture "${phase === "template" ? "databaseTemplate" : acquisitionPhase ? "acquiringActor" : "isolatedWorker"}" timeout of ${phase === "template" ? 10000 : acquisitionPhase ? 1000 : phase === "clone" ? 2000 : 20000}ms exceeded during setup.`,
     );
     expect(
       stripVTControlCharacters(attempts[0].errors[1].message).split("\n")[0],
@@ -125,7 +133,9 @@ for (const phase of ["template", "clone", "ready", "health"] as const) {
       await readFile(
         phase === "template"
           ? join(output, "results", "fault-observed-template.json")
-          : join(states[0], "..", "fault-observed.json"),
+          : acquisitionPhase
+            ? join(output, "acquisition-observed.json")
+            : join(states[0], "..", "fault-observed.json"),
         "utf8",
       ),
     );
@@ -149,6 +159,18 @@ for (const phase of ["template", "clone", "ready", "health"] as const) {
         },
       ]);
       expect(state.processGroup).toBeUndefined();
+    } else if (acquisitionPhase) {
+      expect(state.processGroup).toBeGreaterThan(0);
+      expect(marker).toEqual({
+        phase,
+        users: 1,
+        sessions: 1,
+        contextsCreated: 1,
+        contextsDisposed: 1,
+        acquisitionError: "Private Worker resources disposed",
+        lateActorError: "Private Worker resources disposed",
+        lateSessionError: "Private Worker resources disposed",
+      });
     } else {
       expect(state.processGroup).toBeGreaterThan(0);
       if (phase === "ready") expect(marker.port).toBeGreaterThan(0);

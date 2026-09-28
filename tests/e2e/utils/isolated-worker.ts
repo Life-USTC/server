@@ -150,6 +150,21 @@ export const test = base.extend<
       let child: ChildProcess | undefined;
       let exited: Promise<void> | undefined;
       const requests: APIRequestContext[] = [];
+      const acquisitions = new Set<Promise<Actor>>();
+      function acquire(operation: () => Promise<Actor>): Promise<Actor> {
+        // Register ownership before asynchronous allocation can begin. Callers
+        // that resume after native teardown must not allocate new resources.
+        const pending = Promise.resolve().then(() => {
+          abort.signal.throwIfAborted();
+          return operation();
+        });
+        acquisitions.add(pending);
+        void pending.then(
+          () => acquisitions.delete(pending),
+          () => acquisitions.delete(pending),
+        );
+        return pending;
+      }
       const log = createWriteStream(testInfo.outputPath("isolated-worker.log"));
       const failures: unknown[] = [];
       log.on("error", (error) => failures.push(error));
@@ -281,7 +296,9 @@ export const test = base.extend<
               `Private Worker failed health check: ${health.status} ${healthBody.slice(0, 300)}`,
             );
           async function createSession(id: string): Promise<Actor> {
+            abort.signal.throwIfAborted();
             await database.owner.user.findUniqueOrThrow({ where: { id } });
+            abort.signal.throwIfAborted();
             const sessionToken = crypto.randomUUID();
             await database.owner.session.create({
               data: {
@@ -290,6 +307,7 @@ export const test = base.extend<
                 expires: new Date(Date.now() + 60 * 60 * 1000),
               },
             });
+            abort.signal.throwIfAborted();
             const signature = createHmac("sha256", authSecret)
               .update(sessionToken)
               .digest("base64");
@@ -305,27 +323,32 @@ export const test = base.extend<
                 origin,
               },
             });
+            // A context can arrive after cancellation. Own it before rejecting
+            // so teardown can dispose it after all acquisitions have settled.
             requests.push(request);
+            abort.signal.throwIfAborted();
             return { id, cookie, request };
           }
           return {
             origin,
             database,
-            createSession,
-            createActor: async ({ isAdmin = false } = {}) => {
-              const id = crypto.randomUUID();
-              await database.owner.user.create({
-                data: {
-                  id,
-                  email: `${id}@isolated-worker.test`,
-                  emailVerified: true,
-                  username: `iw${id.replaceAll("-", "").slice(0, 17)}`,
-                  name: "Isolated Worker actor",
-                  isAdmin,
-                },
-              });
-              return createSession(id);
-            },
+            createSession: (id) => acquire(() => createSession(id)),
+            createActor: ({ isAdmin = false } = {}) =>
+              acquire(async () => {
+                const id = crypto.randomUUID();
+                await database.owner.user.create({
+                  data: {
+                    id,
+                    email: `${id}@isolated-worker.test`,
+                    emailVerified: true,
+                    username: `iw${id.replaceAll("-", "").slice(0, 17)}`,
+                    name: "Isolated Worker actor",
+                    isAdmin,
+                  },
+                });
+                abort.signal.throwIfAborted();
+                return createSession(id);
+              }),
           };
         })();
         void starting.catch(() => undefined);
@@ -340,6 +363,9 @@ export const test = base.extend<
       {
         abort.abort(new Error("Private Worker resources disposed"));
         await starting?.catch(() => undefined);
+        // Do not snapshot request contexts or drop the database while a delayed
+        // actor/session acquisition can still commit or return a new context.
+        await Promise.allSettled([...acquisitions]);
         const results = await Promise.allSettled(
           requests.map((request) => request.dispose()),
         );
