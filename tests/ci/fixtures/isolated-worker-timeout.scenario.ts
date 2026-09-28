@@ -3,14 +3,41 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
-import { test as workerTest } from "../../e2e/utils/isolated-worker";
+import {
+  type IsolatedWorker,
+  test as workerTest,
+} from "../../e2e/utils/isolated-worker";
 import { createTestPrisma } from "../../shared/prisma";
 
 const phase = process.env.ISOLATED_WORKER_PROBE_PHASE;
 const probeOutput = process.env.ISOLATED_WORKER_PROBE_OUTPUT;
 if (!probeOutput) throw new Error("ISOLATED_WORKER_PROBE_OUTPUT is required");
-if (!["template", "clone", "ready", "health"].includes(phase ?? ""))
+if (
+  !["template", "clone", "ready", "health", "actor", "session"].includes(
+    phase ?? "",
+  )
+)
   throw new Error("Unknown isolated Worker probe phase");
+
+let privateWorker: IsolatedWorker | undefined;
+const acquisition = {
+  phase,
+  users: 0,
+  sessions: 0,
+  contextsCreated: 0,
+  contextsDisposed: 0,
+  acquisitionError: "",
+  lateActorError: "",
+  lateSessionError: "",
+};
+const saveAcquisition = () =>
+  writeFileSync(
+    join(probeOutput, "acquisition-observed.json"),
+    JSON.stringify(acquisition),
+  );
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
+const acquisitionPhase = phase === "actor" || phase === "session";
 
 if (phase === "template") {
   const originalExecFile = childProcess.execFile;
@@ -67,13 +94,34 @@ if (phase === "template") {
 
 // Faults are confined to this disposable Playwright runner. The production
 // fixture has no test modes and still starts its actual Worker and database.
-const test = workerTest.extend<{ fault: undefined }>({
+type FaultFixtures = { fault: undefined; acquiringActor: undefined };
+const test = workerTest.extend<FaultFixtures>({
   databaseTemplate: [
     async ({ _templateResources }, use) => {
       await _templateResources.initialize();
       const databaseTemplate = _templateResources;
       if (phase !== "clone") {
-        await use(databaseTemplate);
+        try {
+          await use(databaseTemplate);
+        } finally {
+          if (acquisitionPhase && privateWorker) {
+            // This fixture outlives the per-test resource owner. Both APIs must
+            // reject after closure without opening another session/context.
+            for (const method of ["createActor", "createSession"] as const) {
+              try {
+                if (method === "createActor") await privateWorker.createActor();
+                else await privateWorker.createSession("closed-session-probe");
+              } catch (error) {
+                acquisition[
+                  method === "createActor"
+                    ? "lateActorError"
+                    : "lateSessionError"
+                ] = errorMessage(error);
+              }
+            }
+            saveAcquisition();
+          }
+        }
         return;
       }
       const url = new URL(databaseTemplate.connections.owner);
@@ -89,10 +137,11 @@ const test = workerTest.extend<{ fault: undefined }>({
     },
     { scope: "worker", timeout: phase === "template" ? 10_000 : 60_000 },
   ],
-  fault: async ({ databaseTemplate }, use, testInfo) => {
+  fault: async ({ databaseTemplate, playwright }, use, testInfo) => {
     const marker = testInfo.outputPath("fault-observed.json");
     const originalFork = childProcess.fork;
     const originalFetch = globalThis.fetch;
+    const originalNewContext = playwright.request.newContext;
     let server: ReturnType<typeof createServer> | undefined;
     let timer: ReturnType<typeof setInterval> | undefined;
     let observation: Promise<void> | undefined;
@@ -158,7 +207,7 @@ const test = workerTest.extend<{ fault: undefined }>({
         return child;
       };
       syncBuiltinESMExports();
-    } else {
+    } else if (phase === "health") {
       server = createServer((_request, _response) => {
         writeFileSync(
           marker,
@@ -183,6 +232,30 @@ const test = workerTest.extend<{ fault: undefined }>({
         return originalFetch(`http://127.0.0.1:${address.port}`, init);
       };
     }
+    if (acquisitionPhase) {
+      playwright.request.newContext = async (options) => {
+        const context = await originalNewContext.call(
+          playwright.request,
+          options,
+        );
+        acquisition.contextsCreated++;
+        if (!privateWorker) throw new Error("Private Worker was not acquired");
+        acquisition.users = await privateWorker.database.owner.user.count();
+        acquisition.sessions =
+          await privateWorker.database.owner.session.count();
+        const dispose = context.dispose.bind(context);
+        context.dispose = async (options) => {
+          await dispose(options);
+          acquisition.contextsDisposed++;
+          saveAcquisition();
+        };
+        saveAcquisition();
+        // The actual context exists, but reaches its owner after the native
+        // acquiringActor fixture has timed out and begun resource teardown.
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+        return context;
+      };
+    }
     try {
       await use(undefined);
     } finally {
@@ -191,6 +264,7 @@ const test = workerTest.extend<{ fault: undefined }>({
       childProcess.fork = originalFork;
       syncBuiltinESMExports();
       globalThis.fetch = originalFetch;
+      playwright.request.newContext = originalNewContext;
       // Do not abort the pending HTTP request here: resource-owner teardown
       // must cancel it, which then permits this server to close.
       server?.close();
@@ -198,14 +272,43 @@ const test = workerTest.extend<{ fault: undefined }>({
   },
   isolatedWorker: [
     async ({ _workerResources, fault: _fault }, use) => {
-      await use(await _workerResources.start());
+      const worker = await _workerResources.start();
+      privateWorker = worker;
+      await use(worker);
     },
     { scope: "test", timeout: phase === "clone" ? 2_000 : 20_000 },
+  ],
+  acquiringActor: [
+    async ({ isolatedWorker }, use) => {
+      if (acquisitionPhase) {
+        try {
+          if (phase === "actor") await isolatedWorker.createActor();
+          else {
+            const id = crypto.randomUUID();
+            await isolatedWorker.database.owner.user.create({
+              data: {
+                id,
+                email: `${id}@acquisition-probe.test`,
+                name: "Session acquisition probe",
+              },
+            });
+            await isolatedWorker.createSession(id);
+          }
+        } catch (error) {
+          acquisition.acquisitionError = errorMessage(error);
+          saveAcquisition();
+          throw error;
+        }
+      }
+      await use(undefined);
+    },
+    { timeout: 1_000 },
   ],
 });
 
 test("native setup timeout releases owned resources", async ({
   isolatedWorker,
+  acquiringActor: _actor,
 }) => {
   throw new Error(
     `The injected ${phase} stall was bypassed at ${isolatedWorker.origin}`,
