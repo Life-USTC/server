@@ -1,14 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { expect, type Page } from "@playwright/test";
+import {
+  homeworkDescription as description,
+  test,
+} from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 const widths = [1280, 390];
-let homeworks: { id: string; title: string; major: boolean }[] = [];
-const description =
-  "Private assignment instructions: submit a PDF with the derivation.";
+test.describe.configure({ mode: "parallel" });
 function list(page: Page, width: number) {
   return page.getByTestId(
     width >= 768 ? "workspace-homeworks-list" : "workspace-homeworks-cards",
@@ -30,36 +28,10 @@ async function open(page: Page, width: number, title: string) {
   return dialog;
 }
 
-test.beforeEach(async ({ page }) => {
-  homeworks = [];
-  await signInAsDebugUser(page, "/workspace/homeworks");
-  await ensureSeedSectionSubscription(page);
-  for (const major of [false, true]) {
-    const title = `homework-presentation-${major}-${crypto.randomUUID()}`;
-    const response = await page.request.post(
-      "/api/community/section-homeworks",
-      {
-        data: {
-          sectionJwId: DEV_SEED.section.jwId,
-          title,
-          description,
-          isMajor: major,
-          requiresTeam: major,
-          publishedAt: "2026-01-01T09:10:00+08:00",
-          submissionStartAt: "2026-01-02T10:20:00+08:00",
-          submissionDueAt: "2099-01-03T12:30:00+08:00",
-        },
-      },
-    );
-    expect(response.status()).toBe(201);
-    homeworks.push({ id: (await response.json()).id, title, major });
-  }
-});
-test.afterEach(async () =>
-  cleanupHomeworksForE2e(homeworks.map((item) => item.id)),
-);
-
-test("homework.responsive-workspace-view", async ({ page }) => {
+test("homework.responsive-workspace-view", async ({
+  page,
+  homeworks: _homeworks,
+}) => {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/homeworks");
@@ -89,17 +61,21 @@ test("homework.responsive-workspace-view", async ({ page }) => {
   }
 });
 
-test("homework.compact-card-list-surface", async ({ page }) => {
+test("homework.compact-card-list-surface", async ({
+  page,
+  homeworks,
+  academic,
+}) => {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/homeworks");
-    for (const { title, major } of homeworks) {
+    for (const { title, isMajor: major } of homeworks) {
       const summary = row(page, width, title);
       await expect(
         summary.getByRole("button", { name: title, exact: true }),
       ).toBeVisible();
       await expect(summary).toContainText(
-        new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
+        new RegExp(`${academic.course.nameCn}|${academic.course.nameEn}`),
       );
       await expect(summary).toContainText("12:30");
       await expect(summary).toContainText(/还剩|left/i);
@@ -121,7 +97,11 @@ test("homework.compact-card-list-surface", async ({ page }) => {
   }
 });
 
-test("homework.detail-secondary-content", async ({ page }) => {
+test("homework.detail-secondary-content", async ({
+  page,
+  homeworks,
+  academic,
+}) => {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/homeworks");
@@ -146,14 +126,14 @@ test("homework.detail-secondary-content", async ({ page }) => {
         .getByRole("heading", { name: /作业讨论|Homework discussion/i }),
     ).toBeVisible();
     await expect(
-      dialog.locator(`a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`),
+      dialog.locator(`a[href="/catalog/sections/${academic.section.jwId}"]`),
     ).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
   }
 });
 
-test("homework.detail-dialog-dismissal", async ({ page }) => {
+test("homework.detail-dialog-dismissal", async ({ page, homeworks }) => {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/homeworks");

@@ -1,25 +1,21 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
+import { expect } from "@playwright/test";
+import { storedHomeworks, test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘作业", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
-  test("可以创建新作业", async ({ page }, testInfo) => {
+  test("可以创建新作业", async ({ page, academic, account }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     const addButton = page.getByTestId("workspace-homeworks-add").first();
-    const title = `e2e-workspace-homework-${Date.now()}`;
+    const title = `e2e-workspace-homework-${crypto.randomUUID()}`;
     const titleInput = page.getByTestId("workspace-homework-title");
     await expect(async () => {
       await expect(addButton).toBeVisible({ timeout: 3_000 });
@@ -83,12 +79,22 @@ test.describe("仪表盘作业", () => {
     await expect(visibleText(page, title)).toBeVisible({
       timeout: 15_000,
     });
+    const stored = await storedHomeworks(academic.section.id);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      title,
+      sectionId: academic.section.id,
+      createdById: account.id,
+      isMajor: false,
+      requiresTeam: false,
+    });
     await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 
-  test("homework.workspace-style-guide-omitted", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("homework.workspace-style-guide-omitted", async ({
+    page,
+    academic: _academic,
+  }, testInfo) => {
     const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "en-us" },
     });
@@ -123,18 +129,18 @@ test.describe("仪表盘作业", () => {
 
   test("创建作业时可设置重要、组队、截止日期和说明", async ({
     page,
+    academic,
+    account,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     const addButton = page.getByTestId("workspace-homeworks-add").first();
-    const title = `e2e-workspace-hw-full-${Date.now()}`;
-    const description = `e2e-workspace-hw-description-${Date.now()}`;
+    const title = `e2e-workspace-hw-full-${crypto.randomUUID()}`;
+    const description = `e2e-workspace-hw-description-${crypto.randomUUID()}`;
     const dueAt = "2026-12-31T23:59";
     const titleInput = page.getByTestId("workspace-homework-title");
     await expect(async () => {
@@ -146,7 +152,6 @@ test.describe("仪表盘作业", () => {
       intervals: [250, 500, 1_000],
     });
 
-    let homeworkId: string | undefined;
     const createDialog = page.locator('[data-slot="dialog-content"]').first();
     const advancedSettings = createDialog.getByRole("button", {
       name: /其他可选设置|Other optional settings|收起其他可选设置|Hide optional settings/i,
@@ -173,7 +178,7 @@ test.describe("仪表盘作业", () => {
       .getByRole("checkbox", { name: /Team required|需要组队/i })
       .click();
 
-    try {
+    {
       await page.getByTestId("workspace-homework-create").click();
       const row = page.getByRole("row").filter({ hasText: title }).first();
       await expect(row).toBeVisible({ timeout: 15_000 });
@@ -201,10 +206,21 @@ test.describe("仪表盘作业", () => {
         "homeworks/created-full-fields",
       );
 
-      homeworkId =
-        (await detailDialog.getAttribute("data-homework-id")) ?? undefined;
-    } finally {
-      await cleanupHomeworksForE2e([homeworkId]);
+      const stored = await storedHomeworks(academic.section.id);
+      expect(stored).toHaveLength(1);
+      expect(stored[0]).toMatchObject({
+        title,
+        sectionId: academic.section.id,
+        createdById: account.id,
+        isMajor: true,
+        requiresTeam: true,
+        submissionDueAt: new Date("2026-12-31T23:59:00+08:00"),
+        description: { content: description, lastEditedById: account.id },
+      });
+      await expect(detailDialog).toHaveAttribute(
+        "data-homework-id",
+        stored[0].id,
+      );
     }
   });
 });
