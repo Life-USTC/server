@@ -57,7 +57,16 @@ export async function withSettledPageWrites(
       }
     });
     await run();
-  } finally {
-    await cleanup();
+  } catch (runError) {
+    try {
+      await cleanup();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [runError, cleanupError],
+        "Page write fixture and cleanup failed",
+      );
+    }
+    throw runError;
   }
+  await cleanup();
 }
