@@ -1,8 +1,6 @@
 import { expect } from "@playwright/test";
 import { expectRequiresSignIn } from "../../../utils/auth";
-import { DEV_SEED } from "../../../utils/dev-seed";
-import { getUserProfileById } from "../../../utils/e2e-db";
-import { test } from "../../../utils/onboarding-fixture";
+import { getUserProfileById, test } from "../../../utils/onboarding-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
@@ -57,6 +55,7 @@ test("/account/welcome 资料步骤显示必填字段与进度", async ({
 test("/account/welcome 本地图片处理不可用时保留表单并显示错误", async ({
   page,
   incompleteProfile,
+  isolatedWorker,
 }) => {
   test.setTimeout(300_000);
   const profile = incompleteProfile;
@@ -83,7 +82,10 @@ test("/account/welcome 本地图片处理不可用时保留表单并显示错误
     ),
   ).toBeVisible();
 
-  const unchangedUser = await getUserProfileById(profile.id);
+  const unchangedUser = await getUserProfileById(
+    isolatedWorker.database.owner,
+    profile.id,
+  );
   expect(unchangedUser.image).toBe(profile.image);
   expect(unchangedUser.name).toBe("");
   expect(unchangedUser.username).toBeNull();
@@ -98,6 +100,7 @@ test("/account/welcome 本地图片处理不可用时保留表单并显示错误
 test("/account/welcome 完成后返回原回调页面", async ({
   page,
   incompleteProfile,
+  isolatedWorker,
 }, testInfo) => {
   test.setTimeout(300_000);
   const profile = incompleteProfile;
@@ -132,12 +135,16 @@ test("/account/welcome 完成后返回原回调页面", async ({
     timeout: 15_000,
   });
   await expect(page.locator("#main-content")).toBeVisible();
+  expect(
+    await getUserProfileById(isolatedWorker.database.owner, profile.id),
+  ).toMatchObject({ name: profile.name, username: profile.username });
   await captureStepScreenshot(page, testInfo, "welcome/completed-callback");
 });
 
 test("/account/welcome 未完善资料的用户可完成资料并返回首页", async ({
   page,
   incompleteProfile,
+  isolatedWorker,
 }, testInfo) => {
   test.setTimeout(300_000);
   const profile = incompleteProfile;
@@ -165,13 +172,20 @@ test("/account/welcome 未完善资料的用户可完成资料并返回首页", 
   });
   await expect(page.locator("#main-content")).toBeVisible();
 
-  const updatedUser = await getUserProfileById(profile.id);
+  const updatedUser = await getUserProfileById(
+    isolatedWorker.database.owner,
+    profile.id,
+  );
   expect(updatedUser.name).toBe(profile.name);
   expect(updatedUser.username).toBe(profile.username);
   await captureStepScreenshot(page, testInfo, "welcome/completed");
 });
 
-test("/account/welcome 可选择已上传头像并保存", async ({ page, avatars }) => {
+test("/account/welcome 可选择已上传头像并保存", async ({
+  page,
+  avatars,
+  isolatedWorker,
+}) => {
   test.setTimeout(300_000);
   const { profile, options: avatarOptions } = avatars;
   await gotoAndWaitForReady(page, "/account/welcome");
@@ -198,12 +212,17 @@ test("/account/welcome 可选择已上传头像并保存", async ({ page, avatar
     timeout: 15_000,
   });
   await expect
-    .poll(async () => (await getUserProfileById(profile.id)).image)
+    .poll(
+      async () =>
+        (await getUserProfileById(isolatedWorker.database.owner, profile.id))
+          .image,
+    )
     .toBe(avatarOptions[1]);
 });
 
 test("user.welcome-subscription-guidance", async ({
   page,
+  semester,
   account: _account,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -250,7 +269,7 @@ test("user.welcome-subscription-guidance", async ({
     .getByRole("combobox", { name: /^(学期|Semester)\b/i })
     .first();
   await expect(semesterSelector).toBeVisible();
-  await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);
+  await expect(semesterSelector).toContainText(semester.nameCn);
   await expect(
     page.getByRole("button", { name: /^(导入|Import)$/i }),
   ).toBeVisible();
