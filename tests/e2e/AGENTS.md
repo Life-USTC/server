@@ -72,7 +72,9 @@ Teardown closes request contexts and the Worker process before dropping the
 private database and storage. Logs and resource identities are retained in the
 test output for failure cleanup checks. This fixture requires the same matching
 PostgreSQL client and database-create privilege as `isolatedDatabaseTest`;
-ordinary user-scoped tests should keep using the shared Worker.
+stateful tests should own their Worker even when they use a private account.
+A private account on a shared Worker does not isolate deferred work or queues.
+Stateless anonymous checks can keep using Playwright's base fixture.
 
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
