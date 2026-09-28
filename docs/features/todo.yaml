@@ -38,7 +38,7 @@ requirements:
     - The first request succeeds and the stored todo is absent before the response is accepted.
     - Retries return 404/NOT_FOUND/not_found and never recreate the row.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: "todo delete replay through rest preserves the committed state"
 - id: todo.personal-ownership
   category: authorization
@@ -83,7 +83,7 @@ requirements:
     - Explicitly clearing the filter selects All and restores the populated list.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
-      name: todo.web-list-state
+      name: todo.web-list-state 390
 - id: todo.web-due-order
   category: presentation
   rule: The Web todo list orders dated tasks by deadline ascending, followed by undated tasks. This order applies to every completion filter and updates after edits; equal deadlines preserve the existing list order.
@@ -97,7 +97,7 @@ requirements:
     - Editing the oldest deadline to a future time moves the task to its new chronological position.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
-      name: todo.web-due-order
+      name: todo.web-due-order 390
 - id: todo.web-detail
   category: presentation
   rule: Todo detail and list views display the same priority value and localized badge semantics.
@@ -110,7 +110,7 @@ requirements:
     - Raw priority enum values are not displayed in detail.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
-      name: todo.web-detail
+      name: todo.web-detail en-US/390
 - id: todo.purely-personal
   category: authorization
   rule: A todo can be created and managed without a section or section subscription and never appears
@@ -178,7 +178,7 @@ requirements:
     - No view-mode menu or list/card selector is shown, and the page does not overflow horizontally.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
-      name: todo.mobile-toolbar-priority
+      name: todo.mobile-toolbar-priority 390
 - id: todo.rest-list-limit
   category: validation
   applies_to:

@@ -66,7 +66,7 @@ requirements:
     - Every storage deletion runs while the metadata exists; successful deletion removes both and records one audit.
     - Replays return not_found without another storage delete or audit event; declared deletedSize matches the removed content.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: "upload storage deletion failure and retry through rest"
 - id: upload.comment-attachments-only
   category: behavior

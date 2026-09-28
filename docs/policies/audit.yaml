@@ -120,7 +120,7 @@ requirements:
       call it or directly delete audit rows.
     test:
       file: tests/integration/audit-policy-retention.test.ts
-      name: audit.retention-maintenance-authority
+      name: only maintenance can execute audit retention while direct table deletion remains forbidden
 - id: audit.action-comment-create
   category: privacy
   topic: actions
