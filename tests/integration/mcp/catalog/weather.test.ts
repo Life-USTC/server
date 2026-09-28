@@ -1,12 +1,12 @@
-import { describe, vi } from "vitest";
+import { describe, test, vi } from "vitest";
 import { mergeWeatherSnapshots } from "@/features/weather/server/weather-merge";
 import type { WeatherSnapshot } from "@/features/weather/server/weather-types";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
 import { getWeatherRoute } from "@/lib/api/routes/weather";
 import { weatherSnapshotResponseSchema } from "@/lib/api/schemas/weather-response-schemas";
 import { createGraphqlYoga } from "@/lib/graphql/server";
-import { createAnonymousMcpHarness, type McpHarness } from "../_harness/client";
-import { mcpTest } from "../_harness/context";
+import { createNodeRuntime } from "../../../shared/node-runtime";
+import { ownAnonymousMcpHarness } from "../_harness/client";
 
 const weatherContext = await vi.hoisted(async () => {
   const { AsyncLocalStorage } = await import("node:async_hooks");
@@ -16,14 +16,29 @@ const weatherContext = await vi.hoisted(async () => {
   }>();
 });
 
-const contractTest = mcpTest.extend(
-  "state",
-  async ({ mcpConnections: _connections }, { onCleanup }) => {
+const contractTest = test
+  .extend(
+    "requestRuntime",
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest parses fixture dependencies.
+    ({}, { onCleanup }) => {
+      const runtime = createNodeRuntime({
+        APP_PUBLIC_ORIGIN: "https://example.test",
+        APP_CANONICAL_ORIGIN: "https://example.test",
+      });
+      onCleanup(() => runtime.close());
+      return runtime;
+    },
+  )
+  .extend("anonymousSession", ({ requestRuntime }, { onCleanup }) => {
+    const session = ownAnonymousMcpHarness(requestRuntime);
+    onCleanup(() => session.client.close());
+    return session;
+  })
+  .extend("state", async ({ anonymousSession, requestRuntime }) => {
     const mocks = {
       readCache: async (key: string) => snapshot(key),
       calls: [] as string[],
     };
-    let client: McpHarness;
     function snapshot(key: string): WeatherSnapshot {
       return {
         location: {
@@ -41,30 +56,33 @@ const contractTest = mcpTest.extend(
       };
     }
     async function graphql(locationKey: string) {
-      const response = await createGraphqlYoga(false).fetch(
-        "https://example.test/api/graphql",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            query:
-              "query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { temperature } } } }",
-            variables: { key: locationKey },
-          }),
-        },
-        { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+      const response = await requestRuntime.run(() =>
+        createGraphqlYoga(false).fetch(
+          "https://example.test/api/graphql",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              query:
+                "query($key: String!) { catalog { weather(locationKey: $key) { location { key } current { temperature } } } }",
+              variables: { key: locationKey },
+            }),
+          },
+          { locals: { locale: "zh-cn" }, principal: { kind: "anonymous" } },
+        ),
       );
       return response.json();
     }
-    onCleanup(async () => {
-      await client?.close();
-    });
+    await anonymousSession.initialize();
 
-    client = await createAnonymousMcpHarness();
-
-    return { mocks, client, snapshot, graphql };
-  },
-);
+    return {
+      mocks,
+      client: anonymousSession.client,
+      snapshot,
+      graphql,
+      request: requestRuntime.run,
+    };
+  });
 
 vi.mock("@/features/weather/server/weather-cache", () => ({
   readWeatherCache: (key: string) => {
@@ -81,7 +99,7 @@ contractTest.aroundEach(async (runTest, { state }) => {
 
 describe("weather transport contracts", () => {
   contractTest("weather.public-no-signin", async ({ state, expect }) => {
-    const { mocks, client, snapshot, graphql } = state;
+    const { mocks, client, snapshot, graphql, request } = state;
 
     for (const [key, temperature] of [
       ["ustc-main", 20],
@@ -91,9 +109,11 @@ describe("weather transport contracts", () => {
         ...snapshot(locationKey),
         current: { temperature, condition: { text: "未知", icon: "unknown" } },
       });
-      const response = await getWeatherRoute(
-        new Request(
-          `https://example.test/api/catalog/weather?locationKey=${key}`,
+      const response = await request(() =>
+        getWeatherRoute(
+          new Request(
+            `https://example.test/api/catalog/weather?locationKey=${key}`,
+          ),
         ),
       );
       expect(response.status).toBe(200);
@@ -115,13 +135,15 @@ describe("weather transport contracts", () => {
     }
   });
   contractTest("weather.location-key-boundary", async ({ state, expect }) => {
-    const { mocks, client, graphql } = state;
+    const { mocks, client, graphql, request } = state;
 
     for (const key of ["", "unknown", "USTC-MAIN", " ustc-main "]) {
       mocks.calls.length = 0;
-      const response = await getWeatherRoute(
-        new Request(
-          `https://example.test/api/catalog/weather?locationKey=${encodeURIComponent(key)}`,
+      const response = await request(() =>
+        getWeatherRoute(
+          new Request(
+            `https://example.test/api/catalog/weather?locationKey=${encodeURIComponent(key)}`,
+          ),
         ),
       );
       expect(response.status).toBe(400);
@@ -140,7 +162,7 @@ describe("weather transport contracts", () => {
 });
 
 contractTest("weather.raw-extensions-preserved", async ({ state, expect }) => {
-  const { mocks, client } = state;
+  const { mocks, client, request } = state;
 
   const amapRaw = {
     base: { status: "1", lives: [{ temperature: "22", humidity: "71" }] },
@@ -169,9 +191,11 @@ contractTest("weather.raw-extensions-preserved", async ({ state, expect }) => {
       },
     );
     mocks.readCache = async () => merged;
-    const response = await getWeatherRoute(
-      new Request(
-        `https://example.test/api/catalog/weather?locationKey=${locationKey}`,
+    const response = await request(() =>
+      getWeatherRoute(
+        new Request(
+          `https://example.test/api/catalog/weather?locationKey=${locationKey}`,
+        ),
       ),
     );
     expect(response.status).toBe(200);
