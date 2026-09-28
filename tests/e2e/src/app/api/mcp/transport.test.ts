@@ -2,15 +2,13 @@ import { type APIResponse, expect, test } from "@playwright/test";
 import { MCP_JSON_RPC_BATCH_LIMIT } from "@/lib/mcp/request-body";
 import { DEFAULT_OAUTH_CLIENT_SCOPES } from "@/lib/oauth/constants";
 import { MCP_BOOTSTRAP_SCOPE } from "@/lib/oauth/scope-registry";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
+import { test as authTest } from "./_fixture";
 import {
   DEFAULT_CLIENT_SCOPE,
   expectMcpCorsHeaders,
   issueAccessToken,
   MCP_CLIENT_SCOPE,
   MCP_CLIENT_SCOPES,
-  TRUSTED_BROWSER_ORIGIN,
 } from "./helpers";
 
 async function readMcpJsonRpcResponse(response: APIResponse) {
@@ -28,8 +26,6 @@ async function readMcpJsonRpcResponse(response: APIResponse) {
 }
 
 test.describe("/api/mcp - 传输与授权", () => {
-  test.describe.configure({ mode: "serial" });
-
   test("/api/mcp 未认证时可以初始化", async ({ request }) => {
     const response = await request.post("/api/mcp", {
       data: {
@@ -113,79 +109,79 @@ test.describe("/api/mcp - 传输与授权", () => {
     );
   });
 
-  test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", async ({
-    page,
-    request,
-  }) => {
-    const oversizedBody = JSON.stringify("x".repeat(65 * 1024));
-    const headers = {
-      "Content-Type": "application/json",
-      "MCP-Protocol-Version": "2025-03-26",
-    };
-
-    const unauthenticatedResponse = await request.post("/api/mcp", {
-      data: oversizedBody,
-      headers,
-    });
-    expect(unauthenticatedResponse.status()).toBe(413);
-
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
-    const { accessToken } = await issueAccessToken(page, request, {
-      scope: MCP_CLIENT_SCOPE,
-      clientScopes: MCP_CLIENT_SCOPES,
-      resource,
-    });
-
-    const authenticatedResponse = await request.post("/api/mcp", {
-      data: oversizedBody,
-      headers: {
-        ...headers,
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-    expect(authenticatedResponse.status()).toBe(413);
-    await expect(authenticatedResponse.json()).resolves.toMatchObject({
-      error: { code: -32000 },
-      id: null,
-      jsonrpc: "2.0",
-    });
-  });
-
-  test("/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch", async ({
-    page,
-    request,
-  }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
-    const { accessToken } = await issueAccessToken(page, request, {
-      scope: MCP_CLIENT_SCOPE,
-      clientScopes: MCP_CLIENT_SCOPES,
-      resource,
-    });
-
-    const response = await request.post("/api/mcp", {
-      data: Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, (_, id) => ({
-        id,
-        jsonrpc: "2.0",
-        method: "tools/list",
-      })),
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+  authTest(
+    "/api/mcp 在认证后拒绝超过 64 KiB 的请求体",
+    async ({ page, request, oauth }) => {
+      const oversizedBody = JSON.stringify("x".repeat(65 * 1024));
+      const headers = {
+        "Content-Type": "application/json",
         "MCP-Protocol-Version": "2025-03-26",
-      },
-    });
+      };
 
-    expect(response.status()).toBe(413);
-    await expect(response.json()).resolves.toMatchObject({
-      error: {
-        code: -32000,
-        message: `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
-      },
-      id: null,
-      jsonrpc: "2.0",
-    });
-  });
+      const unauthenticatedResponse = await request.post("/api/mcp", {
+        data: oversizedBody,
+        headers,
+      });
+      expect(unauthenticatedResponse.status()).toBe(413);
+
+      const resource = `${oauth.worker.origin}/api/mcp`;
+      const { accessToken } = await issueAccessToken(page, request, {
+        owner: oauth,
+        scope: MCP_CLIENT_SCOPE,
+        clientScopes: MCP_CLIENT_SCOPES,
+        resource,
+      });
+
+      const authenticatedResponse = await request.post("/api/mcp", {
+        data: oversizedBody,
+        headers: {
+          ...headers,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      expect(authenticatedResponse.status()).toBe(413);
+      await expect(authenticatedResponse.json()).resolves.toMatchObject({
+        error: { code: -32000 },
+        id: null,
+        jsonrpc: "2.0",
+      });
+    },
+  );
+
+  authTest(
+    "/api/mcp 在认证后拒绝超过 50 条消息的 JSON-RPC batch",
+    async ({ page, request, oauth }) => {
+      const resource = `${oauth.worker.origin}/api/mcp`;
+      const { accessToken } = await issueAccessToken(page, request, {
+        owner: oauth,
+        scope: MCP_CLIENT_SCOPE,
+        clientScopes: MCP_CLIENT_SCOPES,
+        resource,
+      });
+
+      const response = await request.post("/api/mcp", {
+        data: Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, (_, id) => ({
+          id,
+          jsonrpc: "2.0",
+          method: "tools/list",
+        })),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "MCP-Protocol-Version": "2025-03-26",
+        },
+      });
+
+      expect(response.status()).toBe(413);
+      await expect(response.json()).resolves.toMatchObject({
+        error: {
+          code: -32000,
+          message: `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
+        },
+        id: null,
+        jsonrpc: "2.0",
+      });
+    },
+  );
 
   test("/api/mcp stateless transport does not hold a GET SSE stream", async ({
     request,
@@ -203,160 +199,167 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
-  test("/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers", async ({
-    page,
-    request,
-  }) => {
-    const origin = TRUSTED_BROWSER_ORIGIN;
-    const initializePayload = {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2025-03-26",
-        capabilities: {},
-        clientInfo: {
-          name: "browser-cors-e2e-client",
-          version: "1.0.0",
-        },
-      },
-    };
-
-    const preflight = await request.fetch("/api/mcp", {
-      method: "OPTIONS",
-      headers: {
-        Origin: origin,
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers":
-          "authorization,content-type,mcp-protocol-version,mcp-session-id,last-event-id",
-      },
-    });
-    expect(preflight.status()).toBe(204);
-    expectMcpCorsHeaders(preflight.headers(), origin);
-
-    const unauthenticatedResponse = await request.post("/api/mcp", {
-      data: initializePayload,
-      headers: {
-        Accept: "application/json, text/event-stream",
-        Origin: origin,
-        "MCP-Protocol-Version": "2025-03-26",
-      },
-    });
-    expect(unauthenticatedResponse.status()).toBe(200);
-    expectMcpCorsHeaders(unauthenticatedResponse.headers(), origin);
-    expect(
-      unauthenticatedResponse.headers()["www-authenticate"],
-    ).toBeUndefined();
-
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
-    const { accessToken } = await issueAccessToken(page, request, {
-      scope: MCP_CLIENT_SCOPE,
-      clientScopes: MCP_CLIENT_SCOPES,
-      resource,
-    });
-
-    const authenticatedResponse = await request.post("/api/mcp", {
-      data: initializePayload,
-      headers: {
-        Accept: "application/json, text/event-stream",
-        Origin: origin,
-        Authorization: `Bearer ${accessToken}`,
-        "MCP-Protocol-Version": "2025-03-26",
-      },
-    });
-    expect(authenticatedResponse.status()).toBe(200);
-    expectMcpCorsHeaders(authenticatedResponse.headers(), origin);
-  });
-
-  test("/api/mcp 拒绝外部 Origin header", async ({ page, request }) => {
-    const origin = "https://evil.example";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    const initializePayload = {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2025-03-26",
-        capabilities: {},
-        clientInfo: {
-          name: "foreign-origin-e2e-client",
-          version: "1.0.0",
-        },
-      },
-    };
-
-    await signInAsDebugUser(page, "/");
-    const { accessToken } = await issueAccessToken(page, request, {
-      scope: MCP_CLIENT_SCOPE,
-      clientScopes: MCP_CLIENT_SCOPES,
-      resource,
-    });
-
-    const preflight = await request.fetch("/api/mcp", {
-      method: "OPTIONS",
-      headers: {
-        Origin: origin,
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers":
-          "authorization,content-type,mcp-protocol-version",
-      },
-    });
-    expect(preflight.status()).toBe(403);
-    expect(preflight.headers()["access-control-allow-origin"]).toBeUndefined();
-    await expect(preflight.json()).resolves.toEqual({
-      error: "invalid_origin",
-    });
-
-    const response = await request.post("/api/mcp", {
-      data: initializePayload,
-      headers: {
-        Accept: "application/json, text/event-stream",
-        Origin: origin,
-        Authorization: `Bearer ${accessToken}`,
-        "MCP-Protocol-Version": "2025-03-26",
-      },
-    });
-    expect(response.status()).toBe(403);
-    expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
-    await expect(response.json()).resolves.toEqual({ error: "invalid_origin" });
-  });
-
-  test("/api/mcp 缺少 feature scope 时返回 insufficient_scope", async ({
-    page,
-    request,
-  }) => {
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-    await signInAsDebugUser(page, "/");
-
-    const { accessToken } = await issueAccessToken(page, request, {
-      scope: DEFAULT_CLIENT_SCOPE,
-      clientScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-      resource,
-    });
-
-    const response = await request.post("/api/mcp", {
-      data: {
+  authTest(
+    "/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers",
+    async ({ page, request, oauth }) => {
+      const origin = oauth.worker.origin.replace("localhost", "127.0.0.1");
+      const initializePayload = {
         jsonrpc: "2.0",
         id: 1,
-        method: "tools/call",
-        params: { name: "workspace_todo_list", arguments: {} },
-      },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "MCP-Protocol-Version": "2025-03-26",
-      },
-    });
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "browser-cors-e2e-client",
+            version: "1.0.0",
+          },
+        },
+      };
 
-    expect(response.status()).toBe(403);
-    expect(response.headers()["www-authenticate"]).toContain(
-      'error="insufficient_scope"',
-    );
-    expect(response.headers()["www-authenticate"]).toContain(
-      MCP_BOOTSTRAP_SCOPE,
-    );
-    await expect(response.json()).resolves.toEqual({
-      error: "insufficient_scope",
-    });
-  });
+      const preflight = await request.fetch("/api/mcp", {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "authorization,content-type,mcp-protocol-version,mcp-session-id,last-event-id",
+        },
+      });
+      expect(preflight.status()).toBe(204);
+      expectMcpCorsHeaders(preflight.headers(), origin);
+
+      const unauthenticatedResponse = await request.post("/api/mcp", {
+        data: initializePayload,
+        headers: {
+          Accept: "application/json, text/event-stream",
+          Origin: origin,
+          "MCP-Protocol-Version": "2025-03-26",
+        },
+      });
+      expect(unauthenticatedResponse.status()).toBe(200);
+      expectMcpCorsHeaders(unauthenticatedResponse.headers(), origin);
+      expect(
+        unauthenticatedResponse.headers()["www-authenticate"],
+      ).toBeUndefined();
+
+      const resource = `${oauth.worker.origin}/api/mcp`;
+      const { accessToken } = await issueAccessToken(page, request, {
+        owner: oauth,
+        scope: MCP_CLIENT_SCOPE,
+        clientScopes: MCP_CLIENT_SCOPES,
+        resource,
+      });
+
+      const authenticatedResponse = await request.post("/api/mcp", {
+        data: initializePayload,
+        headers: {
+          Accept: "application/json, text/event-stream",
+          Origin: origin,
+          Authorization: `Bearer ${accessToken}`,
+          "MCP-Protocol-Version": "2025-03-26",
+        },
+      });
+      expect(authenticatedResponse.status()).toBe(200);
+      expectMcpCorsHeaders(authenticatedResponse.headers(), origin);
+    },
+  );
+
+  authTest(
+    "/api/mcp 拒绝外部 Origin header",
+    async ({ page, request, oauth }) => {
+      const origin = "https://evil.example";
+      const resource = `${oauth.worker.origin}/api/mcp`;
+      const initializePayload = {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "foreign-origin-e2e-client",
+            version: "1.0.0",
+          },
+        },
+      };
+
+      const { accessToken } = await issueAccessToken(page, request, {
+        owner: oauth,
+        scope: MCP_CLIENT_SCOPE,
+        clientScopes: MCP_CLIENT_SCOPES,
+        resource,
+      });
+
+      const preflight = await request.fetch("/api/mcp", {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "authorization,content-type,mcp-protocol-version",
+        },
+      });
+      expect(preflight.status()).toBe(403);
+      expect(
+        preflight.headers()["access-control-allow-origin"],
+      ).toBeUndefined();
+      await expect(preflight.json()).resolves.toEqual({
+        error: "invalid_origin",
+      });
+
+      const response = await request.post("/api/mcp", {
+        data: initializePayload,
+        headers: {
+          Accept: "application/json, text/event-stream",
+          Origin: origin,
+          Authorization: `Bearer ${accessToken}`,
+          "MCP-Protocol-Version": "2025-03-26",
+        },
+      });
+      expect(response.status()).toBe(403);
+      expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
+      await expect(response.json()).resolves.toEqual({
+        error: "invalid_origin",
+      });
+    },
+  );
+
+  authTest(
+    "/api/mcp 缺少 feature scope 时返回 insufficient_scope",
+    async ({ page, request, oauth }) => {
+      const resource = `${oauth.worker.origin}/api/mcp`;
+
+      const { accessToken } = await issueAccessToken(page, request, {
+        owner: oauth,
+        scope: DEFAULT_CLIENT_SCOPE,
+        clientScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
+        resource,
+      });
+
+      const response = await request.post("/api/mcp", {
+        data: {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "workspace_todo_list", arguments: {} },
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "MCP-Protocol-Version": "2025-03-26",
+        },
+      });
+
+      expect(response.status()).toBe(403);
+      expect(response.headers()["www-authenticate"]).toContain(
+        'error="insufficient_scope"',
+      );
+      expect(response.headers()["www-authenticate"]).toContain(
+        MCP_BOOTSTRAP_SCOPE,
+      );
+      await expect(response.json()).resolves.toEqual({
+        error: "insufficient_scope",
+      });
+    },
+  );
 });
