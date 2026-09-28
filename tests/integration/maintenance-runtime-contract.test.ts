@@ -1,82 +1,17 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
 import {
   maintainAuditLogRetention,
   maintainOAuthGrantUsageRetention,
 } from "@/features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "@/features/auth/server/auth-record-cleanup";
-import {
-  createFixturePrisma,
-  createTestPrisma,
-  disconnectTestPrisma,
-} from "../shared/prisma";
-
-const maintenanceDatabaseUrl = process.env.MAINTENANCE_DATABASE_URL;
-if (!maintenanceDatabaseUrl) {
-  throw new Error(
-    "MAINTENANCE_DATABASE_URL is required for maintenance role tests",
-  );
-}
-const adminPrisma = createFixturePrisma();
-const maintenancePrisma = createTestPrisma(maintenanceDatabaseUrl);
-const marker = `maintenance-cleanup-${crypto.randomUUID()}`;
+import { isolatedDatabaseTest as it } from "../shared/isolated-database";
 
 describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
   "maintenance runtime role contract",
   () => {
-    let userId: string;
-
-    beforeAll(async () => {
-      const now = Date.now();
-      const user = await adminPrisma.user.create({
-        data: {
-          email: `${marker}@example.test`,
-          name: marker,
-        },
-      });
-      userId = user.id;
-
-      await adminPrisma.session.createMany({
-        data: [
-          {
-            expires: new Date(now - 60_000),
-            sessionToken: `${marker}-expired-session`,
-            userId,
-          },
-          {
-            expires: new Date(now + 24 * 60 * 60 * 1000),
-            sessionToken: `${marker}-future-session`,
-            userId,
-          },
-        ],
-      });
-      await adminPrisma.verificationToken.createMany({
-        data: [
-          {
-            expires: new Date(now - 60_000),
-            identifier: marker,
-            token: `${marker}-expired-token`,
-          },
-          {
-            expires: new Date(now + 24 * 60 * 60 * 1000),
-            identifier: marker,
-            token: `${marker}-future-token`,
-          },
-        ],
-      });
-    });
-
-    afterAll(async () => {
-      await adminPrisma.verificationToken.deleteMany({
-        where: { identifier: marker },
-      });
-      await adminPrisma.user.delete({ where: { id: userId } });
-      await Promise.all([
-        disconnectTestPrisma(adminPrisma),
-        disconnectTestPrisma(maintenancePrisma),
-      ]);
-    });
-
-    it("is an unprivileged standalone login role", async () => {
+    it("is an unprivileged standalone login role", async ({
+      isolatedDatabase: { maintenance: maintenancePrisma },
+    }) => {
       const [role] = await maintenancePrisma.$queryRaw<
         Array<{
           bypassRls: boolean;
@@ -117,7 +52,9 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       });
     });
 
-    it("has no table grants and only the cleanup function grant", async () => {
+    it("has no table grants and only the cleanup function grant", async ({
+      isolatedDatabase: { maintenance: maintenancePrisma },
+    }) => {
       const tableGrants = await maintenancePrisma.$queryRaw<
         Array<{ tableName: string }>
       >`
@@ -183,7 +120,48 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       ]);
     });
 
-    it("rejects future cutoffs and deletes only truly expired records", async () => {
+    it("rejects future cutoffs and deletes only truly expired records", async ({
+      isolatedDatabase: { owner: adminPrisma, maintenance: maintenancePrisma },
+    }) => {
+      const marker = "auth-cleanup";
+      const now = Date.now();
+      const user = await adminPrisma.user.create({
+        data: {
+          email: `${marker}@example.test`,
+          name: marker,
+        },
+      });
+      const userId = user.id;
+
+      await adminPrisma.session.createMany({
+        data: [
+          {
+            expires: new Date(now - 60_000),
+            sessionToken: `${marker}-expired-session`,
+            userId,
+          },
+          {
+            expires: new Date(now + 24 * 60 * 60 * 1000),
+            sessionToken: `${marker}-future-session`,
+            userId,
+          },
+        ],
+      });
+      await adminPrisma.verificationToken.createMany({
+        data: [
+          {
+            expires: new Date(now - 60_000),
+            identifier: marker,
+            token: `${marker}-expired-token`,
+          },
+          {
+            expires: new Date(now + 24 * 60 * 60 * 1000),
+            identifier: marker,
+            token: `${marker}-future-token`,
+          },
+        ],
+      });
+
       await expect(
         cleanupExpiredAuthRecords(
           maintenancePrisma,
@@ -210,8 +188,13 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
         maintenancePrisma,
         new Date(),
       );
-      expect(report.sessions).toBeGreaterThanOrEqual(1);
-      expect(report.verificationTokens).toBeGreaterThanOrEqual(1);
+      expect(report).toEqual({
+        sessions: 1,
+        verificationTokens: 1,
+        oauthAccessTokens: 0,
+        oauthRefreshTokens: 0,
+        deviceCodes: 0,
+      });
       expect(
         await adminPrisma.session.findUnique({
           where: { sessionToken: `${marker}-expired-session` },
@@ -246,7 +229,10 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       await expect(maintenancePrisma.session.count()).rejects.toThrow();
     });
 
-    it("anonymizes and expires audit rows without table privileges", async () => {
+    it("anonymizes and expires audit rows without table privileges", async ({
+      isolatedDatabase: { owner: adminPrisma, maintenance: maintenancePrisma },
+    }) => {
+      const marker = "audit-cleanup";
       const now = new Date();
       const ids = {
         network: `${marker}-audit-network`,
@@ -281,15 +267,13 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       try {
         await expect(
           maintainAuditLogRetention(maintenancePrisma, now),
-        ).resolves.toEqual(
-          expect.objectContaining({
-            auditRetentionBatches: expect.any(Number),
-            auditRetentionComplete: true,
-            attributionAnonymized: expect.any(Number),
-            networkAnonymized: expect.any(Number),
-            rowsDeleted: expect.any(Number),
-          }),
-        );
+        ).resolves.toEqual({
+          auditRetentionBatches: 1,
+          auditRetentionComplete: true,
+          attributionAnonymized: 1,
+          networkAnonymized: 1,
+          rowsDeleted: 1,
+        });
         await expect(
           adminPrisma.auditLog.findUnique({ where: { id: ids.network } }),
         ).resolves.toMatchObject({ ipAddress: null, userAgent: null });
@@ -311,20 +295,110 @@ describe.skipIf(process.env.MAINTENANCE_ROLE_TEST_ENABLED !== "true")(
       }
     });
 
-    it("expires OAuth usage without granting table access", async () => {
+    it("empty OAuth retention completes without granting table access", async ({
+      isolatedDatabase: { maintenance: maintenancePrisma },
+    }) => {
       await expect(
         maintainOAuthGrantUsageRetention(maintenancePrisma, new Date()),
       ).resolves.toEqual({
-        oauthRetentionBatches: expect.any(Number),
+        oauthRetentionBatches: 1,
         oauthRetentionComplete: true,
-        oauthUsageRowsDeleted: expect.any(Number),
+        oauthUsageRowsDeleted: 0,
       });
       await expect(
         maintenancePrisma.oAuthGrantUsageDaily.count(),
       ).rejects.toThrow();
     });
 
-    it("drains more than one audit batch in a single scheduled run", async () => {
+    it("retains the inclusive 90-day Shanghai OAuth usage window", async ({
+      isolatedDatabase: { owner, maintenance },
+    }) => {
+      // 00:30 on September 21 in Shanghai; June 24 is the oldest retained day.
+      const now = new Date("2026-09-20T16:30:00Z");
+      const user = await owner.user.create({
+        data: { email: "usage@example.test" },
+      });
+      const client = await owner.oAuthClient.create({
+        data: {
+          clientId: "retention-client",
+          redirectUris: ["https://example.test/callback"],
+        },
+      });
+      await owner.oAuthGrantUsageDaily.createMany({
+        data: ["2026-06-23", "2026-06-24", "2026-06-25"].map((day) => ({
+          id: day,
+          userId: user.id,
+          clientId: client.clientId,
+          grantKey: "known-grant",
+          day: new Date(day),
+          feature: "todos",
+          channel: "rest" as const,
+          readCount: 2,
+          lastUsedAt: now,
+        })),
+      });
+      const retained = await owner.oAuthGrantUsageDaily.findMany({
+        where: { id: { in: ["2026-06-24", "2026-06-25"] } },
+        orderBy: { id: "asc" },
+      });
+      expect(await maintainOAuthGrantUsageRetention(maintenance, now)).toEqual({
+        oauthRetentionBatches: 1,
+        oauthRetentionComplete: true,
+        oauthUsageRowsDeleted: 1,
+      });
+      expect(
+        await owner.oAuthGrantUsageDaily.findMany({ orderBy: { id: "asc" } }),
+      ).toEqual(retained);
+      expect(await maintainOAuthGrantUsageRetention(maintenance, now)).toEqual({
+        oauthRetentionBatches: 1,
+        oauthRetentionComplete: true,
+        oauthUsageRowsDeleted: 0,
+      });
+      await expect(maintenance.oAuthGrantUsageDaily.count()).rejects.toThrow(
+        /permission denied/i,
+      );
+    });
+
+    it("reports incomplete retention at the batch limit and resumes the remaining rows", async ({
+      isolatedDatabase: { owner, maintenance },
+    }) => {
+      const now = new Date("2026-09-20T12:00:00Z");
+      await owner.auditLog.createMany({
+        data: Array.from({ length: 1001 }, (_, index) => ({
+          id: `bounded-${index}`,
+          action: "account_sign_in" as const,
+          createdAt: new Date("2026-08-01T12:00:00Z"),
+          ipAddress: "192.0.2.1",
+        })),
+      });
+      expect(
+        await maintainAuditLogRetention(maintenance, now, { maxBatches: 1 }),
+      ).toEqual({
+        auditRetentionBatches: 1,
+        auditRetentionComplete: false,
+        networkAnonymized: 1000,
+        attributionAnonymized: 0,
+        rowsDeleted: 0,
+      });
+      expect(
+        await owner.auditLog.count({ where: { ipAddress: { not: null } } }),
+      ).toBe(1);
+      expect(await maintainAuditLogRetention(maintenance, now)).toEqual({
+        auditRetentionBatches: 1,
+        auditRetentionComplete: true,
+        networkAnonymized: 1,
+        attributionAnonymized: 0,
+        rowsDeleted: 0,
+      });
+      expect(await owner.auditLog.count({ where: { ipAddress: null } })).toBe(
+        1001,
+      );
+    });
+
+    it("drains more than one audit batch in a single scheduled run", async ({
+      isolatedDatabase: { owner: adminPrisma, maintenance: maintenancePrisma },
+    }) => {
+      const marker = "audit-cleanup";
       const now = new Date();
       const ids = Array.from(
         { length: 1001 },
