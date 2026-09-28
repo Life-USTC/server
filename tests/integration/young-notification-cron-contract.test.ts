@@ -1,11 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { parseConfigFileTextToJson } from "typescript";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { setCalendarExportRebuildSenderForTest } from "@/features/calendar/server/calendar-export-queue";
+import { expect, vi } from "vitest";
 import { listYoungNotifications } from "@/features/young/server/young-notification-service";
 import { setYoungEventSubscription } from "@/features/young/server/young-subscription-service";
-import { prisma } from "@/lib/db/prisma";
-import { createFixturePrisma } from "../shared/prisma";
+import { isolatedDatabaseTest } from "../shared/isolated-database";
+import { runWorkspaceRuntime } from "../shared/workspace-state-fixture";
 
 // The scheduled path does not use the HTTP application or Durable Object base.
 vi.mock("cloudflare:workers", () => ({ WorkerEntrypoint: class {} }));
@@ -13,45 +12,58 @@ vi.mock("life-ustc-sveltekit-worker", () => ({ default: { fetch: vi.fn() } }));
 
 import worker from "@/worker";
 
-const db = createFixturePrisma();
-const users = [crypto.randomUUID(), crypto.randomUUID()];
-const youngId = `cron-${crypto.randomUUID()}`;
 const now = new Date("2030-09-15T10:00:00+08:00");
-
-beforeAll(async () => {
-  setCalendarExportRebuildSenderForTest(async () => {});
-  await db.user.createMany({
-    data: users.map((id) => ({
-      id,
-      name: "Scheduled reminders",
-      email: `${id}@test.invalid`,
-    })),
-  });
-  await db.youngEvent.create({
-    data: {
-      youngId,
-      name: "Scheduled event",
-      isActive: true,
-      rawJson: {},
-      startAt: new Date("2030-09-15T10:30:00+08:00"),
+const it = isolatedDatabaseTest.extend<{ clock: undefined }>({
+  // The actual Worker scheduled entry point uses Date, not scheduledTime.
+  // This file has one case, so the global clock has one owner.
+  clock: [
+    // biome-ignore lint/correctness/noEmptyPattern: Vitest requires destructured fixture dependencies.
+    async ({}, use) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(now);
+      try {
+        await use(undefined);
+      } finally {
+        vi.useRealTimers();
+      }
     },
-  });
-  for (const userId of users)
-    await setYoungEventSubscription(userId, youngId, true, {
-      remindSignup: false,
-      remindDeadline: false,
-      remindStart: true,
-    });
-});
-afterAll(async () => {
-  vi.useRealTimers();
-  setCalendarExportRebuildSenderForTest();
-  await db.user.deleteMany({ where: { id: { in: users } } });
-  await db.youngEvent.deleteMany({ where: { youngId } });
-  await Promise.all([db.$disconnect(), prisma.$disconnect()]);
+    { auto: true },
+  ],
 });
 
-it("young-workspace.reminder-generation", async () => {
+it("young-workspace.reminder-generation", async ({ isolatedDatabase }) => {
+  const { owner: db, connections } = isolatedDatabase;
+  const users = [crypto.randomUUID(), crypto.randomUUID()];
+  const youngId = `cron-${crypto.randomUUID()}`;
+  await db.$transaction(async (tx) => {
+    await tx.user.createMany({
+      data: users.map((id) => ({
+        id,
+        name: "Scheduled reminders",
+        email: `${id}@test.invalid`,
+      })),
+    });
+    await tx.youngEvent.create({
+      data: {
+        youngId,
+        name: "Scheduled event",
+        isActive: true,
+        rawJson: {},
+        startAt: new Date("2030-09-15T10:30:00+08:00"),
+      },
+    });
+  });
+  await runWorkspaceRuntime(
+    async () => {
+      for (const userId of users)
+        await setYoungEventSubscription(userId, youngId, true, {
+          remindSignup: false,
+          remindDeadline: false,
+          remindStart: true,
+        });
+    },
+    { app: connections.app, maintenance: connections.maintenance },
+  );
   const parsed = parseConfigFileTextToJson(
     "wrangler.jsonc",
     await readFile(new URL("../../wrangler.jsonc", import.meta.url), "utf8"),
@@ -62,19 +74,41 @@ it("young-workspace.reminder-generation", async () => {
   expect(
     await db.youngNotification.count({ where: { userId: { in: users } } }),
   ).toBe(0);
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(now);
   const bindings = {
-    HYPERDRIVE: { connectionString: process.env.DATABASE_URL },
+    HYPERDRIVE: { connectionString: connections.app },
     HYPERDRIVE_MAINTENANCE: {
-      connectionString: process.env.MAINTENANCE_DATABASE_URL,
+      connectionString: connections.maintenance,
     },
+    CALENDAR_EXPORT_REBUILD: { send: async () => {} },
   };
-  await worker.scheduled(
-    { cron, scheduledTime: now.getTime(), type: "scheduled" },
-    bindings,
-    { waitUntil: vi.fn() },
-  );
+  const scheduled = async () => {
+    const tasks: Promise<PromiseSettledResult<unknown>>[] = [];
+    const [outcome] = await Promise.allSettled([
+      worker.scheduled(
+        { cron, scheduledTime: now.getTime(), type: "scheduled" },
+        bindings,
+        {
+          waitUntil: (task: Promise<unknown>) => {
+            tasks.push(
+              task.then(
+                (value) => ({ status: "fulfilled" as const, value }),
+                (reason) => ({ status: "rejected" as const, reason }),
+              ),
+            );
+          },
+        },
+      ),
+    ]);
+    const failures: unknown[] = [];
+    for (let index = 0; index < tasks.length; index++) {
+      const result = await tasks[index];
+      if (result.status === "rejected") failures.push(result.reason);
+    }
+    if (outcome.status === "rejected") failures.unshift(outcome.reason);
+    if (failures.length)
+      throw new AggregateError(failures, "Scheduled work failed");
+  };
+  await scheduled();
   const rows = await db.youngNotification.findMany({
     where: { userId: { in: users } },
     orderBy: { userId: "asc" },
@@ -90,11 +124,7 @@ it("young-workspace.reminder-generation", async () => {
       .sort()
       .map((userId) => ({ userId, youngId, kind: "event_start" })),
   );
-  await worker.scheduled(
-    { cron, scheduledTime: now.getTime(), type: "scheduled" },
-    bindings,
-    { waitUntil: vi.fn() },
-  );
+  await scheduled();
   expect(
     (
       await db.youngNotification.findMany({
@@ -104,10 +134,15 @@ it("young-workspace.reminder-generation", async () => {
     ).map((row) => row.id),
   ).toEqual(rows.map((row) => row.id));
   await db.youngNotification.deleteMany({ where: { userId: users[0] } });
-  const listed = await listYoungNotifications(users[0], {}, now);
-  expect(listed.data).toHaveLength(1);
-  expect(listed.data[0]).toMatchObject({ youngId, kind: "event_start" });
-  expect(
-    await db.youngNotification.count({ where: { userId: users[0] } }),
-  ).toBe(1);
+  await runWorkspaceRuntime(
+    async () => {
+      const listed = await listYoungNotifications(users[0], {}, now);
+      expect(listed.data).toHaveLength(1);
+      expect(listed.data[0]).toMatchObject({ youngId, kind: "event_start" });
+      expect(
+        await db.youngNotification.count({ where: { userId: users[0] } }),
+      ).toBe(1);
+    },
+    { app: connections.app, maintenance: connections.maintenance },
+  );
 });

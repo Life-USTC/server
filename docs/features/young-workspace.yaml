@@ -24,7 +24,7 @@ requirements:
     - Only the owner subscription row is created/deleted.
     - The full official source record remains unchanged and no outgoing registration request occurs.
     test:
-      file: tests/integration/young-workspace.test.ts
+      file: tests/integration/young-subscription-boundary.test.ts
       name: young-workspace.subscription
 - id: young-workspace.ownership
   category: authorization
