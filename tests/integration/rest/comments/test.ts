@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { createUploadedFileViaApi } from "../../../e2e/utils/uploads";
 import { assertCommentThreadFound } from "../../../shared/scenarios/comments";
-import { assertApiContract } from "../_shared/api-contract";
 import { test } from "./_fixture";
 
 test.describe.configure({ mode: "parallel" });
@@ -29,11 +28,20 @@ type CommentListResponse<TComment = { body?: string; id?: string }> = {
     totalPages?: number;
   };
 };
-test("/api/community/comments 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/community/comments" });
+test("/api/community/comments 接口契约", async ({ commentState }) => {
+  const prepared = await commentState.comment();
+  const response = await commentState.anonymous.get(
+    `/api/community/comments?targetType=section&targetId=${commentState.section.id}`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as CommentListResponse;
+  expect(body.data).toEqual([
+    expect.objectContaining({ id: prepared.id, body: prepared.body }),
+  ]);
+  expect(body.pagination?.total).toBe(1);
 });
 
-test("/api/community/comments GET 返回 section 目标与 seed 评论", async ({
+test("/api/community/comments GET 返回 section 目标与已准备的评论", async ({
   commentState,
 }) => {
   const request = commentState.anonymous;
@@ -514,7 +522,6 @@ test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并
 
 test("/api/community/comments POST 拒绝复用已上传附件", async ({
   commentState,
-  uploadState,
 }) => {
   const request = commentState.owner.request;
 
@@ -554,7 +561,7 @@ test("/api/community/comments POST 拒绝复用已上传附件", async ({
       include: { attachments: true },
     }),
   ).toEqual(before);
-  const object = await uploadState.bucket.get(uploaded.key);
+  const object = await commentState.bucket.get(uploaded.key);
   expect(object).not.toBeNull();
   expect(Buffer.from(object?.body ?? []).toString()).toBe(
     "one upload should attach to one comment",

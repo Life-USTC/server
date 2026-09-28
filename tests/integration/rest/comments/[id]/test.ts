@@ -205,7 +205,6 @@ test("/api/community/comments/[id] PATCH 非所有者管理员被拒绝", async 
 
 test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
   commentState,
-  uploadState,
 }) => {
   const request = commentState.owner.request;
 
@@ -249,7 +248,7 @@ test("/api/community/comments/[id] PATCH 拒绝绑定到其他评论的上传文
       include: { attachments: true },
     }),
   ).toEqual(before);
-  const object = await uploadState.bucket.get(uploaded.key);
+  const object = await commentState.bucket.get(uploaded.key);
   expect(object).not.toBeNull();
   expect(Buffer.from(object?.body ?? []).toString()).toBe(
     "one upload should not move across comments",
