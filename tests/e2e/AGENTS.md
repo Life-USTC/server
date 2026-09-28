@@ -61,7 +61,19 @@ Mobile route checks are split by public, authenticated, and admin access.
 Workspace homework checks are split by creation, completion, list state, and
 mobile behavior so file-based shards can distribute them independently. Use
 test-scoped accounts and domain fixtures for mutable data. Global activation and
-maintenance scenarios require their own database/service environment.
+maintenance scenarios require their own database/service environment. Use the native
+`test` export from `utils/isolated-worker.ts` for these cases. It clones an empty
+schema with the source roles/grants/RLS, starts a private real Worker with the
+existing E2E bindings and separate persistence, and sets native page/request
+`baseURL`. Arrange data through `isolatedWorker.database.owner`; create private
+sessions with `isolatedWorker.createActor()` and add its cookie to the page.
+No seeded rows are copied. The Worker receives only restricted database URLs.
+Teardown closes request contexts and the Worker process before dropping the
+private database and storage. Logs and resource identities are retained in the
+test output for failure cleanup checks. This fixture requires the same matching
+PostgreSQL client and database-create privilege as `isolatedDatabaseTest`;
+ordinary user-scoped tests should keep using the shared Worker.
+
 
 Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
 
