@@ -85,8 +85,8 @@ requirements:
     then:
     - Sign-in reaches the account page and creates one persistent session that the authenticated session
       endpoint accepts, while the audit row remains absent during failure.
-    - Actual Worker diagnostics identify an audit database-write retry without session credentials, passkey
-      names, or user profile values.
+    - Actual Worker diagnostics identify an audit database-write retry and its distinct validated action
+      categories without session credentials, passkey names, user profile values, or audit metadata.
     - Removing the constraint lets the real queue persist one successful audit for that same session.
     test:
       file: tests/e2e/src/app/account-policy/audit.test.ts
