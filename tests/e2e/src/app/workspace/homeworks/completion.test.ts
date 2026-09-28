@@ -1,21 +1,24 @@
-import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { expect } from "@playwright/test";
+import {
+  storedHomeworkCompletion,
+  test,
+} from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘作业", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
-  test("可切换作业完成状态", async ({ page }, testInfo) => {
+  test("可切换作业完成状态", async ({ page, account, homeworks }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
+
+    expect(
+      await storedHomeworkCompletion(account.id, homeworks[0].id),
+    ).toBeNull();
 
     // Switch to "all" filter
     await page
@@ -27,7 +30,7 @@ test.describe("仪表盘作业", () => {
 
     const row = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[0].title })
       .first();
     await expect(row).toBeVisible();
 
@@ -53,12 +56,18 @@ test.describe("仪表盘作业", () => {
       timeout: 15_000,
     });
 
+    expect(
+      await storedHomeworkCompletion(account.id, homeworks[0].id),
+    ).toMatchObject({ userId: account.id, homeworkId: homeworks[0].id });
+    expect(
+      await storedHomeworkCompletion(account.id, homeworks[1].id),
+    ).toBeNull();
     const after =
       (await completionButton.getAttribute("aria-label"))?.trim() ?? "";
     expect(after).not.toBe(before);
     await captureStepScreenshot(page, testInfo, "homeworks/completion-toggled");
 
-    // Restore
+    // Clearing completion is a second UI transition on the same owned homework.
     const restoreResponse = page.waitForResponse(
       (r) =>
         r.url().includes("/api/workspace/homeworks/") &&
@@ -67,11 +76,17 @@ test.describe("仪表盘作业", () => {
     );
     await completionButton.click();
     await restoreResponse;
+    expect(
+      await storedHomeworkCompletion(account.id, homeworks[0].id),
+    ).toBeNull();
+    await expect(completionButton).toHaveAttribute("aria-label", before);
   });
 
-  test("完成状态更新失败显示本地化仪表盘错误", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/homeworks");
-    await ensureSeedSectionSubscription(page);
+  test("完成状态更新失败显示本地化仪表盘错误", async ({
+    page,
+    account,
+    homeworks,
+  }, testInfo) => {
     await page.route(
       /\/api\/workspace\/homeworks\/[^/]+\/completion$/,
       async (route) => {
@@ -94,7 +109,7 @@ test.describe("仪表盘作业", () => {
 
     const row = page
       .getByRole("row")
-      .filter({ hasText: DEV_SEED.homeworks.title })
+      .filter({ hasText: homeworks[0].title })
       .first();
     await expect(row).toBeVisible();
 
@@ -116,6 +131,19 @@ test.describe("仪表盘作业", () => {
 
     await expect(
       page.getByText(/更新完成状态失败|Couldn't update completion/i),
+    ).toBeVisible();
+    expect(
+      await storedHomeworkCompletion(account.id, homeworks[0].id),
+    ).toBeNull();
+    await expect(completionButton).toHaveAccessibleName(
+      /标记为完成|Mark as complete/i,
+    );
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
+    await expect(
+      page
+        .getByRole("row")
+        .filter({ hasText: homeworks[0].title })
+        .getByRole("button", { name: /标记为完成|Mark as complete/i }),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
   });
