@@ -1,6 +1,5 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GraphqlContext } from "@/lib/graphql/context";
-import { homeworkExpectation } from "../../../shared/specifications/homework";
 
 const { writeBatch, requireAuth, requireGraphqlMutation } = vi.hoisted(() => ({
   writeBatch: vi.fn(),
@@ -23,7 +22,6 @@ beforeEach(() => {
   requireGraphqlMutation.mockResolvedValue({ userId: "owner" });
   writeBatch.mockResolvedValue({ results: [] });
 });
-
 function items(count: number) {
   return Array.from({ length: count }, (_, index) => ({
     homeworkId: `hw-${index}`,
@@ -31,79 +29,56 @@ function items(count: number) {
   }));
 }
 
-it("enforces the specified REST completion batch boundaries", async () => {
-  const specification = homeworkExpectation(
-    "homework.rest-completion-batch-input",
-    "collection_input",
-  );
-  const [method, path] = specification.operation.split(" ");
+const invalidBatches = [
+  { name: "empty", value: [] },
+  { name: "over 100 items", value: items(101) },
+  { name: "duplicate targets", value: [items(1)[0], items(1)[0]] },
+  {
+    name: "duplicate normalized targets",
+    value: [items(1)[0], { homeworkId: " hw-0 ", completed: false }],
+  },
+];
+
+describe("REST homework completion batch boundaries", () => {
   const send = (value: ReturnType<typeof items>) =>
     putHomeworkCompletionsRoute(
-      new Request(`https://example.test${path}`, {
-        method,
+      new Request("https://example.test/api/workspace/homeworks/completions", {
+        method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ [specification.input]: value }),
+        body: JSON.stringify({ items: value }),
       }),
     );
-  for (const count of [specification.min_items, specification.max_items]) {
-    writeBatch.mockClear();
+  it.each([1, 100])("accepts %s items", async (count) => {
     expect((await send(items(count))).status).toBe(200);
-    expect(writeBatch).toHaveBeenCalledWith({
+    expect(writeBatch).toHaveBeenCalledExactlyOnceWith({
       items: items(count),
       userId: "owner",
     });
-  }
-  for (const count of [
-    specification.min_items - 1,
-    specification.max_items + 1,
-  ]) {
-    writeBatch.mockClear();
-    expect((await send(items(count))).status).toBe(400);
+  });
+  it.each(invalidBatches)("rejects $name without writes", async ({ value }) => {
+    expect((await send(structuredClone(value))).status).toBe(400);
     expect(writeBatch).not.toHaveBeenCalled();
-  }
-  writeBatch.mockClear();
-  const duplicates = [items(1)[0], items(1)[0]];
-  expect((await send(duplicates)).status).toBe(
-    specification.unique_items ? 400 : 200,
-  );
-  expect(writeBatch).toHaveBeenCalledTimes(specification.unique_items ? 0 : 1);
+  });
 });
 
-it("enforces the specified GRAPHQL completion batch boundaries", async () => {
-  const specification = homeworkExpectation(
-    "homework.graphql-completion-batch-input",
-    "collection_input",
-  );
-  const resolvers = {
-    homeworkCompletionsSet: homeworkMutationResolvers.homeworkCompletionsSet,
-  };
-  const resolver = resolvers[specification.operation as keyof typeof resolvers];
+describe("GraphQL homework completion batch boundaries", () => {
   const send = (value: ReturnType<typeof items>) =>
-    resolver(null, { [specification.input]: value }, {} as GraphqlContext);
-  for (const count of [specification.min_items, specification.max_items]) {
-    writeBatch.mockClear();
+    homeworkMutationResolvers.homeworkCompletionsSet(
+      null,
+      { items: value },
+      {} as GraphqlContext,
+    );
+  it.each([1, 100])("accepts %s items", async (count) => {
     await expect(send(items(count))).resolves.toEqual({ results: [] });
-    expect(writeBatch).toHaveBeenCalledWith({
+    expect(writeBatch).toHaveBeenCalledExactlyOnceWith({
       items: items(count),
       userId: "owner",
     });
-  }
-  for (const count of [
-    specification.min_items - 1,
-    specification.max_items + 1,
-  ]) {
-    writeBatch.mockClear();
-    await expect(send(items(count))).rejects.toMatchObject({
+  });
+  it.each(invalidBatches)("rejects $name without writes", async ({ value }) => {
+    await expect(send(structuredClone(value))).rejects.toMatchObject({
       extensions: { code: "BAD_USER_INPUT" },
     });
     expect(writeBatch).not.toHaveBeenCalled();
-  }
-  writeBatch.mockClear();
-  const result = send([items(1)[0], items(1)[0]]);
-  if (specification.unique_items)
-    await expect(result).rejects.toMatchObject({
-      extensions: { code: "BAD_USER_INPUT" },
-    });
-  else await expect(result).resolves.toEqual({ results: [] });
-  expect(writeBatch).toHaveBeenCalledTimes(specification.unique_items ? 0 : 1);
+  });
 });

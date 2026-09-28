@@ -4,11 +4,17 @@ import {
   loadSpecificationValidators,
   validateSpecificationShapes,
 } from "../../../scripts/specifications/validate";
-import { auditRetentionExpectation } from "../../shared/specifications/audit";
 
 it("validates typed retention boundaries and rejects incomplete or nonnumeric limits", async () => {
   const validators = await loadSpecificationValidators();
-  const baseline = auditRetentionExpectation();
+  const baseline = {
+    kind: "retention",
+    operation: "maintain_audit_log_retention",
+    network_days: 30,
+    attribution_days: 90,
+    event_days: 365,
+    boundary: "inclusive",
+  };
   function validate(expectation: Record<string, unknown>) {
     const file: SpecificationFile = {
       path: "docs/policies/audit.yaml",

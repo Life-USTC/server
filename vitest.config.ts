@@ -14,6 +14,11 @@ export default defineConfig({
     environment: "node",
     include: ["tests/unit/**/*.test.ts"],
     globals: true,
+    // Restore process boundaries between cases without resetting module mock
+    // implementations. Timers and asynchronous resources remain fixture-owned.
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
     coverage: {
       provider: "v8",
       reportOnFailure: true,

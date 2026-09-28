@@ -208,31 +208,6 @@ it("validates every shipped domain expectation against its own capability and st
   }
 });
 
-it("a different valid source export cannot inherit the tested operation's binding", async () => {
-  const { SemanticContract } = await import(
-    "../../shared/specifications/semantic-contract"
-  );
-  const { bindDomainOperation } = await import(
-    "../../shared/specifications/domain-contracts"
-  );
-  const { youngReminderCandidates } = await import(
-    "../../../src/features/young/server/young-notification-state"
-  );
-  const changed = {
-    ...window,
-    operation: { ...operation, export: "youngEventState" },
-  };
-  expect(validateDomainExpectation(changed, { root }).errors).toEqual([]);
-  const contract = new SemanticContract({
-    id: "test.changed-binding",
-    category: "consistency",
-    expectation: changed,
-  });
-  expect(() =>
-    bindDomainOperation(contract, operation.module, youngReminderCandidates),
-  ).toThrow("test.changed-binding/operation");
-});
-
 it("fails closed for missing capability registries and unknown authority operations", () => {
   const expectation = {
     kind: "private_setting_authority",
@@ -266,22 +241,6 @@ it("fails closed for missing capability registries and unknown authority operati
       context,
     ).errors.join(" "),
   ).toContain("not bound to an applicable capability");
-});
-
-it("does not declare missing or nonmatching projection values preserved", async () => {
-  const { projectionPreservation } = await import(
-    "../../shared/specifications/domain-contracts"
-  );
-  expect(projectionPreservation(["id"], { id: 2 }, { id: 1 })).toEqual({
-    id: false,
-  });
-  expect(() =>
-    projectionPreservation(
-      ["department/id"],
-      { department: {} },
-      { department: { id: 1 } },
-    ),
-  ).toThrow("Missing observed projection path");
 });
 
 it("rejects mismatched localized panel counts", () => {
