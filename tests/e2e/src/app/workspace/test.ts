@@ -16,10 +16,10 @@
  * - Recognized legacy `?tab=` values permanently redirect to semantic routes.
  * - Invalid `?tab=` values do not select another public resource.
  */
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { test } from "../../../utils/homework-fixture";
 import {
   appSidebar,
   expandWorkspaceSidebarGroup,
@@ -27,9 +27,9 @@ import {
 } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
-import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
 test.describe("仪表盘", () => {
+  test.describe.configure({ mode: "parallel" });
   test("未登录旧 homework tab 永久重定向到受保护语义路径", async ({ page }) => {
     const response = await page.request.get(
       "/?tab=homeworks&homeworkView=list",
@@ -77,10 +77,11 @@ test.describe("仪表盘", () => {
     }
   });
 
-  test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {
+  test("登录后首页显示总览、所有标签和独立数据", async ({
+    page,
+    homeworkStates,
+  }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await signInAsDebugUser(page, "/");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
       testInfo,
       screenshotLabel: "workspace",
@@ -109,17 +110,10 @@ test.describe("仪表盘", () => {
       await expect(sidebarNavigationLink(page, label)).toBeVisible();
     }
 
-    // Seed overdue homework is visible on overview. Retry the subscription+reload
-    // because other E2E slices reset subscriptions for the shared debug user.
-    // The initial sign-in goto stays outside the retry.
     const overdueTitle = page
-      .getByText(DEV_SEED.homeworks.overdueTitle, { exact: true })
+      .getByText(homeworkStates[0].title, { exact: true })
       .first();
-    await expect(async () => {
-      await ensureSeedSectionSubscription(page);
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(overdueTitle).toBeVisible({ timeout: 2_000 });
-    }).toPass({ timeout: 15_000 });
+    await expect(overdueTitle).toBeVisible();
     const overdueTitleBox = await overdueTitle.boundingBox();
     expect(overdueTitleBox?.width ?? 0).toBeGreaterThan(80);
     expect(overdueTitleBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(
@@ -133,8 +127,11 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-home");
   });
 
-  test("可通过侧边栏导航到作业标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/");
+  test("可通过侧边栏导航到作业标签", async ({
+    page,
+    account: _account,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/");
     await expandWorkspaceSidebarGroup(page);
 
     const homeworksTab = sidebarNavigationLink(page, /^(作业|Homework)$/i);
@@ -147,6 +144,9 @@ test.describe("仪表盘", () => {
 
   test("navigation badges retain the bootstrap counts across catalog navigation", async ({
     page,
+    account,
+    academic,
+    homeworkStates: _homeworkStates,
   }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     let bootstrapRequestCount = 0;
@@ -155,8 +155,7 @@ test.describe("仪表盘", () => {
         bootstrapRequestCount += 1;
       }
     });
-    await signInAsDebugUser(page, "/workspace/overview");
-    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/workspace/overview");
     expect(bootstrapRequestCount).toBe(0);
 
     const bootstrapResponsePromise = page.waitForResponse(
@@ -164,7 +163,11 @@ test.describe("仪表盘", () => {
         new URL(response.url()).pathname === "/_internal/shell-bootstrap" &&
         response.request().method() === "GET",
     );
-    await gotoAndWaitForReady(page, "/catalog/courses", { testInfo });
+    await gotoAndWaitForReady(
+      page,
+      `/catalog/courses?search=${academic.course.code}`,
+      { testInfo },
+    );
     const bootstrapResponse = await bootstrapResponsePromise;
     expect(bootstrapRequestCount).toBe(1);
     expect(bootstrapResponse.status()).toBe(200);
@@ -181,6 +184,15 @@ test.describe("仪表盘", () => {
         subscribedSectionCount: number;
       };
     };
+    expect(payload.navigation).toEqual({
+      userId: account.id,
+      unreadActivityNotificationsCount: 0,
+      calendarItemsCount: 0,
+      examsCount: 0,
+      pendingHomeworksCount: 1,
+      pendingTodosCount: 0,
+      subscribedSectionCount: 1,
+    });
     await expandWorkspaceSidebarGroup(page);
 
     for (const [label, count] of [
@@ -208,21 +220,21 @@ test.describe("仪表盘", () => {
     );
     await page
       .locator(
-        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+        `#main-content a[href="/catalog/courses/${academic.course.jwId}"]:visible`,
       )
       .first()
       .click();
     await expect(page).toHaveURL(
-      new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}$`),
+      new RegExp(`/catalog/courses/${academic.course.jwId}$`),
     );
-    await expect(page.locator("#app-user-menu")).toContainText(
-      DEV_SEED.debugName,
-    );
+    await expect(page.locator("#app-user-menu")).toContainText(account.name);
     expect(bootstrapRequestCount).toBe(1);
   });
 
-  test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/catalog/links");
+  test("仪表盘路径别名渲染匹配的标签", async ({
+    page,
+    academic: _academic,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/links", {
       testInfo,
       screenshotLabel: "workspace-links-path",
@@ -236,7 +248,7 @@ test.describe("仪表盘", () => {
       }),
     ).toBeVisible();
 
-    await signInAsDebugUser(page, "/workspace/homeworks");
+    await gotoAndWaitForReady(page, "/workspace/homeworks");
     const homeworksWorkspaceTab = sidebarNavigationLink(
       page,
       /^(作业|Homework)$/i,
@@ -262,10 +274,11 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-subscriptions-path");
   });
 
-  test("ui.workspace-mobile-priority-1", async ({ page }, testInfo) => {
+  test("ui.workspace-mobile-priority-1", async ({
+    page,
+    homeworkStates: _homeworkStates,
+  }, testInfo) => {
     await page.setViewportSize({ height: 844, width: 390 });
-    await signInAsDebugUser(page, "/");
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
       testInfo,
       screenshotLabel: "workspace-mobile-priority",
@@ -290,13 +303,15 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace/mobile-priority");
   });
 
-  test("中文总览周视图使用本地化星期标签", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/workspace/overview");
+  test("中文总览周视图使用本地化星期标签", async ({
+    page,
+    account: _account,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/workspace/overview");
     const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
-    await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/workspace/overview");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
