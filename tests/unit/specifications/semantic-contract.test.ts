@@ -55,12 +55,11 @@ describe("semantic assertion evidence", () => {
     expect(() => contract.recordVitest(native)).toThrow();
   });
 
-  test("covers every leaf including empty values and binds the native canonical identity", () => {
+  test("records completed comparisons without constraining the test identity", () => {
     const rule = requirement();
     const contract = new SemanticContract(rule);
     verifyAll(contract);
-    const native = context();
-    expect(() => contract.recordVitest(context("other.requirement"))).toThrow();
+    const native = context("subscription lifecycle");
     contract.recordVitest(native);
     expect(
       validateSemanticReceipt(native.task.meta.specification, rule),

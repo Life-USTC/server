@@ -18,7 +18,6 @@ has `kind`, `id`, and a `name` (feature) or `title`; its schema is in `docs/sche
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
-bun run specs:check --complete
 rg '^model |^enum ' prisma/schema.prisma
 ```
 
@@ -32,7 +31,7 @@ Sources use one YAML 1.2 mapping per `.yaml` file with string keys and
 JSON-compatible values. Duplicate keys, anchors, aliases, merge keys, explicit
 tags, non-finite numbers and unsafe integers are rejected. Dates are strings.
 Schema validation rejects unknown fields; reference checks reject duplicate IDs,
-missing policies, features, capabilities, topics and test declarations.
+missing policies, features, capabilities and topics.
 
 Requirements contain either a prose `rule` or a typed `expectation`, never both.
 Use `expectation` for the finite kinds in `schemas/expectations.schema.json`:
@@ -44,69 +43,52 @@ only when a real production observation can validate it end to end. Keep backgro
 replaced normative text from `access`, `notes` and `presentation`; use
 `requirement_refs` to reference the canonical requirement instead.
 
-Each atomic requirement has one canonical acceptance test. `acceptance` is an
-object with `given`, `when`, `then`, and a single `test: {file, name}`. The literal
-test name must equal the requirement ID. A test cannot be the acceptance test
-for two requirements. The checker also rejects orphan canonical tests, duplicate
-names across files, disabled tests, and parameterized name templates. Split
-independent behaviors into requirements before assigning tests; a named test may
-exercise multiple inputs for one rule. Additional regression tests remain useful
-and do not need their own specification IDs.
-Register canonical tests unconditionally at module level or in an ordinary suite.
-Loops and parameterized suites belong inside the test body, so one requirement
-still produces exactly one runtime test.
+Documentation and tests are synchronized manually. `acceptance` records `given`,
+`when`, and `then`; its optional `test: {file, name}` is an editorial pointer to a
+representative scenario, not an executable binding or coverage claim. Several
+requirements may refer to one scenario, and one requirement can need checks in
+several test layers. Test names do not need to equal requirement IDs. Reviewers
+check that the affected requirements and assertions agree, including supporting
+scenarios beyond the representative pointer.
 
 Policy topics may use `requirement_refs` to index the actual owners of cross-feature contracts.
-A topic reference does not create another requirement or count as execution evidence; avoid
+A topic reference does not create another requirement or prove test coverage; avoid
 duplicating an umbrella requirement when every obligation already has a specific owner.
 
 Feature test files stay in the appropriate runner's directory, grouped by domain.
-A browser test, a database test, and a unit test have different execution needs;
-the atomic requirement ID is the correspondence across these layers. Choose the
-lowest layer that actually observes the entire requirement. A mocked permission
-helper does not prove HTTP authentication, database isolation, or rendered UI.
-Source assertions establish architecture constraints, not user-visible behavior.
+Use independent mutation tests, consumer tests and a small set of connection or
+complete-journey tests. See `tests/AGENTS.md` for the isolation and oracle rules.
+A mocked permission helper does not prove HTTP authentication, database isolation,
+or rendered UI. Source assertions establish architecture constraints, not
+user-visible behavior.
 
 Typed feature requirements declare `applies_to` capability IDs; policy requirements
 declare their own topic IDs and use the policy's `refs` for feature/capability links.
-They bind
-transport expectations to an actual REST method/path, GraphQL field/mutation, or
-MCP tool. Read the expected values from YAML and observe the real implementation;
-never compare two values both generated from the specification. Preserve intended
-transport differences such as pagination defaults and duplicate-input handling.
+Transport references name the actual REST method/path, GraphQL field/mutation or
+MCP tool. Preserve intended transport differences such as pagination defaults,
+error responses and duplicate-input handling.
 
-`specs:check` validates shapes, consistency, authoritative domain references and
-both directions of existing test bindings. Source references resolve real exported
-operations; public projection paths resolve generated OpenAPI properties; ordered
-model fields resolve Prisma. A resolved reference proves its existence, not its
-runtime behavior. It explicitly reports requirements that still lack tests;
-`specs:check --complete` rejects any such gap. Neither command executes tests.
-`specs:coverage --enforce` requires every requirement's canonical test to pass in
-native execution evidence from the same CI run. Prose and typed requirements have
-the same completeness gate. A typed canonical test uses `tests/shared/specifications/semantic-contract.ts`.
-Compare actual observations with `equal`, exact `set`, `atLeast` or `atMost`, then
-record the completed contract in Vitest task metadata or Playwright annotations.
-Reading expected data does not count as a comparison. The helper refuses receipts
-with an unverified leaf, including empty arrays, case IDs, operation bindings and
-nested fields. Native evidence rejects missing, duplicate, stale or incomplete
-receipts, and never accepts a receipt from a failed or skipped test. Native status,
-typed declaration counts and successful semantic comparisons are reported separately.
+`specs:check` validates schema, consistency and authoritative business references.
+Source references resolve exported operations; public projection paths resolve
+OpenAPI properties; ordered model fields resolve Prisma. Existence is not runtime
+correctness. This command does not scan test declarations, enforce one-to-one
+mapping, or establish acceptance completeness. Ordinary runner results decide
+whether tests pass; reviewers decide whether their observations cover the intended
+requirements.
 
-Keep setup inputs distinct from observed outputs. An operation binding must refer
-to the actual imported callable or transport used by the test. An element target
-uses `{by: test_id|css, value: ...}` and must identify the locator actually queried.
-Do not count a static reference as a runtime assertion, compare expectations with
-themselves, filter unexpected observations out of exact projections/orders, or add
-manual "consumed" markers. A passing linked test only proves its actual assertions;
-reviewers still assess observation quality, atomicity and product reasonableness.
-The tool does not claim to prove that all prose has been converted or all possible
-behaviors are correct.
+New tests keep their expected outcomes independent of runtime specification
+loading. Existing assertion helpers used by other features remain ordinary test
+utilities; their comparison records do not prove coverage or observation quality
+and are not CI gates. Do not extend this into a receipt or specification-consumption
+system. Never compare expectations with themselves or derive both expected and
+observed results from the same production operation.
 
-CI evidence must include every required unit, integration, REST, role-isolation
-and browser partition from the same commit, run and attempt. The gate also checks
-the independent CI job results, including build and setup failures that produced
-no test report. After a failure, use **Re-run all jobs**; a partial rerun cannot
-borrow successful reports from an older attempt.
+CI must run the unit, integration, REST, role-isolation and browser partitions,
+plus static and build checks. The protected check named Specification execution
+evidence aggregates those job results and validates document structure only.
+Passing these jobs establishes execution success,
+not exhaustive requirements coverage. Retain runner reports and failed browser
+traces for review.
 
 Review the requirement itself before implementing its test: identify the user
 need, scope and actors; resolve conflicting rules; separate independent outcomes;
@@ -123,9 +105,9 @@ rationale merely because they are difficult to test.
    shared policy IDs and `refs` for `{feature, capability?}` associations.
 3. Keep requirements atomic with stable globally unique IDs prefixed by the feature
    or policy ID. Use typed expectations where supported. Add a new kind only with
-   a real behavioral consumer and schema/negative tests; do not build a general
-   expression language. Leave requirements without adequate test evidence visible
-   as gaps rather than assigning irrelevant tests.
+   a concrete domain need and schema/negative tests; do not build a general
+   expression language. Review missing behavioral checks explicitly rather than
+   assigning an irrelevant representative test.
 4. Implement through `$life-ustc-implement`, updating supported Web, REST,
    GraphQL and MCP surfaces, message files and public schemas together.
 5. Verify ownership, OAuth scopes, effects, error semantics, pagination, Shanghai

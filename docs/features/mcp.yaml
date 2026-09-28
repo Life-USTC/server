@@ -485,7 +485,7 @@ requirements:
   category: consistency
   rule: Every known MCP output field outside the separately specified community and bus domains has an
     explicit value schema; known fields must not silently become unconstrained unknown values.
-  rationale: Community and bus field schemas have their own canonical tests. The generic serializer result,
+  rationale: Community and bus field schemas have dedicated tests. The generic serializer result,
     selection-dependent GraphQL data/extensions, Young rawJson and weather provider extensions intentionally
     retain arbitrary JSON; these are constrained to JSON values rather than misrepresented as normalized
     domain records. Known workspace, catalog and account fields use explicit field types. Optional card

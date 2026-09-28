@@ -1199,7 +1199,7 @@ rationale:
 - Single-surface and intentionally different bindings retain their own feature requirements for publications,
   metadata directories, admin collections, ancillary academic collections and Web collection layouts do not
   acquire fictional GraphQL/MCP equivalents. These topic references neither change supported inputs and
-  defaults nor count as behavioral evidence; their existing canonical tests remain the acceptance owners.
+  defaults nor count as behavioral evidence; the corresponding acceptance scenarios are maintained manually.
 
 - The former semantic-parity-1 and semantic-parity-6 are indexed by ownership-and-permissions and
   domain-errors. Their finite owners cover private todos, section and activity subscriptions, follows,

@@ -8,8 +8,6 @@ import {
   type SpecificationFile,
 } from "../../../scripts/specifications/repository";
 import {
-  declaredTestNames,
-  validateCanonicalTestOwnership,
   validateSpecificationReferences,
   validateSpecificationShapes,
 } from "../../../scripts/specifications/validate";
@@ -112,100 +110,12 @@ describe("specification structure and references", () => {
     );
   });
 
-  it("only treats enabled test declarations as valid links", () => {
-    expect([
-      ...declaredTestNames(`
-      // it("comment", () => {});
-      const unused = "string only";
-      it("real test", () => {});
-      test.each([1])("parameterized %s", () => {});
-      test.for([1])("repeated title", () => {});
-      test.skip("skipped", () => {});
-      describe.skip("disabled group", () => { it("disabled child", () => {}); });
-      other("not a test", () => {});
-      test.step("step only", () => {});
-      it.extend("not a declaration", () => {});
-    `),
-    ]).toEqual(["real test"]);
-  });
-
-  it("rejects duplicate literal names even when they occur in different suites", () => {
-    expect([
-      ...declaredTestNames(`
-      describe("first", () => { it("example.rule", () => {}); });
-      describe("second", () => { it("example.rule", () => {}); });
-    `),
-    ]).toEqual([]);
-  });
-
-  it("rejects repeated or conditional registration while permitting input loops inside one test", () => {
-    expect([
-      ...declaredTestNames(`
-      for (const width of [390, 1280]) { test("loop", () => {}); }
-      ["en", "zh"].forEach(locale => test("callback", () => {}));
-      function register() { test("helper", () => {}); }
-      if (enabled) test("conditional", () => {});
-      enabled && test("short circuit", () => {});
-      describe.each([1, 2])("repeated suite", () => { test("suite child", () => {}); });
-      test.describe("one suite", () => {
-        test("one test", () => { for (const value of [1, 2]) expect(value).toBeTruthy(); });
-      });
-    `),
-    ]).toEqual(["one test"]);
-  });
-
-  it("checks the reverse mapping and rejects orphan and duplicate canonical tests", async () => {
-    const root = await mkdtemp(join(tmpdir(), "spec-bijection-"));
-    directories.push(root);
-    await mkdir(join(root, "tests"));
-    await writeFile(
-      join(root, "tests/behavior.test.ts"),
-      'it("example.idempotency", () => {});',
-    );
-    const file = feature();
-    const requirement = (
-      file.data.requirements as Array<{
-        acceptance: { test?: { file: string; name: string } };
-      }>
-    )[0];
-    requirement.acceptance.test = {
-      file: "tests/behavior.test.ts",
-      name: "example.idempotency",
-    };
-    expect(await validateCanonicalTestOwnership([file], root)).toEqual([]);
-    await writeFile(
-      join(root, "tests/duplicate.test.ts"),
-      'it("example.idempotency", () => {}); it("example.removed", () => {});',
-    );
-    const errors = (await validateCanonicalTestOwnership([file], root)).join(
-      "\n",
-    );
-    expect(errors).toContain("is not bound by its requirement");
-    expect(errors).toContain("is also declared");
-    expect(errors).toContain("has no requirement");
-  });
-
   it("rejects specifications misplaced outside their canonical directory", async () => {
     const file = feature();
     file.path = "docs/policies/archive/example.yaml";
     expect(
       (await validateSpecificationReferences([file])).errors.join("\n"),
     ).toContain("must be stored at docs/features/example.yaml");
-  });
-
-  it("rejects expected-failure options, inherited disabled options and dynamic option objects", () => {
-    expect([
-      ...declaredTestNames(`
-      test("expected failure", { fails: true }, () => {});
-      test("legacy expected failure", () => {}, { fails: true });
-      describe("expected failure suite", { fails: true }, () => { test("inherited failure", () => {}); });
-      describe("skipped suite", { skip: true }, () => { test("inherited skip", () => {}); });
-      test("dynamic", options, () => {});
-      test("spread", { ...options }, () => {});
-      test("computed", { [key]: true }, () => {});
-      test("normal options", { timeout: 1000, fails: false }, () => {});
-    `),
-    ]).toEqual(["normal options"]);
   });
 
   it("requires policy requirement IDs to use their document prefix", async () => {
@@ -218,40 +128,27 @@ describe("specification structure and references", () => {
     ).toContain("must use its document prefix");
   });
 
-  it("requires a unique test named after the requirement", async () => {
-    const root = await mkdtemp(join(tmpdir(), "spec-references-"));
-    directories.push(root);
-    await mkdir(join(root, "tests"));
-    await writeFile(
-      join(root, "tests/behavior.test.ts"),
-      'it("example.idempotency", () => { expect(actual).toEqual(expected); });',
-    );
+  it("keeps acceptance scenarios independent of test declarations", async () => {
     const file = feature();
-    const scenario = (
-      file.data.requirements as Array<{
-        acceptance: { test?: { file: string; name: string } };
-      }>
-    )[0].acceptance;
-    const unlinked = await validateSpecificationReferences([file], root);
-    expect(unlinked).toMatchObject({
-      requirements: 1,
-      boundRequirements: 0,
-    });
-    expect(unlinked.errors.join("\n")).toContain(
-      "acceptance requires exactly one test",
-    );
-    scenario.test = {
-      file: "tests/behavior.test.ts",
-      name: "example.idempotency",
-    };
-    expect(await validateSpecificationReferences([file], root)).toMatchObject({
+    expect(await validateSpecificationReferences([file])).toEqual({
       errors: [],
-      boundRequirements: 1,
+      requirements: 1,
     });
-    scenario.test.name = "nonexistent test";
-    expect(
-      (await validateSpecificationReferences([file], root)).errors.join("\n"),
-    ).toContain("canonical test name must equal its requirement ID");
+    const requirements = file.data.requirements as Array<
+      Record<string, unknown>
+    >;
+    const acceptance = requirements[0].acceptance as Record<string, unknown>;
+    // This is an editorial pointer. The checker must not read its test source,
+    // require an identical title, or forbid several rules sharing a scenario.
+    acceptance.test = {
+      file: "tests/not-created.test.ts",
+      name: "subscription lifecycle",
+    };
+    requirements.push({ ...requirements[0], id: "example.persistence" });
+    expect(await validateSpecificationReferences([file])).toEqual({
+      errors: [],
+      requirements: 2,
+    });
   });
 
   it("does not silently ignore a reintroduced JSON specification", async () => {

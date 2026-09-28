@@ -25,22 +25,20 @@ then the relevant [feature](features/) and its referenced [policies](policies/).
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
-bun run specs:check --complete
-bun run specs:coverage
 ```
 
-Each atomic requirement maps to one canonical acceptance test whose literal name
-is the requirement ID. The checker validates both directions and rejects reuse,
-ambiguous names and disabled tests. `specs:check --complete` requires every
-requirement to have this binding. The CI evidence gate requires every canonical
-test to execute successfully, including tests for prose requirements. Missing
-tests remain failures of completeness; schema validity is a separate result.
-Typed requirements additionally need a native semantic receipt proving that each
-expectation field was compared in the passing canonical test. The report separates
-schema/reference validity, native execution and semantic comparison status. It
-also lists remaining prose requirements and candidate text locations without
-claiming they have been semantically converted.
-See [editing specifications](AGENTS.md) for semantic review and test-layer rules.
+Requirements and tests are synchronized by human review. Optional
+`acceptance.test` references identify representative scenarios; they are not
+machine-enforced coverage bindings. Tests may cover multiple requirements and
+requirements may need multiple scenarios. The checker validates schema and
+business references without interpreting test names or execution reports.
+
+Acceptance tests separate mutations, consumers and selected complete journeys.
+Independent observations verify persisted effects; consumer tests start from
+known state; connection tests verify refresh, cache and cross-interface behavior.
+Passing runner jobs proves those assertions passed, not that all requirements or
+possible behaviors are covered. See [editing specifications](AGENTS.md) and
+[test conventions](../tests/AGENTS.md) for review and isolation rules.
 
 Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate
 product requirements. Build regenerates OpenAPI; `bun run openapi:check` detects

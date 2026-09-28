@@ -22,14 +22,6 @@ const workerEnvironment = getWorkerProcessEnvironment();
 const reporters: ReporterDescription[] = process.env.CI
   ? [["list"], ["blob", { outputDir: `${reportRoot}/blob` }]]
   : [["list"], ["html", { open: "never", outputFolder: `${reportRoot}/html` }]];
-if (process.env.SPEC_EVIDENCE_DIR) {
-  reporters.push([
-    "json",
-    {
-      outputFile: `${process.env.SPEC_EVIDENCE_DIR}/playwright-${process.pid}.json`,
-    },
-  ]);
-}
 
 export default defineConfig({
   testDir: "./tests/e2e",
