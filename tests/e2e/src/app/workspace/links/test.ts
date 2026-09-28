@@ -211,9 +211,11 @@ test.describe("仪表盘网站链接", () => {
   test("可以置顶和取消置顶链接并恢复状态", async ({
     page,
     linkAccount,
+    isolatedWorker,
   }, testInfo) => {
+    const db = isolatedWorker.database.owner;
     await setLocale(page, "zh-cn");
-    expect(await storedPins(linkAccount.id)).toEqual([]);
+    expect(await storedPins(db, linkAccount.id)).toEqual([]);
     await gotoAndWaitForReady(page, "/catalog/links", {
       testInfo,
       screenshotLabel: "workspace-links",
@@ -227,7 +229,7 @@ test.describe("仪表盘网站链接", () => {
       "aria-label",
       UNPIN_LABEL,
     );
-    await expect.poll(() => storedPins(linkAccount.id)).toEqual(["jw"]);
+    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual(["jw"]);
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitForUiSettled(page);
     await expect(await locateJwPinButton(page)).toHaveAttribute(
@@ -245,7 +247,7 @@ test.describe("仪表盘网站链接", () => {
       "aria-label",
       PIN_LABEL,
     );
-    await expect.poll(() => storedPins(linkAccount.id)).toEqual([]);
+    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual([]);
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitForUiSettled(page);
     await expect(await locateJwPinButton(page)).toHaveAttribute(
@@ -257,9 +259,11 @@ test.describe("仪表盘网站链接", () => {
   test("搜索重新计算链接时保持置顶状态", async ({
     page,
     linkAccount,
+    isolatedWorker,
   }, testInfo) => {
+    const db = isolatedWorker.database.owner;
     await setLocale(page, "zh-cn");
-    expect(await storedPins(linkAccount.id)).toEqual([]);
+    expect(await storedPins(db, linkAccount.id)).toEqual([]);
     await gotoAndWaitForReady(page, "/catalog/links");
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
@@ -274,7 +278,7 @@ test.describe("仪表盘网站链接", () => {
       "aria-label",
       UNPIN_LABEL,
     );
-    await expect.poll(() => storedPins(linkAccount.id)).toEqual(["jw"]);
+    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual(["jw"]);
 
     expect((await clickJwPin(page)).ok()).toBe(true);
     await searchInput.fill("教务系统");
@@ -282,7 +286,7 @@ test.describe("仪表盘网站链接", () => {
       "aria-label",
       PIN_LABEL,
     );
-    await expect.poll(() => storedPins(linkAccount.id)).toEqual([]);
+    await expect.poll(() => storedPins(db, linkAccount.id)).toEqual([]);
     await captureStepScreenshot(
       page,
       testInfo,
