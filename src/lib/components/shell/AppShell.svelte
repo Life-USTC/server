@@ -63,7 +63,9 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import {
+  type ClientShellNavigationType,
   getClientShellBootstrap,
+  shouldRequestClientShellBootstrap,
   type WorkspaceNavigationSummary,
   workspaceNavigationFromPageData,
 } from "$lib/shell/shell-bootstrap";
@@ -79,6 +81,29 @@ import {
   sectionDirectoryItems,
 } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
+
+if (typeof window !== "undefined") {
+  const originalFetch = window.fetch.bind(window);
+  let navigationCache:
+    | Promise<typeof import("$lib/shell/public-navigation-cache")>
+    | undefined;
+  window.fetch = (input, init) => {
+    const raw = input instanceof Request ? input.url : String(input);
+    if (!raw.includes("__data.json")) return originalFetch(input, init);
+    navigationCache ??= import("$lib/shell/public-navigation-cache");
+    const locale =
+      document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/)?.[1] ?? "";
+    return navigationCache.then(({ cachedPublicNavigationFetch }) =>
+      cachedPublicNavigationFetch(
+        originalFetch,
+        input,
+        init,
+        Date.now(),
+        locale,
+      ),
+    );
+  };
+}
 
 type AppShellData = {
   copy: LayoutCopy;
@@ -119,10 +144,12 @@ let subscribedSectionsUserId: string | null =
   data.user && data.subscribedSections ? data.user.id : null;
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
+let shellResolved = false;
 
 $: if (!data.resolveViewerOnClient || data.user) {
   if (viewerUser?.id !== data.user?.id) {
     cancelShellBootstrap();
+    shellResolved = false;
     workspaceNavigation = null;
     subscribedSections = data.subscribedSections ?? [];
     subscribedSectionsUserId =
@@ -962,7 +989,9 @@ function cancelShellBootstrap() {
   shellBootstrapAbortController = null;
 }
 
-async function resolveClientShell() {
+async function resolveClientShell(
+  navigationType: ClientShellNavigationType = "mount",
+) {
   const serverNavigation = workspaceNavigationFromPageData(
     $page.data,
     viewerUser?.id,
@@ -971,13 +1000,17 @@ async function resolveClientShell() {
   const sectionsReady =
     Boolean(viewerUser) && subscribedSectionsUserId === viewerUser?.id;
   if (
-    viewerUser &&
-    workspaceNavigation?.userId === viewerUser.id &&
-    sectionsReady
+    !shouldRequestClientShellBootstrap({
+      navigationType,
+      navigationUserId: workspaceNavigation?.userId,
+      resolveViewerOnClient: data.resolveViewerOnClient,
+      sectionsReady,
+      shellResolved,
+      viewerUserId: viewerUser?.id,
+    })
   ) {
     return;
   }
-  if (!data.resolveViewerOnClient && !viewerUser) return;
 
   cancelShellBootstrap();
   const controller = new AbortController();
@@ -997,6 +1030,10 @@ async function resolveClientShell() {
     workspaceNavigation = bootstrap.navigation;
     subscribedSections = bootstrap.subscribedSections;
     subscribedSectionsUserId = bootstrap.viewer?.id ?? null;
+    shellResolved =
+      !bootstrap.viewer ||
+      (bootstrap.navigation?.userId === bootstrap.viewer.id &&
+        subscribedSectionsUserId === bootstrap.viewer.id);
     viewerLoading = false;
     viewerFailed = false;
     if (
@@ -1069,9 +1106,9 @@ onMount(() => {
   };
 });
 
-afterNavigate(({ from, to }) => {
+afterNavigate(({ from, to, type }) => {
   if (!from || !to) return;
-  void resolveClientShell();
+  void resolveClientShell(type);
   if (
     from.url.pathname === to.url.pathname &&
     from.url.search === to.url.search

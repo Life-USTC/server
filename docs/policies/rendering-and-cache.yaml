@@ -219,6 +219,29 @@ requirements:
     test:
       file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
       name: rendering-and-cache.cacheable-public-pages-14
+- id: rendering-and-cache.cacheable-public-pages-15
+  category: consistency
+  topic: cacheable-public-pages
+  rule: The open tab reuses successful public SvelteKit __data.json navigations so a later visit does not
+    request them again. Stable catalog, news, search, room, guide, and community pages stay reusable for
+    300 seconds. Young event pages and section details stay reusable for at most 60 seconds and never past
+    the next Asia/Shanghai midnight. A full invalidation mask drops the stored page and requests again.
+    Clock-driven bus and weather pages, the site root, workspace, and other private routes are never stored.
+    Responses that set a cookie or are not successful are never stored. HTTP responses stay private, no-store.
+  acceptance:
+    given: A tab cache in front of a controlled fetch, covering a partial invalidation, a repeat visit, an
+      all-ones invalidation, a Set-Cookie response, and young/section reads at noon and ten seconds before
+      Shanghai midnight.
+    when: The same public navigation URL is requested twice, then fully invalidated, and excluded URLs are
+      requested.
+    then:
+    - The second stable navigation is served from the tab cache and does not call fetch. Young data at noon
+      expires after 60 seconds. Section detail stored ten seconds before midnight expires at midnight.
+    - A full invalidation calls fetch again and the following partial navigation calls fetch again.
+    - Workspace, bus, weather, the site root, and Set-Cookie responses always call fetch.
+    test:
+      file: tests/unit/lib/shell/public-navigation-cache.test.ts
+      name: rendering-and-cache.cacheable-public-pages-15
 - id: rendering-and-cache.personal-overlays-4
   category: privacy
   topic: personal-overlays
@@ -330,6 +353,23 @@ requirements:
     test:
       file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
       name: rendering-and-cache.personal-overlays-11
+- id: rendering-and-cache.personal-overlays-12
+  category: privacy
+  topic: personal-overlays
+  rule: After one successful shell bootstrap, link and history navigations reuse that result, including an
+    anonymous null viewer. The first load, a failed bootstrap, and programmatic navigations still request
+    /_internal/shell-bootstrap. A workspace SSR shell that already has its viewer does not request it.
+  acceptance:
+    given: An unresolved shell, a resolved anonymous shell, a resolved signed-in shell, and workspace SSR
+      without a viewer.
+    when: The shell decides whether a mount, link, history, or programmatic navigation requests bootstrap.
+    then:
+    - The first load and a failed anonymous result request bootstrap. Later link and history navigations do not.
+    - A programmatic navigation requests bootstrap again so sign-in can replace the anonymous shell.
+    - A complete signed-in shell does not request bootstrap, and workspace SSR without a viewer does not either.
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: rendering-and-cache.personal-overlays-12
 - id: rendering-and-cache.cache-layers-and-invalidation-1
   category: consistency
   topic: cache-layers-and-invalidation

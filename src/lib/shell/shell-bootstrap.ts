@@ -142,6 +142,46 @@ export function parseShellBootstrapPayload(
   return { viewer, navigation, subscribedSections };
 }
 
+export type ClientShellNavigationType =
+  | "enter"
+  | "form"
+  | "goto"
+  | "leave"
+  | "link"
+  | "mount"
+  | "popstate";
+
+/**
+ * Link and history moves reuse a shell that already resolved, including the
+ * anonymous null viewer. The first load, a failed attempt, and programmatic
+ * navigations (sign-in redirects) still request the endpoint.
+ */
+export function shouldRequestClientShellBootstrap(input: {
+  navigationType: ClientShellNavigationType;
+  navigationUserId: string | null | undefined;
+  resolveViewerOnClient: boolean;
+  sectionsReady: boolean;
+  shellResolved: boolean;
+  viewerUserId: string | null | undefined;
+}) {
+  const viewerUserId = input.viewerUserId ?? null;
+  if (
+    viewerUserId &&
+    input.navigationUserId === viewerUserId &&
+    input.sectionsReady
+  ) {
+    return false;
+  }
+  if (!input.resolveViewerOnClient && !viewerUserId) return false;
+  if (
+    input.shellResolved &&
+    (input.navigationType === "link" || input.navigationType === "popstate")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export async function getClientShellBootstrap(
   fetcher: typeof fetch = globalThis.fetch,
   signal?: AbortSignal,

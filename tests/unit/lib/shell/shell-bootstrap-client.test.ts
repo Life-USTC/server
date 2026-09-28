@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   getClientShellBootstrap,
   parseShellBootstrapPayload,
+  shouldRequestClientShellBootstrap,
   workspaceNavigationFromPageData,
 } from "@/lib/shell/shell-bootstrap";
 
@@ -22,6 +23,70 @@ const navigation = {
   pendingTodosCount: 4,
   subscribedSectionCount: 5,
 };
+
+test("rendering-and-cache.personal-overlays-12", () => {
+  const anonymous = {
+    navigationUserId: null,
+    resolveViewerOnClient: true,
+    sectionsReady: false,
+    viewerUserId: null,
+  };
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "mount",
+      shellResolved: false,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "link",
+      shellResolved: true,
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "popstate",
+      shellResolved: true,
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "goto",
+      shellResolved: true,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      ...anonymous,
+      navigationType: "link",
+      shellResolved: false,
+    }),
+  ).toBe(true);
+  expect(
+    shouldRequestClientShellBootstrap({
+      navigationType: "link",
+      navigationUserId: "user-1",
+      resolveViewerOnClient: true,
+      sectionsReady: true,
+      shellResolved: true,
+      viewerUserId: "user-1",
+    }),
+  ).toBe(false);
+  expect(
+    shouldRequestClientShellBootstrap({
+      navigationType: "mount",
+      navigationUserId: null,
+      resolveViewerOnClient: false,
+      sectionsReady: false,
+      shellResolved: false,
+      viewerUserId: null,
+    }),
+  ).toBe(false);
+});
 
 describe("shell bootstrap client", () => {
   test("accepts explicit anonymous and matched authenticated payloads", () => {
