@@ -9,6 +9,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { test } from "./_fixture";
 
 test.describe.configure({ mode: "parallel" });
+test.use({ locale: "en-US" });
 
 test("/admin/bus 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/admin/bus");
@@ -43,8 +44,8 @@ test("/admin/bus 显示所有必需的版本字段", async ({
     .filter({ hasText: busState.versions[0].key });
   await expect(row).toContainText(busState.versions[0].title);
   await expect(row).toContainText(busState.versions[0].key);
-  await expect(row.getByRole("cell").nth(3)).toContainText("2020");
-  await expect(row.getByRole("cell").nth(4)).toContainText("2026");
+  await expect(row.getByRole("cell").nth(3)).toHaveText("2020-01-01 - —");
+  await expect(row.getByRole("cell").nth(4)).toHaveText("Jan 1, 2026, 8:00 AM");
   await expect(row.getByRole("cell").nth(5)).toHaveText(/Active|启用/i);
   await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
 });
@@ -163,6 +164,7 @@ for (const initiallyActive of [0, 1])
         .click();
       expect((await response).status()).toBe(200);
       await expect(dialog).toBeHidden();
+      await expect(row.getByRole("cell").nth(5)).toHaveText(/Active|启用/i);
       await expect(
         row.getByRole("button", { name: /激活版本|Activate version/i }),
       ).toHaveCount(0);
