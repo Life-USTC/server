@@ -212,7 +212,13 @@ test("upload.write-auth-unsuspended", async ({ page, browser }) => {
         grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
         tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
       });
-      return authorizeDeviceBearer(actor, client.clientId, scope, resource);
+      return authorizeDeviceBearer(
+        actor,
+        PLAYWRIGHT_BASE_URL,
+        client.clientId,
+        scope,
+        resource,
+      );
     };
     const writeScope = "workspace.upload:write";
     const readScope = "workspace.upload:read";

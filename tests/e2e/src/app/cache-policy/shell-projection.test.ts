@@ -233,6 +233,7 @@ test("rendering-and-cache.personal-overlays-4", async ({
         expect(JSON.stringify(payload)).not.toContain(users[1 - index].id);
         const token = await authorizeDeviceBearer(
           context.request,
+          PLAYWRIGHT_BASE_URL,
           client.clientId,
           restReadScope("account.profile"),
         );

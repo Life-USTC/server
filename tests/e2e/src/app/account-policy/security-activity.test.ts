@@ -6,6 +6,7 @@ import {
 import {
   createOAuthClientFixture,
   deleteOAuthClientsByName,
+  PLAYWRIGHT_BASE_URL,
 } from "../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
@@ -104,6 +105,7 @@ test("user.account-security-activity", async ({ page }) => {
     await expect(page).toHaveURL(/\/account\/settings\/security$/);
     const token = await authorizeDeviceBearer(
       page.request,
+      PLAYWRIGHT_BASE_URL,
       client.clientId,
       "account.profile:read",
     );
