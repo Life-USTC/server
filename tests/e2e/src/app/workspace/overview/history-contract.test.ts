@@ -1,19 +1,20 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
 test("overview.historical-subscriptions-remain-discoverable", async ({
   page,
   request,
+  isolatedWorker,
+  createCalendar,
+  oauthOwner,
 }) => {
   test.setTimeout(120_000);
-  const fixture = await createCalendarContractFixture();
-  const semester = await withE2ePrisma(async (db) => {
+  const db = isolatedWorker.database.owner;
+  const fixture = await createCalendar();
+  const semester = await (async () => {
     const past = await db.semester.create({
       data: {
         jwId: fixture.section.jwId + 40,
@@ -40,16 +41,15 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
       data: { submissionDueAt: new Date("2026-01-07T12:00:00+08:00") },
     });
     return past;
-  });
-  let clientId: string | undefined;
+  })();
   const client = new Client({ name: "overview-history", version: "1" });
   try {
     await page.context().clearCookies();
     await page
       .context()
       .addCookies([
-        await createSignedSessionCookie(fixture.users[0].id),
-        { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
+        { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
       ]);
     const overviewUrl =
       "/workspace/overview?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00";
@@ -126,13 +126,13 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
     }
     const scope =
       "workspace.overview:read workspace.subscription:read workspace.homework:read workspace.schedule:read workspace.exam:read";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const resource = `${isolatedWorker.origin}/api/mcp`;
     const token = await issueAccessToken(page, request, {
+      owner: oauthOwner,
       scope,
       clientScopes: scope.split(" "),
       resource,
     });
-    clientId = token.clientId;
     await client.connect(
       new StreamableHTTPClientTransport(new URL(resource), {
         requestInit: {
@@ -185,13 +185,5 @@ test("overview.historical-subscriptions-remain-discoverable", async ({
     }
   } finally {
     await client.close();
-    if (clientId)
-      await withE2ePrisma((db) =>
-        db.oAuthClient.delete({ where: { clientId } }),
-      );
-    await fixture.cleanup();
-    await withE2ePrisma((db) =>
-      db.semester.delete({ where: { id: semester.id } }),
-    );
   }
 });

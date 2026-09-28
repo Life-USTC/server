@@ -1,9 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import type { createCalendarContractFixture } from "./calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
-import { withE2ePrisma } from "./e2e-db/prisma";
+import type { IsolatedWorker } from "./isolated-worker";
 import { gotoAndWaitForReady } from "./page-ready";
-import { createSignedSessionCookie } from "./workspace-task-filters";
 
 export type SubscriptionFixture = Awaited<
   ReturnType<typeof createCalendarContractFixture>
@@ -14,18 +12,23 @@ export const subscriptionOverviewUrl = `/workspace/overview?snapshotAt=${encodeU
 export async function signInSubscriptionOwner(
   page: Page,
   fixture: SubscriptionFixture,
+  worker: IsolatedWorker,
 ) {
   await page.context().clearCookies();
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(fixture.users[0].id),
-      { name: "NEXT_LOCALE", value: "en-us", url: PLAYWRIGHT_BASE_URL },
+      (await worker.createSession(fixture.users[0].id)).cookie,
+      { name: "NEXT_LOCALE", value: "en-us", url: worker.origin },
     ]);
 }
 
-export async function observeSubscriptionState(fixture: SubscriptionFixture) {
-  return withE2ePrisma(async (db) => ({
+export async function observeSubscriptionState(
+  fixture: SubscriptionFixture,
+  worker: IsolatedWorker,
+) {
+  const db = worker.database.owner;
+  return {
     sections: await db.userSectionSubscription.findMany({
       where: { userId: fixture.users[0].id },
       select: { sectionId: true, kind: true },
@@ -41,7 +44,7 @@ export async function observeSubscriptionState(fixture: SubscriptionFixture) {
       select: { youngId: true },
       orderBy: { youngId: "asc" },
     }),
-  }));
+  };
 }
 
 export function subscribedCourseLink(page: Page, fixture: SubscriptionFixture) {

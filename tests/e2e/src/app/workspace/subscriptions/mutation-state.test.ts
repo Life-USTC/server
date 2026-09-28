@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import {
   createSubscriptionMutationFixture,
   expectMissingSubscriptionKind,
@@ -14,14 +14,21 @@ for (const transport of subscriptionTransports) {
     test(`${transport}: ${role} modifies only personal subscription state`, async ({
       page,
       request,
+      oauthOwner,
+      createCalendar,
     }) => {
       test.setTimeout(90_000);
-      const fixture = await createSubscriptionMutationFixture(role);
+      const fixture = await createSubscriptionMutationFixture(
+        oauthOwner,
+        createCalendar,
+        role,
+      );
       let connection:
         | Awaited<ReturnType<typeof openSubscriptionTransport>>
         | undefined;
       try {
         connection = await openSubscriptionTransport(
+          oauthOwner,
           page,
           request,
           fixture.own.users[0].id,
@@ -61,7 +68,6 @@ for (const transport of subscriptionTransports) {
         });
       } finally {
         await connection?.close();
-        await fixture.cleanup();
       }
     });
   }

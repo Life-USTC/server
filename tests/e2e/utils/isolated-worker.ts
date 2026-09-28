@@ -24,6 +24,7 @@ export type IsolatedWorker = {
   origin: string;
   database: IsolatedDatabase;
   createActor: (options?: { isAdmin?: boolean }) => Promise<Actor>;
+  createSession: (userId: string) => Promise<Actor>;
 };
 
 async function availablePort() {
@@ -216,9 +217,38 @@ export const test = base.extend<
           throw new Error(
             `Private Worker failed health check: ${health.status} ${healthBody.slice(0, 300)}`,
           );
+        async function createSession(id: string): Promise<Actor> {
+          await database.owner.user.findUniqueOrThrow({ where: { id } });
+          const sessionToken = crypto.randomUUID();
+          await database.owner.session.create({
+            data: {
+              userId: id,
+              sessionToken,
+              expires: new Date(Date.now() + 60 * 60 * 1000),
+            },
+          });
+          const signature = createHmac("sha256", authSecret)
+            .update(sessionToken)
+            .digest("base64");
+          const cookie = {
+            name: getCookies({ baseURL: origin }).sessionToken.name,
+            value: encodeURIComponent(`${sessionToken}.${signature}`),
+            url: origin,
+          };
+          const request = await playwright.request.newContext({
+            baseURL: origin,
+            extraHTTPHeaders: {
+              cookie: `${cookie.name}=${cookie.value}`,
+              origin,
+            },
+          });
+          requests.push(request);
+          return { id, cookie, request };
+        }
         await use({
           origin,
           database,
+          createSession,
           createActor: async ({ isAdmin = false } = {}) => {
             const id = crypto.randomUUID();
             await database.owner.user.create({
@@ -231,31 +261,7 @@ export const test = base.extend<
                 isAdmin,
               },
             });
-            const sessionToken = crypto.randomUUID();
-            await database.owner.session.create({
-              data: {
-                userId: id,
-                sessionToken,
-                expires: new Date(Date.now() + 60 * 60 * 1000),
-              },
-            });
-            const signature = createHmac("sha256", authSecret)
-              .update(sessionToken)
-              .digest("base64");
-            const cookie = {
-              name: getCookies({ baseURL: origin }).sessionToken.name,
-              value: encodeURIComponent(`${sessionToken}.${signature}`),
-              url: origin,
-            };
-            const request = await playwright.request.newContext({
-              baseURL: origin,
-              extraHTTPHeaders: {
-                cookie: `${cookie.name}=${cookie.value}`,
-                origin,
-              },
-            });
-            requests.push(request);
-            return { id, cookie, request };
+            return createSession(id);
           },
         });
       } catch (error) {

@@ -13,26 +13,32 @@ type OAuth = OAuthOwner & { user: User };
 
 /** Every authenticated scenario owns the real Worker, database, OAuth state,
  * queues and storage. A consumer requests only its own domain prerequisites. */
-export const test = workerTest.extend<{ oauth: OAuth; mcp: Client }>({
-  oauth: async ({ isolatedWorker, page }, use, testInfo) => {
-    const actor = await isolatedWorker.createActor();
+export const test = workerTest.extend<{
+  oauthOwner: OAuthOwner;
+  oauth: OAuth;
+  mcp: Client;
+}>({
+  oauthOwner: async ({ isolatedWorker }, use, testInfo) => {
     const owner: OAuthOwner = { worker: isolatedWorker, clientNames: [] };
     try {
-      await page.context().addCookies([actor.cookie]);
-      const user = await isolatedWorker.database.owner.user.findUniqueOrThrow({
-        where: { id: actor.id },
-      });
-      await use({ ...owner, user });
+      await use(owner);
     } finally {
       await testInfo.attach("oauth-owned-state", {
         body: JSON.stringify({
           database: isolatedWorker.database.name,
-          userId: actor.id,
           clientNames: owner.clientNames,
         }),
         contentType: "application/json",
       });
     }
+  },
+  oauth: async ({ oauthOwner, page }, use) => {
+    const actor = await oauthOwner.worker.createActor();
+    await page.context().addCookies([actor.cookie]);
+    const user = await oauthOwner.worker.database.owner.user.findUniqueOrThrow({
+      where: { id: actor.id },
+    });
+    await use({ ...oauthOwner, user });
   },
   mcp: async ({ oauth, page, request }, use) => {
     const resource = `${oauth.worker.origin}/api/mcp`;

@@ -1,20 +1,15 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import {
-  type APIRequestContext,
-  expect,
-  type Page,
-  test,
-} from "@playwright/test";
+import { type APIRequestContext, expect, type Page } from "@playwright/test";
 import type { BusTimetableData } from "@/features/bus/lib/bus-types";
-import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
+import { arrangeBus } from "../api/mcp/_data";
+import { test } from "../api/mcp/_fixture";
+import type { OAuthOwner } from "../api/mcp/helpers";
 import { issueAccessToken, parseTextContent } from "../api/mcp/helpers";
 
-async function createFixture() {
+async function createFixture(db: OAuthOwner["worker"]["database"]["owner"]) {
   const marker = crypto.randomUUID().replaceAll("-", "");
-  return withE2ePrisma(async (db) => {
+  return (async () => {
     const campuses = await db.busCampus.findMany({
       take: 3,
       orderBy: { id: "asc" },
@@ -113,30 +108,37 @@ async function createFixture() {
       );
     }
     return { campuses, routes, version, users, raw };
-  });
+  })();
 }
 
 type Fixture = Awaited<ReturnType<typeof createFixture>>;
 async function withFixture(
   page: Page,
   request: APIRequestContext,
+  oauthOwner: OAuthOwner,
   run: (fixture: Fixture, client: Client) => Promise<void>,
 ) {
-  const fixture = await createFixture();
+  const db = oauthOwner.worker.database.owner;
+  await arrangeBus(db);
+  await db.busCampus.create({
+    data: { id: 3, nameCn: "验证第三校区", latitude: 31.86, longitude: 117.28 },
+  });
+  const fixture = await createFixture(db);
   const client = new Client({ name: "bus-data-contract", version: "1" });
-  let clientId: string | undefined;
   try {
     await page.context().clearCookies();
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+      .addCookies([
+        (await oauthOwner.worker.createSession(fixture.users[0].id)).cookie,
+      ]);
+    const resource = `${oauthOwner.worker.origin}/api/mcp`;
     const token = await issueAccessToken(page, request, {
+      owner: oauthOwner,
       scope: "workspace.bus-preferences:read",
       clientScopes: ["workspace.bus-preferences:read"],
       resource,
     });
-    clientId = token.clientId;
     await client.connect(
       new StreamableHTTPClientTransport(new URL(resource), {
         requestInit: {
@@ -147,16 +149,6 @@ async function withFixture(
     await run(fixture, client);
   } finally {
     await client.close();
-    await withE2ePrisma(async (db) => {
-      if (clientId) await db.oAuthClient.delete({ where: { clientId } });
-      await db.user.deleteMany({
-        where: { id: { in: fixture.users.map(({ id }) => id) } },
-      });
-      await db.busScheduleVersion.delete({ where: { id: fixture.version.id } });
-      await db.busRoute.deleteMany({
-        where: { id: { in: fixture.routes.map(({ id }) => id) } },
-      });
-    });
   }
 }
 async function call<Result>(
@@ -171,8 +163,8 @@ async function call<Result>(
 const timetableUrl = (versionKey: string) =>
   `/api/catalog/bus?versionKey=${encodeURIComponent(versionKey)}&locale=en-us`;
 
-test("bus.raw-data-returned", async ({ page, request }) => {
-  await withFixture(page, request, async (fixture, client) => {
+test("bus.raw-data-returned", async ({ page, request, oauthOwner }) => {
+  await withFixture(page, request, oauthOwner, async (fixture, client) => {
     const response = await request.get(timetableUrl(fixture.version.key));
     expect(response.status()).toBe(200);
     const anonymous = (await response.json()) as BusTimetableData;
@@ -224,7 +216,7 @@ test("bus.raw-data-returned", async ({ page, request }) => {
     for (const route of fixture.routes) {
       for (const pageNumber of [1, 2, 3]) {
         const response = await page.request.post("/api/graphql", {
-          headers: { Origin: PLAYWRIGHT_BASE_URL },
+          headers: { Origin: oauthOwner.worker.origin },
           data: {
             query: `query($route:Int!,$version:String!,$page:PageInput!){catalog{busTimetable(routeId:$route,versionKey:$version,page:$page){route{id stops{campusId}} weekday{position stopTimes{time}} saturday{position stopTimes{time}} sunday{position stopTimes{time}} weekdayPageInfo{page pageSize total totalPages} saturdayPageInfo{page pageSize total totalPages} sundayPageInfo{page pageSize total totalPages}}}}`,
             variables: {
@@ -277,7 +269,10 @@ test("bus.raw-data-returned", async ({ page, request }) => {
       await page.context().clearCookies();
       await page
         .context()
-        .addCookies([await createSignedSessionCookie(fixture.users[index].id)]);
+        .addCookies([
+          (await oauthOwner.worker.createSession(fixture.users[index].id))
+            .cookie,
+        ]);
       const response = await page.request.get(
         timetableUrl(fixture.version.key),
       );
@@ -294,11 +289,11 @@ test("bus.raw-data-returned", async ({ page, request }) => {
   });
 });
 
-test("bus.version-key-boundary", async ({ page, request }) => {
-  await withFixture(page, request, async (fixture, client) => {
+test("bus.version-key-boundary", async ({ page, request, oauthOwner }) => {
+  await withFixture(page, request, oauthOwner, async (fixture, client) => {
     const graph = (versionKey: string) =>
       page.request.post("/api/graphql", {
-        headers: { Origin: PLAYWRIGHT_BASE_URL },
+        headers: { Origin: oauthOwner.worker.origin },
         data: {
           query:
             "query($routeId:Int!,$key:String){catalog{busTimetable(routeId:$routeId,versionKey:$key){route{id} weekday{position}}}}",
@@ -350,8 +345,8 @@ test("bus.version-key-boundary", async ({ page, request }) => {
   });
 });
 
-test("bus.current-version-only", async ({ page, request }) => {
-  await withFixture(page, request, async (fixture, client) => {
+test("bus.current-version-only", async ({ page, request, oauthOwner }) => {
+  await withFixture(page, request, oauthOwner, async (fixture, client) => {
     const response = await request.get("/api/catalog/bus?locale=en-us");
     expect(response.status()).toBe(200);
     const current = (await response.json()) as BusTimetableData;
@@ -370,7 +365,7 @@ test("bus.current-version-only", async ({ page, request }) => {
     const totalPages = Math.max(1, Math.ceil(current.routes.length / 2));
     for (let pageNumber = 1; pageNumber <= totalPages + 1; pageNumber++) {
       const response = await page.request.post("/api/graphql", {
-        headers: { Origin: PLAYWRIGHT_BASE_URL },
+        headers: { Origin: oauthOwner.worker.origin },
         data: {
           query:
             "query($page:PageInput!){catalog{busRoutes(page:$page){items{id} pageInfo{page pageSize total totalPages}}}}",
@@ -407,8 +402,8 @@ test("bus.current-version-only", async ({ page, request }) => {
   });
 });
 
-test("bus.canonical-compact-mode", async ({ page, request }) => {
-  await withFixture(page, request, async (fixture, client) => {
+test("bus.canonical-compact-mode", async ({ page, request, oauthOwner }) => {
+  await withFixture(page, request, oauthOwner, async (fixture, client) => {
     const compact = await call<{
       counts: Record<string, number>;
       routes: { id: number }[];

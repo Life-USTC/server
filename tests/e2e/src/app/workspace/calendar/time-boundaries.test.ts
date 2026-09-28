@@ -1,10 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { expect, test } from "@playwright/test";
-import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
-import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db/core";
-import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
-import { createSignedSessionCookie } from "../../../../utils/workspace-task-filters";
+import { expect } from "@playwright/test";
+import { test } from "../../../../utils/private-calendar-fixture";
 import { issueAccessToken, parseTextContent } from "../../api/mcp/helpers";
 
 type Event = { type: string; at: string; endsAt: string | null };
@@ -19,33 +16,39 @@ const instants = (events: Event[]) =>
     };
   });
 
-test("interface-hierarchy.semantic-parity-4", async ({ page, request }) => {
-  const fixture = await createCalendarContractFixture();
+test("interface-hierarchy.semantic-parity-4", async ({
+  page,
+  request,
+  isolatedWorker,
+  createCalendar,
+  oauthOwner,
+}) => {
+  const db = isolatedWorker.database.owner;
+  const fixture = await createCalendar();
   const client = new Client({ name: "calendar-time-boundaries", version: "1" });
-  let clientId: string | undefined;
   try {
     const first = Date.parse(`${fixture.date}T00:00:00+08:00`);
     const last = Date.parse(`${fixture.activityDate}T23:59:59.999+08:00`);
-    await withE2ePrisma((db) =>
-      db.todo.createMany({
-        data: [first - 1, first, last, last + 1].map((dueAt) => ({
-          userId: fixture.users[0].id,
-          title: `Boundary ${dueAt}`,
-          dueAt: new Date(dueAt),
-        })),
-      }),
-    );
+    await db.todo.createMany({
+      data: [first - 1, first, last, last + 1].map((dueAt) => ({
+        userId: fixture.users[0].id,
+        title: `Boundary ${dueAt}`,
+        dueAt: new Date(dueAt),
+      })),
+    });
     await page
       .context()
-      .addCookies([await createSignedSessionCookie(fixture.users[0].id)]);
+      .addCookies([
+        (await isolatedWorker.createSession(fixture.users[0].id)).cookie,
+      ]);
     const scope = "workspace.calendar:read";
-    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const resource = `${isolatedWorker.origin}/api/mcp`;
     const token = await issueAccessToken(page, request, {
+      owner: oauthOwner,
       scope,
       clientScopes: [scope],
       resource,
     });
-    clientId = token.clientId;
     await client.connect(
       new StreamableHTTPClientTransport(new URL(resource), {
         requestInit: {
@@ -99,7 +102,7 @@ test("interface-hierarchy.semantic-parity-4", async ({ page, request }) => {
       expect(rest.pagination.total).toBe(7);
       expect(instants(rest.data)).toEqual(expected);
       const graphResponse = await page.request.post("/api/graphql", {
-        headers: { origin: PLAYWRIGHT_BASE_URL },
+        headers: { origin: isolatedWorker.origin },
         data: {
           query: `query($from: String!, $to: String!) { workspace { calendarEvents(dateFrom: $from, dateTo: $to) { items { type at endsAt } pageInfo { total } } } }`,
           variables: { from: dateFrom, to: dateTo },
@@ -125,10 +128,5 @@ test("interface-hierarchy.semantic-parity-4", async ({ page, request }) => {
     }
   } finally {
     await client.close();
-    if (clientId)
-      await withE2ePrisma((db) =>
-        db.oAuthClient.delete({ where: { clientId } }),
-      );
-    await fixture.cleanup();
   }
 });
