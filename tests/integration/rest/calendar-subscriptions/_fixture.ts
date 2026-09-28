@@ -50,16 +50,19 @@ export const test = actorTest.extend<{ calendarState: CalendarState }>({
             source,
             previousSource,
           ].entries()) {
-            sections.push(
-              await tx.section.create({
-                data: {
-                  ...data,
-                  semesterId: data.semesterId as number,
-                  code: codes[index],
-                  jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
-                },
-              }),
-            );
+            const semesterId = data.semesterId;
+            if (semesterId === null)
+              throw new Error("Fixture section needs a semester");
+            const created = await tx.section.create({
+              data: {
+                ...data,
+                semesterId,
+                code: codes[index],
+                jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
+              },
+              select: { id: true, jwId: true, code: true },
+            });
+            sections.push({ ...created, semesterId });
           }
           const [section, second, previous] = sections;
           const group = await tx.scheduleGroup.create({
