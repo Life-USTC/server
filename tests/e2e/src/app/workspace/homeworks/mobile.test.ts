@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { homeworkExpectation } from "../../../../../shared/specifications/homework";
+import { semanticContract } from "../../../../../shared/specifications/semantic-contract";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { visibleText } from "../../../../utils/locators";
@@ -10,7 +11,9 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("移动端保留直接筛选和足够大的新建操作", async ({ page }, testInfo) => {
+  test("homework.mobile-toolbar-priority", async ({ page }, testInfo) => {
+    const contract = await semanticContract(testInfo.title, "target_size");
+    contract.equal("/surface", "web");
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
@@ -29,7 +32,12 @@ test.describe("仪表盘作业", () => {
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId(specification.target);
+    const add = page.getByTestId("workspace-homeworks-add");
+    contract.equal("/target", {
+      by: "test_id",
+      value: "workspace-homeworks-add",
+    });
+    contract.equal("/viewport", page.viewportSize());
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-homeworks-view-menu")).toHaveCount(
@@ -37,8 +45,9 @@ test.describe("仪表盘作业", () => {
     );
 
     const addBox = await add.boundingBox();
-    expect(addBox?.height).toBeGreaterThanOrEqual(specification.min_height);
-    expect(addBox?.width).toBeGreaterThanOrEqual(specification.min_width);
+    contract.atLeast("/min_height", addBox?.height ?? 0);
+    contract.atLeast("/min_width", addBox?.width ?? 0);
+    contract.recordPlaywright(testInfo);
     const filterBox = await incomplete.boundingBox();
     expect(filterBox?.height).toBeGreaterThanOrEqual(44);
     expect(filterBox?.width).toBeGreaterThanOrEqual(44);

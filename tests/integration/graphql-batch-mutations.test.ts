@@ -227,7 +227,7 @@ describe("GraphQL batch mutations", () => {
     ).resolves.toEqual({ completed: false });
   });
 
-  it("returns todo completion and delete results per item", async () => {
+  it("graphql.todo-batch-results", async () => {
     const token = await signToken(userAId, [restWriteScope("workspace.todo")]);
     const completion = await execute(
       {
@@ -381,7 +381,7 @@ describe("GraphQL batch mutations", () => {
     ).resolves.toEqual({ completed: false });
   });
 
-  it("preserves homework per-item not-found and deleted errors", async () => {
+  it("graphql.homework-batch-results", async () => {
     const token = await signToken(userAId, [
       restWriteScope("workspace.homework"),
     ]);
@@ -443,7 +443,7 @@ describe("GraphQL batch mutations", () => {
     });
   });
 
-  it("applies and removes one section through the shared subscription service", async () => {
+  it("graphql.subscription-batch-results", async () => {
     const token = await signToken(userAId, [
       restWriteScope("workspace.subscription"),
     ]);

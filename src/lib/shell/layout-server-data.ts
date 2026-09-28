@@ -64,6 +64,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       explore: locale === "zh-cn" ? "发现" : "Explore",
       me: messages.common.me,
       settings: messages.metadata.pages.settings,
+      uploads: messages.metadata.pages.uploads,
       sections: messages.common.sections,
       teachers: messages.common.teachers,
       rooms: messages.metadata.pages.rooms,

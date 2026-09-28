@@ -12,81 +12,359 @@ access:
   admin: Uses the same Account, Workspace, Catalog, Community, and ordinary mutation surfaces as a regular
     user; GraphQL exposes no admin governance fields or mutations.
   agent: Direct GraphQL HTTP callers use a bearer token issued for the GraphQL resource and matching feature
-    scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or compatible
-    registered operations through the shared schema and resolver-level feature scopes.
+    scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or registered
+    operations through the shared schema and resolver-level feature scopes.
 requirements:
 - id: graphql.scoped-mutations
   category: authorization
   rule: Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer
     callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session
     callers receive the equivalent first-party access.
-- id: graphql.batch-mutations
+  acceptance:
+    given: Every executable business Mutation resolver and its registered feature write scope.
+    when: Anonymous, read-only OAuth, trusted-session, and matching-write OAuth principals invoke every
+      resolver.
+    then:
+    - Anonymous and read-only principals are rejected before consuming mutation budgets.
+    - Session and write-scope callers reach the shared per-user feature action budget before input validation
+      or business services.
+    - Batch fields use the stricter batch-write action key.
+    test:
+      file: tests/unit/lib/graphql/graphql-all-mutation-authority.test.ts
+      name: graphql.scoped-mutations
+- id: graphql.todo-batch-results
   category: behavior
-  rule: Todo, homework, and comment-delete batches preserve REST per-item results. Section subscriptions
-    reuse the shared transaction-aware service. Workspace pins validate all slugs, then preserve ordered
-    non-atomic execution and retry ambiguity. Every batch uses the stricter feature:batch-write budget;
-    ID-target batches reject duplicates before writing.
+  rule: Todo completion and deletion batches return ordered per-item results while preserving ownership
+    isolation.
+  acceptance:
+    given: An owner and another user have todos, plus a nonexistent target.
+    when: GraphQL performs completion and deletion batches.
+    then:
+    - Owned items change successfully; foreign and missing items return NOT_FOUND, and foreign data remains
+      unchanged.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.todo-batch-results
+- id: graphql.homework-batch-results
+  category: behavior
+  rule: Homework completion batches retain per-item success, DELETED and NOT_FOUND outcomes.
+  acceptance:
+    given: Active, deleted and missing homework targets.
+    when: GraphQL completes all targets in one batch.
+    then:
+    - Each result matches its input target and contains the correct completion state or error.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.homework-batch-results
+- id: graphql.subscription-batch-results
+  category: behavior
+  rule: GraphQL subscription import uses the shared owner-scoped add/remove service and preserves matched/unmatched
+    code results.
+  acceptance:
+    given: A signed user and known and unknown section codes.
+    when: GraphQL adds and removes subscriptions.
+    then:
+    - Results report matching codes and affected counts, and the database reflects only the requested
+      membership changes.
+    test:
+      file: tests/integration/graphql-batch-mutations.test.ts
+      name: graphql.subscription-batch-results
+- id: graphql.comment-batch-results
+  category: behavior
+  rule: Comment deletion batches return ordered success or ownership-failure results independently for
+    each target.
+  acceptance:
+    given: An owner and another user each have a comment.
+    when: GraphQL deletes both in one batch.
+    then:
+    - The owned comment succeeds and the foreign comment returns FORBIDDEN.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.comment-batch-results
+- id: graphql.pin-batch-order
+  category: behavior
+  rule: Workspace pin batches preserve input order, including repeated slugs.
+  acceptance:
+    given: A signed owner has no pinned mail link.
+    when: GraphQL pins then unpins mail in one batch.
+    then:
+    - The final pinned list is empty and the response reports the shared maximum pin count.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.pin-batch-order
+- id: graphql.pin-batch-failure
+  category: behavior
+  rule: Workspace pin batches validate every slug before writes, then execute sequentially without rollback
+    or automatic retry; a caller retry can repeat earlier successful operations.
+  acceptance:
+    given: The real GraphQL resolver and batch orchestrator use an instrumented primitive pin writer.
+    when: An invalid slug or a later write failure occurs, followed by a caller retry.
+    then:
+    - Invalid input produces zero primitive writes.
+    - A later failure leaves the earlier effect intact; retry invokes that earlier operation again in
+      order.
+    test:
+      file: tests/unit/lib/graphql/graphql-batch-contracts.test.ts
+      name: graphql.pin-batch-failure
+- id: graphql.batch-unique-ids
+  category: validation
+  rule: Todo completion/delete, homework completion and comment-delete batches reject duplicate normalized
+    target IDs before calling feature mutation services.
+  acceptance:
+    given: All four ID-target GraphQL resolvers receive repeated IDs with and without surrounding whitespace.
+    when: The authenticated resolvers pass their shared rate limit and validate inputs.
+    then:
+    - Every duplicate batch returns BAD_USER_INPUT before any feature mutation service is called.
+    test:
+      file: tests/unit/lib/graphql/graphql-batch-contracts.test.ts
+      name: graphql.batch-unique-ids
 - id: graphql.single-endpoint
   category: behavior
   rule: GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.
+  acceptance:
+    given: The real GraphQL route exports and anonymous metadata query.
+    when: GET, POST and OPTIONS invoke the exported HTTP route.
+    then:
+    - GET and POST execute the query at /api/graphql; OPTIONS returns a successful preflight.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.single-endpoint
 - id: graphql.production-discovery
   category: behavior
-  rule: GraphiQL and schema introspection are disabled in production.
+  rule: The GraphiQL interactive IDE is available in development only and is not served by the production
+    GraphQL endpoint.
+  acceptance:
+    given: Development and production handlers receive HTML IDE requests.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - Development serves the IDE, production does not.
+    - Production still executes a public GET query.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.production-discovery
 - id: graphql.request-budgets
   category: validation
-  rule: Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level
-    fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated
-    selection by its effective pageSize, including values supplied through variables.
+  rule: GraphQL HTTP request bodies have an inclusive 64 KiB UTF-8 byte limit. A larger body returns 413
+    REQUEST_TOO_LARGE before execution.
+  acceptance:
+    given: A valid UTF-8 GraphQL JSON request reaches the 65536-byte boundary.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - A 65536-byte body is processed.
+    - A 65537-byte body returns413 REQUEST_TOO_LARGE.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-budgets
 - id: graphql.graphql-operation-runner
   category: behavior
-  rule: MCP accepts exactly one arbitrary document or compatible registered operation ID. Arbitrary documents
-    pass through the production Yoga validation, introspection, depth, alias, directive, token, top-level-field,
-    cost, timeout, error-masking, and resolver scope pipeline. Every selected mutation requires confirmed=true.
+  rule: MCP accepts exactly one GraphQL document or registered operation ID and executes the selected
+    operation.
+  rationale: Validation parity is owned by graphql.mcp-validation-parity; confirmation by graphql.mcp-mutation-confirmation;
+    shared resolver authorization and safe error projection remain governed by graphql.scoped-query-auth,
+    graphql.scoped-mutations, and graphql.safe-errors.
+  acceptance:
+    given: A live MCP client and a valid public query/registered operation.
+    when: The runner receives neither, both, or exactly one operation source.
+    then:
+    - Neither and both are BAD_USER_INPUT; either single source executes successfully.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.graphql-operation-runner
 - id: graphql.graphql-operation-prompt
   category: presentation
   rule: MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation
     manifest and guides one bounded graphql_operation_run call, including minimum scopes, explicit mutation
     confirmation, and timeout-safe retry behavior.
+  acceptance:
+    given: A real MCP client connected to the application server.
+    when: The client requests the registered GraphQL planning prompt.
+    then:
+    - The prompt embeds the exact canonical SDL and document-free manifest.
+    - Guidance requires one bounded call, minimum challenged scopes, explicit mutation confirmation and
+      state inspection after timeout or cancellation.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.graphql-operation-prompt
 - id: graphql.mutation-timeout-ambiguity
   category: consistency
   rule: A GraphQL timeout or caller cancellation stops waiting for the result but cannot guarantee rollback
     after a mutation resolver has started. The final state is indeterminate; clients must inspect current
     state and must not blindly retry a mutation.
+  acceptance:
+    given: A started mutation whose resolver is held pending before its side effect.
+    when: HTTP and registered MCP requests time out or are cancelled before the resolver is released.
+    then:
+    - Each transport stops waiting while the resolver remains pending.
+    - Releasing the already-started resolver still permits its side effect, so timeout or cancellation
+      does not establish rollback.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.mutation-timeout-ambiguity
 - id: graphql.registered-operation-coverage
   category: consistency
-  rule: The compatibility manifest covers every current public Query root field, each Workspace or Account
-    field, and every ordinary business Mutation root field. Authentication and OAuth protocol operations,
-    admin governance, upload raw-byte transfer, GraphQL subscriptions, and introspection remain outside
-    the MCP runner.
+  rule: The registered-operation manifest covers current public Query root fields, each Workspace or Account
+    field, and ordinary business Mutation root fields. Authentication and OAuth protocol operations, administrator
+    governance, upload byte transfer, GraphQL subscriptions, and introspection are excluded.
+  rationale: Registered operations are current discoverability and call-construction conveniences, not
+    a promise to preserve retired operations.
+  acceptance:
+    given: The executable schema and compiled registered-operation definitions.
+    when: Every Query, Mutation, Workspace and Account field is compared with the registry.
+    then:
+    - All supported fields have a registered operation and excluded protocol/governance/byte-transfer/subscription
+      capabilities remain absent.
+    test:
+      file: tests/unit/lib/graphql/graphql-operations.test.ts
+      name: graphql.registered-operation-coverage
 - id: graphql.upload-workflow-boundary
   category: privacy
-  rule: Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit,
-    and storage-delete invariants. They can return an authenticated on-site PUT workflow URL but never
-    accept or proxy raw bytes. Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves
-    metadata.
+  rule: GraphQL and registered MCP upload operations exchange metadata and an authenticated on-site PUT
+    URL; raw file bytes remain outside both transports. Completion follows the shared uploaded-object
+    lease lifecycle.
+  acceptance:
+    given: A signed owner, an empty upload inventory and object storage.
+    when: HTTP and registered MCP reject raw-byte fields, then create, complete, rename and delete an
+      upload using a separately completed PUT lease.
+    then:
+    - Unknown bytes/file fields are rejected before reservation or storage changes.
+    - The workflow URL points to the on-site object endpoint; completion records the authoritative stored
+      size, and rename/delete update owner metadata.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-workflow-boundary
+- id: graphql.upload-ownership
+  category: authorization
+  rule: Upload rename, delete and completion mutations enforce the shared owner boundary.
+  acceptance:
+    given: Another user owns an upload and a completed pending reservation.
+    when: An authenticated GraphQL writer tries to rename, delete or complete those objects.
+    then:
+    - All attempts reject without disclosing private filenames, changing records or deleting the stored
+      object.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-ownership
+- id: graphql.upload-suspension
+  category: authorization
+  rule: Active suspension denies every GraphQL upload mutation, including registered MCP operations.
+  acceptance:
+    given: A suspended owner has an uploaded file and pending reservation.
+    when: HTTP and registered MCP invoke create-session, complete-session, rename and delete.
+    then:
+    - Every mutation returns FORBIDDEN and existing upload and reservation records remain unchanged.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-suspension
+- id: graphql.upload-quota
+  category: validation
+  rule: Upload session creation and completion enforce the shared total quota; completion uses authoritative
+    object size rather than trusting the reservation.
+  acceptance:
+    given: An owner is at quota, then frees one byte and reserves it.
+    when: GraphQL creates a reservation and completes it after storage reports two bytes.
+    then:
+    - At-quota creation rejects; the one-byte reservation succeeds after space is freed.
+    - Completion rejects the larger stored object without creating upload metadata or exceeding the quota.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-quota
+- id: graphql.upload-audit
+  category: consistency
+  rule: Successful GraphQL upload deletion records the shared upload_delete audit with actor, target,
+    transport and OAuth provenance.
+  acceptance:
+    given: An OAuth writer owns a stored upload.
+    when: GraphQL deletes the upload successfully.
+    then:
+    - Metadata is removed and exactly one audit records actor/subject, upload target, OAuth client/grant,
+      graphql channel and deleted size.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-audit
+- id: graphql.upload-storage-delete-failure
+  category: behavior
+  rule: Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves metadata when the object
+    still exists.
+  acceptance:
+    given: An owner has a stored upload whose object deletion fails.
+    when: GraphQL invokes uploadDelete.
+    then:
+    - The HTTP response is503 with SERVICE_UNAVAILABLE and no private storage exception text.
+    - The upload metadata and object remain, and no success audit is written.
+    test:
+      file: tests/integration/graphql-remaining-mutations.test.ts
+      name: graphql.upload-storage-delete-failure
 - id: graphql.pagination
   category: validation
   rule: 'Every GraphQL collection is bounded: Workspace todos, subscriptions, homeworks, schedules, and
     exams use PageInput, while nested Schedule.teachers, Schedule.teacherParticipations and Exam.examRooms
     return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, page must be between
     1 and 100, and pageSize must be between 1 and 100.'
+  acceptance:
+    given: Owner-scoped workspace data and nested schedule/exam collections.
+    when: The HTTP handler executes every core workspace page at default, minimum, maximum and invalid
+      boundaries.
+    then:
+    - Defaults are page 1/pageSize 20; page and pageSize 1-100 are accepted and 0/101 rejected.
+    - Nested schedule teachers/participations and exam rooms preserve page metadata and cap 101-item inputs
+      at the requested 20 or 100.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.pagination
 - id: graphql.search-boundary
   category: validation
   rule: GraphQL search filter strings accept 2-200 characters, matching public catalog REST, Web, and
     MCP search surfaces.
+  acceptance:
+    given: Search strings sit below, at, and above the2-200-character bounds.
+    when: The GraphQL search validator parses them.
+    then:
+    - Lengths2 and200 are accepted.
+    - Lengths1 and201 are rejected.
+    test:
+      file: tests/unit/lib/graphql/graphql-input-boundaries.test.ts
+      name: graphql.search-boundary
 - id: graphql.resolver-boundary
   category: consistency
   rule: Resolvers call feature-owned services only; they do not issue internal HTTP requests or access
     Prisma directly.
+  acceptance:
+    given: All checked-in GraphQL TypeScript modules, including the executable schema and mutation adapters.
+    when: AST imports and calls are inspected.
+    then:
+    - Resolver modules do not import database clients or HTTP API adapters, execute raw database queries,
+      or issue network fetches.
+    - The two Yoga fetch calls are in-process transport dispatch, not resolver network requests.
+    test:
+      file: tests/unit/lib/graphql/graphql-resolver-boundary.test.ts
+      name: graphql.resolver-boundary
 - id: graphql.request-cache
   category: consistency
-  rule: The principal and entity DataLoaders are request-scoped; authentication is resolved once per request
-    and every response is marked no-store.
+  rule: Entity DataLoaders batch and cache within one GraphQL request only; a new request starts with
+    a fresh cache.
+  acceptance:
+    given: One request loads duplicate entity keys and a later request loads the same key.
+    when: The production DataLoaders batch their feature-service requests.
+    then:
+    - The first request performs one batch and caches duplicates.
+    - The next request performs a new read.
+    test:
+      file: tests/unit/lib/graphql/graphql-loaders.test.ts
+      name: graphql.request-cache
 - id: graphql.safe-errors
   category: privacy
   rule: Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors
     retain stable codes and status metadata across HTTP and the MCP registered runner; only trusted GraphQLErrors
     pass the allowlist, while unexpected or forged resolver failures are masked without internal details.
+  acceptance:
+    given: Trusted error codes and forged, nested, cyclic, or unexpected resolver failures.
+    when: The production HTTP handler and MCP registered runner execute the same feature resolver failure.
+    then:
+    - All six safe classifications preserve messages, codes and transport status metadata.
+    - Unexpected or forged failures become INTERNAL_SERVER_ERROR without private details.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.safe-errors
 - id: graphql.semantic-observability
   category: privacy
   rule: Each attempted HTTP or MCP GraphQL operation records one sanitized semantic observation with its
@@ -94,71 +372,490 @@ requirements:
     error count, auth mode, and server request ID. Expected parse, validation, authorization, and domain
     errors remain informational while INTERNAL_SERVER_ERROR outcomes use error severity; raw documents,
     variables, credentials, argument values, and error details are excluded.
+  acceptance:
+    given: Successful, expected-error, and internal-error operations through production HTTP and the registered
+      MCP runner.
+    when: Each request executes with private query variables, error details and request credentials.
+    then:
+    - Exactly one semantic Analytics observation records the operation and bounded counts.
+    - Structured log severity is informational for expected outcomes and error for internal failures.
+    - Operation metadata includes its server request ID and excludes private inputs and error details.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.semantic-observability
 - id: graphql.scoped-query-auth
   category: authorization
-  rule: Query.account and Query.workspace return null for an anonymous caller. Their child fields independently
-    enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing
-    user authority.
+  rule: Each protected Workspace and Account child field independently checks its required OAuth feature
+    scope for bearer principals. A missing feature scope returns the exact required scope without granting
+    partial authority to another feature.
+  acceptance:
+    given: Real GraphQL bearer grants with matching, missing-profile, and incomplete multi-field scopes.
+    when: The HTTP handler executes selected protected child fields.
+    then:
+    - Matching fields return the authenticated data; every missing feature produces a 403 with its exact
+      required scope.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.scoped-query-auth
 - id: graphql.workspace-ownership
   category: authorization
   rule: Workspace collections derive ownership from the authenticated user relation in feature services
     and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.
+  acceptance:
+    given: Two real users with distinct todos and section subscriptions.
+    when: Each user reads the workspace through a signed authoritative session, and callers try internal
+      ownership/shape inputs.
+    then:
+    - Core workspace collections contain only the authenticated user's records or subscribed sections.
+    - Workspace field arguments and filter schemas do not accept userId, sectionIds or internal visibility/shape
+      switches.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.workspace-ownership
 - id: graphql.homework-completion-requirement
   category: consistency
-  rule: Workspace and community homework reads expose completionRequired, derived from the viewer's current
-    section subscription kind. Teaching-assistant homework displays no completion required while preserving
-    actual completion state and pending-scope deadline semantics.
+  rule: Workspace.homeworks and community homework create/update payloads expose completionRequired from
+    the viewer's current subscription kind, including their registered MCP projections. Teaching assistants
+    require no completion, while actual completion records and deadline-based pending semantics remain
+    intact.
+  rationale: Community has no homework query root. Collaborative homework mutations return the shared
+    Homework type; this contract applies to those payloads and workspace reads.
+  acceptance:
+    given: A teaching assistant and regular subscriber share homework with past, future and absent deadlines;
+      only the assistant has one actual completion.
+    when: Registered GraphQL list/create/update operations run, then the assistant changes to auditor.
+    then:
+    - All three Homework projections expose completionRequired=false for the assistant and retain completed/completedAt.
+    - Assistant pending results exclude past-deadline homework and actual completions; regular subscriber
+      pending results retain their incomplete homework.
+    - Changing subscription kind updates completionRequired without rewriting any completion record.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.homework-completion-requirement
 - id: graphql.zoned-datetime
   category: consistency
-  rule: DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
-    with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize
-    to their Asia/Shanghai calendar day before querying @db.Date columns.
+  rule: DateTime accepts only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset,
+    with identical coercion for variables and inline literals.
+  acceptance:
+    given: Variables and inline literals contain valid zoned dates, impossible dates, zone-less dates,
+      and non-string values.
+    when: The real DateTime scalar coerces both forms.
+    then:
+    - Valid zoned values retain their instant representation.
+    - Invalid forms reject consistently.
+    test:
+      file: tests/unit/lib/graphql/graphql-input-boundaries.test.ts
+      name: graphql.zoned-datetime
 - id: graphql.schema-evolution
   category: consistency
-  rule: CI always checks the canonical SDL snapshot for drift. Pull requests compare it with the base
-    schema and block breaking or dangerous changes unless the explicit graphql-breaking-approved label
-    is present; approval skips only that base-compatibility comparison.
+  rule: The current executable GraphQL schema must exactly match the canonical SDL snapshot; CI fails
+    on snapshot drift.
+  acceptance:
+    given: The executable schema and committed SDL snapshot are available.
+    when: The real generated SDL is compared with the canonical file.
+    then:
+    - The documents match exactly.
+    test:
+      file: tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
+      name: graphql.schema-evolution
 - id: graphql.room-maps
   category: behavior
   rule: 'Catalog.roomMap(code: String!): RoomMap! provides public room map lookup with highlighted, overview,
     or unavailable status.'
+  acceptance:
+    given: Highlighted, overview, and unavailable results from the feature-owned room-map lookup.
+    when: An anonymous query selects all RoomMap fields.
+    then:
+    - The GraphQL result preserves the status, public URLs, nullable metadata and requested code for each
+      supported outcome.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.room-maps
 - id: graphql.subscription-kind
   category: behavior
   rule: Workspace.subscribedSections returns SubscribedSectionPage with { kind, section } items. subscriptionKindUpdate
     edits existing owner-scoped membership only.
-- id: graphql.young-workspace
+  acceptance:
+    given: Only the owner has an existing regular section membership.
+    when: Both users invoke registered subscription kind updates; the owner queries the registered membership
+      list.
+    then:
+    - The owner can change among all three kinds and receives typed kind/section page items.
+    - The nonmember receives NOT_FOUND and cannot create or modify the owner membership.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.subscription-kind
+- id: graphql.young-event-subscriptions
   category: behavior
-  rule: Activity and organizer subscriptions, daily organizer digests, activity reminders and full date-range
-    calendars use shared owner-scoped services. See docs/features/young-workspace.yaml for capability
-    scopes and docs/graphql/schema.graphql for generated signatures.
+  rule: Young activity subscription mutations and state/list queries use the authenticated owner and preserve
+    reminder preferences.
+  acceptance:
+    given: Two signed user contexts and a public event.
+    when: GraphQL subscribes one user, reads both users, and unsubscribes independently.
+    then:
+    - Only the owner sees their subscription and explicit reminder preferences; another user cannot remove
+      it.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-event-subscriptions
+- id: graphql.young-organizer-subscriptions
+  category: behavior
+  rule: Young organizer subscriptions use the authenticated owner and do not imply event subscriptions.
+  acceptance:
+    given: Two user contexts and one public organizer.
+    when: GraphQL follows, reads and unfollows the organizer.
+    then:
+    - State and list fields agree, foreign state remains empty, and organizer following creates no event
+      subscription.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-organizer-subscriptions
+- id: graphql.young-reminders
+  category: behavior
+  rule: GraphQL exposes the shared owner-scoped activity reminders with deduplicated delivery and owner-only
+    read state.
+  acceptance:
+    given: An owner subscribes an event within its signup-deadline and start reminder windows.
+    when: GraphQL refreshes the inbox repeatedly and both users try to mark a reminder read.
+    then:
+    - Exactly the two due reminders appear with stable IDs; the other inbox is empty.
+    - A foreign mark returns success=false without changing readAt; the owner mark removes the reminder
+      from unread results.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-reminders
+- id: graphql.young-daily-digests
+  category: behavior
+  rule: GraphQL exposes the shared completed-day organizer digest once per owner and organizer, without
+    implicitly subscribing events.
+  acceptance:
+    given: An owner followed before the previous Shanghai day and the organizer published an upcoming
+      event during that day.
+    when: GraphQL reads both users’ inboxes repeatedly.
+    then:
+    - One stable organizer_digest appears only for the follower and no event subscription is created.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-daily-digests
+- id: graphql.young-calendar
+  category: behavior
+  rule: GraphQL date-range calendars expose full subscribed event metadata for the authenticated owner
+    and requested Shanghai days.
+  acceptance:
+    given: Only one of two users subscribes an event spanning Shanghai midnight.
+    when: GraphQL queries both overlapping Shanghai dates and the day after the event ends.
+    then:
+    - The owner receives event type, ID, exact start instant, end and location only within the requested
+      day.
+    - Both overlapping dates include the same event; the day after its end is empty. The other user receives no private calendar event.
+    test:
+      file: tests/integration/graphql-workspace-domain-contracts.test.ts
+      name: graphql.young-calendar
 - id: graphql.source-metadata
   category: consistency
-  rule: 'YoungEvent exposes the same typed participation metadata and opaque source identifiers as REST
-    and MCP: arrays are non-null, while unknown scalar fields are null. Section exposes requiredWeeks
-    and catalogAdminClasses localized names independently of ID-backed administrative classes. Exam exposes
-    grades, adminClassNames and monitors containing only school IDs and localized names, matching REST/MCP
-    catalog records.'
+  rule: YoungEvent exposes the same typed upstream participation requirements, audience and eligibility
+    metadata, and opaque source identifiers as REST and MCP. These metadata arrays are non-null, while
+    unknown scalar values are null.
+  rationale: These published upstream fields describe event requirements and intended audiences, not a
+    private user's registration or participation state. Existing published source metadata and advertised
+    public contact information remain available. Source identifiers do not establish Life@USTC account
+    identity or authorize access to nonpublic account contact details.
+  acceptance:
+    given: Known and unknown upstream audience/eligibility metadata plus unrelated private account properties.
+    when: An anonymous GraphQL event query selects its declared metadata fields.
+    then:
+    - The result preserves exact scalar/source-ID values, empty arrays, and null unknowns.
+    - Private account and participation-state properties are not queryable.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.source-metadata
 - id: graphql.scoped-queries.community-read-boundary
   category: authorization
   rule: Community exposes user profiles only; comment and shared-description reads are unavailable in
-    GraphQL. After an ambiguous write, inspect /api/community/comments or /api/community/descriptions
-    using a session or a REST-audience token with the required read scope; MCP callers may use native
-    read tools. A GraphQL token is not a REST token. Do not blindly retry.
+    GraphQL.
   applies_to:
   - scoped-queries
+  rationale: Ambiguous community writes can be inspected using native MCP reads or /api/community/comments
+    and /api/community/descriptions. Those REST requests remain subject to oauth.rest-bearer-scopes; a
+    GraphQL token is not a REST token. graphql.graphql-operation-prompt owns the state-inspection and
+    no-blind-retry guidance.
+  acceptance:
+    given: The current executable Community schema.
+    when: Authenticated callers request comment or description reads.
+    then:
+    - Community has only the user field and rejects either unavailable read before execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.scoped-queries.community-read-boundary
+- id: graphql.request-single-operation
+  category: validation
+  rule: GraphQL HTTP accepts one operation request per HTTP call and rejects JSON arrays of batched operation
+    requests.
+  acceptance:
+    given: A JSON array contains two GraphQL operation requests.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The request is rejected before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-single-operation
+- id: graphql.request-depth
+  category: validation
+  rule: A GraphQL operation may nest selections at most eight levels deep; over-depth documents fail before
+    resolver execution.
+  acceptance:
+    given: An otherwise small document nests beyond eight levels.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - A depth-specific validation error is returned before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-depth
+- id: graphql.request-top-level
+  category: validation
+  rule: A GraphQL query or mutation has at most ten top-level fields after fragment expansion.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-top-level
+- id: graphql.request-aliases
+  category: validation
+  rule: A GraphQL document contains at most fifteen aliases.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-aliases
+- id: graphql.request-directives
+  category: validation
+  rule: A GraphQL document contains at most ten directives.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-directives
+- id: graphql.request-tokens
+  category: validation
+  rule: The GraphQL parser accepts at most 1000 lexical tokens per document.
+  acceptance:
+    given: The document sits at the allowed structural boundary and then exceeds it.
+    when: The actual GraphQL handler applies production parser and validation plugins.
+    then:
+    - The declared numeric limit is enforced independently of other budgets.
+    - Over-limit input fails before domain execution.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-tokens
+- id: graphql.request-cost
+  category: validation
+  rule: A GraphQL operation with estimated cost greater than 5000 is rejected before resolver execution.
+    Cost weights paginated selections by effective pageSize, including variables.
+  acceptance:
+    given: Paginated fields use a variable pageSize that exceeds the operation cost budget.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The cost ceiling is5000.
+    - A cost-specific validation failure occurs before the catalog service is called.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-cost
+- id: graphql.request-timeout
+  category: validation
+  rule: GraphQL HTTP execution stops waiting after a five-second request deadline and reports REQUEST_TIMEOUT.
+  acceptance:
+    given: A GraphQL HTTP query has entered a resolver that remains pending.
+    when: The production handler reaches its five-second deadline.
+    then:
+    - The response reports REQUEST_TIMEOUT without waiting for the resolver result.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.request-timeout
+- id: graphql.production-introspection
+  category: authorization
+  rule: Production GraphQL requests cannot introspect the schema.
+  acceptance:
+    given: An anonymous production request asks for __schema.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The response contains a validation error and no schema data.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.production-introspection
+- id: graphql.request-principal
+  category: authorization
+  rule: The GraphQL principal is resolved once per request and reused by independently scoped resolver
+    fields.
+  acceptance:
+    given: A GraphQL context serves fields requiring different feature scopes.
+    when: The real context and resolver authorization use one verified bearer principal.
+    then:
+    - Token verification runs exactly once; the session fallback is not queried.
+    test:
+      file: tests/unit/lib/graphql/graphql-auth.test.ts
+      name: graphql.request-principal
+- id: graphql.response-no-store
+  category: privacy
+  rule: GraphQL HTTP responses, including successful public reads, are marked no-store.
+  acceptance:
+    given: An unauthenticated request asks for public catalog data.
+    when: The actual GraphQL HTTP handler processes the request.
+    then:
+    - The successful response contains the expected public data and Cache-Control:no-store.
+    test:
+      file: tests/unit/lib/graphql/graphql-server.test.ts
+      name: graphql.response-no-store
+- id: graphql.schema-change-review
+  category: consistency
+  rule: Pull requests compare the canonical snapshot with the base schema and require explicit graphql-breaking-approved
+    acknowledgement for breaking or dangerous changes. Approval skips only the base-schema gate. Intentional
+    breaking changes update current contracts and clients without compatibility shims.
+  acceptance:
+    given: The real PR workflow and snapshot test execute against isolated Git fixtures with unchanged,
+      breaking and dangerous base schemas.
+    when: The actual snapshot test runs with and without explicit breaking-change acknowledgement.
+    then:
+    - Unchanged schemas pass; removed fields and changed argument defaults fail the base-schema gate.
+    - Acknowledgement skips only the base-schema comparison; current snapshot drift still fails.
+    - Workflow label changes rerun the review gate while the current snapshot check remains unconditional.
+    test:
+      file: tests/unit/lib/graphql/graphql-schema-review.test.ts
+      name: graphql.schema-change-review
+- id: graphql.calendar-date-filter-normalization
+  category: consistency
+  rule: Schedule and exam DateTime filters normalize to the Asia/Shanghai calendar day before querying
+    date-only database columns.
+  acceptance:
+    given: Equivalent zoned instants and an instant across Shanghai midnight.
+    when: The executable GraphQL schedule and exam resolvers process DateTime variables.
+    then:
+    - Both feature services receive the Shanghai day as UTC midnight, together with the authenticated
+      user ID.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.calendar-date-filter-normalization
+- id: graphql.registered-operation-timeout
+  category: validation
+  rule: Registered GraphQL operation execution through MCP stops waiting after a five-second deadline
+    and reports REQUEST_TIMEOUT.
+  acceptance:
+    given: A registered query has entered a resolver that remains pending.
+    when: The production runner passes its5000ms deadline.
+    then:
+    - It rejects with REQUEST_TIMEOUT at the five-second boundary.
+    test:
+      file: tests/unit/lib/graphql/graphql-operation-runner.test.ts
+      name: graphql.registered-operation-timeout
+- id: graphql.anonymous-roots
+  category: authorization
+  rule: Anonymous requests receive null for Query.account and Query.workspace; public catalog and community
+    roots remain readable.
+  acceptance:
+    given: Real production-role data and the relevant anonymous or signed-session principal.
+    when: The HTTP handler evaluates protected and public root fields.
+    then:
+    - The response respects the principal boundary and returns only the permitted root data.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.anonymous-roots
+- id: graphql.session-query-authority
+  category: authorization
+  rule: Trusted-origin cookie sessions use their authenticated first-party authority to read Account and
+    Workspace fields without OAuth scopes.
+  acceptance:
+    given: Real production-role data and the relevant anonymous or signed-session principal.
+    when: The HTTP handler evaluates protected and public root fields.
+    then:
+    - The response respects the principal boundary and returns only the permitted root data.
+    test:
+      file: tests/integration/graphql-viewer-query.test.ts
+      name: graphql.session-query-authority
+- id: graphql.mcp-mutation-confirmation
+  category: validation
+  rule: Every GraphQL mutation submitted through MCP requires confirmed=true before executing its feature
+    write, whether supplied as an arbitrary document or a registered operation. Confirmation records intent;
+    ordinary feature write scopes and target ownership remain independently required.
+  acceptance:
+    given: In-memory MCP SDK clients with injected owner write, owner read-only and other-user write principals
+      invoke real restricted-role resolvers for arbitrary and registered todo operations.
+    when: Creation is submitted with missing, false, and true confirmation; confirmed requests also attempt
+      a read-only creation and deletion of another user's todo.
+    then:
+    - Missing/false confirmation returns CONFIRMATION_REQUIRED with no persisted row.
+    - Explicit confirmation persists exactly one owner-scoped row.
+    - Confirmed read-only creation returns FORBIDDEN with no row; confirmed foreign deletion returns NOT_FOUND
+      and preserves the exact owned row. HTTP token verification is covered by its separate transport owner.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.mcp-mutation-confirmation
+- id: graphql.mcp-validation-parity
+  category: validation
+  rule: Arbitrary MCP GraphQL documents enforce the production schema validation and request budgets used
+    by HTTP. Registered operations reject undeclared variables, oversized variable bodies, and invalid
+    field inputs.
+  acceptance:
+    given: Malformed, introspective, over-wide, over-aliased, over-directed, over-token, over-cost, and
+      invalid-page documents.
+    when: The same documents are sent to production HTTP and the live MCP runner; registered calls also
+      receive invalid variable envelopes.
+    then:
+    - Both document transports reject the invalid requests.
+    - Registered operations reject extra variables, oversized variable bodies, and invalid page sizes.
+    test:
+      file: tests/integration/graphql-mcp-resources.test.ts
+      name: graphql.mcp-validation-parity
+- id: graphql.section-source-metadata
+  category: presentation
+  rule: Section exposes requiredWeeks and catalogAdminClasses localized names independently of ID-backed
+    administrative classes.
+  acceptance:
+    given: A section with required weeks, localized class names, and unrelated class membership fields.
+    when: An anonymous GraphQL section query reads source metadata.
+    then:
+    - Required weeks and localized class names are preserved exactly.
+    - CatalogClassName exposes only localized names.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.section-source-metadata
+- id: graphql.exam-source-metadata
+  category: presentation
+  rule: Exam exposes grades, adminClassNames and monitors containing only school IDs and localized names,
+    matching REST/MCP catalog records. School IDs must not be treated as Life@USTC account identifiers
+    or reveal nonpublic account contact details.
+  acceptance:
+    given: An exam with published school IDs/localized monitor names and unrelated account/contact properties.
+    when: An authorized workspace query reads exam metadata.
+    then:
+    - Grades, class names, school IDs and localized monitor names are preserved.
+    - ExamMonitor exposes only jwId/nameCn/nameEn and excludes private account/contact properties.
+    test:
+      file: tests/unit/lib/graphql/graphql-platform-contracts.test.ts
+      name: graphql.exam-source-metadata
 capabilities:
   public-query-endpoint:
     title: Public Queries and Scoped Personal Mutations
     auth: anon
     graphql: stable
     presentation:
+      kind: protocol
       items:
       - /api/graphql
       - Public semester, course, section, teacher, and bus queries
       - Authenticated Workspace and Account reads with exact feature:read scopes
-      - Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches,
-        workspace pin batches, upload workflow metadata and ownership actions, bus preference, description,
-        and comment mutations
+      - Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches, workspace
+        pin batches, upload workflow metadata and ownership actions, bus preference, description, and comment mutations
       - GET, POST, and OPTIONS
       - GraphQL-audience bearer tokens require matching feature scopes
       - MCP executes arbitrary documents or compatible registered-operation IDs with resolver-level scopes
@@ -168,16 +865,19 @@ capabilities:
     graphql:
       queries:
       - name: catalog
+        auth: anon
       - name: workspace
         notes:
         - Returns null for anonymous requests; each selected child field enforces its exact feature read
           scope.
       - name: community
+        auth: anon
       - name: account
         notes:
         - Returns null for anonymous requests; each selected child field enforces its exact account read
           scope.
     presentation:
+      kind: protocol
       items:
       - account.profile / account.clientActivity
       - catalog.courses / catalog.sections / catalog.teachers
@@ -215,11 +915,11 @@ capabilities:
     mcp:
       tools:
       - name: graphql_operation_run
-        description: Executes exactly one arbitrary document or compatible operationId. Every mutation
+        description: Executes exactly one arbitrary document or registered operationId. Every mutation
           requires confirmed=true.
         notes:
-        - The schema resource is canonical for arbitrary documents; the operation manifest remains a stable
-          compatibility and discovery surface.
+        - The schema resource is canonical for documents; the operation manifest provides current registered
+          operations for discovery.
         - The static tool descriptor is conservative because selected fields determine scopes and safety;
           exact authorization is enforced by the same resolvers as /api/graphql.
         - Authorization headers and cookies are never copied into the in-process GraphQL context.

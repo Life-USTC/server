@@ -1,18 +1,17 @@
 kind: mutation-capabilities
 id: mutation-capabilities
 schemaVersion: 2
-scope: Canonical ordinary-user and collaborative business writes. Authentication protocols, account
-  security, admin governance, locale cookies, redirects, and raw R2 bytes use separate transports or
-  threat models.
+scope: Canonical ordinary-user and collaborative business writes. Authentication protocols, account security,
+  admin governance, locale cookies, redirects, and raw R2 bytes use separate transports or threat models.
 excludedFamilies:
   - id: auth-and-account-security
-    reason: OAuth consent, credentials, sessions, passkeys, and account lifecycle require the
-      authorization-management threat model.
+    reason: OAuth consent, credentials, sessions, passkeys, and account lifecycle require the authorization-management
+      threat model.
   - id: admin-governance
     reason: Admin mutations require an explicit governance and audit design before GraphQL exposure.
   - id: transport-only-writes
-    reason: Locale cookies, redirects, OAuth endpoints, MCP transport state, and raw R2 byte transfer
-      are not GraphQL business commands.
+    reason: Locale cookies, redirects, OAuth endpoints, MCP transport state, and raw R2 byte transfer are not
+      GraphQL business commands.
 capabilities:
   - id: workspace_subscription_kind_update
     rest:
@@ -69,6 +68,29 @@ capabilities:
       tools:
         - workspace_todo_update
     semantics: per_item_partial
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [todo_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [todo_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+      results: ordered_per_item
+      atomicity: independent_items
+      invalid_targets: per_item_error
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.todo-batch-results
+        - openapi.rest-batch-unique-targets
+
   - id: workspace_todos_delete
     rest:
       - DELETE /api/workspace/todos/batch
@@ -80,6 +102,29 @@ capabilities:
       tools:
         - workspace_todo_delete
     semantics: per_item_partial
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [todo_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [todo_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+      results: ordered_per_item
+      atomicity: independent_items
+      invalid_targets: per_item_error
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.todo-batch-results
+        - openapi.rest-batch-unique-targets
+
   - id: community_section_homework_create
     rest:
       - POST /api/community/section-homeworks
@@ -135,6 +180,30 @@ capabilities:
       tools:
         - workspace_homework_completion_set
     semantics: per_item_partial
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [homework_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [homework_id]
+          duplicates: reject_normalized
+          max_items: 100
+          limit_basis: each_raw_input_array
+      results: ordered_per_item
+      atomicity: accepted_items_transaction
+      invalid_targets: per_item_error
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.homework-batch-results
+        - homework.completion-set-idempotency
+        - openapi.rest-batch-unique-targets
+
   - id: workspace_subscription_add
     rest: []
     graphql:
@@ -158,7 +227,6 @@ capabilities:
   - id: workspace_subscriptions_import
     rest:
       - POST /api/workspace/subscriptions/batch
-      - POST /api/workspace/subscriptions/import-codes
     graphql:
       status: stable
       field: subscriptionsImport
@@ -166,7 +234,38 @@ capabilities:
       status: partial
       tools:
         - workspace_subscription_import
-    semantics: service_transaction_or_single_atomic_write
+    semantics: atomic
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [internal_section_id, section_or_course_code]
+          duplicates: deduplicate_normalized
+          max_items: 500
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [section_or_course_code]
+          duplicates: reject_normalized
+          max_items: 500
+          limit_basis: each_raw_input_array
+        - surface: mcp-native
+          identifiers: [section_or_course_code]
+          duplicates: deduplicate_normalized
+          max_items: 500
+          limit_basis: each_raw_input_array
+      results: aggregate_matches
+      atomicity: accepted_items_transaction
+      invalid_targets: omit_or_report_unmatched
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.subscription-batch-results
+        - subscription.duplicate-input-semantics
+        - subscription.membership-atomicity
+    notes:
+      - For each import request, the selected subscription changes commit together; the feature contract defines
+        rejected and unmatched inputs before the write.
   - id: workspace_link_pin_set
     rest:
       - POST /api/workspace/link-pins
@@ -267,10 +366,36 @@ capabilities:
         - workspace_link_pin_set
         - graphql_operation_run
     semantics: ordered_non_atomic
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [catalog_link_slug]
+          duplicates: execute_in_order
+          max_items: 10
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [catalog_link_slug]
+          duplicates: execute_in_order
+          max_items: 10
+          limit_basis: each_raw_input_array
+        - surface: mcp-registered
+          identifiers: [catalog_link_slug]
+          duplicates: execute_in_order
+          max_items: 10
+          limit_basis: each_raw_input_array
+      results: final_collection
+      atomicity: ordered_prefix
+      invalid_targets: reject_before_write
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.pin-batch-order
+        - graphql.pin-batch-failure
     notes:
       - Every slug is validated before ordered non-atomic execution starts.
-      - A persistence failure may leave an ordered prefix applied; inspect current state before
-        retrying.
+      - A persistence failure may leave an ordered prefix applied; inspect current state before retrying.
   - id: community_comments_delete
     rest:
       - DELETE /api/community/comments/batch
@@ -283,6 +408,34 @@ capabilities:
         - community_comment_delete
         - graphql_operation_run
     semantics: per_item_partial
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [comment_id]
+          duplicates: reject_normalized
+          max_items: 50
+          limit_basis: each_raw_input_array
+        - surface: graphql
+          identifiers: [comment_id]
+          duplicates: reject_normalized
+          max_items: 50
+          limit_basis: each_raw_input_array
+        - surface: mcp-registered
+          identifiers: [comment_id]
+          duplicates: reject_normalized
+          max_items: 50
+          limit_basis: each_raw_input_array
+      results: ordered_per_item
+      atomicity: independent_items
+      invalid_targets: per_item_error
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - graphql.comment-batch-results
+        - openapi.rest-batch-unique-targets
+
   - id: workspace_upload_session_create
     rest:
       - POST /api/workspace/uploads
@@ -295,8 +448,8 @@ capabilities:
         - graphql_operation_run
     semantics: multi_step_storage_workflow
     notes:
-      - GraphQL and MCP may reserve quota and return an authenticated on-site PUT workflow URL; raw
-        bytes remain exclusive to HTTP.
+      - GraphQL and MCP may reserve quota and return an authenticated on-site PUT workflow URL; raw bytes remain
+        exclusive to HTTP.
       - An MCP-resource bearer is not replayable at the REST upload URL.
   - id: workspace_upload_session_complete
     rest:
@@ -310,8 +463,8 @@ capabilities:
         - graphql_operation_run
     semantics: multi_step_storage_workflow
     notes:
-      - Completion validates the existing R2 object and commits metadata; GraphQL and MCP never
-        receive or proxy object bytes.
+      - Completion validates the existing R2 object and commits metadata; GraphQL and MCP never receive or
+        proxy object bytes.
   - id: workspace_upload_rename
     rest:
       - PATCH /api/workspace/uploads/[id]
@@ -337,7 +490,7 @@ capabilities:
         - graphql_operation_run
     semantics: storage_then_transactional_metadata_delete
     notes:
-      - Storage is deleted before transactional metadata and audit deletion.
+      - Storage is deleted before the transaction that deletes upload metadata and inserts the audit event.
       - Storage failure returns SERVICE_UNAVAILABLE and preserves metadata.
   - id: workspace_subscription_internal_ids_append_remove
     rest:
@@ -350,9 +503,25 @@ capabilities:
       status: unavailable
       tools: []
     semantics: transport_only
+    batch_contract:
+      inputs:
+        - surface: rest
+          identifiers: [internal_section_id]
+          duplicates: deduplicate_normalized
+          max_items: 500
+          limit_basis: each_raw_input_array
+      results: success
+      atomicity: accepted_items_transaction
+      invalid_targets: omit_or_report_unmatched
+      retry:
+        desired_state: idempotent
+        response: may_change
+        after_uncertain_result: inspect_state_before_replay
+      requirement_refs:
+        - subscription.user-scoped
     notes:
-      - GraphQL and MCP use public section JW IDs or section/course codes; internal database section
-        IDs remain unavailable.
+      - GraphQL and MCP use public section JW IDs or section/course codes; internal database section IDs remain
+        unavailable.
   - id: workspace_young_event_subscription_set
     rest:
       - PUT /api/workspace/young-event-subscriptions/[youngId]

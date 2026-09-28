@@ -1,6 +1,4 @@
 <script lang="ts">
-import { formatSemesterName } from "@/lib/text/format-semester-name";
-import { page } from "$app/stores";
 import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
@@ -16,7 +14,6 @@ export let primaryName: SectionPrimaryName;
 export let section: SectionBasicInfo;
 export let sectionCopy: SectionBasicInfoCopy;
 
-$: locale = $page.data.locale ?? "zh-cn";
 $: capacityValue =
   section.stdCount != null || section.limitCount != null
     ? `${section.stdCount ?? 0} / ${section.limitCount ?? notAvailable}`
@@ -28,16 +25,6 @@ $: scheduleRemarkValue = section.scheduleRemark?.trim() || null;
 <dl class={detailDefinitionListClass}>
   <dt class={detailDefinitionTermClass}>{sectionCopy.sectionCode}</dt>
   <dd class="m-0 font-mono text-muted-foreground">{section.code}</dd>
-
-  <dt class={detailDefinitionTermClass}>{sectionCopy.semester}</dt>
-  <dd class="m-0 min-w-0 font-medium">
-    {section.semester?.nameCn
-      ? formatSemesterName(locale, section.semester.nameCn)
-      : notAvailable}
-  </dd>
-
-  <dt class={detailDefinitionTermClass}>{sectionCopy.campus}</dt>
-  <dd class="m-0 min-w-0 font-medium">{primaryName(section.campus) || notAvailable}</dd>
 
   <dt class={detailDefinitionTermClass}>{sectionCopy.credits}</dt>
   <dd class="m-0 min-w-0 font-medium">{section.credits ?? notAvailable}</dd>

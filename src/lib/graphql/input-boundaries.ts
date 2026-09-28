@@ -5,6 +5,7 @@ import {
   WEATHER_LOCATIONS,
   type WeatherLocationKey,
 } from "@/features/weather/server/weather-types";
+import { youngEventsQuerySchema } from "@/lib/api/schemas/young-event-schemas";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { GRAPHQL_LIMITS } from "./constants";
 
@@ -68,6 +69,18 @@ export function validateGraphqlSearch(value: string | null | undefined) {
     );
   }
   return search;
+}
+
+/** Young taxonomy values and searches accept one character, unlike catalog search. */
+export function validateGraphqlYoungText(
+  value: string | null | undefined,
+  field: "category" | "module" | "activityLevel" | "search",
+) {
+  if (value == null) return undefined;
+  const parsed = youngEventsQuerySchema.shape[field].safeParse(value);
+  if (!parsed.success)
+    badUserInput(`${field}: ${parsed.error.issues[0].message}`);
+  return parsed.data;
 }
 
 export function validateGraphqlTeacherCode(value: string | null | undefined) {

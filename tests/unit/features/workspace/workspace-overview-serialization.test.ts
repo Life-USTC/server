@@ -61,6 +61,7 @@ function buildSession(overrides: Partial<SessionItem> = {}): SessionItem {
   return {
     id: "session-1",
     sectionJwId: 101,
+    sectionCode: "COURSE.01",
     courseName: "计算机导论",
     date: new Date("2026-04-29T08:00:00+08:00"),
     startTime: 800,

@@ -17,7 +17,6 @@ import {
 } from "./auth-token-active-grant";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
 import { bindOAuthAccessTokenToConsent } from "./auth-token-grant-binding";
-import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
 import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
 import { maybeBindOAuthRefreshResourceRequest } from "./auth-token-refresh-resource-binding";
 import {
@@ -272,13 +271,7 @@ async function postRoute(request: Request) {
       params,
       "prepare-provider-request",
       async () =>
-        maybeBindOAuthRefreshResourceRequest(
-          await maybeNormalizeTokenLoopbackRedirectRequest(
-            normalizedRequest,
-            params,
-          ),
-          params,
-        ),
+        maybeBindOAuthRefreshResourceRequest(normalizedRequest, params),
     );
     const delegatedResponse = await withBetterAuthOAuthDebug(
       "POST",

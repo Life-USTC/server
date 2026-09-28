@@ -150,12 +150,12 @@ onMount(() => {
           accountAction={accountAction}
           accounts={data.accounts}
           {copy}
+          locale={data.locale}
           hasPendingAccountAction={_hasPendingAccountAction}
           isMounted={_isMounted}
           pendingAccountAction={_pendingAccountAction}
           unlinkAccount={_unlinkAccount}
           bind:unlinkAccountId={_unlinkAccountId}
-          user={data.user}
         />
       {:else if data.tab === "authorizations"}
         <SettingsAuthorizationsTab

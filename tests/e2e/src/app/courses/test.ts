@@ -283,8 +283,12 @@ test.describe("/catalog/courses 课程目录", () => {
         .locator('[data-slot="catalog-code"]');
       await expect(codeText).toBeVisible();
       await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
-      await expect(codeText).toHaveAttribute("title", `${blankPrefix}-00`);
-      await expect(codeText).toHaveAttribute("aria-label", `${blankPrefix}-00`);
+      await expect(codeText).toHaveText(`${blankPrefix}-00`);
+      await expect(codeText).not.toHaveAttribute("title");
+      await expect(codeText.locator("[aria-hidden=true]")).toHaveCount(0);
+      await expect(codeText.locator("[data-slot=truncated-text]")).toHaveText(
+        `${blankPrefix}-00`,
+      );
       const codeGeometry = await codeText.evaluate((node) => ({
         clientWidth: node.clientWidth,
         scrollWidth: node.scrollWidth,

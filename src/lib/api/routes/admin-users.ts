@@ -20,31 +20,36 @@ import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function getAdminUsersRoute(request: Request) {
-  return withAdminApiRoute(request, "Failed to fetch users", async () => {
-    const parsed = parseRouteQuery(
-      getRequestSearchParams(request),
-      adminUsersQuerySchema,
-      "Invalid user query",
-      {
-        logErrors: true,
-        pagination: {
-          defaultPageSize: ADMIN_USERS_PAGE_SIZE,
-          maxPageSize: 100,
+  return withAdminApiRoute(
+    request,
+    "Failed to fetch users",
+    async () => {
+      const parsed = parseRouteQuery(
+        getRequestSearchParams(request),
+        adminUsersQuerySchema,
+        "Invalid user query",
+        {
+          logErrors: true,
+          pagination: {
+            defaultPageSize: ADMIN_USERS_PAGE_SIZE,
+            maxPageSize: 100,
+          },
         },
-      },
-    );
-    if (parsed instanceof Response) return parsed;
+      );
+      if (parsed instanceof Response) return parsed;
 
-    const result = await listAdminUsers(parsed);
-    return jsonResponse(
-      buildPaginatedResponse(
-        result.users,
-        parsed.pagination.page,
-        parsed.pagination.pageSize,
-        result.total,
-      ),
-    );
-  });
+      const result = await listAdminUsers(parsed);
+      return jsonResponse(
+        buildPaginatedResponse(
+          result.users,
+          parsed.pagination.page,
+          parsed.pagination.pageSize,
+          result.total,
+        ),
+      );
+    },
+    { allowSuspended: true },
+  );
 }
 
 export async function patchAdminUserRoute(request: Request, params: IdParams) {

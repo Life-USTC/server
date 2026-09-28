@@ -57,6 +57,7 @@ function heatmapClass(count: number) {
   {/snippet}
     <ProfileContributionHeatmap
       cellLabel={copy.contribution.cell}
+      singleCellLabel={copy.contribution.cellOne}
       {dateFormatter}
       {heatmapClass}
       {monthLabels}

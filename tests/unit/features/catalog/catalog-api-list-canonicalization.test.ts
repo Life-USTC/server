@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  listCourseSummaries: vi.fn(async () => ({ data: [], pagination: {} })),
-  listSectionSummaries: vi.fn(async () => ({ data: [], pagination: {} })),
-  listTeacherSummaries: vi.fn(async () => ({ data: [], pagination: {} })),
+  listCourseSummaries: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+  })),
+  listSectionSummaries: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+  })),
+  listTeacherSummaries: vi.fn(async () => ({
+    data: [],
+    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+  })),
 }));
 
 vi.mock("@/features/catalog/server/course-section-queries", () => ({
@@ -21,47 +30,46 @@ describe("catalog REST list canonicalization", () => {
     vi.clearAllMocks();
   });
 
-  it("passes equivalent course queries to the shared read model identically", async () => {
-    await getCoursesRoute(
-      new Request(
-        "https://example.test/api/catalog/courses?categoryId=0007&search=math&unknown=one",
-      ),
-    );
-    await getCoursesRoute(
-      new Request(
-        "https://example.test/api/catalog/courses?categoryId=7&search=math&search=ignored&unknown=two",
-      ),
-    );
-
-    expect(mocks.listCourseSummaries).toHaveBeenCalledTimes(2);
-    expect(mocks.listCourseSummaries.mock.calls[0]).toEqual(
-      mocks.listCourseSummaries.mock.calls[1],
-    );
+  it("openapi.public-catalog-query-canonicalization", async () => {
+    for (const { first, second, loader, route } of [
+      {
+        first: "/api/catalog/courses?categoryId=0007&search=math&unknown=one",
+        second:
+          "/api/catalog/courses?unknown=two&search=math&categoryId=7&search=ignored",
+        loader: mocks.listCourseSummaries,
+        route: getCoursesRoute,
+      },
+      {
+        first: "/api/catalog/teachers?departmentId=0007&unknown=one",
+        second:
+          "/api/catalog/teachers?unknown=two&departmentId=7&departmentId=8",
+        loader: mocks.listTeacherSummaries,
+        route: getTeachersRoute,
+      },
+      {
+        first: "/api/catalog/sections?courseId=0007&unknown=one",
+        second: "/api/catalog/sections?unknown=two&courseId=7&courseId=8",
+        loader: mocks.listSectionSummaries,
+        route: getSectionsRoute,
+      },
+    ]) {
+      for (const path of [first, second]) {
+        expect(
+          (await route(new Request(`https://example.test${path}`))).status,
+        ).toBe(200);
+      }
+      expect(loader).toHaveBeenCalledTimes(2);
+      expect(loader.mock.calls[0]).toEqual(loader.mock.calls[1]);
+      expect(loader).toHaveBeenCalledWith({
+        filters: expect.any(Object),
+        locale: "zh-cn",
+        pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
+      });
+    }
     expect(mocks.listCourseSummaries).toHaveBeenCalledWith({
       filters: expect.objectContaining({ categoryId: "7", search: "math" }),
       locale: "zh-cn",
       pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
     });
-  });
-
-  it.each([
-    {
-      first: "/api/catalog/teachers?departmentId=0007&unknown=one",
-      second: "/api/catalog/teachers?departmentId=7&departmentId=8&unknown=two",
-      loader: mocks.listTeacherSummaries,
-      route: getTeachersRoute,
-    },
-    {
-      first: "/api/catalog/sections?courseId=0007&unknown=one",
-      second: "/api/catalog/sections?courseId=7&courseId=8&unknown=two",
-      loader: mocks.listSectionSummaries,
-      route: getSectionsRoute,
-    },
-  ])("canonicalizes $first", async ({ first, second, loader, route }) => {
-    await route(new Request(`https://example.test${first}`));
-    await route(new Request(`https://example.test${second}`));
-
-    expect(loader).toHaveBeenCalledTimes(2);
-    expect(loader.mock.calls[0]).toEqual(loader.mock.calls[1]);
   });
 });

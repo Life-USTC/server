@@ -14,6 +14,7 @@ import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherListCommonLabels,
@@ -34,7 +35,7 @@ export let totalPages: number;
 
 $: locale = $appPage.data.locale ?? "zh-cn";
 $: teacherSummaryBase = catalogShowingSummary(
-  teacherLabels.showing,
+  total === 1 ? teacherLabels.showingOne : teacherLabels.showing,
   teachers.length,
   total,
 );
@@ -68,28 +69,30 @@ $: pageLabel = teacherLabels.pageOf
       <Item.Group class="gap-0" role="list">
         {#each teachers as teacher, index}
           {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-          <Item.Root role="listitem" size="sm">
-            {#snippet child({ props })}
-              <a href={teacherHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{catalogLocalizedDisplayName(teacher, locale)}</Item.Title>
-                </Item.Content>
-                <Item.Actions>
-                  <span class="tabular-nums text-muted-foreground text-sm"
-                    >{teacher._count.sections}</span
-                  >
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
-                  {#if teacher.code}
-                    <span class="font-mono text-muted-foreground">{teacher.code}</span>
-                  {/if}
-                  <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
-                  <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
-                  <span>{teacher.email ?? "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={teacherHref} {...props}>
+                  <Item.Content>
+                    <Item.Title><CatalogEntityName item={teacher} {locale} /></Item.Title>
+                  </Item.Content>
+                  <Item.Actions>
+                    <span class="tabular-nums text-muted-foreground text-sm"
+                      >{teacher._count.sections}</span
+                    >
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm">
+                    {#if teacher.code}
+                      <span class="font-mono text-muted-foreground">{teacher.code}</span>
+                    {/if}
+                    <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
+                    <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
+                    <span>{teacher.email ?? "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+          </div>
           {#if index < teachers.length - 1}
             <Item.Separator aria-hidden="true" />
           {/if}
@@ -105,7 +108,7 @@ $: pageLabel = teacherLabels.pageOf
             <Table.Head>{teacherLabels.department}</Table.Head>
             <Table.Head>{teacherLabels.title_label}</Table.Head>
             <Table.Head>{teacherLabels.email}</Table.Head>
-            <Table.Head>{teacherLabels.sections}</Table.Head>
+            <Table.Head class="text-right">{teacherLabels.sections}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -113,10 +116,12 @@ $: pageLabel = teacherLabels.pageOf
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             <Table.Row class="has-[a:hover]:bg-muted/50">
               <Table.Cell class="p-0">
-                <CatalogTableLink href={teacherHref}>
-                  <TruncatedText
+                <CatalogTableLink class="font-medium" href={teacherHref}>
+                  <TruncatedText class="font-medium"
                     text={catalogLocalizedDisplayName(teacher, locale)}
-                  />
+                  >
+                    {#snippet children()}<CatalogEntityName item={teacher} {locale} />{/snippet}
+                  </TruncatedText>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="whitespace-nowrap font-mono">

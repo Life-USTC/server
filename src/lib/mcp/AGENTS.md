@@ -22,9 +22,10 @@ return jsonToolResult(result, { mode });
 
 ## Mode / auth / permissions
 
-- **default**: compact shape; **summary** is a deprecated alias; **full** adds
+- **default**: compact shape; **full** adds
   nested fields without changing top-level structure
-- Bearer only; audience `/api/mcp`
+- Public catalog tools allow anonymous access. Personal tools require Bearer JWTs
+  with audience `/api/mcp`; supplied invalid credentials never downgrade to anonymous.
 - Personal tools scope to `getUserId`; check suspension for collaborative writes;
   normal users don't mutate JW / import facts
 

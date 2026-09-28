@@ -14,19 +14,19 @@ describe("catalog runtime cache keys", () => {
     expect(
       publicCatalogKvCacheKey(
         "rev123",
-        "search:catalog:v4:zh-cn",
+        "search:catalog:v5:zh-cn",
         "5:数学分析",
       ),
-    ).toBe("list:v1:rev123:search:catalog:v4:zh-cn:5:数学分析");
+    ).toBe("list:v1:rev123:search:catalog:v5:zh-cn:5:数学分析");
     expect(
       publicCatalogColoCacheKey(
         "https://life.example",
         "rev123",
-        "search:catalog:v4:zh-cn",
+        "search:catalog:v5:zh-cn",
         "5:数学分析",
       ),
     ).toBe(
-      "https://life.example/_life-ustc-internal-cache/catalog-runtime/v1/rev123/search%3Acatalog%3Av4%3Azh-cn/5%3A%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90",
+      "https://life.example/_life-ustc-internal-cache/catalog-runtime/v1/rev123/search%3Acatalog%3Av5%3Azh-cn/5%3A%E6%95%B0%E5%AD%A6%E5%88%86%E6%9E%90",
     );
   });
 
@@ -39,7 +39,26 @@ describe("catalog runtime cache keys", () => {
     );
   });
 
-  it("canonicalizes shared list filters independently of transport key order", () => {
+  it("openapi.public-catalog-cache-key", () => {
+    const base = {
+      filters: { search: "math", categoryId: "7", ids: [3, 1] },
+      pagination: { page: 2, pageSize: 20 },
+      shape: "summary",
+    };
+    const key = catalogListReadCacheKey(base);
+    for (const changed of [
+      { ...base, pagination: { ...base.pagination, page: 3 } },
+      { ...base, pagination: { ...base.pagination, pageSize: 10 } },
+      { ...base, shape: "catalog" },
+      { ...base, filters: { ...base.filters, categoryId: "8" } },
+    ])
+      expect(catalogListReadCacheKey(changed)).not.toBe(key);
+    expect(catalogListReadCacheNamespace("courses", "en-us")).not.toBe(
+      catalogListReadCacheNamespace("courses", "zh-cn"),
+    );
+    expect(catalogListReadCacheNamespace("courses", "zh-cn")).not.toBe(
+      catalogListReadCacheNamespace("sections", "zh-cn"),
+    );
     expect(
       catalogListReadCacheKey({
         filters: { search: "math", categoryId: "7", ids: [3, 1] },

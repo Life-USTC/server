@@ -250,6 +250,26 @@ describe("OAuth 刷新资源绑定", () => {
     expect(params.has("resource")).toBe(false);
   });
 
+  it("请求中的新增 feature scope 不能把原本 profile-only grant 绑定到 MCP", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/mcp"],
+      scopes: [OAUTH_PROFILE_SCOPE],
+    });
+    const { maybeBindOAuthRefreshResourceRequest } = await import(
+      "@/lib/api/routes/auth-token-refresh-resource-binding"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "refresh-token",
+      scope: restReadScope("workspace.todo"),
+    });
+    const request = refreshRequest(params);
+    expect(await maybeBindOAuthRefreshResourceRequest(request, params)).toBe(
+      request,
+    );
+    expect(params.has("resource")).toBe(false);
+  });
+
   it("已有显式 resource 时不改写刷新目标", async () => {
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"

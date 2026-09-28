@@ -7,6 +7,7 @@ describe("仪表盘日历操作", () => {
   function calendarActions() {
     const navigateUrl = vi.fn();
     const replaceUrl = vi.fn();
+    let calendarDay = "2026-02-22";
     let calendarMonth = "2026-02";
     let calendarSemesterId: number | null = 1;
     let calendarView: CalendarView = "semester";
@@ -14,12 +15,16 @@ describe("仪表盘日历操作", () => {
 
     const actions = createWorkspaceCalendarActions({
       getCalendarData: () => null,
+      getCalendarDay: () => calendarDay,
       getCalendarMonth: () => calendarMonth,
       getCalendarSemesterId: () => calendarSemesterId,
       getCalendarView: () => calendarView,
       getCalendarWeekStart: () => calendarWeekStart,
       navigateUrl,
       replaceUrl,
+      setCalendarDay: (value) => {
+        calendarDay = value;
+      },
       setCalendarMonth: (value) => {
         calendarMonth = value;
       },
@@ -40,6 +45,7 @@ describe("仪表盘日历操作", () => {
       navigateUrl,
       replaceUrl,
       state: () => ({
+        calendarDay,
         calendarMonth,
         calendarSemesterId,
         calendarView,

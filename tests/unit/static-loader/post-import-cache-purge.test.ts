@@ -42,7 +42,7 @@ describe("post-import cache purge", () => {
     vi.restoreAllMocks();
   });
 
-  it("invalidates the Workers entrypoint cache after a committed import", async () => {
+  it("rendering-and-cache.cache-layers-and-invalidation-5", async () => {
     configureBothLayers();
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -98,7 +98,7 @@ describe("post-import cache purge", () => {
     },
   );
 
-  it("retries both layers when the committed snapshot is reapplied unchanged", async () => {
+  it("retries both cache layers for an unchanged committed snapshot", async () => {
     configureBothLayers();
     const fetchMock = vi
       .spyOn(globalThis, "fetch")

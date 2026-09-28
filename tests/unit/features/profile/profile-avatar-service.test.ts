@@ -48,7 +48,7 @@ describe("profile avatar service", () => {
     vi.restoreAllMocks();
   });
 
-  it("auto-crops an uploaded image and stores a 256px WebP in R2", async () => {
+  it("user.avatar-transform-request", async () => {
     const response = new Response("transformed", {
       headers: { "Content-Type": "image/webp" },
     });
@@ -88,6 +88,50 @@ describe("profile avatar service", () => {
     });
   });
 
+  it("user.welcome-avatar-upload", async () => {
+    const output = vi.fn(async () => ({
+      response: () => new Response("processed"),
+    }));
+    const transform = vi.fn(() => ({ output }));
+    const input = vi.fn(() => ({ transform }));
+    getImagesBindingMock.mockReturnValue({ input });
+    for (const type of [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/avif",
+    ]) {
+      for (const size of [1, 5242880]) {
+        input.mockClear();
+        putStorageObjectMock.mockClear();
+        await processProfileAvatarUpload({
+          file: new File([new Uint8Array(size)], "avatar", { type }),
+          userId: "user-1",
+        });
+        expect(input).toHaveBeenCalledOnce();
+        expect(putStorageObjectMock).toHaveBeenCalledOnce();
+      }
+    }
+    for (const [type, size, reason] of [
+      ["image/png", 0, "empty"],
+      ["image/png", 5242881, "too_large"],
+      ["image/gif", 1, "invalid_image"],
+      ["image/svg+xml", 1, "invalid_image"],
+      ["text/plain", 1, "invalid_image"],
+    ] as const) {
+      input.mockClear();
+      putStorageObjectMock.mockClear();
+      await expect(
+        processProfileAvatarUpload({
+          file: new File([new Uint8Array(size)], "avatar", { type }),
+          userId: "user-1",
+        }),
+      ).rejects.toMatchObject({ reason });
+      expect(input).not.toHaveBeenCalled();
+      expect(putStorageObjectMock).not.toHaveBeenCalled();
+    }
+  });
+
   it.each([
     [new File([], "empty.png", { type: "image/png" }), "empty"],
     [new File(["text"], "avatar.txt", { type: "text/plain" }), "invalid_image"],
@@ -117,9 +161,7 @@ describe("profile avatar service", () => {
       userId: "user-1",
     });
 
-    expect(response?.headers.get("Cache-Control")).toBe(
-      "public, max-age=31536000, immutable",
-    );
+    expect(response?.headers.get("Cache-Control")).toBe("no-store");
     expect(getStorageObjectResponseMock).toHaveBeenCalledWith({
       contentDisposition: 'inline; filename="avatar.webp"',
       contentType: "image/webp",

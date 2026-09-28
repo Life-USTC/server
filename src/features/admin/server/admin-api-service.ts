@@ -9,6 +9,7 @@ import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { invalidateCloudflareCatalogRepresentations } from "@/lib/ports/runtime";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { adminDescriptionInclude } from "./admin-description-filters";
+import { getAdminDemotionFailure } from "./admin-role-change";
 
 type AdminUpdateUserBody = {
   isAdmin?: boolean;
@@ -125,17 +126,8 @@ export async function updateAdminUser(
       }
 
       if (parsed.data.isAdmin === false && existingUser.isAdmin) {
-        if (id === adminUserId) {
-          return { ok: false as const, reason: "cannot_demote_self" as const };
-        }
-
-        const adminCount = await tx.user.count({ where: { isAdmin: true } });
-        if (adminCount <= 1) {
-          return {
-            ok: false as const,
-            reason: "cannot_remove_last_admin" as const,
-          };
-        }
+        const reason = await getAdminDemotionFailure(tx, adminUserId, id);
+        if (reason) return { ok: false as const, reason };
       }
 
       const profileChangedFields = [

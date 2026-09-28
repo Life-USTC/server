@@ -141,9 +141,11 @@ export async function searchTeachersForGlobal(
       code: true,
       id: true,
       nameCn: true,
+      namePrimary: true,
       department: {
         select: {
           nameCn: true,
+          namePrimary: true,
         },
       },
     },

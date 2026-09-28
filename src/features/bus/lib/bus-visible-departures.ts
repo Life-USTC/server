@@ -25,26 +25,32 @@ export function buildVisibleBusDepartures({
 }) {
   return applicableRoutes
     .flatMap((route) =>
-      route.visibleTrips.map((trip) => ({
-        tripId: trip.trip.id,
-        routeId: route.route.id,
-        route: {
-          id: route.route.id,
-          nameCn: route.route.nameCn,
-          nameEn: route.route.nameEn,
-          descriptionPrimary: route.route.descriptionPrimary,
-          descriptionSecondary: route.route.descriptionSecondary,
-        },
-        originCampus,
-        destinationCampus,
-        departureTime: trip.startTime.displayTime,
-        arrivalTime: trip.endTime.displayTime,
-        departureEstimated: trip.startTime.isEstimated,
-        arrivalEstimated: trip.endTime.isEstimated,
-        minutesUntilDeparture: trip.minutesUntilDeparture,
-        dayType: trip.trip.dayType,
-        status: trip.status,
-      })),
+      route.visibleTrips.flatMap((trip) =>
+        trip.status === null
+          ? []
+          : [
+              {
+                tripId: trip.trip.id,
+                routeId: route.route.id,
+                route: {
+                  id: route.route.id,
+                  nameCn: route.route.nameCn,
+                  nameEn: route.route.nameEn,
+                  descriptionPrimary: route.route.descriptionPrimary,
+                  descriptionSecondary: route.route.descriptionSecondary,
+                },
+                originCampus,
+                destinationCampus,
+                departureTime: trip.startTime.displayTime,
+                arrivalTime: trip.endTime.displayTime,
+                departureEstimated: trip.startTime.isEstimated,
+                arrivalEstimated: trip.endTime.isEstimated,
+                minutesUntilDeparture: trip.minutesUntilDeparture,
+                dayType: trip.trip.dayType,
+                status: trip.status,
+              },
+            ],
+      ),
     )
     .sort((left, right) => {
       if (left.status !== right.status) {

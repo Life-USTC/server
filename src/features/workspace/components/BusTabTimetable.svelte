@@ -6,7 +6,7 @@ import type {
 } from "@/features/workspace/lib/bus-tab-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
-import BusTabRouteTable from "./BusTabRouteTable.svelte";
+import BusTabRoutesTable from "./BusTabRoutesTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
 
 export let bus: WorkspaceBusData;
@@ -35,14 +35,11 @@ export let showHeader = false;
     {/if}
 
     {#if busApplicableRoutes.length > 0}
-      <div class="grid min-w-0 gap-6">
-        {#each busApplicableRoutes as route}
-          <BusTabRouteTable
-            {busNextTripHighlightKey}
-            {route}
-          />
-        {/each}
-      </div>
+      <BusTabRoutesTable
+        {busNextTripHighlightKey}
+        routes={busApplicableRoutes}
+        label={busCopy.workspaceTitle}
+      />
     {:else}
       <Empty.Root>
         <Empty.Header>

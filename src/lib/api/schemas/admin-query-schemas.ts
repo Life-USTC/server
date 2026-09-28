@@ -1,7 +1,6 @@
 import * as z from "zod";
 import { ADMIN_COMMENT_STATUS_FILTERS } from "@/features/admin/lib/admin-moderation-filters";
 import {
-  deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   integerStringSchema,
   paginationPageSizeParam,
@@ -19,29 +18,26 @@ const adminUsersPageSizeSchema = integerStringRangeSchema({
   message: "pageSize must be between 1 and 100",
 });
 
-export const adminUsersQuerySchema = z.object({
+export const adminUsersQuerySchema = z.strictObject({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminUsersPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminUsersPageSizeSchema),
 });
 
-export const adminCommentsQuerySchema = z.object({
+export const adminCommentsQuerySchema = z.strictObject({
   status: z.enum(ADMIN_COMMENT_STATUS_FILTERS).optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });
 
-export const adminHomeworksQuerySchema = z.object({
+export const adminHomeworksQuerySchema = z.strictObject({
   status: z.enum(["all", "active", "deleted"]).optional(),
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });
 
-export const adminDescriptionsQuerySchema = z.object({
+export const adminDescriptionsQuerySchema = z.strictObject({
   targetType: z
     .enum(["all", "section", "course", "teacher", "homework"])
     .optional(),
@@ -49,5 +45,4 @@ export const adminDescriptionsQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(adminPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(adminPageSizeSchema),
 });

@@ -9,7 +9,6 @@ import type {
   SettingsAccountAction,
   SettingsCopy,
   SettingsPendingAccountAction,
-  SettingsUser,
 } from "./settings-component-types";
 
 export let account: SettingsAccount;
@@ -19,7 +18,6 @@ export let hasPendingAccountAction: boolean;
 export let isMounted: boolean;
 export let pendingAccountAction: SettingsPendingAccountAction;
 export let unlinkAccountId: string | null;
-export let user: SettingsUser;
 </script>
 
 <Item.Root role="listitem" variant="outline">
@@ -36,7 +34,7 @@ export let user: SettingsUser;
        
         variant="outline"
         type="button"
-        disabled={!isMounted || user.accountCount <= 1 || hasPendingAccountAction}
+        disabled={!isMounted || !account.canUnlink || hasPendingAccountAction}
         onclick={() => {
           unlinkAccountId = account.id;
         }}
@@ -62,7 +60,7 @@ export let user: SettingsUser;
       </form>
     {/if}
   </Item.Actions>
-  {#if account.linked && user.accountCount <= 1}
+  {#if account.linked && !account.canUnlink}
     <Item.Footer>
       {copy.profile.cannotDisconnectLast}
     </Item.Footer>

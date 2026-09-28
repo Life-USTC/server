@@ -6,7 +6,7 @@ export let data: PageData;
 </script>
 
 <svelte:head>
-  <title>{data.user.name ?? data.user.username ?? data.copy.publicProfile.idLabel} - Life@USTC</title>
+  <title>{data.socialMetadata.title}</title>
 </svelte:head>
 
 <ProfileView profile={data} />

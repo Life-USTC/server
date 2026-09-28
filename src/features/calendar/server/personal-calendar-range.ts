@@ -9,9 +9,12 @@ export function parsePersonalCalendarRange(input: {
 }) {
   const dateFrom = input.dateFrom ? parseDateInput(input.dateFrom) : null;
   const dateTo = input.dateTo ? parseDateInput(input.dateTo) : null;
-  if (Boolean(input.dateFrom) !== Boolean(input.dateTo))
+  if ((input.dateFrom !== undefined) !== (input.dateTo !== undefined))
     throw new InvalidCalendarRangeError("Supply both dateFrom and dateTo");
-  if ((input.dateFrom && !dateFrom) || (input.dateTo && !dateTo))
+  if (
+    (input.dateFrom !== undefined && !dateFrom) ||
+    (input.dateTo !== undefined && !dateTo)
+  )
     throw new InvalidCalendarRangeError(
       "Calendar range must be valid, ordered and at most 366 days",
     );

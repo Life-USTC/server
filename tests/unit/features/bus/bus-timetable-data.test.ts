@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
 import { createDeferred } from "../../../shared/deferred";
 
@@ -85,6 +85,11 @@ const db = vi.hoisted(() => {
     oldVersion,
   };
 });
+
+vi.mock("@/lib/auth/api-auth", () => ({
+  resolveSessionUserId: vi.fn(),
+  requireAuth: vi.fn(),
+}));
 
 vi.mock("@/lib/site-url", () => ({
   getCanonicalOrigin: () => "https://life.example",
@@ -195,7 +200,7 @@ afterEach(() => {
 });
 
 describe("getBusTimetableData 班车时刻表数据", () => {
-  it("使用请求历史版本的拓扑结构", async () => {
+  it("bus.version-topology-self-contained", async () => {
     const data = await timetable.getBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",
@@ -240,7 +245,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(db.busRouteFindMany).not.toHaveBeenCalled();
   });
 
-  it("bus map 复用静态时刻表缓存并按请求时间重算 active trips", async () => {
+  it("bus.request-time-planning", async () => {
     await timetable.getStaticBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-02T00:00:00.000Z",
@@ -258,9 +263,32 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(data?.activeTrips).toEqual([
       expect.objectContaining({ routeId: 8, status: "en-route" }),
     ]);
+    const later = await transitMap.getBusMapData({
+      locale: "zh-cn",
+      now: "2026-02-02T00:25:00.000Z",
+      versionKey: "old-bus",
+    });
+    expect(later?.now).toBe("2026-02-02T00:25:00.000Z");
+    expect(later?.activeTrips).toEqual([]);
+    const before = await queryService.getNextBusDepartures({
+      locale: "zh-cn",
+      originCampusId: 1,
+      destinationCampusId: 2,
+      atTime: "2026-02-01T23:55:00.000Z",
+      dayType: "weekday",
+      versionKey: "old-bus",
+    });
+    expect(before?.departures[0]?.minutesUntilDeparture).toBe(5);
+    const after = await queryService.getNextBusDepartures({
+      locale: "zh-cn",
+      originCampusId: 1,
+      destinationCampusId: 2,
+      atTime: "2026-02-02T00:25:00.000Z",
+      dayType: "weekday",
+      versionKey: "old-bus",
+    });
+    expect(after?.departures).toEqual([]);
     expect(db.busTripFindMany).not.toHaveBeenCalled();
-    expect(db.busScheduleVersionFindMany).toHaveBeenCalledTimes(1);
-    expect(versionLookupCount("old-bus")).toBe(1);
   });
 
   it("为每次调用刷新 fetchedAt 而不重新加载静态数据", async () => {
@@ -320,7 +348,7 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(db.busTripFindMany).toHaveBeenCalledTimes(2);
   });
 
-  it("不把调用者偏好放进静态缓存", async () => {
+  it("rendering-and-cache.cacheable-public-pages-12", async () => {
     db.busPreferenceFindUnique.mockImplementation(async (args: unknown) => {
       const userId = (args as { where: { userId: string } }).where.userId;
       return {
@@ -350,6 +378,36 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     });
     expect(versionLookupCount("old-bus")).toBe(2);
     expect(db.busPreferenceFindUnique).toHaveBeenCalledTimes(2);
+    const publicInput = {
+      locale: "zh-cn" as const,
+      now: "2026-02-01T00:00:00.000Z",
+      versionKey: "old-bus",
+    };
+    const publicData = await timetable.getStaticBusTimetableData(publicInput);
+    const anonymous = await timetable.getBusTimetableData(publicInput);
+    expect(publicData).not.toHaveProperty("preferences");
+    expect(anonymous?.preferences).toBeNull();
+    for (const data of [first, second, anonymous]) {
+      if (!data) throw new Error("Expected timetable fixture");
+      const { preferences: _preference, ...facts } = data;
+      expect(facts).toEqual(publicData);
+    }
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    expect(db.busPreferenceFindUnique).toHaveBeenCalledTimes(2);
+    db.busPreferenceFindUnique.mockResolvedValue({
+      preferredOriginCampusId: 6,
+      preferredDestinationCampusId: 1,
+      showDepartedTrips: false,
+    });
+    const updated = await timetable.getBusTimetableData({
+      ...publicInput,
+      userId: "user-a",
+    });
+    expect(updated?.preferences?.preferredOriginCampusId).toBe(6);
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    expect(await timetable.getStaticBusTimetableData(publicInput)).toEqual(
+      publicData,
+    );
   });
 
   it("按 locale、日期和显式版本隔离静态数据", async () => {
@@ -638,4 +696,53 @@ describe("getBusTimetableData 班车时刻表数据", () => {
 
     expect(versionLookupCount("expiry-a")).toBe(2);
   });
+});
+
+test("bus.route-search-public-cache", async () => {
+  const { getCatalogDetailCacheRevision } = await import(
+    "@/lib/catalog-detail-cache-revision"
+  );
+  const { getBusRoutesSearchRoute } = await import("@/lib/api/routes/bus");
+  const revision = vi.mocked(getCatalogDetailCacheRevision);
+  revision.mockResolvedValue("bus-revision-before");
+  const read = () =>
+    getBusRoutesSearchRoute(
+      new Request(
+        "https://life.example/api/catalog/bus/routes?versionKey=old-bus&originCampusId=1&destinationCampusId=2",
+      ),
+    );
+  try {
+    const first = await read();
+    expect(first.status).toBe(200);
+    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "public, max-age=3600, stale-while-revalidate=300",
+    );
+    expect(first.headers.get("Cache-Tag")).toBe("catalog");
+    const before = await first.json();
+    expect(before.routes[0].destinationCampus.namePrimary).toBe("西区");
+    const updated = structuredClone(db.oldPayload);
+    updated.campuses[1].name = "更新西区";
+    updated.routes[0].campuses[1].name = "更新西区";
+    db.busScheduleVersionFindUnique.mockImplementation(
+      async (args: unknown) => {
+        const where = (args as { where: { id?: number; key?: string } }).where;
+        return where.id === db.oldVersion.id
+          ? { rawJson: updated }
+          : { ...db.oldVersion, key: where.key };
+      },
+    );
+    const warm = await read();
+    expect(await warm.json()).toEqual(before);
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(1);
+    revision.mockResolvedValue("bus-revision-after");
+    const after = await read();
+    expect(after.status).toBe(200);
+    expect((await after.json()).routes[0].destinationCampus.namePrimary).toBe(
+      "更新西区",
+    );
+    expect(db.busTripFindMany).toHaveBeenCalledTimes(2);
+    expect(db.busPreferenceFindUnique).not.toHaveBeenCalled();
+  } finally {
+    revision.mockResolvedValue("test-revision");
+  }
 });

@@ -110,7 +110,7 @@ async function loadStaticBusTimetableData(input: {
 }
 
 export async function getStaticBusTimetableData(
-  input: BusTimetableInput,
+  input: Omit<BusTimetableInput, "userId">,
 ): Promise<StaticBusTimetableData | null> {
   const locale = input.locale ?? "zh-cn";
   const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();

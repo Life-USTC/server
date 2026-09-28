@@ -10,6 +10,36 @@ policy_refs:
 - rendering-and-cache
 - cases.mcp-assistant-workflows
 requirements:
+- id: todo.single-delete-replay
+  category: consistency
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: delete_replay
+    operation:
+      module: src/lib/api/routes/todos.ts
+      export: deleteTodoRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    committed_state: absent
+    replay: not_found
+    preserves_committed_state: true
+    confirmation_required: false
+    protocol:
+      rest_status: 404
+      graphql_status: 404
+      graphql_code: NOT_FOUND
+  acceptance:
+    given: An isolated unsuspended owner has a fresh todo for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
+    when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.
+    then:
+    - The first request succeeds and the stored todo is absent before the response is accepted.
+    - Retries return 404/NOT_FOUND/not_found and never recreate the row.
+    test:
+      file: tests/integration/mutation-error-parity.test.ts
+      name: todo.single-delete-replay
 - id: todo.personal-ownership
   category: authorization
   surfaces:
@@ -20,61 +50,135 @@ requirements:
   applies_to:
   - todo-list
   - todo-edit
-  rule: Anonymous callers cannot read or write personal todos. Authenticated users can only read and
-    manage their own todos on every surface, including through OAuth-authorized clients. Administrator
-    status never grants ordinary access to another user's todos.
-- id: todo.calendar-write-commit
-  category: consistency
-  rule: Todo creates, updates, completion changes and deletes enqueue personal calendar export rebuilds
-    only after their database transaction commits. Failed or rolled-back writes never enqueue a rebuild.
+  rule: Anonymous callers cannot read or write personal todos. Authenticated users can only read and manage
+    their own todos on every surface, including through OAuth-authorized clients. Administrator status
+    never grants ordinary access to another user's todos. An active suspension does not prevent private
+    todo reads or writes.
   acceptance:
-  - id: todo.calendar-write-commit.enqueue-after-commit
-    given: A todo update has finished its transaction callback but the commit is still pending.
-    when: The commit completes successfully.
+    given: An isolated regular user and actively suspended administrator each own one private todo, and
+      independent OAuth clients receive todo read/write grants.
+    when: Anonymous, signed Web, REST, GraphQL and real HTTP MCP callers read lists, create/edit/delete
+      owned todos, and attempt individual or batch writes to the other owner’s todo.
     then:
-    - No personal calendar rebuild is queued before the commit.
-    - Exactly one rebuild is queued for the owner after the commit.
-    tests:
-    - file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
-      name: does not enqueue a rebuild until the update transaction commits
-  - id: todo.calendar-write-commit.rollback-no-enqueue
-    given: A todo update has finished its transaction callback but the commit is still pending.
-    when: The transaction rolls back because the commit fails.
-    then:
-    - The write reports its failure and no personal calendar rebuild is queued.
-    tests:
-    - file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
-      name: does not enqueue a rebuild when the update transaction rolls back
+    - Anonymous reads and writes never reveal or modify private todos.
+    - Each owner, including the suspended administrator and OAuth clients, sees only their own list and
+      can manage their own records.
+    - Foreign IDs and caller-supplied user IDs cannot redirect ownership; mixed-owner batches mutate only
+      the owned item.
+    - The other owner’s complete stored record remains unchanged after every transport.
+    test:
+      file: tests/e2e/src/app/workspace/todos/ownership-contract.test.ts
+      name: todo.personal-ownership
 - id: todo.web-list-state
   category: presentation
-  rule: The Web todo list preserves the explicitly selected completion filter, including empty results.
-    Local create, edit, completion and delete results are reflected without reloading or resurrecting
-    stale rows when switching filters.
+  rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
+  acceptance:
+    given: An isolated temporary owner and signed session have one incomplete todo and no completed rows.
+    when: Desktop and mobile views repeatedly select the empty completed filter, switch to populated filters
+      and explicitly clear the filter.
+    then:
+    - The selected completed filter remains checked while the actual empty state is rendered and no task
+      actions exist.
+    - Repeated selection does not fall back to another filter.
+    - Explicitly clearing the filter selects All and restores the populated list.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-list-state
 - id: todo.web-due-order
   category: presentation
-  rule: The Web todo list puts undated items first, then orders dated items by absolute distance from
-    the page reference time, nearest first, with earlier deadlines breaking equal-distance ties. This
-    order applies to every completion filter and updates after edits.
+  rule: The Web todo list orders dated tasks by deadline ascending, followed by undated tasks. This order applies to every completion filter and updates after edits; equal deadlines preserve the existing list order.
+  rationale: Earliest deadlines keep overdue work ahead of future work. Undated tasks remain visible after dated tasks. Sorting does not depend on a moving page-reference time and agrees with the server's deadline ordering.
+  acceptance:
+    given: The owner has undated, long-overdue, near-past, near-future and next-day todos.
+    when: Desktop and mobile Web lists select every completion filter, complete the fixtures and edit a deadline through the actual form.
+    then:
+    - Earlier deadlines appear first and undated tasks appear last.
+    - Incomplete, completed and All filters preserve deadline order.
+    - Editing the oldest deadline to a future time moves the task to its new chronological position.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-due-order
 - id: todo.web-detail
   category: presentation
-  rule: Priority uses the same badge as the list. Footer actions include icons and accessible mobile controls.
+  rule: Todo detail and list views display the same priority value and localized badge semantics.
+  acceptance:
+    given: The authenticated owner has low-, medium- and high-priority todos.
+    when: Each todo is opened from desktop and mobile views in Chinese and English.
+    then:
+    - List/card and detail display the same localized priority label.
+    - Priority badge foreground, background and border colors match between the list/card and detail.
+    - Raw priority enum values are not displayed in detail.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.web-detail
 - id: todo.purely-personal
   category: authorization
-  rule: Todo is a purely personal object and is not bound to any section.
+  rule: A todo can be created and managed without a section or section subscription and never appears
+    as shared section homework.
+  acceptance:
+    given: A new owner has no section subscriptions.
+    when: Real owner-scoped services create, list, edit and delete a dated todo.
+    then:
+    - All operations succeed without adding a section subscription.
+    - The updated todo appears in the owner calendar and no matching shared homework exists.
+    - Deletion removes the personal task.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.purely-personal
 - id: todo.due-date-calendar
   category: behavior
   rule: Only incomplete todos with a due date appear in the calendar.
+  acceptance:
+    given: The owner has all four combinations of dated/undated and completed/incomplete todos.
+    when: The real unified calendar reads those rows, then the dated incomplete todo is completed, reopened
+      and made undated.
+    then:
+    - Only the dated incomplete todo appears initially.
+    - Completion removes it, reopening restores it, and clearing the due date removes it again.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.due-date-calendar
 - id: todo.completed-retained
   category: presentation
-  rule: Completed todos retain history but no longer occupy urgent information areas.
+  rule: Completing a todo preserves it in personal task history.
+  acceptance:
+    given: The owner has a dated high-priority todo with content.
+    when: Real services complete it, read completion-filtered history and reopen it.
+    then:
+    - The completed history retains the same identity, title, content, priority, due date and creation
+      time.
+    - Completion removes it from incomplete reads without deleting it; reopening moves the same row back.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.completed-retained
 - id: todo.bounded-summary-read
   category: consistency
-  rule: The complete incomplete/completed/overdue counts are fused into one RLS-scoped aggregate statement
-    and remain independent of list filters; the bounded list is loaded in one additional statement.
+  rule: Incomplete, completed and overdue summary counts cover all of the authenticated owner's todos
+    regardless of list filters. The returned list remains bounded by its requested limit.
+  acceptance:
+    given: The owner has completed, undated, overdue and future todos.
+    when: The real summary service lists one row with all, completed and incomplete filters.
+    then:
+    - Counts always include the complete owner task population.
+    - Each returned list obeys its limit and selected completion filter.
+    test:
+      file: tests/integration/todo-overview-counts.test.ts
+      name: todo.bounded-summary-read
 - id: todo.mobile-toolbar-priority
   category: presentation
   rule: At mobile widths, completion-status filters stay directly available and todos use cards. Desktop
     todos use the table view; there is no display-mode menu.
+  acceptance:
+    given: The authenticated owner has personal todos.
+    when: The actual workspace is viewed at desktop and mobile widths and each completion filter is selected.
+    then:
+    - Desktop displays a table and mobile displays cards.
+    - All completion filters remain directly visible and selectable; mobile controls have at least 44px
+      targets within the viewport.
+    - No view-mode menu or list/card selector is shown, and the page does not overflow horizontally.
+    test:
+      file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
+      name: todo.mobile-toolbar-priority
 - id: todo.rest-list-limit
   category: validation
   applies_to:
@@ -89,14 +193,13 @@ requirements:
     default: 100
     integer: true
   acceptance:
-  - id: todo.rest-list-limit.behavior
     given: An authenticated caller lists personal todos.
     when: The limit is omitted, on a boundary, fractional, or outside the interval.
     then:
     - The declared default reaches the read model and invalid limits are rejected before reading.
-    tests:
-    - file: tests/unit/features/todos/todo-specification-inputs.test.ts
-      name: enforces rest todo list limits and default
+    test:
+      file: tests/unit/features/todos/todo-specification-inputs.test.ts
+      name: todo.rest-list-limit
 - id: todo.mcp-list-limit
   category: validation
   applies_to:
@@ -111,14 +214,15 @@ requirements:
     default: 50
     integer: true
   acceptance:
-  - id: todo.mcp-list-limit.behavior
     given: An authenticated caller lists personal todos.
     when: The limit is omitted, on a boundary, fractional, or outside the interval.
     then:
     - The declared default reaches the read model and invalid limits are rejected before reading.
-    tests:
-    - file: tests/unit/features/todos/todo-specification-inputs.test.ts
-      name: enforces mcp todo list limits and default
+    test:
+      file: tests/unit/features/todos/todo-specification-inputs.test.ts
+      name: todo.mcp-list-limit
+  rationale: The smaller default bounds assistant context; REST permits a larger initial list for general
+    HTTP clients. Both retain the same maximum.
 - id: todo.rest-batch-patch-bounds
   category: validation
   applies_to:
@@ -130,16 +234,16 @@ requirements:
     input: items
     min_items: 1
     max_items: 100
-    unique_items: false
+    unique_items: true
   acceptance:
-  - id: todo.rest-batch-patch-bounds.behavior
     given: An authenticated caller sends a batch.
     when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
     then:
-    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
-    tests:
-    - file: tests/unit/features/todos/todo-batch-route.test.ts
-      name: enforces specified PATCH collection boundaries
+    - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
+    test:
+      file: tests/unit/features/todos/todo-batch-route.test.ts
+      name: todo.rest-batch-patch-bounds
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-batch-delete-bounds
   category: validation
   applies_to:
@@ -151,16 +255,16 @@ requirements:
     input: ids
     min_items: 1
     max_items: 100
-    unique_items: false
+    unique_items: true
   acceptance:
-  - id: todo.rest-batch-delete-bounds.behavior
     given: An authenticated caller sends a batch.
     when: The collection is empty, at each boundary, too large, or contains duplicate IDs.
     then:
-    - Accepted requests reach the service for every item; invalid sizes produce no service calls.
-    tests:
-    - file: tests/unit/features/todos/todo-batch-route.test.ts
-      name: enforces specified DELETE collection boundaries
+    - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
+    test:
+      file: tests/unit/features/todos/todo-batch-route.test.ts
+      name: todo.rest-batch-delete-bounds
+  rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-patch-ownership
   category: authorization
   applies_to:
@@ -203,14 +307,13 @@ requirements:
     denied_effects:
     - todo
   acceptance:
-  - id: todo.rest-patch-ownership.behavior
     given: Fresh todos belong to signed-in ordinary and administrator users.
     when: Anonymous, owner and other-user contexts invoke the ordinary REST endpoint.
     then:
     - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
-    tests:
-    - file: tests/integration/rest/todos/[id]/test.ts
-      name: enforces specified PATCH ownership through the real REST endpoint
+    test:
+      file: tests/integration/rest/todos/[id]/test.ts
+      name: todo.rest-patch-ownership
 - id: todo.rest-delete-ownership
   category: authorization
   applies_to:
@@ -253,14 +356,13 @@ requirements:
     denied_effects:
     - todo
   acceptance:
-  - id: todo.rest-delete-ownership.behavior
     given: Fresh todos belong to signed-in ordinary and administrator users.
     when: Anonymous, owner and other-user contexts invoke the ordinary REST endpoint.
     then:
     - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
-    tests:
-    - file: tests/integration/rest/todos/[id]/test.ts
-      name: enforces specified DELETE ownership through the real REST endpoint
+    test:
+      file: tests/integration/rest/todos/[id]/test.ts
+      name: todo.rest-delete-ownership
 - id: todo.web-detail-actions
   category: presentation
   applies_to:
@@ -268,20 +370,21 @@ requirements:
   expectation:
     kind: ordered_items
     surface: web
-    target: '[data-slot="dialog-footer"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-footer"]'
     items:
     - delete
     - completion
     - edit
   acceptance:
-  - id: todo.web-detail-actions.behavior
     given: An incomplete todo detail dialog is open.
     when: The footer actions are rendered.
     then:
     - The visible buttons occur in the specified order.
-    tests:
-    - file: tests/e2e/src/app/workspace/todos/test.ts
-      name: 待办详情弹窗展示优先级、状态与底部操作
+    test:
+      file: tests/e2e/src/app/workspace/todos/test.ts
+      name: todo.web-detail-actions
 - id: todo.web-create-target
   category: presentation
   applies_to:
@@ -289,21 +392,22 @@ requirements:
   expectation:
     kind: target_size
     surface: web
-    target: workspace-todos-add
+    target:
+      by: test_id
+      value: 'workspace-todos-add'
     viewport:
       width: 390
       height: 844
     min_width: 44
     min_height: 44
   acceptance:
-  - id: todo.web-create-target.behavior
     given: The todo workspace is rendered at the specified viewport.
     when: The create button is measured.
     then:
     - Both CSS pixel dimensions meet the declared minimum.
-    tests:
-    - file: tests/e2e/src/app/workspace/todos/test.ts
-      name: 移动端待办工具栏保留筛选和大尺寸主操作
+    test:
+      file: tests/e2e/src/app/workspace/todos/test.ts
+      name: todo.web-create-target
 - id: todo.web-completed-title
   category: presentation
   applies_to:
@@ -311,19 +415,139 @@ requirements:
   expectation:
     kind: state_presentation
     surface: web
-    target: '[data-slot="dialog-title"]'
+    target:
+      by: css
+      value: '[data-slot="dialog-title"]'
     state:
       completed: true
     text_decoration: line-through
   acceptance:
-  - id: todo.web-completed-title.behavior
     given: A todo has the specified completed state.
     when: Its detail dialog opens.
     then:
     - The rendered title has the declared computed text decoration.
-    tests:
-    - file: tests/e2e/src/app/workspace/todos/test.ts
-      name: 已完成筛选显示已完成的待办
+    test:
+      file: tests/e2e/src/app/workspace/todos/test.ts
+      name: todo.web-completed-title
+- id: todo.update-calendar-after-commit
+  category: consistency
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: commit
+    failure_propagated: false
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 1
+      recipient: owner
+  acceptance:
+    given: A todo update has finished its transaction callback while commit is pending.
+    when: The commit succeeds.
+    then:
+    - No rebuild is queued before commit.
+    - Exactly one owner rebuild is queued after commit.
+    test:
+      file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
+      name: todo.update-calendar-after-commit
+- id: todo.update-calendar-rollback
+  category: consistency
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: transaction_effects
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: updateOwnedTodo
+    completion: rollback
+    failure_propagated: true
+    before_commit:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+    after_completion:
+    - operation:
+        module: src/features/calendar/server/calendar-export-invalidation.ts
+        export: scheduleInvalidateUserCalendarExportCache
+      calls: 0
+  acceptance:
+    given: A todo update has finished its transaction callback while commit is pending.
+    when: The commit fails.
+    then:
+    - The update fails and no rebuild is queued.
+    test:
+      file: tests/unit/features/todos/todo-calendar-invalidation.test.ts
+      name: todo.update-calendar-rollback
+- id: todo.web-local-mutation-state
+  category: presentation
+  rule: Successful local todo creates, edits, completion changes and deletes update the list without a
+    reload; changing filters does not resurrect stale rows.
+  acceptance:
+    given: An authenticated owner opens the todo workspace.
+    when: The owner creates, edits, completes and deletes a todo through the actual Web controls, switching
+      completion filters after changes.
+    then:
+    - The new and edited titles appear immediately; replaced titles disappear.
+    - Completed state appears only in matching filters and deleted rows never reappear when filters change.
+    - A marker on the original document survives the complete flow, proving that no full reload occurred.
+    test:
+      file: tests/e2e/src/app/workspace/todos/test.ts
+      name: todo.web-local-mutation-state
+- id: todo.completed-not-urgent
+  category: presentation
+  rule: Completed todos do not appear in urgent overview or calendar information.
+  acceptance:
+    given: The owner has overdue and upcoming completed tasks plus one upcoming incomplete task.
+    when: Real compact overview and calendar reads run before and after the remaining task is completed.
+    then:
+    - Completed tasks contribute to history counts but never overdue or upcoming urgent items.
+    - Only the incomplete task appears in due samples and calendar events.
+    - Completing it leaves no urgent items or calendar events and retains all three completed history
+      rows.
+    test:
+      file: tests/integration/todo-lifecycle-contract.test.ts
+      name: todo.completed-not-urgent
+- id: todo.delete-calendar-after-commit
+  category: consistency
+  rule: A successful todo delete requests an owner calendar rebuild only after commit; a rolled-back delete
+    requests none.
+  acceptance:
+    given: The owner has a todo and a rebuild sender reads that row through a separate database connection.
+    when: The actual delete service succeeds, then a second delete is rejected by a deferred constraint
+      trigger at commit.
+    then:
+    - The successful rebuild observes that deletion has committed.
+    - The failed deletion preserves the todo and emits no rebuild.
+    test:
+      file: tests/integration/calendar-commit-contract.test.ts
+      name: todo.delete-calendar-after-commit
+- id: todo.batch-result-replay
+  category: consistency
+  rule: REST and GraphQL todo completion and deletion batches return one ordered result per input target.
+    Missing and foreign-owner targets fail as not_found without undoing successful owned targets. Repeating
+    completion preserves the requested state; repeating deletion preserves absence but reports not_found
+    for the already deleted target. Per-item success is not an all-or-nothing batch guarantee.
+  acceptance:
+    given: Each transport receives foreign, owned and nonexistent todo IDs in that order.
+    when: The real REST and GraphQL handlers complete the batch twice and delete it twice.
+    then:
+    - Both transports preserve input result order and independently commit the owned target despite adjacent failures.
+    - Completion replay retains completed state; deletion replay changes the owned target result to not_found.
+    - The foreign row remains exactly unchanged throughout every request.
+    test:
+      file: tests/integration/rest-state-setting-contract.test.ts
+      name: todo.batch-result-replay
 capabilities:
   todo-list:
     title: Todo List & Filter
@@ -403,13 +627,46 @@ capabilities:
         requirement_refs:
         - todo.mcp-list-limit
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.priority
+          tertiary:
+          - todo.id
+          - todo.userId
+          - todo.createdAt
+          - todo.updatedAt
+        web-detail:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.priority
+          - todo.content
+          tertiary:
+          - todo.id
+          - todo.userId
+          - todo.createdAt
+          - todo.updatedAt
+        mcp-workspace-todo-list:
+          primary:
+          - todos.title
+          - todos.dueAt
+          - todos.completed
+          secondary:
+          - todos.id
+          - todos.priority
+          - todos.content
+          tertiary: []
       items:
-      - todo.title
-      - todo.content (description)
-      - todo.priority
-      - todo.dueAt
-      - detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority,
-        completion), then content; completion/edit/delete stay in the footer
+      - detail popup stacks title, then due datetime, relative urgency, a table of remaining facts (priority, completion),
+        then content; completion/edit/delete stay in the footer
       - completed status action button
       - 'filter: incomplete/completed/all'
       - mobile compact toolbar with direct completion filters
@@ -469,11 +726,36 @@ capabilities:
       - name: workspace_todo_delete
         rest_equivalent: DELETE /api/workspace/todos/[id]
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - todo.title
+          secondary:
+          - todo.content
+          - todo.priority
+          - todo.dueAt
+          tertiary: []
+        mcp-workspace-todo-create:
+          primary:
+          - id
+          secondary: []
+          tertiary: []
+        mcp-workspace-todo-update:
+          primary:
+          - todo.title
+          - todo.dueAt
+          - todo.completed
+          secondary:
+          - todo.id
+          - todo.priority
+          tertiary: []
+        mcp-workspace-todo-delete:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
       items:
-      - todo.title (text input)
-      - todo.content (text/markdown input)
-      - todo.priority (select)
-      - todo.dueAt (date/time picker)
       - Save button
       - Delete button (edit mode)
       - Cancel button
@@ -482,3 +764,6 @@ capabilities:
     - todo.rest-batch-delete-bounds
     - todo.rest-patch-ownership
     - todo.rest-delete-ownership
+rationale:
+- Todo create commit/rebuild ordering and rollback exclusion are canonically covered by the cross-source
+  ical.committed-write-rebuilds contract.

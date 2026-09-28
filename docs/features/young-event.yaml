@@ -1,6 +1,8 @@
 kind: feature
 id: young-event
 name: Young Events
+rationale:
+- Young list organizer names help distinguish activities. Calendar occurrences show source withdrawal rather than signup status. Organizer directories expose active, upcoming, and history counts, not a fictional generic event count. Detail signup scope uses a readable hint; opaque scope and department identifiers remain hidden technical fields.
 areas:
 - catalog
 policy_refs:
@@ -16,33 +18,103 @@ access:
 requirements:
 - id: young-event.shared-public-cache
   category: consistency
-  rule: Public event lists, sanitized detail, categories, organizer identities and static counts share
-    the revision-scoped runtime cache across Web, REST, GraphQL and MCP. Query keys include normalized
-    filters, Shanghai date boundaries, ordering and pagination. Source freshness and organizer upcoming/history
-    counts are evaluated against the current clock outside the snapshot cache.
+  rule: Public event facts, sanitized detail, categories and organizer identity remain viewer-independent
+    and reflect the current imported revision. Moving source-freshness and upcoming/history counts use
+    the current reference clock.
+  acceptance:
+    given: Controlled database results and an imported-revision boundary supply event, sanitized detail, category and organizer facts.
+    when: The actual public services read cold/warm revisions and the clock crosses source-freshness and activity-time boundaries.
+    then:
+    - A warm revision reuses public facts; changing the revision refreshes every fact surface and sanitizes the new detail.
+    - Source freshness and upcoming/history counts advance with the current clock while underlying facts remain cached.
+    test:
+      file: tests/unit/features/young/young-event-service.test.ts
+      name: young-event.shared-public-cache
+- id: young-event.subscription-write-gate
+  category: authorization
+  rule: Public event subscription and organizer-follow controls cannot write until their private state
+    loads successfully. Failed reads expose retry; a successful read alone never writes. Every submitted
+    write rechecks server authentication and a rejected write preserves the last confirmed subscription.
+  acceptance:
+    given: An isolated viewer subscribes to an event and follows an organizer.
+    when: Each actual browser control waits on a held read, receives a read failure, retries, then submits
+      once without the session cookie and once with the valid session.
+    then:
+    - Pending controls are disabled, failed reads expose retry without mutation controls, and both stages send zero writes.
+    - Retry enables the real action without changing state; the real server rejects the cookie-less write with 401 and retains the subscribed state.
+    - One subsequent authenticated write removes only the intended subscription and updates the control.
+    test:
+      file: tests/e2e/src/app/young-events/subscription-write-gate.test.ts
+      name: young-event.subscription-write-gate
 - id: young-event.private-client-overlays
   category: privacy
-  rule: Subscription controls and calendar conflicts share the root-layout viewer state and request their
-    private APIs with no-store only for signed-in viewers; an expired session returns the sign-in state.
-    They never issue a separate shell bootstrap request.
+  rule: Private event subscription and conflict APIs are requested with no-store only for signed-in viewers;
+    an expired session restores sign-in state.
+  acceptance:
+    given: An isolated subscribed viewer and an anonymous visitor open event detail and calendar views.
+    when: The actual browser fetches personal overlays, then the private request reaches the real API without its session cookie.
+    then:
+    - Anonymous browsing makes no private overlay request; signed-in overlays use no-store.
+    - The real 401 response restores the subscribe button on the detail page and the sign-in conflict status on the calendar.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.private-client-overlays
 - id: young-event.public-no-signin
   category: authorization
   rule: Young events are public campus activity information; sign-up itself still happens on young.ustc.edu.cn,
     so sign-in is not a prerequisite for browsing.
+  acceptance:
+    given: An anonymous browser opens an imported activity.
+    when: The actual detail page renders and the viewer returns to the public catalog.
+    then:
+    - Activity facts and public navigation are available without sign-in.
+    - The detail page does not show an official registration link.
+    test:
+      file: tests/e2e/src/app/young-events/[youngId]/test.ts
+      name: young-event.public-no-signin
 - id: young-event.static-snapshot-sourced
   category: behavior
-  rule: Events are scraped by the static repo (authenticated young.ustc.edu.cn enrolmentList/endList APIs)
-    into the published SQLite snapshot and imported into Postgres by the static loader; the only request-time
-    call to young.ustc.edu.cn is the poster-image proxy, which fetches the public /login/<pic> URL once
-    and caches it in R2.
+  rule: Catalog activity reads use the imported static snapshot and do not require request-time access
+    to authenticated Young APIs. Image retrieval is handled separately through the public image proxy.
+  acceptance:
+    given: An activity has been imported into PostgreSQL and no source data is cached.
+    when: All network fetches are denied while anonymous REST/GraphQL/MCP detail operations execute.
+    then:
+    - Every operation still returns the persisted event.
+    - No upstream network request is attempted.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.static-snapshot-sourced
 - id: young-event.snapshot-authoritative
   category: consistency
   rule: A complete snapshot marks absent events sourceMissing with lastSeenAt and keeps their rows. It
     never infers cancellation. Incomplete snapshots leave existing rows unchanged.
+  acceptance:
+    given: Two previously observed published events exist and a later source is incomplete, complete with
+      one event, empty, or reintroduces an absent event.
+    when: The real snapshot gate and Young importer reconcile these sources in a database transaction.
+    then:
+    - Incomplete snapshots leave rows unchanged.
+    - Complete missing and empty sources retain rows with sourceMissing=true and prior lastSeenAt, without
+      inferring cancellation.
+    - Observed and reappearing events update lastSeenAt and clear sourceMissing.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.snapshot-authoritative
 - id: young-event.organizer-identity
   category: consistency
   rule: Organizer names use Unicode NFKC, trim, whitespace collapse, and lowercase. Exact normalized names
     resolve to stable local YoungOrganizer IDs; matching never uses fuzzy similarity.
+  acceptance:
+    given: Source organizer labels vary by full-width Unicode, whitespace and case; a similar but unequal
+      name and a blank label also occur.
+    when: The actual Young importer runs repeatedly against a real database.
+    then:
+    - Exactly normalized names share one stable local organizer ID across imports.
+    - A merely similar name remains distinct, and a blank label creates no organizer.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.organizer-identity
 - id: young-event.raw-payload-preserved
   category: consistency
   rule: Curated columns cover the high-value upstream fields, including the rich-text description and
@@ -50,93 +122,338 @@ requirements:
     the sponsor and contact person, and the per-slot venue list. The upstream record, including itemPlaceDTO
     and its place details split into snapshot subtables, stays available under rawJson for REST, GraphQL,
     and MCP consumers.
+  rationale: 'Confirmed publication decision: retain the existing source activity record and structured
+    participation fields so clients can explain source audience, registration eligibility, venue slots
+    and provenance. Source identity/scope codes are opaque source facts, not account identifiers or proof
+    of personal eligibility. Activity contact fields identify the published event contact only; they must
+    not reveal a viewer''s contact details, account links or personal participation state. rawJson is
+    data; only separately sanitized description and participationNotes may be rendered as rich text.'
+  acceptance:
+    given: An upstream activity contains rich text, module/level/form labels, source sponsor/contact,
+      hour and attendance counters, and nested venue subtables.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Raw source fields and reconstructed itemPlaceDTO are retained exactly (GraphQL uses a JSON string).
+    - Curated public activity facts and venue slots retain their values without adding viewer/account/participation
+      state.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.raw-payload-preserved
 - id: young-event.rich-text-sanitized
   category: validation
-  rule: description and participationNotes are stored exactly as young.ustc.edu.cn published them. Every
-    interface sanitizes them at serialization time with the shared markdown whitelist (no scripts, iframes,
-    or event handlers) and rewrites young.ustc.edu.cn image URLs to the local cached proxy, so no client
-    ever renders raw upstream HTML or calls the upstream image host.
+  rule: 'Every public interface sanitizes description and participationNotes before exposing renderable
+    rich text: scripts, iframes and event handlers are removed, and young.ustc.edu.cn image URLs use the
+    local image proxy.'
+  acceptance:
+    given: The imported description and participation notes contain script/iframe tags, event handlers
+      and a Young image.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Both rendered HTML fields remove executable tags and event handlers.
+    - Benign text remains and Young image URLs point to the local proxy.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.rich-text-sanitized
 - id: young-event.signup-state
   category: behavior
   rule: The upstream activity status label and code (status, activityStatusCode) are distinct from the
     signup phase code (signupStatusCode). requiresSignup reflects the upstream needApply flag. isActive
     identifies the source list and alone does not guarantee that registration is currently possible. The
     empty upstream registrationStatus key remains only in rawJson.
+  acceptance:
+    given: A source-active activity has different activity/signup codes, needApply=0 and an empty legacy
+      registrationStatus field.
+    when: The actual source loader and importer persist it; anonymous REST, GraphQL and registered MCP
+      detail operations read it.
+    then:
+    - Activity label/code, signup code and requiresSignup remain distinct even on a source-active record.
+    - The legacy registrationStatus exists only in rawJson.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.signup-state
 - id: young-event.image-proxy-cached
   category: consistency
-  rule: The public imageUrl is a local proxy path (/api/catalog/young-events/[youngId]/image). On first
-    miss the route fetches https://young.ustc.edu.cn/login/<pic>, stores bytes in R2 under young-events/images/<pic>,
-    and serves immutable year-long cache headers. Final responses are also held in the per-colo Cache
-    API keyed by youngId for their Cache-Control TTL (200 long-term, 404 for 300s, 502 for 60s); the 503
-    storage-unavailable response is never cached.
+  rule: Public Young image responses use the local proxy. Immutable cache entries must identify the poster
+    representation; changing an event's poster must not continue serving old bytes under an unchanged
+    immutable representation.
+  acceptance:
+    given: A controlled event record changes its poster path while a controlled R2 binding contains both image representations.
+    when: The actual event-image route resolves each current poster and the local path proxy reads its bytes.
+    then:
+    - The mutable event route returns an uncached redirect; distinct poster paths produce distinct local URLs.
+    - Representation URLs serve the matching immutable bytes and ETags from R2 without an origin request.
+    test:
+      file: tests/unit/features/young/young-event-image-route.test.ts
+      name: young-event.image-proxy-cached
 - id: young-event.shanghai-local-times
   category: consistency
   rule: Upstream datetimes are Asia/Shanghai local times and returned with the +08:00 offset. Date-only
     range boundaries use Asia/Shanghai day boundaries.
+  acceptance:
+    given: Upstream activity times are timezone-less Shanghai local text.
+    when: The actual importer and all public transports return timestamps, then the catalog reads date-only
+      day ranges.
+    then:
+    - Returned instants carry the matching +08:00 local time.
+    - The matching Shanghai day includes the event and the previous day excludes it.
+    test:
+      file: tests/integration/mcp/catalog/young-public-contract.test.ts
+      name: young-event.shanghai-local-times
 - id: young-event.date-range-overlap
   category: consistency
-  rule: dateFrom/dateTo include every overlapping interval selected by timeBasis=activity or registration.
-    Rows missing the selected start time are counted in unknownDateCount and can be paginated with dateUnknown=true.
-    A missing end time is treated as a point at the known start.
+  rule: Activity and registration date-range searches use the selected time basis and include intervals
+    overlapping the requested Shanghai days. Interval ends are exclusive; a known start with no end is
+    treated as a point.
+  acceptance:
+    given: Persisted events span midnight, end exactly at day start, have only a start, or have registration
+      timing distinct from activity timing.
+    when: The actual catalog service queries one Shanghai day using activity and registration time bases.
+    then:
+    - Overlapping and known-start-only events are included; intervals ending exactly at the day start
+      are excluded.
+    - Registration filtering uses registration timing independently of activity timing.
+    test:
+      file: tests/integration/young-catalog.test.ts
+      name: young-event.date-range-overlap
 - id: young-event.read-only
   category: authorization
   rule: Events are imported facts; no transport exposes writes.
+  acceptance:
+    given: An isolated imported activity is available to a signed-in viewer and anonymous API clients.
+    when: The real REST catalog receives every write verb, GraphQL introspection and native MCP discovery enumerate capabilities, and the browser renders detail.
+    then:
+    - REST catalog writes return 405, GraphQL exposes only personal Young mutations, and MCP exposes only public catalog reads.
+    - The detail offers no activity-edit control and the persisted source name remains unchanged.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.read-only
 - id: young-event.structured-participation
   category: behavior
-  rule: Source category/module/form/level codes, organization IDs, tag IDs and signup scope IDs remain
-    opaque, separate from labels and local organizer identity. Participation columns cover strict binary
-    signup-info and online flags, meeting text, normalized attachment extensions and external sponsor;
-    blank or placeholder sponsor text is null. Arrays use [] for missing values. Internal workflow fields
-    stay in rawJson.
+  rule: Source category/module/form/level, organization, tag and signup-scope codes remain opaque and
+    separate from labels and local organizer identity.
+  acceptance:
+    given: An upstream record has distinct category/module/form/level labels and codes plus source organization,
+      tag and audience IDs.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Published fields preserve opaque codes separately from labels.
+    - Source identity arrays retain stable deduplicated order and remain distinct from local organizer
+      identity.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.structured-participation
 - id: young-event.display-known-values
   category: presentation
-  rule: The default detail page shows the poster banner, title, and status badges. It does not show an
-    activity summary, official signup button, or expandable statistics. A subscribe button sits to the
-    right of the title. It does not
-    repeat the signup window, registration requirements, meeting information, attachment formats, external
-    sponsor, organization contacts, occupancy, seat limit, or favorite count. isOnline reflects the upstream
-    online-meeting option, not an exclusive activity format; false never implies in-person attendance.
-    Unknown occupancy is not shown as zero. Partial time ranges label their known endpoint in Asia/Shanghai;
-    unknown scope codes are not translated into eligibility claims.
+  rule: The default detail page shows the poster banner, title, status badges, and a subscribe button to the right of the title. It does not show an activity summary, official signup button, expandable statistics, registration requirements, meeting information, attachment formats, or an external sponsor.
+  acceptance:
+    given: A persisted activity provides registration requirements, accepted attachments, online meeting information and an external sponsor.
+    when: The actual detail page renders at desktop and mobile widths.
+    then:
+    - The banner, title, and subscribe button are visible.
+    - Those participation facts are not repeated on the default page.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.display-known-values
 - id: young-event.web-browse-context
   category: presentation
-  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar
-    does not show that toolbar. Detail return links preserve the originating catalog browse route.
-    Unknown-date results show their active filter explicitly.
+  rule: The activity list retains search/category/module/level/organizer/source-list filters. The calendar does not show that toolbar. The second-classroom sidebar links to the list, calendar, and organizers. Unknown-date results show their active filter on the list.
+  acceptance:
+    given: Isolated events have shared search, category, module, level, organizer and source-list filters plus missing activity or registration starts.
+    when: Desktop and mobile browsers open the filtered list, the calendar, and an event detail, then return through the sidebar.
+    then:
+    - The list keeps the shared filters and shows the unknown-date time basis.
+    - The calendar page does not show the filter toolbar.
+    - The sidebar activity-list link returns to the activity list.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.web-browse-context
 - id: young-event.web-organizer-order
   category: presentation
-  rule: Web organizer browsing orders organizers with at least one isActive event first, then others;
-    each group is alphabetical with stable ID ties and pagination across both groups. REST, GraphQL and
-    MCP organizer ordering remains alphabetical.
+  rule: Web organizer discovery places organizers with source-active events before other organizers, with
+    alphabetical order and stable ID ties within each group. REST, GraphQL and MCP order alphabetically.
+    Source-active does not imply registration is open.
+  acceptance:
+    given: Twenty-four isolated organizers include six source-active organizers and equal-name records inserted in reverse ID order.
+    when: Desktop and mobile browsers follow organizer pagination across the active and inactive group boundary.
+    then:
+    - Source-active organizers precede other organizers, with alphabetical name and stable ID order within each group.
+    - The second page continues the exact sequence and retains search; a page beyond the result set is empty.
+    - Organizer links resolve to the exact local organizer identity.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.web-organizer-order
 - id: young-event.web-detail-priority
   category: presentation
-  rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark
-    mode, up to transparent covers the image. The title and status badges sit on that lower edge, and the
-    image link opens the full picture. A subscribe button sits to the right of the title. The page has no
-    back button, activity summary, official signup button, or expandable statistics. Description images
-    stay inside a bounded frame.
+  rule: The poster is a full-width banner at the top of the page. A fade from white, or black in dark mode, up to transparent covers the image. The title, subscribe button, and status badges sit on that lower edge. The page has no back button, activity summary, official signup button, or expandable statistics.
+  acceptance:
+    given: An isolated activity supplies a poster, time, venue, credited hours, and a signup deadline.
+    when: The actual detail page renders at desktop and mobile widths.
+    then:
+    - The banner contains the title, subscribe button, and status badges.
+    - There is no activity summary, back button, official signup button, or expandable statistics toggle.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.web-detail-priority
 - id: young-event.web-list-scan
   category: presentation
-  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of
-    place, module, level, hours and signup deadline, and the signup status. It does not repeat the full
-    signup window or occupancy on every row. The platform name in the description links to the official site.
+  rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of place, module, level, hours and signup deadline, and the signup status. The platform name in the description links to the official site.
+  acceptance:
+    given: Activities start on different Shanghai dates, including one without a start time.
+    when: The list groups those activities.
+    then:
+    - Events with the same start date share one group, and an unknown start is its own group.
+    test:
+      file: tests/unit/features/young/young-event-display.test.ts
+      name: young-event.web-list-scan
 - id: young-event.web-calendar-density
   category: presentation
-  rule: Month and week grids start on Sunday and show a few single-line entries for events that start
-    that day. Day cells show the date number; weekday names stay in the column header. Events that
-    only continue into the day stay in the day view, which lists events that start that day first.
-    Further events open the day view.
+  rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view lists continuing overlaps after events that start that day.
+  acceptance:
+    given: A Wednesday anchor and events that start on that day or only continue into it.
+    when: The calendar builds the week range and the day list.
+    then:
+    - The week starts on Sunday.
+    - Events that start that day precede continuing overlaps.
+    test:
+      file: tests/unit/features/young/young-calendar.test.ts
+      name: young-event.web-calendar-density
 - id: young-event.web-mobile-calendar
   category: presentation
   rule: Month mobile agendas exclude adjacent-month padding and initially show the selected date onward;
     earlier dates remain available by expanding the earlier-date section. Day/week/month controls identify
     their current view and title the matching date range.
+  acceptance:
+    given: An anonymous mobile visitor opens a month agenda with a selected date late in the month.
+    when: The visitor expands earlier dates and switches among day, week and month.
+    then:
+    - The initial agenda starts on the selected day and ends on the last day of the month.
+    - Expansion includes earlier days but excludes adjacent-month padding.
+    - Every view identifies its current control and displays the exact matching day, week interval or month title.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.web-mobile-calendar
 - id: young-event.fixed-browse-filter-options
   category: presentation
-  rule: Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
-    校级, 省级 and 国家级. Other upstream values remain visible as badges but do not become filter choices.
+  rule: Selectable Web module filters use the fixed choices 德, 智, 体, 美 and 劳. Activity-level filters use 班级, 院级,
+    校级, 省级 and 国家级. Other upstream values remain visible in results without becoming selectable taxonomy choices.
+    An unknown value already present in the URL remains visible as the current filter, survives unchanged submissions,
+    and can be explicitly cleared or replaced with a standard value.
   surfaces:
   - web
+  rationale: Fixed standard choices coexist with unknown upstream facts; preserving current URL filters and unfiltered results avoids hiding those activities.
+  acceptance:
+    given: Source activities include unknown module and level values and a browse URL already filters by those values.
+    when: A browser opens the list filter sheet, submits unchanged filters, replaces them with standard choices or clears the active chips, and opens the calendar.
+    then:
+    - Selectable module and level choices remain the five standard values plus the unfiltered option.
+    - Unknown values remain visible in unfiltered activity results and active filter context; they are not additional selectable taxonomy choices.
+    - Unchanged primary and advanced submissions preserve unknown filters, standard choices replace them and clear links remove them explicitly.
+    - The calendar page does not offer a filter sheet.
+    test:
+      file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
+      name: young-event.fixed-browse-filter-options
+- id: young-event.overlay-shared-viewer-state
+  category: privacy
+  rule: Event subscription/conflict controls reuse root viewer state without issuing a separate shell
+    bootstrap request.
+  acceptance:
+    given: An isolated authenticated viewer has an activity subscription.
+    when: The actual event detail and calendar render their subscription and conflict controls.
+    then:
+    - Each surface makes exactly one root shell-bootstrap request and receives the authenticated viewer identity.
+    - Personal controls become ready without a second bootstrap request.
+    test:
+      file: tests/e2e/src/app/young-events/interaction-contract.test.ts
+      name: young-event.overlay-shared-viewer-state
+- id: young-event.unknown-date-results
+  category: consistency
+  rule: Rows lacking the selected start time contribute to unknownDateCount and are available through
+    paginated dateUnknown results.
+  acceptance:
+    given: Five real events have one unknown activity start and four unknown registration starts.
+    when: The actual catalog service queries date-bounded and dateUnknown pages for both time bases.
+    then:
+    - unknownDateCount reflects the selected start field.
+    - Unknown-date pages report complete stable totals and jointly return every matching record exactly
+      once.
+    test:
+      file: tests/integration/young-catalog.test.ts
+      name: young-event.unknown-date-results
+- id: young-event.participation-flag-normalization
+  category: behavior
+  rule: Participation signup-info and online flags use strict binary source interpretation; missing arrays
+    serialize as empty arrays.
+  acceptance:
+    given: Source binary flags are 1/0 numbers or strings, invalid values or missing, with absent arrays.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Only exact binary source values become booleans; missing and invalid flags are null.
+    - Absent identity/tag/attachment arrays serialize as empty arrays.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.participation-flag-normalization
+- id: young-event.participation-sponsor-normalization
+  category: behavior
+  rule: Blank or placeholder sponsor values serialize as null; attachment extensions are normalized without
+    inventing unsupported formats.
+  acceptance:
+    given: Source sponsor values are blank, placeholders or a real label; extensions include mixed case,
+      dots, duplicates and invalid separators.
+    when: The actual source loader, database importer and public summary serializer process the record.
+    then:
+    - Blank/placeholder sponsors serialize as null and a real sponsor is trimmed.
+    - Allowed extensions normalize to stable unique lowercase names without inventing extra formats.
+    test:
+      file: tests/integration/young-source-contract.test.ts
+      name: young-event.participation-sponsor-normalization
+- id: young-event.online-option-uncertainty
+  category: presentation
+  rule: isOnline describes the upstream online-meeting option; false does not imply in-person attendance.
+  acceptance:
+    given: Persisted activities have true, false and missing online-meeting flags.
+    when: Their actual detail pages render at desktop and mobile widths.
+    then:
+    - Only true displays the online-meeting option.
+    - False and missing do not claim in-person attendance.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.online-option-uncertainty
+- id: young-event.occupancy-uncertainty
+  category: presentation
+  rule: The detail page and activity list omit occupancy counts, so an unknown registration count is never rendered as zero.
+  acceptance:
+    given: Persisted activities have unknown or explicitly zero registrations and capacity 20.
+    when: The detail page and the matching list row render.
+    then:
+    - Neither page shows a registration count or a zero-capacity cell.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.occupancy-uncertainty
+- id: young-event.partial-time-uncertainty
+  category: presentation
+  rule: A missing activity endpoint is not rendered as a date. The default detail page does not show an activity summary.
+  acceptance:
+    given: Persisted activities have only a start or only an end timestamp.
+    when: Their actual detail pages render on desktop and mobile.
+    then:
+    - The detail page has no activity summary and does not show an invalid date.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.partial-time-uncertainty
+- id: young-event.scope-uncertainty
+  category: presentation
+  rule: Unknown signup-scope codes are never translated into eligibility claims. The default detail page does not repeat an eligibility notice.
+  acceptance:
+    given: A persisted activity has an unrecognized signup-scope code and opaque source department identity.
+    when: The actual detail page renders on desktop and mobile.
+    then:
+    - The page does not show the unrecognized scope code or the opaque department id.
+    - It does not invent an eligibility claim or an official-eligibility sentence.
+    test:
+      file: tests/e2e/src/app/young-events/detail-contract.test.ts
+      name: young-event.scope-uncertainty
 capabilities:
   young-event:
     title: Second-Classroom Events
@@ -161,8 +478,8 @@ capabilities:
         - Date ranges include overlapping known intervals; unknown start times are counted separately
           and available through the paginated dateUnknown filter. source reports fresh, stale, or unknown
           snapshot freshness; sourceMissing marks rows absent from the latest complete snapshot.
-        - 'Default order: signup-open (active) events first, then by startAt descending; imageUrl is the
-          local cached proxy path.'
+        - 'Default order: source-active events first, then by startAt descending; imageUrl is the local
+          cached proxy path.'
       - path: /api/catalog/young-events/[youngId]
         notes:
         - 404 when the youngId is unknown.
@@ -176,14 +493,13 @@ capabilities:
         - 404 when the organizer ID is unknown.
       - path: /api/catalog/young-events/[youngId]/image
         notes:
-        - 'Cache-aside proxy: serves the R2-cached copy under young-events/images/<pic> with immutable
-          year-long cache headers and ETag/304 support; on a miss it fetches https://young.ustc.edu.cn/login/<pic>
-          and stores the result. Repeat requests are served from the per-colo Cache API keyed by youngId.'
-        - 404 when the youngId is unknown or the event has no image (cached for 300s); 502 when the origin
-          fetch fails (cached for 60s).
-        - A companion route, GET /api/catalog/young-events/images/[...path], serves rich-text inline images
-          by their upstream pic path. It shares the same R2 objects and validation; because the bytes
-          are event-independent it skips the per-colo cache keyed by youngId.
+        - Resolves the current poster with an uncached 302 redirect to its local image-path URL; unknown events or missing posters return an uncached 404.
+        - Public event imageUrl values identify the poster path directly, so a replacement poster has a different URL.
+      - path: /api/catalog/young-events/images/[...path]
+        notes:
+        - Serves R2-cached image representations with immutable year-long cache headers and ETag/304 support; a miss fetches the validated young.ustc.edu.cn path and stores the result.
+        - Invalid or missing images return 404 (cached for 300s); origin failures return 502 (cached for 60s).
+
     graphql:
       queries:
       - name: youngEvents
@@ -226,12 +542,138 @@ capabilities:
       - name: catalog_young_organizer_get
         rest_equivalent: GET /api/catalog/young-organizers/[organizerId]
     presentation:
+      kind: fields
+      views:
+        web-list:
+          primary:
+          - event.name
+          - event.startAt
+          - event.status
+          secondary:
+          - event.location
+          - event.category
+          - event.module
+          - event.organizer
+          tertiary: []
+        web-detail:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          - event.status
+          secondary:
+          - event.activityLevel
+          - event.allowedAttachmentTypes
+          - event.appliedCount
+          - event.applyEndAt
+          - event.applyStartAt
+          - event.capacity
+          - event.category
+          - event.contactName
+          - event.contactTel
+          - event.department
+          - event.description
+          - event.duration
+          - event.externalSponsor
+          - event.favCount
+          - event.form
+          - event.grades
+          - event.hours
+          - event.imageUrl
+          - event.isActive
+          - event.isOnline
+          - event.limitNum
+          - event.location
+          - event.module
+          - event.onlineMeetingInfo
+          - event.organizer
+          - event.partakeNum
+          - event.participationNotes
+          - event.places
+          - event.requiresSignup
+          - event.requiresSignupInfo
+          - event.serviceHour
+          - event.sponsor
+          - event.sumHours
+          - event.sumPersons
+          tertiary:
+          - event.youngId
+          - event.organizerId
+          - event.createdAtUpstream
+          - event.auditedAt
+          - event.updatedAtUpstream
+          - event.sourceMissing
+          - event.signupDepartmentIds
+          - event.signupScopeCode
+        web-calendar:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.sourceMissing
+          tertiary: []
+        web-organizers:
+          primary:
+          - organizer.name
+          secondary:
+          - organizer.activeCount
+          - organizer.upcomingCount
+          - organizer.historyCount
+          tertiary:
+          - organizer.id
+        mcp-catalog-young-event-list:
+          primary:
+          - data.name
+          - data.startAt
+          - data.endAt
+          secondary:
+          - data.youngId
+          - data.location
+          - data.category
+          - data.module
+          - data.form
+          - data.activityLevel
+          - data.status
+          tertiary: []
+        mcp-catalog-young-event-get:
+          primary:
+          - event.name
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.youngId
+          - event.location
+          - event.category
+          - event.module
+          - event.form
+          - event.activityLevel
+          - event.status
+          tertiary: []
+        mcp-catalog-young-organizer-list:
+          primary:
+          - data.name
+          secondary:
+          - data.id
+          - data.totalCount
+          - data.upcomingCount
+          tertiary: []
+        mcp-catalog-young-organizer-get:
+          primary:
+          - organizer.name
+          secondary:
+          - organizer.id
+          - organizer.totalCount
+          - organizer.upcomingCount
+          tertiary: []
       items:
       - event name
       - category (单次项目 / 系列项目), module (德/智/体/美/劳), activity level, and participation form
-      - rich-text description and participation notes, sanitized with proxied inline images
+      - Rich descriptions and participation notes use sanitized content with proxied images.
       - title and status badges on the lower edge of the poster banner
       - status and source freshness as a short footnote
       - organizer and stable organizer ID
       - sourceMissing and lastSeenAt when applicable
+      - Per-slot venues take precedence over the single location.
       - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list

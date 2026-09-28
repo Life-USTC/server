@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 import { todoExpectation } from "../../../shared/specifications/todo";
 
 const { findMany, queryRaw, requireAuth } = vi.hoisted(() => ({
@@ -26,10 +27,13 @@ describe("Todo specification input behavior", () => {
     requireAuth.mockResolvedValue({ userId: "spec-owner" });
   });
 
-  it("enforces rest todo list limits and default", async () => {
+  it("todo.rest-list-limit", async (context) => {
+    const contract = await semanticContract(context.task.name, "numeric_input");
+    contract.equal("/surface", "rest");
+    contract.equal("/input", "limit");
     const rule = await todoExpectation("todo.rest-list-limit", "numeric_input");
     expect(rule.surface).toBe("rest");
-    expect(rule.operation).toBe("GET /api/workspace/todos");
+    contract.equal("/operation", "GET /api/workspace/todos");
     const { getTodosRoute } = await import("@/lib/api/routes/todos");
     const [method, path] = rule.operation.split(" ");
     const request = (limit?: number) =>
@@ -43,6 +47,13 @@ describe("Todo specification input behavior", () => {
       expect(findMany).toHaveBeenLastCalledWith(
         expect.objectContaining({ take: limit ?? rule.default }),
       );
+      const field =
+        limit === undefined
+          ? "default"
+          : limit === rule.minimum
+            ? "minimum"
+            : "maximum";
+      contract.equal(`/${field}`, findMany.mock.lastCall?.[0].take);
     }
     findMany.mockClear();
     queryRaw.mockClear();
@@ -52,12 +63,16 @@ describe("Todo specification input behavior", () => {
     expect(findMany).not.toHaveBeenCalled();
     expect(queryRaw).not.toHaveBeenCalled();
     const fractionalResponse = await getTodosRoute(request(rule.minimum + 0.5));
-    expect(fractionalResponse.status).toBe(rule.integer ? 400 : 200);
+    contract.equal("/integer", fractionalResponse.status === 400);
     expect(findMany).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
     expect(queryRaw).toHaveBeenCalledTimes(rule.integer ? 0 : 1);
+    contract.recordVitest(context);
   });
 
-  it("enforces mcp todo list limits and default", async () => {
+  it("todo.mcp-list-limit", async (context) => {
+    const contract = await semanticContract(context.task.name, "numeric_input");
+    contract.equal("/surface", "mcp");
+    contract.equal("/input", "limit");
     const rule = await todoExpectation("todo.mcp-list-limit", "numeric_input");
     expect(rule.surface).toBe("mcp");
     const { listMyTodosInputSchema } = await import(
@@ -78,6 +93,7 @@ describe("Todo specification input behavior", () => {
       registration,
       "specified MCP tool must register the tested schema and handler",
     ).toBeDefined();
+    contract.equal("/operation", registration?.[0]);
     expect(registration?.[1].inputSchema).toBe(listMyTodosInputSchema);
     expect(registration?.[2]).toBe(listMyTodosAction);
     const schema = z.object(listMyTodosInputSchema);
@@ -96,12 +112,21 @@ describe("Todo specification input behavior", () => {
       expect(findMany).toHaveBeenLastCalledWith(
         expect.objectContaining({ take: limit ?? rule.default }),
       );
+      const field =
+        limit === undefined
+          ? "default"
+          : limit === rule.minimum
+            ? "minimum"
+            : "maximum";
+      contract.equal(`/${field}`, findMany.mock.lastCall?.[0].take);
     }
     for (const limit of [rule.minimum - 1, rule.maximum + 1]) {
       expect(schema.safeParse({ [rule.input]: limit }).success).toBe(false);
     }
-    expect(schema.safeParse({ [rule.input]: rule.minimum + 0.5 }).success).toBe(
-      !rule.integer,
+    contract.equal(
+      "/integer",
+      !schema.safeParse({ [rule.input]: rule.minimum + 0.5 }).success,
     );
+    contract.recordVitest(context);
   });
 });

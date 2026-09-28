@@ -39,7 +39,8 @@ export function registerCalendarEventTools(server: McpServer) {
       } catch {
         return jsonToolResult({
           success: false,
-          error:
+          error: "invalid_range",
+          message:
             "Supply both dates or neither; range must be valid, ordered and at most 366 days.",
         });
       }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  auditCreateManyMock,
   commentCountMock,
   commentFindManyMock,
   descriptionCountMock,
@@ -9,6 +10,7 @@ const {
   homeworkFindManyMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
+  auditCreateManyMock: vi.fn(),
   commentCountMock: vi.fn(),
   commentFindManyMock: vi.fn(),
   descriptionCountMock: vi.fn(),
@@ -35,15 +37,21 @@ import {
   listAdminModerationDescriptions,
   listAdminModerationHomeworks,
 } from "@/features/admin/server/admin-moderation-api-lists";
+import { listModerationComments } from "@/features/admin/server/admin-moderation-comment-read-data";
 
 describe("admin moderation list pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     withUserDbContextMock.mockImplementation((_adminUserId, callback) =>
       callback({
+        auditLog: { createMany: auditCreateManyMock },
+        user: { findUnique: vi.fn().mockResolvedValue({ isAdmin: true }) },
+        userSuspension: { findFirst: vi.fn().mockResolvedValue(null) },
         comment: { count: commentCountMock, findMany: commentFindManyMock },
       }),
     );
+    auditCreateManyMock.mockReset();
+    auditCreateManyMock.mockResolvedValue({ count: 1 });
     commentFindManyMock.mockResolvedValue([{ id: "comment-2" }]);
     commentCountMock.mockResolvedValue(5);
     descriptionFindManyMock.mockResolvedValue([{ id: "description-2" }]);
@@ -72,6 +80,34 @@ describe("admin moderation list pagination", () => {
     expect(commentCountMock).toHaveBeenCalledWith({
       where: commentFindManyMock.mock.calls[0]?.[0]?.where,
     });
+  });
+
+  it("comment.governance-anonymous-author-audit-failure", async () => {
+    commentFindManyMock.mockResolvedValue([
+      { id: "anonymous-comment", isAnonymous: true, userId: "private-owner" },
+    ]);
+    auditCreateManyMock.mockRejectedValue(new Error("audit unavailable"));
+    for (const read of [
+      () =>
+        listAdminModerationComments({
+          adminUserId: "admin-1",
+          pageSize: 2,
+          skip: 0,
+          status: "active",
+        }),
+      () =>
+        listModerationComments({
+          adminUserId: "admin-1",
+          pageSize: 2,
+          commentWhere: {},
+        }),
+    ]) {
+      await expect(read()).rejects.toThrow("audit unavailable");
+    }
+    expect(auditCreateManyMock).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(auditCreateManyMock.mock.calls)).not.toContain(
+      "private-owner",
+    );
   });
 
   it("applies skip/take and returns a matching total for descriptions", async () => {

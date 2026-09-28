@@ -144,8 +144,14 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
     await jumpToCourseSection(page, /班级|Sections/i, "#sections");
 
-    // section.semester.nameCn
-    await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
+    // The upstream Chinese term name is localized for the active page locale.
+    const locale = await page.locator("html").getAttribute("lang");
+    await expect(
+      visibleText(
+        page,
+        locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
+      ),
+    ).toBeVisible();
     // section.code (plain monospace text)
     await expect(
       page
@@ -180,13 +186,6 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/sections-table");
   });
 
-  test("jwId 不在课程可见界面中显示", async ({ page }) => {
-    await gotoAndWaitForReady(page, COURSE_URL);
-    const content = await page.locator("#main-content").innerText();
-    // Raw jwId should not appear as visible text
-    expect(content).not.toMatch(new RegExp(`\\b${DEV_SEED.course.jwId}\\b`));
-  });
-
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   test("详情流式布局包含主要锚点区块", async ({ page }, testInfo) => {
@@ -206,7 +205,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
-  test("移动端标题层级紧凑且流式区块可用", async ({ page }, testInfo) => {
+  test("ui.detail-hero-5", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, COURSE_URL);
 

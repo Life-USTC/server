@@ -170,7 +170,7 @@ INSERT INTO public."BusTrip" (id, "versionId", "routeId", "dayType", "position",
 -- Data for Name: BusUserPreference; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."BusUserPreference" ("userId", "preferredOriginCampusId", "preferredDestinationCampusId", "favoriteCampusIds", "favoriteRouteIds", "showDepartedTrips", "createdAt", "updatedAt") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', NULL, NULL, '{1}', '{}', false, '2026-06-27 07:38:10.072', '2026-06-27 07:38:10.072') ON CONFLICT DO NOTHING;
+INSERT INTO public."BusUserPreference" ("userId", "preferredOriginCampusId", "preferredDestinationCampusId", "showDepartedTrips", "createdAt", "updatedAt") VALUES ('cmqw1sr9g0001bqt44c3s0kqa', NULL, NULL, false, '2026-06-27 07:38:10.072', '2026-06-27 07:38:10.072') ON CONFLICT DO NOTHING;
 
 
 --

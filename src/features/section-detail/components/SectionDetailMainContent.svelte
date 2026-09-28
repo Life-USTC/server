@@ -4,7 +4,6 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { onMount } from "svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
-import { detailColumnsClass } from "$lib/components/detail-layout";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
@@ -12,6 +11,7 @@ import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
+import SectionDetailIdentity from "./SectionDetailIdentity.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
@@ -144,8 +144,18 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </Alert.Root>
     {/if}
 
-    <div class={detailColumnsClass}>
-      <div class="grid min-w-0 grid-cols-1 gap-10">
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-10">
+      <div class="min-w-0 lg:col-start-2 lg:row-start-1" data-detail-identity>
+        <SectionDetailIdentity
+          {notAvailable}
+          {primaryName}
+          section={displaySection}
+          {sectionCopy}
+          {teacherName}
+          teachers={displaySection.teachers}
+        />
+      </div>
+      <div class="grid min-w-0 grid-cols-1 gap-10 lg:col-start-1 lg:row-start-1 lg:row-span-2" data-detail-reading-stream>
         <section id="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
@@ -255,7 +265,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         </section>
       </div>
 
-      <aside class="min-w-0 lg:sticky lg:top-4" id="overview">
+      <aside class="min-w-0 lg:col-start-2 lg:row-start-2" id="overview">
         <SectionBasicInfoCard
           {commonCopy}
           {notAvailable}
@@ -264,8 +274,6 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           section={displaySection}
           {sectionCopy}
           {sectionTeachersLabel}
-          {teacherName}
-          teachers={displaySection.teachers}
           {yesNo}
         />
       </aside>

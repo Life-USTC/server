@@ -11,6 +11,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 429:openApiErrorSchema
  * @response 500:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.link-pin:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postWorkspaceLinkPinBatchRoute),

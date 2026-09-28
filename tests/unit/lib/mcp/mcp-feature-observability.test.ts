@@ -42,7 +42,10 @@ it("records actual SDK tool callbacks separately, including public reads and out
   server.registerTool(
     "catalog_course_search",
     { inputSchema: { search: z.string().optional() }, outputSchema },
-    async () => ({ content: [], structuredContent: { success: true } }),
+    async () => ({
+      content: [{ type: "text", text: '{"success":true}' }],
+      structuredContent: { success: true },
+    }),
   );
   server.registerTool(
     "catalog_section_get",

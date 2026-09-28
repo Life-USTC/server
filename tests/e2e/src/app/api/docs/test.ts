@@ -34,9 +34,7 @@ test.describe("/api/docs 页面", () => {
     await expect(page.locator("#api-reference")).toBeVisible();
   });
 
-  test("移动端优先展示参考内容并用抽屉浏览完整导航", async ({
-    page,
-  }, testInfo) => {
+  test("openapi.api-docs-mobile-navigation", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setLocale(page, "zh-cn");
     await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {
@@ -124,7 +122,7 @@ test.describe("/api/docs 页面", () => {
     });
   });
 
-  test("桌面端保留完整固定导航", async ({ page }, testInfo) => {
+  test("openapi.api-docs-desktop-navigation", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await setLocale(page, "en-us");
     await gotoAndWaitForReady(page, "/api/docs/tag/catalog-section", {

@@ -152,6 +152,7 @@ const completeProfileAction = createCompleteProfileAction({
       bind:importText
       {isImporting}
       {isMatching}
+      locale={data.locale}
       {matchSections}
       {matchedSections}
       nextUrl={data.nextUrl}

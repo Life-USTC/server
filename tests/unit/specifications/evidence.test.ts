@@ -10,14 +10,39 @@ import {
   parseNativeReport,
   validateEvidenceManifest,
 } from "../../../scripts/specifications/evidence";
+import { MANDATORY_EVIDENCE_ARTIFACTS } from "../../../scripts/specifications/evidence-ci";
 import type { SpecificationFile } from "../../../scripts/specifications/repository";
 
+import { expectationDigest } from "../../../scripts/specifications/semantic-receipt";
+
+const expectation = {
+  kind: "numeric_input",
+  surface: "rest",
+  operation: "GET /api/workspace/todos",
+  input: "limit",
+  minimum: 1,
+  maximum: 100,
+  default: 20,
+  integer: true,
+};
+const receipt = () => ({
+  version: 1,
+  requirement: "example.ownership",
+  expectation: expectationDigest(expectation),
+  checks: [{ path: "", comparison: "equal" }],
+});
 const root = "/repo";
 const reference = {
   file: "tests/unit/example.test.ts",
-  name: "rejects foreign owner",
+  name: "example.ownership",
 };
 const run = { sha: "a".repeat(40), run: "123", attempt: "1" };
+const successfulExecutions = () =>
+  [...MANDATORY_EVIDENCE_ARTIFACTS.keys()].map((artifact) => ({
+    ...run,
+    artifact,
+    outcome: "success" as const,
+  }));
 const vitest = () => ({
   success: true,
   startTime: 1,
@@ -33,6 +58,7 @@ const vitest = () => ({
           ancestorTitles: ["authorization"],
           status: "passed",
           failureMessages: [] as string[],
+          meta: { specification: receipt() as unknown },
         },
       ],
     },
@@ -55,6 +81,7 @@ const playwright = () => ({
               file: "example.spec.ts",
               tests: [
                 {
+                  annotations: [] as { type: string; description?: string }[],
                   projectName: "chromium",
                   expectedStatus: "passed",
                   status: "expected",
@@ -71,7 +98,7 @@ const playwright = () => ({
   ],
 });
 function specifications(
-  acceptance: unknown = [{ id: "reject-foreign", tests: [reference] }],
+  acceptance: unknown = { test: reference },
   structured = true,
 ): SpecificationFile[] {
   return [
@@ -81,9 +108,7 @@ function specifications(
         requirements: [
           {
             id: "example.ownership",
-            ...(structured
-              ? { expectation: { type: "authorization" } }
-              : { rule: "Owner only" }),
+            ...(structured ? { expectation } : { rule: "Owner only" }),
             acceptance,
           },
         ],
@@ -117,6 +142,17 @@ describe("native execution evidence", () => {
         observations,
       ),
     ).toMatchObject({ status: "not-run" });
+  });
+  test("aggregate native failure cannot be overruled by passing assertions or a successful phase", () => {
+    const native = vitest();
+    native.success = false;
+    const report = buildEvidenceReport(
+      specifications(),
+      parseNativeReport(native, "vitest", root),
+      successfulExecutions(),
+    );
+    expect(report.requirements[0].status).toBe("failed");
+    expect(report.gatePassed).toBe(false);
   });
   test("retains failures from earlier successful Vitest retries", () => {
     const report = vitest();
@@ -256,22 +292,18 @@ describe("native execution evidence", () => {
 });
 
 describe("requirement coverage", () => {
-  test("distinguishes absent scenarios, absent tests and tests not executed", () => {
-    expect(buildEvidenceReport(specifications([])).requirements[0].status).toBe(
-      "missing-scenarios",
-    );
+  test("distinguishes missing canonical tests from tests not executed", () => {
     expect(
-      buildEvidenceReport(specifications([{ id: "no-tests" }])).requirements[0]
-        .status,
+      buildEvidenceReport(specifications(null)).requirements[0].status,
     ).toBe("missing-tests");
     expect(buildEvidenceReport(specifications()).requirements[0].status).toBe(
       "not-run",
     );
   });
-  test("requires every scenario and every linked test to pass", () => {
-    const files = specifications([
-      { id: "one", tests: [reference, { ...reference, name: "unexecuted" }] },
-    ]);
+  test("requires every requirement's canonical test to pass", () => {
+    const files = specifications({
+      test: { ...reference, name: "unexecuted" },
+    });
     const report = buildEvidenceReport(
       files,
       parseNativeReport(vitest(), "vitest", root),
@@ -279,19 +311,32 @@ describe("requirement coverage", () => {
     expect(report.requirements[0].status).toBe("not-run");
     expect(report.gatePassed).toBe(false);
   });
-  test("reports prose gaps without counting them as successful typed evidence", () => {
+  test("prose gaps fail the complete evidence gate even when all typed requirements pass", () => {
     const report = buildEvidenceReport(
-      [...specifications(), ...specifications([], false)],
+      [...specifications(), ...specifications(null, false)],
       parseNativeReport(vitest(), "vitest", root),
     );
-    expect(report.gatePassed).toBe(true);
+    expect(report.gatePassed).toBe(false);
     expect(report.summary).toMatchObject({
       total: 2,
-      structured: 1,
-      unstructured: 1,
+      typedDeclarations: 1,
+      proseRequirements: 1,
+      semanticVerified: 1,
       passed: 1,
-      "missing-scenarios": 1,
+      "missing-tests": 1,
     });
+  });
+  test("a fully tested prose requirement has the same evidence status as a typed requirement", () => {
+    expect(
+      buildEvidenceReport(
+        specifications({ test: reference }, false),
+        parseNativeReport(vitest(), "vitest", root).map((observation) => ({
+          ...observation,
+          semanticReceipt: undefined,
+        })),
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(true);
   });
   test("reports residual normative text locations without treating strings as atomic requirements", () => {
     const files = specifications();
@@ -300,6 +345,14 @@ describe("requirement coverage", () => {
       list: {
         notes: ["At most 100"],
         presentation: {
+          kind: "fields",
+          views: {
+            web: {
+              primary: ["record.name"],
+              secondary: ["record.code"],
+              tertiary: ["record.id"],
+            },
+          },
           items: ["Hide if empty"],
           requirement_refs: ["example.ownership"],
         },
@@ -319,9 +372,94 @@ describe("requirement coverage", () => {
   });
   test("empty inventories and inventories without typed requirements cannot pass vacuously", () => {
     expect(buildEvidenceReport([]).gatePassed).toBe(false);
-    expect(buildEvidenceReport(specifications([], false)).gatePassed).toBe(
+    expect(buildEvidenceReport(specifications(null, false)).gatePassed).toBe(
       false,
     );
+  });
+});
+
+describe("semantic evidence gate", () => {
+  function evaluate(native = vitest()) {
+    return buildEvidenceReport(
+      specifications(),
+      parseNativeReport(native, "vitest", root),
+      successfulExecutions(),
+    );
+  }
+  test("requires complete current native comparisons in addition to a passing test", () => {
+    expect(evaluate().gatePassed).toBe(true);
+    for (const invalid of [
+      undefined,
+      {},
+      { ...receipt(), requirement: "other" },
+      { ...receipt(), expectation: "b".repeat(64) },
+      { ...receipt(), checks: [{ path: "/kind", comparison: "equal" }] },
+      { ...receipt(), checks: [{ path: "", comparison: "reference" }] },
+    ]) {
+      const native = vitest();
+      native.testResults[0].assertionResults[0].meta.specification = invalid;
+      const report = evaluate(native);
+      expect(report.requirements[0].status).toBe("passed");
+      expect(report.requirements[0].semantics.status).toBe("failed");
+      expect(report.gatePassed).toBe(false);
+    }
+  });
+  test("rejects orphan semantic receipts while permitting ordinary regression observations", () => {
+    const observations = parseNativeReport(vitest(), "vitest", root);
+    const orphan = { ...observations[0], name: "example.unknown" };
+    expect(
+      buildEvidenceReport(
+        specifications(),
+        [...observations, orphan],
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(false);
+    expect(
+      buildEvidenceReport(
+        specifications(),
+        [...observations, { ...orphan, semanticReceipt: undefined }],
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(true);
+    expect(
+      buildEvidenceReport(
+        specifications({ test: reference }, false),
+        observations,
+        successfulExecutions(),
+      ).gatePassed,
+    ).toBe(false);
+  });
+  test("cannot bless failed execution with a complete receipt", () => {
+    const native = vitest();
+    native.testResults[0].assertionResults[0].status = "failed";
+    expect(evaluate(native).requirements[0].semantics.status).toBe("failed");
+  });
+  test("requires valid and unique Playwright semantic annotations", () => {
+    const native = playwright();
+    const observed = native.suites[0].suites[0].specs[0].tests[0];
+    const specs = specifications({
+      test: { ...reference, file: "tests/e2e/example.spec.ts" },
+    });
+    const evaluate = () =>
+      buildEvidenceReport(
+        specs,
+        parseNativeReport(native, "playwright", root),
+        successfulExecutions(),
+      );
+    const annotation = {
+      type: "specification",
+      description: JSON.stringify(receipt()),
+    };
+    for (const annotations of [
+      [],
+      [{ ...annotation, description: "{" }],
+      [annotation, annotation],
+    ]) {
+      observed.annotations = annotations;
+      expect(evaluate().gatePassed).toBe(false);
+    }
+    observed.annotations = [annotation];
+    expect(evaluate().gatePassed).toBe(true);
   });
 });
 
@@ -334,12 +472,12 @@ describe("workflow provenance", () => {
       reports: [{ runner: "vitest", file: "vitest-123.json" }],
     };
     expect(validateEvidenceManifest(manifest, run)).toEqual(manifest);
-    expect(
+    expect(() =>
       validateEvidenceManifest(manifest, { ...run, attempt: "2" }),
-    ).toEqual(manifest);
+    ).toThrow("attempt does not match");
     expect(() =>
       validateEvidenceManifest({ ...manifest, attempt: "2" }, run),
-    ).toThrow("newer");
+    ).toThrow("attempt does not match");
     expect(() =>
       validateEvidenceManifest({ ...manifest, attempt: "invalid" }, run),
     ).toThrow();
@@ -378,9 +516,9 @@ describe("workflow provenance", () => {
     vi.stubEnv("SPEC_EVIDENCE_OUTCOME", "success");
     await captureEvidence(artifact, root);
     expect((await loadEvidence(directory, run)).observations).toHaveLength(1);
-    expect(
-      (await loadEvidence(directory, { ...run, attempt: "2" })).observations,
-    ).toHaveLength(1);
+    await expect(
+      loadEvidence(directory, { ...run, attempt: "2" }),
+    ).rejects.toThrow("attempt does not match");
   });
   test("rejects manifests without an explicit phase outcome", () => {
     const manifest = { ...run, root, reports: [] };
@@ -412,7 +550,12 @@ describe("workflow provenance", () => {
       const report = buildEvidenceReport(
         specifications(),
         evidence.observations,
-        evidence.executions,
+        [
+          ...successfulExecutions().filter(
+            (execution) => execution.artifact !== "spec-evidence-unit",
+          ),
+          ...evidence.executions,
+        ],
       );
       expect(report.gatePassed).toBe(outcome === "success");
       expect(report.requirements[0].status).toBe(
@@ -421,7 +564,7 @@ describe("workflow provenance", () => {
       expect(report.executionFailures).toHaveLength(
         outcome === "success" ? 0 : 1,
       );
-      expect(report.executions[0]).toEqual({
+      expect(report.executions.at(-1)).toEqual({
         ...run,
         artifact: "spec-evidence-unit",
         outcome,
@@ -438,7 +581,7 @@ describe("workflow provenance", () => {
     async (outcome) => {
       const directory = await mkdtemp(join(tmpdir(), "spec-evidence-"));
       directories.push(directory);
-      const artifact = join(directory, "spec-evidence-integration");
+      const artifact = join(directory, "spec-evidence-life_ustc_integration_1");
       await mkdir(artifact);
       await writeFile(
         join(artifact, "manifest.json"),
@@ -455,7 +598,7 @@ describe("workflow provenance", () => {
       expect(report.gatePassed).toBe(false);
       expect(report.summary.unsuccessfulExecutions).toBe(1);
       expect(report.executionFailures[0]).toMatchObject({
-        artifact: "spec-evidence-integration",
+        artifact: "spec-evidence-life_ustc_integration_1",
         outcome,
       });
     },

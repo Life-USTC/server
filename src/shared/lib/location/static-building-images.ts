@@ -1,6 +1,9 @@
 import { getLifeUstcStaticUrl } from "@/lib/static-assets";
 import { createStaticJsonLoader } from "@/lib/static-json-loader";
-import type { BuildingImgRule } from "./static-location-types";
+import {
+  type BuildingImgRule,
+  buildingImgRulesSchema,
+} from "./static-location-types";
 
 const BUILDING_IMG_RULES_FILE = "building_img_rules.json";
 
@@ -8,8 +11,9 @@ const BUILDING_IMG_RULES_FILE = "building_img_rules.json";
  * Loads building image rules from the published static host.
  * Exported for batch operations that pre-load data once and do synchronous lookups.
  */
-export const loadBuildingImgRules = createStaticJsonLoader<BuildingImgRule[]>(
+export const loadBuildingImgRules = createStaticJsonLoader(
   BUILDING_IMG_RULES_FILE,
+  buildingImgRulesSchema,
   [],
 );
 

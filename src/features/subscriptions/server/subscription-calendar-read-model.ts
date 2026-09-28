@@ -51,6 +51,7 @@ export async function getUserCalendarSubscription(
           orderBy: [
             { section: { semester: { jwId: "desc" } } },
             { section: { code: "asc" } },
+            { section: { jwId: "asc" } },
           ],
         },
       },

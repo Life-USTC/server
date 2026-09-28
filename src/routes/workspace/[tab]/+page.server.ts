@@ -6,6 +6,8 @@ import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
+  // Private tab data must reload when navigation refreshes the shell identity.
+  await event.parent();
   if (!isWorkspaceTab(event.params.tab)) {
     error(404, "Workspace page not found");
   }

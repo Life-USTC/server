@@ -5,23 +5,48 @@ requirements:
 - id: cases.missing-data.section-missing-teacher-location-or-exam-1
   category: behavior
   topic: section-missing-teacher-location-or-exam
-  rule: A default empty state should be displayed.
-- id: cases.missing-data.section-missing-teacher-location-or-exam-2
-  category: behavior
-  topic: section-missing-teacher-location-or-exam
-  rule: The entire object must not be hidden.
+  rule: A section with a missing teacher, location, or exam relation keeps the section visible and displays
+    a localized unknown or not-provided state for the missing fact. Missing source data is not presented as
+    a confirmed cancellation.
+  acceptance:
+    given: An isolated section has no teachers, campus, schedules, or exams and retains a named parent course.
+    when: An anonymous browser opens the section in Chinese and English and retrieves its public detail API.
+    then:
+    - The named section remains visible and its API returns the section with empty relation arrays.
+    - Teachers, campus, calendar, and exams show their localized unavailable states without cancellation wording.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.section-missing-teacher-location-or-exam-1
+
 - id: cases.missing-data.homework-no-due-date-1
   category: behavior
   topic: homework-no-due-date
-  rule: Does not enter the 'upcoming due' sort.
-- id: cases.missing-data.homework-no-due-date-2
-  category: behavior
-  topic: homework-no-due-date
-  rule: Can still be viewed in the homework list.
+  rule: Homework without a due date is excluded from due-window results. It remains reachable in unfiltered
+    homework lists and is not assigned a synthetic due date.
+  acceptance:
+    given: An isolated user subscribes to a section containing one published homework with submissionDueAt=null.
+    when: The browser selects All in workspace homework, reads both unfiltered homework APIs, and requests compact overview windows of one and seven days at two dates.
+    then:
+    - The homework remains visible with a Date TBD label and its API and database deadline stay null.
+    - Every overview counts it as pending but returns zero due-window homework without assigning a date.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.homework-no-due-date-1
 - id: cases.missing-data.ical-no-events-1
   category: behavior
   topic: ical-no-events
-  rule: A valid but empty or informational calendar content should be returned.
+  rule: An existing calendar subject with no events returns a valid VCALENDAR with zero VEVENT components.
+    It does not invent an informational event; nonexistent or unauthorized subjects retain their documented
+    errors.
+  acceptance:
+    given: An existing isolated section and user have no schedule, exam, homework, or todo events; the user has a valid calendar-feed token.
+    when: Anonymous requests retrieve the section, multi-section, and token-bearing personal feeds, then exercise missing subjects and invalid credentials; a signed session retrieves its own feed and tries another subject.
+    then:
+    - Successful responses contain a VCALENDAR with VERSION and PRODID but zero VEVENT or invented SUMMARY components.
+    - Missing section and token-authenticated missing user return 404; absent credentials return 401, a wrong token returns 410, and a foreign session subject returns 403.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.missing-data.ical-no-events-1
 refs:
 - feature: schedule
   capability: section-schedule
@@ -37,3 +62,6 @@ topics:
   title: Homework no due date
 - id: ical-no-events
   title: Ical no events
+rationale:
+- Section visibility is part of cases.missing-data.section-missing-teacher-location-or-exam-1; it is not a second independent behavior.
+- Undated-homework list reachability is part of cases.missing-data.homework-no-due-date-1 alongside due-window exclusion.

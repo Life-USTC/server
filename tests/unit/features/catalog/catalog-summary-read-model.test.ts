@@ -82,7 +82,7 @@ describe("课程目录摘要读取模型", () => {
   });
 
   it("保留筛选条件中的显式课段排序", async () => {
-    const explicitOrder = { jwId: "asc" };
+    const explicitOrder = { code: "desc" };
     buildSectionListQueryMock.mockReturnValueOnce({
       where: { search: "001" },
       orderBy: explicitOrder,
@@ -101,7 +101,7 @@ describe("课程目录摘要读取模型", () => {
       3,
       5,
       { search: "001" },
-      explicitOrder,
+      [explicitOrder, { jwId: "asc" }],
       "en-us",
     );
   });

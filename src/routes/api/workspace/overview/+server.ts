@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response compactOverviewResponseSchema
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
+ * @oauthScope workspace.overview:read
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getMyCompactOverviewRoute),

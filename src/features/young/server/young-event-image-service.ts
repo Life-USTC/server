@@ -208,24 +208,18 @@ export async function getYoungEventImageByPathResponse(input: {
   return new Response(body, { headers });
 }
 
-/**
- * Serve the poster image of one event. Returns null when the event is unknown,
- * has no image, or stores a value that is not a safe relative pic path.
- */
-export async function getYoungEventImageResponse(input: {
-  request: Request;
-  youngId: string;
-  defer?: (promise: Promise<unknown>) => void;
-}): Promise<Response | null> {
+/** Resolve the current poster without caching the event-to-representation mapping. */
+export async function getYoungEventPosterUrl(
+  youngId: string,
+): Promise<string | null> {
   const record = await prisma.youngEvent.findUnique({
-    where: { youngId: input.youngId },
+    where: { youngId },
     select: { imageUrl: true },
   });
-  if (!record?.imageUrl) return null;
-  return getYoungEventImageByPathResponse({
-    request: input.request,
-    imagePath: record.imageUrl,
-    youngId: input.youngId,
-    defer: input.defer,
-  });
+  return record?.imageUrl ? youngEventImageUrl(record.imageUrl) : null;
+}
+
+export function youngEventImageUrl(imagePath: string): string | null {
+  const normalized = normalizeYoungEventImagePath(imagePath);
+  return normalized ? `/api/catalog/young-events/images/${normalized}` : null;
 }

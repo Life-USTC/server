@@ -49,7 +49,10 @@ export function parseCreateHomeworkTimestamps(
   if (dateError) {
     return {
       ok: false as const,
-      result: jsonToolResult({ success: false, message: dateError }, { mode }),
+      result: jsonToolResult(
+        { success: false, error: "invalid_dates", message: dateError },
+        { mode },
+      ),
     };
   }
 

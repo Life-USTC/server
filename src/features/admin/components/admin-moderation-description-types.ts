@@ -25,6 +25,7 @@ export type AdminModerationDescriptionCopy = {
   notAvailable: string;
   postedIn: string;
   showingResults: string;
+  showingResultsOne: string;
 };
 
 export type AdminModerationDescriptionOption = {

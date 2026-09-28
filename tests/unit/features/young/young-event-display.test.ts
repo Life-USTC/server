@@ -47,6 +47,23 @@ describe("young event display", () => {
     ]);
   });
 
+  it("young-event.web-list-scan", () => {
+    const groups = groupYoungEventsByStartDate([
+      { startAt: "2026-09-28T12:20:00+08:00", name: "later" },
+      { startAt: "2026-09-27T20:00:00+08:00", name: "evening" },
+      { startAt: "2026-09-27T15:00:00+08:00", name: "afternoon" },
+      { startAt: null, name: "unknown" },
+    ]);
+    expect(groups.map((group) => group.key)).toEqual([
+      "2026-09-27",
+      "2026-09-28",
+      "",
+    ]);
+    expect(groups.find((group) => group.key === "")?.events).toEqual([
+      { startAt: null, name: "unknown" },
+    ]);
+  });
+
   it("labels partial ranges rather than presenting a missing endpoint as a date", () => {
     expect(youngDateRange(null, null, copy)).toBeNull();
     expect(youngDateRange("2026-09-24T08:30:00+08:00", null, copy)).toBe(

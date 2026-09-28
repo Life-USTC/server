@@ -2,17 +2,80 @@ import { describe, expect, it } from "vitest";
 import {
   checkSpecifications,
   loadSpecificationValidators,
+  validateSpecificationReferences,
   validateSpecificationShapes,
 } from "../../../scripts/specifications/validate";
 import { readSpecification } from "../../../scripts/specifications/yaml";
 
 describe("versioned YAML product specifications", () => {
-  it("validates every source against its schema and checks references", async () => {
+  it("validates policy topic owner references without creating acceptance claims", async () => {
+    const validators = await loadSpecificationValidators();
+    const data = {
+      kind: "policy",
+      id: "ownership-example",
+      title: "Ownership index",
+      topics: [
+        {
+          id: "writes",
+          title: "Writes",
+          requirement_refs: ["ownership-example.write"],
+        },
+      ],
+      requirements: [
+        {
+          id: "ownership-example.write",
+          category: "behavior",
+          topic: "writes",
+          rule: "A specific observable write.",
+        },
+      ],
+    };
+    const files = [{ path: "docs/policies/ownership-example.yaml", data }];
+    expect(validateSpecificationShapes(files, validators)).toEqual([]);
+    const result = await validateSpecificationReferences(files);
+    expect(result.errors).toEqual([]);
+    expect(result.requirements).toBe(1);
+    expect(result.boundRequirements).toBe(0);
+    data.topics[0].requirement_refs = ["missing.requirement"];
+    expect(
+      (await validateSpecificationReferences(files)).errors.join("\n"),
+    ).toContain("unknown requirement missing.requirement");
+    data.topics[0].requirement_refs = [];
+    expect(
+      validateSpecificationShapes(files, validators).length,
+    ).toBeGreaterThan(0);
+  });
+  it("binds policy applicability to known local topics", async () => {
+    const data = {
+      kind: "policy",
+      id: "policy-example",
+      title: "Policy example",
+      topics: [{ id: "privacy", title: "Privacy" }],
+      requirements: [
+        {
+          id: "policy-example.rule",
+          category: "privacy",
+          rule: "Private values stay private",
+          applies_to: ["misspelled"],
+        },
+      ],
+    };
+    const files = [{ path: "docs/policies/policy-example.yaml", data }];
+    expect(
+      (await validateSpecificationReferences(files)).errors.join("\n"),
+    ).toContain("unknown policy topic misspelled");
+    data.requirements[0].applies_to = ["privacy"];
+    expect((await validateSpecificationReferences(files)).errors).toEqual([]);
+  });
+
+  // This compiles all canonical declarations, rather than one small fixture.
+  it("validates every source against its schema and checks references", {
+    timeout: 15_000,
+  }, async () => {
     const result = await checkSpecifications();
     expect(result.files).toBeGreaterThan(0);
     expect(result.requirements).toBeGreaterThan(0);
-    expect(result.scenarios).toBeGreaterThan(0);
-    expect(result.linkedScenarios).toBeGreaterThan(0);
+    expect(result.boundRequirements).toBeGreaterThan(0);
     expect(result.errors).toEqual([]);
   });
 

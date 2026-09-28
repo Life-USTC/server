@@ -78,8 +78,10 @@ export async function postWorkspaceLinkPinRoute(request: Request) {
     return jsonOrRedirectForPinnedLinks({
       request,
       wantsJson,
-      pinnedSlugs: [],
+      pinnedSlugs: await getWorkspaceLinkPinnedSlugs(userId),
       returnTo,
+      status: 400,
+      error: "invalid_slug",
     });
   }
 

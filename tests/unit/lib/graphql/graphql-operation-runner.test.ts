@@ -256,7 +256,8 @@ describe("registered GraphQL operation runner", () => {
     );
   });
 
-  it("times out a running query at the runner boundary", async () => {
+  it("graphql.registered-operation-timeout", async () => {
+    expect(GRAPHQL_LIMITS.timeoutMs).toBe(5000);
     vi.useFakeTimers();
     const result = createDeferred<typeof currentSemester>();
     const started = createDeferred<void>();
@@ -271,7 +272,7 @@ describe("registered GraphQL operation runner", () => {
       code: "REQUEST_TIMEOUT",
     } satisfies Partial<RegisteredGraphqlOperationError>);
 
-    await vi.advanceTimersByTimeAsync(GRAPHQL_LIMITS.timeoutMs);
+    await vi.advanceTimersByTimeAsync(5000);
     await assertion;
     result.resolve(currentSemester);
     await vi.runAllTimersAsync();

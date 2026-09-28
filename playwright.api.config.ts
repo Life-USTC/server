@@ -1,14 +1,18 @@
 import { defineConfig } from "@playwright/test";
 import { getWorkerProcessEnvironment } from "./tests/e2e/utils/worker-database-env";
 
-const baseURL = "http://localhost:3000";
+const port = process.env.E2E_PORT ?? "3000";
+if (!/^\d+$/.test(port))
+  throw new Error("E2E_PORT must be a numeric TCP port.");
+const baseURL = `http://localhost:${port}`;
+const reportRoot = process.env.E2E_REPORT_ROOT ?? "playwright-report";
 const workerEnvironment = getWorkerProcessEnvironment();
 
 /** REST contract tests — no browser, request fixture only. */
 export default defineConfig({
   testDir: "./tests/integration/rest",
   testMatch: ["**/*.test.ts", "**/test.ts"],
-  outputDir: "playwright-report/api-results",
+  outputDir: `${reportRoot}/api-results`,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   // Infrastructure retries belong around the complete shard, never around an

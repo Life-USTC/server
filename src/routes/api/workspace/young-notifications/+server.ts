@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response youngNotificationListSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.young-notification:read
  */
 export const GET: RequestHandler = ({ request }) =>
   observedApiRoute(() => getYoungWorkspaceRoute(request, "notifications"))(

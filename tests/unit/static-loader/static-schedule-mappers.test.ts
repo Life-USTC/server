@@ -128,11 +128,12 @@ describe("static schedule meeting mapping", () => {
       { teacherId: 11, periods: 3, exerciseClass: false },
       { teacherId: 12, periods: 4, exerciseClass: true },
       { teacherId: 13, periods: 2, exerciseClass: false },
+      { teacherId: 14, periods: null, exerciseClass: null },
     ];
     for (const order of [
       rows,
       [...rows].reverse(),
-      [rows[1], rows[0], rows[2]],
+      [rows[1], rows[0], rows[3], rows[2]],
     ]) {
       const meeting = mapSchedule(
         scheduleRow(order[0]),
@@ -147,7 +148,8 @@ describe("static schedule meeting mapping", () => {
       expect(meeting.teacherParticipations).toEqual(
         rows.map(({ teacherId, ...facts }) => ({
           teacherJwId: teacherId,
-          ...facts,
+          periods: facts.periods ?? undefined,
+          exerciseClass: facts.exerciseClass ?? undefined,
         })),
       );
     }

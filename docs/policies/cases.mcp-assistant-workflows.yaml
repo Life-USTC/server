@@ -2,35 +2,46 @@ kind: policy
 id: cases.mcp-assistant-workflows
 title: 'Cross-feature scenarios: mcp-assistant-workflows'
 requirements:
-- id: cases.mcp-assistant-workflows.aggregate-first-1
-  category: behavior
-  topic: aggregate-first
-  rule: Prefer workspace_snapshot_get or other task-oriented aggregate tools before stitching together multiple
-    lower-level tool calls.
 - id: cases.mcp-assistant-workflows.preview-before-write-1
   category: behavior
   topic: preview-before-write
-  rule: Batch or fuzzy write flows should offer a read-only preview tool before the mutation tool.
-- id: cases.mcp-assistant-workflows.focused-over-raw-for-common-questions-1
-  category: behavior
-  topic: focused-over-raw-for-common-questions
-  rule: For prompts such as 'what is my next class?' or 'when is the next bus?', use focused extract tools
-    instead of raw dataset mirrors.
-- id: cases.mcp-assistant-workflows.compact-privacy-default-1
-  category: privacy
-  topic: compact-privacy-default
-  rule: Default output should stay compact and redact token-bearing URLs or repeated low-value nested objects;
-    the deprecated summary input is an alias for this same shape.
-- id: cases.mcp-assistant-workflows.scenario-guidance-1
-  category: behavior
-  topic: scenario-guidance
-  rule: Assistant-oriented MCP additions should land as aggregate snapshots or filtered convenience tools,
-    not only as raw dataset mirrors.
+  rule: Subscription imports resolve section codes within the selected semester, or the current semester when
+    semesterId is omitted. A read-only preview lists every matched section, the resolved semester and the
+    intended workspace/calendar subscription effect before execution, including when a code matches multiple
+    sections. Preview does not change user data; execution subscribes only the sections in that semester.
+  acceptance:
+    given: An isolated user, two sections sharing a code in one isolated semester and another section with
+      that code in a second semester, plus the current-term seed section.
+    when: The real MCP SDK previews both semesters in default and full modes, previews with semesterId omitted,
+      and then imports the code in the first semester.
+    then:
+    - Preview lists exactly the sections in the selected semester and identifies the workspace/calendar effect
+      as distinct from official enrollment; omitted semesterId resolves to the current term.
+    - User, subscription, todo and audit rows are unchanged by every preview.
+    - Import creates exactly the two previewed memberships and never the other-semester membership.
+    test:
+      file: tests/integration/mcp/catalog/subscription-preview.test.ts
+      name: cases.mcp-assistant-workflows.preview-before-write-1
 - id: cases.mcp-assistant-workflows.scenario-guidance-2
   category: behavior
   topic: scenario-guidance
-  rule: Tool documentation should call out the preferred first tool, focused alternative, default parameters,
-    and privacy redaction behavior for common prompts.
+  rule: The MCP workflow documentation identifies the snapshot, focused next-class/next-bus, and subscription-preview
+    tools by their actual registered names and states their required scopes, defaults, and secret-redaction
+    behavior.
+  acceptance:
+    given: A real MCP SDK client initializes the production server and reads its tool descriptors.
+    when: Inspect the client-visible workflow reference in initialization instructions against the registered
+      tools, their OAuth metadata and input-schema defaults.
+    then:
+    - Snapshot, next-class, next-bus and preview guidance names the actual tools and their exact required
+      scopes or public access; importer guidance uses the actual write scope.
+    - Documentation states mode/locale/clock defaults, bus defaults and required campuses, current-semester
+      preview resolution and confirmation before subscription import.
+    - The reference distinguishes Life@USTC subscriptions from official enrollment and states that full mode
+      retains secret exclusions for private calendar URLs, credentials and tokens.
+    test:
+      file: tests/unit/lib/mcp/workflow-guidance.test.ts
+      name: cases.mcp-assistant-workflows.scenario-guidance-2
 refs:
 - feature: mcp
   capability: tool-groups
@@ -59,3 +70,14 @@ topics:
   title: Compact privacy default
 - id: scenario-guidance
   title: Scenario guidance
+rationale:
+- Task-oriented snapshots reduce redundant calls and repeated context for multi-part workspace questions.
+- Focused next-class and next-bus tools make common time-sensitive questions easier for client assistants to
+  answer; client tool choice is not enforced by the server.
+- Aggregate and filtered tools complement low-level data access when a concrete user workflow benefits from
+  them.
+- The former compact-privacy-default requirement is owned by mcp.privacy-safe-default for identical
+  default/full privacy and calendar-secret exclusion, mcp.openai-compatible-descriptors for every tool's
+  closed output allowlist, mcp.typed-output-fields, mcp.typed-bus-output-fields and
+  mcp.typed-community-output-fields for explicit domain field schemas, mcp.tool-registry-completeness for
+  mandatory per-tool metadata, and mcp.output-modes for permitted mode projections.

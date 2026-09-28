@@ -12,6 +12,7 @@ export type SectionCalendarEvent = {
   title: string;
   meta: string;
   roomCodes?: string[];
+  teachers?: Array<{ id: number | string; name: string }>;
   badges: string[];
   details: Array<{ label: string; value: string }>;
   sortValue: number;

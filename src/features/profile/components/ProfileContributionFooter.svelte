@@ -16,7 +16,7 @@ export let stats: ProfileStat[];
 
 <div class="flex flex-wrap items-center justify-between gap-3">
   <div class="flex flex-wrap gap-2">
-    {#each stats.slice(1) as stat}
+    {#each stats as stat}
       <Badge variant="outline">
         <span class="font-semibold">{stat.value}</span>
         {" "}

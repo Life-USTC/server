@@ -1,4 +1,5 @@
 import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
+import { addShanghaiTime } from "@/lib/time/shanghai-format";
 import { dayStart, overviewReferenceDate } from "./overview-dates";
 import type {
   HomeworkWithDue,
@@ -28,8 +29,7 @@ export function todosDueSoonForOverview<
   Homework extends HomeworkWithDue,
 >(todos: Todo[], source: OverviewSource<Todo, Homework>) {
   const today = dayStart(overviewReferenceDate(source));
-  const soon = new Date(today);
-  soon.setDate(today.getDate() + 4);
+  const soon = addShanghaiTime(today, 4, "day");
   return todos.filter((todo) => {
     if (!todo.dueAt) return false;
     const due = dayStart(new Date(todo.dueAt));

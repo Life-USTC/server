@@ -398,7 +398,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       };
     }>("workspace_calendar_feed_get", {
       locale: "zh-cn",
-      mode: "summary",
+      mode: "default",
     });
 
     expect(result.success).toBe(true);

@@ -112,4 +112,26 @@ describe("OAuth grant usage aggregation", { concurrent: false }, () => {
     expect(executeRawMock.mock.calls[0]?.[0].values[8]).toBe(2);
     expect(executeRawMock.mock.calls[1]?.[0].values[6]).toBe("workspace.todo");
   });
+  it("bounds pending dimensions while preserving overflow as singleton writes", async () => {
+    vi.useFakeTimers();
+    executeRawMock.mockResolvedValue(1);
+    const scheduled: Promise<unknown>[] = [];
+    await runWithCloudflareRuntimeEnv(
+      {},
+      async () => {
+        for (let index = 0; index < 257; index++)
+          void scheduleOAuthGrantUsage({ ...usage, grantId: `grant-${index}` });
+        expect(executeRawMock).toHaveBeenCalledTimes(1);
+        expect(executeRawMock.mock.calls[0]?.[0].values[3]).toBe("grant-256");
+        await vi.advanceTimersByTimeAsync(100);
+        await Promise.all(scheduled);
+      },
+      {
+        waitUntil(task: Promise<unknown>) {
+          scheduled.push(task);
+        },
+      },
+    );
+    expect(executeRawMock).toHaveBeenCalledTimes(257);
+  });
 });

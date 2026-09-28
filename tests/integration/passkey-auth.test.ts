@@ -332,6 +332,19 @@ describe("Better Auth passkey integration", { concurrent: false }, () => {
       },
     });
 
+    // This scenario tests session freshness while retaining a second sign-in
+    // method; deleting the sole method is covered by the removal policy.
+    await fixturePrisma.passkey.create({
+      data: {
+        name: "Backup",
+        publicKey: "backup-public-key",
+        userId: user.id,
+        credentialID: `backup-sensitive-${marker}`,
+        counter: 0,
+        deviceType: "singleDevice",
+        backedUp: false,
+      },
+    });
     const staleCookie = await createSessionCookie(
       user.id,
       new Date(Date.now() - 16 * 60 * 1000),

@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
+import { uiExpectation } from "../../../shared/specifications/ui";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../utils/auth";
 import { DEV_SEED } from "../../utils/dev-seed";
 import {
@@ -131,9 +133,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }, testIn
   expect(browserIssues).toEqual([]);
 });
 
-test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
-  page,
-}, testInfo) => {
+test("ui.theme-system-response", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
   const themeButton = page.getByRole("button", {
@@ -164,9 +164,11 @@ test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
   }
 
   await selectTheme(/^(浅色|Light)$/i, "light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await captureStepScreenshot(page, testInfo, "theme-light");
 
   await selectTheme(/^(深色|Dark)$/i, "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await captureStepScreenshot(page, testInfo, "theme-dark");
 
   await page.emulateMedia({ colorScheme: "dark" });
@@ -178,9 +180,7 @@ test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
   await captureStepScreenshot(page, testInfo, "theme-system-light");
 });
 
-test("/ 存储的深色主题在 hydration 前应用且通过 CSP", async ({
-  browser,
-}, testInfo) => {
+test("ui.shell-layout-9", async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     baseURL: String(testInfo.project.use.baseURL),
     colorScheme: "light",
@@ -239,9 +239,7 @@ test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", a
   await context.close();
 });
 
-test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
-  browser,
-}, testInfo) => {
+test("ui.theme-no-js", async ({ browser }, testInfo) => {
   const context = await browser.newContext({
     baseURL: String(testInfo.project.use.baseURL),
     colorScheme: "dark",
@@ -262,7 +260,7 @@ test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
   await context.close();
 });
 
-test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
+test("ui.navigation-landmarks-4", async ({ page }) => {
   await gotoAndWaitForReady(page, "/");
 
   await page.keyboard.press("Tab");
@@ -330,7 +328,7 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async ({ page }) => {
+test("ui.shell-layout-2", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signInAsDebugUser(page, "/workspace/calendar");
 
@@ -510,8 +508,11 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
-test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("ui.shell-layout-8", async ({ page }, testInfo) => {
+  const contract = await semanticContract(testInfo.title, "target_size");
+  contract.equal("/surface", "web");
+  const target = uiExpectation("ui.shell-layout-8", "target_size");
+  await page.setViewportSize(target.viewport);
   await signInAsDevAdmin(page, "/workspace/todos");
 
   const primaryNavigation = page.getByRole("navigation", {
@@ -528,9 +529,23 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
     const link = primaryNavigation.getByRole("link", { name });
     await expect(link).toBeVisible();
     const box = await link.boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(target.min_width);
+    expect(box?.height).toBeGreaterThanOrEqual(target.min_height);
   }
+
+  const selector =
+    '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible';
+  contract.equal("/target", { by: "css", value: selector });
+  contract.equal("/viewport", page.viewportSize());
+  const controls = page.locator(selector);
+  expect(await controls.count()).toBeGreaterThan(0);
+  for (const control of await controls.all()) {
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    contract.atLeast("/min_width", box?.width ?? 0);
+    contract.atLeast("/min_height", box?.height ?? 0);
+  }
+  contract.recordPlaywright(testInfo);
 
   await expect(primaryNavigation.locator('[aria-current="page"]')).toHaveCount(
     1,
@@ -554,8 +569,8 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
     topbar.getByRole("button", { name: /主题|Theme/i }),
   ]) {
     const box = await button.boundingBox();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box?.width).toBeGreaterThanOrEqual(target.min_width);
+    expect(box?.height).toBeGreaterThanOrEqual(target.min_height);
   }
   await expect(
     topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
@@ -796,7 +811,7 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
   }
 });
 
-test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
+test("cases.semester.only-non-current-semester-subscriptions-3", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
@@ -828,7 +843,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
 
     await expect(
       page.getByText(
-        /往期班级、作业和课表仍然保留|past sections, homework, and schedules are still available/i,
+        /往期教学班、作业、课表和考试仍然保留|past sections, homework, schedules, and exams are still available/i,
       ),
     ).toBeVisible();
     await expect(
@@ -896,7 +911,10 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       ),
     );
     await expect(
-      page.getByText(/线性代数进阶|Advanced Linear Algebra/i).first(),
+      page
+        .getByText(/线性代数进阶|Advanced Linear Algebra/i)
+        .filter({ visible: true })
+        .first(),
     ).toBeVisible();
   } finally {
     await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);

@@ -52,15 +52,22 @@ afterAll(async () => {
   vi.unstubAllGlobals();
 });
 describe("public room map transport parity", () => {
-  it.each(["3A204", "3A299", "UNKNOWN", " ３ａ２０４ "])(
-    "returns matching REST, GraphQL and MCP coverage for %s",
-    async (code) => {
+  it("room-map.public", async () => {
+    for (const code of ["3A204", "3A299", "UNKNOWN", " ３ａ２０４ "]) {
       const response = await getRoomMapRoute(
         new Request("https://example.test/api/catalog/rooms/map"),
         { code },
       );
       expect(response.status).toBe(200);
       const rest = await response.json();
+      expect(Object.keys(rest).sort()).toEqual([
+        "building",
+        "code",
+        "floor",
+        "imageUrl",
+        "sourceImageUrl",
+        "status",
+      ]);
       const result = await graphql({
         source:
           "query($code: String!) { catalog { roomMap(code: $code) { code building floor status imageUrl sourceImageUrl } } }",
@@ -72,9 +79,9 @@ describe("public room map transport parity", () => {
         const mcp = await client.callTool("catalog_rooms_map", { code, mode });
         expect(mcp).toEqual({ ...rest, success: true });
       }
-    },
-  );
-  it("rejects invalid input at all boundaries", async () => {
+    }
+  });
+  it("openapi.room-maps", async () => {
     const response = await getRoomMapRoute(
       new Request("https://example.test/"),
       { code: "../invalid" },

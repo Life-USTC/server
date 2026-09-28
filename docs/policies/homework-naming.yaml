@@ -1,23 +1,7 @@
 kind: policy
 id: homework-naming
-title: Homework title and description guidance
-requirements:
-- id: homework-naming.title-1
-  category: presentation
-  topic: title
-  rule: Use exactly one title pattern.
-- id: homework-naming.title-2
-  category: presentation
-  topic: title
-  rule: Do not include course name, course code, or section information.
-- id: homework-naming.description-1
-  category: presentation
-  topic: description
-  rule: Use fixed bullets in the declared field order.
-- id: homework-naming.description-2
-  category: presentation
-  topic: description
-  rule: Omit unknown optional fields.
+title: Optional homework authoring guidance
+requirements: []
 enforcement: advisory
 title_patterns:
 - pattern: 第{N}次作业
@@ -53,3 +37,10 @@ topics:
   title: Title
 - id: description
   title: Description
+guidance:
+- The title patterns and ordered description bullets below are optional authoring suggestions, not validation
+  rules. Custom valid titles and Markdown descriptions remain accepted.
+- Choose the numbered or themed title example when it suits the task. Course identity is usually already provided
+  by the attached section.
+- The description template includes a problem statement; unknown optional template fields can be omitted. The
+  template required flag does not constrain saved user content.

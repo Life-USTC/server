@@ -56,7 +56,6 @@ let {
   viewerLoading: boolean;
 } = $props();
 
-// biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
 const sidebar = Sidebar.useSidebar();
 const groupOpen = $state<Record<string, boolean>>({});
 let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
@@ -217,7 +216,7 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span>{link.label}</span>
+                              <span class="font-medium">{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
@@ -323,7 +322,7 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span>{link.label}</span>
+                              <span class="font-medium">{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>

@@ -224,7 +224,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "passkeys-ui",
         e2eSpec: E2E.settingsPasskeys,
-        evidence: "注册、退出、通行密钥登录、重命名和删除",
+        evidence: "user.passkey-user-flow",
       },
       ...SETTINGS_TABS.map(
         (tab): PrimaryAction => ({
@@ -438,7 +438,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     e2eSpec: E2E.apiDocs,
     mobileCoveredBy: {
       e2eSpec: E2E.apiDocs,
-      testName: "移动端优先展示参考内容并用抽屉浏览完整导航",
+      testName: "openapi.api-docs-mobile-navigation",
       reason:
         "The embedded API reference has a dedicated mobile navigation and focus contract.",
     },
@@ -515,7 +515,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     e2eSpec: E2E.rooms,
     mobileScreenshots: ["public"],
     primaryActions: [
-      { id: "room-map-lookup", e2eSpec: E2E.rooms, evidence: "查询展示地图" },
+      { id: "room-map-lookup", e2eSpec: E2E.rooms, testId: "room-map-preview" },
     ],
   },
   {
@@ -530,7 +530,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "weather-locations",
         e2eSpec: E2E.weather,
-        evidence: "本部与高新校区两个位置面板",
+        testId: "weather-location",
       },
     ],
   },
@@ -920,7 +920,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "authorize-flow",
         e2eSpec: E2E.oauthAuthorize,
-        evidence: "允许授权时带 code 回跳",
+        evidence: "oauth.user-consent-framing",
       },
     ],
   },
@@ -1079,19 +1079,19 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
         (tab): PrimaryAction => ({
           id: `workspace-tab-${tab}`,
           role: "link",
-          e2eSpec: E2E.workspaceTab,
-          evidence: "登录工作台各分支提供唯一页面身份",
+          e2eSpec: "src/app/shared-policy/test.ts",
+          evidence: "ui.workspace-page-identity-1",
         }),
       ),
       {
         id: "overview-now-next",
         e2eSpec: E2E.workspace,
-        evidence: "移动端总览优先显示此刻与下一步",
+        evidence: "ui.workspace-mobile-priority-1",
       },
       {
         id: "calendar-export",
         e2eSpec: E2E.workspaceCalendar,
-        evidence: "复制日历链接生成有效的 iCal URL",
+        evidence: "ical.copyable-links",
       },
       {
         id: "homework-crud",
@@ -1101,7 +1101,7 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
       {
         id: "todo-crud",
         e2eSpec: E2E.workspaceTodos,
-        evidence: "可以创建、编辑和删除待办",
+        evidence: "todo.web-local-mutation-state",
       },
       {
         id: "exams-view",
@@ -1164,6 +1164,32 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "user",
     contractPath: "/workspace/subscriptions/sections",
     e2eSpec: E2E.workspaceSubscriptions,
+  },
+  {
+    routeId: "/workspace/uploads",
+    samplePath: "/workspace/uploads",
+    kind: "page",
+    auth: "user",
+    contractPath: "/workspace/uploads",
+    e2eSpec: "src/app/account-policy/upload-management.test.ts",
+    mobileCoveredBy: {
+      e2eSpec: "src/app/account-policy/upload-management.test.ts",
+      testName: "upload.web-list",
+      reason:
+        "The owner fixture verifies mobile upload rows, pagination, quota and privacy.",
+    },
+    primaryActions: [
+      {
+        id: "rename",
+        e2eSpec: "src/app/account-policy/upload-management.test.ts",
+        evidence: "upload.web-rename",
+      },
+      {
+        id: "delete",
+        e2eSpec: "src/app/account-policy/upload-management.test.ts",
+        evidence: "upload.web-delete-feedback",
+      },
+    ],
   },
 ] as const satisfies readonly PageInventoryEntry[];
 

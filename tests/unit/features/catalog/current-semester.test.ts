@@ -83,7 +83,7 @@ describe("当前学期辅助函数", () => {
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
   });
 
-  it("回退到最早的未开始未来学期", () => {
+  it("不会将未来学期推断为当前学期", () => {
     const referenceDate = new Date("2026-01-01T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -98,12 +98,10 @@ describe("当前学期辅助函数", () => {
       },
     ];
 
-    expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(
-      10,
-    );
+    expect(selectCurrentSemesterFromList(semesters, referenceDate)).toBeNull();
   });
 
-  it("当所有学期都已结束时回退到最晚学期", () => {
+  it("所有学期结束后不存在当前学期", () => {
     const referenceDate = new Date("2026-02-01T12:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -118,8 +116,49 @@ describe("当前学期辅助函数", () => {
       },
     ];
 
-    expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(
-      21,
-    );
+    expect(selectCurrentSemesterFromList(semesters, referenceDate)).toBeNull();
+  });
+  it("缺少日期范围的学期不会伪装为当前学期", () => {
+    const referenceDate = new Date("2026-06-01T00:00:00.000Z");
+    expect(
+      selectCurrentSemesterFromList(
+        [
+          { id: 1, startDate: null, endDate: null },
+          {
+            id: 2,
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+            endDate: null,
+          },
+          {
+            id: 3,
+            startDate: null,
+            endDate: new Date("2026-12-01T00:00:00.000Z"),
+          },
+        ],
+        referenceDate,
+      ),
+    ).toBeNull();
+  });
+
+  it("列表选择和数据库查询均包含上海学期结束日的全部时间", () => {
+    const semesters = [
+      {
+        id: 1,
+        startDate: new Date("2026-02-01T00:00:00.000Z"),
+        endDate: new Date("2026-08-14T00:00:00.000Z"),
+      },
+    ];
+    expect(
+      selectCurrentSemesterFromList(
+        semesters,
+        new Date("2026-08-14T15:59:59.000Z"),
+      )?.id,
+    ).toBe(1);
+    expect(
+      selectCurrentSemesterFromList(
+        semesters,
+        new Date("2026-08-14T16:00:00.000Z"),
+      ),
+    ).toBeNull();
   });
 });

@@ -43,7 +43,7 @@ export let sectionCopy: SectionExamCopy;
           <Table.Head scope="col">{sectionCopy.examTime}</Table.Head>
           <Table.Head scope="col">{sectionCopy.location}</Table.Head>
           <Table.Head scope="col">{sectionCopy.examMode}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.examCount}</Table.Head>
+          <Table.Head scope="col" class="text-right">{sectionCopy.examCount}</Table.Head>
         </Table.Row>
       </Table.Header>
       <Table.Body>
@@ -52,7 +52,7 @@ export let sectionCopy: SectionExamCopy;
             <Table.Cell class="whitespace-nowrap">
               {calendarEventDetail(event, sectionCopy.examBatch, "—")}
             </Table.Cell>
-            <Table.Cell class="whitespace-nowrap">
+            <Table.Cell class="whitespace-nowrap font-medium">
               {#if event.date}{fmtDate(event.date)}{:else}{sectionCopy.dateTBD}{/if}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap">
@@ -74,7 +74,7 @@ export let sectionCopy: SectionExamCopy;
               {/if}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap">{event.title || "—"}</Table.Cell>
-            <Table.Cell class="whitespace-nowrap">
+            <Table.Cell class="whitespace-nowrap text-right tabular-nums">
               {calendarEventDetail(event, sectionCopy.examCount, "—")}
             </Table.Cell>
           </Table.Row>

@@ -4,7 +4,6 @@ import type {
   PublicationIngestionBatchRequest,
   PublicationObjectManifest,
 } from "@/lib/api/schemas/request-publication-ingestion-schemas";
-import { logAppEvent } from "@/lib/log/app-logger";
 import {
   PublicationIngestionBadRequestError,
   type PublicationIngestionItemResult,
@@ -88,7 +87,7 @@ async function ensureObjectManifest(
   batchId: string,
   manifest: PublicationObjectManifest,
 ) {
-  let object = await tx.publicationObject.upsert({
+  const object = await tx.publicationObject.upsert({
     where: {
       kind_sha256: { kind: manifest.kind, sha256: manifest.sha256 },
     },
@@ -111,32 +110,9 @@ async function ensureObjectManifest(
   }
 
   if (object.size !== manifest.size) {
-    // sha256 is byte identity, so a stored size that disagrees with a manifest
-    // carrying the same sha256 is corrupt metadata (e.g. drift between crawler
-    // forks). It is only safe to repair while no bytes were ever verified
-    // against the row; once bytes verify they are the ground truth and a
-    // conflicting manifest must be rejected.
-    if (
-      object.verifiedAt !== null ||
-      (object.status !== "pending" && object.status !== "failed")
-    ) {
-      throw new PublicationIngestionBadRequestError(
-        `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
-      );
-    }
-    logAppEvent("warn", "Self-healing stale publication object manifest", {
-      source: "publications",
-      kind: manifest.kind,
-      sha256: manifest.sha256,
-      previousSize: object.size,
-      size: manifest.size,
-      previousContentType: object.contentType,
-      contentType: manifest.contentType,
-    });
-    object = await tx.publicationObject.update({
-      where: { id: object.id },
-      data: { size: manifest.size, contentType: manifest.contentType },
-    });
+    throw new PublicationIngestionBadRequestError(
+      `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
+    );
   }
 
   await tx.ingestionBatchObject.upsert({

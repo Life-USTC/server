@@ -30,6 +30,7 @@ export type TeacherListLabels = {
   searchNameOrCode: string;
   sections: string;
   showing: string;
+  showingOne: string;
   subtitle: string;
   title_label: string;
 };

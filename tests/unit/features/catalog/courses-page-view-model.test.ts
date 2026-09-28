@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCourseFilterOptions } from "@/features/catalog/lib/courses-page-view-model";
 
 describe("course page filter options", () => {
-  it("capitalizes only the initial character of education level labels", () => {
+  it("course.education-level-display-casing", () => {
     const options = buildCourseFilterOptions({
       commonLabels: {
         allCategories: "All Categories",
@@ -26,6 +26,10 @@ describe("course page filter options", () => {
           { id: 2, namePrimary: "Undergraduate" },
           { id: 3, namePrimary: "PhD" },
           { id: 4, namePrimary: "本科生" },
+          { id: 5, namePrimary: "MBA" },
+          { id: 6, namePrimary: "MSc" },
+          { id: 7, namePrimary: "postgraduate (PhD)" },
+          { id: 8, nameCn: "研究生" },
         ],
       },
     });
@@ -36,6 +40,10 @@ describe("course page filter options", () => {
       { value: "2", label: "Undergraduate" },
       { value: "3", label: "PhD" },
       { value: "4", label: "本科生" },
+      { value: "5", label: "MBA" },
+      { value: "6", label: "MSc" },
+      { value: "7", label: "Postgraduate (PhD)" },
+      { value: "8", label: "研究生" },
     ]);
   });
 });

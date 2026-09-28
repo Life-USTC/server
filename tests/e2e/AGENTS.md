@@ -25,6 +25,15 @@ health failure, or child-process exit. Individual Playwright assertions are
 not retried. Wrangler output, child status, and health probes are retained
 under `playwright-report/worker/` for CI artifact inspection.
 
+The side-effect-free description reads in `description.public-web-personal-overlay`
+and OpenAPI/schedule/group reads in `section.schedule-response-schema` use
+Playwright's per-request `maxRetries: 1`. This recovers one `ECONNRESET` transport
+failure from a closed pooled connection; it does not retry HTTP errors, test
+bodies, or business assertions. Keep it explicit on these reads, never in a
+shared request wrapper or blanket GET policy: even a GET such as catalog link
+resolution records visits and must not be replayed. Native transport behavior
+is covered by `tests/integration/playwright-request-retry.test.ts`.
+
 Fixtures use FUNCTION_OWNER_DATABASE_URL; the Worker uses separate restricted
 app/auth/maintenance URLs. The setup script applies the same permission script
 as production. Every full-suite shard and confirmed infrastructure retry starts

@@ -34,6 +34,7 @@ export function createWorkspacePageControllerActions(input: {
   getBulkImportSemesterId: () => string;
   getBulkImportText: () => string;
   getCalendarData: () => CalendarData | null;
+  getCalendarDay: () => string;
   getCalendarMonth: () => string;
   getCalendarSemesterId: () => number | null;
   getCalendarView: () => CalendarView;
@@ -59,6 +60,7 @@ export function createWorkspacePageControllerActions(input: {
   setBulkImportOpen: Setter<boolean>;
   setBulkImportSemesterId: Setter<string>;
   setBulkImportText: Setter<string>;
+  setCalendarDay: Setter<string>;
   setCalendarMonth: Setter<string>;
   setCalendarSemesterId: Setter<number | null>;
   setCalendarView: Setter<CalendarView>;
@@ -276,6 +278,7 @@ export function createWorkspacePageControllerActions(input: {
 
   const calendar = createWorkspaceCalendarActions({
     getCalendarData: input.getCalendarData,
+    getCalendarDay: input.getCalendarDay,
     getCalendarMonth: input.getCalendarMonth,
     getCalendarSemesterId: input.getCalendarSemesterId,
     getCalendarView: input.getCalendarView,
@@ -286,6 +289,7 @@ export function createWorkspacePageControllerActions(input: {
     replaceUrl: (href) => {
       window.history.replaceState({}, "", href);
     },
+    setCalendarDay: input.setCalendarDay,
     setCalendarMonth: input.setCalendarMonth,
     setCalendarSemesterId: input.setCalendarSemesterId,
     setCalendarView: input.setCalendarView,

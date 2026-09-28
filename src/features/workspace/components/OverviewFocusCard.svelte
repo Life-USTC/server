@@ -12,6 +12,7 @@ export let copy: {
   urgent: string;
 };
 export let focus: WorkspaceFocusItem | null;
+export let loadingLabel: string | null;
 
 function statusLabel(status: WorkspaceFocusItem["status"]) {
   if (status === "now") return copy.now;
@@ -39,6 +40,8 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
         {focus.label}{focus.meta ? ` · ${focus.meta}` : ""}
       </p>
     </a>
+  {:else if loadingLabel}
+    <p role="status" class="py-6 text-muted-foreground text-sm">{loadingLabel}</p>
   {:else}
     <CompactEmpty description={copy.noUpcoming} />
   {/if}

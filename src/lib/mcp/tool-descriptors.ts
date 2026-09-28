@@ -199,16 +199,42 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
               extra: unknown,
             ) => unknown | Promise<unknown>
           )(args, extra);
-          if (isRecord(result) && isRecord(result.structuredContent)) {
-            const mode =
-              isRecord(args) && args.mode === "full" ? "full" : "default";
-            const validationSchema = hasExplicitOutputSchema
-              ? outputSchema
-              : getMcpToolOutputSchemaForMode(name, mode);
-            validatingOutput = true;
-            validationSchema.parse(result.structuredContent);
-            validatingOutput = false;
+          validatingOutput = true;
+          if (
+            !isRecord(result) ||
+            !isRecord(result.structuredContent) ||
+            typeof result.structuredContent.success !== "boolean" ||
+            !Array.isArray(result.content) ||
+            result.content.length !== 1 ||
+            !isRecord(result.content[0]) ||
+            result.content[0].type !== "text" ||
+            typeof result.content[0].text !== "string"
+          ) {
+            throw new Error(
+              "MCP tool result must use the canonical JSON envelope",
+            );
           }
+          let textContent: unknown;
+          try {
+            textContent = JSON.parse(result.content[0].text);
+          } catch {
+            throw new Error("MCP tool result text must be valid JSON");
+          }
+          if (
+            JSON.stringify(textContent) !==
+            JSON.stringify(result.structuredContent)
+          ) {
+            throw new Error(
+              "MCP tool result text and structured content must agree",
+            );
+          }
+          const mode =
+            isRecord(args) && args.mode === "full" ? "full" : "default";
+          const validationSchema = hasExplicitOutputSchema
+            ? outputSchema
+            : getMcpToolOutputSchemaForMode(name, mode);
+          validationSchema.parse(result.structuredContent);
+          validatingOutput = false;
           return result;
         },
         () => validatingOutput,

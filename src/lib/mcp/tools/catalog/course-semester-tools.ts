@@ -46,6 +46,10 @@ export function registerCourseSemesterTools(server: McpServer) {
 
       return jsonToolResult(
         {
+          success: Boolean(semester),
+          ...(semester
+            ? {}
+            : { error: "not_found", message: "Semester not found" }),
           found: Boolean(semester),
           semester,
         },

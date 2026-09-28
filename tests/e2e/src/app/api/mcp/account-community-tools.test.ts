@@ -51,7 +51,6 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           username?: string | null;
           _count?: { comments?: number; uploads?: number };
         };
-        sectionCount?: number;
         weeks?: unknown[];
         totalContributions?: number;
       };
@@ -59,7 +58,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       expect(publicProfile.user?.id).toBe(currentUser.id);
       expect(publicProfile.user?.name).toBe(DEV_SEED.debugName);
       expect(publicProfile.user?.username).toBe(DEV_SEED.debugUsername);
-      expect(typeof publicProfile.sectionCount).toBe("number");
+      expect(publicProfile).not.toHaveProperty("sectionCount");
       expect(typeof publicProfile.totalContributions).toBe("number");
       expect(Array.isArray(publicProfile.weeks)).toBe(true);
       expect(typeof publicProfile.user?._count?.comments).toBe("number");

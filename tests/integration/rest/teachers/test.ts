@@ -122,7 +122,7 @@ test.describe("GET /api/catalog/teachers", () => {
   test("详情路由返回带班级的 seed 教师", async ({ request }) => {
     const cacheBust = `teacher-detail-${Date.now()}`;
     const teacherListResponse = await request.get(
-      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5&cacheBust=${cacheBust}`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=5&cacheBust=${cacheBust}`,
     );
     expect(teacherListResponse.status()).toBe(200);
     const teacherListBody = (await teacherListResponse.json()) as {
@@ -181,7 +181,7 @@ test.describe("GET /api/catalog/teachers", () => {
 
   test("教师列表项包含所有必需的 TeacherSummary 字段", async ({ request }) => {
     const response = await request.get(
-      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
+      `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&pageSize=5`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

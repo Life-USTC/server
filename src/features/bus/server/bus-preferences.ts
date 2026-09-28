@@ -48,8 +48,6 @@ export async function saveBusPreference(
   const data = {
     preferredOriginCampusId: payload.preferredOriginCampusId,
     preferredDestinationCampusId: payload.preferredDestinationCampusId,
-    favoriteCampusIds: [] as number[],
-    favoriteRouteIds: [] as number[],
     showDepartedTrips: payload.showDepartedTrips,
   };
 

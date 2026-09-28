@@ -25,15 +25,22 @@ then the relevant [feature](features/) and its referenced [policies](policies/).
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
+bun run specs:check --complete
 bun run specs:coverage
 ```
 
-Typed requirements declare observable expectations and mandatory acceptance tests.
-The coverage command reports missing scenarios, missing tests and tests not run;
-the CI evidence job joins actual test results and gates typed requirements. Prose
-requirements and unstructured notes remain visible gaps until their behavior is
-specified and tested. See [editing specifications](AGENTS.md) for the distinction
-between schema validity, linked evidence and complete behavioral coverage.
+Each atomic requirement maps to one canonical acceptance test whose literal name
+is the requirement ID. The checker validates both directions and rejects reuse,
+ambiguous names and disabled tests. `specs:check --complete` requires every
+requirement to have this binding. The CI evidence gate requires every canonical
+test to execute successfully, including tests for prose requirements. Missing
+tests remain failures of completeness; schema validity is a separate result.
+Typed requirements additionally need a native semantic receipt proving that each
+expectation field was compared in the passing canonical test. The report separates
+schema/reference validity, native execution and semantic comparison status. It
+also lists remaining prose requirements and candidate text locations without
+claiming they have been semantically converted.
+See [editing specifications](AGENTS.md) for semantic review and test-layer rules.
 
 Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate
 product requirements. Build regenerates OpenAPI; `bun run openapi:check` detects

@@ -19,9 +19,12 @@ export const computeHomeworkBuckets = (
   const dueToday = incompleteWithDueAt
     .filter(({ due }) => due.isSame(todayStart, "day"))
     .map(({ homework }) => homework);
+  const dueSoonStart = todayStart.add(1, "day");
   const dueSoonEnd = todayStart.add(4, "day");
   const dueWithin3Days = incompleteWithDueAt
-    .filter(({ due }) => due.isAfter(todayStart) && due.isBefore(dueSoonEnd))
+    .filter(
+      ({ due }) => !due.isBefore(dueSoonStart) && due.isBefore(dueSoonEnd),
+    )
     .map(({ homework }) => homework);
 
   return { incompleteHomeworks, dueToday, dueWithin3Days };

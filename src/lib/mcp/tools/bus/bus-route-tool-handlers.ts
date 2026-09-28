@@ -33,6 +33,8 @@ export async function getBusRouteTimetableTool({
 
   if (!result) {
     return jsonToolResult({
+      success: false,
+      error: "not_found",
       routeId,
       hasData: false,
       message: `No timetable found for route ${routeId}. Use catalog_bus_route_list to see available route IDs.`,

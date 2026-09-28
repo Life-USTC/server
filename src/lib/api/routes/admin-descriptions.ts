@@ -45,5 +45,6 @@ export async function getAdminDescriptionsRoute(request: Request) {
         ),
       );
     },
+    { allowSuspended: true },
   );
 }

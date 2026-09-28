@@ -3,6 +3,7 @@ import { cn } from "$lib/utils.js";
 import type { ContributionCell } from "./profile-contribution-types";
 
 export let cellLabel: string;
+export let singleCellLabel: string;
 export let dateFormatter: Intl.DateTimeFormat;
 export let heatmapClass: (count: number) => string;
 export let monthLabels: string[];
@@ -20,7 +21,7 @@ $: weekdayRows = Array.from({ length: 7 }, (_, weekday) =>
 $: if (activeCellIndex >= weeks.length * 7) activeCellIndex = 0;
 
 function contributionLabel(day: ContributionCell) {
-  return cellLabel
+  return (day.count === 1 ? singleCellLabel : cellLabel)
     .replace("{count}", String(day.count))
     .replace("{date}", dateFormatter.format(new Date(day.date)));
 }

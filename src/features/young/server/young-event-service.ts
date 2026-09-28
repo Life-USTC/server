@@ -16,6 +16,7 @@ import {
   startOfShanghaiDay,
 } from "@/lib/time/shanghai-format";
 import { renderYoungEventHtml } from "./young-event-html";
+import { youngEventImageUrl } from "./young-event-image-service";
 
 export type YoungEventTimeBasis = "activity" | "registration";
 
@@ -194,15 +195,6 @@ function toShanghaiIso(date: Date | null | undefined): string | null {
   return date == null ? null : formatShanghaiTimestamp(date);
 }
 
-/**
- * Local cache-aside proxy for the upstream poster image. The database stores
- * the raw young.ustc.edu.cn `pic` path; the public field points at our own
- * origin so clients never resolve the relative path against us directly.
- */
-export function youngEventImageUrl(youngId: string) {
-  return `/api/catalog/young-events/${youngId}/image`;
-}
-
 /** The places column is upstream-shaped JSON, so narrow it before exposing it. */
 function toYoungEventPlaces(
   value: Prisma.JsonValue | null,
@@ -252,7 +244,7 @@ export function toYoungEventSummary(
     onlineMeetingInfo: record.onlineMeetingInfo,
     externalSponsor: record.externalSponsor,
     location: record.location,
-    imageUrl: record.imageUrl ? youngEventImageUrl(record.youngId) : null,
+    imageUrl: record.imageUrl ? youngEventImageUrl(record.imageUrl) : null,
     hours: record.hours,
     capacity: record.capacity,
     appliedCount: record.appliedCount,

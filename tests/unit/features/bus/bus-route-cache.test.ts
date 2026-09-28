@@ -47,38 +47,31 @@ describe("bus REST cache boundaries", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps anonymous raw timetable responses private", async () => {
+  it("bus.cache-boundaries", async () => {
     const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
-    getBusTimetableDataMock.mockResolvedValue(timetable);
     const { getBusRoute } = await import("@/lib/api/routes/bus");
-
-    const response = await getBusRoute(
-      new Request("https://life.example/api/catalog/bus"),
-    );
-
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "no-store",
-    );
-  });
-
-  it("keeps an auth-signaled timetable response private", async () => {
-    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
-    vi.mocked(resolveSessionUserId).mockResolvedValue(null);
-    getBusTimetableDataMock.mockResolvedValue(timetable);
-    const { getBusRoute } = await import("@/lib/api/routes/bus");
-
-    const response = await getBusRoute(
-      new Request("https://life.example/api/catalog/bus", {
-        headers: { cookie: "better-auth.session_token=session" },
-      }),
-    );
-
-    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
-      "no-store",
-    );
+    for (const userId of [null, "owner-id"]) {
+      vi.mocked(resolveSessionUserId).mockResolvedValue(userId);
+      getBusTimetableDataMock.mockResolvedValue({
+        ...timetable,
+        preferences: userId
+          ? {
+              preferredOriginCampusId: 1,
+              preferredDestinationCampusId: null,
+              showDepartedTrips: true,
+            }
+          : null,
+      });
+      const response = await getBusRoute(
+        new Request("https://life.example/api/catalog/bus"),
+      );
+      expect(response.status).toBe(200);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    }
   });
 
   it("publicly edge-caches viewer-independent route search", async () => {
@@ -100,7 +93,7 @@ describe("bus REST cache boundaries", () => {
     expect(response.headers.get("Cache-Tag")).toBe("catalog");
   });
 
-  it("never edge-caches time-sensitive next departures", async () => {
+  it("bus.next-departures-uncached", async () => {
     const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
     vi.mocked(resolveSessionUserId).mockResolvedValue(null);
     getNextBusDeparturesMock.mockResolvedValue({
@@ -121,6 +114,7 @@ describe("bus REST cache boundaries", () => {
       ),
     );
 
+    expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       "no-store",

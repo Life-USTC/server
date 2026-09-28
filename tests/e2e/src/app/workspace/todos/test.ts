@@ -20,6 +20,7 @@
  * - Empty state shown when filter yields no matching todos
  */
 import { expect, type Page, test } from "@playwright/test";
+import { semanticContract } from "../../../../../shared/specifications/semantic-contract";
 import { todoExpectation } from "../../../../../shared/specifications/todo";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
@@ -91,7 +92,9 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-seed");
   });
 
-  test("移动端待办工具栏保留筛选和大尺寸主操作", async ({ page }, testInfo) => {
+  test("todo.web-create-target", async ({ page }, testInfo) => {
+    const contract = await semanticContract(testInfo.title, "target_size");
+    contract.equal("/surface", "web");
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-workspace-view-mode");
     });
@@ -105,14 +108,17 @@ test.describe("仪表盘待办", () => {
     const incomplete = page
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
-    const add = page.getByTestId(target.target);
+    const add = page.getByTestId("workspace-todos-add");
+    contract.equal("/target", { by: "test_id", value: "workspace-todos-add" });
+    contract.equal("/viewport", page.viewportSize());
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
     await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(0);
 
     const addBox = await add.boundingBox();
-    expect(addBox?.height).toBeGreaterThanOrEqual(target.min_height);
-    expect(addBox?.width).toBeGreaterThanOrEqual(target.min_width);
+    contract.atLeast("/min_height", addBox?.height ?? 0);
+    contract.atLeast("/min_width", addBox?.width ?? 0);
+    contract.recordPlaywright(testInfo);
     const filterBox = await incomplete.boundingBox();
     expect(filterBox?.height).toBeGreaterThanOrEqual(44);
     expect(filterBox?.width).toBeGreaterThanOrEqual(44);
@@ -196,7 +202,12 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-toggle");
   });
 
-  test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
+  test("todo.web-completed-title", async ({ page }, testInfo) => {
+    const contract = await semanticContract(
+      testInfo.title,
+      "state_presentation",
+    );
+    contract.equal("/surface", "web");
     await signInAsDebugUser(page, "/workspace/todos");
 
     const titleRule = await todoExpectation(
@@ -225,10 +236,27 @@ test.describe("仪表盘待办", () => {
       name: DEV_SEED.todos.completedTitle,
     });
     await expect(completedDetail).toBeVisible();
-    await expect(completedDetail.locator(titleRule.target)).toHaveCSS(
+    await expect(completedDetail.locator(titleRule.target.value)).toHaveCSS(
       "text-decoration-line",
       titleRule.text_decoration,
     );
+    contract.equal("/target", {
+      by: "css",
+      value: '[data-slot="dialog-title"]',
+    });
+    contract.equal(
+      "/state/completed",
+      await completedDetail
+        .getByRole("button", { name: /取消完成|Mark as incomplete/i })
+        .isVisible(),
+    );
+    contract.equal(
+      "/text_decoration",
+      await completedDetail
+        .locator('[data-slot="dialog-title"]')
+        .evaluate((node) => getComputedStyle(node).textDecorationLine),
+    );
+    contract.recordPlaywright(testInfo);
     // The single-column popup moved the priority badge out of the dialog
     // description and into the facts table; the severity variant is unchanged.
     await expect(
@@ -242,7 +270,9 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-completed");
   });
 
-  test("待办详情弹窗展示优先级、状态与底部操作", async ({ page }, testInfo) => {
+  test("todo.web-detail-actions", async ({ page }, testInfo) => {
+    const contract = await semanticContract(testInfo.title, "ordered_items");
+    contract.equal("/surface", "web");
     await signInAsDebugUser(page, "/workspace/todos");
 
     await visibleText(page, DEV_SEED.todos.dueTodayTitle).first().click();
@@ -270,7 +300,11 @@ test.describe("仪表盘待办", () => {
       completion: /标记为完成|Mark as complete/i,
       edit: /编辑待办|Edit Todo/i,
     };
-    const footer = dialog.locator(actionsRule.target);
+    const footer = dialog.locator('[data-slot="dialog-footer"]');
+    contract.equal("/target", {
+      by: "css",
+      value: '[data-slot="dialog-footer"]',
+    });
     const buttons = footer.getByRole("button");
     await expect(buttons).toHaveCount(actionsRule.items.length);
     for (const [index, action] of actionsRule.items.entries()) {
@@ -278,6 +312,18 @@ test.describe("仪表盘待办", () => {
         actionLabels[action],
       );
     }
+    const observedActions = [];
+    for (const button of await buttons.all()) {
+      const label =
+        (await button.getAttribute("aria-label")) ?? (await button.innerText());
+      observedActions.push(
+        Object.entries(actionLabels).find(([, pattern]) =>
+          pattern.test(label),
+        )?.[0],
+      );
+    }
+    contract.equal("/items", observedActions);
+    contract.recordPlaywright(testInfo);
     await expectDialogAction(dialog, /删除待办|Delete todo/i);
     await expectDialogAction(dialog, /编辑待办|Edit Todo/i);
     await expectDialogAction(dialog, /标记为完成|Mark as complete/i);
@@ -311,10 +357,13 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "workspace-todos-action-error");
   });
 
-  test("可以创建、编辑和删除待办", async ({ page }, testInfo) => {
+  test("todo.web-local-mutation-state", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await signInAsDebugUser(page, "/workspace/todos");
 
+    await page.evaluate(() => {
+      document.documentElement.dataset.todoMutationSession = "retained";
+    });
     const title = `e2e-workspace-todo-${Date.now()}`;
     const editedTitle = `${title}-edited`;
 
@@ -406,6 +455,37 @@ test.describe("仪表盘待办", () => {
         '[data-slot="dialog-title"]',
       );
       await expect(detailTitle).toHaveText(editedTitle);
+      await editedDetailDialog
+        .getByRole("button", { name: /标记为完成|Mark as complete/i })
+        .click();
+      await expect(
+        editedDetailDialog.getByRole("button", {
+          name: /取消完成|Mark as incomplete/i,
+        }),
+      ).toBeEnabled();
+      await page.keyboard.press("Escape");
+      const completedFilter = page.getByRole("radio", {
+        name: /^(已完成|Completed)$/i,
+      });
+      const incompleteFilter = page.getByRole("radio", {
+        name: /^(未完成|Incomplete)$/i,
+      });
+      const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
+      for (const filter of [
+        incompleteFilter,
+        completedFilter,
+        allFilter,
+        completedFilter,
+      ]) {
+        await filter.click();
+        await expect(filter).toBeChecked();
+        await expect(
+          page.getByRole("button", { name: editedTitle, exact: true }),
+        ).toHaveCount(filter === incompleteFilter ? 0 : 1);
+      }
+      await page
+        .getByRole("button", { name: editedTitle, exact: true })
+        .click();
       const deleteButton = page
         .getByRole("button", { name: /删除待办|Delete todo/i })
         .first();
@@ -441,6 +521,26 @@ test.describe("仪表盘待办", () => {
       await expect(page.getByText(editedTitle)).toHaveCount(0, {
         timeout: 15_000,
       });
+      for (const filter of [
+        allFilter,
+        incompleteFilter,
+        completedFilter,
+        allFilter,
+      ]) {
+        await filter.click();
+        await expect(filter).toBeChecked();
+        await expect(
+          page.getByRole("button", { name: editedTitle, exact: true }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: title, exact: true }),
+        ).toHaveCount(0);
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.dataset.todoMutationSession,
+        ),
+      ).toBe("retained");
       await captureStepScreenshot(page, testInfo, "workspace-todos-deleted");
     } finally {
       await cleanupTodosByTitlePrefix(page, title);

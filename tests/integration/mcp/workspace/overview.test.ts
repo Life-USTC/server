@@ -45,7 +45,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }>("workspace_calendar_timeline_get", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
-      mode: "summary",
+      mode: "default",
     });
 
     expect(Array.isArray(result.events)).toBe(true);
@@ -207,7 +207,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       }>("workspace_overview_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
-        mode: "summary",
+        mode: "default",
       });
       expect(Array.isArray(summary.samples?.dueTodos)).toBe(true);
     } finally {
@@ -312,7 +312,7 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
       {
         locale: "zh-cn",
         atTime,
-        mode: "summary",
+        mode: "default",
       },
     );
 
@@ -457,7 +457,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
       upcomingEvents?: { total?: number };
     }>("workspace_snapshot_get", {
       locale: "zh-cn",
-      mode: "summary",
+      mode: "default",
       atTime: fixtures.SEED_AT_TIME,
     });
 
@@ -506,7 +506,7 @@ describe("workspace_snapshot_get — 默认模式紧凑性", () => {
     });
     const sum = await isolated.client.callTool("workspace_snapshot_get", {
       locale: "zh-cn",
-      mode: "summary",
+      mode: "default",
       atTime: fixtures.SEED_AT_TIME,
     });
     expect(sum).toEqual(def);

@@ -118,7 +118,7 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
     </div>
   {/if}
 
-  {#if comments.length === 0}
+  {#if comments.length === 0 && targetLoadStates.some((state) => state.loaded)}
     <CompactEmpty description={commentCopy.emptyTitle} />
   {:else}
     <CommentsThreadList

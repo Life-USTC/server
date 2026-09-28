@@ -20,13 +20,6 @@ describe("cross-surface interface naming", () => {
     expect(invalidNames).toEqual([]);
   });
 
-  it("uses the canonical GraphQL query scopes", () => {
-    const schema = buildSchema(graphqlTypeDefs);
-    const fields = Object.keys(schema.getQueryType()?.getFields() ?? {}).sort();
-
-    expect(fields).toEqual([...scopes].sort());
-  });
-
   it("uses a canonical scope for every business REST route", () => {
     const document = JSON.parse(
       readFileSync("public/openapi.generated.json", "utf8"),

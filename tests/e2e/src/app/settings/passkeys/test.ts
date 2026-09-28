@@ -10,7 +10,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 test.describe("/account/settings/accounts 通行密钥", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("注册、退出、通行密钥登录、重命名和删除", async ({ page }, testInfo) => {
+  test("user.passkey-user-flow", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1280, height: 1000 });
     const cdp = await page.context().newCDPSession(page);
@@ -140,7 +140,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     }
   });
 
-  test("不支持 WebAuthn 时禁用登录并解释原因", async ({ page }, testInfo) => {
+  test("user.passkey-unsupported", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       Object.defineProperty(window, "PublicKeyCredential", {
         configurable: true,
@@ -191,7 +191,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     );
   });
 
-  test("移动端通行密钥设置不产生横向溢出", async ({ page }, testInfo) => {
+  test("user.passkey-mobile-controls", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, "/account/settings/accounts");
 
@@ -220,7 +220,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     await captureStepScreenshot(page, testInfo, "settings-passkeys/mobile");
   });
 
-  test("取消通行密钥验证时保留登录页并显示可恢复错误", async ({ page }) => {
+  test("user.passkey-cancelled", async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator.credentials, "get", {
         configurable: true,
@@ -242,7 +242,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     ).toBeVisible();
   });
 
-  test("服务端失败时保留登录页并显示通用错误", async ({ page }) => {
+  test("user.passkey-sign-in-failure", async ({ page }) => {
     await page.route(
       "**/api/auth/passkey/generate-authenticate-options",
       (route) =>
@@ -266,9 +266,12 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     await expect(
       page.getByText(/无法使用通行密钥登录|Unable to sign in with a passkey/i),
     ).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(
+      "Synthetic E2E failure",
+    );
   });
 
-  test("注册会话过旧时提示用户重新登录", async ({ page }) => {
+  test("user.passkey-stale-session-guidance", async ({ page }) => {
     await signInAsDebugUser(page, "/account/settings/accounts");
     await page.route(
       "**/api/auth/passkey/generate-register-options**",
@@ -296,7 +299,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     ).toBeVisible();
   });
 
-  test("设置列表失败时显示重试状态", async ({ page }) => {
+  test("user.passkey-list-retry", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     await page.route("**/api/auth/passkey/list-user-passkeys", (route) =>
       route.fulfill({
@@ -317,5 +320,16 @@ test.describe("/account/settings/accounts 通行密钥", () => {
     await expect(
       passkeyCard.getByRole("button", { name: /重试|Retry/i }),
     ).toBeVisible();
+    await page.unroute("**/api/auth/passkey/list-user-passkeys");
+    const reloaded = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+        "/api/auth/passkey/list-user-passkeys",
+    );
+    await passkeyCard.getByRole("button", { name: /重试|Retry/i }).click();
+    expect((await reloaded).status()).toBe(200);
+    await expect(
+      passkeyCard.getByText(/无法加载通行密钥|Unable to load passkeys/i),
+    ).toHaveCount(0);
   });
 });

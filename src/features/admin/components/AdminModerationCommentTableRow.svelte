@@ -26,17 +26,15 @@ export let targetLabel: AdminModerationCommentFormatter;
   <Table.Cell>
     <div class="grid min-w-0 gap-1">
       <TruncatedText
-        class="text-sm"
+        class="text-sm font-medium"
         lines={2}
         preserveWhitespace
         text={comment.body}
       />
-      {#if comment.moderationNote}
-        <TruncatedText
-          class="text-muted-foreground text-xs"
-          text={`${copy.moderationNote}: ${comment.moderationNote}`}
-        />
-      {/if}
+      <TruncatedText
+        class="text-muted-foreground text-xs"
+        text={comment.moderationNote ? `${copy.moderationNote}: ${comment.moderationNote}` : null}
+      />
     </div>
   </Table.Cell>
   <Table.Cell class="max-w-0">

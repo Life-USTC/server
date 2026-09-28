@@ -27,7 +27,7 @@ function readSnapshotAtRef(ref: string) {
 }
 
 describe("GraphQL schema snapshot", () => {
-  it("matches the canonical SDL file", async () => {
+  it("graphql.schema-evolution", async () => {
     await expect(graphqlSchemaSdl).toMatchFileSnapshot(snapshotPath);
   });
 

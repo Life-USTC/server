@@ -109,6 +109,7 @@ test("/api/community/comments/[id] GET 不存在的 ID 返回 404", async ({
 test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露是否存在", async ({
   request,
   playwright,
+  baseURL,
 }) => {
   await signInAsDebugUserApi(request, "/");
   const sectionId = await resolveSeedSectionId(request);
@@ -132,7 +133,7 @@ test("/api/community/comments/[id] GET 隐藏聚焦线程返回 404 且不泄露
   try {
     // RLS hides the row, so anonymous callers cannot distinguish it from a missing ID.
     const anonymous = await playwright.request.newContext({
-      baseURL: "http://localhost:3000",
+      baseURL,
     });
     try {
       const response = await anonymous.get(

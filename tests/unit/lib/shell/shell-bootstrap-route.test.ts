@@ -107,7 +107,7 @@ describe("shell bootstrap Web endpoint", () => {
     expect(getWorkspaceNavigationSummaryMock).not.toHaveBeenCalled();
   });
 
-  test("preserves the viewer when navigation counts fail without serializing errors", async () => {
+  test("user.shell-navigation-failure", async () => {
     getWorkspaceNavigationSummaryMock.mockRejectedValue(
       new Error("database details"),
     );

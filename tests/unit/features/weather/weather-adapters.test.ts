@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchAmapWeather } from "@/features/weather/server/amap-adapter";
 import {
   fetchOpenMeteoWeather,
   normalizeOpenMeteoCondition,
 } from "@/features/weather/server/open-meteo-adapter";
 import { getWeatherLocation } from "@/features/weather/server/weather-types";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 describe("weather adapters", () => {
   it("returns error when AMAP_API_KEY is missing", async () => {
@@ -63,16 +68,57 @@ describe("weather adapters", () => {
     vi.unstubAllGlobals();
   });
 
-  it("fetches Open-Meteo weather for ustc-gaoxin", {
-    timeout: 20000,
-  }, async () => {
-    const location = getWeatherLocation("ustc-gaoxin");
-    const result = await fetchOpenMeteoWeather(location);
-    // Allow network failures in CI/test environments; verify shape on success.
-    if (result.ok) {
-      expect(result.data.current).toBeDefined();
-      expect(result.data.daily).toBeDefined();
-      expect(result.data.hourly).toBeDefined();
+  it("weather.location-provider-mapping", async () => {
+    vi.stubEnv("AMAP_API_KEY", "test-key");
+    const requests: URL[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input));
+        requests.push(url);
+        return Response.json(
+          url.hostname === "restapi.amap.com"
+            ? { lives: [{ weather: "晴", temperature: "20" }], forecasts: [] }
+            : {
+                current: { temperature_2m: 20, weather_code: 0 },
+                hourly: {
+                  time: ["2026-09-15T08:00"],
+                  temperature_2m: [20],
+                  weather_code: [0],
+                },
+              },
+        );
+      }),
+    );
+    for (const [key, adcode, latitude, longitude] of [
+      ["ustc-main", "340100", "31.826", "117.27"],
+      ["ustc-gaoxin", "340104", "31.839", "117.094"],
+    ]) {
+      requests.length = 0;
+      const location = getWeatherLocation(key);
+      if (!location) throw new Error("Missing campus mapping");
+      expect((await fetchAmapWeather(location)).ok).toBe(true);
+      const openMeteo = await fetchOpenMeteoWeather(location);
+      expect(openMeteo.ok).toBe(true);
+      expect(requests).toHaveLength(3);
+      expect(
+        requests
+          .slice(0, 2)
+          .map((url) => [
+            url.searchParams.get("city"),
+            url.searchParams.get("extensions"),
+          ]),
+      ).toEqual([
+        [adcode, "base"],
+        [adcode, "all"],
+      ]);
+      expect(requests[2].searchParams.get("latitude")).toBe(latitude);
+      expect(requests[2].searchParams.get("longitude")).toBe(longitude);
+      expect(requests[2].searchParams.get("timezone")).toBe("Asia/Shanghai");
+      if (!openMeteo.ok) throw openMeteo.error;
+      expect(openMeteo.data.hourly?.time).toEqual([
+        "2026-09-15T08:00:00+08:00",
+      ]);
     }
   });
 });

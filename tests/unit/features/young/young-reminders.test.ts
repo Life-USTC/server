@@ -3,6 +3,8 @@ import {
   youngEventState,
   youngReminderCandidates,
 } from "@/features/young/server/young-notification-state";
+import { bindDomainOperation } from "../../../shared/specifications/domain-contracts";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const event = {
   name: "Workshop",
@@ -22,26 +24,60 @@ const settings = {
   remindStart: true,
 };
 describe("Young reminders", () => {
-  it("opens the deadline reminder window exactly 24 hours before the deadline", () => {
-    expect(
-      youngReminderCandidates(
-        event,
-        settings,
-        new Date("2026-09-15T09:59:59+08:00"),
-      ).map((item) => item.kind),
-    ).not.toContain("signup_deadline");
-    expect(
-      youngReminderCandidates(
-        event,
-        settings,
-        new Date("2026-09-15T10:00:00+08:00"),
-      ).map((item) => item.kind),
-    ).toContain("signup_deadline");
-    expect(youngReminderCandidates(event, settings, event.applyEndAt)).toEqual(
-      [],
+  async function observeWindow(
+    id: string,
+    anchor: "applyEndAt" | "startAt",
+    kind: "signup_deadline" | "event_start",
+    lead: number,
+    context: Parameters<
+      Awaited<ReturnType<typeof semanticContract>>["recordVitest"]
+    >[0],
+  ) {
+    const contract = await semanticContract(id, "reminder_window");
+    const candidates = bindDomainOperation(
+      contract,
+      "src/features/young/server/young-notification-state.ts",
+      youngReminderCandidates,
+    );
+    const closes = event[anchor].getTime();
+    const opens = closes - lead;
+    const selected = (now: number) =>
+      candidates(event, settings, new Date(now)).find(
+        (item) => item.kind === kind,
+      );
+    contract.equal("/before_window", Boolean(selected(opens - 1)));
+    const first = selected(opens);
+    expect(first).toBeDefined();
+    contract.equal("/at_open", Boolean(first));
+    contract.equal("/before_close", Boolean(selected(closes - 1)));
+    contract.equal("/at_close", Boolean(selected(closes)));
+    contract.equal("/lead_seconds", (first?.lead ?? -1) / 1000);
+    contract.equal("/notification", first?.kind);
+    contract.equal(
+      "/anchor",
+      Object.entries(event).find(([, value]) => value === first?.at)?.[0],
+    );
+    contract.recordVitest(context);
+  }
+  it("young-workspace.reminder-deadline-window", async (context) => {
+    await observeWindow(
+      "young-workspace.reminder-deadline-window",
+      "applyEndAt",
+      "signup_deadline",
+      24 * 60 * 60 * 1000,
+      context,
     );
   });
-  it("does not notify about registration opening before the user subscribed", () => {
+  it("young-workspace.reminder-start-window", async (context) => {
+    await observeWindow(
+      "young-workspace.reminder-start-window",
+      "startAt",
+      "event_start",
+      60 * 60 * 1000,
+      context,
+    );
+  });
+  it("young-workspace.reminders", () => {
     expect(
       youngReminderCandidates(
         event,

@@ -59,7 +59,7 @@ export async function getResolvedDescriptionPayload(
               select: { id: true, name: true, image: true, username: true },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 20,
         })
       : [];

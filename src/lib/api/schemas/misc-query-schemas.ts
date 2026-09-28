@@ -9,7 +9,6 @@ import { APP_LOCALES } from "@/i18n/config";
 import {
   booleanQuerySchema,
   dateQuerySchema,
-  deprecatedPaginationLimitParam,
   integerQueryRangeSchema,
   integerStringRangeSchema,
   paginationPageSizeParam,
@@ -111,11 +110,11 @@ export const busNextDeparturesQuerySchema = z.object({
 });
 
 export const busPreferenceRequestSchema = z.object({
-  preferredOriginCampusId: z.number().int().positive().nullable().default(null),
+  preferredOriginCampusId: z.number().int().min(1).nullable().default(null),
   preferredDestinationCampusId: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .nullable()
     .default(null),
   showDepartedTrips: z.boolean(),
@@ -128,7 +127,6 @@ export const catalogLinkVisitQuerySchema = z.object({
 export const semestersQuerySchema = z.object({
   page: publicCatalogPageSchema.optional(),
   pageSize: paginationPageSizeParam(publicPaginationPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(publicPaginationPageSizeSchema),
 });
 
 export const subscribedSchedulesQuerySchema = z.object({

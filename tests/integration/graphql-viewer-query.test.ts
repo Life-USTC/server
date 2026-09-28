@@ -252,17 +252,25 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     ]);
   });
 
-  it("returns account=null to anonymous callers and marks the response no-store", async () => {
+  it("graphql.anonymous-roots", async () => {
     const { response, payload } = await execute({
-      query: "{ account { profile { id } } }",
+      query:
+        "{ account { profile { id } } workspace { todos { pageInfo { total } } } catalog { __typename } community { __typename } }",
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(payload).toEqual({ data: { account: null } });
+    expect(payload).toEqual({
+      data: {
+        account: null,
+        workspace: null,
+        catalog: { __typename: "Catalog" },
+        community: { __typename: "Community" },
+      },
+    });
   });
 
-  it("serves account and workspace fields through a trusted-Origin session", async () => {
+  it("graphql.session-query-authority", async () => {
     const shanghaiMidnightInstant = new Date(
       firstScheduleDate.getTime() - 8 * 60 * 60 * 1000,
     ).toISOString();
@@ -590,7 +598,7 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
     ).toBe(true);
   });
 
-  it("bounds nested Schedule teachers and Exam rooms with PageInput", async () => {
+  async function verifyNestedPagination() {
     const headers = {
       cookie: sessionCookie,
       origin: new URL(getOAuthGraphqlResourceUrl()).origin,
@@ -763,9 +771,180 @@ describe("GraphQL Viewer integration", { concurrent: false }, () => {
         code: "BAD_USER_INPUT",
       });
     }
+  }
+
+  it("graphql.workspace-ownership", async () => {
+    for (const [userId, sectionId] of [
+      [firstUserId, firstSectionId],
+      [secondUserId, secondSectionId],
+    ] as const) {
+      const cookie = await createSessionCookie(userId);
+      const { payload } = await execute(
+        {
+          query: `{
+        workspace {
+          todos { items { id } }
+          subscribedSections { items { section { id } } }
+          homeworks { items { section { id } } }
+          schedules { items { section { id } } }
+          exams { items { section { id } } }
+        }
+      }`,
+        },
+        { cookie, origin: new URL(getOAuthGraphqlResourceUrl()).origin },
+      );
+      expect(payload.errors).toBeUndefined();
+      const workspace = payload.data?.workspace as Record<
+        string,
+        { items: Array<{ id?: string; section?: { id: number } }> }
+      >;
+      const ownedTodos = await fixturePrisma.todo.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      expect(workspace.todos.items).toEqual(ownedTodos);
+      for (const field of [
+        "subscribedSections",
+        "homeworks",
+        "schedules",
+        "exams",
+      ]) {
+        expect(workspace[field].items.length, field).toBeGreaterThan(0);
+        expect(
+          workspace[field].items.every(
+            (item) => item.section?.id === sectionId,
+          ),
+          field,
+        ).toBe(true);
+      }
+    }
+    for (const argument of [
+      'userId: "other-user"',
+      "sectionIds: [1]",
+      "includeDeleted: true",
+      "includeDescription: true",
+      'visibility: "public"',
+    ]) {
+      const { payload } = await execute(
+        { query: `{ workspace(${argument}) { todos { items { id } } } }` },
+        { authorization: `Bearer ${graphqlBearer}` },
+      );
+      expect(payload.errors?.length, argument).toBeGreaterThan(0);
+      expect(payload.data).toBeUndefined();
+    }
+    const { graphqlSchema } = await import("@/lib/graphql/schema");
+    const workspace = graphqlSchema.getType("Workspace");
+    if (!workspace || !("getFields" in workspace))
+      throw new Error("Missing Workspace schema");
+    const forbidden = new Set([
+      "userId",
+      "sectionIds",
+      "visibility",
+      "includeDeleted",
+      "includeDescription",
+      "includeCompletions",
+    ]);
+    for (const field of Object.values(workspace.getFields())) {
+      for (const argument of field.args) {
+        expect(
+          forbidden.has(argument.name),
+          `${field.name}.${argument.name}`,
+        ).toBe(false);
+        const input = graphqlSchema.getType(
+          argument.type.toString().replace(/[![\]]/g, ""),
+        );
+        if (input && "getFields" in input) {
+          for (const name of Object.keys(input.getFields()))
+            expect(
+              forbidden.has(name),
+              `${field.name}.${argument.name}.${name}`,
+            ).toBe(false);
+        }
+      }
+    }
   });
 
-  it("accepts a GraphQL-only bearer and enforces each selected field scope", async () => {
+  it("graphql.pagination", async () => {
+    const headers = { authorization: `Bearer ${graphqlBearer}` };
+    for (const field of [
+      "todos",
+      "subscribedSections",
+      "homeworks",
+      "schedules",
+      "exams",
+    ]) {
+      for (const page of [
+        undefined,
+        { page: 1, pageSize: 1 },
+        { page: 100, pageSize: 100 },
+      ]) {
+        const { payload } = await execute(
+          {
+            query: `query Pages($page: PageInput) { workspace { ${field}(page: $page) { pageInfo { page pageSize } } } }`,
+            variables: { page },
+          },
+          headers,
+        );
+        expect(payload.errors, field).toBeUndefined();
+        expect(payload.data).toMatchObject({
+          workspace: {
+            [field]: { pageInfo: page ?? { page: 1, pageSize: 20 } },
+          },
+        });
+      }
+      for (const page of [
+        { page: 0 },
+        { page: 101 },
+        { pageSize: 0 },
+        { pageSize: 101 },
+      ]) {
+        const { payload } = await execute(
+          {
+            query: `query Pages($page: PageInput) { workspace { ${field}(page: $page) { pageInfo { total } } } }`,
+            variables: { page },
+          },
+          headers,
+        );
+        expect(payload.errors?.[0]?.extensions, field).toMatchObject({
+          code: "BAD_USER_INPUT",
+        });
+      }
+    }
+    await verifyNestedPagination();
+    const { graphqlScopeResolvers } = await import("@/lib/graphql/workspace");
+    const teachers = Array.from({ length: 101 }, (_, index) => ({
+      teacher: { id: index + 1 },
+    }));
+    const rooms = Array.from({ length: 101 }, (_, index) => ({
+      id: index + 1,
+    }));
+    for (const pageSize of [20, 100]) {
+      const pages = [
+        graphqlScopeResolvers.Schedule.teachers(
+          { teacherParticipations: teachers },
+          { page: { pageSize } },
+        ),
+        graphqlScopeResolvers.Schedule.teacherParticipations(
+          { teacherParticipations: teachers },
+          { page: { pageSize } },
+        ),
+        graphqlScopeResolvers.Exam.examRooms(
+          { examRooms: rooms },
+          { page: { pageSize } },
+        ),
+      ];
+      for (const page of pages) {
+        expect(page.data).toHaveLength(pageSize);
+        expect(page.pagination).toMatchObject({
+          page: 1,
+          pageSize,
+          total: 101,
+        });
+      }
+    }
+  });
+
+  it("graphql.scoped-query-auth", async () => {
     const authorized = await execute(
       {
         query: /* GraphQL */ `

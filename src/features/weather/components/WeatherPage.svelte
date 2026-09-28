@@ -50,8 +50,8 @@ function formatTemplate(template: string, values: Record<string, string>) {
   );
 }
 
-function formatTemperature(value: number) {
-  return `${Math.round(value)}°`;
+function formatTemperature(value: number | null) {
+  return value === null ? "—" : `${Math.round(value)}°`;
 }
 </script>
 
@@ -59,7 +59,7 @@ function formatTemperature(value: number) {
   {#each locations as { locationKey, snapshot } (locationKey)}
     <Panel>
       {#snippet header()}
-        <h2 class="text-lg font-semibold">
+        <h2 class="text-lg font-semibold" data-weather-location={locationKey}>
           {weatherCopy.locationNames[locationKey]}
         </h2>
       {/snippet}

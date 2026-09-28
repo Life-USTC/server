@@ -1,6 +1,7 @@
 /**
  * Fill missing stop times by averaging the nearest known minutes before and
- * after the stop. Exact times stay exact; gaps between known times are marked
+ * after the stop within a nondecreasing same-day interval. One-sided and
+ * midnight-crossing gaps remain unknown. Exact times stay exact; valid gaps are marked
  * estimated for display.
  */
 import { formatMinutesAsTime } from "./bus-route-slots";
@@ -37,12 +38,8 @@ function estimateStopMinutes(
     }
   }
 
-  if (previous != null && next != null) {
+  if (previous != null && next != null && previous <= next) {
     return { minutes: Math.round((previous + next) / 2), isEstimated: true };
-  }
-
-  if (previous != null || next != null) {
-    return { minutes: previous ?? next, isEstimated: true };
   }
 
   return { minutes: null, isEstimated: false };

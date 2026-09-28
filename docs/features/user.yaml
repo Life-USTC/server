@@ -21,126 +21,695 @@ access:
   agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions
     by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
 requirements:
+- id: user.public-contribution-window
+  category: consistency
+  rule: The public contribution heatmap and its total cover exactly 365 Asia/Shanghai calendar days ending today. Padding to full Sunday-through-Saturday weeks has zero contributions outside that interval. Future dates never increase the annual total, which equals the sum of displayed cells.
+  acceptance:
+    given: Public contributions exist at the lower boundary, just before it, today, tomorrow within the padded week and after the visible grid.
+    when: The restricted runtime builds the profile projection at a fixed Shanghai date.
+    then:
+    - Only contributions in the inclusive 365-day window count.
+    - Padding cells remain zero, every week has seven cells and the total equals their sum.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-contribution-window
 - id: user.shell-viewer
   category: behavior
-  rule: The root layout owns the client viewer state and issues at most one shell bootstrap request per
-    mount. Public page controls reuse that in-memory state instead of issuing duplicate identity requests.
-    Navigation-summary failures preserve the authenticated viewer and return null navigation; identity
-    failures remain distinguishable from an anonymous viewer. Neither response nor viewer state is stored
-    in a shared cache.
+  rule: "The root layout owns client viewer state. A public full-page load issues one shell bootstrap request; a client navigation resolves an identity that the previous page could not initialize, including return from sign-in. Public controls and subsequent navigation reuse an initialized viewer and navigation summary rather than issuing duplicate identity requests."
+  acceptance:
+    given: An isolated signed-in owner opens academic details, links, bus, Young event/organizer details,
+      a dated Young calendar and the workspace calendar.
+    when: Real browser requests load feature-specific private projections, navigate from the workspace into a section detail through the retained root layout, and sign in through the real development login form with a public section callback.
+    then:
+    - Each public full-page load makes exactly one shell-bootstrap request, returns the matching viewer and successfully reads its feature projection.
+    - No page duplicates identity reads through profile or session endpoints.
+    - Workspace SSR and subsequent client navigation reuse the existing viewer without another shell-bootstrap request.
+    - Navigating from sign-in with a newly established session initializes the viewer and navigation with one bootstrap request and replaces anonymous shell controls.
+    test:
+      file: tests/e2e/src/app/cache-policy/shell-projection.test.ts
+      name: user.shell-viewer
 - id: user.sign-in-providers
   category: behavior
-  rule: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered
-    due to security and maintenance cost.
+  rule: Configured USTC, GitHub and Google providers support OAuth sign-in, creating a session linked to the authenticated upstream identity. New accounts retain an empty nickname and unset ID even when the provider supplies a name; no nickname is generated from upstream identity.
+  rationale: Upstream authentication establishes the linked identity; nickname and ID remain user-controlled profile choices entered during welcome. Production password sign-in is separately prohibited and verified by user.debug-password-boundary.
+  acceptance:
+    given: All three providers are configured and their upstream token and profile endpoints return controlled identities.
+    when: Each provider completes the actual HTTP authorization and callback flow with its issued state and cookie.
+    then:
+    - Authorization uses the expected provider origin and registered callback.
+    - The callback returns to the requested workspace and creates a usable session for the upstream profile.
+    - The session and persisted new account retain an empty nickname, with no generated ID.
+    - Exactly one account links the user to the expected provider subject, without a password credential.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.sign-in-providers
+- id: user.explicit-provider-linking
+  category: authorization
+  rule: OAuth provider identities are linked to an existing account only through an explicit authenticated account-link flow. A matching verified email alone cannot merge accounts; a provider identity already owned by another user cannot be reassigned by linking.
+  rationale: USTC and mapped GitHub profiles may lack a provider-verified mailbox. Configured providers are trusted to prove their own identity during explicit linking, while implicit email-based linking is disabled so this trust does not authorize account merging.
+  acceptance:
+    given: A local user has the same verified email as an unlinked upstream GitHub identity, and a second user also exists.
+    when: Real HTTP requests attempt ordinary social sign-in, explicit owner linking and linking the same identity from the other user's session.
+    then:
+    - Ordinary same-email sign-in creates no link or session.
+    - Explicit owner linking succeeds.
+    - The second user's attempt fails and the identity remains attached only to its original owner.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.explicit-provider-linking
 - id: user.passkey-server-boundary
   category: authorization
-  rule: Better Auth passkey registration, rename, and deletion require an authoritative server-side session
-    created within the last 15 minutes. Its RP ID comes from the configured canonical origin; verification
-    accepts only explicitly configured canonical/public origins whose host is the RP ID or its subdomain.
-    Localhost and 127.0.0.1 are separate RPs and are not mixed. The legacy Authenticator table is not
-    reused.
+  rule: The passkey plugin requires an explicit production origin. Canonical deployments and their configured subdomains use the canonical hostname as RP ID. An unrelated HTTPS public deployment uses its own hostname as RP ID and permits only its own origin; credentials cannot be reused across unrelated relying parties. Local loopback configuration uses localhost as the RP and allowed browser origin; it does not authorize ceremonies from an IP-literal browser origin.
+  rationale: Credential mutation freshness is owned by user.sensitive-account-recent-auth; usable last-credential protection belongs to the account sign-in-method policy. The local RP behavior avoids defining IP addresses as independent relying parties.
+  acceptance:
+    given: Production, canonical-subdomain preview, unrelated HTTPS preview, unsafe protocol and local loopback configurations.
+    when: The actual passkey plugin factory builds its options.
+    then:
+    - Production requires a configured origin and permits only compatible explicitly trusted origins.
+    - Unrelated HTTPS previews use an isolated RP and their sole origin; insecure nonlocal and non-HTTP protocols are rejected before plugin registration.
+    - Loopback configuration emits only localhost origins and requires a session for registration.
+    test:
+      file: tests/unit/lib/auth/better-auth-passkey-plugin.test.ts
+      name: user.passkey-server-boundary
 - id: user.passkey-user-flow
   category: presentation
-  rule: The sign-in page offers a WebAuthn passkey ceremony when supported. Signed-in users list, add,
-    rename, and delete their own passkeys in linked-account settings through the Better Auth client plugin.
-    Unsupported browsers, cancelled ceremonies, stale registration sessions, empty lists, and request
-    failures have explicit user-visible states.
+  rule: "Supported browsers offer passkey sign-in. Linked-account settings let users register, list, rename and delete their own passkeys, with an explicit empty state after deleting the last passkey when another usable sign-in method remains."
+  acceptance:
+    given: "A signed-in user has a browser virtual authenticator and another usable sign-in method."
+    when: "The browser registers and renames a key, signs out, signs in with that key and deletes it."
+    then:
+    - "The registered credential works for the same account and the renamed key persists."
+    - "Deletion confirms the action and restores the empty list."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-user-flow
 - id: user.debug-password-boundary
   category: authorization
   rule: Email/password authentication is enabled only for local development or the explicit non-production
     E2E debug mode; production does not expose debug password authentication.
+  acceptance:
+    given: Development, ordinary test, explicit E2E and production environments.
+    when: The actual debug policy configures Better Auth options.
+    then:
+    - Password sign-in is enabled only for development or explicit non-production E2E.
+    - Password signup stays disabled in every mode; enabling the debug flag in production throws.
+    test:
+      file: tests/unit/lib/auth/better-auth-options.test.ts
+      name: user.debug-password-boundary
 - id: user.oauth-callback-integrity
   category: authorization
-  rule: On a canonical same-origin deployment, OAuth login callbacks must complete state validation and
-    session creation directly, without losing state due to proxy wrapping or container-internal host differences.
+  rule: Same-origin social login callbacks validate both state and its browser cookie before exchanging a code. Successful callbacks create the linked account/session and return directly to the original application destination; callback state cannot be replayed.
+  acceptance:
+    given: A real local HTTP auth server and controlled GitHub token/profile responses.
+    when: Callbacks use wrong state, omit the state cookie, complete correctly or replay a completed state.
+    then:
+    - Invalid state or missing cookies never exchange an upstream token or create a user/session.
+    - The valid callback persists the provider account and one usable session, then returns directly to the app callback.
+    - Replaying the callback performs no token exchange and creates no extra session.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.oauth-callback-integrity
 - id: user.welcome-flow-required
   category: behavior
-  rule: New users must enter a nickname (name) and ID (username) during welcome before proceeding.
-    OAuth sign-up leaves the nickname empty, even when the provider supplies a name; no generated nickname
-    is assigned. Profile fields are labeled Nickname and ID in English, and 昵称 and ID in Chinese.
+  rule: A signed-in user missing either nickname (name) or ID (username) must complete profile entry before proceeding to ordinary pages or later welcome steps. Anonymous users must sign in first.
+  rationale: Initial OAuth account creation keeps these choices empty under user.sign-in-providers; profile field terminology is owned by user.profile-field-labels.
+  acceptance:
+    given: Anonymous visitors and isolated users missing name, username or both.
+    when: They request an ordinary private page and try the subscriptions or finish welcome URL directly.
+    then:
+    - Anonymous access redirects to sign-in.
+    - Every incomplete profile displays required profile inputs and cannot reach a later step.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-flow-required
+- id: user.profile-field-labels
+  category: presentation
+  rule: Welcome and profile settings label the user-controlled name field 昵称 in Chinese and Nickname in English, and the username field ID in both languages. Required-field indicators may follow these labels; neither field is presented as a legal name.
+  acceptance:
+    given: An isolated user has an incomplete welcome profile and then a completed profile with a chosen nickname and ID.
+    when: A browser opens welcome and profile settings in Chinese and English.
+    then:
+    - The exact localized nickname and ID labels identify their corresponding editable fields, with the nickname autocomplete semantic.
+    - Welcome keeps the unset fields empty; settings displays the chosen values.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.profile-field-labels
 - id: user.welcome-staged-steps
   category: presentation
-  rule: 'Welcome renders one URL step at a time: required profile, skippable subscriptions, then orientation.
-    Incomplete profiles always land on profile; completed ones never return to it. Only the last step
-    leaves for the callback. Welcome hides sidebar, search, and mobile primary nav. Subscriptions cannot
-    read official enrollment; they inline undergraduate and graduate academic-system links and match pasted
-    course codes.'
+  rule: Welcome renders only the current profile, subscriptions or orientation step. Completing profile persists its fields and advances to skippable subscriptions; skipping advances to orientation. A completed profile revisiting the profile URL leaves welcome for its safe callback.
+  acceptance:
+    given: An isolated user has an incomplete profile and a private page callback.
+    when: The browser completes profile, skips subscriptions and navigates back from orientation.
+    then:
+    - Only the current step is rendered and the URL tracks each transition.
+    - Profile fields persist; back navigation restores subscriptions.
+    - Revisiting profile after completion returns to the callback.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-staged-steps
+- id: user.welcome-shell-isolation
+  category: presentation
+  rule: Every welcome step hides the application sidebar, global search and mobile primary navigation.
+  acceptance:
+    given: An isolated user visits each welcome step at desktop and mobile widths.
+    when: The step has rendered.
+    then:
+    - Sidebar, global search trigger and mobile primary navigation are absent.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-shell-isolation
+- id: user.welcome-subscription-guidance
+  category: presentation
+  rule: The optional subscription step explains that official enrollment cannot be read automatically, provides undergraduate and graduate academic-system links, and exposes a pasted-course-code import form with the current semester selected.
+  rationale: Actual code matching, import mutations and membership semantics belong to the subscription feature.
+  acceptance:
+    given: A signed-in user visits the subscriptions welcome step.
+    when: Its import guidance and form render.
+    then:
+    - Both academic-system links and the automatic-import limitation are visible.
+    - The pasted-code import control and current-semester selection are visible.
+    test:
+      file: tests/e2e/src/app/welcome/test.ts
+      name: user.welcome-subscription-guidance
 - id: user.welcome-avatar-upload
+  category: validation
+  rule: The avatar processing boundary accepts nonempty JPG, PNG, WebP or AVIF files of at most 5 MiB (5242880 bytes). Unsupported types, empty files and oversized files are rejected before image processing or storage.
+  acceptance:
+    given: Each supported MIME type at one byte and the exact byte limit, plus empty, oversized and unsupported inputs.
+    when: The actual avatar service validates each file.
+    then:
+    - Accepted inputs reach image processing and storage.
+    - Invalid inputs have a specific failure reason and never reach either dependency.
+    test:
+      file: tests/unit/features/profile/profile-avatar-service.test.ts
+      name: user.welcome-avatar-upload
+- id: user.avatar-transform-request
   category: behavior
-  rule: During welcome, signed-in users may upload a JPG, PNG, WebP, or AVIF avatar up to 5 MB. The Worker
-    uses the Cloudflare Images binding to auto-crop it to a 256-by-256 WebP before storing it in private
-    R2; public avatar delivery is limited to URLs currently referenced by that user's profile.
+  rule: Valid avatar uploads request Cloudflare Images auto-cropping to 256-by-256 WebP, then store the returned stream as image/webp under an owner-specific private R2 key.
+  rationale: The adapter contract is verified using a controlled Images response and storage sink. Pixel-level correctness of the remote Images service is not established by this test.
+  acceptance:
+    given: A valid image file and controlled successful Images binding response.
+    when: The real processing adapter handles the upload.
+    then:
+    - It requests width/height 256, cover fit and auto gravity, followed by WebP encoding.
+    - It sends the returned stream and WebP MIME to the owner-specific object key.
+    test:
+      file: tests/unit/features/profile/profile-avatar-service.test.ts
+      name: user.avatar-transform-request
+- id: user.avatar-current-reference
+  category: authorization
+  rule: Public avatar delivery checks the owning profile's current image or available picture references on every request. Removed references, missing/deleted owners, malformed avatar IDs and missing objects return 404; responses must not allow stale cached delivery to bypass that check.
+  acceptance:
+    given: Persisted owner and unrelated profiles with a controlled object-storage response.
+    when: The actual public route serves current/available images, then receives invalid owners/IDs, removed references and missing objects.
+    then:
+    - Referenced images return their stored bytes with no-store caching.
+    - All invalid requests return 404; requests failing profile/ID checks never read object storage.
+    test:
+      file: tests/integration/profile-avatar-contract.test.ts
+      name: user.avatar-current-reference
 - id: user.welcome-oauth-refresh
   category: consistency
-  rule: A user may reauthorize an already linked OAuth provider during welcome to fetch current upstream
-    avatar and identity information. Refreshed upstream values add avatar choices without filling or
-    overwriting the user-controlled nickname or ID.
+  rule: A signed-in user may refresh an already linked provider's upstream profile options. Missing image values may be filled and new avatar choices added, while name and username remain user-controlled, even when empty, and a user-entered image remains unchanged. Refresh neither links a previously unlinked provider nor grants a third-party application access to Life@USTC APIs.
+  acceptance:
+    given: A real social-login session has an existing provider identity and user-entered profile fields.
+    when: The actual welcome refresh action rejects unsupported/unlinked providers, then completes provider callbacks with new profile data and later with missing local values.
+    then:
+    - User-entered fields are preserved and new avatar choices are recorded.
+    - Missing image fields are filled from the provider without filling or changing name or username.
+    - The account remains singly linked and no delegated API consent is created.
+    test:
+      file: tests/integration/social-login-contract.test.ts
+      name: user.welcome-oauth-refresh
 - id: user.welcome-completion-resume
   category: consistency
-  rule: If the welcome flow was reached from an app-relative callbackUrl, successful completion returns
-    to that page; otherwise completion returns home.
+  rule: The final welcome action returns to a safe app-relative callback including its query and fragment. Missing, external, encoded authority, backslash and recursive welcome callbacks fall back through home to the signed-in workspace overview.
+  acceptance:
+    given: A complete-profile user visits orientation with safe, absent and unsafe callbacks.
+    when: The browser follows the final welcome link.
+    then:
+    - The safe destination retains its query and fragment.
+    - Every unsafe or absent callback resolves to the workspace overview without leaving the application.
+    test:
+      file: tests/e2e/src/app/welcome/contracts.test.ts
+      name: user.welcome-completion-resume
 - id: user.auth-callback-not-intercepted
   category: behavior
-  rule: Authorization callback continuation requests carrying OAuth code/error and state must be allowed
-    to complete the protocol redirect; the welcome page interceptor must not break the authorization result
-    redirect.
+  rule: "Authorization continuation URLs carrying OAuth code/error and state bypass the incomplete-profile welcome redirect; a state-only ordinary URL does not."
+  acceptance:
+    given: "An incomplete-profile user visits arbitrary callback paths with code or error plus state, or a normal URL with only state."
+    when: "The actual welcome redirect policy checks each URL."
+    then:
+    - "Code/error continuation is allowed, while a state-only URL remains subject to profile completion."
+    test:
+      file: tests/unit/features/welcome/welcome-redirect.test.ts
+      name: user.auth-callback-not-intercepted
 - id: user.post-login-redirect
   category: behavior
-  rule: After successful login, the user should be redirected back to the originally requested app-relative
-    page whenever possible; unsafe external callbacks fall back to the home page.
-- id: user.legacy-sign-in-redirect
-  category: behavior
-  rule: The retired /signin page permanently redirects (308) to /account/sign-in, preserving the query
-    string such as callbackUrl.
+  rule: After successful login, return to the original safe app-relative callback including its query and fragment. Unsafe external callbacks fall back through home to the signed-in workspace overview.
+  acceptance:
+    given: Signed-out browsers request sign-in with app-relative, absolute external, protocol-relative, backslash or encoded-authority callbacks.
+    when: The real sign-in page completes password authentication through its local debug provider.
+    then:
+    - The safe destination and its query/fragment survive login.
+    - Unsafe destinations land in the workspace overview with a verified authenticated session.
+    test:
+      file: tests/e2e/src/app/signin/test.ts
+      name: user.post-login-redirect
 - id: user.oauth-login-resume
   category: behavior
-  rule: If an OAuth authorization request lands on /account/sign-in with raw authorization query parameters
-    instead of callbackUrl, the sign-in flow should resume that exact authorization request after login
-    rather than falling back to /.
+  rule: "Raw OAuth authorization parameters on the sign-in page reconstruct the exact app-relative authorization continuation, preserving PKCE, state, resource and signed-query fields."
+  acceptance:
+    given: "A sign-in request contains raw authorization parameters without callbackUrl."
+    when: "The actual callback resolver builds the continuation."
+    then:
+    - "The app-relative authorization URL preserves all supplied protocol fields and their encoding."
+    test:
+      file: tests/unit/lib/auth/signin-callback-url.test.ts
+      name: user.oauth-login-resume
 - id: user.oauth-consent-loopback-continuation
   category: behavior
   rule: The OAuth consent step must continue working for loopback public clients even when the client
     uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve
     the original authorization query and complete the redirect back to the registered loopback callback.
+  acceptance:
+    given: A signed-in browser uses localhost and a native public client registers a 127.0.0.1 callback.
+    when: The actual authorization page submits consent and the client exchanges the returned code with its PKCE verifier.
+    then:
+    - The consent page preserves the original client, redirect, scope, state and PKCE query values.
+    - The browser reaches the registered IP-literal callback with the original state and a usable authorization code.
+    test:
+      file: tests/e2e/src/app/oauth/authorize/test.ts
+      name: user.oauth-consent-loopback-continuation
 - id: user.public-identity-display
   category: presentation
-  rule: Public identity defaults to displaying name or username, not internal identifiers.
+  rule: Public identity uses the display name, then username, then a non-identifying localized fallback.
+    Internal user IDs may locate a profile but are never its primary display label. Anonymous comments
+    use the anonymous label regardless of the author's profile.
+  rationale: Empty and whitespace-only names are absent for display purposes; profile headings and page metadata use the same fallback order. Comment wire output resolves a known username into the existing author name field without adding a new public identity field.
+  acceptance:
+    given: Isolated public profiles have a display name, an empty name with username, or only whitespace and no username; each owns named and anonymous comments.
+    when: An anonymous browser reads their profile and comment headings in both locales.
+    then:
+    - Headings and profile titles follow the nonempty name, username, localized fallback order.
+    - Internal IDs never become visible labels and anonymous comments always show the anonymous label.
+    test:
+      file: tests/e2e/src/app/account-policy/public-identity.test.ts
+      name: user.public-identity-display
 - id: user.public-profile-canonical-route
   category: behavior
-  rule: When a profile has a username, /community/users/$identifier permanently redirects to the canonical
-    /community/users/$identifier page. Profiles without a username remain reachable by ID without rendering
-    the raw ID as primary metadata.
+  rule: Username, differently cased username and stable user-ID addresses resolve the same public profile;
+    its canonical and Open Graph URLs use the current username when available.
+  rationale: Usernames are mutable. Keeping ID addresses usable avoids permanently caching a redirect
+    to an old username; canonical metadata identifies the preferred current address.
+  acceptance:
+    given: A public profile has a username and a stable ID.
+    when: A browser loads its username, uppercase username and ID URLs.
+    then:
+    - All three addresses render the same public profile.
+    - Canonical and Open Graph URLs identify the lowercase username address without query parameters.
+    test:
+      file: tests/e2e/src/app/u/[username]/test.ts
+      name: user.public-profile-canonical-route
+- id: user.public-profile-id-addressability
+  category: behavior
+  rule: A profile without a username is addressable by its stable ID, with its display name as primary
+    identity and its ID address as the canonical URL.
+  acceptance:
+    given: A user has a display name and no username.
+    when: A browser visits that user's ID URL.
+    then:
+    - The profile and canonical URL resolve successfully.
+    - Primary heading and page title show the display name, not the internal ID.
+    test:
+      file: tests/e2e/src/app/u/[username]/test.ts
+      name: user.public-profile-id-addressability
 - id: user.account-deletion-retention
   category: consistency
-  rule: Settings account deletion requires an authoritative session created within the last 15 minutes.
-    Actor and subject relations are anonymized by their database foreign keys; the post-deletion success
-    event does not retain the deleted user ID. Deleting an admin account is allowed only when at least
-    one other admin remains.
+  rule: Account deletion removes the user and anonymizes retained actor/subject relations, user-target audit identifiers and suspension attribution. The successful deletion event must not retain the deleted user ID.
+  rationale: Session freshness and last-administrator protection are separate authorization requirements. Opaque audit correlation identifiers retain their existing retention policy and are not public identity labels.
+  acceptance:
+    given: An isolated account owns audit actor/subject/target references and has issued a suspension.
+    when: The actual deletion service commits using the restricted authentication runtime.
+    then:
+    - The user is deleted; audit and suspension records remain with the deleted account's relations anonymized.
+    - Exactly one successful deletion event is stored and contains no deleted user ID.
+    test:
+      file: tests/integration/collaborative-invariants.test.ts
+      name: user.account-deletion-retention
+- id: user.account-deletion-session-authority
+  category: authorization
+  rule: The database account-deletion boundary accepts only a live session owned by the subject with a creation age of at least zero and strictly less than 15 minutes. Stale, future-dated, expired, revoked and other-user sessions cannot delete the subject.
+  acceptance:
+    given: Isolated users have stale, future-dated, expired, revoked, other-user and fresh sessions.
+    when: The actual account deletion service invokes the production database function for each authority.
+    then:
+    - Every invalid authority is denied with the subject preserved.
+    - A fresh owned session deletes only its owner.
+    test:
+      file: tests/integration/account-deletion-contract.test.ts
+      name: user.account-deletion-session-authority
+- id: user.account-deletion-last-admin
+  category: authorization
+  rule: Self-service administrator deletion is allowed only while another administrator remains.
+  acceptance:
+    given: An isolated rollback transaction has exactly two administrators and switches to the production authentication role before deletion.
+    when: The actual database deletion function is called for both administrators in sequence.
+    then:
+    - The first deletion succeeds and deleting the last administrator is denied.
+    - One administrator remains, and rolling back restores the original administrator population.
+    test:
+      file: tests/integration/account-deletion-contract.test.ts
+      name: user.account-deletion-last-admin
 - id: user.sensitive-account-recent-auth
   category: authorization
-  rule: Passkey registration/rename/deletion, linked-account addition/removal, OAuth authorization grant/expansion/revocation
-    or scope reduction, session revocation, password or email changes, account deletion, and calendar
-    feed token rotation require an authoritative server-side session created within the last 15 minutes.
-    Stale settings actions return explicit sign-out/sign-in guidance.
+  rule: Credential mutation endpoints (provider linking/unlinking, passkey registration/rename/deletion,
+    password and email changes) require a valid authoritative server-side session whose age is at least
+    zero and strictly less than 15 minutes. Missing, revoked or expired sessions cannot authorize changes;
+    future-dated and stale sessions return SESSION_NOT_FRESH before mutation processing.
+  rationale: OAuth approval is owned by oauth.authorization-management.recent-auth-for-consent; account
+    deletion by user.account-deletion-session-authority; calendar rotation by user.calendar-rotation-recent-auth.
+    Password and email mutation availability remains governed by the configured sign-in policy; freshness
+    alone does not enable disabled endpoints. Revocation of application grants is distinct from removing a sign-in credential.
+  acceptance:
+    given: An isolated account has a persisted passkey and signed cookies referencing stale, future, expired,
+      revoked and recent sessions.
+    when: Actual authentication HTTP endpoints process each invalid session, then a recent session renames
+      the passkey.
+    then:
+    - Every invalid-authority request is rejected before changing the user, passkey or linked accounts.
+    - Missing, expired and revoked sessions return401; stale and future sessions return403 SESSION_NOT_FRESH.
+    - A valid recent session successfully renames the persisted passkey.
+    test:
+      file: tests/integration/credential-freshness-contract.test.ts
+      name: user.sensitive-account-recent-auth
+- id: user.calendar-rotation-recent-auth
+  category: authorization
+  rule: Rotating a calendar feed credential requires the owning user's valid authoritative session created
+    at least zero and strictly less than 15 minutes ago. Rejected attempts leave the feed credential unchanged;
+    the settings page explains that the user must sign in again for a stale session.
+  acceptance:
+    given: An isolated owner has an existing calendar feed token and persisted sessions with different validity and ages.
+    when: The settings action receives stale, future, expired, revoked and missing sessions, followed by stale and recent browser submissions.
+    then:
+    - Invalid authority leaves the existing token unchanged and cannot rotate it.
+    - A stale browser submission visibly asks the user to sign out and sign in again.
+    - A recent session rotates the token, the previous feed returns410, and the new feed returns valid iCalendar data.
+    test:
+      file: tests/e2e/src/app/account-policy/calendar-rotation.test.ts
+      name: user.calendar-rotation-recent-auth
+- id: user.sign-in-identities-separate
+  category: presentation
+  rule: Settings separates linked sign-in identities on the Accounts page from delegated OAuth grants on
+    Authorized apps. Identity rows use connection controls; application rows use grant revocation controls.
+  acceptance:
+    given: An isolated user has a linked GitHub identity and a separate delegated application grant.
+    when: The browser opens Accounts and follows the Authorized apps tab.
+    then:
+    - Accounts shows the connected GitHub identity with a disconnect control and no application grant row.
+    - Authorized apps shows the granted client with a revoke control and no identity connection controls.
+    - Navigation preserves both the identity and grant records.
+    test:
+      file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
+      name: user.sign-in-identities-separate
 - id: user.oauth-authorization-management
-  category: behavior
-  rule: Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the
-    user's behalf. The canonical /account/settings/authorizations page lists safe client metadata, a content-free
-    30-day usage summary, and lets only the owning signed-in user revoke a grant.
+  category: presentation
+  rule: Authorized application entries display escaped client name, client URI, granted permissions and
+    content-free usage totals for the current grant over the last 30 Shanghai calendar days, plus the
+    latest channel and feature. Visible content excludes client secrets, redirect URIs, session credentials,
+    internal grant/client identifiers and request metadata.
+  rationale: Grant mutation ownership is owned by oauth.authorization-reduction-ownership; explicit trust is owned
+    by oauth.trusted-clients-admin-backend. These controls apply independently of a client's displayed name or domain.
+  acceptance:
+    given: An isolated owner's grant has an HTML-like client name, private client metadata, current usage,
+      a row on the inclusive 30-day boundary, an older row and a previous-generation row.
+    when: Desktop and mobile browsers render Authorized apps.
+    then:
+    - The client name remains escaped text and the URI is displayed.
+    - Read, write and error counts include exactly the current grant's 30-day rows; latest channel and feature are labeled.
+    - No private metadata, credential, redirect URI or internal grant/client identifier appears in visible page content.
+    test:
+      file: tests/e2e/src/app/account-policy/authorization-presentation.test.ts
+      name: user.oauth-authorization-management
 - id: user.account-security-activity
   category: presentation
   rule: The session-only /account/settings/security page lists the owning user's sensitive account events
     with cursor pagination, masked network prefixes, coarse device families, and safe OAuth client names.
     OAuth clients cannot access this all-clients security view.
+  acceptance:
+    given: An isolated user owns 21 security events with detailed network/device/metadata values; a second user owns another event, and the client name contains HTML markup.
+    when: The browser exhausts the owner's 20-item cursor pages and a real OAuth token attempts to read the same page without cookies.
+    then:
+    - Exactly the owner's events appear across both pages with masked network prefixes and coarse device names.
+    - Client names remain escaped text; raw IPs, user agents, private metadata and other-user events are absent.
+    - Anonymous and verified bearer-only requests are redirected to sign-in; the same bearer works for its authorized profile API.
+    test:
+      file: tests/e2e/src/app/account-policy/security-activity.test.ts
+      name: user.account-security-activity
 - id: user.oauth-client-activity-isolation
   category: authorization
   rule: REST, GraphQL, and MCP expose only events whose subject user and OAuth client both come from the
-    verified principal. Callers cannot provide either identity, and the projection excludes IP, user agent,
-    grant, session, request, and other-client data.
+    verified principal and whose grant generation matches the current delegation. Callers cannot override
+    those identities, and the projection excludes IP, user agent, grant, session, request, target ID and other-client data.
+  acceptance:
+    given: Persisted audit events include two equal-timestamp current-delegation events inserted in ascending ID order and separate other-user, other-client and old-grant controls with private attribution fields.
+    when: Real signed REST, GraphQL and MCP HTTP requests exhaust one-item activity pages; REST also receives forged identity query parameters.
+    then:
+    - All three transports return exactly the two current-delegation events and only the public event fields.
+    - Pagination follows descending event IDs across the equal-timestamp cursor boundary; forged query identities cannot change ownership.
+    - The REST client-specific view rejects a cookie session.
+    test:
+      file: tests/integration/account-profile-contract.test.ts
+      name: user.oauth-client-activity-isolation
 - id: user.account-profile-oauth-projection
   category: privacy
   rule: Cookie sessions receive their full private account profile. OAuth account.profile:read returns
     email only when the standard email scope is also granted and never discloses administrative status.
+  acceptance:
+    given: An admin user has a real session and resource-bound OAuth tokens with and without the email scope, while another user also exists.
+    when: The actual REST and GraphQL HTTP endpoints read the session profile and all three REST, GraphQL and MCP transports read OAuth profiles.
+    then:
+    - Session projections retain the owner's email and admin status.
+    - OAuth projections always hide admin status and expose email only with its scope.
+    - A caller-supplied userId cannot replace the authenticated profile owner.
+    test:
+      file: tests/integration/account-profile-contract.test.ts
+      name: user.account-profile-oauth-projection
+- id: user.public-comment-contribution-privacy
+  category: privacy
+  rule: Named public profile comment totals and contribution dates include only active, public, non-anonymous
+    comments. Login-only, anonymous, hidden and deleted comments do not change those public values.
+  acceptance:
+    given: A named profile has public, anonymous, logged-in-only, softbanned, deleted and tombstoned comments.
+    when: The restricted runtime reads public contribution days and public profile counts, then a public
+      comment becomes anonymous.
+    then:
+    - Only active, public, non-anonymous and non-deleted comments contribute to counts or dates.
+    - Changing a comment to anonymous immediately removes its attributed contribution.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-comment-contribution-privacy
+- id: user.public-upload-contribution-privacy
+  category: privacy
+  rule: Named public profile upload totals and contribution dates include only uploads attached to active,
+    public, non-anonymous comments. Unattached uploads and attachments of invisible or anonymous comments
+    do not change those public values.
+  acceptance:
+    given: The profile owns public attachments, private attachments and unattached uploads.
+    when: The restricted runtime reads totals and contribution dates before and after publishing and restricting
+      an attachment comment.
+    then:
+    - Only uploads attached to active public non-anonymous comments by the same owner contribute.
+    - Unattached, anonymous, restricted and deleted attachments do not change either projection.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.public-upload-contribution-privacy
+- id: user.private-workspace-profile-exclusion
+  category: privacy
+  rule: Public profiles do not expose private section subscription counts or homework completion state.
+    Private workspace actions do not change public contribution totals or date cells.
+  acceptance:
+    given: A public profile exists for a user with private homework completion state.
+    when: The user changes subscriptions and completion state while their public profile is read.
+    then:
+    - Public output and contribution counts do not change.
+    - Neither subscription totals nor the removed privileged subscription-count function remain available.
+    test:
+      file: tests/integration/user-profile-contributions.test.ts
+      name: user.private-workspace-profile-exclusion
+- id: user.session-revocation-valid-session
+  category: authorization
+  rule: Session revocation requires a valid authoritative session and does not require a recent sign-in.
+    Single-session, other-session, and all-session operations remove only the selected sessions belonging
+    to the actor.
+  applies_to:
+  - settings
+  acceptance:
+    given: A user has a valid session older than 15 minutes and another active owned session.
+    when: The user invokes single, other-session, or all-session revocation.
+    then:
+    - The selected owned sessions are removed.
+    - Another user's sessions are retained.
+    - The current session is retained except for revoke-all.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-valid-session
+- id: user.session-revocation-ownership
+  category: authorization
+  rule: Single-session revocation cannot delete a session belonging to another user, even when its token
+    is supplied.
+  applies_to:
+  - settings
+  acceptance:
+    given: The actor and another user each have an active session.
+    when: The actor submits the other user's session token to single-session revocation.
+    then:
+    - The other user's session is not deleted.
+    - The actor session remains valid.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-ownership
+- id: user.session-revocation-origin
+  category: authorization
+  rule: Cookie-authenticated session revocation rejects untrusted request origins before changing any
+    session.
+  applies_to:
+  - settings
+  acceptance:
+    given: An authenticated user has two active sessions.
+    when: Each session-revocation endpoint receives a foreign Origin.
+    then:
+    - Each response is 403.
+    - Neither session is deleted.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-origin
+- id: user.session-revocation-authoritative
+  category: authorization
+  rule: A revoked session cannot authorize session revocation; session validity is checked against authoritative
+    server state.
+  applies_to:
+  - settings
+  acceptance:
+    given: A signed cookie refers to a session that has been revoked.
+    when: The cookie calls each session-revocation endpoint.
+    then:
+    - Each request is unauthorized.
+    - Other owned sessions are unchanged.
+    test:
+      file: tests/integration/account-authority-reduction.test.ts
+      name: user.session-revocation-authoritative
+- id: user.passkey-unsupported
+  category: presentation
+  rule: "When WebAuthn is unavailable, passkey sign-in is disabled and explains the unsupported state in the selected locale."
+  acceptance:
+    given: "PublicKeyCredential is unavailable."
+    when: "The sign-in page renders in Chinese and English."
+    then:
+    - "The passkey control is disabled and the corresponding localized explanation is visible."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-unsupported
+- id: user.passkey-cancelled
+  category: presentation
+  rule: "Cancelling the browser passkey ceremony keeps the sign-in page available and shows a recoverable cancellation message."
+  acceptance:
+    given: "A browser credential request rejects with NotAllowedError."
+    when: "The user attempts passkey sign-in."
+    then:
+    - "The sign-in page remains visible with the cancellation explanation."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-cancelled
+- id: user.passkey-sign-in-failure
+  category: presentation
+  rule: "A failed passkey authentication request preserves the sign-in page and shows a generic failure message."
+  acceptance:
+    given: "The authentication-options endpoint responds with an internal failure."
+    when: "The user attempts passkey sign-in."
+    then:
+    - "The page shows the generic failure message without exposing the internal error."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-sign-in-failure
+- id: user.passkey-stale-session-guidance
+  category: presentation
+  rule: "A stale-session registration response displays explicit instructions to sign out and sign in again."
+  acceptance:
+    given: "The registration-options endpoint returns SESSION_NOT_FRESH."
+    when: "The signed-in user attempts to add a passkey."
+    then:
+    - "The settings card displays recent-sign-in guidance."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-stale-session-guidance
+- id: user.passkey-list-retry
+  category: presentation
+  rule: "When the passkey list fails to load, settings presents the failure and a usable retry control."
+  acceptance:
+    given: "The list endpoint initially fails, then becomes available."
+    when: "The user opens linked accounts and retries the list."
+    then:
+    - "The failure and retry control are visible."
+    - "Retry reloads the real list and clears the failure."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-list-retry
+- id: user.passkey-mobile-controls
+  category: presentation
+  rule: "At 390x844, passkey settings remain within the viewport and the Add passkey control has a touch target of at least 44 by 44 CSS pixels."
+  acceptance:
+    given: "Linked-account settings are loaded on a mobile viewport."
+    when: "The browser inspects the passkey form."
+    then:
+    - "The input and Add control are visible, the target meets the minimum size and the page has no horizontal overflow."
+    test:
+      file: tests/e2e/src/app/settings/passkeys/test.ts
+      name: user.passkey-mobile-controls
+- id: user.shell-navigation-failure
+  category: behavior
+  rule: "A shell navigation-summary failure preserves the authenticated viewer and returns null navigation without serializing the internal error."
+  acceptance:
+    given: "The navigation data dependency throws while the route has an authenticated viewer."
+    when: "The actual shell route builds its response."
+    then:
+    - "The viewer remains present, navigation is null and the response is private/no-store."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-route.test.ts
+      name: user.shell-navigation-failure
+- id: user.shell-identity-failure
+  category: behavior
+  rule: "A failed shell identity request remains distinguishable from a successful anonymous result."
+  acceptance:
+    given: "The bootstrap endpoint returns 503."
+    when: "The actual client loader processes the response."
+    then:
+    - "It rejects with a bootstrap failure instead of returning an anonymous viewer."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-identity-failure
+- id: user.shell-private-fetch
+  category: privacy
+  rule: "Client shell bootstrap fetches use same-origin credentials and no-store caching."
+  acceptance:
+    given: "A bootstrap fetch returns a valid viewer and navigation payload."
+    when: "The actual client loader sends the request."
+    then:
+    - "It uses the internal same-origin endpoint, same-origin credentials and cache=no-store."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-private-fetch
+- id: user.shell-navigation-owner
+  category: privacy
+  rule: "The shell rejects malformed navigation counts and navigation belonging to a different viewer."
+  acceptance:
+    given: "Payloads carry another user ID or negative counts."
+    when: "The actual client payload parser handles them."
+    then:
+    - "Both payloads are rejected."
+    test:
+      file: tests/unit/lib/shell/shell-bootstrap-client.test.ts
+      name: user.shell-navigation-owner
 capabilities:
   sign-in:
     title: Sign In
@@ -151,6 +720,7 @@ capabilities:
     rest: stable
     mcp: unavailable
     presentation:
+      kind: interaction
       items:
       - 'OAuth provider buttons: GitHub, Google, OIDC/USTC'
       - Passkey sign-in button with unsupported, cancelled, and failure states
@@ -168,11 +738,31 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web-profile:
+          primary:
+          - user.name
+          - user.username
+          secondary:
+          - user.image
+          - user.profilePictures
+          tertiary: []
+        web-subscriptions:
+          primary:
+          - section.course.namePrimary
+          - section.teachers.namePrimary
+          secondary:
+          - section.code
+          - semester.nameCn
+          tertiary: []
+        web-orientation:
+          primary:
+          - step.title
+          secondary:
+          - step.description
+          tertiary: []
       items:
-      - user.name (Current value display)
-      - user.username (Current value display)
-      - user.image (Current avatar)
-      - user.profilePictures[] (Avatar selector grid)
       - Custom avatar upload (server-cropped 256x256 WebP in R2)
       - Linked OAuth providers (reauthorize to refresh upstream profile options)
       - Step progress indicator with back, skip, and finish controls
@@ -185,6 +775,7 @@ capabilities:
     web: stable
     rest: unavailable
     presentation:
+      kind: protocol
       items:
       - callbackUrl query parameter (origin page)
       - External or protocol-relative callbackUrl values are rejected
@@ -232,6 +823,7 @@ capabilities:
         auth: user
         rest_equivalent: GET /api/account/profile
       - name: community_user_get
+        auth: user
         rest_equivalent: GET /api/community/users/:identifier
         notes:
         - 'Accepts exactly one lookup key: identifier (username or user ID).'
@@ -239,21 +831,46 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - user.name
+          secondary:
+          - user.username
+          - user.image
+          - user.createdAt
+          - user._count.comments
+          - user._count.uploads
+          - user._count.homeworksCreated
+          - weeks.date
+          - weeks.count
+          - totalContributions
+          tertiary:
+          - user.id
+        mcp-account-profile-get:
+          primary:
+          - name
+          secondary:
+          - username
+          - image
+          - id
+          tertiary: []
+        mcp-community-user-get:
+          primary:
+          - user.name
+          secondary:
+          - user.username
+          - user.image
+          - user.id
+          - totalContributions
+          - weeks.date
+          - weeks.count
+          tertiary: []
       items:
-      - user.image (Avatar)
-      - user.name (Display name)
-      - user.username (@username)
-      - user.createdAt (Join date)
-      - sectionCount (Subscribed sections)
-      - user._count.comments (Total comments)
-      - user._count.uploads (Total uploads)
-      - user._count.homeworksCreated (Homeworks created)
-      - weeks[].date (YYYY-MM-DD)
-      - weeks[].count (Contribution count)
-      - totalContributions (Aggregate)
       - Keyboard- and touch-accessible horizontally scrollable contribution history
-      - Public contribution counts include active and softbanned comments, public upload activity, and
-        homework records created; private homework completion state is excluded
+      - Public contribution counts and dates follow user.public-comment-contribution-privacy, user.public-upload-contribution-privacy,
+        and user.private-workspace-profile-exclusion
   settings:
     title: Settings
     auth: user
@@ -271,22 +888,71 @@ capabilities:
       models:
       - User
     presentation:
+      kind: fields
+      views:
+        web-profile:
+          primary:
+          - user.name
+          - user.username
+          secondary:
+          - user.image
+          - user.profilePictures
+          tertiary: []
+        web-accounts:
+          primary:
+          - account.provider
+          - account.connected
+          - passkey.name
+          secondary:
+          - passkey.createdAt
+          tertiary:
+          - passkey.id
+          - account.id
+        web-security:
+          primary:
+          - event.action
+          - event.outcome
+          secondary:
+          - event.createdAt
+          - event.channel
+          - event.network
+          - event.device
+          - event.client.name
+          tertiary:
+          - event.id
+        web-authorizations:
+          primary:
+          - authorization.clientName
+          - authorization.scopes
+          secondary:
+          - authorization.clientUri
+          - authorization.disabled
+          - authorization.updatedAt
+          - authorization.usage.lastUsedAt
+          - authorization.usage.lastChannel
+          - authorization.usage.lastFeature
+          - authorization.usage.readCount
+          - authorization.usage.writeCount
+          - authorization.usage.errorCount
+          tertiary:
+          - authorization.clientId
+          - authorization.consentId
       items:
-      - user.profilePictures[] (Avatar options)
-      - user.image (Current avatar)
-      - user.name (Display name)
-      - user.username (Username)
-      - user.accounts[].provider (github, google, oidc)
       - user passkeys with add, rename, and delete controls
       - Fresh-session and WebAuthn support states for passkey registration
-      - canDisconnect (Boolean - requires min 2 accounts)
-      - 'Security activity: sensitive action, outcome, channel, masked network, coarse device, client
-        display name, and cursor pagination'
-      - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last
-        authorization time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
+      - Disconnect control reflects whether another supported sign-in method remains
+      - 'Security activity: sensitive action, outcome, channel, masked network, coarse device, client display name,
+        and cursor pagination'
+      - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization
+        time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
       - Settings routes replace the primary sidebar with a settings section sidebar whose top control returns home
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface
+    requirement_refs:
+    - user.session-revocation-valid-session
+    - user.session-revocation-ownership
+    - user.session-revocation-origin
+    - user.session-revocation-authoritative
   oauth-client-activity:
     title: Current OAuth Client Activity
     auth: user

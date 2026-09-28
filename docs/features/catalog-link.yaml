@@ -16,35 +16,164 @@ access:
   agent: Can list/search catalog links and manage the authenticated user's link-pin state through MCP;
     visit redirects remain browser/REST navigation.
 requirements:
+- id: catalog-link.pin-owner-state
+  category: authorization
+  applies_to:
+  - link-pin-and-visit
+  expectation:
+    kind: private_setting_authority
+    operations:
+      rest: POST /api/workspace/link-pins
+      graphql: linkPinSet
+      mcp: workspace_link_pin_set
+    owner_changes_only: true
+    suspended_owner_allowed: true
+    anonymous_rejected: true
+    read_scope_rejected: true
+    invalid_target_rejected: true
+    denied_state_unchanged: true
+    response_matches_state: true
+  acceptance:
+    given: Two isolated owners have independent pins and resource-bound OAuth credentials; the real
+      services use the restricted application database role.
+    when: Actual loopback REST, GraphQL and native MCP HTTP requests pin and unpin known links, attempt
+      anonymous or read-scope writes and unknown slugs for both actions, then repeat writes during suspension.
+    then:
+    - Each owner's successful response matches their exact ordered persisted pins and leaves foreign rows unchanged.
+    - Anonymous and insufficient-scope writes are rejected; suspended owners may still pin and unpin.
+    - Unknown slugs return REST 400 invalid_slug, GraphQL BAD_USER_INPUT or native MCP invalid_slug,
+      preserve both owners' exact rows and retain the current ordered pins in REST and native MCP errors.
+    test:
+      file: tests/integration/personal-setting-authority.test.ts
+      name: catalog-link.pin-owner-state
+- id: catalog-link.transport-list-search-parity
+  category: consistency
+  rule: Public link lists preserve configured slug order and localized title, description and URL.
+    REST and GraphQL support locale selection; GraphQL and MCP support token search, with MCP using
+    the default Chinese locale. This bounded static directory is returned without pagination.
+  rationale: The transports retain their explicit input contracts. REST has no search input and MCP
+    has no locale input; their absence does not imply that those inputs are silently supported.
+  acceptance:
+    given: The configured static campus directory contains bilingual labels and searchable Chinese and pinyin terms.
+    when: Anonymous REST and actual Yoga request handlers read both locales, then GraphQL and a native
+      MCP SDK in-memory client search empty, whitespace, Chinese, pinyin, mixed and unmatched queries.
+    then:
+    - REST and GraphQL return the configured localized fields in slug order.
+    - GraphQL and MCP return the same matching slugs; empty queries return all and unmatched queries return none.
+    - MCP total describes the whole directory and returned describes the filtered result count.
+    test:
+      file: tests/integration/catalog-directory-parity.test.ts
+      name: catalog-link.transport-list-search-parity
 - id: catalog-link.public-web-personal-overlay
   category: authorization
-  rule: Public links HTML is identical for anonymous and signed-in viewers. A session-only private no-store
-    Web projection loads click counts and pins after hydration; pin controls are enabled only after the
-    viewer projection succeeds. Existing public REST, GraphQL and MCP capabilities are unchanged.
-- id: catalog-link.navigation-not-feed
-  category: presentation
-  rule: Frequent links are a navigation capability, not a content feed.
+  rule: Public links HTML contains no personal pin or click state. A session-only private, no-store projection
+    supplies the current viewer's personal state after hydration.
+  acceptance:
+    given: Two isolated owners have different pins and click totals; anonymous requests have no session.
+    when: The real public HTML is read with JavaScript disabled, then session-only projections and a hydrated
+      page are read.
+    then:
+    - Public HTML contains neither owner IDs nor their distinct click totals and exposes no pin forms.
+    - Successful owner projections are private, no-store and contain only that owner's pin/click state;
+      Authorization headers are rejected and anonymous state is null.
+    - Hydration displays the current owner's confirmed pins.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.public-web-personal-overlay
 - id: catalog-link.search-fuzzy
   category: behavior
-  rule: Search supports Chinese, pinyin, and whitespace-tolerant matching.
-- id: catalog-link.links-vs-buttons
-  category: presentation
-  rule: Links are for navigation; buttons are for actions.
+  rule: Search lowercases and splits queries on whitespace. Every token must occur in the title, description,
+    URL or toneless pinyin fields; an empty query matches all links. Matching is substring-based, not
+    edit-distance typo correction.
+  acceptance:
+    given: A localized link summary has Chinese title, pinyin fields and a URL.
+    when: The real tokenizer and matcher receive Chinese, pinyin, mixed-case and whitespace-separated
+      queries.
+    then:
+    - Every token must match a title, description, URL or toneless pinyin substring.
+    - Repeated whitespace and case differences do not change matches; missing tokens reject a link.
+    - An empty query matches all links and misspellings are not silently treated as matches.
+    test:
+      file: tests/unit/features/catalog-links/catalog-links.test.ts
+      name: catalog-link.search-fuzzy
 - id: catalog-link.pin-limit
   category: validation
   rule: Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.
-- id: catalog-link.semantic-public-route
-  category: behavior
-  rule: Legacy query navigation resolves to the canonical /catalog/links page for both anonymous and signed-in
-    users.
+  rationale: Four slots match the compact overview destination set. A newly selected destination replaces
+    the earliest pin when full; repeated pin requests preserve the original timestamp and do not displace
+    another choice. All responses return the final pin set so clients display the persisted result.
+  acceptance:
+    given: An isolated owner starts with one pin and another owner has independent state.
+    when: Real REST writes fill four slots, repeat pins, overflow, remove and repin entries, followed
+      by the actual Web view.
+    then:
+    - At most four pins persist and the fifth displaces the earliest original pin.
+    - Repeated pins are idempotent and preserve their original pin timestamp; later eviction follows that
+      ordering.
+    - Another owner stays unchanged and Web controls reflect the exact persisted final set.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-limit
 - id: catalog-link.pin-error-clear
   category: presentation
-  rule: When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as
-    successes.
+  rule: A failed pin/unpin write returns an error and does not report successful state. The Web interface
+    retains the last confirmed state and displays a localized failure message.
+  acceptance:
+    given: An isolated-owner database trigger can reject pin and unpin persistence while another owner's
+      state exists; a stale catalog can submit an unknown slug.
+    when: The real browser submits pin and unpin in Chinese and English, first with the persistence
+      failure and then with an unknown slug processed by the actual server, and retries valid writes.
+    then:
+    - Persistence failures return HTTP 500 and unknown slugs return HTTP 400 invalid_slug with the
+      owner's actual current pins; both display a localized failure heading.
+    - Both owners' exact persisted pin/click state and the last confirmed pin controls remain unchanged.
+    - The buttons recover from pending state and a successful retry updates the pin and clears the error.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-error-clear
 - id: catalog-link.visit-tracking-link
   category: behavior
-  rule: Campus link cards use GET /api/catalog/links/resolve?slug=… tracking links (not POST forms) so
-    navigation works as a normal hyperlink.
+  rule: Campus link cards use ordinary GET hyperlinks to the visit resolver, preserving browser link behavior.
+  acceptance:
+    given: Anonymous and signed-in browsers render the public campus link catalog.
+    when: Each view inspects actual anchors and clicks the academic-affairs link through its real visit
+      resolver, intercepting its response before external navigation.
+    then:
+    - Campus link anchors have resolver URLs with slugs and preserve new-tab link behavior.
+    - The actual click issues GET in a new browser tab and its real server response redirects to the expected
+      destination.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.visit-tracking-link
+- id: catalog-link.visit-owner-count
+  category: behavior
+  rule: A public visit redirect records click count only for its authenticated viewer. Anonymous visits
+    do not write personal click state.
+  acceptance:
+    given: Two isolated owners have distinct persisted click counts and pins.
+    when: An anonymous request and two requests per owner follow the public redirect; owner requests inject
+      the other user's ID query.
+    then:
+    - All valid requests return the correct target redirect.
+    - Anonymous reads leave all state unchanged; authenticated reads increment only the session owner
+      and never change pins.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.visit-owner-count
+- id: catalog-link.pin-write-gate
+  category: authorization
+  rule: Pin/unpin controls remain disabled until the viewer's private pin projection succeeds; unresolved
+    or failed personal state never initiates a preference write.
+  acceptance:
+    given: An isolated owner's private links request is held and then fails before a retry succeeds.
+    when: Public search remains usable throughout and the viewer later performs an explicit unpin.
+    then:
+    - Pending and failed projections expose no pin forms and send zero preference writes.
+    - Retry enables actions only after the real projection succeeds; exactly one explicit unpin persists
+      afterward.
+    test:
+      file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
+      name: catalog-link.pin-write-gate
 capabilities:
   link-browse:
     title: Link Browse & Search
@@ -71,13 +200,28 @@ capabilities:
           and descriptionPinyin.
         - The public output exposes target URLs but omits personal pin and click state.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - link.title
+          secondary:
+          - link.description
+          - link.group
+          - link.icon
+          - link.isPinned
+          tertiary:
+          - link.slug
+        mcp-catalog-link-list:
+          primary:
+          - links.title
+          secondary:
+          - links.description
+          - links.slug
+          - links.group
+          - links.icon
+          tertiary: []
       items:
-      - link.title
-      - link.description
-      - link.icon
-      - link.slug visit action
-      - link.group
-      - link.isPinned (if authenticated)
       - Search input/query
       - Grid/list view mode persisted in browser storage
   link-pin-and-visit:
@@ -137,7 +281,30 @@ capabilities:
         - No MCP visit tool is exposed; visit redirects and click recording are browser/REST navigation
           behavior.
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - link.title
+          - link.isPinned
+          secondary: []
+          tertiary:
+          - link.slug
+        mcp-workspace-link-pin-list:
+          primary:
+          - pinnedSlugs
+          secondary:
+          - maxPinnedLinks
+          tertiary: []
+        mcp-workspace-link-pin-set:
+          primary:
+          - success
+          secondary: []
+          tertiary: []
       items:
-      - link.slug visit action
       - Pin/unpin button
       - Pinned indicator
+rationale:
+- Link slugs identify navigation and pin requests but are not user-facing metadata. The Web pin action exposes
+  title and current pin state while retaining the slug only in its request binding.
+- Frequent links are a navigation capability, not a content feed.

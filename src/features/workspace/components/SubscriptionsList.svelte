@@ -100,7 +100,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
     {#each sectionGroups as group}
       <section class="grid min-w-0 gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <h3 class="font-medium">
+          <h3 class="font-medium text-muted-foreground">
             {formatMessage(subscriptionsCopy.semesterGroup, {
               name: group.label,
             })}
@@ -150,7 +150,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                     <a
-                      class="block min-w-0 max-w-full overflow-hidden hover:underline"
+                      class="block min-w-0 max-w-full overflow-hidden font-medium hover:underline"
                       href={`/catalog/sections/${section.jwId}`}
                       data-testid="subscription-course-link"
                     >
@@ -160,6 +160,9 @@ function handleRemoveDialogOpenChange(open: boolean) {
                       <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                     {/if}
                     </div>
+                    <p class="text-muted-foreground font-mono text-xs break-words">
+                      {section.code}
+                    </p>
                   </Table.Cell>
                   <Table.Cell>
                     {teacherNames(section)}

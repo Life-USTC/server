@@ -12,101 +12,304 @@ policy_refs:
 access:
   anon: Cannot access the admin backend.
   user: Cannot access the admin backend.
-  admin: Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block admin
-    mutations but not read-only admin pages/list endpoints.
+  admin: Can access governance pages for moderation, users, OAuth, and bus. Active suspensions block mutations
+    and anonymous-comment identity revelation; other read-only governance access follows admin.suspended-admin-write-gate.
   agent: No admin tools are currently provided.
 requirements:
-- id: admin.divided-by-responsibility
-  category: presentation
-  rule: The admin backend is divided by governance responsibility, not all actions on one page.
 - id: admin.moderation-centralized
   category: presentation
   rule: Comment and description governance are currently centralized on the moderation page.
+  acceptance:
+    given: A signed-in administrator and seeded comment/description queues.
+    when: Open moderation, inspect comment management, then follow the descriptions tab.
+    then:
+    - Both governance queues remain on the same moderation page and expose their respective management
+      controls.
+    test:
+      file: tests/e2e/src/app/admin/moderation/test.ts
+      name: admin.moderation-centralized
 - id: admin.high-risk-feedback
   category: presentation
   rule: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
+  acceptance:
+    given: An isolated user, comment, and homework controlled through the actual admin UI.
+    when: Hide the comment, suspend its author, cancel homework deletion, then confirm deletion.
+    then:
+    - Each successful high-risk action displays specific feedback and changes the persisted record.
+    - Deletion confirmation names the target and cancellation leaves the homework unchanged.
+    test:
+      file: tests/e2e/src/app/admin/moderation/test.ts
+      name: admin.high-risk-feedback
 - id: admin.admin-self-protection
   category: authorization
   rule: Admin user management must reject self-suspension, self-demotion, and removing the final remaining
     admin.
+  acceptance:
+    given: A real administrator session and an isolated rollback-only administrator population inspected
+      under the app runtime role.
+    when: Attempt self-demotion and self-suspension through REST, then run the same transactional demotion
+      guard against the sole administrator.
+    then:
+    - Self actions return 400 without changing authority or suspension state.
+    - The real app-role count rejects removal of the last administrator; all population fixture changes
+      roll back.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.admin-self-protection
 - id: admin.admin-rest-session-only
   category: authorization
   rule: Admin REST endpoints require the in-site Better Auth session cookie and do not accept OAuth bearer
     tokens.
+  acceptance:
+    given: Real administrator and ordinary-user sessions and a signed OAuth token for the administrator.
+    when: Call every admin list and a profile mutation anonymously, with bearer, with mixed bearer/cookie,
+      with an ordinary session, and with an administrator session.
+    then:
+    - Only the administrator cookie session succeeds; bearer and mixed credentials never acquire governance
+      authority or change the user.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.admin-rest-session-only
 - id: admin.paginated-moderation-lists
   category: behavior
-  rule: Admin comments, descriptions, homeworks, and users use the shared { data, pagination } list envelope
-    and accept page/pageSize with the deprecated limit alias.
+  rule: Admin comments, descriptions, homeworks, and users accept page and pageSize and return the shared
+    { data, pagination } envelope. The retired limit parameter is not accepted.
+  acceptance:
+    given: Real comment, description, homework, and user rows under the production app role.
+    when: Read pages one and two and an empty later page; send obsolete limit and invalid pageSize parameters.
+    then:
+    - All four lists return the shared data/pagination envelope with disjoint pages and correct totals.
+    - The retired limit field and invalid page sizes are rejected.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.paginated-moderation-lists
 - id: admin.suspended-admin-write-gate
   category: authorization
-  rule: Admins with an active suspension may load read-only admin pages and list endpoints, but admin
-    REST mutations and page actions are blocked with the standard suspended 403 response until the suspension
-    is lifted.
+  rule: Admins with an active suspension may load read-only admin pages and list endpoints that do not
+    reveal anonymous comment identities. Admin REST mutations and page actions are blocked with the standard
+    suspended 403 response until suspension is lifted. Anonymous-comment governance reads additionally
+    enforce comment.governance-anonymous-author-access.
+  acceptance:
+    given: An administrator with a persisted active suspension, signed session, and mutable user/comment
+      fixtures.
+    when: Read permitted lists and the user page, request identity-revealing comments, attempt REST and
+      page-action mutations, then lift the suspension.
+    then:
+    - Ordinary governance reads remain available while anonymous-identity comments and all tested writes
+      return suspended 403 without changes.
+    - Lifting the suspension restores the real mutation path.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.suspended-admin-write-gate
 - id: admin.suspension-expiration-validation
   category: validation
-  rule: Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty
-    date strings.
+  rule: Suspension expiration is either permanent or a valid date-time. Omitted, null, and empty form
+    values represent a permanent suspension; invalid non-empty input, including impossible calendar dates,
+    is rejected.
+  rationale: The three empty representations accommodate an omitted API property, explicit clearing, and
+    an empty HTML form field; they are not alternate dated-suspension formats.
+  acceptance:
+    given: Suspension input may be permanent, valid dated, or malformed.
+    when: The declared request schema and empty-form normalizer parse the boundary cases.
+    then:
+    - Omitted, null and blank inputs are accepted as permanent representations.
+    - Malformed and impossible dates are rejected.
+    - A valid explicit timezone date-time is accepted.
+    test:
+      file: tests/unit/features/admin/admin-suspension-expiration.test.ts
+      name: admin.suspension-expiration-validation
 - id: admin.single-open-suspension
   category: consistency
   rule: Each user can have at most one open suspension. Creating a new suspension closes any previous
     open suspension for that user while retaining history; lifting an open suspension clears the user's
     open suspension state.
+  acceptance:
+    given: A real administrator and isolated target user.
+    when: Create two suspensions concurrently through REST and lift the remaining open suspension.
+    then:
+    - Both historical records remain, exactly one stays open after creation, and the replaced record names
+      its lifting administrator.
+    - Lifting the open record clears active and open state without deleting history.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.single-open-suspension
 - id: admin.admin-mutation-not-found
   category: validation
   rule: PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return
     404 when the target record is not found.
-- id: admin.suspension-retention
-  category: consistency
-  rule: Suspension history is retained when an admin account is deleted; creator and lifter actor references
-    may be null after account deletion.
+  acceptance:
+    given: An authenticated administrator and nonexistent target identifiers.
+    when: PATCH a user and comment and POST a suspension for a missing target.
+    then:
+    - Each actual route returns 404 and creates no successful mutation audit.
+    test:
+      file: tests/integration/admin-governance-contracts.test.ts
+      name: admin.admin-mutation-not-found
 - id: admin.primary-admin-navigation
   category: presentation
-  rule: The global shell exposes each admin tool (users, moderation, OAuth, and bus) under Admin tools.
-    /admin redirects to /admin/users; resource URLs remain stable.
+  rule: The global shell groups responsibility-specific users, moderation, OAuth clients, and bus management
+    pages under Admin tools. /admin redirects to /admin/users.
+  acceptance:
+    given: A signed-in administrator opening the admin entry and all four governance pages.
+    when: Follow the entry redirect and inspect the global primary navigation on each page.
+    then:
+    - The entry redirects to users; responsibility-specific users, moderation, OAuth, and bus pages each
+      have one heading and exactly one current primary-navigation link.
+    test:
+      file: tests/e2e/src/app/admin/test.ts
+      name: admin.primary-admin-navigation
 - id: admin.feature-experience-telemetry
   category: behavior
   rule: PostgreSQL stores unsampled feature observations for machine metrics. Collection records bounded
-    feature, operation, protocol, surface, authentication, outcome, error class, identity, and wall-duration
-    dimensions; Prometheus snapshots expose counters, duration histograms and activity gauges and deduplicate
-    identified users independently per window. Anonymous visitors are not unique users.
+    feature, operation, protocol, surface, authentication, outcome, error class, identity, and nonnegative
+    finite wall-duration dimensions.
+  rationale: Prometheus counter, histogram, and rolling distinct-user semantics are bound separately in
+    the collection and windows requirements.
+  acceptance:
+    given: Production request observation capture, a verified user, and the actual runtime-role observation
+      writer.
+    when: Capture twenty operations and submit invalid values for every bounded dimension and duration.
+    then:
+    - All twenty operations persist with exact verified identity, dimensions, and durations.
+    - Database constraints reject unbounded dimensions and invalid durations without storing them.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-telemetry
 - id: admin.feature-experience-outcomes
   category: consistency
   rule: Uninspected successful SvelteKit page data envelopes have unknown application outcomes and no
     identified error. They contribute to usage but not issue samples or warning logs.
+  acceptance:
+    given: A successful SvelteKit page-data envelope containing an uninspected application error.
+    when: Pass the original response through HTTP feature observation and persist its event.
+    then:
+    - The response remains unconsumed and unchanged; usage records unknown outcome with no identified
+      error.
+    - No issue row or warning log is generated.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-outcomes
 - id: admin.feature-experience-retention
   category: consistency
-  rule: Background writes retain at most 256 events per request and use independent PostgreSQL transactions.
-    Overflow, process termination or database failure can lose records; missing history is not zero. Records
-    are cleaned in bounded batches after 90 days, without historical backfill. No Analytics Engine API,
-    token or binding is required.
+  rule: Observation capture is best effort and is bounded to 256 events per request. Records older than
+    90 days are removed in bounded batches. Overflow, process termination, and storage failure may lose
+    observations; missing history must not be presented as zero activity.
+  rationale: Raw-observation retention and aggregate metrics are separate from the security audit history.
+    Observation writes do not participate in business transactions.
+  acceptance:
+    given: Actual request capture, the runtime writer, the production maintenance role, and recent/older-than-ninety-day
+      events.
+    when: Capture 300 operations, trigger a database write failure, and run one-row retention batches.
+    then:
+    - Capture stores at most 256 events and reports overflow; failed persistence does not alter the business
+      result.
+    - Each maintenance batch removes at most its configured rows per event type while preserving recent
+      records.
+    - Metrics rendering marks absent retained history unavailable and omits unknown active-user values.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin management pages share a lightweight workspace order of page identity, optional feedback
-    or filters, then records; desktop tables retain their density while existing compact record views
-    remain the mobile presentation.
+  rule: Admin pages present the page identity, feedback or filters when applicable, then records. Desktop
+    shows tabular records; mobile presents compact records containing the same primary identity and available
+    actions.
+  acceptance:
+    given: A signed-in administrator and real users, moderation, OAuth, and bus records.
+    when: Render each page at desktop and mobile widths and compare the first record and its available
+      actions.
+    then:
+    - Each page preserves its heading and primary record identity; desktop tables become compact mobile
+      records with the same available actions and no horizontal overflow.
+    test:
+      file: tests/e2e/src/app/admin/test.ts
+      name: admin.responsive-workspace
 - id: admin.platform-runtime-logs
   category: privacy
   rule: Runtime issue rows contain safe event names, status and request IDs only. They omit arbitrary
     paths, messages, stacks, request bodies, search text, IP addresses and credentials. Telemetry writer
     failures cannot recursively generate telemetry writes.
+  acceptance:
+    given: Structured runtime logs with safe correlation data and deliberately private payload/error fields.
+    when: Capture logs through the real recorder and writer, including invalid event names, writer diagnostics,
+      and a failed observation write.
+    then:
+    - Only safe event, status, and request correlation fields persist; private messages, paths, bodies,
+      search, IP, credentials, and stacks do not.
+    - Writer failures and telemetry diagnostics never generate recursive issue rows.
+    test:
+      file: tests/integration/admin-observability-contracts.test.ts
+      name: admin.platform-runtime-logs
 - id: admin.prometheus-export
   category: behavior
   rule: GET /metrics accepts only the dedicated METRICS_SECRET as a Bearer credential. Missing configuration
     or invalid credentials return 401 without database reads. It exports durable event counters, cumulative
     duration histograms and current-state/activity gauges; no raw logs or user/request/client identifiers.
     This machine-only transport has no GraphQL or MCP equivalent.
+  acceptance:
+    given: The actual mounted metrics GET handler, dedicated secret configuration, and real database snapshots.
+    when: Try missing configuration, malformed/wrong credentials, cookie/query credentials, then a valid
+      dedicated Bearer scrape.
+    then:
+    - Unauthorized requests return 401 without invoking database collection.
+    - Authorized scrapes expose counters, histograms, and gauges with Prometheus content type and no raw
+      identifiers or secrets.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-export
 - id: admin.prometheus-collection
   category: behavior
   rule: Counters begin at the recorded installation epoch, with no backfill, and update atomically with
     committed observations. Duplicate retained event IDs and rolled-back writes do not increment counters;
-    retention and identity deletion never decrement them. Counters are fresh each scrape. Expensive gauges
-    are cached 60 seconds (at most 120 during refresh contention); failures return 503.
+    retention and identity deletion never decrement them. Counters and cumulative duration histograms
+    are fresh each scrape, independently of the activity gauge cache.
+  acceptance:
+    given: The installed counter epoch, legacy retained fixture rows without count triggers, and production-role
+      observation writes.
+    when: Scrape legacy history, concurrently insert and replay events, roll back a write, delete observations/users,
+      and record histogram boundary durations.
+    then:
+    - The epoch is reported and retained legacy history is not backfilled during collection.
+    - Only committed new events increment counters once; duplicate IDs, rollback, retention, and identity
+      deletion do not corrupt cumulative totals.
+    - Each scrape refreshes counters independently of gauge cache; histogram count, sum, and cumulative
+      boundaries match recorded durations.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-collection
+- id: admin.prometheus-gauge-cache
+  category: behavior
+  rule: Expensive Prometheus activity/current-state gauges are cached sixty seconds and may remain at
+    most 120 seconds old during refresh contention. Empty or older caches fail promptly with a 503 scrape
+    rather than blocking or presenting zero activity. Collection recovers when refresh is available.
+  acceptance:
+    given: Actual shared metric cache rows and an advisory refresh lock held by a separate database transaction.
+    when: Read fresh and 61-second-old snapshots, then scrape with empty or 121-second-old cache under
+      contention and release the lock.
+    then:
+    - Fresh gauges are reused; expired gauges refresh normally or serve bounded stale data during contention.
+    - Unusable caches return 503 with no metric values and recover after lock release.
+    test:
+      file: tests/integration/prometheus-metrics-cache.test.ts
+      name: admin.prometheus-gauge-cache
 - id: admin.prometheus-windows
   category: behavior
   rule: Only exact distinct-user/client gauges use rolling 24-hour, 7-day and 30-day windows. Feature
     activity is grouped by feature and protocol, excluding anonymous users. Event counters have no window
     label; duration histograms use feature, operation and protocol. Raw observation capture remains bounded
     and best effort.
+  acceptance:
+    given: Identified users and OAuth clients with repeated activity at half-day, two-day, eight-day,
+      and thirty-one-day ages plus anonymous and future observations.
+    when: Collect rolling gauges and render metric labels.
+    then:
+    - 24h, 7d, and 30d gauges deduplicate users and clients independently, exclude anonymous/future activity,
+      and keep feature/protocol groups separate.
+    - Only activity gauges carry window labels; duration histograms have only feature, operation, protocol,
+      and bucket boundary labels.
+    test:
+      file: tests/integration/admin-prometheus-contracts.test.ts
+      name: admin.prometheus-windows
 capabilities:
   admin-entry:
     title: Admin Entry
@@ -115,6 +318,7 @@ capabilities:
       pages:
       - /admin
     presentation:
+      kind: interaction
       items:
       - Redirects to user management
       - Primary sidebar links for moderation, users, OAuth, and bus
@@ -147,15 +351,30 @@ capabilities:
         reference_only: true
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web-comments:
+          primary:
+          - comment.body
+          - comment.status
+          secondary:
+          - comment.user.name
+          - comment.target
+          - comment.createdAt
+          tertiary:
+          - comment.id
+        web-descriptions:
+          primary:
+          - description.content
+          secondary:
+          - description.target
+          - description.lastEditedBy.name
+          - display.editedAt
+          tertiary:
+          - description.id
+          - description.updatedAt
       items:
-      - Comment moderation table
-      - Description moderation table
-      - content/descriptionPreview
-      - author / lastEditedBy
-      - postedIn target
-      - timestamp
-      - comment status
-      - detail dialog controls
+      - Separate comments and descriptions views with detail dialogs.
   user-management:
     title: User Management
     auth: admin
@@ -171,11 +390,20 @@ capabilities:
         - Returns 404 when the target user is not found.
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - user.name
+          - user.email
+          secondary:
+          - user.username
+          - user.createdAt
+          - user.isAdmin
+          - user.activeSuspension
+          tertiary:
+          - user.id
       items:
-      - user.email
-      - user.name
-      - user.username
-      - user.createdAt
       - Is admin checkbox
       - 'Actions: edit profile/admin state, suspend/unsuspend'
   oauth-client-management:
@@ -187,12 +415,23 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - client.name
+          - client.clientId
+          secondary:
+          - client.skipConsent
+          - client.tokenEndpointAuthMethod
+          - client.disabled
+          - client.scopes
+          - client.createdAt
+          tertiary:
+          - client.id
       items:
-      - client.name and client.clientId
       - client trust and fixed authentication type
       - client enabled/disabled status
-      - client.scopes[] summary
-      - client.createdAt
       - Empty inventory explanation and create-client action
       - 'Create: name, explicit redirect URIs, scopes, and one of three fixed client patterns'
       - Client secret is shown once after creation and never in the inventory
@@ -206,12 +445,24 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - version.title
+          secondary:
+          - version.sourceMessage
+          - version.key
+          - version.tripCount
+          - version.importedAt
+          - version.effectiveFrom
+          - version.effectiveUntil
+          - version.isEnabled
+          tertiary:
+          - version.id
       items:
-      - Bus schedule version title
-      - version key
-      - tripCount
-      - weekday, Saturday, and Sunday service-day trip data
-      - importedAt
-      - effective range
-      - enabled status
-      - 'Actions: import, activate, delete'
+      - Import, activate and delete actions.
+rationale:
+- >-
+  In description governance, display.editedAt is the rendered edit timestamp returned by adminModerationDescriptionEditedAt: lastEditedAt when present, otherwise updatedAt for a record without an explicit edit timestamp. It is a derived presentation value, not a Description record property; the raw updatedAt timestamp is reconstruction metadata.
+- Suspension history and nullified deleted-admin actor references are canonically owned and verified by user.account-deletion-retention.

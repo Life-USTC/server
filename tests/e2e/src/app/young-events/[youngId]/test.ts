@@ -28,7 +28,7 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
     });
   });
 
-  test("渲染活动字段与返回链接", async ({ page }) => {
+  test("young-event.public-no-signin", async ({ page }) => {
     await gotoAndWaitForReady(page, DETAIL_PATH);
 
     const banner = page.getByTestId("young-event-banner");

@@ -27,6 +27,7 @@ vi.mock("@/lib/db/prisma", () => ({
 vi.mock("@/lib/db/auth-prisma", () => ({
   authPrisma: {
     account: { findMany: authAccountFindManyMock },
+    passkey: { count: vi.fn().mockResolvedValue(0) },
   },
 }));
 
@@ -72,6 +73,9 @@ describe("settings page RLS context", () => {
       select: {
         id: true,
         provider: true,
+        password: true,
+        issuer: true,
+        userId: true,
         providerAccountId: true,
         createdAt: true,
       },

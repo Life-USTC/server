@@ -9,6 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Get bus preferences.
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema
+ * @oauthScope workspace.bus-preferences:read
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getBusPreferencesRoute),
@@ -21,6 +22,7 @@ export const GET = svelteRequestHandler(
  * @response 400:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.bus-preferences:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postBusPreferencesRoute),

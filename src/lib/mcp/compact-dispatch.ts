@@ -1,6 +1,7 @@
 import { isRecord } from "@/lib/is-record";
 import {
   compactBusRoute,
+  compactBusRouteStop,
   compactBusTrip,
   compactBusTripSlot,
   compactCalendarSubscription,
@@ -29,6 +30,14 @@ type CompactArrayMatch = { matched: true; value: unknown } | { matched: false };
 export function compactBusArrayItem(
   value: Record<string, unknown>,
 ): CompactArrayMatch {
+  if (
+    Object.hasOwn(value, "stopOrder") &&
+    Object.hasOwn(value, "campusId") &&
+    Object.hasOwn(value, "campusName")
+  ) {
+    return { matched: true, value: compactBusRouteStop(value) };
+  }
+
   if (
     Object.hasOwn(value, "routeId") &&
     (value.dayType === "weekday" ||

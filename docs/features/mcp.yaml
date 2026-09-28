@@ -13,172 +13,632 @@ access:
   agent: MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the
     web by default while enforcing resource-bound bearer tokens with canonical feature:action scopes.
 requirements:
+- id: mcp.declared-tool-authentication
+  category: consistency
+  rule: Every declared MCP tool binding resolves to the same anonymous-versus-authenticated boundary as
+    the production transport registry. A tool-specific auth value overrides the capability default;
+    public catalog reads must not inherit the authentication requirement of a neighboring write.
+  acceptance:
+    given: All feature specifications and the actual production MCP public-tool classifier.
+    when: Resolve every tool's explicit or inherited authentication declaration.
+    then:
+    - Every declaration permits anonymous access exactly when the transport classifies that tool as public.
+    - Private preference and community tools do not inherit anonymous access from a public page capability.
+    test:
+      file: tests/unit/lib/mcp/mcp-spec-authentication.test.ts
+      name: mcp.declared-tool-authentication
 - id: mcp.personal-workspace-focus
   category: behavior
-  rule: MCP focuses by default on personal learning workspace, public query, and low-risk personal state
-    write capabilities; admin capabilities are not exposed by default.
+  rule: MCP exposes the listed public-information and ordinary user workspace/community capabilities.
+    Administrator identity does not grant MCP governance capabilities; no administrator tools are exposed.
+  rationale: This is the canonical MCP surface inventory and governance exclusion, including ordinary
+    comment writes. Tool registration is independent of user role; neither admin-named tools nor governance
+    scopes are registered.
+  acceptance:
+    given: The actual server is connected to an SDK client through in-memory JSON-RPC.
+    when: The client lists tools and the raw wire result is compared with the documented tool groups.
+    then:
+    - Tool names match the complete documented inventory without duplicates.
+    - Ordinary comment writes are present, while governance tools and scopes are absent.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.personal-workspace-focus
 - id: mcp.text-formatted-json
   category: presentation
-  rule: Every tool result is one object with a required success boolean. The text JSON and structuredContent
-    representations are identical; non-object domain payloads are nested under result.
+  rule: The canonical MCP tool-result serializer returns an object containing a boolean success field.
+    Its text JSON and structuredContent are identical. Scalar and array payloads are nested under result;
+    explicit success=false is preserved.
+  acceptance:
+    given: Domain results include object success/error, array, scalar and null payloads.
+    when: The canonical serializer produces MCP text and structured output.
+    then:
+    - Every result contains boolean success.
+    - Object payload fields and explicit false are retained.
+    - Nonobjects are nested under result.
+    - Text JSON and structuredContent equal the independent expected projection.
+    test:
+      file: tests/unit/lib/mcp/mcp-tool-helpers.test.ts
+      name: mcp.text-formatted-json
+- id: mcp.output-mode-input
+  category: validation
+  applies_to:
+  - protocol-endpoint
+  expectation:
+    kind: enum_input
+    surface: service
+    operation: mcpModeInputSchema
+    input: mode
+    values:
+    - default
+    - full
+    default: default
+  acceptance:
+    given: MCP output mode is absent, one of the supported values, or an unsupported input.
+    when: The shared production MCP input schema parses each value.
+    then:
+    - An omitted mode uses the specified default.
+    - Only the declared modes are accepted; retired summary and malformed inputs fail validation.
+    test:
+      file: tests/unit/lib/mcp/mcp-tool-helpers.test.ts
+      name: mcp.output-mode-input
 - id: mcp.output-modes
   category: presentation
-  rule: MCP has one canonical compact response structure in default mode and an opt-in full mode that
-    adds raw fields without changing top-level collection types. The legacy summary input remains accepted
-    as a deprecated alias for default and never introduces summary wrapper objects. workspace_subscription_kind_update
-    edits only an existing owner subscription. Personal subscription read outputs include kind in compact
-    and full modes.
-- id: mcp.coverage
-  category: behavior
-  rule: The checked tool list below is the MCP contract surface; implementation parity is enforced through
-    integration tests and $life-ustc-implement. Public catalog list tools accept page and limit between
-    1 and 100, while course, section, and teacher search strings accept 2-200 characters, matching Web,
-    REST, and GraphQL.
+  rule: Default and full outputs preserve top-level collection and key types; full adds only fields permitted
+    by the corresponding domain projection.
+  acceptance:
+    given: An isolated subscribed user with a private due todo and seeded academic, bus, link, and comment
+      records, accessed through the real MCP SDK using synthetic identity and the production database
+      role.
+    when: Call snapshot, next schedule, overview, timeline, deadline, subscription, calendar feed, todo,
+      homework, schedule, exam, course detail, bus route detail, link list, and comment list in default
+      and full modes.
+    then:
+    - Every call succeeds with the mode-specific output schema; full retains each default top-level key
+      and its value kind.
+    - Top-level collections retain their length across modes.
+    test:
+      file: tests/integration/mcp/mode-privacy.test.ts
+      name: mcp.output-modes
+- id: mcp.catalog-search-length
+  category: validation
+  rule: Course, section and teacher MCP search strings accept2-200 characters after trimming.
+  rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
+    documented domain bounds.
+  acceptance:
+    given: Each of the three academic search tools receives1,2,200 and201 characters.
+    when: Anonymous callers use the real HTTP MCP endpoint.
+    then:
+    - 2/200-character searches execute;1/201-character inputs return a tool validation error without a
+      data payload.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.catalog-search-length
+- id: mcp.catalog-pagination
+  category: validation
+  rule: Academic semester, course, section and teacher MCP lists accept page/limit1-100 with defaults
+    page1 and limit20.
+  rationale: Tool inventory is canonical in mcp.personal-workspace-focus. Young pagination has its own
+    documented domain bounds.
+  acceptance:
+    given: All four academic catalog tools receive omitted, boundary and out-of-range pagination inputs.
+    when: Anonymous clients invoke the real HTTP transport and read pagination metadata.
+    then:
+    - Default and1/100 values return the requested bounded page.
+    - 0/101 page or limit values reject before data results.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.catalog-pagination
 - id: mcp.aggregate-before-fanout
   category: presentation
-  rule: Prefer assistant-oriented aggregate or filtered tools first; start with workspace_snapshot_get,
-    then workspace_schedule_next for next-class-only prompts and workspace_deadline_list for merged deadlines.
-    Default mode compacts schedule payloads and redacts low-value nested fields; full mode is the explicit
-    escape hatch. Raw dataset tools remain available for power clients that need local post-processing.
+  rule: Server instructions guide clients to workspace_snapshot_get or workspace_overview_get before narrower
+    personal tools. Next-class and merged-deadline tools remain discoverable alongside underlying dataset
+    tools and past-term subscription recovery.
+  rationale: Payload compaction and full-mode shape rules are canonical in mcp.property-priority-parity
+    and mcp.output-modes.
+  acceptance:
+    given: The actual SDK initialization instructions and tools/list descriptors.
+    when: A client discovers the server.
+    then:
+    - Instructions name aggregate-first and subscription-based past-term recovery.
+    - Next-class, deadline and underlying schedule/exam/homework tools are registered with task-specific
+      descriptions.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.aggregate-before-fanout
 - id: mcp.privacy-safe-default
   category: privacy
-  rule: Default output may omit repeated low-value nested objects and redact token-bearing URLs or other
-    sensitive strings; full mode is the explicit escape hatch when exact raw values are required, except
-    workspace_calendar_feed_get never returns the private personal iCal feed URL, calendar path, credential,
-    or token in any mode.
+  rule: Authorization and privacy restrictions apply identically in default and full mode. Full mode may
+    add documented nonsensitive fields but cannot disclose credentials, another user's private data, or
+    hidden author identity. workspace_calendar_feed_get never returns a personal iCal URL, calendar path,
+    credential, or token in any mode.
+  acceptance:
+    given: Two isolated users own distinct private todos; one user owns an anonymous public comment and
+      a stored calendar credential. The SDK injects identity while application queries use the production
+      database role.
+    when: Each user lists todos and attempts to update the other user’s todo in default and full modes;
+      the reader fetches the anonymous thread and the owner fetches calendar metadata.
+    then:
+    - Each todo list contains only its owner’s todo; foreign writes fail without disclosing its title
+      or changing the stored row.
+    - The anonymous author stays null and hidden, with no author ID or name in either mode.
+    - Neither calendar mode exposes the stored credential, calendar path, personal iCal URL, or token
+      field.
+    test:
+      file: tests/integration/mcp/mode-privacy.test.ts
+      name: mcp.privacy-safe-default
 - id: mcp.property-priority-parity
   category: presentation
   rule: 'MCP default output follows the shared UI Model Property Priority contract: keep primary identity/task
     fields and useful disambiguators, compact repeated nested objects, and omit low-priority raw/audit
     fields unless full mode is explicitly requested.'
+  acceptance:
+    given: An isolated catalog, user, schedule, exam, homework, todo, upload, comment, description, Young event
+      and organizer fixture, read-only bus/link catalogs, and controlled weather/storage external boundaries.
+    when: The native MCP SDK invokes every tool named by structured field-view declarations in default and full modes.
+    then:
+    - Every declared primary and secondary path is present in populated successful responses; exact fixture identity,
+      task, status, timing and disambiguation values survive compact projection.
+    - Read projections preserve the declared scalar values and compact nested objects without losing their identities;
+      write projections echo the actual saved values and deletion results.
+    - Full-only course relations, teacher contacts, rendered Markdown and source weather/Young data appear only in full mode;
+      personal calendar credentials never appear in either mode.
+    - The tested tool inventory exactly equals the declared MCP field-view inventory, so adding a declared tool requires a real SDK case.
+    test:
+      file: tests/integration/mcp/property-priority.test.ts
+      name: mcp.property-priority-parity
 - id: mcp.actionable-errors
   category: presentation
-  rule: Validation and common not-found payloads prefer plain-language messages and may include a hint
-    that points to the next useful tool or query to recover.
+  rule: Domain validation and missing-resource tool results contain a stable error classification and
+    a user-readable message. Any recovery hint names an available tool or valid input correction and excludes
+    credentials and hidden resource data. SDK input-schema and JSON-RPC protocol errors retain their native
+    protocol classification.
+  acceptance:
+    given: An isolated subscribed user, a real MCP SDK connection, production-role database queries, nonexistent
+      resource identifiers, and malformed date input containing a credential marker.
+    when: Call 22 workspace, catalog, and community validation or lookup failure cases in default and
+      full modes.
+    then:
+    - Each domain failure returns success false, the expected stable error identifier, and a nonempty
+      readable message.
+    - Malformed date input is not echoed; recovery hints only reference registered tools.
+    test:
+      file: tests/integration/mcp/actionable-errors.test.ts
+      name: mcp.actionable-errors
+- id: mcp.public-catalog-access
+  category: authorization
+  rule: MCP discovery and public catalog calls allow anonymous access. Personal tools require authenticated
+    user context; absence of credentials rejects before private business execution.
+  acceptance:
+    given: The real loopback HTTP MCP transport and the complete explicit public/protected tool inventory.
+    when: Anonymous discovery is compared against that inventory, every public tool receives a malformed
+      mode input, every protected tool receives a call, and a valid semester read supplies a positive control.
+    then:
+    - Discovery contains exactly the inventoried tools and the valid public semester read succeeds.
+    - Every public tool passes HTTP authorization without an authentication challenge, then reaches SDK
+      input validation or its public handler when that tool does not declare mode.
+    - Every protected tool, including public-data community tools and the GraphQL runner, returns 401
+      with the bootstrap resource-metadata challenge before private business execution.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.public-catalog-access
+- id: mcp.invalid-credentials-no-downgrade
+  category: authorization
+  rule: Any supplied invalid or unsupported authorization credential rejects the MCP request, including
+    public catalog calls; it cannot fall back to anonymous access.
+  acceptance:
+    given: A public catalog request supplies invalid Bearer, Basic or DPoP credentials.
+    when: The actual HTTP transport verifies the supplied header.
+    then:
+    - Every request returns401 without a successful tool result.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.invalid-credentials-no-downgrade
 - id: mcp.resource-bound-access-token
   category: authorization
-  rule: MCP is Bearer-only. The upstream @better-auth/mcp mcpHandler verifies JWT signature, issuer, expiry,
-    and the canonical or loopback-equivalent /api/mcp audience. The local adapter then requires the exact
-    active user-grant generation before constructing SDK AuthInfo. DPoP and resource-less opaque tokens
-    are rejected. Authorization resources remain code-bound; omitted-resource refresh maps to MCP only
-    with an MCP feature scope and canonical MCP approval.
+  rule: Authenticated MCP calls use Bearer JWTs bound to the MCP resource. The upstream verifier checks
+    signature, issuer, expiry and resource audience; local authorization requires the exact active user-grant
+    generation before SDK AuthInfo is constructed. Opaque and DPoP credentials are unsupported.
+  acceptance:
+    given: A real signer, publicly served Better Auth JWKS and production-role database grant.
+    when: HTTP private calls use a valid JWT and tokens with wrong issuer/audience, expiry, grant generation,
+      signature or opaque format.
+    then:
+    - The valid token returns only owner data.
+    - Each invalid token returns401 before tool results; the upstream verifier fetches actual JWKS over
+      HTTP.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.resource-bound-access-token
 - id: mcp.complete-batch-scope-enforcement
   category: authorization
-  rule: Every fixed-scope tool feature declared by each requested tool is required across the complete
-    JSON-RPC batch. A feature:write grant also satisfies feature:read for the same feature. The GraphQL
-    runner delegates exact selected-field scopes to the shared resolvers.
-- id: mcp.least-privilege-bootstrap-scope
+  rule: Each fixed-scope tool in a JSON-RPC batch requires all its declared scopes before any tool executes.
+    A feature write grant satisfies read access for the same feature. GraphQL selected-field scopes remain
+    canonical in graphql.scoped-query-auth and graphql.scoped-mutations.
+  acceptance:
+    given: A signed read-only grant and a batch containing read plus write tools.
+    when: The real HTTP transport checks the batch, then checks a write-only token on a read tool.
+    then:
+    - The under-scoped batch returns403 with the required write scope and creates no todo.
+    - The write token can read its owner’s todos.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.complete-batch-scope-enforcement
+- id: mcp.bootstrap-auth-challenge
   category: authorization
-  rule: The upstream MCP verifier returns a JSON-RPC -32000 authentication error and RFC 9728 Bearer resource_metadata
-    challenge for missing or invalid credentials; the adapter adds only account.profile:read as the bootstrap
-    scope. Exact local per-tool insufficient_scope challenges drive incremental authorization. WWW-Authenticate
-    values escape quotes and backslashes and reject control characters; descriptions never reflect request-controlled
-    tool names, and scope values come only from the registry.
+  rule: Missing or invalid credentials on a private MCP call return the upstream JSON-RPC -32000 error
+    and RFC9728 resource_metadata challenge with only account.profile:read as bootstrap scope.
+  acceptance:
+    given: Private HTTP requests with missing and invalid Bearer credentials.
+    when: The actual transport rejects authorization.
+    then:
+    - Both responses are401 with JSON-RPC -32000, resource_metadata and the minimal bootstrap scope.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.bootstrap-auth-challenge
+- id: mcp.safe-auth-challenges
+  category: privacy
+  rule: Local insufficient_scope challenges drive incremental authorization. WWW-Authenticate values escape
+    quotes/backslashes and reject control characters; descriptions never reflect request-controlled tool
+    names and required scope values come from the registry.
+  acceptance:
+    given: Challenge parameters contain quotes, backslashes and control characters; an under-scoped batch
+      also contains a malicious unknown tool name.
+    when: The real challenge formatter and fixed-tool scope authorizer produce headers.
+    then:
+    - Quotes/backslashes are escaped and all control characters reject.
+    - The challenge includes the registered read/write scopes and insufficient_scope without reflecting
+      the malicious tool name.
+    test:
+      file: tests/unit/lib/mcp/mcp-auth.test.ts
+      name: mcp.safe-auth-challenges
 - id: mcp.graphql-authorization
   category: authorization
-  rule: graphql_operation_run requires an MCP-resource bearer and exactly one arbitrary document or compatible
-    registered operation. Arbitrary aliases and fragments cannot bypass authorization because selected
-    Workspace and Account fields and mutations enforce their feature scopes in the shared resolvers. Missing
-    scopes return an insufficient_scope WWW-Authenticate challenge for incremental authorization.
-- id: mcp.graphql-planning-prompt
-  category: presentation
-  rule: plan_graphql_operation embeds the canonical GraphQL SDL and document-free operation manifest into
-    the requested prompt, then instructs clients to use one bounded named operation, request only challenged
-    scopes, confirm mutations explicitly, and inspect state rather than blindly retry after an ambiguous
-    timeout.
-- id: mcp.registered-graphql-timeout-ambiguity
-  category: consistency
-  rule: graphql_operation_run stops waiting after five seconds or caller cancellation, including for serial
-    GraphQL mutations. A mutation already in progress may still commit, so clients must inspect current
-    state and must not blindly retry after REQUEST_TIMEOUT or REQUEST_CANCELLED.
-- id: mcp.registered-upload-boundary
-  category: privacy
-  rule: GraphQL upload mutations expose quota reservation, on-site authenticated PUT workflow metadata,
-    completion of an already-uploaded object, rename, and delete. Although the runner accepts a GraphQL
-    document, it never accepts or proxies R2 object bytes. Its MCP bearer remains resource-bound to /api/mcp
-    and is not replayable at the REST PUT URL.
-- id: mcp.bounded-auth-first-request-body
+  rule: The MCP GraphQL runner returns exact insufficient_scope tool-result challenges for missing selected-field
+    scopes in both arbitrary documents and registered operations; aliases and fragments cannot hide the
+    required feature scope.
+  rationale: MCP audience/grant verification is canonical in mcp.resource-bound-access-token. Exactly-one
+    source selection is graphql.graphql-operation-runner; prompt SDL/manifest and client retry guidance
+    are graphql.graphql-operation-prompt; five-second timeout is graphql.registered-operation-timeout;
+    cancellation and mutation commit ambiguity are graphql.mutation-timeout-ambiguity.
+  acceptance:
+    given: A real HTTP client has only todo-read scope and requests an account profile through a registered
+      operation and an aliased document with a fragment.
+    when: The actual MCP transport invokes the shared GraphQL runner.
+    then:
+    - Both return isError with insufficient_scope and only account.profile:read in the tool-result challenge.
+    - No private account email is disclosed.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.graphql-authorization
+- id: mcp.upload-put-resource-isolation
+  category: authorization
+  rule: An MCP-resource bearer cannot be replayed to the REST upload object PUT endpoint, even with workspace.upload:write
+    scope and an owned valid reservation.
+  rationale: Quota/metadata/lease/completion/rename/delete and the prohibition on raw bytes in GraphQL
+    or MCP are canonical in graphql.upload-workflow-boundary and the individual graphql.upload-* invariants.
+  acceptance:
+    given: A real MCP-resource JWT with upload-write scope and an owned pending upload.
+    when: The client sends bytes to the actual REST PUT route over HTTP using that JWT.
+    then:
+    - The request returns401 and leaves the reservation unchanged with no completed upload row.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.upload-put-resource-isolation
+- id: mcp.request-body-limit
   category: validation
-  rule: MCP transport requests run upstream @better-auth/mcp JWT verification and local active-grant authorization
-    before parsing JSON-RPC. Authenticated JSON request bodies are streamed with a 64 KiB limit and JSON-RPC
-    batches are limited to 50 messages. Empty batches return JSON-RPC -32600 Invalid Request; larger bodies
-    or batches return 413 before tool handling. Accepted bodies are parsed once and shared by scope enforcement,
-    observability, rate limiting, and the SDK transport.
+  rule: All MCP JSON request bodies have an inclusive64KiB byte limit before optional authentication or
+    business dispatch. Oversized declared or streamed bodies return413.
+  acceptance:
+    given: A valid65536-byte JSON-RPC request and larger bodies, including a chunked Request stream.
+    when: Anonymous, invalid-credential and authenticated clients submit bounded bodies over HTTP; the
+      same route also processes a direct streamed Request.
+    then:
+    - The exact boundary executes successfully.
+    - Every larger body returns413 before authentication or tool execution.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.request-body-limit
+- id: mcp.request-batch-limit
+  category: validation
+  rule: An empty MCP JSON-RPC batch returns400/-32600. Batches of at most50 messages are accepted; larger
+    batches return413 before handling.
+  acceptance:
+    given: JSON-RPC batches at0,50 and51 messages.
+    when: The actual HTTP parser and SDK transport handle them.
+    then:
+    - The empty batch is Invalid Request;51 messages exceed the limit.
+    - All50 valid requests produce distinct successful responses.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.request-batch-limit
+- id: mcp.parsed-body-reuse
+  category: consistency
+  rule: Accepted MCP JSON request bodies are parsed once and the same parsed body is shared by scope enforcement,
+    observability, rate limiting and SDK dispatch. Authentication and complete fixed-tool scope enforcement
+    finish before restricted business execution.
+  acceptance:
+    given: The real request handler, body reader and fixed-tool mapping with mocked authentication, limiter
+      and SDK boundaries.
+    when: A duplicate-write JSON-RPC batch is accepted.
+    then:
+    - The request JSON is parsed exactly once without clone/json rereads.
+    - Observability and SDK receive the same parsed object; authentication sees the complete deduplicated
+      tool list.
+    - Both write entries consume their preflight checks before SDK dispatch.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.parsed-body-reuse
+  rationale: This establishes transport orchestration and object identity, not cryptographic authentication.
+    Actual authentication and complete-batch scope rejection are canonical in mcp.resource-bound-access-token
+    and mcp.complete-batch-scope-enforcement.
 - id: mcp.transport-observability
   category: privacy
   rule: MCP transport logging must never include bearer tokens, cookies, exception messages, or tool argument
     values.
+  acceptance:
+    given: The real transport handler, body summarizer, bookkeeping, app logger and verbose OAuth logger
+      with external execution and emission sinks replaced.
+    when: Successful and throwing SDK requests contain bearer/cookie/header/query/argument secrets and
+      an exception with a malicious name.
+    then:
+    - Both log channels retain method/path/counts/status and the safe TypeError classification.
+    - Neither channel emits secret values, argument keys or exception messages.
+    test:
+      file: tests/unit/lib/mcp/mcp-transport-privacy.test.ts
+      name: mcp.transport-observability
 - id: mcp.mutation-rate-limits
   category: validation
-  rule: 'Ordinary MCP mutations are preflighted against the shared per-host, per-user feature-action Cloudflare
-    budgets: 60 writes or 10 batch writes per minute. Registered GraphQL mutations instead use the shared
-    resolver guard with the same feature:write key, avoiding duplicate consumption. Fixed-tool batches
-    fail before side effects on limit or unavailable bindings; responses use 429 or 503 with Retry-After:
-    60.'
+  rule: Native MCP mutations preflight every batch entry against the shared per-host/user/feature-action
+    guard before SDK dispatch. Subscription import uses the batch tier. Exhaustion or unavailable bindings
+    reject the entire dispatch with429/503 and Retry-After60. GraphQL operations delegate budget consumption
+    to selected resolver guards.
+  acceptance:
+    given: The real MCP handler and fixed-tool action/tier mapping with controlled authentication, Cloudflare
+      limiter outcomes and SDK dispatch.
+    when: Duplicate native writes or a subscription import exhaust or cannot access their mutation budget;
+      a registered GraphQL operation is dispatched.
+    then:
+    - Every native batch entry is preflighted before SDK execution.
+    - Ordinary writes use workspace.todo:write and import uses workspace.subscription:batch-write with
+      the batch tier.
+    - Exhausted/unavailable limits produce429/503 and Retry-After60.
+    - GraphQL dispatch consumes no native-tool budget; selected resolver fields own its checks.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.mutation-rate-limits
+  rationale: The shared Cloudflare60-write/10-batch-write configuration is canonical in openapi.rate-limit-production-budgets;
+    this requirement owns the MCP transport mapping and preflight boundary.
 - id: mcp.rate-limit-accuracy-boundary
   category: consistency
-  rule: MCP mutation throttles are per-Cloudflare-location, permissive, eventually consistent abuse controls
-    rather than global exact quotas. The protocol does not promise remaining/reset counters, and read-only
-    tools do not consume mutation budgets.
+  rule: Read-only MCP tools consume no mutation budgets. MCP responses expose no remaining/reset quota
+    counters.
+  acceptance:
+    given: A read-only MCP tool request with a controlled SDK response.
+    when: The real handler dispatches it.
+    then:
+    - No mutation budget is consumed.
+    - The transport adds no remaining/reset quota counters.
+    test:
+      file: tests/unit/lib/mcp/mcp-request-rate-limit.test.ts
+      name: mcp.rate-limit-accuracy-boundary
+  rationale: The shared limiter is a per-Cloudflare-location, permissive and eventually consistent abuse
+    control, not an exact global quota; its deployment contract is canonical in openapi.rate-limit-accuracy-boundary.
 - id: mcp.flexible-date-inputs
   category: validation
-  rule: Date and datetime parameters on MCP tools accept ISO 8601 with timezone offset (2026-05-01T08:00:00+08:00),
-    bare date strings (2026-05-01, treated as UTC midnight for @db.Date columns), or timezone-less datetimes
-    (2026-05-01T08:00:00, interpreted as Asia/Shanghai). Invalid strings produce a descriptive error response
-    rather than a validation rejection.
+  rule: The shared MCP date schema accepts ISO8601 with an explicit offset, bare YYYY-MM-DD interpreted
+    as UTC midnight, and timezone-less datetimes interpreted as Asia/Shanghai. Product day-window parsers
+    explicitly interpret bare dates as Shanghai midnight. Invalid nonempty date strings return a descriptive
+    unsuccessful tool result; empty/non-string inputs fail schema validation.
+  acceptance:
+    given: The shared flexible schema/parser and a real MCP SDK client backed by an isolated production-role
+      database.
+    when: Todo create/update receive date-only, timezone-less and positive/negative-offset date strings;
+      malformed strings attempt writes.
+    then:
+    - Every accepted format persists the exact independently specified UTC instant.
+    - Invalid nonempty date strings produce a readable unsuccessful tool result and no row; empty/non-string
+      values fail input validation.
+    - The explicit Shanghai-day parser option maps a bare date to Shanghai midnight.
+    test:
+      file: tests/integration/mcp/workspace/flexible-dates.test.ts
+      name: mcp.flexible-date-inputs
 - id: mcp.time-override
   category: consistency
-  rule: Time-sensitive tools (workspace_snapshot_get, workspace_schedule_next, workspace_calendar_timeline_get,
-    workspace_deadline_list, workspace_overview_get, catalog_bus_departure_next) accept an optional atTime
-    parameter to anchor their internal clock to a caller-supplied moment instead of the server clock,
-    enabling reproducible queries and future-scenario planning.
+  rule: workspace_snapshot_get, workspace_schedule_next, workspace_calendar_timeline_get, workspace_deadline_list,
+    workspace_overview_get, and catalog_bus_departure_next accept atTime to anchor their product query
+    clock. atTime never changes credential expiration, suspension status, ownership, or rate-limit authorization
+    clocks.
+  acceptance:
+    given: An isolated subscribed user, a due todo, real signed tokens, public JWKS verification, and
+      the Node HTTP adapter for the production MCP route.
+    when: Call all six time-sensitive tools at the seed date and in 2099, then repeat with expired and
+      insufficient-scope tokens.
+    then:
+    - Snapshot/next-class, deadline, overview, timeline, and bus results use the requested product time.
+    - The timeline begins at Shanghai midnight; the seeded todo appears only in its deadline window.
+    - Expired credentials reject 401 at both product times, including for the public bus tool; insufficient
+      workspace scopes reject 403.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.time-override
 - id: mcp.openai-compatible-descriptors
   category: consistency
-  rule: Every registered tool advertises a title, a closed top-level object outputSchema with a required
-    success boolean and typed known fields, MCP annotations for read-only/destructive/open-world hints,
-    top-level securitySchemes, and _meta.securitySchemes. Ordinary tools declare fixed OAuth feature scopes;
-    graphql_operation_run uses conservative static safety hints and delegates exact scopes to each manifest
-    entry. Default and full results keep the same top-level key and collection types.
-- id: mcp.single-tools-list-compatibility-wrapper
+  rule: Every tool advertises a nonempty title, a closed object outputSchema with required boolean success,
+    boolean read-only/destructive/open-world annotations, and matching top-level and _meta.securitySchemes.
+    Public catalog tools advertise noauth; ordinary personal tools advertise their fixed feature scopes.
+    graphql_operation_run advertises conservative write/destructive/open-world hints and delegates exact
+    scopes to selected operations.
+  rationale: Public catalog descriptor noauth and anonymous HTTP calls are canonical in mcp.public-catalog-access.
+    Mode shape parity is canonical in mcp.output-modes.
+  acceptance:
+    given: Every actual server tool descriptor is captured before the SDK client strips extension fields.
+    when: The raw tools/list wire response is inspected.
+    then:
+    - Every output schema is closed and declares boolean success; every safety hint is boolean and every
+      title is nonempty.
+    - Both securitySchemes copies match public noauth or explicit registered OAuth scopes.
+    - The GraphQL runner has conservative mutation safety hints.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.openai-compatible-descriptors
+- id: mcp.typed-output-fields
   category: consistency
-  rule: The SDK compatibility handler that hoists _meta.securitySchemes onto each tools/list descriptor
-    is installed exactly once after all application tools are registered, rather than nesting one full-list
-    wrapper per tool.
+  rule: Every known MCP output field outside the separately specified community and bus domains has an
+    explicit value schema; known fields must not silently become unconstrained unknown values.
+  rationale: Community and bus field schemas have their own canonical tests. The generic serializer result,
+    selection-dependent GraphQL data/extensions, Young rawJson and weather provider extensions intentionally
+    retain arbitrary JSON; these are constrained to JSON values rather than misrepresented as normalized
+    domain records. Known workspace, catalog and account fields use explicit field types. Optional card
+    fields reflect the actual documented projections, not arbitrary extra keys.
+  acceptance:
+    given: Actual account/catalog/workspace/GraphQL tool descriptors and the production field validators.
+    when: Every known schema field, collection item and union branch is traversed; representative aggregate
+      fields receive valid and invalid values.
+    then:
+    - No known output field is an unconstrained unknown schema.
+    - Valid completions, calendar events, counts, pins and catalog links pass; incorrect types fail.
+    - Generic and explicitly raw/dynamic values have a recursive JSON value schema.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-output-fields
+- id: mcp.typed-bus-output-fields
+  category: consistency
+  rule: All seven bus tools advertise explicit schemas for routes, stops, timetable slots, departures
+    and preferences, reusing the shared bus response schemas.
+  acceptance:
+    given: Actual bus tool descriptors over SDK tools/list and their production field validators.
+    when: All known field schemas are traversed and representative formerly unconstrained fields receive
+      valid and invalid values.
+    then:
+    - Every known nested field and collection element has an explicit schema.
+    - Valid route stops, time slots, departure flags and preferences pass; wrong types fail.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-bus-output-fields
+- id: mcp.bus-route-stop-projection
+  category: presentation
+  rule: Bus route timetables preserve stop order, campus ID, campus name and timetable slots in both default
+    and full output modes.
+  acceptance:
+    given: A seeded bus route with multiple stops and weekday trips.
+    when: The actual MCP SDK reads its route timetable in both modes.
+    then:
+    - Each stop retains numeric order and campus ID plus a nonempty campus name.
+    - The first stop matches the known origin campus; stop and weekday-slot arrays are identical across
+      modes.
+    test:
+      file: tests/integration/mcp/bus/timetable.test.ts
+      name: mcp.bus-route-stop-projection
+- id: mcp.typed-community-output-fields
+  category: consistency
+  rule: Community MCP tools advertise explicit schemas for every known field, including viewer context,
+    target references, threaded comments, description targets and homework deletion results. Nested academic-source
+    metadata retains its documented string/number/JSON array types.
+  acceptance:
+    given: Actual community tool descriptors returned over SDK tools/list and their production Zod validators.
+    when: The complete known-field schema graph is inspected and formerly unconstrained fields receive
+      invalid values.
+    then:
+    - Every known field has a nonempty explicit schema, including nested collection elements and union
+      alternatives.
+    - Incorrect viewer/target/comment/deletion field types are rejected.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.typed-community-output-fields
 - id: mcp.tool-registry-completeness
   category: consistency
   rule: Server startup fails when any registered MCP tool lacks an explicit OAuth scope entry or output
     schema, so tool registration cannot silently fall back to generic metadata.
-- id: mcp.room-maps
-  category: behavior
-  rule: catalog_rooms_map is public, accepts code and mode, and returns room map coverage and public image
-    URLs.
-- id: mcp.tool-groups.comment-write-scope
-  category: authorization
-  rule: Ordinary signed-in user comment writes are available; admin moderation remains unavailable through
-    MCP.
+  acceptance:
+    given: A complete production registry and an extra tool missing explicit scope/schema metadata.
+    when: The actual startup metadata guard checks each registry.
+    then:
+    - The complete registry passes.
+    - The incomplete registry throws naming both missing scope metadata and output schema.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.tool-registry-completeness
+- id: mcp.subscription-kind-projection
+  category: consistency
+  rule: Personal subscription reads include membership kind in both default and full modes. workspace_subscription_kind_update
+    changes only an existing subscription owned by the verified user.
   applies_to:
   - tool-groups
+  acceptance:
+    given: Two isolated authenticated MCP users and one public section.
+    when: The owner adds and changes membership kind; a nonmember tries to change it and both output modes
+      list memberships.
+    then:
+    - Only the existing owner membership changes to auditor.
+    - Adding the existing membership preserves its kind and default/full reads include auditor.
+    test:
+      file: tests/integration/mcp/workspace/subscription-kind.test.ts
+      name: mcp.subscription-kind-projection
+- id: mcp.tool-result-envelope
+  category: consistency
+  rule: All ordinary MCP tool results use the canonical result envelope. JSON-RPC protocol and transport
+    errors retain their protocol-specific error shapes.
+  acceptance:
+    given: The production MCP registration wrapper and a real SDK client/server connection.
+    when: Registered callbacks return canonical object/error/array/scalar/null results or malformed envelopes;
+      a client also calls an unknown tool.
+    then:
+    - Canonical text and structured JSON reach the client unchanged.
+    - Missing status/structured content, non-JSON text, empty content, and conflicting text/structured
+      values fail at the registration boundary.
+    - SDK-generated failures retain isError and text without fabricating a successful domain envelope.
+    test:
+      file: tests/unit/lib/mcp/mcp-tool-descriptors.test.ts
+      name: mcp.tool-result-envelope
+- id: mcp.http-methods
+  category: behavior
+  rule: MCP uses POST for JSON-RPC and OPTIONS for trusted-origin CORS preflight. GET returns405. DELETE
+    is idempotent on the stateless transport and succeeds with absent or valid credentials; invalid supplied
+    credentials reject401.
+  acceptance:
+    given: The real HTTP route adapter and stateless SDK transport.
+    when: A client sends GET, trusted OPTIONS and DELETE with absent, valid and invalid credentials.
+    then:
+    - GET returns405; OPTIONS returns204 with the trusted origin; valid/anonymous DELETE returns200.
+    - Invalid credentials on DELETE return401.
+    test:
+      file: tests/integration/mcp-http-contracts.test.ts
+      name: mcp.http-methods
+- id: mcp.error-classification-shape
+  category: consistency
+  rule: A registered MCP result with a shared error classification uses a string code; null, numeric,
+    boolean, object and array error values are rejected by its output schema.
+  acceptance:
+    given: Every registered descriptor containing the shared error classification field.
+    when: Its raw advertised JSON Schema and actual Zod output validator are checked with string and nonstring
+      failures.
+    then:
+    - Descriptors declare error as a string.
+    - String-coded failures validate and all nonstring error variants reject.
+    test:
+      file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
+      name: mcp.error-classification-shape
 capabilities:
   protocol-endpoint:
     title: Protocol Endpoint
-    auth: user
+    auth: anon
     web: unavailable
     rest:
       routes:
       - path: /api/mcp
         method: POST
         notes:
-        - All tool calls are handled through this endpoint and require a Bearer token bound to the MCP
-          protected resource /api/mcp. Upstream @better-auth/mcp performs JWT resource verification while
-          local authorization enforces active grants and exact tool scopes.
-        - Trusted browser-origin Bearer-token clients receive CORS headers, including exposed MCP-Session-Id,
-          Retry-After, and WWW-Authenticate response headers for browser transports.
-        - Answers browser CORS preflight requests for the MCP transport headers used by POST/DELETE browser
-          clients.
-        - Requests with a foreign Origin header are rejected before MCP auth/tool handling.
+        - Public discovery and catalog calls allow anonymous access. Personal tools require a resource-bound
+          Bearer JWT, active grant and all declared scopes; supplied invalid credentials never downgrade
+          to anonymous.
+        - Trusted browser-origin clients receive MCP CORS headers. Foreign Origin requests reject before
+          tool handling.
+        auth: anon
       - path: /api/mcp
+        auth: anon
       - path: /api/mcp
         method: DELETE
+        auth: anon
       - path: /api/mcp
         method: OPTIONS
         auth: anon
@@ -186,9 +646,10 @@ capabilities:
         - Answers browser CORS preflight requests for trusted origins before bearer-token MCP transport
           handling.
     presentation:
+      kind: protocol
       items:
-      - MCP protocol server endpoint
-      - GET/POST/DELETE transport methods
+      - JSON-RPC over POST; trusted-origin OPTIONS preflight
+      - GET returns method-not-allowed; stateless DELETE is idempotent
       - Returns JSON-RPC or transport responses
   tool-groups:
     title: Tool Groups
@@ -298,6 +759,7 @@ capabilities:
         - workspace_young_notification_list
         - workspace_young_notification_read
     presentation:
+      kind: protocol
       items:
       - Schedule tools
       - Homework tools
@@ -310,3 +772,5 @@ capabilities:
       - Input schema
       - Output schema
       - Preferred tool for common prompts
+rationale:
+- Public room-map projection and anonymous transport parity are owned by room-map.public; input normalization is owned by room-map.normalization.

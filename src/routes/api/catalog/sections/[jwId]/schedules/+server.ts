@@ -6,7 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Get section schedules.
  * @pathParams jwIdPathParamsSchema
  * @params sectionSchedulesQuerySchema
- * @response 200:array
+ * @response 200:sectionSchedulesResponseSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */

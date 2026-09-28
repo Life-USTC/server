@@ -2,7 +2,6 @@ import * as z from "zod";
 import {
   booleanQuerySchema,
   dateInputStringSchema,
-  deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   paginationPageSizeParam,
 } from "./request-schema-primitives";
@@ -27,7 +26,9 @@ export const youngEventsQuerySchema = z.object({
     ),
   active: booleanQuerySchema
     .optional()
-    .describe("Filter by signup-open (active) events."),
+    .describe(
+      "Filter by source-active list membership, independently of the current signup window.",
+    ),
   category: z
     .string()
     .trim()
@@ -78,7 +79,6 @@ export const youngEventsQuerySchema = z.object({
     message: "page must be between 1 and 1000",
   }).optional(),
   pageSize: paginationPageSizeParam(youngEventPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(youngEventPageSizeSchema),
 });
 
 export type YoungEventsQuery = z.output<typeof youngEventsQuerySchema>;
@@ -155,18 +155,20 @@ export const youngEventSummarySchema = z.strictObject({
 export const youngEventDetailSchema = youngEventSummarySchema.extend({
   description: z.string().nullable(),
   participationNotes: z.string().nullable(),
-  rawJson: z.unknown(),
+  rawJson: z.json(),
 });
 
-export const paginatedYoungEventResponseSchema = createPaginatedSchema(
-  youngEventSummarySchema,
-).extend({
+export const youngEventListMetadataSchema = z.strictObject({
   unknownDateCount: z.number().int().nonnegative(),
   source: z.strictObject({
     status: z.enum(["fresh", "stale", "unknown"]),
     lastSyncedAt: dateTimeSchema.nullable(),
   }),
 });
+
+export const paginatedYoungEventResponseSchema = createPaginatedSchema(
+  youngEventSummarySchema,
+).extend({ meta: youngEventListMetadataSchema });
 
 export const youngOrganizerSummarySchema = z.strictObject({
   id: z.string(),
@@ -186,7 +188,6 @@ export const youngOrganizersQuerySchema = z.object({
     message: "page must be between 1 and 1000",
   }).optional(),
   pageSize: paginationPageSizeParam(youngEventPageSizeSchema),
-  limit: deprecatedPaginationLimitParam(youngEventPageSizeSchema),
 });
 
 export const paginatedYoungOrganizerResponseSchema = createPaginatedSchema(

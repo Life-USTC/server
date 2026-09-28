@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  catalogPrimaryName,
+  catalogSecondaryName,
+} from "@/features/catalog/lib/catalog-list-display";
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
@@ -10,8 +14,9 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CatalogSectionHistoryPagination from "./CatalogSectionHistoryPagination.svelte";
+import CatalogSectionHistory from "./CatalogSectionHistory.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
+import CourseDetailIdentity from "./CourseDetailIdentity.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
   CourseDetailCopy,
@@ -88,11 +93,17 @@ $: displayName =
 
 <CollectionPage
   layout="detail"
-  title={displayName}
+  title={catalogPrimaryName(data.course) || displayName}
   titleClass="text-2xl leading-tight sm:text-3xl"
 >
+  {#snippet titleExtra()}
+    {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
+  {/snippet}
   {#snippet eyebrowContent()}
-        <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
+    <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
+  {/snippet}
+  {#snippet identity()}
+    <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
   {/snippet}
 
         <section id="introduction" class="scroll-mt-4">
@@ -116,21 +127,22 @@ $: displayName =
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.courseDetail.teachingSectionsDescription}
           </p>
-          <CatalogSectionHistoryPagination
+          <CatalogSectionHistory
             pagination={data.sectionsPagination}
             shown={data.course.sections.length}
             summaryTemplate={copy.courseDetail.sectionHistorySummary}
             ariaLabel={copy.courseDetail.sectionHistoryPagination}
             nextLabel={copy.common.next}
             previousLabel={copy.common.previous}
-          />
-          <CourseDetailSections
-            copy={detailCopy}
-            course={data.course}
-            locale={data.locale}
-            {notAvailable}
-            {primaryName}
-          />
+          >
+            <CourseDetailSections
+              copy={detailCopy}
+              course={data.course}
+              locale={data.locale}
+              {notAvailable}
+              {primaryName}
+            />
+          </CatalogSectionHistory>
         </section>
 
         <section id="comments" class="scroll-mt-4">

@@ -70,7 +70,7 @@ describe("markdown 渲染器", () => {
     expect(html).toContain('href="/catalog/teacher/456"');
   });
 
-  it("在服务端描述 payload 中保留 sanitized HTML 和 campus 链接", () => {
+  it("description.server-rendered-markdown", () => {
     const description = serializeDescriptionRecord({
       id: "description-1",
       content: 'teacher#456 <script>alert("xss")</script>',

@@ -8,6 +8,7 @@ import { getSubscribedSectionIds } from "./subscription-read-model-shared";
 const SUBSCRIBED_SECTION_ORDER_BY = [
   { semester: { jwId: "desc" } },
   { code: "asc" },
+  { jwId: "asc" },
 ] satisfies Prisma.SectionOrderByWithRelationInput[];
 
 export async function listSubscribedSectionPage(

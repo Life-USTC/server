@@ -6,17 +6,7 @@ import {
 import { APP_LOCALES } from "@/i18n/config";
 import { parseOptionalIntLike } from "./request-schema-primitives";
 
-const subscriptionSectionIdSchema = z
-  .number()
-  .int()
-  .positive()
-  .meta({
-    override: ({ jsonSchema }: { jsonSchema: Record<string, unknown> }) => {
-      jsonSchema.type = "integer";
-      jsonSchema.minimum = 1;
-      delete jsonSchema.exclusiveMinimum;
-    },
-  });
+const subscriptionSectionIdSchema = z.number().int().min(1);
 
 const subscriptionLookupCodeSchema = z.string().trim().min(1).max(64);
 const subscriptionSectionIdsSchema = z
@@ -88,18 +78,33 @@ export const todoCreateRequestSchema = todoCreateInputSchema;
 
 export const todoUpdateRequestSchema = todoUpdateInputSchema;
 
-export const todoCompletionBatchRequestSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        todoId: z.string().trim().min(1),
-        completed: z.boolean(),
-      }),
-    )
-    .min(1)
-    .max(100),
-});
+export const todoCompletionBatchRequestSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          todoId: z.string().trim().min(1),
+          completed: z.boolean(),
+        }),
+      )
+      .min(1)
+      .max(100),
+  })
+  .refine(
+    (input) =>
+      new Set(input.items.map((item) => item.todoId)).size ===
+      input.items.length,
+    {
+      path: ["items"],
+      message: "Batch must not contain duplicate targets",
+    },
+  );
 
-export const todoBatchDeleteRequestSchema = z.object({
-  ids: z.array(z.string().trim().min(1)).min(1).max(100),
-});
+export const todoBatchDeleteRequestSchema = z
+  .object({
+    ids: z.array(z.string().trim().min(1)).min(1).max(100),
+  })
+  .refine((input) => new Set(input.ids).size === input.ids.length, {
+    path: ["ids"],
+    message: "Batch must not contain duplicate targets",
+  });

@@ -85,6 +85,7 @@ export async function cachedCatalogRuntimeData<T>(
     load,
     {
       ...cacheOptions,
+      kvTtlMs: ttlMs,
       shouldCacheResult: options.shouldCacheResult,
     },
   );

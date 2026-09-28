@@ -88,6 +88,7 @@ const subscribedExamInclude = {
 const subscribedScheduleOrderBy = [
   { date: "asc" },
   { startTime: "asc" },
+  { id: "asc" },
 ] satisfies Prisma.ScheduleOrderByWithRelationInput[];
 
 const subscribedExamOrderBy = [

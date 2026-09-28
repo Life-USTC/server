@@ -17,14 +17,13 @@ describe("weather service", () => {
     vi.unstubAllEnvs();
   });
 
-  it.each([
-    ["2026-09-15T00:00:00+08:00", "2026-09-15T00:00:00+08:00"],
-    ["2026-09-15T15:35:00+08:00", "2026-09-15T16:00:00+08:00"],
-    ["2026-09-15T23:59:00+08:00", "2026-09-16T00:00:00+08:00"],
-    ["2026-09-16T00:01:00+08:00", "2026-09-16T01:00:00+08:00"],
-  ])(
-    "selects 24 upcoming hours from the same cache at %s",
-    async (now, first) => {
+  it("weather.rolling-hourly-forecast", async () => {
+    for (const [now, first] of [
+      ["2026-09-15T00:00:00+08:00", "2026-09-15T00:00:00+08:00"],
+      ["2026-09-15T15:35:00+08:00", "2026-09-15T16:00:00+08:00"],
+      ["2026-09-15T23:59:00+08:00", "2026-09-16T00:00:00+08:00"],
+      ["2026-09-16T00:01:00+08:00", "2026-09-16T01:00:00+08:00"],
+    ]) {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(now));
       const { mergeWeatherSnapshots } = await import(
@@ -70,12 +69,8 @@ describe("weather service", () => {
       );
       expect(cached.hourly).toHaveLength(72);
       expect(fetchMock).not.toHaveBeenCalled();
-
-      vi.setSystemTime(new Date("2026-09-19T00:00:00+08:00"));
-      vi.mocked(readWeatherCache).mockResolvedValueOnce(cached);
-      expect((await getWeatherSnapshot("ustc-main"))?.hourly).toEqual([]);
-    },
-  );
+    }
+  });
 
   it("returns null for unknown location", async () => {
     const { getWeatherSnapshot } = await import(

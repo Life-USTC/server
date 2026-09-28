@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 200:binary
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @oauthScope workspace.upload:read
  */
 export const GET: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => getUploadDownloadRoute(request, { id: params.id }))(

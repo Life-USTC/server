@@ -47,7 +47,7 @@ function setup() {
 beforeEach(() => vi.clearAllMocks());
 
 describe("description editor identity changes", () => {
-  it("does not open or submit while current permissions are unavailable", async () => {
+  it("description.editor-permission-gate", async () => {
     const { session, input, actions } = setup();
     session.editable = false;
     actions.startEdit();
@@ -56,7 +56,7 @@ describe("description editor identity changes", () => {
     expect(savePayload).not.toHaveBeenCalled();
   });
 
-  it("discards a save response after the viewer changes", async () => {
+  it("description.editor-stale-save", async () => {
     const pending = createDeferred<{ ok: boolean }>();
     savePayload.mockReturnValue(pending.promise);
     const { session, input, actions } = setup();
@@ -70,7 +70,7 @@ describe("description editor identity changes", () => {
     expect(input.setSaving).toHaveBeenCalledExactlyOnceWith(true);
   });
 
-  it("discards permission refreshes belonging to a previous viewer", async () => {
+  it("description.editor-stale-permissions", async () => {
     const pending = createDeferred<unknown>();
     fetchPayload.mockReturnValue(pending.promise);
     const { session, input, actions } = setup();

@@ -6,7 +6,7 @@
  * - user.name (display name)
  * - user.username (@username)
  * - user.createdAt (join date)
- * - sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
+ * - _count.comments, _count.uploads, _count.homeworksCreated
  * - weeks[].date / weeks[].count, totalContributions
  *
  * ## Rules

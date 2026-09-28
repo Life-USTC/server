@@ -9,7 +9,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { jumpToSection, SECTION_URL } from "./_helpers";
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("日历区块以课表表格显示日程详情", async ({ page }, testInfo) => {
+  test("schedule.schedule-as-context", async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await gotoAndWaitForReady(page, SECTION_URL);
 
@@ -40,6 +40,41 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         .first(),
     ).toBeVisible();
 
+    const response = await page.request.get(
+      `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
+    );
+    expect(response.ok()).toBe(true);
+    const schedules = (await response.json()) as Array<{
+      date: string | null;
+      startTime: string;
+      endTime: string;
+      teachers: Array<{ id: number; nameCn: string; nameEn: string | null }>;
+    }>;
+    const meeting = schedules.find((item) => item.date && item.teachers.length);
+    if (!meeting?.date)
+      throw new Error("Seed must contain a dated meeting with teachers");
+    const row = scheduleTable
+      .getByRole("row")
+      .filter({ hasText: meeting.date.slice(0, 10) })
+      .filter({ hasText: meeting.startTime })
+      .first();
+    await expect(row).toContainText(meeting.endTime);
+    for (const teacher of meeting.teachers) {
+      const link = row.locator(`a[href="/catalog/teachers/${teacher.id}"]`);
+      await expect(link).toBeVisible();
+      expect([teacher.nameCn, teacher.nameEn]).toContain(
+        await link.innerText(),
+      );
+      expect(
+        (await page.request.get(`/catalog/teachers/${teacher.id}`)).ok(),
+      ).toBe(true);
+    }
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await scheduleTable.screenshot({
+        path: testInfo.outputPath(`section-schedule-${width}.png`),
+      });
+    }
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });
 

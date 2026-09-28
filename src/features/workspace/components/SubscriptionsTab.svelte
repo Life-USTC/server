@@ -3,6 +3,7 @@ import BulkImportConfirmDialog from "@/features/subscriptions/components/BulkImp
 import BulkImportDialog from "@/features/subscriptions/components/BulkImportDialog.svelte";
 import type { BulkImportSectionView } from "@/features/subscriptions/components/bulk-import-types";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { Button } from "$lib/components/ui/button";
 import SubscriptionsList from "./SubscriptionsList.svelte";
 import SubscriptionsQuickAddDialog from "./SubscriptionsQuickAddDialog.svelte";
@@ -84,7 +85,9 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     courseName: namePrimary(section.course),
     courseSecondaryName: nameSecondary(section.course) || undefined,
     id: section.id,
-    semesterName: section.semester ? namePrimary(section.semester) : undefined,
+    semesterName: section.semester
+      ? formatSemesterName(signedData.locale, namePrimary(section.semester))
+      : undefined,
     teacherNames:
       section.teachers.map(namePrimary).filter(Boolean).join(", ") || undefined,
   }),
@@ -144,7 +147,7 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     onOpenChange={setBulkImportOpen}
     bind:semesterId={bulkImportSemesterId}
     semesterOptions={signedData.subscriptions.semesters.map((semester) => ({
-      label: semester.nameCn,
+      label: formatSemesterName(signedData.locale, semester.nameCn),
       value: String(semester.id),
     }))}
   />

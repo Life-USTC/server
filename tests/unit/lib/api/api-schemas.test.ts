@@ -694,7 +694,24 @@ describe("其他请求 schema", () => {
     ).toBe(validVersionKey);
   });
 
-  it("校验分页 pageSize 与废弃 limit 别名的边界", () => {
+  it("openapi.public-catalog-pagination-bounds", () => {
+    for (const schema of [
+      coursesQuerySchema,
+      sectionsQuerySchema,
+      schedulesQuerySchema,
+      teachersQuerySchema,
+      semestersQuerySchema,
+    ]) {
+      for (const input of ["page", "pageSize"]) {
+        for (const value of ["1", "100"])
+          expect(schema.safeParse({ [input]: value }).success).toBe(true);
+        for (const value of ["0", "-1", "101", "1.5", "NaN", "Infinity", ""])
+          expect(schema.safeParse({ [input]: value }).success).toBe(false);
+      }
+    }
+  });
+
+  it("校验分页 pageSize 和原生 limit 参数的边界", () => {
     const paginatedSchemas = [
       coursesQuerySchema,
       sectionsQuerySchema,
@@ -708,9 +725,9 @@ describe("其他请求 schema", () => {
       expect(schema.safeParse({ pageSize: "100" }).success).toBe(true);
       expect(schema.safeParse({ pageSize: "101" }).success).toBe(false);
       expect(schema.safeParse({ pageSize: "0" }).success).toBe(false);
-      expect(schema.safeParse({ limit: "100" }).success).toBe(true);
-      expect(schema.safeParse({ limit: "101" }).success).toBe(false);
-      expect(schema.safeParse({ limit: "0" }).success).toBe(false);
+      for (const limit of ["0", "100", "101"]) {
+        expect(schema.parse({ limit })).not.toHaveProperty("limit");
+      }
     }
 
     for (const schema of [
@@ -736,7 +753,7 @@ describe("其他请求 schema", () => {
       ).toBe(false);
       expect(
         input.schema.safeParse({ ...input.base, limit: "100" }).success,
-      ).toBe(true);
+      ).toBe(false);
     }
 
     for (const schema of [
@@ -746,7 +763,7 @@ describe("其他请求 schema", () => {
       adminUsersQuerySchema,
     ]) {
       expect(schema.safeParse({ pageSize: "50" }).success).toBe(true);
-      expect(schema.safeParse({ limit: "50" }).success).toBe(true);
+      expect(schema.safeParse({ limit: "50" }).success).toBe(false);
       expect(schema.safeParse({ page: "2" }).success).toBe(true);
       expect(schema.safeParse({ pageSize: "201" }).success).toBe(false);
     }

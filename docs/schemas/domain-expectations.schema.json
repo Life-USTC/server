@@ -1,0 +1,928 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://life-ustc.example/specifications/domain-expectations.schema.json",
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "export"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "pattern": "^src/.+\\.ts$"
+        },
+        "export": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reminder_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "anchor",
+        "notification",
+        "lead_seconds",
+        "before_window",
+        "at_open",
+        "before_close",
+        "at_close"
+      ],
+      "properties": {
+        "kind": {
+          "const": "reminder_window"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "anchor": {
+          "enum": ["applyEndAt", "startAt"]
+        },
+        "notification": {
+          "enum": ["signup_deadline", "event_start"]
+        },
+        "lead_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "before_window": {
+          "type": "boolean"
+        },
+        "at_open": {
+          "type": "boolean"
+        },
+        "before_close": {
+          "type": "boolean"
+        },
+        "at_close": {
+          "type": "boolean"
+        }
+      }
+    },
+    "transaction_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "completion",
+        "failure_propagated",
+        "before_commit",
+        "after_completion"
+      ],
+      "properties": {
+        "kind": {
+          "const": "transaction_effects"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "completion": {
+          "enum": ["commit", "rollback"]
+        },
+        "failure_propagated": {
+          "type": "boolean"
+        },
+        "before_commit": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "calls"],
+            "properties": {
+              "operation": {
+                "$ref": "#/$defs/source"
+              },
+              "calls": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "recipient": {
+                "enum": ["owner", "section", "public"]
+              }
+            }
+          }
+        },
+        "after_completion": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "calls"],
+            "properties": {
+              "operation": {
+                "$ref": "#/$defs/source"
+              },
+              "calls": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "recipient": {
+                "enum": ["owner", "section", "public"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "unchanged_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "updated",
+        "history_created",
+        "audits_created"
+      ],
+      "properties": {
+        "kind": {
+          "const": "unchanged_write"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "updated": {
+          "type": "boolean"
+        },
+        "history_created": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audits_created": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "delete_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "surfaces",
+        "committed_state",
+        "replay",
+        "preserves_committed_state"
+      ],
+      "properties": {
+        "kind": {
+          "const": "delete_replay"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "committed_state": {
+          "enum": ["absent", "tombstone"]
+        },
+        "replay": {
+          "enum": ["not_found", "locked", "success"]
+        },
+        "preserves_committed_state": {
+          "type": "boolean"
+        },
+        "audit_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confirmation_required": {
+          "type": "boolean"
+        },
+        "protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rest_status", "graphql_status", "graphql_code"],
+          "properties": {
+            "rest_status": {
+              "enum": [403, 404]
+            },
+            "graphql_status": {
+              "enum": [403, 404]
+            },
+            "graphql_code": {
+              "enum": ["FORBIDDEN", "NOT_FOUND"]
+            }
+          }
+        },
+        "deleted_by": {
+          "enum": ["creator"]
+        },
+        "replay_already_deleted": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["graphql", "mcp"],
+          "properties": {
+            "graphql": {
+              "type": "boolean"
+            },
+            "mcp": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "public_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "response",
+        "fields",
+        "preserves",
+        "concealed_source_values"
+      ],
+      "properties": {
+        "kind": {
+          "const": "public_projection"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema", "path"],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "preserves": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "concealed_source_values": {
+          "type": "boolean"
+        },
+        "reference_resolved": {
+          "type": "boolean"
+        },
+        "nested_fields": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "ordered_page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "model",
+        "surfaces",
+        "order",
+        "page_size_echoed",
+        "complete_total",
+        "exhausted_items"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ordered_page"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "order": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "direction"],
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "direction": {
+                "enum": ["asc", "desc"]
+              },
+              "nulls": {
+                "enum": ["first", "last"]
+              }
+            }
+          }
+        },
+        "complete_total": {
+          "type": "boolean"
+        },
+        "exhausted_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_size_echoed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expectation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/reminder_window"
+        },
+        {
+          "$ref": "#/$defs/transaction_effects"
+        },
+        {
+          "$ref": "#/$defs/unchanged_write"
+        },
+        {
+          "$ref": "#/$defs/delete_replay"
+        },
+        {
+          "$ref": "#/$defs/public_projection"
+        },
+        {
+          "$ref": "#/$defs/ordered_page"
+        },
+        {
+          "$ref": "#/$defs/private_setting_authority"
+        },
+        {
+          "$ref": "#/$defs/localized_regions"
+        },
+        {
+          "$ref": "#/$defs/membership_kind_transition"
+        },
+        {
+          "$ref": "#/$defs/storage_delete_sequence"
+        },
+        {
+          "$ref": "#/$defs/attachment_download_authority"
+        }
+      ]
+    },
+    "private_setting_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operations",
+        "owner_changes_only",
+        "suspended_owner_allowed",
+        "anonymous_rejected",
+        "read_scope_rejected",
+        "invalid_target_rejected",
+        "denied_state_unchanged",
+        "response_matches_state"
+      ],
+      "properties": {
+        "kind": {
+          "const": "private_setting_authority"
+        },
+        "operations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rest", "graphql", "mcp"],
+          "properties": {
+            "rest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "graphql": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mcp": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "owner_changes_only": {
+          "type": "boolean"
+        },
+        "suspended_owner_allowed": {
+          "type": "boolean"
+        },
+        "anonymous_rejected": {
+          "type": "boolean"
+        },
+        "read_scope_rejected": {
+          "type": "boolean"
+        },
+        "invalid_target_rejected": {
+          "type": "boolean"
+        },
+        "denied_state_unchanged": {
+          "type": "boolean"
+        },
+        "response_matches_state": {
+          "type": "boolean"
+        }
+      }
+    },
+    "localized_regions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "route",
+        "selector",
+        "labels",
+        "regions",
+        "location_keys",
+        "viewports"
+      ],
+      "properties": {
+        "kind": {
+          "const": "localized_regions"
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["zh-cn", "en-us"],
+          "properties": {
+            "zh-cn": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "en-us": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "regions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "location_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["ustc-main", "ustc-gaoxin"]
+          }
+        },
+        "viewports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["width", "height"],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "membership_kind_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "operation", "cases"],
+      "properties": {
+        "kind": {
+          "const": "membership_kind_transition"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "additional_operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/source"
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["before", "after", "rows"],
+            "properties": {
+              "before": {
+                "enum": ["absent", "regular", "auditor", "teaching_assistant"]
+              },
+              "after": {
+                "enum": ["regular", "auditor", "teaching_assistant"]
+              },
+              "rows": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "storage_delete_sequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "operation",
+        "surfaces",
+        "storage_before_metadata",
+        "failure",
+        "retry",
+        "replay"
+      ],
+      "properties": {
+        "kind": {
+          "const": "storage_delete_sequence"
+        },
+        "operation": {
+          "$ref": "#/$defs/source"
+        },
+        "surfaces": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["rest", "graphql", "mcp"]
+          }
+        },
+        "storage_before_metadata": {
+          "type": "boolean"
+        },
+        "failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "protocol",
+            "preserves_metadata",
+            "preserves_object",
+            "audits",
+            "hides_internal_error"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "storage_delete_failed"
+            },
+            "protocol": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rest_status", "graphql_status", "graphql_code"],
+              "properties": {
+                "rest_status": {
+                  "enum": [403, 404, 502]
+                },
+                "graphql_status": {
+                  "enum": [403, 404, 503]
+                },
+                "graphql_code": {
+                  "enum": ["FORBIDDEN", "NOT_FOUND", "SERVICE_UNAVAILABLE"]
+                }
+              }
+            },
+            "preserves_metadata": {
+              "type": "boolean"
+            },
+            "preserves_object": {
+              "type": "boolean"
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hides_internal_error": {
+              "type": "boolean"
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "removes_metadata",
+            "removes_object",
+            "audits",
+            "deleted_size_matches"
+          ],
+          "properties": {
+            "removes_metadata": {
+              "type": "boolean"
+            },
+            "removes_object": {
+              "type": "boolean"
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deleted_size_matches": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rest", "mcp"],
+              "properties": {
+                "rest": {
+                  "type": "boolean"
+                },
+                "mcp": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "replay": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["outcome", "storage_calls", "audits"],
+          "properties": {
+            "outcome": {
+              "const": "not_found"
+            },
+            "storage_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "audits": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "attachment_download_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "route",
+        "preview_parameter",
+        "states",
+        "preview_matches_download",
+        "authorized_bytes_preserved",
+        "denied_responses_hide_bytes",
+        "same_url_across_states"
+      ],
+      "properties": {
+        "kind": {
+          "const": "attachment_download_authority"
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "path"],
+          "properties": {
+            "method": {
+              "const": "GET"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "preview_parameter": {
+          "const": "preview"
+        },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unattached",
+            "public",
+            "logged_in_only",
+            "softbanned",
+            "restored",
+            "parent_deleted",
+            "upload_deleted"
+          ],
+          "properties": {
+            "unattached": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "public": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "logged_in_only": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "softbanned": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "restored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "parent_deleted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            },
+            "upload_deleted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["owner", "viewer", "admin", "anonymous"],
+              "properties": {
+                "owner": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "viewer": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "admin": {
+                  "enum": [200, 401, 403, 404]
+                },
+                "anonymous": {
+                  "enum": [200, 401, 403, 404]
+                }
+              }
+            }
+          }
+        },
+        "preview_matches_download": {
+          "type": "boolean"
+        },
+        "authorized_bytes_preserved": {
+          "type": "boolean"
+        },
+        "denied_responses_hide_bytes": {
+          "type": "boolean"
+        },
+        "same_url_across_states": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

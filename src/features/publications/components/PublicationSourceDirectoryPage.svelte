@@ -39,16 +39,38 @@ function formatLastPublished(value: Date | string | null) {
   return value ? formatShanghaiDate(value) : copy.neverPublished;
 }
 
+function countSummary(
+  template: string,
+  sourceCount: number,
+  publicationCount: number,
+) {
+  return template
+    .replace(
+      "{sources}",
+      (sourceCount === 1 ? copy.sourceCountOne : copy.sourceCountOther).replace(
+        "{count}",
+        String(sourceCount),
+      ),
+    )
+    .replace(
+      "{publications}",
+      (publicationCount === 1
+        ? copy.publicationCountOne
+        : copy.publicationCountOther
+      ).replace("{count}", String(publicationCount)),
+    );
+}
+
 function groupSummary(sourceCount: number, publicationCount: number) {
-  return copy.sourcesGroupSummary
-    .replace("{sources}", String(sourceCount))
-    .replace("{publications}", String(publicationCount));
+  return countSummary(copy.sourcesGroupSummary, sourceCount, publicationCount);
 }
 
 function totalsSummary() {
-  return copy.sourcesTotals
-    .replace("{sources}", String(data.directory.totals.sourceCount))
-    .replace("{publications}", String(data.directory.totals.publicationCount));
+  return countSummary(
+    copy.sourcesTotals,
+    data.directory.totals.sourceCount,
+    data.directory.totals.publicationCount,
+  );
 }
 
 // The service already returns groups in the registry's display order, so the
@@ -114,6 +136,7 @@ const levelIndex = $derived(data.directory.groups);
                         <a href={sourceHref(source.id)} {...props}>
                           <Item.Content>
                             <Item.Title>{source.name}</Item.Title>
+                            <Item.Description class="[overflow-wrap:anywhere]">{source.hosts.join(" · ")}</Item.Description>
                             <Item.Description>
                               {copy.sourceArticleCount}: {source.publicationCount}
                               · {copy.lastPublishedAt}:

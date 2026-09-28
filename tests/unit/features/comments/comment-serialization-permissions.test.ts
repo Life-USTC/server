@@ -57,7 +57,7 @@ function viewer(overrides: Partial<ViewerInfo> = {}): ViewerInfo {
 }
 
 describe("评论序列化权限", () => {
-  it("在服务端序列化 sanitized Markdown HTML", () => {
+  it("comment.server-rendered-markdown", () => {
     const { roots } = buildCommentNodes(
       [
         comment({
@@ -67,11 +67,35 @@ describe("评论序列化权限", () => {
       viewer(),
     );
 
+    expect(roots[0]?.body).toBe('section#123 <script>alert("xss")</script>');
     expect(roots[0]?.renderedBody).toContain('href="/catalog/sections/123"');
     expect(roots[0]?.renderedBody).not.toContain("<script>");
   });
 
-  it("保留普通作者的回复和编辑权限", () => {
+  it("masks anonymous authors for owners and admins without losing owner actions", () => {
+    for (const currentViewer of [
+      viewer(),
+      viewer({ isAdmin: true, userId: "admin-1" }),
+      viewer({ userId: "other" }),
+      viewer({ isAuthenticated: false, userId: null }),
+    ]) {
+      const { roots } = buildCommentNodes(
+        [comment({ isAnonymous: true })],
+        currentViewer,
+      );
+      expect(roots[0]).toMatchObject({
+        author: null,
+        authorHidden: true,
+        isAnonymous: true,
+        isAuthor: currentViewer.userId === "user-1",
+        canEdit: currentViewer.userId === "user-1",
+      });
+      expect(JSON.stringify(roots)).not.toContain("user-1");
+      expect(JSON.stringify(roots)).not.toContain('"name":"Author"');
+    }
+  });
+
+  it("comment.owner-action-projection", () => {
     const { roots } = buildCommentNodes([comment()], viewer());
 
     expect(roots).toHaveLength(1);
@@ -85,42 +109,26 @@ describe("评论序列化权限", () => {
     });
   });
 
-  it("移除被暂停作者的写入权限", () => {
-    const { roots } = buildCommentNodes(
-      [comment()],
+  it("comment.suspended-action-projection", () => {
+    for (const currentViewer of [
       viewer({ isSuspended: true }),
-    );
-
-    expect(roots).toHaveLength(1);
-    expect(roots[0]).toMatchObject({
-      canDelete: false,
-      canEdit: false,
-      canModerate: false,
-      canReact: false,
-      canReply: false,
-      isAuthor: true,
-    });
-  });
-
-  it("移除被暂停管理员的管理权限", () => {
-    const { roots } = buildCommentNodes(
-      [comment({ userId: "user-1" })],
       viewer({
         userId: "admin-1",
         isAdmin: true,
         isSuspended: true,
       }),
-    );
-
-    expect(roots).toHaveLength(1);
-    expect(roots[0]).toMatchObject({
-      canDelete: false,
-      canEdit: false,
-      canModerate: false,
-      canReact: false,
-      canReply: false,
-      isAuthor: false,
-    });
+    ]) {
+      const { roots } = buildCommentNodes([comment()], currentViewer);
+      expect(roots).toHaveLength(1);
+      expect(roots[0]).toMatchObject({
+        canDelete: false,
+        canEdit: false,
+        canModerate: false,
+        canReact: false,
+        canReply: false,
+        isAuthor: currentViewer.userId === "user-1",
+      });
+    }
   });
 
   it("为可见回复保留已删除占位但省略附件", () => {
@@ -152,33 +160,35 @@ describe("评论序列化权限", () => {
     expect(roots[0].replies).toHaveLength(1);
   });
 
-  it("从软封禁评论中移除写入权限", () => {
-    const authorView = buildCommentNodes(
-      [comment({ status: "softbanned" })],
-      viewer(),
-    );
-    const adminView = buildCommentNodes(
-      [comment({ status: "softbanned" })],
-      viewer({ isAdmin: true, userId: "admin-1" }),
-    );
-
-    expect(authorView.roots[0]).toMatchObject({
-      canDelete: false,
-      canEdit: false,
-      canReact: false,
-      canReply: false,
-      status: "active",
-    });
-    expect(adminView.roots[0]).toMatchObject({
-      canDelete: false,
-      canEdit: false,
-      canReact: false,
-      canReply: false,
-      status: "softbanned",
-    });
+  it("comment.locked-action-projection", () => {
+    for (const status of ["deleted", "softbanned"] as const) {
+      for (const currentViewer of [
+        viewer(),
+        viewer({ isAdmin: true, userId: "admin-1" }),
+      ]) {
+        const { roots } = buildCommentNodes(
+          [
+            comment({ status }),
+            comment({
+              id: "visible-reply",
+              parentId: "comment-1",
+              rootId: "comment-1",
+            }),
+          ],
+          currentViewer,
+        );
+        expect(roots).toHaveLength(1);
+        expect(roots[0]).toMatchObject({
+          canDelete: false,
+          canEdit: false,
+          canReact: false,
+          canReply: false,
+        });
+      }
+    }
   });
 
-  it("仅向已认证查看者暴露附件操作", () => {
+  it("comment.attachment-action-projection", () => {
     const rawComment = comment({ attachments: [attachment()] });
 
     const anonymous = buildCommentNodes(

@@ -109,7 +109,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         name: "catalog_bus_timetable_get",
         arguments: {
           locale: "zh-cn",
-          mode: "summary",
+          mode: "default",
         },
       });
       const busSummaryPayload = parseTextContent(busSummaryResult) as {

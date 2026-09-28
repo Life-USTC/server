@@ -127,13 +127,7 @@ export const publicationSourceDescriptorSchema = z.strictObject({
   seedUrls: z.array(urlSchema).max(100).optional(),
   aliases: z.array(z.string().trim().min(1).max(200)).max(100).optional(),
   discoveryOnly: z.boolean().optional(),
-  maxImagesPerPage: z
-    .number()
-    .int()
-    .positive()
-    .max(1_000)
-    .nullable()
-    .optional(),
+  maxImagesPerPage: z.number().int().min(1).max(1_000).nullable().optional(),
 });
 
 const publicationItemBaseSchema = {

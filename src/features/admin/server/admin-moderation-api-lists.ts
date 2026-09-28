@@ -1,6 +1,10 @@
 import type { AdminCommentStatusFilter } from "@/features/admin/lib/admin-moderation-filters";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
+  auditCommentIdentityRead,
+  requireCommentIdentityModerator,
+} from "./admin-comment-identity-read";
+import {
   adminDescriptionInclude,
   buildAdminDescriptionWhere,
 } from "./admin-description-filters";
@@ -24,6 +28,7 @@ export async function listAdminModerationComments({
   const where = buildCommentWhere(status);
 
   return withUserDbContext(adminUserId, async (tx) => {
+    await requireCommentIdentityModerator(tx, adminUserId);
     const [data, total] = await Promise.all([
       tx.comment.findMany({
         where,
@@ -68,6 +73,12 @@ export async function listAdminModerationComments({
       tx.comment.count({ where }),
     ]);
 
+    await auditCommentIdentityRead({
+      adminUserId,
+      channel: "rest",
+      client: tx,
+      comments: data,
+    });
     return { data, total };
   });
 }

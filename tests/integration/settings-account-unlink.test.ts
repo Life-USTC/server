@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { unlinkSettingsAccount } from "@/features/settings/server/settings-account-unlink";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
@@ -13,6 +13,8 @@ async function unlink(provider: string) {
 
 describe("settings account unlink database boundary", () => {
   beforeAll(async () => {
+    vi.stubEnv("AUTH_GOOGLE_ID", "test-google");
+    vi.stubEnv("AUTH_GOOGLE_SECRET", "test-google-secret");
     const user = await fixturePrisma.user.create({
       data: {
         email: `${marker}@example.test`,
@@ -44,6 +46,7 @@ describe("settings account unlink database boundary", () => {
   });
 
   afterAll(async () => {
+    vi.unstubAllEnvs();
     if (userId) await fixturePrisma.user.deleteMany({ where: { id: userId } });
     await Promise.all([
       authPrisma.$disconnect(),
@@ -75,7 +78,7 @@ describe("settings account unlink database boundary", () => {
         ) AS "publicCanExecute"
       FROM pg_catalog.pg_proc AS procedure
       WHERE procedure.oid = pg_catalog.to_regprocedure(
-        'public.unlink_settings_account(text,text)'
+        'public.remove_sign_in_method(text,text,text,jsonb)'
       )
     `;
 

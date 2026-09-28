@@ -8,6 +8,9 @@ export default defineConfig({
     // after every test has passed, and that failed outcome fails the
     // specification evidence gate.
     disableConsoleIntercept: true,
+    // Type-graph and compiler audits share the coverage runner with ordinary
+    // unit tests; bound CI concurrency to avoid CPU/heap contention.
+    maxWorkers: process.env.CI ? 2 : undefined,
     reporters: process.env.SPEC_EVIDENCE_DIR
       ? [
           "default",

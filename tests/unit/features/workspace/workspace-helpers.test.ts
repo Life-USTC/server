@@ -13,6 +13,7 @@ function session(startTime: number, endTime: number): SessionItem {
   return {
     id: `${startTime}-${endTime}`,
     sectionJwId: 1,
+    sectionCode: "COURSE.01",
     courseName: "Course",
     date: new Date("2026-05-22T00:00:00.000Z"),
     startTime,
@@ -76,6 +77,6 @@ describe("仪表盘辅助函数", () => {
       unscheduled,
     ]);
     expect(result.dueToday).toEqual([today]);
-    expect(result.dueWithin3Days).toEqual([today, soon]);
+    expect(result.dueWithin3Days).toEqual([soon]);
   });
 });

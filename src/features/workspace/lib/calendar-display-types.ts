@@ -6,6 +6,7 @@ export type CalendarSessionEvent = {
   location?: string | null;
   startTime?: number | null;
   teacherDisplay?: string | null;
+  sectionCode?: string | null;
 };
 
 export type CalendarExamEvent = {

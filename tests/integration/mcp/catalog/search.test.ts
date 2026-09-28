@@ -173,7 +173,7 @@ describe("学期查询工具", () => {
     }>("catalog_semester_list", {
       page: 1,
       limit: 10,
-      mode: "summary",
+      mode: "default",
     });
 
     expect(Array.isArray(result.data)).toBe(true);

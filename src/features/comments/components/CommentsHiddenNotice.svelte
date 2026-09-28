@@ -9,7 +9,7 @@ export let signInHref: string;
 </script>
 
 <Alert.Root>
-  <Alert.Description>{commentCopy.hiddenNotice.replace("{count}", String(hiddenCount))}</Alert.Description>
+  <Alert.Description>{(hiddenCount === 1 ? commentCopy.hiddenNoticeOne : commentCopy.hiddenNotice).replace("{count}", String(hiddenCount))}</Alert.Description>
   <Alert.Action>
     <Button href={signInHref} variant="outline">
       {commentCopy.loginToView}

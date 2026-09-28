@@ -43,7 +43,7 @@ $: isEmpty =
               <Item.Content class="min-w-0">
                 <Item.Title>{session.courseName}</Item.Title>
                 <Item.Description>
-                  {session.location}
+                  {#if session.sectionCode}{session.sectionCode} · {/if}{session.location}
                 </Item.Description>
               </Item.Content>
               <Item.Actions class="shrink-0">

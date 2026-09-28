@@ -86,7 +86,7 @@ const PUBLIC_CATALOG_PATHS = new Set([
 const YOUNG_PUBLIC_PATH =
   /^\/catalog\/young-events(?:\/(?:organizers(?:\/[^/]+)?|[^/]+))?$/;
 
-function isViewerIndependentPublicPath(pathname: string) {
+export function isViewerIndependentPublicPath(pathname: string) {
   return (
     PUBLIC_CATALOG_PATHS.has(pathname) ||
     isCanonicalCatalogDetailPath(pathname) ||

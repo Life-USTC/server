@@ -33,7 +33,13 @@ describe("publication ingestion contract", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("accepts 100 items and rejects 101", () => {
+  it("publications.batch-item-count", () => {
+    expect(
+      publicationIngestionBatchRequestSchema.safeParse({
+        ...fixture,
+        items: [],
+      }).success,
+    ).toBe(false);
     expect(PUBLICATION_INGESTION_BATCH_MAX_ITEMS).toBe(100);
     const items = Array.from(
       { length: PUBLICATION_INGESTION_BATCH_MAX_ITEMS },
@@ -63,7 +69,7 @@ describe("publication ingestion contract", () => {
     ).toBe(false);
   });
 
-  it("keeps bare MIME types and rejects signed Content-Type parameters", () => {
+  it("publications.manifest-content-type", () => {
     const base = {
       ...fixture,
       items: [
@@ -275,7 +281,7 @@ describe("publication ingestion contract", () => {
     }
   });
 
-  it("caps one object manifest at the first-slice 32 MiB limit", () => {
+  it("publications.object-size-limit", () => {
     const manifest = {
       kind: "body_html",
       sha256:

@@ -17,11 +17,24 @@ import {
   personalItemsForDay,
 } from "../lib/personal-calendar-client";
 
-let { copy, locale }: { copy: AppPageCopy; locale: string } = $props();
+let {
+  copy,
+  locale,
+  ownerId,
+}: {
+  copy: AppPageCopy;
+  locale: string;
+  ownerId: string;
+} = $props();
 let selectedDate = $state(shanghaiDayjs().format("YYYY-MM-DD"));
 let view = $state("week");
 let items = $state<PersonalCalendarItem[]>([]);
-let loading = $state(false);
+let loading = $state(true);
+let itemsOwnerId = $state("");
+let itemsLocale = $state("");
+const visibleItems = $derived(
+  itemsOwnerId === ownerId && itemsLocale === locale ? items : [],
+);
 let failed = $state(false);
 let refresh = $state(0);
 const text = $derived(copy.youngEvents.workspace);
@@ -50,7 +63,7 @@ const days = $derived(
         timeZone: "Asia/Shanghai",
       }).format(date.toDate()),
       isToday: key === shanghaiDayjs().format("YYYY-MM-DD"),
-      events: personalItemsForDay(items, key),
+      events: personalItemsForDay(visibleItems, key),
     };
   }),
 );
@@ -66,19 +79,38 @@ $effect(() => {
   const start = range.start.format("YYYY-MM-DD");
   const end = range.start.add(range.count - 1, "day").format("YYYY-MM-DD");
   void refresh;
+  const requestOwnerId = ownerId;
+  const requestLocale = locale;
   const controller = new AbortController();
   loading = true;
   failed = false;
   items = [];
+  itemsOwnerId = requestOwnerId;
+  itemsLocale = requestLocale;
   void fetchPersonalCalendar(start, end, controller.signal)
     .then((result) => {
-      if (!controller.signal.aborted) items = result;
+      if (
+        !controller.signal.aborted &&
+        ownerId === requestOwnerId &&
+        locale === requestLocale
+      )
+        items = result;
     })
     .catch(() => {
-      if (!controller.signal.aborted) failed = true;
+      if (
+        !controller.signal.aborted &&
+        ownerId === requestOwnerId &&
+        locale === requestLocale
+      )
+        failed = true;
     })
     .finally(() => {
-      if (!controller.signal.aborted) loading = false;
+      if (
+        !controller.signal.aborted &&
+        ownerId === requestOwnerId &&
+        locale === requestLocale
+      )
+        loading = false;
     });
   return () => controller.abort();
 });
@@ -103,7 +135,7 @@ function move(direction: number) {
     <Button variant="outline" class={toolbarControlClass} onclick={() => move(1)}>{copy.common.next}</Button>
     <Button href="/workspace/subscriptions/activities" variant="link">{text.manage}</Button>
   </div>
-  {#if loading}<p role="status">{text.loading}</p>
+  {#if loading || itemsOwnerId !== ownerId || itemsLocale !== locale}<p role="status">{text.loading}</p>
   {:else if failed}<p role="alert">{text.failed}</p><Button variant="outline" onclick={() => refresh++}>{text.retry}</Button>
   {:else}
     <div class={view === "day" ? "" : "md:hidden"}><CalendarAgenda {days} emptyLabel={text.empty} label={text.calendar} todayLabel={copy.workspace.todayAction} /></div>

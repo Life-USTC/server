@@ -49,6 +49,8 @@ export async function getTeacherByIdTool({
 
   return jsonToolResult(
     {
+      success: Boolean(teacher),
+      ...(teacher ? {} : { error: "not_found", message: "Teacher not found" }),
       found: Boolean(teacher),
       teacher,
     },

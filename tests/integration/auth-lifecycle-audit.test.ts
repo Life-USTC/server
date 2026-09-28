@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { authPrisma } from "@/lib/db/auth-prisma";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
@@ -10,7 +10,6 @@ const authOrigin = "http://localhost:3000";
 const encoder = new TextEncoder();
 const marker = crypto.randomUUID();
 let userId = "";
-let sessionId = "";
 let unlinkAccountId = "";
 const replayAuditId = `audit-replay-${marker}`;
 
@@ -43,7 +42,6 @@ async function createSessionCookie() {
     },
     select: { id: true },
   });
-  sessionId = session.id;
   const { getBetterAuthInstance } = await import("@/lib/auth/core");
   const context = await getBetterAuthInstance().$context;
   const key = await crypto.subtle.importKey(
@@ -61,11 +59,17 @@ async function createSessionCookie() {
   const value = encodeURIComponent(
     `${token}.${base64(new Uint8Array(signature))}`,
   );
-  return `${context.authCookies.sessionToken.name}=${value}`;
+  return {
+    cookie: `${context.authCookies.sessionToken.name}=${value}`,
+    sessionId: session.id,
+    token,
+  };
 }
 
 describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
   beforeAll(async () => {
+    vi.stubEnv("AUTH_GOOGLE_ID", "test-google");
+    vi.stubEnv("AUTH_GOOGLE_SECRET", "test-google-secret");
     const user = await fixturePrisma.user.create({
       data: {
         email: `auth-lifecycle-${marker}@example.test`,
@@ -78,7 +82,7 @@ describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
               providerAccountId: `github-${marker}`,
             },
             {
-              issuer: "https://google.example",
+              issuer: "https://accounts.google.com",
               provider: "google",
               providerAccountId: `google-${marker}`,
             },
@@ -95,6 +99,7 @@ describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
   });
 
   afterAll(async () => {
+    vi.unstubAllEnvs();
     await fixturePrisma.auditLog.deleteMany({
       where: {
         OR: [{ id: replayAuditId }, { userId }, { subjectUserId: userId }],
@@ -124,52 +129,82 @@ describe("committed Better Auth lifecycle audit", { concurrent: false }, () => {
     ).resolves.toBe(1);
   });
 
-  it("audits profile update, account unlink, and sign-out only after success", async () => {
-    const cookie = await createSessionCookie();
-    const profile = await authRequest("/update-user", cookie, {
-      name: "Private updated name",
-    });
-    expect(profile.status).toBe(200);
-
-    const unlink = await authRequest("/unlink-account", cookie, {
-      accountId: unlinkAccountId,
-    });
-    expect(unlink.status).toBe(200);
-
-    const signOut = await authRequest("/sign-out", cookie);
-    expect(signOut.status).toBe(200);
+  it("audit.action-account-profile-update", async () => {
+    const { cookie, token } = await createSessionCookie();
+    const name = "Private updated name";
+    expect((await authRequest("/update-user", cookie, { name })).status).toBe(
+      200,
+    );
     expect(
-      await fixturePrisma.session.count({ where: { id: sessionId } }),
-    ).toBe(0);
-
+      await fixturePrisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      }),
+    ).toEqual({ name });
     const rows = await fixturePrisma.auditLog.findMany({
-      where: {
-        subjectUserId: userId,
-        action: {
-          in: ["account_profile_update", "account_unlink", "account_sign_out"],
-        },
-      },
-      orderBy: { createdAt: "asc" },
-      select: {
-        action: true,
-        metadata: true,
-        outcome: true,
-        sessionId: true,
-        targetId: true,
-      },
+      where: { subjectUserId: userId, action: "account_profile_update" },
     });
-    expect(rows.map(({ action, outcome }) => ({ action, outcome }))).toEqual([
-      { action: "account_profile_update", outcome: "success" },
-      { action: "account_unlink", outcome: "success" },
-      { action: "account_sign_out", outcome: "success" },
-    ]);
-    expect(rows[0].metadata).toEqual({ changedFields: ["name"] });
-    expect(rows[1].targetId).toBe(unlinkAccountId);
-    expect(rows[2]).toMatchObject({
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      outcome: "success",
+      userId,
+      subjectUserId: userId,
+      metadata: { changedFields: ["name"] },
+    });
+    expect(JSON.stringify(rows)).not.toContain(name);
+    expect(JSON.stringify(rows)).not.toContain(token);
+  });
+
+  it("audit.action-account-unlink", async () => {
+    const { cookie, token } = await createSessionCookie();
+    const secret = "private-provider-access-token";
+    await fixturePrisma.account.update({
+      where: { id: unlinkAccountId },
+      data: { access_token: secret },
+    });
+    expect(
+      (
+        await authRequest("/unlink-account", cookie, {
+          accountId: unlinkAccountId,
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      await fixturePrisma.account.findUnique({
+        where: { id: unlinkAccountId },
+      }),
+    ).toBeNull();
+    const rows = await fixturePrisma.auditLog.findMany({
+      where: { subjectUserId: userId, action: "account_unlink" },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      outcome: "success",
+      userId,
+      subjectUserId: userId,
+      targetId: unlinkAccountId,
+    });
+    expect(JSON.stringify(rows)).not.toContain(secret);
+    expect(JSON.stringify(rows)).not.toContain(token);
+  });
+
+  it("audit.action-account-sign-out", async () => {
+    const { cookie, sessionId, token } = await createSessionCookie();
+    expect((await authRequest("/sign-out", cookie)).status).toBe(200);
+    expect(
+      await fixturePrisma.session.findUnique({ where: { id: sessionId } }),
+    ).toBeNull();
+    const rows = await fixturePrisma.auditLog.findMany({
+      where: { subjectUserId: userId, action: "account_sign_out" },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      outcome: "success",
+      userId,
+      subjectUserId: userId,
       sessionId,
       targetId: sessionId,
     });
-    expect(JSON.stringify(rows)).not.toContain("Private updated name");
-    expect(JSON.stringify(rows)).not.toContain("sessionToken");
+    expect(JSON.stringify(rows)).not.toContain(token);
   });
 });

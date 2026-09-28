@@ -2,6 +2,7 @@ export type AdminOAuthCopy = Record<string, string> & {
   adminSubtitle: string;
   adminTitle: string;
   clientCount: string;
+  clientCountOne: string;
   createClient: string;
 };
 

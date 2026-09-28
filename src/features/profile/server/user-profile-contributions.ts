@@ -86,17 +86,6 @@ export async function loadPublicProfileUploadCount(
   return Number(row?.totalUploads ?? 0n);
 }
 
-export async function loadPublicProfileSectionSubscriptionCount(
-  prisma: ContributionPrisma,
-  userId: string,
-) {
-  const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
-    SELECT public.get_public_profile_section_subscription_count(${userId}) AS count
-  `;
-
-  return Number(row?.count ?? 0n);
-}
-
 export async function buildUserProfileContributions(
   prisma: ContributionPrisma,
   userId: string,
@@ -109,14 +98,16 @@ export async function buildUserProfileContributions(
     userId,
     startDate.toDate(),
   );
-  const contributionMap = new Map(
-    contributionDays.map(({ count, date }) => [date, count]),
-  );
-
   const startDateKey = requireCampusDateKeyForValue(startDate.toDate());
   const todayKey = requireCampusDateKeyForValue(today.toDate());
-  const gridStartKey = campusWeekStartKey(startDateKey);
-  const gridEndKey = addCampusDays(campusWeekStartKey(todayKey), 6);
+  const contributionMap = new Map(
+    contributionDays
+      .filter(({ date }) => date >= startDateKey && date <= todayKey)
+      .map(({ count, date }) => [date, count]),
+  );
+  // Contribution heatmaps retain their Sunday-first row labels.
+  const gridStartKey = campusWeekStartKey(startDateKey, 0);
+  const gridEndKey = addCampusDays(campusWeekStartKey(todayKey, 0), 6);
   const days: ContributionCell[] = campusDateKeyRange(
     gridStartKey,
     gridEndKey,

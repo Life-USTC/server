@@ -68,6 +68,10 @@ async function loadNavigationAggregate(
   options: AggregateOptions = {},
 ): Promise<WorkspaceNavigationAggregate> {
   const referenceNow = shanghaiDayjs(referenceDate);
+  // Exam.examDate is a SQL DATE. Bind calendar-date keys rather than Shanghai
+  // midnight instants, whose UTC date is the previous calendar day.
+  const todayDate = referenceNow.format("YYYY-MM-DD");
+  const tomorrowDate = referenceNow.add(1, "day").format("YYYY-MM-DD");
   const todayStart = referenceNow.startOf("day").toDate();
   const tomorrowStart = referenceNow.add(1, "day").startOf("day").toDate();
   const semesters =
@@ -201,10 +205,10 @@ async function loadNavigationAggregate(
             SELECT "sectionId" FROM active_sections
           )
           AND (
-            exam."examDate" >= ${tomorrowStart}
+            exam."examDate" >= ${tomorrowDate}::date
             OR (
-              exam."examDate" >= ${todayStart}
-              AND exam."examDate" < ${tomorrowStart}
+              exam."examDate" >= ${todayDate}::date
+              AND exam."examDate" < ${tomorrowDate}::date
               AND (
                 (exam."endTime" IS NULL AND exam."startTime" IS NULL)
                 OR exam."endTime" >= ${nowHHmm}

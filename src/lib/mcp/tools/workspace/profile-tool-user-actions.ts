@@ -50,6 +50,7 @@ export async function getMyProfileAction(
   if (!user) {
     return jsonToolResult({
       success: false,
+      error: "not_found",
       message: "User not found",
     });
   }

@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { mcpModeInputSchema } from "@/lib/mcp/tools/_shared/helper-schemas";
+import { listMyTodosInputSchema } from "@/lib/mcp/tools/workspace/profile-tool-helpers";
+import { readSpecification } from "../../../../scripts/specifications/yaml";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: vi.fn(),
@@ -18,7 +22,36 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
 }
 
 describe("jsonToolResult canonical structured output", () => {
-  it("treats summary as a shape-compatible alias for default", () => {
+  it("mcp.output-mode-input", async (context) => {
+    const contract = await semanticContract(context.task.name, "enum_input");
+    contract.equal("/surface", "service");
+    contract.equal("/operation", "mcpModeInputSchema");
+    contract.equal(
+      "/input",
+      Object.entries(listMyTodosInputSchema).find(
+        ([, schema]) => schema === mcpModeInputSchema,
+      )?.[0],
+    );
+    const spec = await readSpecification<{
+      requirements: {
+        id: string;
+        expectation?: { values: string[]; default: string };
+      }[];
+    }>("docs/features/mcp.yaml");
+    const expectation = spec.requirements.find(
+      (rule) => rule.id === "mcp.output-mode-input",
+    )?.expectation;
+    if (!expectation) throw new Error("Missing MCP mode input expectation");
+    contract.equal("/default", mcpModeInputSchema.parse(undefined));
+    contract.set("/values", mcpModeInputSchema.removeDefault().options);
+    for (const value of expectation.values)
+      expect(mcpModeInputSchema.parse(value)).toBe(value);
+    for (const value of ["summary", "", "DEFAULT", " full ", null, 0, {}]) {
+      expect(mcpModeInputSchema.safeParse(value).success).toBe(false);
+    }
+    contract.recordVitest(context);
+  });
+  it("preserves canonical pagination and collection fields in default mode", () => {
     const rawResult = jsonToolResult(
       {
         data: Array.from({ length: 12 }, (_, index) => ({
@@ -32,7 +65,7 @@ describe("jsonToolResult canonical structured output", () => {
           totalPages: 5,
         },
       },
-      { mode: "summary" },
+      { mode: "default" },
     );
     const result = parseToolText(rawResult);
 
@@ -52,7 +85,7 @@ describe("jsonToolResult canonical structured output", () => {
     );
   });
 
-  it("keeps collection fields as arrays in summary compatibility mode", () => {
+  it("keeps collection fields as arrays in default mode", () => {
     const result = parseToolText(
       jsonToolResult(
         {
@@ -61,7 +94,7 @@ describe("jsonToolResult canonical structured output", () => {
             title: `Homework ${index + 1}`,
           })),
         },
-        { mode: "summary" },
+        { mode: "default" },
       ),
     );
 
@@ -158,4 +191,25 @@ describe("jsonToolResult canonical structured output", () => {
       nested: { finite: 1, nonFinite: null },
     });
   });
+});
+
+it("mcp.text-formatted-json", () => {
+  const cases = [
+    { input: { title: "Item" }, expected: { title: "Item", success: true } },
+    {
+      input: { success: false, error: "not_found" },
+      expected: { success: false, error: "not_found" },
+    },
+    { input: [{ id: 1 }], expected: { success: true, result: [{ id: 1 }] } },
+    { input: "plain", expected: { success: true, result: "plain" } },
+    { input: 42, expected: { success: true, result: 42 } },
+    { input: null, expected: { success: true, result: null } },
+  ];
+  for (const mode of ["default", "full"] as const) {
+    for (const { input, expected } of cases) {
+      const result = jsonToolResult(input, { mode });
+      expect(result.structuredContent).toEqual(expected);
+      expect(parseToolText(result)).toEqual(expected);
+    }
+  }
 });

@@ -16,70 +16,226 @@ access:
   agent: Can read the complete personal date-range calendar through REST, GraphQL and MCP with workspace.calendar:read.
     REST/GraphQL use pagination.
 requirements:
+- id: calendar.activity-owner-transition
+  category: privacy
+  rule: Academic and activity-only calendars bind private page data, activity requests and rendered state to the shell owner. Account changes reload private page data, clear previous-owner records, fetch new-owner activities even for the same date range and locale, and ignore previous-owner responses that settle later.
+  acceptance:
+    given: Two isolated owners have different subscribed activities in the same date range, with or without academic subscriptions.
+    when: The browser changes owners through same-route client navigation while the previous activity response is already displayed or still held in flight.
+    then:
+    - Both calendar variants fetch and display only the new owner's activities without a document reload; academic course records also change owners.
+    - Previous-owner course and activity records never render together with the new owner's shell identity, including after the held response settles.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/activity-owner.test.ts
+      name: calendar.activity-owner-transition
 - id: calendar.personal-feed-http-cache
   category: privacy
-  rule: Personal calendar feed responses and revoked-credential errors use private, no-store. Authorization
-    runs before the user-scoped server-side rendering cache and conditional ETag handling.
+  rule: Personal calendar HTTP responses and revoked-credential errors use private, no-store.
   acceptance:
-  - id: calendar.personal-feed-http-cache.revoked-token
-    given: A previously valid personal calendar feed token has been revoked.
-    when: A request presents the revoked token for that user.
+    given: A persisted owner has a personal calendar with one dated item.
+    when: The actual feed handler returns a cold 200, authorized ETag 304 and wrong-credential 410.
     then:
-    - Authorization rejects the token before cached calendar identity or data can be read.
-    tests:
-    - file: tests/unit/features/calendar/calendar-route-user-access.test.ts
-      name: rejects a revoked token before any rendered cache can be read
+    - All three responses use private, no-store.
+    test:
+      file: tests/integration/calendar-feed-contract.test.ts
+      name: calendar.personal-feed-http-cache
 - id: calendar.views
   category: presentation
-  rule: Course-subscribed workspaces provide semester, month, and week views with subscribed activities
-    overlaid. Activity-only workspaces provide day, week, and month views without requiring course subscriptions.
-- id: calendar.retired-sections
-  category: consistency
-  rule: Current/public collection calendars, personal calendar views, feeds, and calendar event tools
-    exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical
-    reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription
-    relationships.
+  rule: Personal calendars provide day, week, and month views with individually subscribed activities.
+    Course subscriptions add a semester view while preserving day access on desktop and mobile.
+  rationale: Day, week, and month remain useful with or without courses; semester adds the academic planning
+    range without removing a shorter view. A day agenda preserves course context and subscription badges.
+  acceptance:
+    given: One isolated owner has a course and an activity subscription; another has only the same activity
+      subscription.
+    when: The actual desktop academic semester/month/week grids, desktop/mobile day agendas, and activity-only
+      day/week/month views render; users navigate days and reload the selected day URL.
+    then:
+    - Academic grids include course events and subscribed activities; day agendas include only events
+      on the selected day.
+    - Previous day, next day, and today select the expected campus date; reloading preserves the selected
+      day and its events.
+    - Every activity-only mode displays the activity without requiring or leaking course subscriptions.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.views
 - id: calendar.mobile-agenda-first
   category: presentation
-  rule: At mobile widths, the personal calendar presents the selected week as a vertically readable agenda
-    with time, title, type, and available location context. Previous week, today, next week, and iCal
-    actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable
-    grid views.
-- id: calendar.week-starts-sunday
+  rule: At mobile widths, the personal academic calendar offers day and week as vertically readable agendas
+    with time, title, type, and available location context. Previous day/week, today, next day/week, and
+    iCal actions remain directly accessible without page-level horizontal scrolling; desktop also offers
+    month and semester grids.
+  acceptance:
+    given: An isolated signed-in course subscriber opens a selected week on a 390px screen.
+    when: The browser reads the agenda, uses its iCal action, navigates weeks, and switches between day
+      and week.
+    then:
+    - Week mode shows seven vertical day groups and real event context; day mode shows one day group.
+    - Day/week navigation and today/actions controls have at least 44px touch bounds and copied iCal links
+      are usable.
+    - Navigation preserves the agenda without page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/test.ts
+      name: calendar.mobile-agenda-first
+- id: calendar.week-starts-monday
   category: presentation
-  rule: Academic grids and the second-classroom activity calendar start on Sunday.
+  rule: All personal academic and activity calendar grids start on Monday and end on Sunday. Date cells
+    remain aligned with their weekday headers. The public second-classroom calendar is a separate Sunday-start grid.
+  rationale: One weekday order keeps dates in the same columns when viewers change mode or add course
+    subscriptions, matching the campus workweek.
+  acceptance:
+    given: Two isolated owners open academic and activity-only personal calendars in English.
+    when: The real academic semester/month/week grids and activity week/month grids render, followed by
+      the anonymous public Section lecture table.
+    then:
+    - Academic and activity grids order weekday headers Monday through Sunday.
+    - Date cells and their actual course events align with the matching weekday column.
+    - The public Section lecture table retains the correct date, teaching week, time and location cells;
+      it does not present a weekday grid.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.week-starts-monday
 - id: calendar.subscription-badges
   category: presentation
-  rule: Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as
-    a localized top-right badge in desktop grids and mobile agendas. Regular subscriptions show no badge;
-    course titles and public calendars are unchanged.
+  rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
+    grids and desktop/mobile day or week agendas. Regular subscriptions show no badge. Web course titles
+    and public calendar content remain unchanged.
+  acceptance:
+    given: A subscribed course cycles through regular, teaching assistant and auditor in Chinese and English.
+    when: The actual personal calendar is rendered in week and day modes at desktop and mobile widths
+      after each update.
+    then:
+    - Only non-regular roles render the correct localized badge on course cards.
+    - Course titles remain identical to regular-role titles and badges stay within card bounds.
+    - No viewport gains page-level horizontal overflow.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/subscription-badge.test.ts
+      name: calendar.subscription-badges
 - id: calendar.event-card-types
   category: presentation
   rule: Calendar event cards carry course, exam, homework, todo, and individually subscribed Young activity
-    events.
+    events. Their times use 24-hour Asia/Shanghai campus time regardless of the server or viewer timezone;
+    agendas order timestamp-based deadlines alongside course and exam slots by that same campus time.
+  acceptance:
+    given: An isolated course subscriber owns real schedule, exam, homework, todo and individually subscribed
+      activity events in one week.
+    when: The actual desktop grid and mobile agenda render that selected week in UTC and Asia/Shanghai browser contexts.
+    then:
+    - All five event kinds are visible with their correct campus times and titles in both timezones.
+    - The agenda places the 09:00 class, 12:00 homework, 13:00 exam and 15:00 todo in chronological order.
+    - Course, exam and activity cards retain their respective navigation destinations.
+    test:
+      file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
+      name: calendar.event-card-types
 - id: calendar.feed-cache-refresh
   category: consistency
-  rule: Personal iCal feeds serve a cached export while refreshing stale content asynchronously. Serving
-    instances periodically revalidate shared cached exports so completed background refreshes become visible.
-    Repeated stale reads briefly coalesce refresh requests; failed enqueue attempts remain retryable,
-    and user writes still request a rebuild independently.
+  rule: A stale cached personal export remains available while an asynchronous refresh is requested.
   acceptance:
-  - id: calendar.feed-cache-refresh.consumer-update-visible
+    given: A cached export has passed its freshness interval.
+    when: A caller reads it while the refresh enqueue remains pending.
+    then:
+    - The stale export returns immediately.
+    - A deferred refresh is requested without rebuilding on the read path.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-cache-refresh
+- id: calendar.teaching-assistant-homework
+  category: consistency
+  rule: Personal pending-homework reads and calendar export sources preserve actual completion records.
+    For teaching-assistant subscriptions, incomplete homework stops being pending at its due instant;
+    undated homework stays pending in workspace lists but produces no dated calendar event. Unified calendar
+    events and ICS include only future dated, uncompleted TA homework.
+  acceptance:
+    given: A teaching-assistant subscription has past, exact-deadline, future, undated and actually completed
+      homework.
+    when: The real pending read, unified calendar event service and ICS exporter read the same owner at
+      the due boundary.
+    then:
+    - Only future uncompleted dated homework enters unified calendar and ICS.
+    - Undated homework remains pending but has no dated calendar event.
+    - Existing completion timestamps are unchanged.
+    test:
+      file: tests/integration/calendar-teaching-assistant-contract.test.ts
+      name: calendar.teaching-assistant-homework
+- id: calendar.revoked-feed-access
+  category: privacy
+  rule: The personal-feed access gate rejects a revoked credential with 410 and private, no-store, without
+    returning an authorized user/cache identity.
+  acceptance:
+    given: A formerly valid credential differs from the stored current feed token.
+    when: The feed access gate resolves that credential.
+    then:
+    - Access is denied with 410 and private, no-store.
+    - No authorized user/cache identity is returned.
+    test:
+      file: tests/unit/features/calendar/calendar-route-user-access.test.ts
+      name: calendar.revoked-feed-access
+- id: calendar.feed-refresh-visible
+  category: consistency
+  rule: After a separate consumer stores a refreshed export, the serving instance observes it on shared-cache
+    revalidation without rebuilding the export on the read path.
+  acceptance:
     given: A serving isolate has a stale personal calendar export while a separate consumer writes a fresh
       export to shared KV.
     when: The serving isolate reaches its next shared-cache revalidation after the consumer finishes.
     then:
     - The served calendar contains the refreshed export.
     - The serving isolate does not rebuild the export on the request path.
-    tests:
-    - file: tests/unit/features/calendar/calendar-export-cache.test.ts
-      name: serving isolate observes a consumer's KV refresh after revalidation
-- id: calendar.teaching-assistant-homework
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-refresh-visible
+- id: calendar.feed-auth-before-cache
+  category: privacy
+  rule: The personal feed route authorizes its current credential before reading any export cache. Authorized
+    requests support strong, weak and multiple If-None-Match ETag forms; revoked credentials never receive
+    cached content or a 304 response.
+  acceptance:
+    given: A real owner has a cached personal ICS with an ETag and a current feed credential.
+    when: The actual feed route handles strong/weak/multiple If-None-Match, then the credential is rotated
+      in the database.
+    then:
+    - Authorized matching conditions return empty 304 responses.
+    - A revoked credential returns 410 before any export-cache read, despite a matching cached ETag.
+    - The replacement credential can still retrieve the authorized conditional response.
+    test:
+      file: tests/integration/calendar-feed-contract.test.ts
+      name: calendar.feed-auth-before-cache
+- id: calendar.feed-refresh-coalescing
   category: consistency
-  rule: Personal calendar views, event sources, and iCal feeds preserve actual completion records but
-    exclude a teaching-assistant homework from pending homework events at or after its due instant; no-deadline
-    TA homework remains pending. Feed caching uses a short freshness window so due-time changes are observed
-    promptly.
+  rule: Repeated stale reads coalesce refresh requests during a bounded interval.
+  acceptance:
+    given: Repeated concurrent readers observe the same stale export.
+    when: Reads occur within successive refresh coalescing intervals.
+    then:
+    - The cached content remains readable.
+    - One refresh request is emitted per coalescing interval.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-refresh-coalescing
+- id: calendar.feed-enqueue-retry
+  category: consistency
+  rule: A failed refresh enqueue remains retryable on subsequent reads.
+  acceptance:
+    given: A stale private export exists and its refresh queue sender fails.
+    when: The actual cache returns the stale export, then the sender recovers and another read occurs.
+    then:
+    - The failed enqueue is observed without blocking the stale response.
+    - The subsequent read retries enqueue successfully rather than remaining suppressed by the failed
+      attempt.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-enqueue-retry
+- id: calendar.feed-write-rebuild-independent
+  category: consistency
+  rule: A source write requests a rebuild independently of stale-read refresh coalescing.
+  acceptance:
+    given: A stale read has already requested a refresh.
+    when: A successful source write requests its calendar rebuild during that cooldown.
+    then:
+    - The write still emits its own rebuild request.
+    test:
+      file: tests/unit/features/calendar/calendar-export-cache.test.ts
+      name: calendar.feed-write-rebuild-independent
 capabilities:
   personal-calendar-view:
     title: Personal Calendar View
@@ -120,18 +276,81 @@ capabilities:
         - Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current
           or past term.
     presentation:
+      kind: fields
+      views:
+        web-agenda:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          # Day/week/month views identify events by their actual dates. Semester
+          # selection belongs to semester navigation, not every event card.
+          tertiary:
+          - event.id
+        # Desktop week/month/semester cells show the name and time first. Full
+        # place/teacher context remains available through the actual tooltip.
+        web-desktop-grid:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
+        mcp-workspace-calendar-event-list:
+          primary:
+          - events.at
+          - events.endsAt
+          - events.type
+          secondary:
+          - events.payload
+          tertiary: []
+        mcp-workspace-calendar-timeline-get:
+          primary:
+          - events.at
+          - events.endsAt
+          - events.type
+          secondary:
+          - events.payload
+          tertiary: []
+        mcp-workspace-schedule-list:
+          primary:
+          - schedules.date
+          - schedules.startTime
+          - schedules.endTime
+          - schedules.section.course.nameCn
+          secondary:
+          - schedules.customPlace
+          - schedules.teachers.nameCn
+          - schedules.section.code
+          - schedules.id
+          tertiary: []
+        mcp-workspace-exam-list:
+          primary:
+          - exams.examDate
+          - exams.startTime
+          - exams.endTime
+          - exams.section.course.nameCn
+          secondary:
+          - exams.examMode
+          - exams.examRooms
+          - exams.section.semester.nameCn
+          - exams.id
+          tertiary: []
       items:
-      - calendarEvents (schedules + exams + homeworks + todos + subscribed young events)
-      - schedule.date, startTime, endTime
-      - exam.examDate, startTime, endTime, examMode, examRooms
-      - homework.submissionDueAt
-      - todo.dueAt
-      - Week numbers
-      - Weekday labels (Sun-Sat)
+      - Week numbers and Monday-first weekday labels
       - Mobile week agenda
       filters:
       - View tabs
       - Previous/next semester controls
+    requirement_refs:
+    - section.retired-read-semantics
   section-calendar-view:
     title: Section Calendar View
     auth: anon
@@ -143,17 +362,22 @@ capabilities:
       - /catalog/sections/[jwId]
     rest: stable
     presentation:
-      items:
-      - calendarMonthStart (Month view)
-      - calendarEvents[]
-      - schedule.date, startTime, endTime
-      - schedule.room (with building/campus)
-      - schedule.teachers[].namePrimary
-      - exam.examDate, startTime, endTime
-      - exam.examRooms[]
-      - weekLabelTemplate (Week numbers)
-      - weekdayLabels (Sun-Sat)
-      - todayKey (Today highlight)
+      kind: fields
+      views:
+        web:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
+    requirement_refs:
+    - calendar.week-starts-monday
+    - section.retired-read-semantics
   event-card:
     title: Event Card
     auth: anon
@@ -161,8 +385,110 @@ capabilities:
     rest: unavailable
     mcp: unavailable
     presentation:
+      kind: fields
+      views:
+        web-agenda-class:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
+        web-agenda-exam:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          - event.type
+          secondary:
+          - event.mode
+          - event.location
+          tertiary:
+          - event.id
+        web-agenda-homework:
+          primary:
+          - event.title
+          - event.dueAt
+          - event.type
+          secondary:
+          - event.description
+          tertiary:
+          - event.id
+        web-agenda-todo:
+          primary:
+          - event.title
+          - event.dueAt
+          - event.type
+          secondary:
+          - event.priority
+          - event.content
+          tertiary:
+          - event.id
+        web-desktop-grid-class:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          - event.teachers
+          tertiary:
+          - event.id
+        web-desktop-grid-exam:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.mode
+          - event.location
+          tertiary:
+          - event.id
+        web-desktop-grid-homework:
+          primary:
+          - event.title
+          - event.dueAt
+          secondary:
+          - event.description
+          tertiary:
+          - event.id
+        web-desktop-grid-todo:
+          primary:
+          - event.title
+          - event.dueAt
+          secondary:
+          - event.priority
+          - event.content
+          tertiary:
+          - event.id
+        web-agenda-activity:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          tertiary:
+          - event.id
+        web-desktop-grid-activity:
+          primary:
+          - event.title
+          - event.startAt
+          - event.endAt
+          secondary:
+          - event.location
+          tertiary:
+          - event.id
       items:
-      - Event type (schedule/exam/homework/todo)
-      - event.title or section.course.namePrimary
-      - event.time or first metadata segment
-      - Details/popover may show location
+      - Event popovers expose the available location.
+    requirement_refs:
+    - section.retired-read-semantics
+rationale:
+- Personal calendar day, week and month events are identified by their actual dates; semester context belongs to navigation instead of repeating on every event.
+- Calendar agenda views apply on desktop day view and mobile day/week/month/semester views. Desktop grid views apply to week/month/semester cells, where the business title and time identify each item; full class location and teachers remain available in the tooltip. Event type labels are explicit in the agenda, while compact grid cells use established type styling and exam labels.
+- Class and exam cards have start/end times and locations. Homework and todo cards have a due time and task context, so separate field views avoid pretending every event has a location or end time.
+- Campus event time is shared by calendar cards, agenda ordering and overview focus/week cards. Explicit Shanghai formatting prevents the server and browser host timezone from shifting a deadline, and the 24-hour display matches academic timetable slots.

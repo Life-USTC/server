@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   buildUserProfileContributions,
+  loadPublicProfileUploadCount,
   loadUserProfileContributionDays,
 } from "@/features/profile/server/user-profile-contributions";
+import { getUserProfileById } from "@/features/profile/server/user-profile-page-data";
 import { prisma as runtimePrisma } from "@/lib/db/prisma";
 import { createFixturePrisma, disconnectTestPrisma } from "../shared/prisma";
 
@@ -15,6 +17,8 @@ describe("public profile contribution aggregation", {
 }, () => {
   let userId = "";
   let otherUserId = "";
+  let sectionId = 0;
+  let homeworkId = "";
 
   beforeAll(async () => {
     const section = await fixturePrisma.section.findFirst({
@@ -27,6 +31,7 @@ describe("public profile contribution aggregation", {
       );
     }
 
+    sectionId = section.id;
     const marker = crypto.randomUUID();
     const [user, otherUser] = await Promise.all([
       fixturePrisma.user.create({
@@ -59,7 +64,7 @@ describe("public profile contribution aggregation", {
           userId,
         },
         {
-          body: "included softbanned comment",
+          body: "excluded softbanned comment",
           createdAt: new Date("2026-03-01T16:00:00.000Z"),
           sectionId: section.id,
           status: "softbanned",
@@ -83,10 +88,10 @@ describe("public profile contribution aggregation", {
     });
     await fixturePrisma.comment.create({
       data: {
-        body: "other user softbanned comment",
+        body: "other user public comment",
         createdAt: new Date("2026-03-04T16:00:00.000Z"),
         sectionId: section.id,
-        status: "softbanned",
+        status: "active",
         userId: otherUserId,
       },
     });
@@ -117,6 +122,19 @@ describe("public profile contribution aggregation", {
       ],
     });
 
+    const publicComment = await fixturePrisma.comment.findFirstOrThrow({
+      where: { userId, status: "active", body: "included active comment" },
+    });
+    const publicUploads = await fixturePrisma.upload.findMany({
+      where: { userId },
+    });
+    await fixturePrisma.commentAttachment.createMany({
+      data: publicUploads.map((upload) => ({
+        commentId: publicComment.id,
+        uploadId: upload.id,
+      })),
+    });
+
     const includedHomework = await fixturePrisma.homework.create({
       data: {
         createdAt: new Date("2026-03-01T18:00:00.000Z"),
@@ -126,6 +144,7 @@ describe("public profile contribution aggregation", {
       },
       select: { id: true },
     });
+    homeworkId = includedHomework.id;
     await Promise.all([
       fixturePrisma.homework.create({
         data: {
@@ -168,6 +187,176 @@ describe("public profile contribution aggregation", {
     ]);
   });
 
+  it("user.public-comment-contribution-privacy", async () => {
+    const expected = await loadUserProfileContributionDays(
+      runtimePrisma,
+      userId,
+      startAt,
+    );
+    const cases = [
+      { status: "softbanned" as const },
+      { status: "deleted" as const },
+      { visibility: "logged_in_only" as const },
+      { isAnonymous: true },
+      { deletedAt: new Date() },
+    ];
+    const ids: string[] = [];
+    try {
+      for (const attributes of cases) {
+        const comment = await fixturePrisma.comment.create({
+          data: {
+            body: "Excluded profile contribution",
+            sectionId,
+            userId,
+            createdAt: new Date("2026-03-06T12:00:00Z"),
+            ...attributes,
+          },
+        });
+        ids.push(comment.id);
+        expect(
+          await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+        ).toEqual(expected);
+      }
+      const named = await fixturePrisma.comment.create({
+        data: {
+          body: "Named public contribution",
+          sectionId,
+          userId,
+          createdAt: new Date("2026-03-06T12:00:00Z"),
+        },
+      });
+      ids.push(named.id);
+      expect(
+        await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+      ).toContainEqual({ date: "2026-03-06", count: 1 });
+      const profile = await getUserProfileById(userId);
+      expect(profile?.user._count.comments).toBe(3); // two baseline named rows plus this one, regardless of date window
+      await fixturePrisma.comment.update({
+        where: { id: named.id },
+        data: { isAnonymous: true },
+      });
+      expect(
+        await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+      ).toEqual(expected);
+      expect((await getUserProfileById(userId))?.user._count.comments).toBe(2);
+    } finally {
+      await fixturePrisma.comment.deleteMany({ where: { id: { in: ids } } });
+    }
+  });
+
+  it("user.public-upload-contribution-privacy", async () => {
+    const expected = await loadPublicProfileUploadCount(
+      runtimePrisma,
+      userId,
+      startAt,
+    );
+    const expectedDays = await loadUserProfileContributionDays(
+      runtimePrisma,
+      userId,
+      startAt,
+    );
+    const comments: string[] = [];
+    const uploads: string[] = [];
+    try {
+      for (const attributes of [
+        null,
+        { status: "softbanned" as const },
+        { status: "deleted" as const },
+        { visibility: "logged_in_only" as const },
+        { isAnonymous: true },
+        { deletedAt: new Date() },
+      ]) {
+        const upload = await fixturePrisma.upload.create({
+          data: {
+            userId,
+            key: `profile-privacy/${crypto.randomUUID()}`,
+            filename: "private.txt",
+            size: 1,
+            createdAt: new Date("2026-03-06T12:00:00Z"),
+          },
+        });
+        uploads.push(upload.id);
+        if (attributes) {
+          const comment = await fixturePrisma.comment.create({
+            data: {
+              userId,
+              sectionId,
+              body: "Excluded attachment",
+              createdAt: new Date("2026-03-06T12:00:00Z"),
+              ...attributes,
+              attachments: { create: { uploadId: upload.id } },
+            },
+          });
+          comments.push(comment.id);
+        }
+        expect(
+          await loadPublicProfileUploadCount(runtimePrisma, userId, startAt),
+        ).toBe(expected);
+        expect(
+          await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+        ).toEqual(expectedDays);
+      }
+      const attached = await fixturePrisma.comment.create({
+        data: {
+          userId,
+          sectionId,
+          body: "Publish attachment",
+          createdAt: new Date("2026-03-06T12:00:00Z"),
+          attachments: { create: { uploadId: uploads[0] } },
+        },
+      });
+      comments.push(attached.id);
+      expect(
+        await loadPublicProfileUploadCount(runtimePrisma, userId, startAt),
+      ).toBe(expected + 1);
+      expect(
+        await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+      ).toContainEqual({ date: "2026-03-06", count: 2 });
+      await fixturePrisma.comment.update({
+        where: { id: attached.id },
+        data: { visibility: "logged_in_only" },
+      });
+      expect(
+        await loadPublicProfileUploadCount(runtimePrisma, userId, startAt),
+      ).toBe(expected);
+      expect(
+        await loadUserProfileContributionDays(runtimePrisma, userId, startAt),
+      ).toEqual(expectedDays);
+    } finally {
+      await fixturePrisma.comment.deleteMany({
+        where: { id: { in: comments } },
+      });
+      await fixturePrisma.upload.deleteMany({ where: { id: { in: uploads } } });
+    }
+  });
+
+  it("user.private-workspace-profile-exclusion", async () => {
+    const before = await getUserProfileById(userId);
+    expect(before).not.toHaveProperty("sectionCount");
+    expect(before?.user._count).not.toHaveProperty("subscribedSections");
+    await fixturePrisma.userSectionSubscription.create({
+      data: { userId, sectionId },
+    });
+    await fixturePrisma.homeworkCompletion.deleteMany({
+      where: { userId, homeworkId },
+    });
+    try {
+      expect(await getUserProfileById(userId)).toEqual(before);
+      await fixturePrisma.homeworkCompletion.create({
+        data: { userId, homeworkId },
+      });
+      expect(await getUserProfileById(userId)).toEqual(before);
+      const [row] = await runtimePrisma.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT to_regprocedure('public.get_public_profile_section_subscription_count(text)') IS NOT NULL AS "exists"
+      `;
+      expect(row.exists).toBe(false);
+    } finally {
+      await fixturePrisma.userSectionSubscription.deleteMany({
+        where: { userId, sectionId },
+      });
+    }
+  });
+
   it("returns one aggregate row per Shanghai day across public contribution sources", async () => {
     await expect(
       runtimePrisma.comment.findMany({
@@ -179,16 +368,13 @@ describe("public profile contribution aggregation", {
       runtimePrisma.$queryRaw<
         Array<{ count: bigint; date: string }>
       >`SELECT * FROM public.get_public_profile_comment_contribution_days(${userId}, ${startAt})`,
-    ).resolves.toEqual([
-      { count: 1n, date: "2026-03-01" },
-      { count: 1n, date: "2026-03-02" },
-    ]);
+    ).resolves.toEqual([{ count: 1n, date: "2026-03-01" }]);
     await expect(
       loadUserProfileContributionDays(runtimePrisma, userId, startAt),
     ).resolves.toEqual([
       { count: 1, date: "2025-03-03" },
       { count: 1, date: "2026-03-01" },
-      { count: 22, date: "2026-03-02" },
+      { count: 21, date: "2026-03-02" },
       { count: 1, date: "2026-03-10" },
     ]);
   });
@@ -206,22 +392,41 @@ describe("public profile contribution aggregation", {
     ).resolves.toEqual([{ count: 1, date: "2026-03-05" }]);
   });
 
-  it("preserves the week grid and totals events beyond its visible end", async () => {
-    const result = await buildUserProfileContributions(
-      runtimePrisma,
-      userId,
-      referenceNow,
-    );
-    const cells = new Map(
-      result.weeks.flat().map((cell) => [cell.date, cell.count]),
-    );
-
-    expect(result.totalContributions).toBe(25);
-    expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
-    expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");
-    expect(cells.get("2025-03-03")).toBe(1);
-    expect(cells.get("2026-03-01")).toBe(1);
-    expect(cells.get("2026-03-02")).toBe(22);
-    expect(cells.has("2026-03-10")).toBe(false);
+  it("user.public-contribution-window", async () => {
+    const tomorrow = await fixturePrisma.comment.create({
+      data: {
+        userId,
+        sectionId,
+        status: "active",
+        visibility: "public",
+        body: "Future day within final padded week",
+        createdAt: new Date("2026-03-02T16:00:00.000Z"),
+      },
+    });
+    try {
+      const result = await buildUserProfileContributions(
+        runtimePrisma,
+        userId,
+        referenceNow,
+      );
+      const cells = new Map(
+        result.weeks.flat().map((cell) => [cell.date, cell.count]),
+      );
+      expect(result.totalContributions).toBe(23);
+      expect(result.totalContributions).toBe(
+        result.weeks.flat().reduce((sum, cell) => sum + cell.count, 0),
+      );
+      expect(result.weeks.every((week) => week.length === 7)).toBe(true);
+      expect(result.weeks[0]?.[0]?.date).toBe("2025-03-02");
+      expect(result.weeks.at(-1)?.at(-1)?.date).toBe("2026-03-07");
+      expect(cells.get("2025-03-02")).toBe(0);
+      expect(cells.get("2025-03-03")).toBe(1);
+      expect(cells.get("2026-03-01")).toBe(1);
+      expect(cells.get("2026-03-02")).toBe(21);
+      expect(cells.get("2026-03-03")).toBe(0);
+      expect(cells.has("2026-03-10")).toBe(false);
+    } finally {
+      await fixturePrisma.comment.delete({ where: { id: tomorrow.id } });
+    }
   });
 });

@@ -125,6 +125,15 @@ export async function assertPageContract(
   page: Page,
   { routePath, testInfo }: PageContractCase,
 ) {
+  if (routePath === "/workspace/uploads") {
+    await gotoContractPage(page, routePath, testInfo);
+    await expectMainContent(page);
+    await expect(
+      page.getByRole("heading", { name: /我的上传|My Uploads/i }),
+    ).toBeVisible();
+    await maybeCapture(page, testInfo, "workspace-uploads");
+    return;
+  }
   if (routePath.startsWith("/account/settings/")) {
     if (routePath === "/account/settings") {
       // handled explicitly below for explicitness

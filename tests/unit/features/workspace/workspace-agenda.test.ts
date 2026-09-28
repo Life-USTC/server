@@ -62,8 +62,8 @@ describe("workspace agenda", () => {
     expect(workspaceReferenceTime("2026-07-19T02:15:00.000Z")).toBe(1015);
   });
 
-  it("prioritizes now, then overdue work, then the next incomplete item", () => {
-    const days = [
+  it("overview.now-next-first", () => {
+    const sourceDays = [
       {
         dateLabel: "Jul 19",
         events: [
@@ -86,6 +86,16 @@ describe("workspace agenda", () => {
       },
     ];
 
+    const days = buildWorkspaceAgendaDays({
+      calendar: { todayDate: "2026-07-19" },
+      eventsForDay: (_calendar, dayKey) =>
+        sourceDays.find((day) => day.key === dayKey)?.events ?? [],
+      locale: "en-US",
+      startKey: "2026-07-19",
+      timelineItemsForDay: (events) => events,
+    });
+    expect(days).toHaveLength(7);
+    expect(days.at(-1)?.key).toBe("2026-07-25");
     expect(
       workspaceFocusItem({
         currentEventKey: "session-now",
@@ -118,6 +128,23 @@ describe("workspace agenda", () => {
         todayKey: "2026-07-19",
       }),
     ).toMatchObject({ key: "session-next", status: "next" });
+    expect(
+      workspaceFocusItem({
+        currentTime: 2300,
+        days: days.map((day) => (day.isToday ? { ...day, events: [] } : day)),
+        todayKey: "2026-07-19",
+      }),
+    ).toMatchObject({ key: "exam-tomorrow", status: "next" });
+    expect(
+      workspaceFocusItem({
+        currentTime: 1015,
+        days: days.map((day) => ({
+          ...day,
+          events: day.events.map((event) => ({ ...event, done: true })),
+        })),
+        todayKey: "2026-07-19",
+      }),
+    ).toBeNull();
   });
 
   it("falls back to a future day and returns null when nothing is actionable", () => {

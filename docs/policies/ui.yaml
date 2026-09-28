@@ -5,470 +5,1510 @@ requirements:
 - id: ui.layout-principles-1
   category: presentation
   topic: layout-principles
-  rule: 'Put reading-first content in the left/main column: introductions, descriptions, markdown, homework
-    content, and comments.'
+  rule: Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
+    and comments in the main reading column.
+  acceptance:
+    given: Public course, section, and teacher details have introductions and comments; the section also has
+      homework.
+    when: An anonymous browser opens each detail at 1280 pixels and measures the reading sections relative to
+      the facts sidebar.
+    then:
+    - Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
+      and comments in the main reading column.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.layout-principles-1
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
-  rule: 'Put structured facts in the right/side column: identifiers, metadata, dates, counts, actions, mini
-    calendars, and quick links.'
+  rule: Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
+    sidebar.
+  acceptance:
+    given: Public course, section, and teacher details have structured overview facts.
+    when: An anonymous browser opens each detail at 1280 pixels and measures the visible facts sidebar relative
+      to the introduction.
+    then:
+    - Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
+      sidebar.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.layout-principles-2
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
-  rule: On mobile, stack in that order.
+  rule: At mobile widths, catalog detail pages render the hero, compact identity facts, the main reading stream,
+    and remaining secondary facts in that order. Workspace views and overlays follow their own declared content
+    order.
+  acceptance:
+    given: Isolated course, teacher, and section details include compact identity facts, a description,
+      and remaining secondary facts in Chinese and English.
+    when: A browser renders each detail at 390 pixels, then resizes the same page to 1280 pixels.
+    then:
+    - Mobile DOM and visible geometry order the hero, compact identity facts, reading stream, and remaining
+      facts without horizontal document overflow.
+    - Course level/category, teacher department/title, and section teachers/campus appear before reading;
+      the section retains one linked teachers anchor.
+    - Desktop places identity and remaining facts to the right of the reading stream.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.layout-principles-3
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
-  rule: Reuse existing grids, cards, borders, muted text, and buttons.
+  rule: Shared collection and detail layouts reuse the feature-neutral primitives appropriate to their structure. Public browse pages use CollectionPage, which composes PageLayout, PageHeader and Panel. Course and teacher details use CollectionPage with DetailPageLayout. The second-classroom event page uses a full-bleed banner and Panel. Section detail reuses PageHeader in its streaming shell, profiles reuse Panel, and homework/todo overlays reuse Dialog. Route navigation lives in the shell sidebar. PageSectionNav is only an in-page anchor index, such as publication source groups. Catalog, second-classroom, workspace task, and profile identity fields reuse Field.
+  rationale: Section streaming and profile identity composition have specific layout needs; primitive reuse does not require turning those shells into browse panels. Feature data and interaction ownership remains independently required by ui.feature-interaction-ownership.
+  acceptance:
+    given: The collection, detail, overlay, route/local navigation and form owners.
+    when: Parse Svelte compiler ASTs and follow actually rendered imported feature components.
+    then:
+    - Each owner renders the applicable shared primitive through its component tree; unused imports do not count.
+    test:
+      file: tests/unit/lib/components/layout-primitive-ownership.test.ts
+      name: ui.layout-principles-4
+- id: ui.feature-interaction-ownership
+  category: presentation
+  topic: layout-principles
+  rule: Feature components supply application data, route URLs and interaction callbacks to feature-neutral layout, panel, collection, navigation and form primitives. Those primitives do not import feature/server/route-state/database modules, fetch application data themselves or embed application route destinations.
+  acceptance:
+    given: The shared page/detail layouts, panels, search/filter/collection/result/pagination/navigation primitives and every Field component.
+    when: Parse their Svelte compiler ASTs and inspect imports, transport calls and route literals.
+    then:
+    - The primitives have no feature/server/route-state/database imports, fetch calls or embedded API/catalog/workspace/account/admin/news destinations; application data and actions remain supplied by their callers.
+    test:
+      file: tests/unit/lib/components/layout-primitive-ownership.test.ts
+      name: ui.feature-interaction-ownership
 - id: ui.layout-principles-5
   category: presentation
   topic: layout-principles
-  rule: 'Popups are one scrollable column at a comfortable reading width with a sticky title header, never
-    a two-column page: due datetime first, relative urgency second, remaining facts in a table, then reading,
-    then discussion.'
-- id: ui.layout-principles-6
-  category: presentation
-  topic: layout-principles
-  rule: No status side column, chip row, or nested collapsible in an overlay; side rails belong on pages.
+  rule: Homework and todo detail overlays use one scrollable content column with a title that stays visible.
+    Their content order is due date/time, relative urgency, remaining facts, reading content, then discussion
+    when available. Primary content and actions remain reachable without a second facts/status rail.
+  acceptance:
+    given: An isolated owner has homework and a todo with a known future deadline and long reading content.
+    when: Each actual detail overlay opens at 1280, 390 and 320 pixels, and the user scrolls to its reading end and discussion where available.
+    then:
+    - Due date, relative urgency, facts and reading content have one column in the required order, followed by homework discussion.
+    - Exactly one content viewport scrolls; the title remains visible at the same position while the reading content moves.
+    - Bottom actions remain visible, enabled and keyboard-focusable without horizontal overflow.
+    test:
+      file: tests/e2e/src/app/shared-policy/task-overlay-layout.test.ts
+      name: ui.layout-principles-5
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: 'Content pages use CollectionPage. List pages fill title, actions, before, toolbar,
-    body, and footer. That body is one unframed Panel: toolbar holds FilterToolbar and
-    ActiveFilters, the body holds ResultsSummary and the results, and the footer holds
-    ListPagination links that preserve filters. Pages with several sections set panel to false
-    and place each section in Panel. Detail pages set layout to detail and fill aside. Panel
-    is an unframed stack, not a card.'
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel, with visible filters before the result summary and records, followed by pagination.
+  rationale: Administrative and personal workspaces deliberately use their shared workspace structures; ui.layout-principles-4 owns primitive reuse. Their applicable collection ordering remains in ui.other-collection-order.
+  acceptance:
+    given: Isolated data provides more than one page of results for each of the six public browse collections.
+    when: A browser opens the filtered first page at mobile and desktop widths.
+    then:
+    - The shared page frame contains its heading and panel; visible filters precede the result summary and records, and pagination follows in the panel footer.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.list-table-1
+- id: ui.other-collection-order
+  category: presentation
+  topic: list-table
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before the applicable filters, result summary and records; available pagination follows the records. Their layout uses the shared primitives required by ui.layout-principles-4.
+  acceptance:
+    given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
+    when: A browser opens each view at mobile and desktop widths.
+    then:
+    - The visible page heading precedes applicable filters and summaries, which precede records; every available pagination region follows the final record.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
+      name: ui.other-collection-order
+- id: ui.embedded-collection-order
+  category: presentation
+  topic: list-table
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before applicable filters, result summary and records; available pagination follows the records.
+  rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
+  acceptance:
+    given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
+    when: A browser opens all ten collections at 390 and 1280 pixels and measures their DOM and visual order.
+    then:
+    - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
+    test:
+      file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
+      name: ui.embedded-collection-order
 - id: ui.list-table-2
   category: presentation
   topic: list-table
-  rule: SearchField owns the search shortcut.
+  rule: SearchField owns the application search-shortcut handler; collection pages do not register a competing
+    handler for the same shortcut.
+  acceptance:
+    given: Every application TypeScript module and parsed Svelte component script, plus the actual page/global
+      shortcut predicates.
+    when: Inspect registration-helper imports and calls through compiler ASTs and evaluate Ctrl/Command K
+      with and without Shift.
+    then:
+    - SearchField is the sole importer and caller of the page-search registration helper.
+    - The current page and global search handlers recognize disjoint Shift and non-Shift key combinations.
+    test:
+      file: tests/unit/lib/browser/search-shortcut-ownership.test.ts
+      name: ui.list-table-2
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Advanced filters use a Sheet with a complete form.
+  rule: Advanced list filters use one labeled Sheet containing the complete declared filter form and explicit
+    Apply and dismiss actions.
+  acceptance:
+    given: The seeded course, teacher, and section collections expose their declared advanced filters.
+    when: An anonymous browser opens each advanced-filter sheet and inspects its accessible name, form fields, Apply action, and explicit Close action.
+    then:
+    - Exactly one named sheet contains every declared advanced field and one form.
+    - Apply is visible and Close dismisses the sheet.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-3
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: The URL owns applied values; opening resets drafts, closing does not apply.
+  rule: Opening advanced filters initializes draft values from the current applied URL query. Closing the sheet
+    without Apply leaves the URL and results unchanged.
+  acceptance:
+    given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
+    when: The browser opens each sheet, changes every draft, dismisses through Close and Escape, then reopens it.
+    then:
+    - Draft values initialize from the applied URL on every opening.
+    - Dismissing without Apply preserves both the exact URL and rendered results.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-4
 - id: ui.list-table-5
   category: presentation
   topic: list-table
-  rule: Apply sends the current query and all draft values, resetting page; primary search uses applied advanced
-    values.
+  rule: Applying advanced filters submits the current search query and all draft filter values and resets pagination.
+    A primary search change preserves the already applied advanced filters.
+  acceptance:
+    given: Each catalog collection has a search query and page=2 before the advanced sheet opens.
+    when: The browser fills every advanced field, applies the form, and then changes the primary search query.
+    then:
+    - Apply retains the search and every draft value, removes the page parameter, and shows the matching seeded result.
+    - Primary search changes preserve every applied advanced filter and still show the matching result.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
+      name: ui.list-table-5
 - id: ui.list-table-6
   category: presentation
   topic: list-table
-  rule: Compact lists avoid page overflow; wide tables retain comparison columns.
+  rule: Outside the public browse collections covered by ui.public-browse-responsive-lists and the directory/workspace/administrative views covered by ui.other-browse-responsive-lists, compact lists do not cause horizontal document overflow at narrow widths. Wide comparison tables retain their required columns inside a horizontally scrollable table region.
+  acceptance:
+    given: Long-name isolated workspace tasks/subscriptions, course/teacher/organizer histories and section collections are populated, alongside both task detail overlays and the public bus timetable.
+    when: A browser opens those views at 320 and 390 pixels, reaches every compact record and scrolls wide comparison tables to their final column.
+    then:
+    - Compact records and task fact tables fit the viewport without horizontal document overflow.
+    - Section calendar/exam tables retain all five/six columns in overflowing local scroll containers; their final column is reachable.
+    - Bus rows retain every stop column, matching the desktop headers, and their final column remains reachable within the local table region.
+    test:
+      file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
+      name: ui.list-table-6
+- id: ui.other-browse-responsive-lists
+  category: presentation
+  topic: list-table
+  rule: Link/source directories, uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists display compact records within the narrow viewport without horizontal document overflow.
+  acceptance:
+    given: Long-name isolated records populate each directory/workspace/administrative collection alongside the application link registry and publication source fixture.
+    when: A browser opens all thirteen views at 320 and 390 pixels and scrolls each rendered record into view.
+    then:
+    - Each view contains records; every compact record fits the viewport and the document does not overflow horizontally.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
+      name: ui.other-browse-responsive-lists
+- id: ui.public-browse-responsive-lists
+  category: presentation
+  topic: list-table
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections display compact records without horizontal document overflow at narrow widths, including long entity names and publication summaries.
+  acceptance:
+    given: Isolated long-name records populate the first page of each of the six public browse collections.
+    when: A browser opens each filtered collection at 320 and 390 pixels and scrolls every record into view.
+    then:
+    - Twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow and the active pagination page remains identified.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.public-browse-responsive-lists
 - id: ui.list-table-7
   category: presentation
   topic: list-table
   rule: News keeps title-led rows.
+  acceptance:
+    given: An isolated news source contains more than one page of publications with titles and source/date metadata.
+    when: The browser renders its first page at mobile and desktop widths.
+    then:
+    - Every result begins with a linked level-two title above smaller source/date metadata and links to its article detail.
+    test:
+      file: tests/e2e/src/app/news/test.ts
+      name: ui.list-table-7
 - id: ui.list-table-8
   category: presentation
   topic: list-table
   rule: Query parsing, caching and URL builders remain in features.
+  rationale: Collection route loaders delegate their domain queries to feature modules. Shared collection layout, header, panel, navigation, search and pagination primitives receive prepared values and callbacks; generic cache infrastructure is not feature query logic.
+  acceptance:
+    given: The public catalog, links, second-classroom and news collection route loaders and their shared collection primitives.
+    when: TypeScript parses each module and the Svelte compiler extracts primitive scripts.
+    then:
+    - Every route invokes an imported feature service without local URL query parsing, cache access or database imports; shared primitives do not import feature/state/query modules or fetch data.
+    test:
+      file: tests/unit/lib/components/collection-query-ownership.test.ts
+      name: ui.list-table-8
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations
-    as page tabs. PageSectionNav is only for in-page anchors. Sections list subscribed
-    classes under 班级 and stay collapsed until the route matches /catalog/sections.
-    Settings routes replace the primary sidebar with a settings sidebar. Its top
-    control returns home, and its only group is the settings sections. Second-classroom
-    routes replace the primary sidebar with a second-classroom sidebar. Its top control
-    returns home, and its only group is the activity list, event calendar, and organizers.
-    An open event adds its name under the activity list and that name is the current page.
-    The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. The home page keeps the primary sidebar.
+  rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
+  acceptance:
+    given: Second-classroom pages, moderation, settings, and the publication source directory.
+    when: The Svelte compiler resolves the actually rendered imported component graph for each owner.
+    then:
+    - Sidebar-owned pages render neither PageSectionNav nor DetailSectionNav.
+    - The publication source directory renders PageSectionNav for its in-page groups.
+    test:
+      file: tests/unit/lib/components/navigation-ownership.test.ts
+      name: ui.list-table-9
 - id: ui.data-table-cells-1
   category: presentation
   topic: data-table-cells
-  rule: Desktop data-table rows keep a consistent compact height; optional secondary lines reserve space when
-    absent.
+  rule: Desktop table rows in the same list reserve the same secondary-line space when optional secondary text
+    is absent; longer content must remain accessible without clipping controls.
+  rationale: The current optional secondary text fields in desktop table rows are bus-version source messages, comment moderation notes, suspension usernames, and user suspension details; other table rows use single-line fields or required secondary facts.
+  acceptance:
+    given: Isolated administrative rows populate, omit and lengthen each optional secondary field across bus versions, comments, suspensions and users.
+    when: A desktop browser measures the secondary line, exposes long content and scrolls each row action into view.
+    then:
+    - Missing secondary text retains the populated line height, long text remains available through the shared truncation interaction, and row controls remain fully visible.
+    test:
+      file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
+      name: ui.data-table-cells-1
 - id: ui.data-table-cells-2
   category: presentation
   topic: data-table-cells
-  rule: Overflowing text is truncated, with its full value available from a tooltip on pointer hover and keyboard
-    focus.
+  rule: A truncated text cell makes its complete value available to pointer, keyboard, and touch users. The
+    accessible text retains the complete value.
+  acceptance:
+    given: An isolated teaching section has a long course title, public section code, and teacher name.
+    when: A browser opens the section list with a pointer and keyboard, then with touch input at tablet and
+      mobile widths.
+    then:
+    - Each desktop value is actually truncated and hovering exposes its complete tooltip text.
+    - Keyboard focus exposes each complete value and accessible text; Escape dismisses each tooltip.
+    - Touch layouts display the complete titles, codes, and teacher descriptions without clipping or horizontal
+      page overflow, and tapping the result navigates to its detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.data-table-cells-2
 - id: ui.data-table-cells-3
   category: presentation
   topic: data-table-cells
   rule: Course and section codes use plain monospace text, never badge styling.
+  acceptance:
+    given: An isolated course, teaching section, and teacher expose public codes in catalog lists, detail headers,
+      and teaching-section history.
+    when: A browser opens those surfaces at desktop and mobile widths.
+    then:
+    - Every visible occurrence of each public course or section code uses a computed monospace font.
+    - None of those code labels is rendered inside a badge.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.data-table-cells-3
+- id: ui.catalog-table-column-alignment
+  category: presentation
+  topic: data-table-cells
+  rule: Course, teacher and section collection tables and course/teacher offering-history tables align each header with its cell content. Text and categorical columns use their left edge; section counts, credits and capacity values use their right edge.
+  acceptance:
+    given: Isolated catalog fixtures populate all text columns and numeric section-count, credit and capacity columns.
+    when: A desktop browser measures rendered text edges in all three collection tables and both offering-history tables.
+    then:
+    - Text headers and values share a left edge, and each numeric header and value shares a right edge.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.catalog-table-column-alignment
 - id: ui.data-table-cells-4
   category: presentation
   topic: data-table-cells
-  rule: Header labels and cell content share the same column edge; textual and categorical values align left,
-    while numeric measures and counts align right.
+  rule: In non-catalog application data tables, headers and cells use a consistent column alignment. Numeric measures and counts align right; the Young capacity/organizer-count, upload-byte and section-exam-count columns are covered independently by ui.numeric-measure-table-alignment. Text aligns left; status and action columns may center, and temporal columns use a consistent chosen alignment. Bus timetable stop columns preserve their positional left/center/right alignment.
+  rationale: The five catalog collection/history tables have the independent owner ui.catalog-table-column-alignment. The specified Young/upload/section-exam numeric columns retain the separate ui.numeric-measure-table-alignment owner; this rule owns all other columns across the remaining twenty-three table roots.
+  acceptance:
+    given: Isolated database fixtures populate Young lists, uploads, section homework/exam/calendar tables, workspace homework/exam/todo/subscription tables, homework/todo facts, source directories and all seven administrative table types; signed-in and anonymous link directories and the full bus timetable provide their actual records.
+    when: A desktop browser measures every rendered header and populated body cell, opens both task detail overlays and enables departed trips in the public bus planner.
+    then:
+    - Each table retains its expected columns; text and facts align left, subscription/source/bus-version measures align right, and status/action/temporal columns use the same declared alignment in every header and row.
+    - Bus stop headers and their times align left at the origin, center at intermediate stops and right at the destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/remaining-table-alignment.test.ts
+      name: ui.data-table-cells-4
+- id: ui.numeric-measure-table-alignment
+  category: presentation
+  topic: data-table-cells
+  rule: Young activity capacity, all three organizer counts, upload file sizes and section exam attendee counts use right-aligned headers and numeric values whose rendered right edges line up.
+  acceptance:
+    given: Isolated activities, organizers, an upload and a section exam provide concrete capacity, zero/singular organizer counts, byte size and attendee values.
+    when: A desktop browser renders the four tables and measures the text ranges inside each numeric header and cell.
+    then:
+    - Numeric values remain visible; both header and cell align right, and their actual rendered right text edges differ by at most one pixel.
+    test:
+      file: tests/e2e/src/app/shared-policy/numeric-table-alignment.test.ts
+      name: ui.numeric-measure-table-alignment
 - id: ui.data-table-cells-5
   category: presentation
   topic: data-table-cells
-  rule: Blank placeholders are hidden from assistive technology and do not replace meaningful labels such as
-    unknown or TBD.
+  rule: Purely decorative blank table placeholders are absent from the accessibility tree. Meaningful unknown
+    or TBD labels remain exposed.
+  acceptance:
+    given: Administrative table rows omit their optional secondary values, while a user lacks a username and a teacher lacks a title.
+    when: The browser inspects the shared blank placeholders and the rendered accessibility trees for missing-value labels.
+    then:
+    - Blank placeholders are empty and aria-hidden; meaningful No ID and Unknown labels remain exposed.
+    test:
+      file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
+      name: ui.data-table-cells-5
 - id: ui.data-table-cells-6
   category: presentation
   topic: data-table-cells
   rule: Numeric, status, control, and action cells do not receive truncation tooltips when their content fits.
-- id: ui.detail-hero-1
-  category: presentation
-  topic: detail-hero
-  rule: Used at the top of course, section, and teacher detail pages.
+  rationale: Icon-only controls retain their intentional action-label tooltips; those communicate the control's purpose rather than duplicate clipped cell content. The shared text truncation primitive is exercised with a fitting status detail as well as plain numeric/status cells and action controls.
+  acceptance:
+    given: Isolated administrative tables contain fitting trip counts, role and moderation badges, a permanent suspension detail and icon-only actions.
+    when: The browser hovers the numeric/status cells and focuses fitting text and action controls across bus, comment, suspension and user tables.
+    then:
+    - Fitting cell content has no native title or truncation tooltip; icon controls expose only the intentional tooltip matching their accessible action label.
+    test:
+      file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
+      name: ui.data-table-cells-6
 - id: ui.detail-hero-2
   category: presentation
   topic: detail-hero
-  rule: Contains an h1 and an optional subtitle.
+  rule: A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
+    without requiring browser history.
+  acceptance:
+    given: An anonymous user directly opens a course, section, or teacher detail at 1280 and 390 pixels.
+    when: The user opens the mobile menu when needed and activates the shell link to that entity type’s owning
+      collection.
+    then:
+    - A directly opened course, section, or teacher detail page provides a reachable link to its owning collection
+      without requiring browser history.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-hero-2
 - id: ui.detail-hero-3
   category: presentation
   topic: detail-hero
   rule: h1 uses the primary display name of the current object, not an internal ID.
+  acceptance:
+    given: A seeded course, section, and teacher have Chinese and English display names.
+    when: An anonymous browser selects Chinese and then English and loads each detail to read its level-one
+      heading.
+    then:
+    - h1 uses the primary display name of the current object, not an internal ID.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-hero-3
 - id: ui.detail-hero-4
   category: presentation
   topic: detail-hero
-  rule: At mobile widths, stable public identifiers and concise metadata precede a responsive title so long
-    localized names do not crowd out context or actions.
+  rule: Mobile catalog detail heroes keep public course or section codes and concise context visible alongside
+    long localized names without horizontal overflow. Database row IDs and JW IDs do not substitute for that
+    display context.
+  acceptance:
+    given: Isolated course, section and teacher details have long Chinese and English names and distinct
+      public codes versus internal identifiers.
+    when: The browser renders each detail at 320 and 390 CSS pixels in both locales.
+    then:
+    - The localized heading retains its complete text and fits the viewport; course and section codes remain
+      visible and fit without clipping or horizontal document overflow.
+    - Hero content never substitutes the database row ID or JW ID for the public display identity.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-hero-4
 - id: ui.detail-hero-5
   category: presentation
   topic: detail-hero
   rule: Course codes live in the title region, in plain monospace text before the name; the localized name
     remains the dominant h1.
-- id: ui.detail-hero-6
-  category: presentation
-  topic: detail-hero
-  rule: This compact context follows the name-first identity rule.
+  acceptance:
+    given: An anonymous user opens a course detail with a public code at a 390-by-844 viewport.
+    when: The browser measures the title, code, and document width, then follows the comments fragment.
+    then:
+    - Course codes live in the title region, in plain monospace text before the name; the localized name remains
+      the dominant h1.
+    test:
+      file: tests/e2e/src/app/courses/[jwId]/test.ts
+      name: ui.detail-hero-5
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Catalog detail (course, section, teacher): one scrollable main column plus facts/actions sidebar;
-    no Context Tabs, ?tab= or legacy path deep links.'
+  rule: Course, section and teacher detail pages keep all applicable reading sections rendered in one continuous stream. Moving through that stream does not select a detail tab or navigate to a detail subroute.
+  rationale: Desktop facts-sidebar placement is owned by ui.layout-principles-3. Fragment-anchor scrolling is owned by ui.detail-two-column-stream-7, and entity-root canonical addresses by course.detail-canonical-url, teacher.detail-canonical-url and section.detail-canonical-url.
+  acceptance:
+    given: Isolated course, teacher and section details have descriptions and their applicable reading sections.
+    when: Mobile and desktop browsers scroll through every section and inspect the detail links.
+    then:
+    - Every applicable section remains visible in the same ordered stream without changing the entity URL; in-page links do not use detail-tab queries or detail subroutes.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-two-column-stream-1
 - id: ui.detail-two-column-stream-2
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Section: intro → schedule → exams → homework → comments.'
+  expectation:
+    kind: ordered_items
+    surface: web
+    target:
+      by: css
+      value: '[data-detail-reading-stream] > section[id]'
+    items:
+    - introduction
+    - calendar
+    - exams
+    - homework
+    - comments
+  acceptance:
+    given: A public section detail contains introduction, calendar, exams, homework, and comments sections.
+    when: The browser loads the detail at 1280 and 390 pixels and reads the section DOM order and vertical geometry.
+    then:
+    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-two-column-stream-2
+  applies_to:
+  - detail-two-column-stream
 - id: ui.detail-two-column-stream-3
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Course/teacher: intro → offerings → comments.'
+  expectation:
+    kind: ordered_items
+    surface: web
+    target:
+      by: css
+      value: '[data-detail-reading-stream] > section[id]'
+    items:
+    - introduction
+    - sections
+    - comments
+  acceptance:
+    given: Public course and teacher details contain introduction, teaching-section, and comments sections.
+    when: The browser loads both details at 1280 and 390 pixels and reads the section DOM order and vertical
+      geometry.
+    then:
+    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.detail-two-column-stream-3
+  applies_to:
+  - detail-two-column-stream
 - id: ui.detail-two-column-stream-4
   category: presentation
   topic: detail-two-column-stream
-  rule: 'Sidebar: Basic Info Card, teachers, subscribe/calendar actions.'
-- id: ui.detail-two-column-stream-5
-  category: presentation
-  topic: detail-two-column-stream
-  rule: 'Mobile: hero → main → side, or compact facts under hero per mobile hierarchy.'
+  rule: Catalog detail information regions contain feature-specific structured facts. Section detail includes
+    teacher links, with subscription and calendar actions reachable in the desktop header and mobile fixed action bar.
+    Course and teacher pages do not offer section-specific actions before a section is selected.
+  rationale: Identity and remaining facts share the desktop information column and follow the mobile detail hierarchy.
+    Section primary actions stay in the header or fixed mobile bar so they remain reachable without duplication in the facts region.
+  acceptance:
+    given: Isolated catalog fixtures contain course classifications, teacher contact and affiliation facts, section counts and an authenticated viewer.
+    when: Section, course and teacher detail pages are opened at 1280, 390 and 320 pixels.
+    then:
+    - Structured facts render in the information regions, sharing the right column on desktop and remaining reachable on mobile.
+    - Section teacher links navigate to the matching teacher; header or mobile actions open the matching calendar URL and persist subscribe/unsubscribe changes.
+    - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-detail-facts.test.ts
+      name: ui.detail-two-column-stream-4
 - id: ui.detail-two-column-stream-6
   category: presentation
   topic: detail-two-column-stream
-  rule: Comments are client-fetched; PublicSsr never personalizes visibility.
+  rule: Public catalog detail HTML contains no personalized comment visibility or moderation permission state.
+    The comment panel loads viewer-dependent results through its private client request.
+  acceptance:
+    given: Isolated owner, ordinary viewer, and administrator accounts and an anonymous browser visit
+      course, section, and teacher details containing fixture public, logged-in-only, and hidden comments.
+    when: Each browser loads the raw HTML and holds the comment client request before allowing it to complete.
+    then:
+    - Raw HTML includes neither fixture comment IDs/bodies nor viewer user IDs, and no fixture comments
+      render before the private client response arrives.
+    - The no-store client response identifies the current viewer and supplies the permitted comment bodies
+      and owner edit/delete actions; ordinary catalog reads expose no administrator moderation capabilities.
+    - Rendered comments match the current viewer's visibility instead of inheriting a previous visitor's data.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-comment-privacy.test.ts
+      name: ui.detail-two-column-stream-6
 - id: ui.detail-two-column-stream-7
   category: presentation
   topic: detail-two-column-stream
   rule: Hash anchors scroll in-page.
-- id: ui.detail-two-column-stream-8
+  acceptance:
+    given: Isolated course, teacher and section descriptions contain a rendered Markdown fragment link
+      to their discussion section below a long reading stream.
+    when: Mobile and desktop browsers click the actual rendered link.
+    then:
+    - The URL retains its route and gains the discussion fragment without a document or page-data navigation.
+    - The existing page or detail scroll container moves to the discussion target and brings it into the viewport.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.detail-two-column-stream-7
+- id: ui.model-property-priority-community-views
   category: presentation
-  topic: detail-two-column-stream
-  rule: 'Course/teacher offerings show total and URL pagination (20 per page), including retired records; navigation
-    stays in the offerings section with #sections.'
+  topic: model-property-priority
+  rule: Community comments, description reading and history, attachment upload stages, downloads,
+    upload management and public profiles retain the field priorities declared for each visible view.
+  acceptance:
+    given: An isolated account owns attributed comments, a description with distinct edit and update times,
+      edit history, real stored attachments and recent profile contributions.
+    when: English and Chinese browsers inspect all nine community views at mobile and desktop widths,
+      switch description tabs, hold and release a real upload request, and trigger a real rejected rename.
+    then:
+    - Every declared primary field is visible in its identifying content, input or version title;
+      before-and-after history content remains equally readable and upload state stays task-critical.
+    - Secondary metadata remains visible and subordinate to its local identity, including rendered image
+      previews, storage usage, attribution, timestamps and profile statistics.
+    - Public comment text omits its raw moderation state and private badge; ordinary views omit internal
+      IDs and the description storage timestamp, while reading displays its actual lastEditedAt.
+    - Upload completion renders a decoded image backed by the real object route, and attachment download
+      returns the fixture bytes; rejected rename feedback retains the filename without changing the record.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-community.test.ts
+      name: ui.model-property-priority-community-views
+- id: ui.model-property-priority-admin-views
+  category: presentation
+  topic: model-property-priority
+  rule: Administrative bus, moderation, OAuth-client and user views preserve every declared identifying,
+    secondary and internal field priority in both responsive layouts.
+  acceptance:
+    given: Isolated administrative records include distinct content, target, author, status and timestamps,
+      including descriptions with an explicit edit time and a missing edit time.
+    when: English and Chinese browsers inspect all eight administrative presentation views at mobile and
+      desktop widths against the feature declarations.
+    then:
+    - Each view places its identifying content in the title or first identifying table cell and exposes
+      every declared primary field.
+    - Every declared secondary field remains visible with subordinate computed typography or color;
+      homework governance includes its creator for accountability.
+    - Internal identifiers and raw update timestamps are absent from ordinary record text, and the
+      derived description edit display uses lastEditedAt or updatedAt only when lastEditedAt is absent.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-admin.test.ts
+      name: ui.model-property-priority-admin-views
 - id: ui.model-property-priority-1
   category: presentation
   topic: model-property-priority
-  rule: Properties are ranked as primary, secondary, or tertiary so web, REST, and MCP surfaces present task-relevant
-    information consistently.
-- id: ui.model-property-priority-primary-1
+  rule: Every capability presentation declares whether it describes field views, interactions, protocol output,
+    or an unavailable feature. Field views declare separate primary, secondary and tertiary property-path arrays
+    for each implemented Web or assistant view; a property belongs to exactly one group in a view.
+  rationale: This requirement owns the declaration format. Actual visibility, priority, disambiguation and compact
+    projection behavior remain independently required by the six browser view-family owners, view-specific
+    feature rules and MCP output requirements. JSON object key order is not a presentation contract.
+  acceptance:
+    given: All repository feature presentation declarations and the production specification schema validator.
+    when: The validator loads every declaration and checks malformed field arrays, missing kinds or view groups,
+      duplicate priority assignments and interaction declarations incorrectly containing field views.
+    then:
+    - Every declaration has an explicit kind; every field view has nonempty primary and explicit secondary/tertiary property arrays.
+    - Invalid field paths, duplicate assignments, missing groups and mismatched kinds fail validation.
+    - The production specification check consumes these declarations without treating shape validity as rendered UI or native-tool evidence.
+    test:
+      file: tests/unit/specifications/presentation-fields.test.ts
+      name: ui.model-property-priority-1
+- id: ui.model-property-priority-catalog-views
   category: presentation
-  topic: model-property-priority-primary
-  rule: 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
-    code, due/departure/start time, status, and primary action state.'
-- id: ui.model-property-priority-primary-2
+  topic: model-property-priority
+  rule: Every declared catalog Web field view presents its identifying name or history browsing key as the
+    title or leading summary, renders its declared primary and secondary fields, visually subordinates
+    secondary metadata and keeps reconstruction identifiers absent or visually subordinate.
+  rationale: Course and teacher history may lead with semester because the enclosing detail already identifies
+    the entity. English views retain the Chinese name as secondary text; Chinese views need not repeat the English name.
+  acceptance:
+    given: Distinct catalog fixtures supplying all declared fields and the finite catalog view inventory.
+    when: Visit all eight course, section and teacher list/detail/history views in both locales at desktop
+      and mobile widths and compare the rendered fields with each feature's declared groups.
+    then:
+    - Every view and declared field is checked; primary identity is visible, secondary metadata is readable
+      and visually subordinate, and internal identifiers do not appear as ordinary identifying content.
+    - Locale-specific secondary names are either rendered in English views or explicitly absent in Chinese views.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-catalog.test.ts
+      name: ui.model-property-priority-catalog-views
+- id: ui.model-property-priority-account-views
   category: presentation
-  topic: model-property-priority-primary
-  rule: Put them in h1, card titles, the first list column, or the first line of compact assistant output.
-- id: ui.model-property-priority-primary-3
+  topic: model-property-priority
+  rule: Every declared account Web field view visibly presents its primary identity or editable value,
+    renders declared secondary metadata with subordinate emphasis, and keeps internal grant, event and
+    credential identifiers out of ordinary content.
+  rationale: Account forms prioritize editable names and identifiers; consent screens prioritize the requesting
+    application and permissions. Passkey creation time helps distinguish credentials with similar names.
+    Device entry and approval are interface stages, while the result reports the authorization outcome.
+  acceptance:
+    given: Isolated profile, sign-in identity, passkey, security event, application grant and real grant usage
+      records plus clients supporting authorization-code and device flows.
+    when: Exercise all thirteen account field views in English and Chinese at desktop and mobile widths,
+      including welcome, profile/settings, consent, device authorization and client registration.
+    then:
+    - Each declared view and property is checked against visible text, editable values or actual avatar sources.
+    - Names, permissions and relevant status remain visible; secondary metadata is visually subordinate
+      and internal record identifiers do not appear as ordinary identifying content.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-account.test.ts
+      name: ui.model-property-priority-account-views
+- id: ui.model-property-priority-discovery-views
   category: presentation
-  topic: model-property-priority-primary
-  rule: For teaching sections, student-facing primary identity is course name plus teachers, not section code.
-- id: ui.model-property-priority-secondary-1
+  topic: model-property-priority
+  rule: Discovery Web field views visibly present the declared identity and task-critical values, render
+    supporting fields with subordinate emphasis, and keep reconstruction identifiers out of ordinary content.
+  rationale: Bus maps communicate topology graphically, while timetable and departure views communicate times.
+    Publication source directories group by organization level. Activity details provide richer context than
+    list and calendar entries; opaque upstream identifiers remain technical metadata.
+  acceptance:
+    given: Isolated bus, news/source, activity/organizer and weather records and configured campus links.
+    when: Open the fifteen declared discovery views in both locales at desktop and mobile widths, including
+      the next-departure summary at its implemented mobile width.
+    then:
+    - Every declared view and field is compared with actual visible values, including news organization level,
+      source hosts and activity organizer names.
+    - Secondary text is visually subordinate to the actual identifying name or departure time and internal
+      identifiers are absent from ordinary display content.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-discovery.test.ts
+      name: ui.model-property-priority-discovery-views
+- id: ui.model-property-priority-workspace-views
   category: presentation
-  topic: model-property-priority-secondary
-  rule: 'Secondary properties support disambiguation and comparison: localized secondary name, semester, campus/location,
-    teacher/department, counts, section code, and short metadata.'
-- id: ui.model-property-priority-secondary-2
-  category: presentation
-  topic: model-property-priority-secondary
-  rule: Use muted text, badges, side columns, or compact nested summaries.
-- id: ui.model-property-priority-tertiary-1
-  category: presentation
-  topic: model-property-priority-tertiary
-  rule: 'Tertiary properties support audit or exact reconstruction: internal IDs, raw timestamps, platform
-    metadata, long nested relations, and repeated parent objects.'
-- id: ui.model-property-priority-tertiary-2
-  category: presentation
-  topic: model-property-priority-tertiary
-  rule: Hide or de-emphasize them in ordinary UI; MCP default output may omit, redact, or compact them.
-- id: ui.model-property-priority-surfaces-1
-  category: presentation
-  topic: model-property-priority-surfaces
-  rule: REST may expose fuller records for application clients.
-- id: ui.model-property-priority-surfaces-2
-  category: presentation
-  topic: model-property-priority-surfaces
-  rule: MCP default output preserves primary and important secondary fields, simplifies repeated low-priority
-    fields, and reserves exact raw payloads for explicit full mode where supported; the deprecated summary
-    input is an alias for default.
-- id: ui.basic-info-card-1
-  category: presentation
-  topic: basic-info-card
-  rule: Used in detail page sidebars or collapsible panels.
+  topic: model-property-priority
+  rule: Workspace field views visibly present the declared task or section identity and task-critical
+    values, retain supporting context with subordinate emphasis, and keep reconstruction identifiers out
+    of ordinary content.
+  rationale: Import confirmation identifies the matched course, with its code and semester as disambiguation.
+    Calendar agendas, desktop grids and overview strips have distinct space and interaction constraints;
+    each must be checked in its actual rendered state rather than borrowing another view's evidence.
+  acceptance:
+    given: Isolated tasks, homework, exams, schedules, section subscriptions, feed links and sidebar state
+      supply all declared workspace field groups.
+    when: Exercise the finite workspace view inventory in both locales at desktop and mobile widths,
+      and check desktop-only grid modes with their actual hover details and mobile agenda alternatives.
+    then:
+    - All assigned views and declared fields are observed in their applicable visible state, including
+      primary task identity, deadlines, completion, subscription choices and feed scope.
+    - Secondary fields remain readable and subordinate to the actual title or date identity, and internal
+      identifiers and raw numeric enums are absent from ordinary text and visible form values.
+    test:
+      file: tests/e2e/src/app/shared-policy/property-priority-workspace.test.ts
+      name: ui.model-property-priority-workspace-views
 - id: ui.basic-info-card-2
   category: presentation
   topic: basic-info-card
-  rule: Displays structured fields; does not carry comment or homework interactions.
-- id: ui.context-tabs-1
-  category: presentation
-  topic: context-tabs
-  rule: Not used for course, section, or teacher catalog detail pages (see Detail Two-Column Stream).
-- id: ui.context-tabs-2
-  category: presentation
-  topic: context-tabs
-  rule: May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
-    branches).
+  rule: Course, teacher and section basic-information components render structured facts. Comment and homework interaction components remain outside their component dependency trees.
+  rationale: This is a feature-component responsibility boundary; generic shared UI primitives are external leaves, and the current fact components do not re-export children through barrels. Public field allowlists are owned by course.public-detail-fields, teacher.public-detail-fields and section.public-teacher-reference; the visible localized identity facts are owned by ui.layout-principles-3.
+  acceptance:
+    given: The three catalog basic-information roots and all their composed local Svelte children.
+    when: The Svelte compiler parses their feature-component dependency trees through relative and aliased Svelte imports and inspects element attributes.
+    then:
+    - Each tree contains definition-list fields and contains no comment/homework component imports, mutation forms, input controls or interaction handlers.
+    test:
+      file: tests/unit/features/catalog/basic-information-boundary.test.ts
+      name: ui.basic-info-card-2
 - id: ui.context-tabs-3
   category: presentation
   topic: context-tabs
-  rule: When present, context navigation is a horizontal, touch-scrollable row with an overflow affordance
-    on mobile and a vertical sidebar on larger screens; the active destination remains programmatically identified
-    and scrolls into view.
+  rule: Contextual section navigation, currently used by account settings, uses a scrollable horizontal row
+    on mobile and a vertical rail on desktop. The active destination has aria-current=page and is scrolled
+    into view; keyboard-focused destinations remain fully visible and reachable through overflow.
+  rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
+    separate browse-navigation component; they are not contextual section rails.
+  acceptance:
+    given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.
+    when: The actual navigation reveals the active destination and the user visits every settings section with Tab and Enter.
+    then:
+    - Desktop links form a vertical rail; mobile links occupy one horizontally scrollable row without document overflow.
+    - The directly opened active link and every keyboard-focused destination are fully inside the navigation viewport.
+    - Each activated route renders its panel and has exactly one aria-current=page link.
+    test:
+      file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
+      name: ui.context-tabs-3
 - id: ui.global-search-results-1
   category: presentation
   topic: global-search-results
   rule: Catalog group order is sections → teachers → courses → links, then signed-in homeworks and todos.
+  acceptance:
+    given: A query matches an isolated course, section, and teacher, a shipped campus link, and an isolated
+      user's subscribed homework and owned todo.
+    when: The browser searches anonymously and then with that user's real session.
+    then:
+    - Anonymous results contain nonempty sections, teachers, courses, and links groups in that order without
+      the private homework or todo.
+    - Signed-in results keep the same public group order and append homeworks then todos, including the user's
+      matching task in its respective group.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-1
 - id: ui.global-search-results-2
   category: presentation
   topic: global-search-results
-  rule: Section items use title `course.namePrimary · teachers` (fall back to course name · section code when
-    teachers are empty) and description `semester · campus · section.code` with code last.
+  rule: Section items use title `course.namePrimary · teachers` (course name alone when teachers are empty)
+    and description `semester · campus · section.code` with code last. The secondary code remains available
+    for disambiguation without duplicating it in the title.
+  acceptance:
+    given: An isolated section has two bilingual teachers, a bilingual campus, and an explicitly historical
+      semester; another offering has no teacher, campus, or semester.
+    when: An anonymous browser searches both offerings in Chinese and English and opens each result.
+    then:
+    - The complete section shows localized course and teacher names in its title, followed by the historical
+      semester, localized campus, and public section code in its description.
+    - The incomplete section uses the course title alone and localized Unknown before the final public code
+      in its description, without empty campus separators.
+    - Both results navigate to the corresponding canonical section detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-2
 - id: ui.global-search-results-3
   category: presentation
   topic: global-search-results
   rule: Course items use title `course.namePrimary` and description `course.code`.
+  acceptance:
+    given: An isolated course has distinct Chinese and English names and a public course code.
+    when: An anonymous browser searches its code in each locale and opens its result.
+    then:
+    - The result contains exactly its localized course name followed by its public code.
+    - Opening it reaches the canonical course detail identified by its public JW ID.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-3
 - id: ui.global-search-results-4
   category: presentation
   topic: global-search-results
-  rule: Teacher items use title `teacher.namePrimary` and description department or code.
-- id: ui.calendar-export-dialog-1
-  category: presentation
-  topic: calendar-export-dialog
-  rule: Used to display single-object iCal and personal subscription iCal.
-- id: ui.calendar-export-dialog-2
-  category: presentation
-  topic: calendar-export-dialog
-  rule: Presented as a copyable link; users are not required to manually construct the URL.
+  rule: Teacher search results use the localized teacher name as title. Their secondary context uses department
+    when present, otherwise the public teacher code; absent context does not expose a database row ID.
+  acceptance:
+    given: Three isolated teachers have a bilingual department, only a public code, or neither source of secondary
+      context.
+    when: An anonymous browser searches them in Chinese and English and opens a teacher result.
+    then:
+    - Each result leads with the localized teacher name and follows it with the localized department or public
+      teacher code when available.
+    - Missing secondary context adds no internal database or JW identifier.
+    - Opening the result reaches that teacher's canonical detail page.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: ui.global-search-results-4
 - id: ui.shell-layout-1
   category: presentation
   topic: shell-layout
   rule: Desktop sidebar and main content scroll independently.
+  acceptance:
+    given: A short desktop viewport displays a long public document and overflowing sidebar navigation.
+    when: The user wheels each pane separately and uses Home in the focused content pane.
+    then:
+    - Scrolling either pane changes only its own scroll position; the document viewport remains stationary.
+    - Keyboard scrolling returns main content to its beginning without moving the sidebar.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-1
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: Signed-in desktop nav keeps task links in Workspace; Explore and Admin are progressive groups.
+  rule: Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
+    use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+  acceptance:
+    given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
+    when: The browser inspects the visible primary navigation, its current-page link, and the expanded campus-services
+      group.
+    then:
+    - Signed-in desktop navigation groups personal task destinations under Workspace. Explore and admin destinations
+      use distinct expandable groups, and admin entries are visible only to an authorized administrator.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-2
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
   rule: A destination row is either a link or a disclosure, never both.
+  acceptance:
+    given: The public desktop navigation and mobile drawer contain the expanded campus-services group.
+    when: The user toggles the group with the keyboard and then activates the Shuttle Bus destination.
+    then:
+    - The group is a disclosure button without a URL; toggling it changes expanded state and child visibility
+      without navigating.
+    - Destination controls are anchors with URLs and no disclosure state, with no nested button-and-link controls.
+    - Activating the destination reaches the canonical bus page rather than toggling a submenu.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-3
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: Signed-in mobile nav pins Today, Calendar, Tasks, and Explore, reserving height and safe area.
+  rule: Signed-in mobile navigation exposes Today, Calendar, Tasks, and Explore. The content layout reserves
+    navigation height and the device safe-area inset so the final content is not covered.
+  acceptance:
+    given: A signed-in user opens the mobile shell and a long public document.
+    when: The user activates every primary destination with the keyboard and the real browser emulates bottom
+      safe-area insets of zero and 34 pixels.
+    then:
+    - Today, Calendar, Tasks, and Explore reach their canonical routes and identify the active destination.
+    - Navigation padding and content reservation include the emulated safe-area inset.
+    - After scrolling to the document end, its final text is fully above the navigation bar with no horizontal
+      document overflow.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-4
 - id: ui.shell-layout-5
   category: presentation
   topic: shell-layout
-  rule: Language and theme stay in the topbar; signed-in profile actions in the sidebar footer.
-- id: ui.shell-layout-6
-  category: presentation
-  topic: shell-layout
-  rule: Onboarding (`/account/welcome`) hides sidebar, global search, and mobile nav.
+  rule: The topbar exposes language and theme controls. Signed-in desktop profile actions use the sidebar footer;
+    mobile profile actions remain available from the mobile shell.
+  acceptance:
+    given: An isolated signed-in user opens a workspace page at desktop and mobile widths.
+    when: The user opens language, theme, and profile menus with the keyboard and closes them with Escape.
+    then:
+    - Language and theme controls are visible in the topbar and expose selectable menu items.
+    - Profile actions are available from the sidebar footer on desktop and the mobile drawer, including personal
+      page, settings, and sign out.
+    - Escape restores focus to each menu trigger.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-5
 - id: ui.shell-layout-7
   category: presentation
   topic: shell-layout
   rule: Anonymous topbars retain Sign in.
+  acceptance:
+    given: An anonymous visitor opens the landing page, course catalog, and terms page at desktop and mobile widths.
+    when: The visitor focuses the topbar Sign in link and presses Enter.
+    then:
+    - Each topbar exposes a visible Sign in link to the canonical account sign-in route.
+    - Keyboard activation reaches the sign-in page and its main heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.shell-layout-7
 - id: ui.shell-layout-8
   category: presentation
   topic: shell-layout
-  rule: Mobile topbar/nav controls are at least 44 by 44 CSS pixels.
+  expectation:
+    kind: target_size
+    surface: web
+    target:
+      by: css
+      value: '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible'
+    viewport:
+      width: 390
+      height: 844
+    min_width: 44
+    min_height: 44
+  applies_to:
+  - shell-layout
+  acceptance:
+    given: A signed-in administrator opens workspace todos at the viewport declared by the target-size expectation.
+    when: The browser measures the mobile primary links and menu, language, and theme controls, then opens the
+      navigation drawer.
+    then:
+    - Rendered mobile topbar and primary-navigation hit targets meet the declared width and height at the declared
+      viewport.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-8
 - id: ui.shell-layout-9
   category: presentation
   topic: shell-layout
-  rule: System/light/dark themes apply before first paint; system follows live OS changes, with a no-JS fallback.
+  rule: A stored light/dark preference is applied to the document before application hydration, using a bootstrap
+    script authorized by the response CSP.
+  acceptance:
+    given: The browser saves a dark theme preference while the operating-system color scheme is light, and application
+      hydration scripts are blocked.
+    when: The anonymous home document loads and the browser inspects its initial theme and the bootstrap script’s
+      CSP nonce.
+    then:
+    - A stored light/dark preference is applied to the document before application hydration, using a bootstrap
+      script authorized by the response CSP.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.shell-layout-9
 - id: ui.workspace-footer-policy-1
   category: presentation
   topic: workspace-footer-policy
-  rule: Public discovery, content, policy, and marketing pages retain the public footer.
+  rule: Public discovery, policy, and marketing pages retain the public footer. Focused catalog detail pages
+    may omit the footer; their legal and help navigation remains required by ui.public-legal-help-navigation.
+  acceptance:
+    given: Public discovery, policy, and usage pages with no authenticated viewer.
+    when: The browser loads representative pages at desktop and mobile widths.
+    then:
+    - A visible public footer retains navigable Terms, Privacy, and usage links.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-footer-policy-1
 - id: ui.workspace-footer-policy-2
   category: presentation
   topic: workspace-footer-policy
-  rule: Signed-in workspace roots, onboarding (`/account/welcome`), and their settings/admin branches do not
-    append the public footer.
-- id: ui.workspace-footer-policy-3
-  category: presentation
-  topic: workspace-footer-policy
-  rule: A signed-in user visiting a public content route still sees the public footer.
+  rule: Workspace, /account/settings/*, /admin/*, and /account/welcome pages do not append the public footer.
+  acceptance:
+    given: The public terms page exposes footer navigation and an isolated administrator has a complete profile.
+    when: The user opens workspace views, account settings, and administration pages, then opens onboarding with
+      their own profile made incomplete.
+    then:
+    - Workspace, settings, and administration routes omit the public footer navigation.
+    - The incomplete profile reaches the canonical welcome route, which also omits the public footer.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.workspace-footer-policy-2
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Homework, todo, and exam filters retain one selection through repeated clicks, Space, empty results,
-    and completing the last pending task; never automatically select All.
+  rule: Homework, todo, and exam status filters retain the selected value through repeated activation, empty
+    results, and completing the last pending task. Only an explicit selection or clear action changes the applied
+    filter.
+  acceptance:
+    given: An isolated signed-in user has completed task records and, in a second case, one pending record,
+      on each homework, todo, and exam page at desktop and mobile widths.
+    when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
+      completes the last pending record and clears the resulting filter-empty state.
+    then:
+    - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
+      results, and completing the last pending task. Only an explicit selection or clear action changes the
+      applied filter.
+    test:
+      file: tests/e2e/src/app/workspace/task-filters.test.ts
+      name: ui.workspace-filters-and-empty-states-1
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Selection colors update immediately; controls stay disabled until hydration.
+  rule: Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
+    visual and accessible state without waiting for the results request to finish.
+  acceptance:
+    given: A signed-in browser opens each homework, todo, and exam page while its application hydration scripts
+      are held.
+    when: The browser checks all three filter controls before releasing the scripts, then switches among all,
+      completed, and incomplete while offline.
+    then:
+    - Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
+      visual and accessible state without waiting for the results request to finish.
+    test:
+      file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
+      name: ui.workspace-filters-and-empty-states-2
 - id: ui.workspace-filters-and-empty-states-3
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: 'All three use the homework empty-state style: retain desktop table headers, left-align compact text
-    without an icon or filled background, and place an outline clear-filter action below the description.'
-- id: ui.workspace-filters-and-empty-states-4
-  category: presentation
-  topic: workspace-filters-and-empty-states
-  rule: Mobile uses the same message and action styling.
+  rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
+    or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
+    the explanation.
+  acceptance:
+    given: An isolated user has completed homework, todo, and exam records and no pending records.
+    when: The browser loads each page’s pending filter at desktop and mobile widths and inspects empty-state
+      geometry, colors, icon, action, and table header visibility.
+    then:
+    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
+      or filled background. Desktop tables retain their headers; an outline clear-filter action appears below
+      the explanation.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-filters-and-empty-states-3
 - id: ui.workspace-filters-and-empty-states-5
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Filter-empty results explain the selection and offer clear-filter.
+  acceptance:
+    given: An isolated user has completed homework, todo, and exam records and no pending records.
+    when: The browser reads each pending-filter explanation and activates Clear filter.
+    then:
+    - Filter-empty results explain the selection and offer clear-filter.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-filters-and-empty-states-5
 - id: ui.workspace-filters-and-empty-states-6
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Setup-empty states offer existing setup or create actions.
+  rule: 'Setup-empty states offer a relevant authorized next action: task creation for an empty todo list and
+    subscription setup for learning views that require subscribed sections.'
+  rationale: Learning setup applies to overview, homework and exams. The unsubscribed calendar remains a personal activity calendar and does not require section subscriptions.
+  acceptance:
+    given: An isolated signed-in user has no todos or section subscriptions, in English desktop and Chinese mobile views.
+    when: The browser follows section/course setup actions from overview, homework and exams, then creates the first todo from the empty todo list.
+    then:
+    - Setup actions reach the public section/course pages, and the authorized todo action creates the first task in the database and displays it.
+    test:
+      file: tests/e2e/src/app/shared-policy/setup-empty.test.ts
+      name: ui.workspace-filters-and-empty-states-6
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings use concise labels in a desktop rail and scrollable mobile row.
+  rule: Settings routes replace the primary sidebar with a settings sidebar. Its top control returns home. Desktop shows that sidebar beside the active panel. Mobile opens it from the shell menu.
+  acceptance:
+    given: A signed-in user opens profile settings at desktop width, returns home, then opens danger settings on a phone.
+    when: The browser measures the desktop sidebar against the panel, follows the home control, and opens the mobile menu.
+    then:
+    - The desktop settings sidebar sits to the left of the panel, marks profile current, and its top control returns home.
+    - Home restores the primary sidebar. The mobile menu shows the settings sidebar with danger current.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-1
 - id: ui.settings-navigation-2
   category: presentation
   topic: settings-navigation
-  rule: '`/account/settings/profile` is the default; legacy tab inputs only redirect.'
-- id: ui.settings-navigation-3
-  category: presentation
-  topic: settings-navigation
-  rule: Legacy appearance, language, and preferences values redirect to `/account/settings/preferences`.
+  rule: The default settings destination is /account/settings/profile. Canonical settings navigation does not
+    depend on legacy tab query inputs.
+  acceptance:
+    given: A signed-in user requests the settings root without a subsection or tab query.
+    when: The browser follows the root redirect and inspects the resulting profile form.
+    then:
+    - The default settings destination is /account/settings/profile. Canonical settings navigation does not
+      depend on legacy tab query inputs.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-2
 - id: ui.settings-navigation-4
   category: presentation
   topic: settings-navigation
-  rule: Preferences reuse the pre-paint/localStorage theme mechanism and `/api/account/preferences`; URLs have
-    no locale segments.
+  rule: Preferences reuse the shared theme mechanism and /api/account/preferences for server-supported preferences.
+    Theme remains a browser preference; locale changes do not add locale URL segments.
+  acceptance:
+    given: An isolated signed-in browser opens Preferences in English.
+    when: Change theme through both Preferences and the shared shell, then change locale to Chinese and back.
+    then:
+    - Both theme selectors and the rendered theme agree immediately; theme persists in browser storage
+      without a preferences API mutation.
+    - Language changes POST only the selected locale to /api/account/preferences and reload the same URL,
+      preserving the browser theme without adding locale route segments.
+    test:
+      file: tests/e2e/src/app/shared-policy/preferences-state.test.ts
+      name: ui.settings-navigation-4
 - id: ui.settings-navigation-5
   category: presentation
   topic: settings-navigation
-  rule: Authorizations remain distinct from linked sign-in accounts and require confirmation before revocation.
+  rule: Revoking an application authorization requires explicit confirmation identifying the selected application.
+    Opening or dismissing confirmation does not revoke access; confirmation revokes only that application.
+  acceptance:
+    given: An isolated user owns two application grants; English desktop and Chinese mobile settings render
+      their authorization rows.
+    when: Open the selected application's revoke dialog, dismiss with Cancel and Escape, then explicitly confirm.
+    then:
+    - The dialog names only the selected application and exposes both confirm and cancel controls.
+    - Opening and dismissing send no mutation and preserve both grants; confirming sends one mutation,
+      removes only the selected grant and retains the other application's row.
+    test:
+      file: tests/e2e/src/app/shared-policy/authorization-confirmation.test.ts
+      name: ui.settings-navigation-5
 - id: ui.settings-navigation-6
   category: presentation
   topic: settings-navigation
-  rule: The active section owns its copy, exposes one aria-current page link, and scrolls into view on mobile.
+  rule: Within the settings sidebar, exactly one link identifies the active page with aria-current=page, and that link is visible after the mobile menu opens.
+  acceptance:
+    given: A signed-in user selects Chinese and directly opens danger settings on a narrow screen.
+    when: The browser opens the shell menu.
+    then:
+    - The settings sidebar contains exactly one aria-current link, and that link is visible.
+    test:
+      file: tests/e2e/src/app/settings/test.ts
+      name: ui.settings-navigation-6
 - id: ui.settings-navigation-7
   category: presentation
   topic: settings-navigation
-  rule: Danger stays separate from routine settings.
+  rule: Destructive account controls are grouped in the separate danger settings destination rather than interspersed
+    with routine profile or preference controls.
+  acceptance:
+    given: An isolated signed-in user opens each settings destination in Chinese on desktop and English
+      on mobile.
+    when: The browser inspects profile, preferences, linked accounts, security, authorizations and danger.
+    then:
+    - Only the active danger destination renders the visible account deletion region and its single trigger.
+    - Routine destinations render neither the deletion trigger nor an account deletion form.
+    test:
+      file: tests/e2e/src/app/shared-policy/page-identity.test.ts
+      name: ui.settings-navigation-7
 - id: ui.contribution-heatmap-1
   category: presentation
   topic: contribution-heatmap
-  rule: Public profile contribution history keeps a readable minimum cell size and scrolls horizontally when
-    needed.
+  rule: Contribution history uses a horizontally scrollable heatmap region when its date range exceeds the
+    available width. Scrolling exposes all dates without causing horizontal document overflow.
+  acceptance:
+    given: An isolated public profile has three public attributed comments on one Shanghai calendar date and zero contributions on all other days.
+    when: The browser scrolls every rendered date into the heatmap viewport at 320, 390 and 1280 pixels.
+    then:
+    - Every unique day is reachable inside the local scroll region and the document never overflows horizontally.
+    test:
+      file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
+      name: ui.contribution-heatmap-1
 - id: ui.contribution-heatmap-2
   category: presentation
   topic: contribution-heatmap
   rule: Each contribution day exposes its localized date/count to keyboard, touch, and assistive-technology
     users.
+  acceptance:
+    given: An isolated public profile has three public attributed comments on one Shanghai calendar date and zero contributions on all other days.
+    when: Chinese and English touch-capable browsers inspect all day labels, navigate with arrows and Home/End, and tap empty and populated days.
+    then:
+    - Every day exposes the expected localized date and database-backed count; keyboard and touch selection update the accessible live detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
+      name: ui.contribution-heatmap-2
 - id: ui.workspace-page-identity-1
   category: presentation
   topic: workspace-page-identity
   rule: Every signed-in workspace branch exposes exactly one localized level-one heading.
+  acceptance:
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
+      and reads each level-one heading.
+    then:
+    - Every signed-in workspace branch exposes exactly one localized level-one heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-1
 - id: ui.workspace-page-identity-2
   category: presentation
   topic: workspace-page-identity
   rule: The main content landmark uses the same localized branch label.
+  acceptance:
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and counts
+      and reads the accessible name of each main landmark.
+    then:
+    - The main content landmark uses the same localized branch label.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-2
 - id: ui.workspace-page-identity-3
   category: presentation
   topic: workspace-page-identity
   rule: The document title identifies the active branch before the Life@USTC suffix.
+  acceptance:
+    given: A user is signed in with Chinese at 1280 pixels and then English at 390 pixels.
+    when: The browser directly opens overview, calendar, homework, todos, exams, and subscriptions and reads
+      each document title.
+    then:
+    - The document title identifies the active branch before the Life@USTC suffix.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.workspace-page-identity-3
 - id: ui.workspace-page-identity-4
   category: presentation
   topic: workspace-page-identity
-  rule: Identity follows the semantic workspace path after root or query compatibility redirects.
+  rule: After a canonical workspace-root redirect, the final route determines the localized heading, main landmark
+    label, and document title. Legacy query values do not define workspace identity.
+  acceptance:
+    given: An isolated signed-in user uses Chinese on desktop and English on mobile.
+    when: The browser follows workspace-root redirects for default, calendar, homework, todo, exam and
+      invalid selectors, then opens a semantic todo route carrying a stale calendar selector.
+    then:
+    - The final semantic route determines the single level-one heading, main landmark name and document title.
+    - Root redirects remove tab selectors; a stale selector cannot rename an existing semantic route.
+    test:
+      file: tests/e2e/src/app/shared-policy/page-identity.test.ts
+      name: ui.workspace-page-identity-4
 - id: ui.workspace-mobile-priority-1
   category: presentation
   topic: workspace-mobile-priority
-  rule: Personal workspace mobile layouts prioritize the next actionable information before directory-style
-    shortcuts or wide planning grids.
-- id: ui.workspace-mobile-priority-2
-  category: presentation
-  topic: workspace-mobile-priority
-  rule: Calendar uses a readable agenda at mobile widths while retaining semester, month, and week grids on
-    desktop.
-- id: ui.workspace-mobile-priority-3
-  category: presentation
-  topic: workspace-mobile-priority
-  rule: Homework, todo, and exam mobile toolbars keep status filters directly available, move card/list display
-    mode into an accessible overflow menu, and keep primary controls at least 44 by 44 CSS pixels.
+  rule: Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
+    within a layout that does not overflow the viewport horizontally.
+  acceptance:
+    given: A signed-in user opens the workspace overview at a 390-by-844 viewport.
+    when: The browser measures the next-action section against the website-shortcuts section and the document
+      against the viewport width.
+    then:
+    - Mobile workspace overview displays its next learning/task actions before website-directory shortcuts,
+      within a layout that does not overflow the viewport horizontally.
+    test:
+      file: tests/e2e/src/app/workspace/test.ts
+      name: ui.workspace-mobile-priority-1
 - id: ui.social-sharing-metadata-1
   category: presentation
   topic: social-sharing-metadata
-  rule: Every rendered page exposes one localized description plus one complete Open Graph and Twitter card
-    set.
+  rule: Rendered pages provide one localized description and one Open Graph/Twitter card set. Account, OAuth,
+    admin, and private workspace metadata uses non-sensitive page descriptions and never embeds credentials
+    or private task content.
+  acceptance:
+    given: The complete rendered-page inventory, every settings and workspace tab, and isolated catalog, activity, publication, profile, incomplete-welcome, private-task and OAuth-client fixtures.
+    when: Chinese and English browsers visit every page with credential-like continuation parameters, using the appropriate anonymous, user or administrator session.
+    then:
+    - Raw SSR and hydrated head metadata agree, with exactly one nonempty description, canonical link and complete localized Open Graph/Twitter card set per page.
+    - Every page has matching card descriptions, titles and image metadata, canonical URLs omit continuation parameters, and descriptions change with the selected locale.
+    - Private surfaces use controlled descriptions; no tested card contains private task title/body, calendar token, client secret, authorization code, OAuth state, private user identity or application name.
+    - Every document loads successfully at its intended route without browser console errors or uncaught page errors.
+    test:
+      file: tests/e2e/src/app/shared-policy/social-metadata-matrix.test.ts
+      name: ui.social-sharing-metadata-1
 - id: ui.social-sharing-metadata-2
   category: presentation
   topic: social-sharing-metadata
-  rule: Canonical and Open Graph URLs are absolute, same-origin, and exclude query strings and fragments.
+  rule: Canonical and Open Graph URLs are absolute and use the configured application origin. They exclude
+    query strings, fragments, credentials, and authorization continuation parameters.
+  acceptance:
+    given: Public paths, an attacker-origin path, and a private settings path carrying secret query parameters
+      and fragments.
+    when: The production social-metadata builder creates canonical URLs.
+    then:
+    - Canonical URLs use only the configured application origin and exclude query, fragment, credentials and
+      secret parameters.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-2
 - id: ui.social-sharing-metadata-3
   category: presentation
   topic: social-sharing-metadata
-  rule: Course, section, and teacher detail subroutes canonicalize to the entity root and use controlled localized
-    summaries rather than editable user content.
+  rule: Public course, section, and teacher detail metadata uses the canonical entity-root URL and controlled
+    localized summaries rather than editable user-authored descriptions. This does not require supporting obsolete
+    detail subroutes.
+  acceptance:
+    given: Isolated course, section, and teacher records each have a user-authored description containing
+      a unique marker.
+    when: Chinese and English clients fetch their current entity-root pages with query and fragment noise.
+    then:
+    - Actual SSR metadata contains exactly one complete card set with the entity-root canonical URL and
+      the controlled localized entity summary.
+    - Authored description content is present in page data but never copied into social descriptions or titles.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: ui.social-sharing-metadata-3
 - id: ui.social-sharing-metadata-4
   category: presentation
   topic: social-sharing-metadata
-  rule: Social images use the 1200 by 630 Life@USTC PNG card with explicit dimensions, MIME type, and localized
-    alternative text.
+  rule: Social metadata describes the fixed Life@USTC PNG card as 1200 by 630 pixels, with explicit MIME type
+    and localized alternative text.
+  acceptance:
+    given: Chinese and English metadata requests with their localized alternative text.
+    when: The production social-metadata builder creates the image descriptor.
+    then:
+    - The descriptor is a 1200 by 630 PNG with the provided localized alternative text.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-4
 - id: ui.social-sharing-metadata-5
   category: presentation
   topic: social-sharing-metadata
   rule: Every page and locale uses the same fixed /open-graph.png static asset without query parameters.
+  acceptance:
+    given: Several public/private page paths in both locales, followed by a page-copy override.
+    when: The production metadata builder and updater produce social images.
+    then:
+    - Every result keeps the same fixed /open-graph.png URL with no query parameters.
+    test:
+      file: tests/unit/lib/misc/social-metadata-policy-acceptance.test.ts
+      name: ui.social-sharing-metadata-5
 - id: ui.social-sharing-metadata-6
   category: presentation
   topic: social-sharing-metadata
-  rule: The image does not contain page titles, profile names, or avatars and is served without invoking application
-    code.
+  rule: The fixed social image contains no page titles, profile names, or avatars. It is delivered as a static
+    asset without invoking application rendering.
+  acceptance:
+    given: The fixed bundled 1200 by 630 PNG and requests with unrelated title/profile/avatar query parameters.
+    when: Clients issue ordinary GET, query-bearing GET, HEAD, and conditional requests for /open-graph.png.
+    then:
+    - Both GETs return the exact bundled static bytes, with PNG metadata and public asset caching; query
+      parameters never affect the image.
+    - Static delivery has no application request ID, HEAD has no body, and a matching ETag returns 304.
+    test:
+      file: tests/e2e/src/app/courses/social-metadata.test.ts
+      name: ui.social-sharing-metadata-6
 - id: ui.localized-count-copy-1
   category: presentation
   topic: localized-count-copy
-  rule: User-visible English count copy distinguishes singular from plural forms; Chinese may share one count
-    template when its grammar does not change.
+  rule: Outside catalog result summaries and profile contribution-day labels, user-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.
+  rationale: Catalog result summaries and profile contribution-day labels have the independent owners ui.catalog-count-copy and ui.profile-count-copy. Count-neutral labels need no invented singular variant, and zero-count notices/results may be absent where their component only renders nonempty records.
+  acceptance:
+    given: Isolated database fixtures provide zero, one and two activities, organizers, publications, sources, private comments, administrative records, importable sections and account security events.
+    when: English and Chinese browsers open the activity list/calendar/organizer history/directory, news and source directory, course comments, administrative users/OAuth/descriptions, activity digests, account security, subscription search/import and welcome import; publication folding and subscription selection are changed through reachable states.
+    then:
+    - Visible summaries, digest/hidden-comment notices, folded sibling badges, search legends and import headings/actions use the actual count and natural singular/plural grammar.
+    - Source and publication totals choose their grammar independently, including sources with no publications; empty-only branches omit inapplicable count notices.
+    - Selecting zero sections updates the confirmation title, accessible legend and disabled action; importing one or two sections renders the correct success message and included-section summary in workspace and welcome.
+    - Security repetition badges appear only for groups larger than one and report their actual repeated count.
+    test:
+      file: tests/e2e/src/app/shared-policy/remaining-count-copy.test.ts
+      name: ui.localized-count-copy-1
+- id: ui.catalog-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Course, teacher and section result summaries use singular English entity names when the total is one and plural names for zero or multiple results; Chinese summaries retain their natural classifiers.
+  acceptance:
+    given: Two isolated course, teacher and section fixtures can each be queried as zero, one or two matching results.
+    when: English and Chinese desktop browsers open all three result collections for each count.
+    then:
+    - The rendered summary reports the actual shown and total counts with correct singular, plural or Chinese classifier wording.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
+      name: ui.catalog-count-copy
+- id: ui.profile-count-copy
+  category: presentation
+  topic: localized-count-copy
+  rule: Public profile contribution-day labels use activity for one English contribution and activities for zero or multiple contributions, while Chinese labels retain one natural count template.
+  acceptance:
+    given: Isolated profiles have one or two public attributed comments on one Shanghai date, with empty days elsewhere.
+    when: English and Chinese browsers focus empty and populated contribution days.
+    then:
+    - The accessible day name and visible live detail expose the database-backed count and the grammatical localized label for zero, one and two.
+    test:
+      file: tests/e2e/src/app/shared-policy/contribution-heatmap.test.ts
+      name: ui.profile-count-copy
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
-  rule: 'Desktop: Primary navigation / 主导航.'
+  rule: The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+  acceptance:
+    given: An anonymous browser uses a 1280-pixel viewport.
+    when: The browser opens the public course list in Chinese and English and locates the primary navigation
+      by its localized accessible name.
+    then:
+    - The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-1
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
   rule: 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+  acceptance:
+    given: A signed-in user opens the workspace overview at 390 pixels in Chinese and English.
+    when: The browser reads the visible mobile primary navigation, opens the menu, and reads the secondary navigation’s
+      accessible name.
+    then:
+    - 'Signed-in mobile: distinct Mobile primary navigation / 移动主导航 and Secondary navigation / 次级导航 landmarks.'
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-2
 - id: ui.navigation-landmarks-3
   category: presentation
   topic: navigation-landmarks
-  rule: Each surface exposes at most one aria-current page.
+  rule: Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
+    navigation landmarks may each identify their own active destination.
+  acceptance:
+    given: A signed-in user visits workspace todos, the public course list, and preference settings at 1280
+      and 390 pixels.
+    when: The browser opens the mobile menu when needed and counts current-page links separately within every
+      navigation landmark.
+    then:
+    - Each navigation landmark contains at most one aria-current=page link. Separate primary and secondary
+      navigation landmarks may each identify their own active destination.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.navigation-landmarks-3
 - id: ui.navigation-landmarks-4
   category: presentation
   topic: navigation-landmarks
-  rule: The first focusable shell control is a localized skip link to main; footer links have their own landmark.
+  rule: The first focusable shell control is a localized skip link that moves keyboard focus to main content.
+  acceptance:
+    given: An anonymous home page has loaded and no control has keyboard focus.
+    when: The user presses Tab once to reach the skip link and then presses Enter.
+    then:
+    - The first focusable shell control is a localized skip link that moves keyboard focus to main content.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.navigation-landmarks-4
 - id: ui.navigation-landmarks-5
   category: presentation
   topic: navigation-landmarks
-  rule: Campus services contains catalog, second classroom and news.
+  rule: Campus services navigation exposes distinct entries for the academic catalog, Young activities, and
+    news, each linking to its canonical destination.
+  acceptance:
+    given: An anonymous visitor opens the desktop navigation or mobile navigation drawer.
+    when: The visitor separately activates Courses, Second Classroom, and News & Notices.
+    then:
+    - Each entry occurs once and links to its distinct canonical route.
+    - Each activation reaches that destination and exposes its main heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
+      name: ui.navigation-landmarks-5
 - id: ui.navigation-landmarks-6
   category: presentation
   topic: navigation-landmarks
-  rule: Public notices stay separate from personal activity reminders; the workspace exposes reminders with
-    an unexpired unread count.
+  rule: Public notices and private activity reminders are separate navigation destinations. A user's reminder
+    badge counts only unread, unexpired notifications belonging to that user.
+  acceptance:
+    given: Two isolated users, with and without academic subscriptions, have different unread, read and expired activity notices.
+    when: Each signed-in browser opens desktop/mobile navigation, visits activity reminders and marks one owned notice read.
+    then:
+    - Public News & Notices and Activity reminders have distinct links; only private reminders display the exact owner count.
+    - Reminder lists exclude expired and foreign-owner notices while retaining the owner's read history.
+    - Marking a notice read updates the badge and removes the badge at zero.
+    test:
+      file: tests/e2e/src/app/shared-policy/navigation-context.test.ts
+      name: ui.navigation-landmarks-6
 - id: ui.navigation-landmarks-7
   category: presentation
   topic: navigation-landmarks
-  rule: Activity/calendar navigation and detail returns preserve filters; current views remain identified.
+  rule: Activity detail links record the originating list or calendar URL. The second-classroom sidebar identifies the active list or calendar view. The detail page does not render a return link.
+  acceptance:
+    given: Isolated activities match every supported list and calendar filter, with activity and signup dates and more than one result page.
+    when: A browser opens a detail from page two of the activity list and from day, week and month calendar views under both time bases, then uses the browser back control.
+    then:
+    - Detail links record the exact originating filters, pagination and calendar date/view.
+    - The detail page has no return link.
+    - Browser back restores the originating records, and the active sidebar and calendar views stay programmatically identified.
+    test:
+      file: tests/e2e/src/app/shared-policy/young-return-navigation.test.ts
+      name: ui.navigation-landmarks-7
+- id: ui.list-pagination-filter-state
+  category: presentation
+  topic: list-table
+  rule: Outside the six public browse collections covered by ui.public-browse-pagination-state, collection pagination links preserve the applied search query and filters while changing only pagination
+    state; browser back/forward restores the corresponding query and results.
+  rationale: The remaining current paginated collections are uploads, administrative users, activity subscriptions, followed organizers, unread/all notifications, organizer activity history, and course/teacher section histories. Directories without pagination are outside this pagination requirement.
+  acceptance:
+    given: Isolated fixtures provide twenty-five records for each remaining paginated collection and real signed-in administrative access where required.
+    when: The browser checks every pagination href, activates the second page with the keyboard, and traverses back and forward under supported search, view and unread filters.
+    then:
+    - Links change only page or sectionsPage while preserving the collection query; second-page records are disjoint, and history restores the exact records and active-page state for both pages.
+    test:
+      file: tests/e2e/src/app/shared-policy/other-collection-pagination.test.ts
+      name: ui.list-pagination-filter-state
+- id: ui.public-browse-pagination-state
+  category: presentation
+  topic: list-table
+  rule: Pagination links in public course, teacher, section, Young event, Young organizer and news browse collections preserve all applied search/filter values while changing only the page. Browser back and forward restore that query and its corresponding records.
+  acceptance:
+    given: Each public collection has two result pages under its supported search and filters.
+    when: The browser inspects every pagination link, activates page two with the keyboard, and traverses back and forward.
+    then:
+    - Every link preserves the applied query apart from page; the two pages show disjoint records and browser history restores each page's query, records and active page marker.
+    test:
+      file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
+      name: ui.public-browse-pagination-state
+- id: ui.theme-system-response
+  category: presentation
+  topic: shell-layout
+  rule: Selecting light, dark, or system updates the displayed theme and saved preference. While system is
+    selected, a subsequent OS color-scheme change updates the displayed theme.
+  acceptance:
+    given: An anonymous user has loaded the home page with its theme selector available.
+    when: The user selects light, dark, and system in sequence; while system is selected, the emulated operating-system
+      scheme changes from dark to light.
+    then:
+    - Selecting light, dark, or system updates the displayed theme and saved preference. While system is selected,
+      a subsequent OS color-scheme change updates the displayed theme.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.theme-system-response
+- id: ui.theme-no-js
+  category: presentation
+  topic: shell-layout
+  rule: With JavaScript disabled, the page remains readable and its CSS follows the operating-system color
+    scheme.
+  acceptance:
+    given: A browser context disables JavaScript and requests the dark operating-system color scheme.
+    when: The browser loads the anonymous home document and reads main-content visibility and the root computed
+      color scheme.
+    then:
+    - With JavaScript disabled, the page remains readable and its CSS follows the operating-system color scheme.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: ui.theme-no-js
+- id: ui.footer-navigation-landmark
+  category: presentation
+  topic: navigation-landmarks
+  rule: Public footer links are contained in a distinct navigation landmark.
+  acceptance:
+    given: An anonymous browser opens the course list, Terms, and Privacy pages.
+    when: The browser locates each visible footer and compares its links with those inside its named navigation
+      landmark.
+    then:
+    - Public footer links are contained in a distinct navigation landmark.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.footer-navigation-landmark
+- id: ui.public-legal-help-navigation
+  category: presentation
+  topic: workspace-footer-policy
+  rule: Directly opened course, section, and teacher detail pages provide reachable Terms, Privacy, and usage-help
+    links through the public shell, on desktop and mobile without requiring sign-in.
+  acceptance:
+    given: An anonymous user directly opens each kind of public catalog detail at desktop and mobile widths.
+    when: The user expands navigation when necessary and activates each legal or help destination.
+    then:
+    - Each destination is reachable without sign-in, responds successfully, and has a visible page heading.
+    test:
+      file: tests/e2e/src/app/shared-policy/test.ts
+      name: ui.public-legal-help-navigation
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -484,12 +1524,44 @@ topics:
   title: Model Property Priority
 - id: model-property-priority-primary
   title: Model Property Priority - Primary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.property-priority-parity
 - id: model-property-priority-secondary
   title: Model Property Priority - Secondary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.property-priority-parity
 - id: model-property-priority-tertiary
   title: Model Property Priority - Tertiary
+  requirement_refs:
+  - ui.model-property-priority-catalog-views
+  - ui.model-property-priority-workspace-views
+  - ui.model-property-priority-account-views
+  - ui.model-property-priority-admin-views
+  - ui.model-property-priority-community-views
+  - ui.model-property-priority-discovery-views
+  - mcp.output-modes
+  - mcp.privacy-safe-default
 - id: model-property-priority-surfaces
   title: Model Property Priority - Surfaces
+  requirement_refs:
+  - mcp.output-mode-input
+  - mcp.output-modes
+  - mcp.openai-compatible-descriptors
+  - mcp.typed-output-fields
+  - mcp.typed-bus-output-fields
+  - mcp.typed-community-output-fields
 - id: basic-info-card
   title: Basic Info Card
 - id: context-tabs
@@ -512,9 +1584,55 @@ topics:
   title: Workspace Page Identity
 - id: workspace-mobile-priority
   title: Workspace Mobile Priority
+  requirement_refs:
+  - homework.mobile-status-controls
+  - homework.responsive-workspace-view
+  - todo.mobile-toolbar-priority
+  - exam.mobile-toolbar-priority
+  - exam.mobile-display-overflow
+  - exam.mobile-toolbar-targets
 - id: social-sharing-metadata
   title: Social Sharing Metadata
 - id: localized-count-copy
   title: Localized Count Copy
 - id: navigation-landmarks
   title: Navigation Landmarks
+rationale:
+- Mobile catalog detail order has one owner, ui.layout-principles-3; the identical detail-two-column-stream
+  restatement was removed without changing the required order.
+- The single-column homework/todo overlay requirement, including reachable actions and absence of a second
+  facts/status rail, is owned by ui.layout-principles-5 rather than two overlapping layout requirements.
+- Public course and section code styling is owned by ui.data-table-cells-3. Secondary metadata styling retains
+  its independent legibility and disambiguation obligation without repeating the code-specific rule.
+- This compact context follows the name-first identity rule.
+- 'Primary properties identify the object or answer the immediate task: display title/name, distinguishing
+  code, due/departure/start time, status, and primary action state.'
+- 'Secondary properties support disambiguation and comparison: localized secondary name, semester, campus/location,
+  teacher/department, counts, section code, and short metadata.'
+- 'Tertiary properties support audit or exact reconstruction: internal IDs, raw timestamps, platform metadata,
+  long nested relations, and repeated parent objects.'
+- REST may expose fuller records for application clients.
+- May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
+  branches).
+- 'Course and teacher offering history, 20-item pagination, retired-record inclusion and #sections navigation
+  are owned by course.bounded-detail-history and teacher.bounded-detail-history; repeating the same behavior
+  here would create a second acceptance owner.'
+- Detail orientation requires recognizable entity identity and a route back to its owning collection. Persistent
+  navigation or an explicit parent link can provide this; breadcrumb styling is not required.
+- The former ui.workspace-mobile-priority-2 duplicates calendar.mobile-agenda-first for mobile date-grouped
+  agendas and calendar.views for the declared desktop grids; those feature requirements own their acceptance.
+- The former ui.model-property-priority-primary-3 duplicates section.student-identity-teachers, which retains
+  course name plus teachers as primary identity and section code as secondary across student-facing views.
+- Settings destination separation for linked sign-in identities versus delegated application grants is
+  owned by user.sign-in-identities-separate; ui.settings-navigation-5 independently owns explicit
+  confirmation of the selected application's revocation.
+- The former ui.model-property-priority-surfaces-2 and the MCP clause of
+  ui.model-property-priority-tertiary-2 are owned by mcp.output-mode-input for supported modes and rejection
+  of summary, mcp.property-priority-parity for compact identity and disambiguation, mcp.output-modes for
+  mode shape and allowed projections, mcp.openai-compatible-descriptors plus mcp.typed-output-fields,
+  mcp.typed-bus-output-fields and mcp.typed-community-output-fields for explicit per-tool output fields,
+  and mcp.privacy-safe-default for identical privacy restrictions in default and full mode.
+- The former primary, secondary and tertiary priority umbrellas are indexed by topics rather than repeated
+  as separate requirements. Six browser view-family owners now check every declared Web field view against
+  actual visible identities, supporting metadata and internal values. The finite inventory rejects omitted
+  views; state-specific declarations distinguish agenda, grids, upload stages and history from their siblings.

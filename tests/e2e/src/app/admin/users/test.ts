@@ -194,17 +194,25 @@ test("/admin/users 状态列对齐且平板使用可读列表", async ({
   ).toBe("right");
   const suspensionCell = firstRowCells.nth(4);
   const suspensionBadge = suspensionCell.locator('[data-slot="badge"]');
-  await expect(
-    suspensionCell.locator('[data-slot="truncated-text-placeholder"]'),
-  ).toHaveCount(0);
+  const secondaryPlaceholder = suspensionCell.locator(
+    '[data-slot="truncated-text-placeholder"]',
+  );
+  await expect(secondaryPlaceholder).toHaveCount(1);
+  await expect(secondaryPlaceholder).toHaveAttribute("aria-hidden", "true");
+  await expect(secondaryPlaceholder).toHaveText("");
+  expect(
+    await secondaryPlaceholder.evaluate(
+      (node) => node.getBoundingClientRect().height,
+    ),
+  ).toBeGreaterThan(0);
   const verticalCenterOffset = await suspensionCell.evaluate((cell) => {
-    const badge = cell.querySelector<HTMLElement>('[data-slot="badge"]');
-    if (!badge) return Number.POSITIVE_INFINITY;
+    const group = cell.firstElementChild;
+    if (!group) return Number.POSITIVE_INFINITY;
     const cellRect = cell.getBoundingClientRect();
-    const badgeRect = badge.getBoundingClientRect();
+    const groupRect = group.getBoundingClientRect();
     return Math.abs(
-      badgeRect.top +
-        badgeRect.height / 2 -
+      groupRect.top +
+        groupRect.height / 2 -
         (cellRect.top + cellRect.height / 2),
     );
   });

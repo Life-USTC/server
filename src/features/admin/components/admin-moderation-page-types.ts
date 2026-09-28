@@ -92,6 +92,7 @@ export type AdminModerationDescriptionFilters = {
 };
 
 export type AdminModerationHomework = {
+  createdBy?: { name?: string | null; username?: string | null } | null;
   createdAt: string | Date;
   deletedAt?: string | Date | null;
   id: string;

@@ -17,6 +17,7 @@ import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   SectionListFilters,
@@ -38,7 +39,7 @@ $: filters = data.filters as SectionListFilters;
 $: locale = $appPage.data.locale ?? "zh-cn";
 $: pagination = data.pagination as SectionListPagination;
 $: sectionSummaryBase = catalogShowingSummary(
-  sectionLabels.showing,
+  pagination.total === 1 ? sectionLabels.showingOne : sectionLabels.showing,
   data.data.length,
   pagination.total,
 );
@@ -70,27 +71,29 @@ $: sectionSemesterSummary = selectedSemester
       <Item.Group class="gap-0" role="list">
         {#each data.data as section, index}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
-          <Item.Root role="listitem" size="sm">
-            {#snippet child({ props })}
-              <a href={sectionHref} {...props}>
-                <Item.Content>
-                  <Item.Title>{catalogLocalizedDisplayName(section.course, locale)}</Item.Title>
-                  <Item.Description>
-                    {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                    · {catalogLocalizedNames(section.teachers, locale) || "-"}
-                  </Item.Description>
-                </Item.Content>
-                <Item.Actions>
-                  <TruncatedCode text={section.code} />
-                </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start">
-                  <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
-                  <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
-                  <span>{section.campus ? primaryName(section.campus) : "-"}</span>
-                </Item.Footer>
-              </a>
-            {/snippet}
-          </Item.Root>
+          <div role="listitem">
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a href={sectionHref} {...props}>
+                  <Item.Content>
+                    <Item.Title><CatalogEntityName item={section.course} {locale} /></Item.Title>
+                    <Item.Description>
+                      {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
+                      · {catalogLocalizedNames(section.teachers, locale) || "-"}
+                    </Item.Description>
+                  </Item.Content>
+                  <Item.Actions>
+                    <TruncatedCode text={section.code} />
+                  </Item.Actions>
+                  <Item.Footer class="flex-wrap justify-start">
+                    <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
+                    <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
+                    <span>{section.campus ? primaryName(section.campus) : "-"}</span>
+                  </Item.Footer>
+                </a>
+              {/snippet}
+            </Item.Root>
+          </div>
           {#if index < data.data.length - 1}
             <Item.Separator aria-hidden="true" />
           {/if}
@@ -107,7 +110,7 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Head>{sectionLabels.courseName}</Table.Head>
             <Table.Head class="w-36">{sectionLabels.sectionCode}</Table.Head>
             <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
-            <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
+            <Table.Head class="w-20 text-right">{sectionLabels.credits}</Table.Head>
             <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
             <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
           </Table.Row>
@@ -122,10 +125,12 @@ $: sectionSemesterSummary = selectedSemester
                   : sectionLabels.noSemester}
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
-                <CatalogTableLink href={sectionHref}>
-                  <TruncatedText
+                <CatalogTableLink class="font-medium" href={sectionHref}>
+                  <TruncatedText class="font-medium"
                     text={catalogLocalizedDisplayName(section.course, locale)}
-                  />
+                  >
+                    {#snippet children()}<CatalogEntityName item={section.course} {locale} />{/snippet}
+                  </TruncatedText>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="align-top">

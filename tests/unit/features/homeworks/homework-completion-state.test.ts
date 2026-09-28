@@ -1,11 +1,12 @@
+import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
 import {
   attachHomeworkCompletionRequired,
   completionRequiredForSubscriptionKind,
   isHomeworkPendingForViewer,
 } from "@/features/homeworks/lib/homework-completion-state";
-
 import { homeworkExpectation } from "../../../shared/specifications/homework";
+import { semanticContract } from "../../../shared/specifications/semantic-contract";
 
 const referenceDate = new Date("2026-09-13T12:00:00.000Z");
 
@@ -128,7 +129,11 @@ describe("teaching assistant pending scope", () => {
   });
 });
 
-it("derives completion requirements from the specification without changing records", () => {
+it("homework.teaching-assistant-completion", async (context) => {
+  const contract = await semanticContract(
+    context.task.name,
+    "subscription_completion",
+  );
   const specification = homeworkExpectation(
     "homework.teaching-assistant-completion",
     "subscription_completion",
@@ -140,14 +145,25 @@ it("derives completion requirements from the specification without changing reco
     [original],
     new Map([[1, specification.subscription_kind]]),
   );
-  expect(actual.completionRequired).toBe(specification.completion_required);
+  contract.equal("/subscription_kind", "teaching_assistant");
+  contract.equal("/completion_required", actual.completionRequired);
+  contract.equal(
+    "/preserve_records",
+    isDeepStrictEqual(actual.completion, snapshot.completion),
+  );
   expect(actual.completion).toEqual(
     specification.preserve_records ? snapshot.completion : null,
   );
   expect(original).toEqual(snapshot);
+  contract.recordVitest(context);
 });
 
-it("applies the specified TA pending deadline boundaries", () => {
+it("homework.teaching-assistant-pending", async (context) => {
+  const contract = await semanticContract(
+    context.task.name,
+    "pending_deadline",
+  );
+  contract.equal("/subscription_kind", "teaching_assistant");
   const specification = homeworkExpectation(
     "homework.teaching-assistant-pending",
     "pending_deadline",
@@ -156,25 +172,30 @@ it("applies the specified TA pending deadline boundaries", () => {
     specification.subscription_kind,
   );
   const cases = [
-    { dueAt: null, expected: specification.without_deadline },
+    { dueAt: null, field: "without_deadline" },
     {
       dueAt: new Date(referenceDate.getTime() + 1),
-      expected: specification.before_deadline,
+      field: "before_deadline",
     },
-    { dueAt: referenceDate, expected: specification.at_deadline },
+    { dueAt: referenceDate, field: "at_deadline" },
     {
       dueAt: new Date(referenceDate.getTime() - 1),
-      expected: specification.after_deadline,
+      field: "after_deadline",
     },
   ];
-  for (const { dueAt, expected } of cases) {
+  for (const { dueAt, field } of cases) {
     const homework = { completionRequired, submissionDueAt: dueAt };
-    expect(isHomeworkPendingForViewer(homework, referenceDate)).toBe(expected);
-    expect(
+    contract.equal(
+      `/${field}`,
+      isHomeworkPendingForViewer(homework, referenceDate),
+    );
+    contract.equal(
+      "/completed",
       isHomeworkPendingForViewer(
         { ...homework, completion: { completedAt: referenceDate } },
         referenceDate,
       ),
-    ).toBe(specification.completed);
+    );
   }
+  contract.recordVitest(context);
 });

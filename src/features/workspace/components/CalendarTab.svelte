@@ -14,6 +14,7 @@ import {
   personalItemsForDay,
 } from "@/features/young/lib/personal-calendar-client";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { browser } from "$app/environment";
 import CalendarAgenda from "$lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
@@ -36,6 +37,7 @@ export let formatMessage: FormatMessage;
 export let sessionHref: WorkspaceCalendarTabProps["sessionHref"];
 
 export let setCalendarView: WorkspaceCalendarTabProps["setCalendarView"];
+export let setCalendarDay: WorkspaceCalendarTabProps["setCalendarDay"];
 export let setCalendarMonth: WorkspaceCalendarTabProps["setCalendarMonth"];
 export let setCalendarWeek: WorkspaceCalendarTabProps["setCalendarWeek"];
 export let setCalendarSemester: WorkspaceCalendarTabProps["setCalendarSemester"];
@@ -54,6 +56,7 @@ export let calendarTodoChipFields: WorkspaceCalendarTabProps["calendarTodoChipFi
 export let calendarSemesterIndex: WorkspaceCalendarTabProps["calendarSemesterIndex"];
 
 export let calendarView: WorkspaceCalendarTabProps["calendarView"];
+export let calendarDay: WorkspaceCalendarTabProps["calendarDay"];
 export let calendarMonth: WorkspaceCalendarTabProps["calendarMonth"];
 export let calendarWeekStart: WorkspaceCalendarTabProps["calendarWeekStart"];
 export let calendarSemesterId: WorkspaceCalendarTabProps["calendarSemesterId"];
@@ -73,36 +76,43 @@ $: baseAgendaDays =
         calendar: calendarData,
         eventsForDay: calendarEventsForDay,
         locale: signedData.locale,
-        startKey: agendaWeekStart,
+        startKey: calendarView === "day" ? calendarDay : agendaWeekStart,
+        dayCount: calendarView === "day" ? 1 : 7,
         timelineItemsForDay: calendarTimelineItemsForDay,
       })
     : [];
-$: baseCalendarGridWeeks = calendarData
-  ? buildWorkspaceCalendarGridWeeks({
-      addDays,
-      calendar: calendarData,
-      calendarEventParts,
-      calendarEventsForDay,
-      calendarExamChipFields,
-      calendarHomeworkChipFields,
-      calendarHomeworkHref,
-      calendarSessionChipFields,
-      calendarTodoChipFields,
-      calendarWeekLabel,
-      workspaceTabHref,
-      examLabel: copy.CalendarEventCard.exam,
-      month: calendarMonth,
-      monthWeeks,
-      sectionWeekLabel: sectionCopy.weekLabel,
-      sessionHref,
-      view: calendarView,
-      weekStart: calendarWeekStart,
-    })
-  : [];
+$: baseCalendarGridWeeks =
+  calendarData && calendarView !== "day"
+    ? buildWorkspaceCalendarGridWeeks({
+        addDays,
+        calendar: calendarData,
+        calendarEventParts,
+        calendarEventsForDay,
+        calendarExamChipFields,
+        calendarHomeworkChipFields,
+        calendarHomeworkHref,
+        calendarSessionChipFields,
+        calendarTodoChipFields,
+        calendarWeekLabel,
+        workspaceTabHref,
+        examLabel: copy.CalendarEventCard.exam,
+        month: calendarMonth,
+        monthWeeks,
+        sectionWeekLabel: sectionCopy.weekLabel,
+        sessionHref,
+        view: calendarView,
+        weekStart: calendarWeekStart,
+      })
+    : [];
+const shellViewer = getShellViewer();
 let youngItems: PersonalCalendarItem[] = [];
 let youngFailed = false;
+let youngLoading = true;
+let youngOwnerId = "";
 let youngController: AbortController | undefined;
 let requestedRange = "";
+$: ownerId = $shellViewer.viewer?.id ?? "";
+$: visibleYoungItems = youngOwnerId === ownerId ? youngItems : [];
 $: activityCopy = getWorkspacePageCopy(
   signedData.locale === "en-us" ? "en-us" : "zh-cn",
 );
@@ -110,26 +120,47 @@ $: rangeKeys = [
   ...baseCalendarGridWeeks.flatMap((week) => week.days.map((day) => day.key)),
   ...baseAgendaDays.map((day) => day.key),
 ].sort();
-$: if (
-  browser &&
-  rangeKeys.length &&
-  `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}` !== requestedRange
-) {
-  requestedRange = `${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`;
-  void loadYoung(rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
-}
-async function loadYoung(from: string, to: string) {
+$: requestKey =
+  signedData.navStats.user.id === ownerId &&
+  hasWorkspaceSubscriptions(signedData) &&
+  rangeKeys.length
+    ? `${ownerId}:${signedData.locale}:${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`
+    : "";
+$: if (browser && requestKey !== requestedRange) {
+  requestedRange = requestKey;
   youngController?.abort();
+  youngItems = [];
+  youngFailed = false;
+  youngLoading = Boolean(requestKey);
+  if (requestKey)
+    void loadYoung(ownerId, rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
+}
+async function loadYoung(requestOwnerId: string, from: string, to: string) {
   const controller = new AbortController();
   youngController = controller;
-  youngFailed = false;
-  youngItems = [];
+  youngOwnerId = requestOwnerId;
   try {
     const items = await fetchPersonalCalendar(from, to, controller.signal);
-    if (!controller.signal.aborted)
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
       youngItems = items.filter((item) => item.type === "young_event");
   } catch {
-    if (!controller.signal.aborted) youngFailed = true;
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
+      youngFailed = true;
+  } finally {
+    if (
+      !controller.signal.aborted &&
+      signedData.navStats.user.id === requestOwnerId &&
+      $shellViewer.viewer?.id === requestOwnerId
+    )
+      youngLoading = false;
   }
 }
 onDestroy(() => youngController?.abort());
@@ -137,27 +168,32 @@ $: calendarGridWeeks = baseCalendarGridWeeks.map((week) => ({
   ...week,
   days: week.days.map((day) => ({
     ...day,
-    events: [...day.events, ...personalItemsForDay(youngItems, day.key)],
+    events: [...day.events, ...personalItemsForDay(visibleYoungItems, day.key)],
   })),
 }));
 $: agendaDays = baseAgendaDays.map((day) => ({
   ...day,
-  events: [...day.events, ...personalItemsForDay(youngItems, day.key)].sort(
-    (a, b) => a.sort - b.sort,
-  ),
+  events: [
+    ...day.events,
+    ...personalItemsForDay(visibleYoungItems, day.key),
+  ].sort((a, b) => a.sort - b.sort),
 }));
 </script>
 
 <section class="grid gap-4">
-  {#if !hasWorkspaceSubscriptions(signedData)}
-    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} />
+  {#if signedData.navStats.user.id !== ownerId}
+    <p role="status">{activityCopy.youngEvents.workspace.loading}</p>
+  {:else if !hasWorkspaceSubscriptions(signedData)}
+    <PersonalActivityCalendar copy={activityCopy} locale={signedData.locale} {ownerId} />
   {:else}
     <Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="link">{activityCopy.youngEvents.workspace.manage}</Button>
+    {#if youngLoading}<p role="status">{activityCopy.youngEvents.workspace.loading}</p>{/if}
     {#if youngFailed}<p role="alert">{activityCopy.youngEvents.workspace.failed}</p><Button variant="outline" onclick={() => requestedRange = ""}>{activityCopy.youngEvents.workspace.retry}</Button>{/if}
     <CalendarTabToolbar
       {addDays}
       {addMonths}
       {calendarData}
+      {calendarDay}
       {calendarMonth}
       {calendarSemesterIndex}
       {calendarView}
@@ -167,6 +203,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
       {workspaceCopy}
       {formatMessage}
       {sectionCopy}
+      {setCalendarDay}
       {setCalendarMonth}
       {setCalendarSemester}
       {setCalendarView}
@@ -176,15 +213,16 @@ $: agendaDays = baseAgendaDays.map((day) => ({
     />
 
     {#if calendarData && calendarData.semesterWeeks.length > 0}
-      {#key `${calendarView}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
-        <div class="md:hidden">
+      {#key `${calendarView}-${calendarDay}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
+        <div class={calendarView === "day" ? "" : "md:hidden"}>
           <CalendarAgenda
             days={agendaDays}
             emptyLabel={workspaceCopy.calendarAgendaEmpty}
-            label={workspaceCopy.calendarAgendaLabel}
+            label={calendarView === "day" ? workspaceCopy.calendarDayAgendaLabel : workspaceCopy.calendarAgendaLabel}
             todayLabel={workspaceCopy.todayAction}
           />
         </div>
+        {#if calendarView !== "day"}
         <div class="hidden md:block" data-testid="workspace-calendar-grid">
           <CalendarGrid
             weeks={calendarGridWeeks}
@@ -200,6 +238,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
               })}
           />
         </div>
+        {/if}
       {/key}
     {:else}
       <Empty.Root class="items-start text-left">

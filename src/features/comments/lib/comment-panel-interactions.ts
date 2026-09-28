@@ -108,6 +108,7 @@ export function createCommentPanelInteractions(input: {
   }
 
   function openDeleteDialog(comment: CommentNode) {
+    input.setMessage("");
     input.setActionMenuId(null);
     input.setDeleteTarget(comment);
   }
@@ -121,6 +122,7 @@ export function createCommentPanelInteractions(input: {
     if (!deleteTarget) return;
     const copy = input.getCommentCopy();
     input.setDeleting(true);
+    input.setMessage("");
     try {
       await deleteCommentRequest({
         commentId: deleteTarget.id,

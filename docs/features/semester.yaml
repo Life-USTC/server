@@ -14,18 +14,69 @@ access:
   admin: Can read semester information. Does not directly modify semester facts through ordinary pages.
   agent: Can only read existing semester information; no additional write permissions.
 requirements:
-- id: semester.organizational-dimension
-  category: behavior
-  rule: Semesters are the organizational dimension for courses, sections, schedules, and exams.
+- id: semester.list-order-pagination
+  category: consistency
+  applies_to:
+  - semester-list
+  expectation:
+    kind: ordered_page
+    operation:
+      module: src/lib/api/routes/academic-metadata-routes.ts
+      export: getSemestersRoute
+    model: Semester
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    order:
+    - field: startDate
+      direction: desc
+      nulls: last
+    - field: jwId
+      direction: desc
+    page_size_echoed: true
+    complete_total: true
+    exhausted_items: 0
+  rationale: Known recent terms should lead navigation; undated terms remain available without outranking
+    them. The unique tie-breaker keeps page boundaries stable when imported terms share a start date.
+  acceptance:
+    given: A real database contains six isolated semesters inserted in ascending JW ID order, including
+      three equal known start dates and three unknown start dates, alongside existing terms.
+    when: Anonymous REST handlers, the actual Yoga request handler and a native MCP SDK in-memory client
+      exhaust two-item pages through the restricted application database runtime.
+    then:
+    - All transports return the same exact ordered IDs, page totals and exhausted empty page.
+    - Known dates precede unknown dates and equal-date rows follow descending JW ID order.
+    test:
+      file: tests/integration/catalog-directory-parity.test.ts
+      name: semester.list-order-pagination
 - id: semester.current-semester-by-rules
   category: consistency
-  rule: The current semester must be determined by explicit business rules against the current Asia/Shanghai
-    calendar date, not by rough natural-year inference. Public REST, GraphQL, and MCP reads share a static-revision-
-    and date-scoped runtime cache.
+  rule: The current-semester service selects only semesters whose inclusive date range contains the current
+    Asia/Shanghai calendar date. When no range contains the date, no current semester is returned.
+  acceptance:
+    given: A real database semester has inclusive date-only start and end dates.
+    when: The current-semester read model queries just before and at Shanghai midnight around both boundaries.
+    then:
+    - The semester is current throughout its inclusive Shanghai date range.
+    - No matching range returns null without choosing a past or future semester.
+    test:
+      file: tests/integration/current-semester-contract.test.ts
+      name: semester.current-semester-by-rules
 - id: semester.semester-visible-in-filters
   category: presentation
-  rule: Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester
-    browsing.
+  rule: Section filters, course/teacher offerings, subscription groups/import selectors, task semester labels
+    and semester calendar navigation use localized semester names. Recognized upstream spring/fall names
+    display as Spring/Fall plus year in English; other upstream names remain unchanged instead of being guessed.
+  acceptance:
+    given: One isolated course and teacher have offerings in known spring/fall semesters and an unrecognized short-term name, with an owner subscribed to each and task records in each.
+    when: Chinese and English browsers inspect section filters, offering lists, subscription groups and selectors, task lists and semester calendar navigation at desktop/mobile widths.
+    then:
+    - Every displayed semester identity uses the proper Chinese or English term name; numeric IDs remain form values only.
+    - Selecting each term retains its own label and only its associated section records.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-presentation.test.ts
+      name: semester.semester-visible-in-filters
 - id: semester.current-semester.latest-startdate-wins
   category: consistency
   rule: The current semester is determined by date range; when multiple semester ranges overlap the current
@@ -33,6 +84,28 @@ requirements:
     from shadowing a more specific newer semester.
   applies_to:
   - current-semester
+  acceptance:
+    given: Two database semesters have overlapping date ranges and distinct start dates.
+    when: The real current-semester query executes before, at and after the later start date.
+    then:
+    - Before the later start, the older semester is returned.
+    - Once both ranges contain the Shanghai date, the later startDate wins.
+    test:
+      file: tests/integration/current-semester-contract.test.ts
+      name: semester.current-semester.latest-startdate-wins
+- id: semester.current-semester-cache-invalidation
+  category: consistency
+  rule: Cached current-semester results are scoped by the Shanghai calendar date and imported semester
+    revision; advancing either makes the previous entry ineligible.
+  acceptance:
+    given: The real current-semester read model and runtime cache receive controlled database rows and committed import revisions.
+    when: Read twice on one Shanghai date, cross midnight, advance the imported snapshot and reimport the same snapshot at a new timestamp.
+    then:
+    - Same-date same-revision reads reuse the cached value, including null.
+    - A new Shanghai date or either import revision component causes a fresh database read and cannot retain the old value.
+    test:
+      file: tests/unit/features/catalog/current-semester-cache-contract.test.ts
+      name: semester.current-semester-cache-invalidation
 capabilities:
   semester-list:
     title: Semester List
@@ -45,8 +118,7 @@ capabilities:
       routes:
       - path: /api/catalog/semesters
         notes:
-        - REST page and pageSize accept 1-100; the deprecated limit alias remains accepted and pageSize
-          wins when both are supplied. Out-of-range values are rejected instead of clamped.
+        - REST page and pageSize accept 1-100. Out-of-range values are rejected instead of clamped.
     graphql:
       queries:
       - name: semesters
@@ -62,13 +134,18 @@ capabilities:
         notes:
         - MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.
     presentation:
-      items:
-      - semester.id
-      - semester.jwId
-      - semester.code
-      - semester.nameCn
-      - semester.startDate
-      - semester.endDate
+      kind: fields
+      views:
+        mcp-catalog-semester-list:
+          primary:
+          - data.nameCn
+          secondary:
+          - data.id
+          - data.jwId
+          - data.code
+          - data.startDate
+          - data.endDate
+          tertiary: []
   current-semester:
     title: Current Semester
     auth: anon
@@ -92,10 +169,17 @@ capabilities:
       - name: catalog_semester_current
         rest_equivalent: GET /api/catalog/semesters/current
     presentation:
-      items:
-      - semester.id
-      - semester.jwId
-      - semester.nameCn
-      - semester.startDate
-      - semester.endDate
-      - semester.code
+      kind: fields
+      views:
+        mcp-catalog-semester-current:
+          primary:
+          - semester.nameCn
+          secondary:
+          - semester.id
+          - semester.jwId
+          - semester.code
+          - semester.startDate
+          - semester.endDate
+          tertiary: []
+rationale:
+- Semesters are the organizational dimension for courses, sections, schedules, and exams.

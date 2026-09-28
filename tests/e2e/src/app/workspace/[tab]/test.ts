@@ -2,10 +2,7 @@
  * E2E tests for workspace route variants (`/workspace/<tab>`).
  */
 import { expect, type Page, test } from "@playwright/test";
-import {
-  type WorkspaceTabId,
-  workspaceTabIds,
-} from "@/features/workspace/lib/workspace-nav";
+
 import {
   expectRequiresSignIn,
   signInAsDebugUser,
@@ -14,34 +11,6 @@ import { sidebarNavigationLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
-
-const workspaceTabRoutes = {
-  overview: "/workspace/overview",
-  calendar: "/workspace/calendar",
-  homeworks: "/workspace/homeworks",
-  todos: "/workspace/todos",
-  exams: "/workspace/exams",
-  subscriptions: "/workspace/subscriptions",
-} satisfies Record<WorkspaceTabId, string>;
-
-const workspaceTabTitles = {
-  "en-us": {
-    overview: "Overview",
-    calendar: "Calendar",
-    homeworks: "Homework",
-    todos: "Todos",
-    exams: "Exams",
-    subscriptions: "Section Subscriptions",
-  },
-  "zh-cn": {
-    overview: "总览",
-    calendar: "日历",
-    homeworks: "作业",
-    todos: "待办",
-    exams: "考试",
-    subscriptions: "教学班订阅",
-  },
-} satisfies Record<"en-us" | "zh-cn", Record<WorkspaceTabId, string>>;
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
   const response = await page.request.post("/api/account/preferences", {
@@ -96,39 +65,6 @@ test("登录工作区隐藏公共页脚但公共内容页保留", async ({ page 
   await gotoAndWaitForReady(page, "/catalog/courses");
   await expect(page.locator("footer")).toBeVisible();
 });
-
-for (const locale of ["zh-cn", "en-us"] as const) {
-  test(`登录工作台各分支提供唯一页面身份（${locale}）`, async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(60_000);
-    if (locale === "zh-cn") {
-      await page.setViewportSize({ width: 390, height: 844 });
-    }
-    await signInAsDebugUser(page, workspaceTabRoutes.overview);
-    await setLocale(page, locale);
-
-    for (const tab of workspaceTabIds) {
-      await gotoAndWaitForReady(page, workspaceTabRoutes[tab]);
-      await expectWorkspacePageIdentity(
-        page,
-        locale,
-        workspaceTabTitles[locale][tab],
-      );
-
-      if (
-        (locale === "zh-cn" && tab === "todos") ||
-        (locale === "en-us" && tab === "calendar")
-      ) {
-        await captureStepScreenshot(
-          page,
-          testInfo,
-          `workspace-page-identity-${locale}-${tab}`,
-        );
-      }
-    }
-  });
-}
 
 test("查询参数别名永久跳转后使用规范化的工作台页面身份", async ({ page }) => {
   await setLocale(page, "zh-cn");

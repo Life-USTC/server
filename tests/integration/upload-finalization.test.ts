@@ -1,5 +1,18 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { makeSignature } from "better-auth/crypto";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
+import {
+  claimUploadCompletionLease,
+  releaseUploadCompletionLease,
+} from "@/features/uploads/server/upload-completion-lease";
 import { cleanupStaleUploadPendingStorage } from "@/features/uploads/server/upload-pending-cleanup";
 import {
   claimUploadPutLease,
@@ -11,9 +24,12 @@ import {
   type CloudflareR2Bucket,
   runWithCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
+import { getUploadsRoute } from "@/lib/api/routes/upload-management-routes";
+import { getBetterAuthInstance } from "@/lib/auth/core";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { createDeferred } from "../shared/deferred";
 import { createFixturePrisma } from "../shared/prisma";
+import { createMcpHarness } from "./mcp/_harness/client";
 
 const fixturePrisma = createFixturePrisma();
 class MemoryR2Bucket implements CloudflareR2Bucket {
@@ -44,10 +60,12 @@ if (!databaseUrl) throw new Error("DATABASE_URL is required for upload tests");
 const runtimeEnv = {
   DATABASE_URL: databaseUrl,
   HYPERDRIVE: { connectionString: databaseUrl },
+  HYPERDRIVE_AUTH: { connectionString: process.env.AUTH_DATABASE_URL ?? "" },
   NODE_ENV: "test",
   R2_UPLOADS: bucket,
 };
 let userId: string;
+let cookie: string;
 
 function run<T>(work: () => Promise<T>) {
   return runWithCloudflareRuntimeEnv(runtimeEnv, work);
@@ -93,9 +111,20 @@ beforeEach(async () => {
     },
   });
   userId = user.id;
+  const token = crypto.randomUUID();
+  await fixturePrisma.session.create({
+    data: {
+      userId,
+      sessionToken: token,
+      expires: new Date(Date.now() + 3600000),
+    },
+  });
+  const context = await getBetterAuthInstance().$context;
+  cookie = `${context.authCookies.sessionToken.name}=${encodeURIComponent(`${token}.${await makeSignature(token, context.secret)}`)}`;
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await fixturePrisma.uploadPending.deleteMany({ where: { userId } });
   await fixturePrisma.upload.deleteMany({ where: { userId } });
   await fixturePrisma.user.delete({ where: { id: userId } });
@@ -104,7 +133,7 @@ afterEach(async () => {
 afterAll(() => fixturePrisma.$disconnect());
 
 describe("upload finalization ownership", () => {
-  it("prevents a PUT from replacing the object between HEAD and quota settlement", async () => {
+  it("upload.exclusive-completion", async () => {
     const key = await upload();
     const headStarted = createDeferred<void>();
     const releaseHead = createDeferred<void>();
@@ -131,9 +160,8 @@ describe("upload finalization ownership", () => {
     expect(stored.size).toBe(10);
   });
 
-  it.each(["reserved", "uploading", "cleaning"] as const)(
-    "rejects %s reservations before inspecting storage",
-    async (phase) => {
+  it("upload.completion-phase-gate", async () => {
+    for (const phase of ["reserved", "uploading", "cleaning"] as const) {
       const key = await upload();
       await fixturePrisma.uploadPending.update({
         where: { key },
@@ -144,10 +172,10 @@ describe("upload finalization ownership", () => {
       });
       expect(bucket.headCalls).toBe(0);
       expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
-    },
-  );
+    }
+  });
 
-  it("rejects concurrent completion then returns the committed upload on retry", async () => {
+  it("upload.completion-retry", async () => {
     const key = await upload();
     const headStarted = createDeferred<void>();
     const releaseHead = createDeferred<void>();
@@ -168,9 +196,8 @@ describe("upload finalization ownership", () => {
     expect(bucket.headCalls).toBe(1);
   });
 
-  it.each(["missing", "unavailable", "oversized"])(
-    "releases a completion with a %s object so the owner can retry",
-    async (failure) => {
+  it("upload.completion-failure-release", async () => {
+    for (const failure of ["missing", "unavailable", "oversized"]) {
       const key = await upload();
       if (failure === "missing") bucket.objects.delete(key);
       if (failure === "oversized") {
@@ -193,12 +220,12 @@ describe("upload finalization ownership", () => {
       const result = await complete(key);
       expect(result.upload.size).toBe(20);
       expect(result.usedBytes).toBe(20);
-    },
-  );
+      await fixturePrisma.upload.delete({ where: { key } });
+    }
+  });
 
-  it.each(["failed", "successful"])(
-    "does not let a stale %s HEAD release or settle a successor's lease",
-    async (outcome) => {
+  it("upload.completion-stale-attempt", async () => {
+    for (const outcome of ["failed", "successful"]) {
       const key = await upload();
       const firstStarted = createDeferred<void>();
       const releaseFirst = createDeferred<void>();
@@ -243,12 +270,12 @@ describe("upload finalization ownership", () => {
       });
       expect(result.upload.filename).toBe("current.txt");
       expect(result.usedBytes).toBe(10);
-    },
-  );
+      await fixturePrisma.upload.delete({ where: { key } });
+    }
+  });
 
-  it.each(["reservation", "lease"])(
-    "does not settle after %s expiry during HEAD",
-    async (expired) => {
+  it("upload.completion-expiry", async () => {
+    for (const expired of ["reservation", "lease"]) {
       const key = await upload();
       bucket.beforeHead = async () => {
         await fixturePrisma.uploadPending.update({
@@ -271,10 +298,10 @@ describe("upload finalization ownership", () => {
         bucket.beforeHead = undefined;
         expect((await complete(key)).upload.size).toBe(10);
       }
-    },
-  );
+    }
+  });
 
-  it("does not create metadata after cleanup takes an expired completion lease", async () => {
+  it("upload.completion-cleanup-fence", async () => {
     const key = await upload();
     bucket.beforeHead = async () => {
       await fixturePrisma.uploadPending.update({
@@ -291,7 +318,7 @@ describe("upload finalization ownership", () => {
     expect(await fixturePrisma.uploadPending.count({ where: { key } })).toBe(0);
   });
 
-  it("expires a quota-rejected reservation without leaving a completion lease", async () => {
+  it("upload.completion-quota-rejection", async () => {
     const key = await upload();
     await fixturePrisma.upload.create({
       data: {
@@ -314,7 +341,7 @@ describe("upload finalization ownership", () => {
     expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
   });
 
-  it("rolls back an oversized PUT claim so a corrected PUT can proceed", async () => {
+  it("upload.oversized-put-retry", async () => {
     const key = await upload();
     await expect(put(key, 2048)).rejects.toMatchObject({
       code: "File too large",
@@ -325,4 +352,200 @@ describe("upload finalization ownership", () => {
     await put(key, 20);
     expect((await complete(key)).upload.size).toBe(20);
   });
+});
+
+it("upload.completion-lease-duration", async () => {
+  const key = await upload();
+  const now = Date.now();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(now);
+  const first = await run(() => claimUploadCompletionLease(userId, key));
+  if (!first) throw new Error("Expected initial completion lease");
+  expect(
+    (
+      await fixturePrisma.uploadPending.findUniqueOrThrow({ where: { key } })
+    ).leaseExpiresAt?.getTime(),
+  ).toBe(now + 30000);
+  vi.setSystemTime(now + 29999);
+  expect(await run(() => claimUploadCompletionLease(userId, key))).toBeNull();
+  vi.setSystemTime(now + 30000);
+  const second = await run(() => claimUploadCompletionLease(userId, key));
+  if (!second) throw new Error("Expected lease reclaim exactly at expiry");
+  expect(second).not.toBe(first);
+  const successor = await fixturePrisma.uploadPending.findUniqueOrThrow({
+    where: { key },
+  });
+  expect(successor.leaseExpiresAt?.getTime()).toBe(now + 60000);
+  await run(() => releaseUploadCompletionLease(userId, key, first));
+  expect(
+    await fixturePrisma.uploadPending.findUniqueOrThrow({ where: { key } }),
+  ).toEqual(successor);
+  await expect(complete(key)).rejects.toMatchObject({
+    code: "Upload session expired",
+  });
+  expect(await fixturePrisma.upload.count({ where: { key } })).toBe(0);
+  await run(() => releaseUploadCompletionLease(userId, key, second));
+  expect((await complete(key)).upload.size).toBe(10);
+});
+
+function list(params = "") {
+  return run(() =>
+    getUploadsRoute(
+      new Request(`http://localhost:3000/api/workspace/uploads${params}`, {
+        headers: { cookie },
+      }),
+    ),
+  );
+}
+it("upload.pure-upload-reads", async () => {
+  const activeKey = await upload(10);
+  await fixturePrisma.upload.create({
+    data: {
+      userId,
+      filename: "completed.txt",
+      key: crypto.randomUUID(),
+      size: 7,
+    },
+  });
+  const now = Date.now();
+  const expired = Array.from({ length: 60 }, (_, i) => ({
+    userId,
+    key: `expired-${String(i).padStart(3, "0")}-${userId}`,
+    filename: "expired.txt",
+    attemptId: crypto.randomUUID(),
+    size: 1000,
+    expiresAt: new Date(now - 100000 + i * 1000),
+    phase: i % 2 ? ("uploaded" as const) : ("reserved" as const),
+  }));
+  const protectedRows = [
+    "uploading",
+    "completing",
+    "cleaning",
+    "live-lease",
+  ].map((name) => ({
+    userId,
+    key: `${name}-${userId}`,
+    filename: "protected.txt",
+    attemptId: crypto.randomUUID(),
+    size: 1000,
+    expiresAt: new Date(now - 200000),
+    phase:
+      name === "live-lease"
+        ? ("uploaded" as const)
+        : (name as "uploading" | "completing" | "cleaning"),
+    leaseExpiresAt: new Date(now + 60000),
+  }));
+  await fixturePrisma.uploadPending.createMany({
+    data: [...expired, ...protectedRows],
+  });
+  for (const row of [...expired, ...protectedRows])
+    bucket.objects.set(row.key, 1000);
+  const before = await fixturePrisma.uploadPending.findMany({
+    where: { userId },
+    orderBy: { key: "asc" },
+  });
+  const objects = new Map(bucket.objects);
+  for (let i = 0; i < 2; i++) {
+    const response = await list();
+    expect(response.status).toBe(200);
+    expect((await response.json()).meta.usedBytes).toBe(1031);
+  }
+  expect(
+    await fixturePrisma.uploadPending.findMany({
+      where: { userId },
+      orderBy: { key: "asc" },
+    }),
+  ).toEqual(before);
+  const created = await run(() =>
+    createUploadSession({
+      origin: "http://localhost:3000",
+      userId,
+      upload: { filename: "new.txt", size: 20, contentType: "text/plain" },
+    }),
+  );
+  expect(created.usedBytes).toBe(1031);
+  const keysAfterCreate = (
+    await fixturePrisma.uploadPending.findMany({ where: { userId } })
+  ).map((row) => row.key);
+  for (const row of expired.slice(0, 25))
+    expect(keysAfterCreate).not.toContain(row.key);
+  for (const row of [...expired.slice(25), ...protectedRows])
+    expect(keysAfterCreate).toContain(row.key);
+  expect(keysAfterCreate).toHaveLength(before.length - 25 + 1);
+  expect((await complete(activeKey)).usedBytes).toBe(37);
+  const keysAfterComplete = (
+    await fixturePrisma.uploadPending.findMany({ where: { userId } })
+  ).map((row) => row.key);
+  for (const row of expired.slice(0, 50))
+    expect(keysAfterComplete).not.toContain(row.key);
+  for (const row of [...expired.slice(50), ...protectedRows])
+    expect(keysAfterComplete).toContain(row.key);
+  expect(keysAfterComplete).toHaveLength(before.length - 50);
+  expect(bucket.objects).toEqual(objects);
+});
+
+it("upload.paginated-upload-list", async () => {
+  const uploads = [];
+  const tiedAt = new Date("2035-09-01T00:00:00.437Z");
+  for (let index = 0; index < 5; index++)
+    uploads.push(
+      await fixturePrisma.upload.create({
+        data: {
+          userId,
+          filename: `${index}.txt`,
+          key: crypto.randomUUID(),
+          size: 10,
+          id: `upload-list-${userId}-${index}`,
+          createdAt: tiedAt,
+        },
+      }),
+    );
+  await upload();
+  const client = await createMcpHarness(userId);
+  try {
+    const rest = await list("?page=2&pageSize=2");
+    expect(rest.status).toBe(200);
+    const payload = await rest.json();
+    expect(Object.keys(payload).sort()).toEqual(["data", "meta", "pagination"]);
+    expect(payload.data.map((row: { id: string }) => row.id)).toEqual([
+      uploads[2].id,
+      uploads[1].id,
+    ]);
+    expect(payload.pagination).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 5,
+    });
+    expect(payload.meta).toEqual({
+      usedBytes: 1074,
+      quotaBytes: uploadConfig.totalQuotaBytes,
+      maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
+    });
+    expect(
+      await client.call("workspace_upload_list", {
+        page: 2,
+        limit: 2,
+        mode: "full",
+      }),
+    ).toEqual({ ...payload, success: true });
+    expect((await (await list()).json()).pagination).toMatchObject({
+      page: 1,
+      pageSize: 20,
+      total: 5,
+    });
+    expect((await (await list("?page=4&pageSize=2")).json()).data).toEqual([]);
+    for (const query of [
+      "?limit=2",
+      "?page=2&pageSize=2&limit=2",
+      "?page=no",
+      "?pageSize=101",
+    ])
+      expect((await list(query)).status, query).toBe(400);
+    for (const input of [{ page: 0 }, { limit: 0 }, { limit: 101 }])
+      await expect(
+        client.call("workspace_upload_list", input),
+      ).rejects.toThrow();
+  } finally {
+    await client.close();
+  }
 });

@@ -64,7 +64,7 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     }
   });
 
-  test("KaTeX Size3 字体在 CSP 下可加载", async ({ page }, testInfo) => {
+  test("comment.markdown-font-csp", async ({ page }, testInfo) => {
     const fontConsoleErrors: string[] = [];
     page.on("console", (message) => {
       const text = message.text();
@@ -101,6 +101,37 @@ test.describe("/guides/markdown-support Markdown 支持页", () => {
     });
 
     expect(fontLoaded).toBe(true);
+    const fontAssets = await page.evaluate(async () => {
+      const sources: string[] = [];
+      for (const sheet of document.styleSheets) {
+        for (const rule of sheet.cssRules) {
+          if (rule instanceof CSSFontFaceRule) {
+            const source = rule.style.getPropertyValue("src");
+            for (const match of source.matchAll(
+              /url\(["']?([^"')]+)["']?\)/g,
+            )) {
+              sources.push(new URL(match[1], sheet.href ?? location.href).href);
+            }
+          }
+        }
+      }
+      const faces = [...document.fonts].filter((face) =>
+        face.family.startsWith("KaTeX"),
+      );
+      await Promise.all(faces.map((face) => face.load()));
+      return {
+        sources,
+        statuses: faces.map((face) => face.status),
+        origin: location.origin,
+      };
+    });
+    expect(fontAssets.statuses.length).toBeGreaterThan(15);
+    expect(fontAssets.statuses.every((status) => status === "loaded")).toBe(
+      true,
+    );
+    expect(fontAssets.sources.length).toBeGreaterThan(0);
+    for (const source of fontAssets.sources)
+      expect(new URL(source).origin).toBe(fontAssets.origin);
     expect(fontConsoleErrors).toEqual([]);
     await captureStepScreenshot(page, testInfo, "katex-size3-font-loaded");
   });

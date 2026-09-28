@@ -122,6 +122,7 @@ export async function putPublicationObjectRoute(
   try {
     const result = await uploadPublicationObject({
       body: request.body,
+      contentType: request.headers.get("content-type"),
       payload: parsed.data,
       principal: auth,
       size: Number(contentLength),

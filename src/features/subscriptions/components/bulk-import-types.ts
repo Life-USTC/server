@@ -1,6 +1,7 @@
 export type BulkImportCopy = {
   cancel: string;
   confirmTitle: string;
+  confirmTitleOne: string;
   descriptionPrefix: string;
   undergraduateSystem: string;
   descriptionConjunction: string;
@@ -17,6 +18,7 @@ export type BulkImportCopy = {
   semesterLabel: string;
   semesterPlaceholder: string;
   subscribeSelected: string;
+  subscribeSelectedOne: string;
   title: string;
   unmatchedCodes: string;
 };

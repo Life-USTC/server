@@ -1,4 +1,7 @@
-import { localizedNameSelect } from "@/features/section-detail/server/section-page-name-selects";
+import {
+  entityNameSelect,
+  localizedNameSelect,
+} from "@/features/section-detail/server/section-page-name-selects";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const sectionPageScheduleSelect = {
@@ -32,7 +35,7 @@ export const sectionPageScheduleSelect = {
       select: {
         periods: true,
         exerciseClass: true,
-        teacher: { select: localizedNameSelect },
+        teacher: { select: entityNameSelect },
       },
     },
   },

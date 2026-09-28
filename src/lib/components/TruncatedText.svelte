@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import type { Action } from "svelte/action";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
@@ -6,6 +7,7 @@ import { cn } from "$lib/utils.js";
 export let text: string | number | null | undefined;
 export let lines: 1 | 2 = 1;
 export let preserveWhitespace = false;
+export let children: Snippet | undefined = undefined;
 
 let className = "";
 let open = false;
@@ -19,7 +21,7 @@ $: if (!overflowing) open = false;
 
 const observeOverflow: Action<HTMLSpanElement, string> = (node) => {
   const parent = node.parentElement?.closest<HTMLElement>(
-    "a, button, [role='button'], [tabindex]",
+    "a[href], button, [role='button'], [role='link']",
   );
   const measure = () => {
     overflowing =
@@ -94,9 +96,10 @@ function triggerProps(props: Record<string, unknown>) {
         <span
           {...triggerProps(props)}
           data-slot="truncated-text"
+          data-preserve-whitespace={preserveWhitespace || undefined}
           use:observeOverflow={displayText}
         >
-          {displayText}
+          {#if children}{@render children()}{:else}{displayText}{/if}
         </span>
       {/snippet}
     </Tooltip.Trigger>
@@ -120,3 +123,20 @@ function triggerProps(props: Record<string, unknown>) {
     data-slot="truncated-text-placeholder"
   ></span>
 {/if}
+
+<style>
+@media (hover: none) {
+  [data-slot="truncated-text"] {
+    display: block;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+  }
+
+  [data-slot="truncated-text"][data-preserve-whitespace] {
+    white-space: pre-wrap;
+  }
+}
+</style>

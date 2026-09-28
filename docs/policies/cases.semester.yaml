@@ -5,44 +5,86 @@ requirements:
 - id: cases.semester.no-current-semester-1
   category: behavior
   topic: no-current-semester
-  rule: The home page should display a recoverable empty state.
+  rule: When no current semester is available, /workspace/overview labels the semester context as unavailable.
+    Independently available todos, subscribed activities, and past-term learning records remain accessible.
+  acceptance:
+    given: An isolated user has a pending todo, a subscribed activity, and historical section homework; no semester date range covers the explicit 2030 snapshot.
+    when: The user opens the overview in Chinese and English and follows its todo and past-homework links, then opens activity subscriptions.
+    then:
+    - The overview explicitly reports that the current semester is unavailable without calling an inferred past or future term current.
+    - The todo, historical homework, and subscribed activity remain reachable in their real workspace pages and the activity API retains the subscription.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.no-current-semester-1
 - id: cases.semester.no-current-semester-2
   category: behavior
   topic: no-current-semester
-  rule: Users should be guided to browse or import sections.
+  rule: The no-current-semester state links to catalog browsing and existing subscribed-section history. A
+    code-import flow requires selection of an available semester when no current semester can supply its scope.
+  acceptance:
+    given: An isolated user retains a historical section subscription while no stored semester covers the explicit 2030 snapshot.
+    when: The user follows the no-current-semester recovery links and opens code import at the same reference time in Chinese and English.
+    then:
+    - Catalog course and section links remain available, and the history link opens the existing subscribed section.
+    - Code matching starts with no selected semester and stays disabled until an available semester is selected.
+    - Selecting the historical semester matches the actual section with its original code and semester label.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.no-current-semester-2
 - id: cases.semester.only-non-current-semester-subscriptions-1
   category: behavior
   topic: only-non-current-semester-subscriptions
-  rule: The home page must not pretend to have current learning tasks.
-- id: cases.semester.only-non-current-semester-subscriptions-2
-  category: behavior
-  topic: only-non-current-semester-subscriptions
-  rule: Must clearly indicate that no sections are subscribed for the current semester.
+  rule: When subscriptions exist only in other semesters, the workspace reports zero current-semester subscriptions
+    and labels any historical work with its actual term instead of relabeling it current.
+  acceptance:
+    given: An isolated user subscribes only to a Fall 2025 section with historical homework while Spring 2026 is current at the explicit snapshot date.
+    when: The user opens the overview, historical homework, and section subscriptions in Chinese and English.
+    then:
+    - The overview reports no current-term subscriptions and explains the historical-only selection without claiming that current-semester data is unavailable.
+    - Historical homework retains its Fall 2025 label and the sole subscribed section remains in the Fall 2025 group.
+    test:
+      file: tests/e2e/src/app/account-policy/semester-context.test.ts
+      name: cases.semester.only-non-current-semester-subscriptions-1
 - id: cases.semester.only-non-current-semester-subscriptions-3
   category: behavior
   topic: only-non-current-semester-subscriptions
   rule: Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
-- id: cases.semester.cross-semester-browsing-1
-  category: behavior
-  topic: cross-semester-browsing
-  rule: Courses must display semester.
-- id: cases.semester.cross-semester-browsing-2
-  category: behavior
-  topic: cross-semester-browsing
-  rule: Sections must display semester.
+  acceptance:
+    given: A signed-in user subscribes only to a previous-semester section that has historical homework and
+      schedule rows.
+    when: At a 390-pixel viewport, the user reloads the workspace overview and requests the historical homework
+      and date-bounded schedule endpoints.
+    then:
+    - Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
+    test:
+      file: tests/e2e/src/app/test.ts
+      name: cases.semester.only-non-current-semester-subscriptions-3
 - id: cases.semester.cross-semester-browsing-3
   category: behavior
   topic: cross-semester-browsing
-  rule: Homework must display semester.
+  rule: Homework shown across semesters includes its section semester; missing semester data is labeled unknown.
+  acceptance:
+    given: An isolated user subscribes to sections in Spring 2026, Fall 2025, and no semester, each containing a published homework.
+    when: The browser selects All in workspace homework in both locales at desktop and mobile widths.
+    then:
+    - Every homework row or card displays its actual section semester.
+    - The missing-semester homework displays Unknown or 未知 without borrowing another section's term.
+    test:
+      file: tests/e2e/src/app/account-policy/task-semester-labels.test.ts
+      name: cases.semester.cross-semester-browsing-3
 - id: cases.semester.cross-semester-browsing-4
   category: behavior
   topic: cross-semester-browsing
-  rule: Exams must display semester.
-- id: cases.semester.scenario-guidance-1
-  category: behavior
-  topic: scenario-guidance
-  rule: Current-semester empty states and assistant snapshots must not imply that past-term subscriptions or
-    their homework and schedules were deleted.
+  rule: Exams shown across semesters include their section semester; missing semester data is labeled unknown.
+  acceptance:
+    given: An isolated user subscribes to sections in Spring 2026, Fall 2025, and no semester, each containing a published written-exam fact.
+    when: The browser selects All in workspace exams in both locales at desktop and mobile widths.
+    then:
+    - Every exam row or card displays its actual section semester.
+    - The missing-semester exam displays Unknown or 未知 without borrowing another section's term.
+    test:
+      file: tests/e2e/src/app/account-policy/task-semester-labels.test.ts
+      name: cases.semester.cross-semester-browsing-4
 refs:
 - feature: overview
   capability: authenticated-overview
@@ -59,3 +101,6 @@ topics:
   title: Cross semester browsing
 - id: scenario-guidance
   title: Scenario guidance
+rationale:
+- The zero-current-subscription explanation is part of cases.semester.only-non-current-semester-subscriptions-1 alongside accurate historical term labels.
+- Course-offering term labels and the absence of a single inferred course term are verified by cases.disambiguation.multiple-sections-same-course-1.

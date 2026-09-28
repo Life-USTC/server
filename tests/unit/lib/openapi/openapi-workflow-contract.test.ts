@@ -9,7 +9,7 @@ async function readRepositoryFile(path: string) {
 }
 
 describe("OpenAPI build and workflow contracts", () => {
-  it("generates current clients and OpenAPI before every production build", async () => {
+  it("openapi.build-generation", async () => {
     const packageJson = JSON.parse(
       await readRepositoryFile("package.json"),
     ) as { scripts: Record<string, string> };

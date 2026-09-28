@@ -5,32 +5,160 @@ requirements:
 - id: cases.content-security.suspended-user-1
   category: authorization
   topic: suspended-user
-  rule: Suspended users cannot post new comments; both the product and permission layers must enforce this
-    restriction.
+  rule: A suspended user cannot create a comment through any supported mutation surface, even when the caller
+    otherwise has the comment-write OAuth scope.
+  acceptance:
+    given: An isolated active user has a browser session and separately authorized resource-bound REST, GraphQL, and MCP OAuth grants containing community.comment:write.
+    when: The user creates one comment through each of the four principals, is suspended, repeats every mutation, and opens the section composer in English and Chinese.
+    then:
+    - All four initial writes succeed; after suspension the REST principals return 403 Suspended, GraphQL returns 403 FORBIDDEN, and MCP returns its suspended domain error.
+    - The browser shows the localized suspension heading and disables its comment editor.
+    - Exactly the four initial comments remain persisted while the write scope is still granted.
+    test:
+      file: tests/e2e/src/app/account-policy/comment-security.test.ts
+      name: cases.content-security.suspended-user-1
 - id: cases.content-security.upload-attachment-download-1
   category: authorization
   topic: upload-attachment-download
-  rule: Attachment download must revalidate access permissions; possession of a link alone does not authorize
-    downloading.
+  applies_to:
+  - upload-attachment-download
+  expectation:
+    kind: attachment_download_authority
+    route:
+      method: GET
+      path: /api/workspace/uploads/{id}/download
+    preview_parameter: preview
+    states:
+      unattached:
+        owner: 200
+        viewer: 404
+        admin: 404
+        anonymous: 401
+      public:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      logged_in_only:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      softbanned:
+        owner: 200
+        viewer: 404
+        admin: 200
+        anonymous: 401
+      restored:
+        owner: 200
+        viewer: 200
+        admin: 200
+        anonymous: 401
+      parent_deleted:
+        owner: 200
+        viewer: 404
+        admin: 404
+        anonymous: 401
+      upload_deleted:
+        owner: 404
+        viewer: 404
+        admin: 404
+        anonymous: 401
+    preview_matches_download: true
+    authorized_bytes_preserved: true
+    denied_responses_hide_bytes: true
+    same_url_across_states: true
+  acceptance:
+    given: An isolated owner uploads real object bytes, retains its download URL, and later attaches it to a section comment; separate viewer, administrator, and anonymous principals reuse that same URL and preview URL.
+    when: The comment changes from public to logged-in-only, is moderation-hidden, restored, and deleted, then its owner deletes the upload.
+    then:
+    - An unattached upload returns exact bytes only to its owner; active public or logged-in-only attachments also permit authenticated viewers and never anonymous requests.
+    - Moderation-hidden parents deny ordinary viewers while permitting the author and administrator; restoration restores viewer access and parent deletion removes viewer and administrator access.
+    - The owner retains independent access to their upload after parent deletion, but deleting the upload makes every signed-in principal receive 404 without bytes.
+    - Preview requests follow the same current authorization results as byte requests.
+    test:
+      file: tests/e2e/src/app/account-policy/attachment-security.test.ts
+      name: cases.content-security.upload-attachment-download-1
 - id: cases.content-security.destructive-actions-1
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Deletion must have explicit feedback.
+  rule: The deletion UI announces success, permission refusal, or request failure to assistive technology.
+    Failed deletion keeps the item visible and does not announce success.
+  acceptance:
+    given: A signed-in comment owner has opened the comment deletion confirmation dialog.
+    when: A newly persisted suspension refuses deletion, a retry loses its network connection, and a later
+      retry succeeds after suspension is lifted.
+    then:
+    - Both failures expose an alert inside the open confirmation dialog, keep the comment and persisted active
+      status, and emit no success announcement.
+    - Successful deletion closes the dialog, removes the comment from the rendered thread, persists deleted
+      status, and announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-1
 - id: cases.content-security.destructive-actions-2
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Suspension must have explicit feedback.
+  rule: The suspension UI announces success, permission refusal, or request failure to assistive technology
+    and updates the displayed suspension state only after success.
+  acceptance:
+    given: An administrator is managing an unsuspended isolated user in the suspension dialog.
+    when: Administrator permission is revoked before submission, a restored administrator encounters a network
+      failure, and a final request is held pending before reaching the real service.
+    then:
+    - Permission and network failures produce dialog alerts without a success message or any persisted suspension.
+    - The pending request disables submission without presenting a completed suspension.
+    - Success persists exactly one suspension with the submitted reason, updates the visible suspension controls,
+      and announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-2
 - id: cases.content-security.destructive-actions-3
-  category: authorization
+  category: presentation
   topic: destructive-actions
-  rule: Hiding must have explicit feedback.
+  rule: The moderation-hide UI announces success, permission refusal, or request failure to assistive technology
+    and changes the displayed visibility only after success.
+  acceptance:
+    given: An administrator has selected Private for an active comment in the moderation dialog.
+    when: Administrator permission is revoked before submission, a restored administrator encounters a network
+      failure, and a final request is held pending before reaching the real service.
+    then:
+    - Permission and network failures produce dialog alerts while the list row and persisted comment remain
+      active and no success message is announced.
+    - Pending submission is disabled and leaves the current visibility unchanged.
+    - Successful moderation persists softbanned status, updates the row to Private, closes the dialog, and
+      announces success through an atomic polite live region.
+    test:
+      file: tests/e2e/src/app/account-policy/destructive-announcements.test.ts
+      name: cases.content-security.destructive-actions-3
+- id: cases.content-security.deletion-confirmation
+  category: presentation
+  topic: destructive-actions
+  rule: Web account, comment, and upload deletion opens a warning confirmation dialog with explicit confirm
+    and cancel actions. Opening or cancelling the dialog does not send the deletion request or remove the
+    item; only confirmation submits deletion. Account deletion additionally follows the exact-word check
+    owned by cases.account.account-deletion-1.
+  acceptance:
+    given: An isolated owner has an account, an active comment, and an uploaded real file.
+    when: The owner opens, cancels, reopens, and confirms each deletion dialog in the browser.
+    then:
+    - Each dialog presents a warning and explicit confirmation and cancellation actions.
+    - Opening and cancelling send no deletion request and preserve the current account, active comment,
+      or upload.
+    - Confirmation sends exactly one deletion request and deletes the selected resource.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-management.test.ts
+      name: cases.content-security.deletion-confirmation
 refs:
 - feature: comment
   capability: object-comment-section
 - feature: upload
   capability: comment-attachment-download
-- feature: security
-  capability: destructive-action-confirmation
+- feature: upload
+  capability: upload-manage
+- feature: user
+  capability: settings
+- feature: admin
 topics:
 - id: suspended-user
   title: Suspended user
@@ -38,3 +166,17 @@ topics:
   title: Upload attachment download
 - id: destructive-actions
   title: Destructive actions
+
+rationale:
+- Security is a cross-feature concern rather than an independent feature. The former security.anonymous-and-traceable
+  umbrella is owned by comment.anonymous-author-privacy, user.public-comment-contribution-privacy,
+  user.public-upload-contribution-privacy, and comment.governance-anonymous-author-access. Ordinary reads conceal
+  anonymous identity even from the author and administrators; dedicated governance requires an authenticated,
+  unsuspended administrator and obeys comment.governance-anonymous-author-audit and its fail-closed audit-failure rule.
+- The former security.upload-download-both-checked umbrella is owned by upload.permission-and-quota,
+  upload.write-auth-unsuspended, upload.r2-backend, and cases.content-security.upload-attachment-download-1.
+  Upload authorization, ownership, and quota do not confer download authority; each request independently
+  checks current owner or attachment visibility. Each owner retains its independent canonical acceptance test.
+- Account confirmation-word validation remains owned by cases.account.account-deletion-1. Shared warning,
+  confirmation, and cancellation behavior is retained in cases.content-security.deletion-confirmation;
+  removing the former security grouping does not waive the declared upload-management web confirmation flow.

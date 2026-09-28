@@ -33,6 +33,7 @@ type FeatureSpecification = {
             routes?: {
               path: string;
               method?: string;
+              reference_only?: boolean;
               status?: number | "stable" | "planned" | "unavailable";
             }[];
           };
@@ -57,6 +58,7 @@ describe("feature transport bindings", () => {
       `${root}src/routes/api/**/.well-known/**/+server.ts`,
     ]);
     const operations = new Set<string>();
+    const catchAllOperations: { method: string; prefix: string }[] = [];
     for (const file of project.getSourceFiles()) {
       const path = file
         .getFilePath()
@@ -70,6 +72,16 @@ describe("feature transport bindings", () => {
           )
         ) {
           operations.add(`${name} ${path}`);
+          const sourcePath = file
+            .getFilePath()
+            .replace(`${root}src/routes`, "")
+            .replace(/\/\+server\.ts$/, "");
+          const catchAll = /^(.*)\/\[\.\.\.[^\]]+\]$/.exec(sourcePath);
+          if (catchAll)
+            catchAllOperations.push({
+              method: name,
+              prefix: `${catchAll[1]}/`,
+            });
         }
       }
     }
@@ -83,10 +95,17 @@ describe("feature transport bindings", () => {
         for (const route of routes) {
           if (route.status === "planned" || route.status === "unavailable")
             continue;
-          const path = route.path.replace(/\[([^\]]+)\]/g, "{$1}");
+          const path = route.path.replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}");
           const operation = `${route.method ?? "GET"} ${path}`;
           expect(
-            operations.has(operation),
+            operations.has(operation) ||
+              (route.reference_only === true &&
+                catchAllOperations.some(
+                  (handler) =>
+                    handler.method === (route.method ?? "GET") &&
+                    path.startsWith(handler.prefix) &&
+                    path.length > handler.prefix.length,
+                )),
             `${feature.id}.${id}: missing ${operation}`,
           ).toBe(true);
           checked += 1;
@@ -105,7 +124,7 @@ describe("feature transport bindings", () => {
           )
             continue;
           const operation = field.rest_equivalent
-            .replace(/\[([^\]]+)\]/g, "{$1}")
+            .replace(/\[+\.{0,3}([^\]]+?)\]+/g, "{$1}")
             .replace(/:([A-Za-z][A-Za-z0-9_]*)/g, "{$1}");
           expect(
             operations.has(operation),

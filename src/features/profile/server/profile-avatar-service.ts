@@ -124,6 +124,6 @@ export async function getPublicProfileAvatar(input: {
     key: avatarKey(input.userId, input.avatarId),
   });
   if (!response) return null;
-  response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  response.headers.set("Cache-Control", "no-store");
   return response;
 }

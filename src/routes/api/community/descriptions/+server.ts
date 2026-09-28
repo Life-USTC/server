@@ -21,6 +21,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getDescriptionRoute));
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.description:write
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postDescriptionRoute),

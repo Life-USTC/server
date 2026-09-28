@@ -20,18 +20,17 @@ import {
   objectOutputSchema,
   objectOutputSchemaFromApi,
   subscribedExamMcpSchema,
-  subscribedExamSchema,
   subscribedScheduleEntryMcpSchema,
-  subscribedScheduleEntrySchema,
   subscriptionFullSectionSchema,
   subscriptionImportOutputSchema,
   todoListMcpSchema,
-  topLevelOutputSchema,
   uploadDeleteResponseSchema,
   uploadListMcpSchema,
   uploadRenameResponseSchema,
   workspaceHomeworkFullSchema,
 } from "./shared";
+
+import { workspaceAggregateOutputSchemas } from "./workspace-aggregate-schemas";
 
 export const workspaceAcademicModeOutputSchemas = {
   workspace_schedule_list: {
@@ -42,7 +41,9 @@ export const workspaceAcademicModeOutputSchemas = {
       exactFailureOutputSchema,
     ]),
     full: z.union([
-      exactSuccessOutput({ schedules: z.array(subscribedScheduleEntrySchema) }),
+      exactSuccessOutput({
+        schedules: z.array(subscribedScheduleEntryMcpSchema),
+      }),
       exactFailureOutputSchema,
     ]),
   },
@@ -52,7 +53,7 @@ export const workspaceAcademicModeOutputSchemas = {
       exactFailureOutputSchema,
     ]),
     full: z.union([
-      exactSuccessOutput({ exams: z.array(subscribedExamSchema) }),
+      exactSuccessOutput({ exams: z.array(subscribedExamMcpSchema) }),
       exactFailureOutputSchema,
     ]),
   },
@@ -132,6 +133,7 @@ function advertisedWorkspaceOutputSchema(name: WorkspaceAcademicModeToolName) {
 }
 
 export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
+  ...workspaceAggregateOutputSchemas,
   workspace_todo_list: todoListMcpSchema,
   workspace_todo_create: objectOutputSchema({
     success: z.boolean(),
@@ -148,7 +150,6 @@ export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
       z.union([compactWorkspaceHomeworkSchema, workspaceHomeworkFullSchema]),
     ),
   }),
-  workspace_homework_completion_set: topLevelOutputSchema(["completion"]),
 
   workspace_calendar_feed_get: objectOutputSchema({
     subscription: z
@@ -207,13 +208,6 @@ export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
       .nullable(),
   }),
 
-  workspace_calendar_event_list: topLevelOutputSchema(["events"]),
-  workspace_calendar_timeline_get: topLevelOutputSchema([
-    "range",
-    "total",
-    "events",
-  ]),
-
   workspace_upload_list: uploadListMcpSchema,
   workspace_upload_rename: objectOutputSchema({
     ...uploadRenameResponseSchema.shape,
@@ -226,32 +220,6 @@ export const workspaceToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     reason: z.string().nullable(),
   }),
 
-  workspace_snapshot_get: topLevelOutputSchema([
-    "user",
-    "currentSemester",
-    "subscriptions",
-    "nextClass",
-    "upcomingDeadlines",
-    "upcomingEvents",
-    "todos",
-    "bus",
-  ]),
-  workspace_link_pin_list: topLevelOutputSchema([
-    "pinnedSlugs",
-    "maxPinnedLinks",
-  ]),
-  workspace_link_pin_set: topLevelOutputSchema([
-    "action",
-    "slug",
-    "pinnedSlugs",
-    "maxPinnedLinks",
-  ]),
-  workspace_deadline_list: topLevelOutputSchema(["total", "deadlines"]),
-  workspace_overview_get: topLevelOutputSchema(["user", "overview", "samples"]),
-  workspace_schedule_next: topLevelOutputSchema([
-    "nextClass",
-    "currentSemester",
-  ]),
   workspace_schedule_list: advertisedWorkspaceOutputSchema(
     "workspace_schedule_list",
   ),

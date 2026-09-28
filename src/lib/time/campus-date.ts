@@ -7,7 +7,7 @@ import {
   formatShanghaiDate,
 } from "@/lib/time/shanghai-format";
 
-export const CAMPUS_WEEK_STARTS_ON = 0;
+export const CAMPUS_WEEK_STARTS_ON = 1;
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;

@@ -3,7 +3,7 @@ import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { getOpenApiRoute } from "@/lib/api/routes/openapi";
 
 describe("OpenAPI document route", () => {
-  it("serves the build-time document with public cache headers", async () => {
+  it("openapi.openapi-document-cache", async () => {
     const fetch = vi.fn(async () =>
       Response.json({
         openapi: "3.0.0",

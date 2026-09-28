@@ -145,7 +145,7 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-navigate-homeworks");
   });
 
-  test("登录用户直接打开公共页面后补全工作台导航数字", async ({
+  test("navigation badges retain the bootstrap counts across catalog navigation", async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -203,6 +203,22 @@ test.describe("仪表盘", () => {
         await expect(badge).toHaveCount(0);
       }
     }
+    expect(bootstrapResponse.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "no-store",
+    );
+    await page
+      .locator(
+        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
+      )
+      .first()
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}$`),
+    );
+    await expect(page.locator("#app-user-menu")).toContainText(
+      DEV_SEED.debugName,
+    );
+    expect(bootstrapRequestCount).toBe(1);
   });
 
   test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
@@ -246,9 +262,7 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "workspace-subscriptions-path");
   });
 
-  test("移动端总览优先显示此刻与下一步，常用网站保持次要", async ({
-    page,
-  }, testInfo) => {
+  test("ui.workspace-mobile-priority-1", async ({ page }, testInfo) => {
     await page.setViewportSize({ height: 844, width: 390 });
     await signInAsDebugUser(page, "/");
     await ensureSeedSectionSubscription(page);

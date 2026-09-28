@@ -5,6 +5,7 @@ import {
   GRADUATE_ACADEMIC_PORTAL_URL,
   UNDERGRADUATE_ACADEMIC_PORTAL_URL,
 } from "@/features/welcome/lib/welcome-academic-portals";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -36,6 +37,7 @@ export let importMessage: string;
 export let importText: string;
 export let isImporting: boolean;
 export let isMatching: boolean;
+export let locale: string;
 export let matchSections: WelcomeImportAction;
 export let matchedSections: WelcomeMatchedSection[];
 export let nextUrl: string;
@@ -154,7 +156,7 @@ export let welcomeCopy: WelcomeCopy;
                     </Field.Label>
                     <Field.Description>
                       {section.code}
-                      {#if section.semester} · {displayName(section.semester)}{/if}
+                      {#if section.semester} · {formatSemesterName(locale, section.semester.nameCn ?? section.semester.namePrimary ?? "")}{/if}
                       {#if section.campus} · {displayName(section.campus)}{/if}
                       {#if section.teachers.length > 0}
                         · {section.teachers.map(displayName).filter(Boolean).join(", ")}

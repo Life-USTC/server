@@ -90,6 +90,9 @@
           }
         }
       }
+    },
+    "rationale": {
+      "$ref": "defs.schema.json#/$defs/notes"
     }
   }
 }

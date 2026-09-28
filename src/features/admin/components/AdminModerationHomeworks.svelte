@@ -10,21 +10,11 @@ import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import AdminListShell from "./AdminListShell.svelte";
 import AdminTableShell from "./AdminTableShell.svelte";
-
-type ModerationHomework = {
-  createdAt: string | Date;
-  deletedAt?: string | Date | null;
-  id: string;
-  section: {
-    code: string;
-    course: { nameCn: string };
-  };
-  submissionDueAt?: string | Date | null;
-  title: string;
-};
+import type { AdminModerationHomework } from "./admin-moderation-page-types";
 
 type HomeworksCopy = {
   actions: string;
+  author: string;
   createdAt: string;
   deleteHomeworkAction: string;
   homeworkDue: string;
@@ -39,8 +29,16 @@ type HomeworksCopy = {
 
 export let copy: HomeworksCopy;
 export let formatDate: (value: string | Date) => string;
-export let homeworks: ModerationHomework[];
-export let onDelete: (homework: ModerationHomework) => void;
+export let homeworks: AdminModerationHomework[];
+export let onDelete: (homework: AdminModerationHomework) => void;
+
+function creatorLabel(homework: AdminModerationHomework) {
+  return (
+    homework.createdBy?.name ??
+    homework.createdBy?.username ??
+    copy.notAvailable
+  );
+}
 </script>
 
 <section class="grid gap-3">
@@ -57,6 +55,7 @@ export let onDelete: (homework: ModerationHomework) => void;
               {homework.section.course.nameCn} ·
               <span class="font-mono">{homework.section.code}</span>
             </Item.Description>
+            <Item.Description>{copy.author}: {creatorLabel(homework)}</Item.Description>
             <Item.Description class="tabular-nums">
               {copy.createdAt}
               {formatDate(homework.createdAt)} · {copy.homeworkDue}
@@ -108,6 +107,7 @@ export let onDelete: (homework: ModerationHomework) => void;
             <Table.Row class="group">
               <Table.Cell class="max-w-0">
                 <TruncatedText class="font-medium" text={homework.title} />
+                <TruncatedText class="text-muted-foreground text-xs" text={`${copy.author}: ${creatorLabel(homework)}`} />
               </Table.Cell>
               <Table.Cell class="max-w-0">
                 <div class="grid min-w-0 gap-0.5">

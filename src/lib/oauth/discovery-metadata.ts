@@ -9,7 +9,6 @@ import {
 import {
   createDiscoveryJsonResponse,
   getDiscoveryOptionsResponse,
-  getDiscoveryRedirectResponse,
 } from "@/lib/oauth/discovery-responses";
 import { asOAuthProviderMetadataAuth } from "@/lib/oauth/provider-api";
 import { PUBLIC_OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
@@ -109,13 +108,4 @@ export function createDiscoveryMetadataRoute(
     GET: getResponse,
     OPTIONS: getDiscoveryOptionsResponse,
   };
-}
-
-export function createDiscoveryRedirectRoute(
-  resolveUrl: (request: Request) => URL | string,
-  status = 307,
-): DiscoveryRouteHandlers {
-  return createDiscoveryMetadataRoute((request) =>
-    getDiscoveryRedirectResponse(resolveUrl(request), status),
-  );
 }

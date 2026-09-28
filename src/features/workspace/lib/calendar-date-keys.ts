@@ -29,7 +29,12 @@ export function isMonthKey(value: string | null | undefined): value is string {
 }
 
 export function isCalendarView(value: string | null): value is CalendarView {
-  return value === "semester" || value === "month" || value === "week";
+  return (
+    value === "day" ||
+    value === "semester" ||
+    value === "month" ||
+    value === "week"
+  );
 }
 
 export function addDays(key: string, days: number) {

@@ -9,6 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope workspace.young-notification:write
  */
 export const POST: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

@@ -27,7 +27,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 describe("room map lookup", () => {
-  it("normalizes case and full-width room codes and prefers exact annotations", () => {
+  it("room-map.normalization", () => {
+    expect(roomCodeSchema.parse(" ３ａ２０４ ")).toBe("3A204");
+    expect(roomCodeSchema.parse("ab-12")).toBe("AB-12");
+    expect(roomCodeSchema.parse("A".repeat(64))).toHaveLength(64);
+    for (const invalid of [
+      "",
+      "A".repeat(65),
+      "A--1",
+      "-A",
+      "A-",
+      "A/1",
+      "A_1",
+      "教室1",
+    ])
+      expect(roomCodeSchema.safeParse(invalid).success).toBe(false);
     expect(lookupRoomMap(" ３ａ２０４ ", assets)).toMatchObject({
       code: "3A204",
       status: "highlighted",
@@ -35,7 +49,12 @@ describe("room map lookup", () => {
       imageUrl: expect.stringContaining("/imgs/rooms/3A204.png"),
     });
   });
-  it("does not treat a matching floor rule as a verified room", () => {
+  it("room-map.coverage", () => {
+    expect(lookupRoomMap("3A204", assets)).toMatchObject({
+      status: "highlighted",
+      building: "第三教学楼",
+      floor: "2",
+    });
     expect(lookupRoomMap("3A299", assets)).toMatchObject({
       status: "overview",
       building: null,

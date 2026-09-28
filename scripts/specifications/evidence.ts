@@ -2,15 +2,20 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { z } from "zod";
 import {
+  MANDATORY_EVIDENCE_ARTIFACTS,
+  validateMandatoryJobResults,
+} from "./evidence-ci";
+import {
+  type Requirement,
   readSpecifications,
   type SpecificationFile,
   type TestReference,
 } from "./repository";
+import { validateSemanticReceipt } from "./semantic-receipt";
 import { checkSpecifications, collectRequirements } from "./validate";
 import { repositoryRoot } from "./yaml";
 
 export type EvidenceStatus =
-  | "missing-scenarios"
   | "missing-tests"
   | "not-run"
   | "skipped"
@@ -29,6 +34,7 @@ export type TestObservation = TestReference & {
   source?: EvidenceExecution & { report: string };
   project: string;
   ambiguous?: boolean;
+  semanticReceipt?: unknown;
   status: "not-run" | "skipped" | "failed" | "passed";
 };
 const nonempty = z.string().min(1);
@@ -54,6 +60,7 @@ const vitestReport = z.object({
             "disabled",
           ]),
           failureMessages: z.array(z.string()).nullable(),
+          meta: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
     }),
@@ -74,6 +81,11 @@ const playwrightSpec = z.object({
         "interrupted",
       ]),
       status: z.enum(["skipped", "expected", "unexpected", "flaky"]),
+      annotations: z
+        .array(
+          z.object({ type: z.string(), description: z.string().optional() }),
+        )
+        .optional(),
       results: z.array(
         z.object({
           status: z
@@ -129,9 +141,11 @@ export function parseNativeReport(
           name: test.title,
           identity: JSON.stringify([...test.ancestorTitles, test.title]),
           project: "vitest",
+          semanticReceipt: test.meta?.specification,
           // Vitest preserves retry errors in native failureMessages. A suite
           // hook failure also invalidates otherwise passing tests in that file.
           status:
+            !report.success ||
             suite.status === "failed" ||
             suite.message ||
             test.status === "failed" ||
@@ -184,6 +198,7 @@ export function parseNativeReport(
               identity: JSON.stringify([...titles, spec.title]),
               project: test.projectName,
               status,
+              semanticReceipt: parseSemanticAnnotations(test.annotations ?? []),
             });
           }
         }
@@ -211,8 +226,20 @@ export function parseNativeReport(
   return observations;
 }
 
+function parseSemanticAnnotations(
+  annotations: { type: string; description?: string }[],
+): unknown {
+  const semantic = annotations.filter(({ type }) => type === "specification");
+  if (!semantic.length) return undefined;
+  if (semantic.length !== 1) return { invalid: "duplicate semantic receipts" };
+  try {
+    return JSON.parse(semantic[0].description ?? "null");
+  } catch {
+    return { invalid: "malformed semantic receipt" };
+  }
+}
+
 const precedence: EvidenceStatus[] = [
-  "missing-scenarios",
   "missing-tests",
   "failed",
   "skipped",
@@ -269,7 +296,8 @@ function residualTextLocations(
     );
   if (!value || typeof value !== "object") return [];
   return Object.entries(value).flatMap(([key, item]) =>
-    key === "requirement_refs"
+    key === "requirement_refs" ||
+    (path.endsWith("/presentation") && ["kind", "views"].includes(key))
       ? []
       : residualTextLocations(
           item,
@@ -279,6 +307,39 @@ function residualTextLocations(
   );
 }
 
+function semanticEvidence(
+  requirement: Requirement,
+  observations: TestObservation[],
+  nativeStatus: EvidenceStatus,
+) {
+  if (!requirement.expectation)
+    return { status: "not-applicable" as const, issues: [] as string[] };
+  const reference = requirement.acceptance?.test;
+  const matches = reference
+    ? observations.filter(
+        ({ file, name }) => file === reference.file && name === reference.name,
+      )
+    : [];
+  if (!matches.length)
+    return {
+      status: "not-run" as const,
+      issues: ["Canonical semantic test has not executed"],
+    };
+  const issues = matches.flatMap(({ semanticReceipt }) =>
+    validateSemanticReceipt(semanticReceipt, requirement),
+  );
+  if (nativeStatus !== "passed")
+    issues.push("Canonical native execution did not pass");
+  return {
+    status: issues.length ? ("failed" as const) : ("passed" as const),
+    issues: [...new Set(issues)],
+    receipts: matches.map(({ project, semanticReceipt }) => ({
+      project,
+      receipt: semanticReceipt,
+    })),
+  };
+}
+
 export function buildEvidenceReport(
   files: SpecificationFile[],
   observations: TestObservation[] = [],
@@ -286,29 +347,38 @@ export function buildEvidenceReport(
 ) {
   const requirements = files.flatMap(({ path, data }) =>
     collectRequirements(data).map((requirement) => {
-      const scenarios = (requirement.acceptance ?? []).map((scenario) => {
-        const tests = (scenario.tests ?? []).map((test) =>
-          matchTest(test, observations),
-        );
-        return {
-          id: scenario.id,
-          status: tests.length
-            ? combinedStatus(tests.map((test) => test.status))
-            : ("missing-tests" as EvidenceStatus),
-          tests,
-        };
-      });
+      const test = requirement.acceptance?.test;
+      const result = test ? matchTest(test, observations) : undefined;
       return {
         document: path,
         id: requirement.id,
-        structured: "expectation" in requirement,
-        status: scenarios.length
-          ? combinedStatus(scenarios.map((scenario) => scenario.status))
-          : ("missing-scenarios" as EvidenceStatus),
-        scenarios,
+        representation: requirement.expectation
+          ? ("typed" as const)
+          : ("prose" as const),
+        status: result?.status ?? ("missing-tests" as EvidenceStatus),
+        test: result,
+        semantics: semanticEvidence(
+          requirement,
+          observations,
+          result?.status ?? "missing-tests",
+        ),
       };
     }),
   );
+  const typedBindings = files
+    .flatMap(({ data }) => collectRequirements(data))
+    .filter((requirement) => requirement.expectation);
+  const orphanSemanticObservations = observations
+    .filter(
+      (observation) =>
+        observation.semanticReceipt !== undefined &&
+        typedBindings.filter(
+          (requirement) =>
+            requirement.acceptance?.test.file === observation.file &&
+            requirement.acceptance.test.name === observation.name,
+        ).length !== 1,
+    )
+    .map(({ file, name }) => ({ file, name }));
   const unstructuredTextCandidates = files.flatMap(({ path, data }) =>
     residualTextLocations(data).map((location) => ({
       document: path,
@@ -325,6 +395,10 @@ export function buildEvidenceReport(
   const executionFailures = executions.filter(
     (execution) => execution.outcome !== "success",
   );
+  const missingArtifacts = [...MANDATORY_EVIDENCE_ARTIFACTS.keys()].filter(
+    (artifact) =>
+      !executions.some((execution) => execution.artifact === artifact),
+  );
   const counts = Object.fromEntries(
     precedence.map((status) => [
       status,
@@ -332,33 +406,51 @@ export function buildEvidenceReport(
         .length,
     ]),
   );
-  const structured = requirements.filter(
-    (requirement) => requirement.structured,
+  const typed = requirements.filter(
+    (requirement) => requirement.representation === "typed",
   );
   return {
     evidenceMeaning:
-      "Statuses describe execution of bound tests, not independent proof that assertions completely express each requirement.",
+      "Native statuses describe execution of bound tests. Semantic receipts additionally require successful comparisons for every typed field and the current expectation digest. These are not independent proof of product reasonableness; reviewers must assess the observations and requirements.",
     inventoryCompleteness:
       "Residual text candidates are locations for review, not a count of additional atomic requirements.",
     provenance,
     executions,
     executionFailures,
+    missingArtifacts,
+    orphanSemanticObservations,
     unstructuredTextCandidates,
     requirements,
     summary: {
       total: requirements.length,
       unsuccessfulExecutions: executionFailures.length,
+      orphanSemanticObservations: orphanSemanticObservations.length,
+      missingArtifacts: missingArtifacts.length,
       unstructuredTextCandidates: unstructuredTextCandidates.length,
-      structured: structured.length,
-      unstructured: requirements.length - structured.length,
+      typedDeclarations: typed.length,
+      proseRequirements: requirements.length - typed.length,
+      semanticVerified: typed.filter(
+        (requirement) => requirement.semantics.status === "passed",
+      ).length,
+      semanticFailed: typed.filter(
+        (requirement) => requirement.semantics.status === "failed",
+      ).length,
+      semanticNotRun: typed.filter(
+        (requirement) => requirement.semantics.status === "not-run",
+      ).length,
       ...counts,
     },
-    // No typed requirements is not an evidence pass. Legacy prose gaps remain
-    // visible without pretending that their conversion has already happened.
+    // Completeness applies to every requirement, regardless of its representation.
     gatePassed:
       executionFailures.length === 0 &&
-      structured.length > 0 &&
-      structured.every((requirement) => requirement.status === "passed"),
+      orphanSemanticObservations.length === 0 &&
+      missingArtifacts.length === 0 &&
+      requirements.length > 0 &&
+      requirements.every(
+        (requirement) =>
+          requirement.status === "passed" &&
+          ["passed", "not-applicable"].includes(requirement.semantics.status),
+      ),
   };
 }
 
@@ -387,13 +479,11 @@ export function validateEvidenceManifest(
   expected: z.infer<typeof runIdentity>,
 ) {
   const manifest = manifestSchema.parse(value);
-  for (const field of ["sha", "run"] as const)
+  for (const field of ["sha", "run", "attempt"] as const)
     if (manifest[field] !== expected[field])
       throw new Error(
         `Evidence ${field} does not match this workflow execution`,
       );
-  if (BigInt(manifest.attempt) > BigInt(expected.attempt))
-    throw new Error("Evidence attempt is newer than this workflow execution");
   if (!isAbsolute(manifest.root))
     throw new Error("Evidence repository root must be absolute");
   if (
@@ -442,6 +532,11 @@ export async function loadEvidence(
   if (!artifacts.length)
     throw new Error("No workflow evidence artifacts downloaded");
   for (const artifact of artifacts) {
+    const expectedRunner = MANDATORY_EVIDENCE_ARTIFACTS.get(artifact.name);
+    if (!expectedRunner)
+      throw new Error(
+        `Unexpected workflow evidence artifact: ${artifact.name}`,
+      );
     const base = join(directory, artifact.name);
     const manifest = validateEvidenceManifest(
       JSON.parse(await readFile(join(base, "manifest.json"), "utf8")),
@@ -455,19 +550,40 @@ export async function loadEvidence(
       outcome: manifest.outcome,
     };
     executions.push(execution);
-    for (const report of manifest.reports)
+    let executedTests = 0;
+    for (const report of manifest.reports) {
+      if (report.runner !== expectedRunner)
+        throw new Error(
+          `Wrong native runner for ${artifact.name}: ${report.runner}`,
+        );
+      const parsed = parseNativeReport(
+        JSON.parse(await readFile(join(base, report.file), "utf8")),
+        report.runner,
+        manifest.root,
+      );
+      executedTests += parsed.filter(
+        (test) => test.status === "passed" || test.status === "failed",
+      ).length;
+      if (
+        manifest.outcome === "success" &&
+        parsed.some((test) => test.status === "failed")
+      )
+        throw new Error(
+          `Successful artifact contains failed native tests: ${artifact.name}`,
+        );
       observations.push(
-        ...parseNativeReport(
-          JSON.parse(await readFile(join(base, report.file), "utf8")),
-          report.runner,
-          manifest.root,
-        ).map((observation) => ({
+        ...parsed.map((observation) => ({
           ...observation,
           source: {
             ...execution,
             report: report.file,
           },
         })),
+      );
+    }
+    if (manifest.outcome === "success" && executedTests === 0)
+      throw new Error(
+        `Successful artifact has no executed native tests: ${artifact.name}`,
       );
   }
   return { observations, executions };
@@ -491,7 +607,11 @@ export async function runEvidenceCoverage(
       else output = value;
     } else throw new Error(`Unknown evidence option: ${arg}`);
   }
-  await checkSpecifications(root);
+  const validation = await checkSpecifications(root);
+  if (enforce)
+    validateMandatoryJobResults(
+      JSON.parse(process.env.SPEC_EVIDENCE_NEEDS ?? "null"),
+    );
   const evidence = results
     ? await loadEvidence(results)
     : { observations: [], executions: [] };
@@ -500,7 +620,8 @@ export async function runEvidenceCoverage(
     evidence.observations,
     evidence.executions,
   );
-  const json = `${JSON.stringify(report, null, 2)}\n`;
+  const verifiedReport = { ...report, validation: validation.validation };
+  const json = `${JSON.stringify(verifiedReport, null, 2)}\n`;
   if (output) {
     await mkdir(dirname(output), { recursive: true });
     await writeFile(output, json);
@@ -508,9 +629,9 @@ export async function runEvidenceCoverage(
   } else process.stdout.write(json);
   if (enforce && !report.gatePassed)
     throw new Error(
-      "Specification evidence gate failed; inspect executionFailures and requirement/scenario statuses in the report",
+      "Specification evidence gate failed; inspect missingArtifacts, executionFailures and requirement statuses in the report",
     );
-  return report;
+  return verifiedReport;
 }
 
 if (import.meta.main) {

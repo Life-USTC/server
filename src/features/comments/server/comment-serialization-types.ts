@@ -72,6 +72,7 @@ export type RawAccount = {
 export type RawUser = {
   id: string;
   name: string | null;
+  username?: string | null;
   image: string | null;
   isAdmin?: boolean;
   accounts?: RawAccount[] | null;

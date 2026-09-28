@@ -7,7 +7,7 @@ import { selectLatestExamBatches } from "@/static-loader/exam-batch-selection";
 import { mapExamBatch } from "@/static-loader/mappers";
 
 describe("static direct upstream identity", () => {
-  it("keeps distinct Course rows for distinct upstream IDs when names match", () => {
+  it("course.static-course-identity", () => {
     const course = { jwId: 10, code: "MATH", nameCn: "数学" };
     expect(
       selectLatestCourses([
@@ -17,7 +17,7 @@ describe("static direct upstream identity", () => {
     ).toEqual([course, { ...course, jwId: 11, code: "MATH-B" }]);
   });
 
-  it("selects latest Course metadata independent of snapshot order", () => {
+  it("course.static-course-metadata-precedence", () => {
     const oldCourse = { jwId: 10, code: "MATH", nameCn: "旧名" };
     const newCourse = { jwId: 10, code: "MATH", nameCn: "新名" };
     const occurrences = [
@@ -30,7 +30,7 @@ describe("static direct upstream identity", () => {
     ]);
   });
 
-  it("fails closed when one Course jwId maps to multiple codes", () => {
+  it("course.static-course-code-conflict", () => {
     expect(() =>
       selectLatestCourses([
         { semesterCode: 401, course: { jwId: 10, code: "A", nameCn: "课程" } },

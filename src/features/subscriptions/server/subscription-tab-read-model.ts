@@ -15,6 +15,7 @@ export async function getSubscriptionsTabData(
   options: {
     calendarFeedToken?: string | null;
     includeExams?: boolean;
+    referenceNow?: Date;
     sectionIds?: readonly number[];
   } = {},
 ) {
@@ -59,7 +60,10 @@ export async function getSubscriptionsTabData(
       endDate: semester.endDate ? toShanghaiIsoString(semester.endDate) : null,
     })),
     currentSemesterId:
-      selectCurrentSemesterFromList(semesters, new Date())?.id ?? null,
+      selectCurrentSemesterFromList(
+        semesters,
+        options.referenceNow ?? new Date(),
+      )?.id ?? null,
     userId,
     calendarSubscriptionUrl,
   };

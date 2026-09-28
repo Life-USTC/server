@@ -62,6 +62,8 @@ export async function getCourseByJwIdTool({
 
   return jsonToolResult(
     {
+      success: Boolean(course),
+      ...(course ? {} : { error: "not_found", message: "Course not found" }),
       found: Boolean(course),
       course,
     },

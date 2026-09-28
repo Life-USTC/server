@@ -7,7 +7,7 @@ import {
   getAuditRequestMetadata,
 } from "@/lib/audit/write-audit-log";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
-import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
+import { resolveAuthoritativeSession } from "@/lib/auth/recent-session";
 
 export function oauthConsentMutationPath(request: Request) {
   const pathname = new URL(request.url).pathname;
@@ -49,15 +49,8 @@ export async function handleOAuthConsentMutation(
     return consentMutationError(403, "Invalid origin");
   }
 
-  const { getSessionFromHeaders } = await import("@/lib/auth/core");
-  const session = await getSessionFromHeaders(request.headers);
-  if (!session?.user.id) {
-    return consentMutationError(401, "Authentication required");
-  }
-  const recent = await resolveAuthoritativeRecentSession(request.headers, {
-    expectedUserId: session.user.id,
-  });
-  if (!recent.ok) {
+  const session = await resolveAuthoritativeSession(request.headers);
+  if (!session.ok) {
     await fireAuditLog({
       action:
         mutation === "delete"
@@ -65,14 +58,14 @@ export async function handleOAuthConsentMutation(
           : "oauth_authorization_update",
       channel: "auth",
       outcome: "denied",
-      subjectUserId: session.user.id,
+      subjectUserId: session.userId,
       targetType: "oauth_consent",
-      userId: session.user.id,
-      ...(recent.sessionId ? { sessionId: recent.sessionId } : {}),
-      metadata: { reason: recent.reason },
+      userId: session.userId,
+      ...(session.sessionId ? { sessionId: session.sessionId } : {}),
+      metadata: { reason: session.reason },
       ...getAuditRequestMetadata(request),
     });
-    return consentMutationError(403, "Recent authentication required");
+    return consentMutationError(401, "Authentication required");
   }
 
   let body: unknown;
@@ -88,12 +81,12 @@ export async function handleOAuthConsentMutation(
 
   if (mutation === "delete") {
     const result = await revokeUserOAuthAuthorization(
-      session.user.id,
+      session.userId,
       consentId,
       {
         ...getAuditRequestMetadata(request),
         channel: "auth",
-        sessionId: recent.sessionId,
+        sessionId: session.sessionId,
       },
     );
     return result.ok
@@ -112,13 +105,13 @@ export async function handleOAuthConsentMutation(
     return consentMutationError(400, "Invalid OAuth scopes");
   }
   const result = await updateUserOAuthAuthorizationScopes(
-    session.user.id,
+    session.userId,
     consentId,
     update.scopes,
     {
       ...getAuditRequestMetadata(request),
       channel: "auth",
-      sessionId: recent.sessionId,
+      sessionId: session.sessionId,
     },
   );
   if (!result.ok) {

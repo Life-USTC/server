@@ -14,6 +14,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.comment:write
  */
 export const POST: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => postCommentReactionRoute(request, { id: params.id }))(
@@ -30,6 +31,7 @@ export const POST: RequestHandler = ({ request, params }) =>
  * @response 403:openApiErrorSchema
  * @response 429:openApiErrorSchema
  * @response 503:openApiErrorSchema
+ * @oauthScope community.comment:write
  */
 export const DELETE: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

@@ -17,11 +17,9 @@ import SearchField from "$lib/components/SearchField.svelte";
 import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
-import { Checkbox } from "$lib/components/ui/checkbox";
 import * as Field from "$lib/components/ui/field";
 import * as ToggleGroup from "$lib/components/ui/toggle-group";
 import { formatShanghaiDate } from "$lib/time/shanghai-format";
-import PublicationSourceFilter from "./PublicationSourceFilter.svelte";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type {
   PublicationListPageData,
@@ -51,9 +49,6 @@ function setFiltersOpen(open: boolean) {
   }
   filtersOpen = open;
 }
-const availableLevels = $derived([
-  ...new Set(data.sourceOptions.map((option) => option.organizationLevel)),
-]);
 const returnHref = $derived(
   publicationListHref(data.filters, data.publications.pagination.page),
 );
@@ -100,10 +95,10 @@ const activeFilters = $derived([
     : []),
 ]);
 const resultsCount = $derived(
-  copy.resultsCount.replace(
-    "{count}",
-    String(data.publications.pagination.total),
-  ),
+  (data.publications.pagination.total === 1
+    ? copy.resultsCountOne
+    : copy.resultsCount
+  ).replace("{count}", String(data.publications.pagination.total)),
 );
 
 function changeType(value: string) {
@@ -147,31 +142,11 @@ function changeType(value: string) {
             </form>
           {/snippet}
           {#snippet advanced()}
-            <form method="get" action="/news" class="min-w-0" onsubmit={() => { filtersOpen = false; }}>
-              {#if data.filters.type}<input type="hidden" name="type" value={data.filters.type} />{/if}
-              <input type="hidden" name="query" value={query} />
-              <Field.Group class="min-w-0 gap-5">
-                <PublicationSourceFilter options={data.sourceOptions} bind:selected={sourceDraft} {copy} />
-                {#if availableLevels.length > 0}
-                  <Field.Set class="min-w-0 gap-3">
-                    <Field.Legend>{copy.organizationLevelFilter}</Field.Legend>
-                    <Field.Group class="gap-3">
-                      {#each availableLevels as level (level)}
-                        <Field.Field orientation="horizontal" class="gap-2">
-                          <Checkbox id={`publication-level-${level}`} name="organizationLevel" value={level} checked={levelsDraft.includes(level)} onCheckedChange={(checked) => { levelsDraft = checked ? [...levelsDraft, level] : levelsDraft.filter((item) => item !== level); }} />
-                          <Field.Label for={`publication-level-${level}`}>{copy.organizationLevelLabels[level]}</Field.Label>
-                        </Field.Field>
-                      {/each}
-                    </Field.Group>
-                  </Field.Set>
-                {/if}
-                <Field.Field orientation="horizontal" class="gap-2">
-                  <Checkbox id="publication-fold" name="fold" value="1" bind:checked={foldDraft} />
-                  <Field.Label for="publication-fold">{copy.foldToggle}</Field.Label>
-                </Field.Field>
-                <Button type="submit" class="{toolbarControlClass} self-start">{copy.applyFilters}</Button>
-              </Field.Group>
-            </form>
+            {#await import("./PublicationAdvancedFilters.svelte")}
+              <div class="h-6 animate-pulse rounded bg-muted" role="progressbar" aria-label={copy.sourceFilter}></div>
+            {:then { default: PublicationAdvancedFilters }}
+            <PublicationAdvancedFilters {copy} {data} {query} bind:sourceDraft bind:levelsDraft bind:foldDraft onsubmit={() => { filtersOpen = false; }} />
+            {/await}
           {/snippet}
         </FilterToolbar>
         <ActiveFilters items={activeFilters.map((filter) => ({ ...filter, removeLabel: copy.removeFilter.replace("{filter}", filter.label) }))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} />
@@ -192,11 +167,12 @@ function changeType(value: string) {
             <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <PublicationTypeBadge type={item.publicationType} {copy} />
               <a class="min-w-0 hover:underline [overflow-wrap:anywhere]" href={publicationListHref({ source: [item.source.id] })}>{item.source.name}</a>
+              <span>{copy.organizationLevelLabels[item.source.organizationLevel]}</span>
               {#if item.revision.publishedAt}<span>{formatShanghaiDate(item.revision.publishedAt)}</span>{/if}
               {#if item.revision.updatedAtSource && (!item.revision.publishedAt || formatShanghaiDate(item.revision.updatedAtSource) !== formatShanghaiDate(item.revision.publishedAt))}
                 <span>{copy.updatedAt}: {formatShanghaiDate(item.revision.updatedAtSource)}</span>
               {/if}
-              {#if item.foldGroup}<Badge variant="secondary">{copy.foldSiblingCount.replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
+              {#if item.foldGroup}<Badge variant="secondary">{(item.foldGroup.siblingCount === 1 ? copy.foldSiblingCountOne : copy.foldSiblingCount).replace("{count}", String(item.foldGroup.siblingCount))}</Badge>{/if}
             </div>
             {#if summary}<p class="line-clamp-2 min-w-0 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>{/if}
           </li>

@@ -122,6 +122,36 @@ describe("Young calendar", () => {
     expect(days[0]?.isToday).toBe(true);
   });
 
+  it("young-event.web-calendar-density", () => {
+    expect(youngCalendarRange("week", "2026-09-16")).toEqual({
+      start: "2026-09-13",
+      end: "2026-09-19",
+    });
+    const days = youngCalendarDays(
+      "day",
+      { start: "2026-09-10", end: "2026-09-10" },
+      [
+        event(
+          "before",
+          "2026-09-09T23:00:00+08:00",
+          "2026-09-10T01:00:00+08:00",
+        ),
+        event(
+          "after",
+          "2026-09-10T23:00:00+08:00",
+          "2026-09-11T01:00:00+08:00",
+        ),
+        event("missing-end", "2026-09-10T12:00:00+08:00", null),
+      ],
+      new Date("2026-09-10T04:00:00.000Z"),
+    );
+    expect(days[0]?.events.map(({ youngId }) => youngId)).toEqual([
+      "missing-end",
+      "after",
+      "before",
+    ]);
+  });
+
   it("does not duplicate an event that ends at the next midnight", () => {
     const days = youngCalendarDays(
       "day",

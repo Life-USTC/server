@@ -23,7 +23,7 @@ export type PublicationFixture = {
   markdownHash: string;
 };
 
-function localObjectCommand(
+export function publicationFixtureObjectCommand(
   action: "put" | "delete",
   key: string,
   body?: Buffer,
@@ -78,8 +78,13 @@ export async function createPublicationFixture(prefix: string) {
   );
   const markdownHash = createHash("sha256").update(markdown).digest("hex");
   const markdownKey = `publications/body_markdown/sha256/${markdownHash.slice(0, 2)}/${markdownHash}`;
-  localObjectCommand("put", markdownKey, markdown, "text/markdown");
-  localObjectCommand(
+  publicationFixtureObjectCommand(
+    "put",
+    markdownKey,
+    markdown,
+    "text/markdown",
+  );
+  publicationFixtureObjectCommand(
     "put",
     `publications/images/url-sha256/${imageId}`,
     readFileSync("public/images/icon.png"),
@@ -226,11 +231,11 @@ export async function deletePublicationFixture(fixture: PublicationFixture) {
       },
     });
   });
-  localObjectCommand(
+  publicationFixtureObjectCommand(
     "delete",
     `publications/body_markdown/sha256/${fixture.markdownHash.slice(0, 2)}/${fixture.markdownHash}`,
   );
-  localObjectCommand(
+  publicationFixtureObjectCommand(
     "delete",
     `publications/images/url-sha256/${fixture.imageId}`,
   );

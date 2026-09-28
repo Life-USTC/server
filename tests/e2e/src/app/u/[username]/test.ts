@@ -6,7 +6,6 @@
  * - user.name (display name)
  * - user.username (@username)
  * - user.createdAt (join date)
- * - sectionCount (subscribed sections)
  * - user._count.comments (total comments)
  * - user._count.uploads (total uploads)
  * - user._count.homeworksCreated (homeworks created)
@@ -23,12 +22,74 @@
  * - Empty username param → 404
  */
 import { expect, test } from "@playwright/test";
+import { createFixturePrisma } from "../../../../../shared/prisma";
 import { signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
+
+test("user.public-profile-canonical-route", async ({ page }) => {
+  const db = createFixturePrisma();
+  try {
+    const user = await db.user.findUniqueOrThrow({
+      where: { username: DEV_SEED.adminUsername },
+      select: { id: true },
+    });
+    for (const identifier of [
+      DEV_SEED.adminUsername,
+      DEV_SEED.adminUsername.toUpperCase(),
+      user.id,
+    ]) {
+      await gotoAndWaitForReady(
+        page,
+        `/community/users/${identifier}?ignored=1`,
+      );
+      await expect(
+        page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
+      ).toBeVisible();
+      const expected = new URL(
+        `/community/users/${DEV_SEED.adminUsername}`,
+        page.url(),
+      ).href;
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        "href",
+        expected,
+      );
+      await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+        "content",
+        expected,
+      );
+    }
+  } finally {
+    await db.$disconnect();
+  }
+});
+
+test("user.public-profile-id-addressability", async ({ page }) => {
+  const db = createFixturePrisma();
+  const user = await db.user.create({
+    data: {
+      name: "Public profile without username",
+      email: `${crypto.randomUUID()}@profile.test`,
+    },
+  });
+  try {
+    await gotoAndWaitForReady(page, `/community/users/${user.id}`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: user.name }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(`${user.name} - Life@USTC`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      new URL(`/community/users/${user.id}`, page.url()).href,
+    );
+  } finally {
+    await db.user.delete({ where: { id: user.id } });
+    await db.$disconnect();
+  }
+});
 
 test.describe("/community/users/[identifier]", () => {
   test("页面契约", async ({ page }, testInfo) => {
@@ -89,20 +150,39 @@ test.describe("/community/users/[identifier]", () => {
       `/community/users/${DEV_SEED.adminUsername}`,
     );
 
-    // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
-    // Stats grid must contain numeric counters
-    const statsGrid = page.locator("[class*=grid]").filter({
-      has: page.locator("[class*=text]"),
+    const summary = page.locator('[data-slot="card"]').filter({
+      has: page.getByRole("heading", { level: 1, name: DEV_SEED.adminName }),
     });
-    await expect(statsGrid.first()).toBeVisible();
-
-    // At least one numeric counter is present (even if 0)
-    const counters = page.locator(
-      "[class*=stat], [class*=count], [class*=grid] [class*=text]",
+    await expect(summary).toBeVisible();
+    for (const label of [
+      /^(评论|Comments)$/,
+      /^(上传|Uploads)$/,
+      /^(创建作业|Created homework)$/,
+    ]) {
+      await expect(summary.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(summary.getByText(/^(教学班订阅|Sections)$/)).toHaveCount(0);
+    const response = await page.request.get(
+      `/api/community/users/${DEV_SEED.adminUsername}`,
     );
-    expect(await counters.count()).toBeGreaterThan(0);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).not.toHaveProperty("sectionCount");
+    expect(body.user._count).not.toHaveProperty("subscribedSections");
 
     await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const label of [
+      /^(评论|Comments)$/,
+      /^(上传|Uploads)$/,
+      /^(创建作业|Created homework)$/,
+    ]) {
+      await expect(summary.getByText(label, { exact: true })).toBeVisible();
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+    await captureStepScreenshot(page, testInfo, "u-username/stats-grid-mobile");
   });
 
   test("显示贡献热力图及 totalContributions", async ({ page }, testInfo) => {

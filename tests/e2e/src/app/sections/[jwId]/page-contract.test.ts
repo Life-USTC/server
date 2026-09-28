@@ -71,7 +71,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("显示学期、校区与教师信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const overview = page.locator("#overview");
+    const overview = page.locator("[data-detail-identity]");
 
     // section.semester.nameCn (locale-dependent: English short name on en-us)
     await expect(

@@ -40,19 +40,20 @@ export const selectCurrentSemesterFromList = <
   semesters: TSemester[],
   referenceDate: Date,
 ): TSemester | null => {
-  const current = semesters
-    .filter(
-      (s) =>
-        (!s.startDate || s.startDate <= referenceDate) &&
-        (!s.endDate || s.endDate >= referenceDate),
-    )
-    .sort(byMostSpecific);
-  if (current[0]) return current[0];
-
-  const future = semesters
-    .filter((s) => s.startDate && s.startDate > referenceDate)
-    .sort((a, b) => startTime(a) - startTime(b) || endTime(a) - endTime(b));
-  if (future[0]) return future[0];
-
-  return [...semesters].sort(byMostSpecific).at(0) ?? null;
+  const dateOnlyReference = parseDateInput(formatShanghaiDate(referenceDate));
+  if (!(dateOnlyReference instanceof Date)) {
+    throw new TypeError("Invalid current-semester reference date");
+  }
+  return (
+    semesters
+      .filter(
+        (semester) =>
+          semester.startDate != null &&
+          semester.endDate != null &&
+          semester.startDate <= dateOnlyReference &&
+          semester.endDate >= dateOnlyReference,
+      )
+      .sort(byMostSpecific)
+      .at(0) ?? null
+  );
 };

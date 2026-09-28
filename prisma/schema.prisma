@@ -48,6 +48,7 @@ enum AuditAction {
   admin_user_suspend
   admin_user_unsuspend
   admin_comment_moderate
+  admin_comment_identity_reveal
   admin_description_moderate
   section_retire
   section_reactivate
@@ -1122,8 +1123,7 @@ model Publication {
   updatedAt         DateTime        @updatedAt
 
   /// Database-generated (STORED) fold key: NFKC-normalized, whitespace-collapsed,
-  /// lowercased title. Populated by Postgres, never written by the app. Kept in
-  /// sync with normalizePublicationTitle() in publication-title-normalization.ts.
+  /// lowercased title. Postgres is the sole producer of the persisted fold key.
   normalizedTitle String @default(dbgenerated())
   /// Database-generated (STORED) fold key: COALESCE(publishedAt, firstSeenAt)
   /// bucketed to its Asia/Shanghai calendar date. Populated by Postgres.
@@ -1704,8 +1704,6 @@ model BusUserPreference {
 
   preferredOriginCampusId      Int?
   preferredDestinationCampusId Int?
-  favoriteCampusIds            Int[]   @default([])
-  favoriteRouteIds             Int[]   @default([])
   showDepartedTrips            Boolean @default(false)
 
   createdAt DateTime @default(now())

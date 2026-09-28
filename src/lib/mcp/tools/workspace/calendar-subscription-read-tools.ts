@@ -24,6 +24,7 @@ export async function getMyCalendarSubscriptionTool(
   if (!subscription) {
     return jsonToolResult({
       success: false,
+      error: "not_found",
       message: "User not found",
     });
   }

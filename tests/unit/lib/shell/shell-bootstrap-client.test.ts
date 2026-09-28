@@ -40,7 +40,7 @@ describe("shell bootstrap client", () => {
     });
   });
 
-  test("rejects malformed counts and cross-user navigation data", () => {
+  test("user.shell-navigation-owner", () => {
     expect(() =>
       parseShellBootstrapPayload({
         viewer,
@@ -83,7 +83,7 @@ describe("shell bootstrap client", () => {
     ).toBeNull();
   });
 
-  test("loads the private same-origin bootstrap without client caching", async () => {
+  test("user.shell-private-fetch", async () => {
     const fetcher = vi.fn(async () =>
       Response.json({ viewer, navigation }),
     ) as unknown as typeof fetch;
@@ -100,7 +100,7 @@ describe("shell bootstrap client", () => {
     });
   });
 
-  test("does not turn a failed bootstrap into an anonymous result", async () => {
+  test("user.shell-identity-failure", async () => {
     const fetcher = vi.fn(
       async () => new Response(null, { status: 503 }),
     ) as unknown as typeof fetch;

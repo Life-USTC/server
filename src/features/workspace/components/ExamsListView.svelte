@@ -2,23 +2,30 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import TableIconButton from "$lib/components/TableIconButton.svelte";
 import TableRowActions from "$lib/components/TableRowActions.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Table from "$lib/components/ui/table/index.js";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
+  ExamMetadataLabels,
   ExamsCopyProps,
   ExamTimeLabel,
+  NamePrimary,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let locale: string;
+export let namePrimary: NamePrimary;
+export let unknownSemesterLabel: string;
 export let workspaceCopy: ExamsCopyProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceTabHref;
 export let hasExamRows: boolean;
 export let onClearFilter: () => void;
 export let exams: WorkspaceExamRow[];
+export let examMetadataLabels: ExamMetadataLabels;
 export let examTimeLabel: ExamTimeLabel;
 export let fmtExamDate: (value: Date | string | null | undefined) => string;
 export let sectionCopy: ExamsCopyProps["sectionCopy"];
@@ -46,21 +53,30 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
       <Table.Row class="group">
         <Table.Cell>
           <a
-            class="block min-w-0 max-w-full overflow-hidden underline-offset-4 hover:underline"
+            class="block min-w-0 max-w-full overflow-hidden font-medium underline-offset-4 hover:underline"
             href={detailHref}
           >
             <TruncatedText text={exam.courseName} />
           </a>
+          <details class="mt-1 text-xs text-muted-foreground">
+            <summary class="cursor-pointer">{sectionCopy.moreDetails}</summary>
+            <ul class="mt-1 grid gap-1">
+              {#each examMetadataLabels(exam) as label}<li>{label}</li>{/each}
+            </ul>
+          </details>
         </Table.Cell>
         <Table.Cell>
           {exam.section.code ?? subscriptionsCopy.section}
+          <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, namePrimary(exam.section.semester) || unknownSemesterLabel)}</span>
         </Table.Cell>
         <Table.Cell>
           {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}
+          <span class="block text-xs text-muted-foreground">{exam.completed ? workspaceCopy.nav.exams.filterCompleted : workspaceCopy.nav.exams.filterIncomplete}</span>
         </Table.Cell>
-        <Table.Cell
-          >{examTimeLabel(exam.startTime, exam.endTime) || "—"}</Table.Cell
-        >
+        <Table.Cell>
+          {examTimeLabel(exam.startTime, exam.endTime) || "—"}
+          {#if exam.examMode}<span class="block text-xs text-muted-foreground">{exam.examMode}</span>{/if}
+        </Table.Cell>
         <Table.Cell>
           {#if exam.rooms}
             <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">

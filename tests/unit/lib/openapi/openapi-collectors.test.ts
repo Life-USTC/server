@@ -22,6 +22,48 @@ describe("SchemaCollector", () => {
 });
 
 describe("route collector", () => {
+  it("rejects unregistered scope declarations and keeps session-only routes explicit", () => {
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
+    project.createSourceFile(
+      "src/routes/api/account/sensitive/+server.ts",
+      `
+/**
+ * Sensitive action.
+ * @response 401:openApiErrorSchema
+ */
+export const POST = () => new Response();
+`,
+    );
+    expect(
+      collectPaths(project, new SchemaCollector(), {
+        operationIdOverrides: {},
+      })["/api/account/sensitive"].post,
+    ).toMatchObject({ security: [{ sessionCookie: [] }] });
+    const invalidProject = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
+    invalidProject.createSourceFile(
+      "src/routes/api/account/sensitive/+server.ts",
+      `
+/**
+ * Sensitive action.
+ * @oauthScope made.up:read
+ * @response 401:openApiErrorSchema
+ */
+export const POST = () => new Response();
+`,
+    );
+    expect(() =>
+      collectPaths(invalidProject, new SchemaCollector(), {
+        operationIdOverrides: {},
+      }),
+    ).toThrow("Invalid OAuth scope");
+  });
+
   it("builds an operation from JSDoc tags", () => {
     const project = new Project({
       useInMemoryFileSystem: true,
@@ -32,6 +74,7 @@ describe("route collector", () => {
       `
 /**
  * List todos.
+ * @oauthScope workspace.todo:read
  * @params todosQuerySchema
  * @response todosListResponseSchema
  * @response 401:openApiErrorSchema

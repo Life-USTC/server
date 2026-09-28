@@ -189,6 +189,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     historicalSectionLabel: string;
     lecture: string;
     lectureNumber: string;
+    teacher: string;
     location: string;
     tabs: {
       calendar: string;

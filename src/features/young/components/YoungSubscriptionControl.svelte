@@ -99,6 +99,7 @@ $effect(() => {
       });
       if (response.status === 401) {
         signedIn = false;
+        loaded = true;
         return;
       }
       if (!response.ok) throw new Error(copy.failed);

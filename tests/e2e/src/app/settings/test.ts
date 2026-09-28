@@ -19,6 +19,7 @@
 import { expect, test } from "@playwright/test";
 import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { PLAYWRIGHT_BASE_URL } from "../../../utils/e2e-db/core";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -29,7 +30,7 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("默认进入个人资料标签并显示种子用户数据", async ({ page }, testInfo) => {
+  test("ui.settings-navigation-2", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/account/settings");
 
     await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/);
@@ -41,7 +42,7 @@ test.describe("/account/settings 设置中心", () => {
     await captureStepScreenshot(page, testInfo, "settings-default-profile");
   });
 
-  test("设置路由使用二级侧栏，主页保持主导航", async ({ page }, testInfo) => {
+  test("ui.settings-navigation-1", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await signInAsDebugUser(page, "/account/settings");
 
@@ -81,6 +82,24 @@ test.describe("/account/settings 设置中心", () => {
       mobileSidebar.getByRole("link", { name: /危险操作|Danger zone/i }),
     ).toHaveAttribute("aria-current", "page");
     await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
+  });
+
+  test("ui.settings-navigation-6", async ({ page }) => {
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "zh-cn",
+        url: PLAYWRIGHT_BASE_URL,
+      },
+    ]);
+    await page.setViewportSize({ width: 375, height: 900 });
+    await signInAsDebugUser(page, "/account/settings/danger");
+    await page.locator('[data-slot="sidebar-trigger"]').click();
+    const sidebar = page.getByTestId("settings-sidebar");
+    const activeLink = sidebar.locator('a[aria-current="page"]');
+    await expect(activeLink).toHaveCount(1);
+    await expect(activeLink).toBeVisible();
+    await expect(page.getByTestId("detail-section-nav")).toHaveCount(0);
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {

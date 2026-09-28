@@ -834,7 +834,7 @@ type WeatherCurrent {
   feelsLike: Float
   humidity: Float
   pressure: Float
-  temperature: Float!
+  temperature: Float
   visibility: Float
   windDirection: String
   windSpeed: Float

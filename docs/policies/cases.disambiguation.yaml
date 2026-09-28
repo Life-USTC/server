@@ -5,38 +5,34 @@ requirements:
 - id: cases.disambiguation.duplicate-course-names-1
   category: behavior
   topic: duplicate-course-names
-  rule: Course code or other disambiguation information should be displayed.
+  rule: Course search and course-list results display the localized course name and public course code, so
+    courses with identical names remain distinguishable.
+  acceptance:
+    given: Two isolated courses share identical Chinese and English names but have distinct public codes.
+    when: An anonymous browser opens the course list and global search in both locales at desktop and mobile widths.
+    then:
+    - Both results display the localized shared name and their distinct public course codes.
+    - Each course-list result links to its own course detail.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.disambiguation.duplicate-course-names-1
 - id: cases.disambiguation.multiple-sections-same-course-1
   category: behavior
   topic: multiple-sections-same-course
-  rule: Section code and semester should be displayed.
-- id: cases.disambiguation.required-disambiguation-contexts-1
-  category: behavior
-  topic: required-disambiguation-contexts
-  rule: Disambiguation information is required in section search.
-- id: cases.disambiguation.required-disambiguation-contexts-2
-  category: behavior
-  topic: required-disambiguation-contexts
-  rule: Disambiguation information is required in child sections in course detail.
-- id: cases.disambiguation.required-disambiguation-contexts-3
-  category: behavior
-  topic: required-disambiguation-contexts
-  rule: Disambiguation information is required in batch import results.
-- id: cases.disambiguation.scenario-guidance-1
-  category: behavior
-  topic: scenario-guidance
-  rule: Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make
-    a selection.
-- id: cases.disambiguation.scenario-guidance-2
-  category: behavior
-  topic: scenario-guidance
-  rule: Courses with the same name and multiple sections under the same course must not display only the course
-    name.
-- id: cases.disambiguation.scenario-guidance-3
-  category: behavior
-  topic: scenario-guidance
-  rule: In cross-semester or multi-section scenarios, semester and section code are mandatory information to
-    retain.
+  rule: Section search, course-detail offerings, and subscription match/import results display section code
+    and semester alongside course identity. Missing semester data uses an explicit unknown label rather than
+    a fabricated current semester. The parent course is not assigned one inferred semester.
+  acceptance:
+    given: One named course has two sections in Spring 2026, one in Fall 2025, and one with no semester.
+    when: A browser searches the course, reads desktop and mobile course offerings, and matches and imports the two Spring sections in Chinese and English.
+    then:
+    - Search and course offerings retain each section code and its actual semester; missing semester is explicitly unknown or unavailable.
+    - The import confirmation shows each matching section code, course name, and selected semester before subscribing to the two distinct sections.
+    - Course-level facts and the public course API do not assign a single inferred semester.
+    - The resulting subscriptions link to the selected teaching sections and retain the course identity.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
+      name: cases.disambiguation.multiple-sections-same-course-1
 refs:
 - feature: course
   capability: course-list
@@ -53,3 +49,5 @@ topics:
   title: Required disambiguation contexts
 - id: scenario-guidance
   title: Scenario guidance
+rationale:
+- Public course/section codes and semester labels distinguish records whose localized names are identical.

@@ -1,14 +1,4 @@
-export type SectionCalendarEvent = {
-  badges: string[];
-  date: string | Date | null;
-  dateKey: string | null;
-  details: Array<{ label: string; value: string }>;
-  id: string;
-  kind: "class" | "exam";
-  meta: string;
-  roomCodes?: string[];
-  title: string;
-};
+export type { SectionCalendarEvent } from "../lib/calendar";
 
 export type SectionCalendarCopy = {
   addToCalendar: string;

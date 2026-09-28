@@ -12,6 +12,7 @@ import {
   compactCatalogExamSchema,
   compactCatalogTeacherSchema,
   compactCourseSchema,
+  compactLocalizedSubscriptionSectionSchema,
   compactMatchSectionSchema,
   compactPublicScheduleSchema,
   compactScopedScheduleSchema,
@@ -19,7 +20,6 @@ import {
   compactSectionDetailSchema,
   compactSectionSummarySchema,
   compactSemesterSchema,
-  compactSubscriptionSectionSchema,
   compactTeacherDetailSchema,
   courseDetailMcpSchema,
   courseDetailSchema,
@@ -56,7 +56,6 @@ import {
   teacherDetailMcpSchema,
   teacherDetailSchema,
   teacherListSchema,
-  topLevelOutputSchema,
 } from "./shared";
 
 export const weatherNoDataSchema = z.strictObject({
@@ -126,14 +125,14 @@ export const youngEventListDefaultSchema = objectOutputSchema({
   data: z.array(compactYoungEventSchema),
   pagination: youngEventPaginationSchema,
   unknownDateCount: z.number().int().nonnegative(),
-  source: paginatedYoungEventResponseSchema.shape.source,
+  source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
 });
 
 export const youngEventListFullSchema = objectOutputSchema({
   data: z.array(youngEventSummarySchema),
   pagination: youngEventPaginationSchema,
   unknownDateCount: z.number().int().nonnegative(),
-  source: paginatedYoungEventResponseSchema.shape.source,
+  source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
 });
 
 // Default mode keeps the sanitized rich text — it is the point of fetching one
@@ -164,14 +163,26 @@ export const catalogAcademicModeOutputSchemas = {
     full: paginatedCourseFullMcpSchema,
   },
   catalog_course_get: {
-    default: exactSuccessOutput({
-      found: z.boolean(),
-      course: compactCourseSchema.nullable(),
-    }),
-    full: exactSuccessOutput({
-      found: z.boolean(),
-      course: courseDetailSchema.nullable(),
-    }),
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        course: compactCourseSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        course: z.null(),
+      }),
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        course: courseDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        course: z.null(),
+      }),
+    ]),
   },
   catalog_section_search: {
     default: paginatedSectionDefaultMcpSchema,
@@ -203,14 +214,26 @@ export const catalogAcademicModeOutputSchemas = {
     full: paginatedTeacherFullMcpSchema,
   },
   catalog_teacher_get: {
-    default: exactSuccessOutput({
-      found: z.boolean(),
-      teacher: compactTeacherDetailSchema.nullable(),
-    }),
-    full: exactSuccessOutput({
-      found: z.boolean(),
-      teacher: teacherDetailSchema.nullable(),
-    }),
+    default: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        teacher: compactTeacherDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        teacher: z.null(),
+      }),
+    ]),
+    full: z.union([
+      exactSuccessOutput({
+        found: z.literal(true),
+        teacher: teacherDetailSchema,
+      }),
+      exactFailureOutputSchema.extend({
+        found: z.literal(false),
+        teacher: z.null(),
+      }),
+    ]),
   },
   catalog_schedule_list: {
     default: z.union([
@@ -318,7 +341,9 @@ export const catalogNonAcademicModeOutputSchemas = {
     full: roomMapResponseSchema.extend({ success: z.boolean() }),
   },
   catalog_section_calendar_feed_get: {
-    default: sectionCalendarFeedOutputSchema(compactSubscriptionSectionSchema),
+    default: sectionCalendarFeedOutputSchema(
+      compactLocalizedSubscriptionSectionSchema,
+    ),
     full: sectionCalendarFeedOutputSchema(subscriptionFullSectionSchema),
   },
   catalog_weather_get: {
@@ -351,17 +376,29 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
   catalog_rooms_map: roomMapResponseSchema.extend({ success: z.boolean() }),
   catalog_section_calendar_feed_get: objectOutputSchema({
     section: z
-      .union([compactSubscriptionSectionSchema, subscriptionFullSectionSchema])
+      .union([
+        compactLocalizedSubscriptionSectionSchema,
+        subscriptionFullSectionSchema,
+      ])
       .nullable(),
     calendarPath: z.string(),
     calendarUrl: z.string(),
   }),
-  catalog_link_list: topLevelOutputSchema([
-    "query",
-    "total",
-    "returned",
-    "links",
-  ]),
+  catalog_link_list: objectOutputSchema({
+    query: z.string().nullable(),
+    total: z.number().int().nonnegative(),
+    returned: z.number().int().nonnegative(),
+    links: z.array(
+      z.strictObject({
+        slug: z.string(),
+        title: z.string(),
+        url: z.string(),
+        description: z.string(),
+        icon: z.string(),
+        group: z.string(),
+      }),
+    ),
+  }),
   catalog_weather_get: objectOutputSchema({
     ...weatherSnapshotResponseSchema.shape,
     locationKey: z.enum(["ustc-main", "ustc-gaoxin"]),
@@ -371,7 +408,7 @@ export const catalogToolOutputSchemas: Record<string, McpToolOutputSchema> = {
     data: z.array(z.union([compactYoungEventSchema, youngEventSummarySchema])),
     pagination: youngEventPaginationSchema,
     unknownDateCount: z.number().int().nonnegative(),
-    source: paginatedYoungEventResponseSchema.shape.source,
+    source: paginatedYoungEventResponseSchema.shape.meta.shape.source,
   }),
   catalog_young_event_get: objectOutputSchema({
     youngId: z.string(),

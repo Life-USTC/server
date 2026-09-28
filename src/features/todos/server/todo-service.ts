@@ -27,11 +27,13 @@ export const todoListOrderBy = [
   { completed: "asc" },
   { dueAt: "asc" },
   { createdAt: "desc" },
+  { id: "asc" },
 ] satisfies Prisma.TodoOrderByWithRelationInput[];
 
 export const todoDueDateOrderBy = [
   { dueAt: "asc" },
   { createdAt: "desc" },
+  { id: "asc" },
 ] satisfies Prisma.TodoOrderByWithRelationInput[];
 
 export type TodoSnapshot = Prisma.TodoGetPayload<{

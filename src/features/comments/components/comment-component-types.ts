@@ -29,6 +29,7 @@ export type CommentsCopy = {
   editorPlaceholder: string;
   emptyTitle: string;
   hiddenNotice: string;
+  hiddenNoticeOne: string;
   linkHost: string;
   linkSection: string;
   linkTeacher: string;

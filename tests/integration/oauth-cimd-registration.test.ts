@@ -17,6 +17,7 @@ vi.mock("node:dns/promises", () => ({
 const authOrigin = "http://localhost:3000";
 const createdClientIds: string[] = [];
 const metadataByUrl = new Map<string, Record<string, unknown>>();
+const responsesByUrl = new Map<string, () => Response>();
 const originalFetch = globalThis.fetch;
 let authHandler: (request: Request) => Promise<Response>;
 
@@ -51,6 +52,8 @@ describe("Better Auth CIMD registration", { concurrent: false }, () => {
             : input instanceof URL
               ? input.toString()
               : input;
+        const controlledResponse = responsesByUrl.get(url);
+        if (controlledResponse) return controlledResponse();
         const metadata = metadataByUrl.get(url);
         if (metadata) {
           return Response.json(metadata, {
@@ -83,115 +86,185 @@ describe("Better Auth CIMD registration", { concurrent: false }, () => {
     await Promise.all([fixturePrisma.$disconnect(), authPrisma.$disconnect()]);
   });
 
-  it("rejects missing client_name without persisting the client", async () => {
-    const clientId = `https://client.example/missing-name-${crypto.randomUUID()}.json`;
-    metadataByUrl.set(clientId, {
-      client_id: clientId,
-      redirect_uris: ["https://client.example/callback"],
-      token_endpoint_auth_method: "none",
-    });
-
-    const response = await authorizeRequest(clientId);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({
-      error: "invalid_client",
-    });
-    await expect(
-      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
-    ).resolves.toBeNull();
-  });
-
-  it("rejects DPoP-only metadata without persisting the client", async () => {
-    const clientId = `https://client.example/dpop-${crypto.randomUUID()}.json`;
-    metadataByUrl.set(clientId, {
-      client_id: clientId,
-      client_name: "DPoP-only Client",
-      dpop_bound_access_tokens: true,
-      redirect_uris: ["https://client.example/callback"],
-      token_endpoint_auth_method: "none",
-    });
-
-    const response = await authorizeRequest(clientId);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({
-      error: "invalid_client",
-      error_description:
-        "DPoP-bound access tokens are not supported by this Bearer-only resource server",
-    });
-    await expect(
-      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
-    ).resolves.toBeNull();
-  });
-
-  it("rejects private DNS answers before fetching metadata", async () => {
-    const clientId = `https://client.example/private-${crypto.randomUUID()}.json`;
-    metadataByUrl.set(clientId, {
-      client_id: clientId,
-      client_name: "Private DNS Client",
-      redirect_uris: ["https://client.example/callback"],
-    });
-    vi.mocked(resolve4).mockResolvedValueOnce(["127.0.0.1"]);
-    const fetchMock = vi.mocked(globalThis.fetch);
-    const fetchCallsBefore = fetchMock.mock.calls.length;
-
-    const response = await authorizeRequest(clientId);
-
-    expect(response.status).toBe(400);
-    expect(fetchMock).toHaveBeenCalledTimes(fetchCallsBefore);
-    await expect(
-      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
-    ).resolves.toBeNull();
-  });
-
-  it("discovers and persists a public CIMD client before authorization", async () => {
-    const clientId = `https://client.example/mcp-${crypto.randomUUID()}.json`;
-    createdClientIds.push(clientId);
-    metadataByUrl.set(clientId, {
-      client_id: clientId,
+  it("oauth.llm-platform-oauth-compatibility", {
+    timeout: 20_000,
+  }, async () => {
+    const baseline = {
       client_name: "Integration MCP Client",
       redirect_uris: ["https://client.example/callback"],
       token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      scope: restReadScope("account.profile"),
+    };
+    function clientId(scenario: string, scheme = "https") {
+      const id = `${scheme}://client.example/${scenario}-${crypto.randomUUID()}.json`;
+      createdClientIds.push(id);
+      return id;
+    }
+    async function rejects(id: string, description?: string) {
+      const response = await authorizeRequest(id);
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe("invalid_client");
+      if (description) expect(body.error_description).toContain(description);
+      await expect(
+        fixturePrisma.oAuthClient.findUnique({ where: { clientId: id } }),
+      ).resolves.toBeNull();
+    }
+
+    // Exercise installed provider validation, never a replica of its validators.
+    for (const [scenario, overrides] of [
+      ["missing-name", { client_name: undefined }],
+      ["blank-name", { client_name: "  " }],
+      ["wrong-id", { client_id: "https://other.example/client.json" }],
+      ["missing-redirects", { redirect_uris: undefined }],
+      ["empty-redirects", { redirect_uris: [] }],
+      ["relative-redirect", { redirect_uris: ["/callback"] }],
+      ["dpop", { dpop_bound_access_tokens: true }],
+      ["device-only", { grant_types: [OAUTH_DEVICE_CODE_GRANT_TYPE] }],
+      ["service-account", { grant_types: ["client_credentials"] }],
+      ["shared-secret", { token_endpoint_auth_method: "client_secret_basic" }],
+    ] as const) {
+      const id = clientId(scenario);
+      metadataByUrl.set(id, { ...baseline, client_id: id, ...overrides });
+      await rejects(id);
+    }
+    const insecureId = clientId("insecure", "http");
+    const callsBeforeInsecure = vi.mocked(globalThis.fetch).mock.calls.length;
+    const insecureResponse = await authorizeRequest(insecureId);
+    expect(insecureResponse.status).toBe(302);
+    const insecureLocation = new URL(
+      insecureResponse.headers.get("location") ?? "",
+    );
+    expect(
+      insecureLocation.searchParams.get("error"),
+      insecureLocation.href,
+    ).toBe("invalid_client");
+    await expect(
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId: insecureId } }),
+    ).resolves.toBeNull();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(callsBeforeInsecure);
+
+    // DNS and remote bodies are controlled; provider, fetch policy, and DB are real.
+    for (const addresses of [["127.0.0.1"], ["8.8.8.8", "10.0.0.1"], []]) {
+      const id = clientId("nonpublic-dns");
+      vi.mocked(resolve4).mockResolvedValueOnce(addresses);
+      const fetchCallsBefore = vi.mocked(globalThis.fetch).mock.calls.length;
+      await rejects(id, "fetch policy");
+      expect(globalThis.fetch).toHaveBeenCalledTimes(fetchCallsBefore);
+    }
+    const failedDns = clientId("dns-error");
+    vi.mocked(resolve4).mockRejectedValueOnce(new Error("resolver failed"));
+    await rejects(failedDns, "fetch policy");
+
+    for (const [scenario, response, description] of [
+      [
+        "redirect",
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://other.example/metadata" },
+          }),
+        "HTTP 302",
+      ],
+      [
+        "non-json",
+        () => new Response("{}", { headers: { "content-type": "text/html" } }),
+        "must be JSON",
+      ],
+      [
+        "invalid-json",
+        () =>
+          new Response("{", {
+            headers: { "content-type": "application/json" },
+          }),
+        "not valid JSON",
+      ],
+      [
+        "oversized-declared",
+        () =>
+          new Response("{}", {
+            headers: {
+              "content-type": "application/json",
+              "content-length": "5121",
+            },
+          }),
+        "size limit",
+      ],
+      [
+        "oversized-body",
+        () =>
+          new Response(" ".repeat(5121), {
+            headers: { "content-type": "application/json" },
+          }),
+        "size limit",
+      ],
+    ] as const) {
+      const id = clientId(scenario);
+      responsesByUrl.set(id, response);
+      await rejects(id, description);
+      const lastCall = vi.mocked(globalThis.fetch).mock.calls.at(-1);
+      expect(lastCall?.[0]).toBe(id);
+      expect(lastCall?.[1]?.redirect).toBe("manual");
+    }
+    const timeoutId = clientId("slow-body");
+    let streamCancelled = false;
+    responsesByUrl.set(
+      timeoutId,
+      () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode("{"));
+            },
+            cancel() {
+              streamCancelled = true;
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+    );
+    await rejects(timeoutId, "timed out after 5000ms");
+    expect(streamCancelled).toBe(true);
+
+    const id = clientId("accepted");
+    metadataByUrl.set(id, {
+      ...baseline,
+      client_id: id,
       grant_types: [
         "authorization_code",
         "refresh_token",
         OAUTH_DEVICE_CODE_GRANT_TYPE,
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
       ],
-      response_types: ["code"],
-      scope: restReadScope("account.profile"),
     });
-
-    const response = await authorizeRequest(clientId);
-    const errorBody =
-      response.status >= 400 ? await response.clone().json() : undefined;
-
-    expect(response.status, JSON.stringify(errorBody)).toBe(302);
+    const response = await authorizeRequest(id);
+    expect(response.status).toBe(302);
     expect(response.headers.get("location")).toContain("/account/sign-in");
     await expect(
-      fixturePrisma.oAuthClient.findUnique({ where: { clientId } }),
+      fixturePrisma.oAuthClient.findUnique({ where: { clientId: id } }),
     ).resolves.toMatchObject({
       applicationType: null,
-      clientId,
+      clientId: id,
       clientCredentialsScopes: [],
       clientDiscoveryId: "cimd",
       clientSecret: null,
-      name: "Integration MCP Client",
-      redirectUris: ["https://client.example/callback"],
+      name: baseline.client_name,
+      redirectUris: baseline.redirect_uris,
       grantTypes: ["authorization_code", "refresh_token"],
       responseTypes: ["code"],
       tokenEndpointAuthMethod: "none",
+      skipConsent: null,
     });
-
-    const withoutPkce = await authorizeRequest(clientId, false);
+    const withoutPkce = await authorizeRequest(id, false);
     expect(withoutPkce.status).toBe(302);
     const callback = new URL(withoutPkce.headers.get("location") ?? "");
     expect(callback.origin).toBe("https://client.example");
     expect(callback.searchParams.get("error")).toBe("invalid_request");
   });
 
-  it("keeps dynamic client registration as a compatibility fallback", async () => {
+  it("supports separately registered dynamic clients", async () => {
     const response = await authHandler(
       new Request(`${authOrigin}/api/auth/oauth2/register`, {
         method: "POST",

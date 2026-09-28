@@ -10,7 +10,7 @@ import { graphqlSchema } from "@/lib/graphql/schema";
 import { readSpecification } from "../../../../scripts/specifications/yaml";
 
 describe("persisted GraphQL operation registry", () => {
-  it("publishes the complete approved root-field capability matrix", () => {
+  it("graphql.registered-operation-coverage", () => {
     const queryFields = Object.keys(
       graphqlSchema.getQueryType()?.getFields() ?? {},
     ).sort();
@@ -32,6 +32,13 @@ describe("persisted GraphQL operation registry", () => {
     expect(registeredQueryFields).toEqual(queryFields);
     expect(registeredMutationFields).toEqual(mutationFields);
     expect(graphqlPersistedOperationRegistry).toHaveLength(61);
+    expect(graphqlSchema.getSubscriptionType()).toBeUndefined();
+    for (const operation of graphqlPersistedOperationRegistry) {
+      expect(operation.rootField).not.toMatch(/^(?:admin|oauth|auth|__)/i);
+      expect(operation.variables.map((variable) => variable.name)).not.toEqual(
+        expect.arrayContaining(["bytes"]),
+      );
+    }
     expect(
       graphqlPersistedOperationRegistry.map((operation) => operation.id),
     ).toEqual(

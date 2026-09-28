@@ -13,6 +13,7 @@ import { authPrisma as prisma } from "@/lib/db/auth-prisma";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { OAUTH_PROVIDER_CLAIMS_SUPPORTED } from "@/lib/oauth/constants";
+import { isRegisteredOAuthRedirectUri } from "@/lib/oauth/redirect-uri";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
@@ -225,7 +226,7 @@ async function validateConsentRequest(
   if (
     !client ||
     client.disabled ||
-    !client.redirectUris.includes(redirectUri) ||
+    !isRegisteredOAuthRedirectUri(client, redirectUri) ||
     !requestedScopes.every((scope) => client.scopes.includes(scope)) ||
     (requiresPkce && (!codeChallenge || codeChallengeMethod !== "S256")) ||
     ((codeChallenge || codeChallengeMethod) &&
@@ -505,9 +506,10 @@ export async function submitOAuthConsentAction({
       verifyOAuthProviderSignedQueryState(oauthQuery),
       getOAuthSession(authCore.authApi, request.headers),
     ]);
-    if (!signedState || !session) {
+    if (!signedState) {
       throw new Error("Invalid OAuth consent state");
     }
+    if (!session) throw new OAuthRecentAuthRequiredError();
     const { issuedAt, postLoginClearedForSession } = signedState;
     const authorizeQuery = signedState.query;
     const prompts = new Set(

@@ -151,11 +151,10 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                   <span class="block max-w-full" title={currentUserLabel}>
                     <TruncatedText class="font-medium" text={currentUserLabel} />
                   </span>
-                  {#if suspension.user.username}
-                    <span class="font-mono text-muted-foreground text-xs">
-                      @{suspension.user.username}
-                    </span>
-                  {/if}
+                  <TruncatedText
+                    class="font-mono text-muted-foreground text-xs"
+                    text={suspension.user.username ? `@${suspension.user.username}` : null}
+                  />
                 </div>
               </Table.Cell>
               <Table.Cell class="max-w-0">

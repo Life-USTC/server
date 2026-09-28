@@ -15,58 +15,28 @@ function expectHeaders(
 }
 
 describe("public catalog locale cache policy", () => {
-  it.each(["en-us", "zh-cn"] as const)(
-    "publicly caches explicit %s URL variants",
-    (locale) => {
-      const result = resolvePublicCatalogLocale(
-        new Request(
-          `https://example.test/api/catalog/courses?locale=${locale}&page=1`,
-          {
+  it("openapi.public-catalog-locale", () => {
+    for (const [query, expected] of [
+      ["", "zh-cn"],
+      ["locale=zh-cn", "zh-cn"],
+      ["locale=en-us", "en-us"],
+    ]) {
+      for (const locale of ["zh-cn", "en-us"]) {
+        const result = resolvePublicCatalogLocale(
+          new Request(`https://example.test/api/catalog/courses?${query}`, {
             headers: {
-              "accept-language": locale === "en-us" ? "zh-CN" : "en-US",
-              cookie: `NEXT_LOCALE=${locale === "en-us" ? "zh-cn" : "en-us"}`,
+              cookie: `NEXT_LOCALE=${locale}`,
+              "accept-language": locale,
             },
-          },
-        ),
-      );
-
-      expect(result).not.toBeInstanceOf(Response);
-      if (result instanceof Response) return;
-
-      expect(result.locale).toBe(locale);
-      expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
-    },
-  );
-
-  it("defaults omitted locale to canonical zh-cn and ignores cookies", () => {
-    const result = resolvePublicCatalogLocale(
-      new Request("https://example.test/api/catalog/courses?page=1", {
-        headers: {
-          "accept-language": "en-US",
-          cookie: "NEXT_LOCALE=zh-cn",
-        },
-      }),
-    );
-
-    expect(result).not.toBeInstanceOf(Response);
-    if (result instanceof Response) return;
-
-    expect(result.locale).toBe("zh-cn");
-    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
-  });
-
-  it("defaults omitted locale to canonical zh-cn and ignores Accept-Language", () => {
-    const result = resolvePublicCatalogLocale(
-      new Request("https://example.test/api/catalog/courses?page=1", {
-        headers: { "accept-language": "en-US,en;q=0.9" },
-      }),
-    );
-
-    expect(result).not.toBeInstanceOf(Response);
-    if (result instanceof Response) return;
-
-    expect(result.locale).toBe("zh-cn");
-    expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
+          }),
+        );
+        expect(result).not.toBeInstanceOf(Response);
+        if (result instanceof Response)
+          throw new Error("Valid locale rejected");
+        expect(result.locale).toBe(expected);
+        expect(result.cacheHeaders).toBe(PUBLIC_CATALOG_HEADERS);
+      }
+    }
   });
 
   it("rejects an unsupported explicit locale without caching the error", async () => {

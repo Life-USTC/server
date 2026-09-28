@@ -17,6 +17,7 @@ export type OAuthGrantUsageInput = {
 };
 
 const USAGE_BATCH_DELAY_MS = 100;
+const MAX_PENDING_USAGE_DIMENSIONS = 256;
 const pendingUsage = new Map<string, OAuthGrantUsageInput>();
 let pendingFlush: Promise<void> | undefined;
 
@@ -92,11 +93,12 @@ export async function recordOAuthGrantUsage(
   return true;
 }
 
-function usageBatchKey(input: OAuthGrantUsageInput) {
+function usageBatchKey(input: OAuthGrantUsageInput, usedAt: Date) {
   return [
     input.userId,
     input.clientId,
     oauthGrantUsageKey(input.grantId),
+    shanghaiDayjs(usedAt).format("YYYY-MM-DD"),
     input.channel,
     input.feature,
     input.action,
@@ -163,12 +165,26 @@ export function scheduleOAuthGrantUsage(input: OAuthGrantUsageInput) {
       logUsageFailure(input, error);
     });
   }
-  const key = usageBatchKey(input);
+  const usedAt = input.usedAt ?? new Date();
+  const key = usageBatchKey(input, usedAt);
   const existing = pendingUsage.get(key);
+  if (!existing && pendingUsage.size >= MAX_PENDING_USAGE_DIMENSIONS) {
+    // Bound coalescing memory without losing completed-operation counts.
+    const write = recordOAuthGrantUsage({ ...input, usedAt }).catch(
+      (error: unknown) => {
+        logUsageFailure(input, error);
+      },
+    );
+    schedule(write);
+    return Promise.resolve();
+  }
   pendingUsage.set(key, {
     ...input,
     count: (existing?.count ?? 0) + Math.max(1, Math.trunc(input.count ?? 1)),
-    usedAt: input.usedAt ?? new Date(),
+    usedAt:
+      existing?.usedAt && existing.usedAt.getTime() > usedAt.getTime()
+        ? existing.usedAt
+        : usedAt,
   });
   schedule(startUsageFlush());
   return Promise.resolve();

@@ -43,7 +43,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <Table.Row class="group">
             <Table.Cell class="max-w-0">
               <TruncatedText
-                class="text-sm"
+                class="text-sm font-medium"
                 lines={2}
                 preserveWhitespace
                 text={description.content?.trim()
