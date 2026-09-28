@@ -191,27 +191,18 @@ function directRequest(request, requestId) {
   removePublicSsrHeaders(headers);
   setTrustedRequestIdHeader(headers, requestId);
   if (!request.body) {
-    return {
-      cancel: async () => {},
-      request: new Request(request, { headers }),
-    };
+    return new Request(request, { headers });
   }
 
   // Supplying the original body explicitly avoids teeing it and preserves the
   // runtime's known-length stream, which R2 requires for streamed uploads.
-  const forwardedRequest = new Request(request, {
+  // Leave unread bodies to the runtime after an early response. Cancelling one
+  // here can break the next request on the same connection.
+  return new Request(request, {
     body: request.body,
     duplex: "half",
     headers,
   });
-  return {
-    cancel: async () => {
-      if (forwardedRequest.body && !forwardedRequest.body.locked) {
-        await forwardedRequest.body.cancel("request body released");
-      }
-    },
-    request: forwardedRequest,
-  };
 }
 
 function publicSsrRequest(request, mode, locale, requestId) {
@@ -474,16 +465,11 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
     edgeObservation.cacheOutcome = "dynamic";
     edgeObservation.requestClass = "dynamic";
     edgeObservation.route = route;
-    let forwardedRequest;
-    let response;
-    try {
-      forwardedRequest = directRequest(request, requestId);
-      response = await app.fetch(forwardedRequest.request, env, context);
-    } finally {
-      if (forwardedRequest) {
-        await forwardedRequest.cancel().catch(() => undefined);
-      }
-    }
+    let response = await app.fetch(
+      directRequest(request, requestId),
+      env,
+      context,
+    );
     // SvelteKit can create early redirect/error responses after the request hook
     // exits. Apply the private default at the outer boundary as well.
     response = new Response(response.body, response);
