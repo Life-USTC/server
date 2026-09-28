@@ -1,4 +1,4 @@
-import { afterAll, expect } from "vitest";
+import { expect } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { getMyCompactOverviewRoute } from "@/lib/api/routes/workspace-overview-route";
 import { createGraphqlYoga } from "@/lib/graphql/server";
@@ -6,14 +6,13 @@ import {
   getOAuthGraphqlResourceUrl,
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
-import { createFixturePrisma } from "../../../shared/prisma";
-import { cleanupMcpResources } from "../_harness/cleanup";
-import { createMcpHarness, type McpHarness } from "../_harness/client";
-import { mcpTest } from "../_harness/context";
+import type { McpHarness } from "../_harness/client";
+import { isolatedMcpTest } from "../_harness/isolated-context";
 
-const contractTest = mcpTest.extend(
+const contractTest = isolatedMcpTest.extend(
   "state",
-  async ({ mcpConnections: _connections }, { onCleanup }) => {
+  async ({ isolatedDatabase, mcpRuntime, mcpSessions }) => {
+    const owner = isolatedDatabase.owner;
     const users = [
       crypto.randomUUID(),
       crypto.randomUUID(),
@@ -39,8 +38,6 @@ const contractTest = mcpTest.extend(
     const todoIds = offsets.map(() => crypto.randomUUID());
     const homeworkIds = offsets.map(() => crypto.randomUUID());
     const examIds: number[] = [];
-    let courseId: number;
-    let sectionId: number;
     const at = (offset: number) => new Date(anchor.getTime() + offset);
     const ids = (items: Sample[]) => items.map((item) => item.id);
     async function request(owner: number, path: string, body?: unknown) {
@@ -72,199 +69,174 @@ const contractTest = mcpTest.extend(
       limit?: number,
       homeworkWindowDays?: number,
     ) {
-      const query = new URLSearchParams({
-        atTime,
-        locale: "en-us",
-        userId: users[2],
-        ...(limit === undefined ? {} : { limit: String(limit) }),
-        ...(homeworkWindowDays === undefined
-          ? {}
-          : { homeworkWindowDays: String(homeworkWindowDays) }),
+      return mcpRuntime.run(async () => {
+        const query = new URLSearchParams({
+          atTime,
+          locale: "en-us",
+          userId: users[2],
+          ...(limit === undefined ? {} : { limit: String(limit) }),
+          ...(homeworkWindowDays === undefined
+            ? {}
+            : { homeworkWindowDays: String(homeworkWindowDays) }),
+        });
+        const response = await getMyCompactOverviewRoute(
+          await request(owner, `/api/workspace/overview?${query}`),
+        );
+        expect(response.status).toBe(200);
+        return (await response.json()) as RestOverview;
       });
-      const response = await getMyCompactOverviewRoute(
-        await request(owner, `/api/workspace/overview?${query}`),
-      );
-      expect(response.status).toBe(200);
-      return (await response.json()) as RestOverview;
     }
     async function graphRead(owner: number, atTime: string) {
-      const response = await createGraphqlYoga(false).fetch(
-        await request(owner, "/api/graphql", {
-          query:
-            "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { atTime today homeworkWindowEnd incompleteTodos completedTodos overdueTodos pendingHomeworks dueSoonHomeworks todaySchedules upcomingExams } } }",
-          variables: { atTime },
-        }),
-        { locals: { locale: "en-us" } },
-      );
-      const result = await response.json();
-      expect(result.errors).toBeUndefined();
-      return result.data.workspace.overview;
+      return mcpRuntime.run(async () => {
+        const response = await createGraphqlYoga(false).fetch(
+          await request(owner, "/api/graphql", {
+            query:
+              "query($atTime: DateTime!) { workspace { overview(atTime: $atTime) { atTime today homeworkWindowEnd incompleteTodos completedTodos overdueTodos pendingHomeworks dueSoonHomeworks todaySchedules upcomingExams } } }",
+            variables: { atTime },
+          }),
+          { locals: { locale: "en-us" } },
+        );
+        const result = await response.json();
+        expect(result.errors).toBeUndefined();
+        return result.data.workspace.overview;
+      });
     }
-    onCleanup(async () => {
-      await cleanupMcpResources([
-        async () => {
-          await Promise.all(clients.map((client) => client.close()));
+    const { courseId, sectionId } = await owner.$transaction(async (db) => {
+      await db.user.createMany({
+        data: users.map((id, i) => ({
+          id,
+          name: `Overview owner ${i}`,
+          email: `${id}@test.invalid`,
+        })),
+      });
+      await db.oAuthClient.create({
+        data: {
+          clientId,
+          name: "Overview parity",
+          scopes,
+          redirectUris: ["https://client.example/callback"],
         },
-        async () => {
-          await db.oAuthConsent.deleteMany({ where: { clientId } });
+      });
+      for (const userId of users.slice(0, 2)) {
+        grants.push(
+          (await db.oAuthConsent.create({ data: { clientId, userId, scopes } }))
+            .grantId,
+        );
+      }
+      const marker = 1_800_000_000 + Math.floor(Math.random() * 100_000_000);
+      const courseId = (
+        await db.course.create({
+          data: {
+            jwId: marker,
+            code: `PARITY${marker}`,
+            nameCn: "概览课程",
+            nameEn: "Overview course",
+          },
+        })
+      ).id;
+      const sectionId = (
+        await db.section.create({
+          data: { courseId, jwId: marker, code: `PARITY.${marker}` },
+        })
+      ).id;
+      await db.userSectionSubscription.createMany({
+        data: [users[0], users[2]].map((userId) => ({ userId, sectionId })),
+      });
+      // Deliberately insert in reverse display order. Equal deadlines use different creation instants.
+      for (const i of [8, 7, 6, 5, 4, 3, 2, 1, 0]) {
+        const dueAt = offsets[i] === null ? null : at(offsets[i]);
+        const createdAt = at(-day + i * 1000);
+        await db.todo.create({
+          data: {
+            id: todoIds[i],
+            userId: users[0],
+            title: `Todo ${i}`,
+            dueAt,
+            createdAt,
+            completed: i === 6,
+            priority: i % 2 ? "high" : "low",
+          },
+        });
+        await db.homework.create({
+          data: {
+            id: homeworkIds[i],
+            sectionId,
+            title: `Homework ${i}`,
+            submissionDueAt: dueAt,
+            createdAt,
+            deletedAt: i === 8 ? at(-1000) : null,
+          },
+        });
+      }
+      await db.homeworkCompletion.createMany({
+        data: [
+          { userId: users[0], homeworkId: homeworkIds[6] },
+          { userId: users[2], homeworkId: homeworkIds[1] },
+        ],
+      });
+      await db.todo.create({
+        data: { userId: users[2], title: "Foreign pending todo", dueAt: at(0) },
+      });
+      const group = await db.scheduleGroup.create({
+        data: {
+          sectionId,
+          jwId: marker,
+          no: 1,
+          isDefault: true,
+          stdCount: 0,
+          limitCount: 10,
+          actualPeriods: 2,
         },
-        async () => {
-          await db.oAuthClient.deleteMany({ where: { clientId } });
-        },
-        async () => {
-          await db.featureOperationEvent.deleteMany({
-            where: { userId: { in: users } },
-          });
-          await db.user.deleteMany({ where: { id: { in: users } } });
-        },
-        async () => {
-          if (sectionId) {
-            await db.homework.deleteMany({ where: { sectionId } });
-            await db.schedule.deleteMany({ where: { sectionId } });
-            await db.scheduleGroup.deleteMany({ where: { sectionId } });
-            await db.exam.deleteMany({ where: { sectionId } });
-            await db.section.delete({ where: { id: sectionId } });
-          }
-        },
-        async () => {
-          if (courseId) await db.course.delete({ where: { id: courseId } });
-        },
-      ]);
-    });
+      });
+      for (const [i, startTime] of [1100, 900, 1000, 800].entries()) {
+        await db.schedule.create({
+          data: {
+            sectionId,
+            scheduleGroupId: group.id,
+            date: new Date(
+              i === 3 ? "2027-01-16T00:00:00Z" : "2027-01-15T00:00:00Z",
+            ),
+            weekday: 5,
+            weekIndex: 1,
+            startUnit: 1,
+            endUnit: 2,
+            periods: 2,
+            startTime,
+            endTime: startTime + 50,
+          },
+        });
+      }
+      for (const [i, [startTime, endTime]] of [
+        [900, 930],
+        [1000, 1100],
+        [1200, 1300],
+        [1200, 1300],
+        [800, 900],
+      ].entries()) {
+        examIds.push(
+          (
+            await db.exam.create({
+              data: {
+                sectionId,
+                jwId: marker + i,
+                examDate: new Date(
+                  i === 4 ? "2027-01-16T00:00:00Z" : "2027-01-15T00:00:00Z",
+                ),
+                startTime,
+                endTime,
+                examMode: `Exam ${i}`,
+              },
+            })
+          ).id,
+        );
+      }
 
-    grants.length = 0;
-    clients.length = 0;
-    examIds.length = 0;
-    sectionId = 0;
-    courseId = 0;
-    await db.user.createMany({
-      data: users.map((id, i) => ({
-        id,
-        name: `Overview owner ${i}`,
-        email: `${id}@test.invalid`,
-      })),
-    });
-    await db.oAuthClient.create({
-      data: {
-        clientId,
-        name: "Overview parity",
-        scopes,
-        redirectUris: ["https://client.example/callback"],
-      },
+      return { courseId, sectionId };
     });
     for (const userId of users.slice(0, 2)) {
-      grants.push(
-        (await db.oAuthConsent.create({ data: { clientId, userId, scopes } }))
-          .grantId,
-      );
-      clients.push(await createMcpHarness(userId, scopes));
-    }
-    const marker = 1_800_000_000 + Math.floor(Math.random() * 100_000_000);
-    courseId = (
-      await db.course.create({
-        data: {
-          jwId: marker,
-          code: `PARITY${marker}`,
-          nameCn: "概览课程",
-          nameEn: "Overview course",
-        },
-      })
-    ).id;
-    sectionId = (
-      await db.section.create({
-        data: { courseId, jwId: marker, code: `PARITY.${marker}` },
-      })
-    ).id;
-    await db.userSectionSubscription.createMany({
-      data: [users[0], users[2]].map((userId) => ({ userId, sectionId })),
-    });
-    // Deliberately insert in reverse display order. Equal deadlines use different creation instants.
-    for (const i of [8, 7, 6, 5, 4, 3, 2, 1, 0]) {
-      const dueAt = offsets[i] === null ? null : at(offsets[i]);
-      const createdAt = at(-day + i * 1000);
-      await db.todo.create({
-        data: {
-          id: todoIds[i],
-          userId: users[0],
-          title: `Todo ${i}`,
-          dueAt,
-          createdAt,
-          completed: i === 6,
-          priority: i % 2 ? "high" : "low",
-        },
-      });
-      await db.homework.create({
-        data: {
-          id: homeworkIds[i],
-          sectionId,
-          title: `Homework ${i}`,
-          submissionDueAt: dueAt,
-          createdAt,
-          deletedAt: i === 8 ? at(-1000) : null,
-        },
-      });
-    }
-    await db.homeworkCompletion.createMany({
-      data: [
-        { userId: users[0], homeworkId: homeworkIds[6] },
-        { userId: users[2], homeworkId: homeworkIds[1] },
-      ],
-    });
-    await db.todo.create({
-      data: { userId: users[2], title: "Foreign pending todo", dueAt: at(0) },
-    });
-    const group = await db.scheduleGroup.create({
-      data: {
-        sectionId,
-        jwId: marker,
-        no: 1,
-        isDefault: true,
-        stdCount: 0,
-        limitCount: 10,
-        actualPeriods: 2,
-      },
-    });
-    for (const [i, startTime] of [1100, 900, 1000, 800].entries()) {
-      await db.schedule.create({
-        data: {
-          sectionId,
-          scheduleGroupId: group.id,
-          date: new Date(
-            i === 3 ? "2027-01-16T00:00:00Z" : "2027-01-15T00:00:00Z",
-          ),
-          weekday: 5,
-          weekIndex: 1,
-          startUnit: 1,
-          endUnit: 2,
-          periods: 2,
-          startTime,
-          endTime: startTime + 50,
-        },
-      });
-    }
-    for (const [i, [startTime, endTime]] of [
-      [900, 930],
-      [1000, 1100],
-      [1200, 1300],
-      [1200, 1300],
-      [800, 900],
-    ].entries()) {
-      examIds.push(
-        (
-          await db.exam.create({
-            data: {
-              sectionId,
-              jwId: marker + i,
-              examDate: new Date(
-                i === 4 ? "2027-01-16T00:00:00Z" : "2027-01-15T00:00:00Z",
-              ),
-              startTime,
-              endTime,
-              examMode: `Exam ${i}`,
-            },
-          })
-        ).id,
-      );
+      const session = mcpSessions.own(userId, scopes);
+      clients.push(session.client);
+      await session.initialize();
     }
 
     return {
@@ -283,14 +255,11 @@ const contractTest = mcpTest.extend(
       sectionId,
       at,
       ids,
-      request,
       restRead,
       graphRead,
     };
   },
 );
-
-const db = createFixturePrisma();
 
 type Sample = { id: string | number; [key: string]: unknown };
 type RestOverview = {
@@ -333,9 +302,14 @@ type McpOverview = {
   };
 };
 
+// One prepared-state consumer contract: these comparisons jointly prove that
+// the same anchored overview keeps owner counts while limits/windows/modes alter
+// only its supported projections. No business mutation or dependent journey is
+// hidden in this matrix; expected counts and identities remain explicit below.
 contractTest(
   "interface-hierarchy.overview-read-parity",
-  async ({ state, expect }) => {
+  async ({ state, isolatedDatabase, expect }) => {
+    const db = isolatedDatabase.owner;
     const {
       users,
       clients,
@@ -516,7 +490,51 @@ contractTest(
         anchor.getTime() + homeworkWindowDays * day,
       );
     }
+    // Observe stored domain facts independently of all three projections.
+    expect(
+      await db.userSectionSubscription.findMany({
+        select: { userId: true, sectionId: true },
+        orderBy: { userId: "asc" },
+      }),
+    ).toEqual(
+      [
+        { userId: users[0], sectionId: state.sectionId },
+        { userId: users[2], sectionId: state.sectionId },
+      ].sort((left, right) => left.userId.localeCompare(right.userId)),
+    );
+    expect(
+      await db.todo.findMany({
+        where: { userId: users[0] },
+        select: { id: true, completed: true },
+        orderBy: { id: "asc" },
+      }),
+    ).toEqual(
+      todoIds
+        .map((id, index) => ({ id, completed: index === 6 }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    );
+    expect(
+      await db.homeworkCompletion.findMany({
+        select: { userId: true, homeworkId: true },
+        orderBy: { userId: "asc" },
+      }),
+    ).toEqual(
+      [
+        { userId: users[0], homeworkId: homeworkIds[6] },
+        { userId: users[2], homeworkId: homeworkIds[1] },
+      ].sort((left, right) => left.userId.localeCompare(right.userId)),
+    );
+    expect(
+      await db.homework.count({ where: { sectionId: state.sectionId } }),
+    ).toBe(9);
+    expect(await db.todo.count({ where: { userId: users[1] } })).toBe(0);
+    expect(
+      await db.todo.findMany({
+        where: { userId: users[2] },
+        select: { title: true, completed: true },
+      }),
+    ).toEqual([{ title: "Foreign pending todo", completed: false }]);
+    // Signing and verification must use this database's own auth key.
+    expect(await db.jwks.count()).toBe(1);
   },
 );
-
-afterAll(() => db.$disconnect());
