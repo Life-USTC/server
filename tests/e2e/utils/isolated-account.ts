@@ -11,16 +11,27 @@ export const test = base.extend<{ account: User }>({
       db.user.create({
         data: {
           name: `E2E account ${marker.slice(0, 8)}`,
-          username: `e2e${marker.slice(0, 20)}`,
+          username: `e2e${marker.slice(0, 17)}`,
           email: `e2e-account-${marker}@example.test`,
           emailVerified: true,
         },
       }),
     );
+    const sessionIds: string[] = [];
     try {
       await page
         .context()
         .addCookies([await createSignedSessionCookie(account.id)]);
+      sessionIds.push(
+        ...(await withE2ePrisma(async (db) =>
+          (
+            await db.session.findMany({
+              where: { userId: account.id },
+              select: { id: true },
+            })
+          ).map((session) => session.id),
+        )),
+      );
       await use(account);
     } finally {
       try {
@@ -30,13 +41,17 @@ export const test = base.extend<{ account: User }>({
           db.$transaction([
             db.auditLog.deleteMany({
               where: {
-                OR: [{ userId: account.id }, { subjectUserId: account.id }],
+                OR: [
+                  { userId: account.id },
+                  { subjectUserId: account.id },
+                  { sessionId: { in: sessionIds } },
+                ],
               },
             }),
             db.featureOperationEvent.deleteMany({
               where: { userId: account.id },
             }),
-            db.user.delete({ where: { id: account.id } }),
+            db.user.deleteMany({ where: { id: account.id } }),
           ]),
         );
       }

@@ -20,25 +20,21 @@
  * - Save success → one visible Sonner toast
  * - Name change persists across page reload
  */
-import { expect, test } from "@playwright/test";
-import {
-  expectPagePath,
-  expectRequiresSignIn,
-  signInAsDebugUser,
-} from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  getCurrentSessionUser,
-  getUserProfileById,
-  updateUserProfileById,
-} from "../../../../utils/e2e-db";
+import { expect } from "@playwright/test";
+import { expectPagePath, expectRequiresSignIn } from "../../../../utils/auth";
+
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
+import {
+  expectSettingsPage,
+  storedProfile,
+  test,
+} from "../../../../utils/settings-fixture";
 
 test.describe("/account/settings/profile 个人资料设置", () => {
-  // Serial mode avoids intra-file contention on the shared debug user profile.
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "parallel" });
 
   test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/account/settings/profile");
@@ -49,14 +45,16 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     );
   });
 
-  test("显示所有必填个人资料字段", async ({ page }, testInfo) => {
-    test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/account/settings/profile");
+  test("显示所有必填个人资料字段", async ({
+    page,
+    profile: account,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/account/settings/profile");
 
     await expectPagePath(page, "/account/settings/profile");
-    await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
+    await expect(page.locator("input#name")).toHaveValue(account.name);
     await expect(page.locator("input#username")).toHaveValue(
-      DEV_SEED.debugUsername,
+      account.username ?? "",
     );
 
     const avatarImg = page
@@ -72,17 +70,16 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await captureStepScreenshot(page, testInfo, "settings/profile-fields");
   });
 
-  test("可保存姓名并回滚", async ({ page }, testInfo) => {
-    test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/account/settings/profile");
+  test("可保存姓名并回滚", async ({ page, account }, testInfo) => {
+    await gotoAndWaitForReady(page, "/account/settings/profile");
 
     const nameInput = page.locator("input#name");
     const saveButton = page.getByRole("button", { name: /保存|Save/i });
     const successToast = page
       .locator("[data-sonner-toast]")
       .filter({ hasText: /成功|Success|updated successfully/i });
-    const originalName = await nameInput.inputValue();
-    const newName = `e2e-${Date.now()}`;
+    const originalName = account.name;
+    const newName = "Updated private profile";
 
     await nameInput.fill(newName);
     const saveResponsePromise = page.waitForResponse(
@@ -93,6 +90,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await saveResponsePromise;
     await expect(successToast).toBeVisible();
+    expect(await storedProfile(account.id)).toMatchObject({ name: newName });
     await expect(page).toHaveURL(/\/account\/settings\/profile$/);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(newName, {
@@ -109,6 +107,9 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     await saveButton.click();
     await rollbackResponsePromise;
     await expect(successToast).toBeVisible();
+    expect(await storedProfile(account.id)).toMatchObject({
+      name: originalName,
+    });
     await expect(page).toHaveURL(/\/account\/settings\/profile$/);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("input#name")).toHaveValue(originalName, {
@@ -116,15 +117,18 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     });
   });
 
-  test("保存前要求填写用户名", async ({ page }, testInfo) => {
-    test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/account/settings/profile");
+  test("保存前要求填写用户名", async ({ page, account }, testInfo) => {
+    await gotoAndWaitForReady(page, "/account/settings/profile");
 
     const usernameInput = page.locator("input#username");
     await usernameInput.fill("");
     await page.getByRole("button", { name: /保存|Save/i }).click();
 
     await expect(usernameInput).toBeFocused();
+    expect(await storedProfile(account.id)).toMatchObject({
+      name: account.name,
+      username: account.username,
+    });
     await expect
       .poll(() =>
         usernameInput.evaluate(
@@ -139,44 +143,41 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     );
   });
 
-  test("清空头像选项后仍可重新登录", async ({ page }) => {
-    test.setTimeout(300_000);
-    await signInAsDebugUser(page, "/account/settings/profile", undefined, {
-      ui: true,
+  test("清空头像选项后仍可重新登录", async ({
+    page,
+    profile: account,
+    credential,
+    baseURL,
+  }) => {
+    await withE2ePrisma((db) =>
+      db.user.update({
+        where: { id: account.id },
+        data: { image: null, profilePictures: [] },
+      }),
+    );
+    const signOut = await page.request.post("/account/sign-out", {
+      maxRedirects: 0,
     });
-    const sessionUser = await getCurrentSessionUser(page);
-    const originalUser = await getUserProfileById(sessionUser.id);
-
-    await updateUserProfileById(sessionUser.id, {
+    expect(signOut.status()).toBe(303);
+    await gotoAndWaitForReady(page, "/account/sign-in");
+    const signedIn = await page.request.post("/api/auth/sign-in/email", {
+      data: credential,
+      headers: { origin: absoluteTestUrl("/", baseURL).replace(/\/$/, "") },
+    });
+    expect(signedIn.status()).toBe(200);
+    expect((await signedIn.json()).user.id).toBe(account.id);
+    await gotoAndWaitForReady(page, "/account/settings/profile");
+    await expectPagePath(page, "/account/settings/profile");
+    expect(await storedProfile(account.id)).toMatchObject({
       image: null,
       profilePictures: [],
     });
-
-    try {
-      const signOutResponse = await page.request.post("/account/sign-out", {
-        maxRedirects: 0,
-      });
-      expect(signOutResponse.status()).toBe(303);
-      await gotoAndWaitForReady(page, "/account/sign-in");
-      await signInAsDebugUser(
-        page,
-        "/account/settings/profile",
-        "/account/settings/profile",
-        { ui: true },
-      );
-      await expectPagePath(page, "/account/settings/profile");
-    } finally {
-      await updateUserProfileById(sessionUser.id, {
-        image: originalUser.image,
-        profilePictures: originalUser.profilePictures,
-      });
-    }
   });
 });
 
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/account/settings/profile",
-    testInfo,
-  });
+test("页面契约", async ({ page, account: _account }, testInfo) => {
+  await expectSettingsPage(page, "/account/settings/profile", testInfo);
+  await expect(
+    page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i }),
+  ).toBeVisible();
 });
