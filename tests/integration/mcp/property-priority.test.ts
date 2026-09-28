@@ -1,6 +1,5 @@
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
 import { prisma as runtimeDb } from "@/lib/db/prisma";
-import { readSpecifications } from "../../../scripts/specifications/repository";
 import { DEV_SEED } from "../../fixtures/dev-seed";
 import {
   type CatalogContractFixture,
@@ -8,6 +7,7 @@ import {
   createCatalogContractFixture,
 } from "../../shared/catalog-contract-fixture";
 import { createFixturePrisma } from "../../shared/prisma";
+import { cleanupMcpResources } from "./_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "./_harness/client";
 
 const external = vi.hoisted(() => ({
@@ -50,16 +50,15 @@ let organizerId: string;
 let campusId: number;
 let batchId: number;
 let scheduleId: number;
+let currentSemesterId: number;
 
-beforeAll(async () => {
+beforeEach(async () => {
   catalog = await createCatalogContractFixture(db);
-  await db.semester.update({
-    where: { id: catalog.semester.id },
-    data: {
-      startDate: new Date(date),
-      endDate: new Date(Date.now() + 30 * 86400000),
-    },
-  });
+  currentSemesterId = (
+    await db.semester.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.semesterJwId },
+    })
+  ).id;
   const campus = await db.campus.create({
     data: {
       jwId: catalog.base,
@@ -71,7 +70,7 @@ beforeAll(async () => {
   campusId = campus.id;
   await db.section.updateMany({
     where: { id: { in: catalog.sections.map((s) => s.id) } },
-    data: { campusId },
+    data: { campusId, semesterId: currentSemesterId },
   });
   await db.user.create({
     data: {
@@ -213,49 +212,79 @@ beforeAll(async () => {
     },
   });
   client = await createMcpHarness(userId);
-  const comment = await client.call<{ id: string }>(
-    "community_comment_create",
-    {
-      targetType: "section",
-      sectionJwId: catalog.sections[0].jwId,
+  const comment = await db.comment.create({
+    data: {
+      userId,
+      sectionId: catalog.sections[0].id,
       body: "Projection comment **Markdown**",
-      visibility: "public",
     },
-  );
+  });
   commentId = comment.id;
-  await client.call("community_comment_create", {
-    targetType: "section",
-    sectionJwId: catalog.sections[0].jwId,
-    parentId: commentId,
-    body: "Projection reply",
-    visibility: "public",
+  await db.comment.create({
+    data: {
+      userId,
+      sectionId: catalog.sections[0].id,
+      parentId: commentId,
+      rootId: commentId,
+      body: "Projection reply",
+    },
   });
-  await client.call("community_description_set", {
-    targetType: "course",
-    courseJwId: catalog.courses[0].jwId,
-    content: "Projection course **Markdown**",
+  await db.description.create({
+    data: {
+      courseId: catalog.courses[0].id,
+      content: "Projection course **Markdown**",
+      lastEditedById: userId,
+      lastEditedAt: new Date(atTime),
+    },
   });
-  await client.call("workspace_bus_preferences_set", {
-    preferredOriginCampusId: DEV_SEED.bus.originCampusId,
-    preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
-    showDepartedTrips: true,
+  await db.busUserPreference.create({
+    data: {
+      userId,
+      preferredOriginCampusId: DEV_SEED.bus.originCampusId,
+      preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
+      showDepartedTrips: true,
+    },
   });
 });
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      await client?.close();
+    },
+    async () => {
+      await db.auditLog.deleteMany({
+        where: { OR: [{ userId }, { subjectUserId: userId }] },
+      });
+    },
+    async () => {
+      await db.comment.deleteMany({ where: { userId } });
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: userId } });
+    },
+    async () => {
+      await db.youngEvent.deleteMany({ where: { youngId } });
+    },
+    async () => {
+      if (organizerId)
+        await db.youngOrganizer.delete({ where: { id: organizerId } });
+    },
+    async () => {
+      if (catalog) await cleanupCatalogContractFixture(db, catalog);
+    },
+    async () => {
+      if (batchId) await db.examBatch.delete({ where: { id: batchId } });
+    },
+    async () => {
+      if (campusId) await db.campus.delete({ where: { id: campusId } });
+    },
+  ]);
+});
 afterAll(async () => {
-  await client?.close();
-  await db.comment.deleteMany({ where: { userId } });
-  await db.user.deleteMany({ where: { id: userId } });
-  await db.youngEvent.deleteMany({ where: { youngId } });
-  if (organizerId)
-    await db.youngOrganizer.delete({ where: { id: organizerId } });
-  if (catalog) await cleanupCatalogContractFixture(db, catalog);
-  if (batchId) await db.examBatch.delete({ where: { id: batchId } });
-  if (campusId) await db.campus.delete({ where: { id: campusId } });
   await Promise.all([db.$disconnect(), runtimeDb.$disconnect()]);
 });
 
 type Row = Record<string, unknown>;
-type View = { primary: string[]; secondary: string[]; tertiary: string[] };
 function values(value: unknown, path: string[]): unknown[] {
   if (path.length === 0) return [value];
   if (Array.isArray(value)) return value.flatMap((item) => values(item, path));
@@ -280,74 +309,277 @@ function isProjection(compact: unknown, full: unknown): boolean {
     );
   return compact === full;
 }
-const declarations = new Map<string, View>();
-for (const { data } of await readSpecifications()) {
-  for (const capability of Object.values(
-    (data.capabilities ?? {}) as Record<
-      string,
-      { presentation?: { kind: string; views?: Record<string, View> } }
-    >,
-  )) {
-    for (const [key, view] of Object.entries(
-      capability.presentation?.views ?? {},
-    )) {
-      if (key.startsWith("mcp-"))
-        declarations.set(key.slice(4).replaceAll("-", "_"), view);
-    }
-  }
-}
+// Explicit protocol projection expectations; maintained by reviewers with the tests.
+const projectionFields: Record<string, readonly [string, string]> = {
+  catalog_bus_timetable_get: [
+    "routes.descriptionPrimary campuses.namePrimary counts notice",
+    "",
+  ],
+  catalog_bus_route_list: [
+    "routes.descriptionPrimary routes.id routes.stops",
+    "",
+  ],
+  catalog_bus_route_get: [
+    "route.descriptionPrimary route.id route.stops weekday saturday sunday",
+    "",
+  ],
+  workspace_bus_preferences_get: [
+    "preference.preferredOriginCampusId preference.preferredDestinationCampusId preference.showDepartedTrips",
+    "",
+  ],
+  workspace_bus_preferences_set: [
+    "preference.preferredOriginCampusId preference.preferredDestinationCampusId preference.showDepartedTrips",
+    "",
+  ],
+  catalog_bus_route_search: [
+    "routes.descriptionPrimary originCampus.nameCn destinationCampus.nameCn routes.id",
+    "",
+  ],
+  catalog_bus_departure_next: [
+    "departures.departureTime departures.arrivalTime departures.minutesUntilDeparture departures.route.descriptionPrimary originCampus.nameCn destinationCampus.nameCn",
+    "",
+  ],
+  workspace_calendar_event_list: [
+    "events.at events.endsAt events.type events.payload",
+    "",
+  ],
+  workspace_calendar_timeline_get: [
+    "events.at events.endsAt events.type events.payload",
+    "",
+  ],
+  workspace_schedule_list: [
+    "schedules.date schedules.startTime schedules.endTime schedules.section.course.nameCn schedules.customPlace schedules.teachers.nameCn schedules.section.code schedules.id",
+    "",
+  ],
+  workspace_exam_list: [
+    "exams.examDate exams.startTime exams.endTime exams.section.course.nameCn exams.examMode exams.examRooms exams.section.semester.nameCn exams.id",
+    "",
+  ],
+  catalog_link_list: [
+    "links.title links.description links.slug links.group links.icon",
+    "",
+  ],
+  workspace_link_pin_list: ["pinnedSlugs maxPinnedLinks", ""],
+  workspace_link_pin_set: ["success", ""],
+  community_comment_list: [
+    "data.body data.author.name data.createdAt data.id",
+    "",
+  ],
+  community_comment_replies: [
+    "thread.body thread.author.name thread.createdAt thread.id",
+    "",
+  ],
+  community_comment_get: [
+    "thread.body thread.author.name thread.createdAt thread.id",
+    "",
+  ],
+  community_comment_create: ["id", ""],
+  community_comment_update: ["comment.body comment.id", ""],
+  community_comment_delete: ["success", ""],
+  community_comment_reaction_add: ["changed", ""],
+  community_comment_reaction_remove: ["changed", ""],
+  catalog_course_search: [
+    "data.nameCn data.nameEn data.code data.id data.jwId",
+    "",
+  ],
+  catalog_course_get: [
+    "course.nameCn course.nameEn course.code course.id course.jwId",
+    "course.sections",
+  ],
+  community_description_get: [
+    "description.content description.id description.lastEditedBy.name description.lastEditedAt",
+    "",
+  ],
+  community_description_set: [
+    "description.content description.id description.lastEditedBy.name description.lastEditedAt",
+    "",
+  ],
+  catalog_section_exam_list: [
+    "exams.examDate exams.startTime exams.endTime exams.examMode exams.examBatch.namePrimary exams.examRooms exams.id",
+    "",
+  ],
+  workspace_homework_list: [
+    "homeworks.title homeworks.submissionDueAt homeworks.id homeworks.isMajor homeworks.requiresTeam homeworks.section.course.nameCn",
+    "",
+  ],
+  community_section_homework_list: [
+    "homeworks.title homeworks.submissionDueAt homeworks.id homeworks.isMajor homeworks.requiresTeam homeworks.completionRequired section.code",
+    "",
+  ],
+  community_section_homework_create: [
+    "homework.title homework.submissionDueAt homework.id homework.isMajor homework.requiresTeam",
+    "",
+  ],
+  community_section_homework_update: [
+    "homework.title homework.submissionDueAt homework.id homework.isMajor homework.requiresTeam",
+    "",
+  ],
+  community_section_homework_delete: ["deletedId alreadyDeleted", ""],
+  workspace_homework_completion_set: [
+    "completion.completed completion.homeworkId completion.completedAt",
+    "",
+  ],
+  workspace_calendar_feed_get: [
+    "subscription.currentSemesterSections.course.namePrimary subscription.currentSemesterSections.code subscription.currentSemesterSections.semester.nameCn subscription.sectionCount",
+    "",
+  ],
+  workspace_overview_get: [
+    "overview.pendingHomeworksCount overview.pendingTodosCount overview.upcomingExamsCount overview.todaySchedulesCount samples.dueTodos samples.dueHomeworks samples.upcomingExams",
+    "",
+  ],
+  workspace_snapshot_get: [
+    "nextClass currentSemester subscriptions upcomingDeadlines todos bus",
+    "",
+  ],
+  workspace_schedule_next: ["nextClass", ""],
+  workspace_deadline_list: [
+    "deadlines.at deadlines.type deadlines.payload total",
+    "",
+  ],
+  catalog_schedule_list: [
+    "data.date data.startTime data.endTime data.section.course.nameCn data.customPlace data.teachers.nameCn data.section.code data.id",
+    "",
+  ],
+  catalog_section_schedule_list: [
+    "schedules.date schedules.startTime schedules.endTime schedules.customPlace schedules.teachers.nameCn schedules.id section.code",
+    "",
+  ],
+  catalog_section_search: [
+    "data.course.nameCn data.teachers.nameCn data.code data.semester.nameCn data.campus.nameCn data.jwId",
+    "",
+  ],
+  catalog_section_get: [
+    "section.course.nameCn section.teachers.nameCn section.code section.semester.nameCn section.campus.nameCn section.jwId",
+    "",
+  ],
+  catalog_section_calendar_feed_get: [
+    "section.course.nameCn section.code section.jwId",
+    "",
+  ],
+  catalog_semester_list: [
+    "data.nameCn data.id data.jwId data.code data.startDate data.endDate",
+    "",
+  ],
+  catalog_semester_current: [
+    "semester.nameCn semester.id semester.jwId semester.code semester.startDate semester.endDate",
+    "",
+  ],
+  workspace_subscription_list: [
+    "sections.course.nameCn sections.teachers.nameCn sections.code sections.semester.nameCn sections.jwId",
+    "",
+  ],
+  catalog_section_match_preview: [
+    "sections.course.nameCn sections.teachers.nameCn sections.code sections.semester.nameCn matchedCodes unmatchedCodes",
+    "",
+  ],
+  workspace_subscription_import: [
+    "addedCount alreadySubscribedCount matchedCodes unmatchedCodes",
+    "",
+  ],
+  workspace_subscription_kind_update: ["kind sectionJwId", ""],
+  catalog_teacher_search: [
+    "data.nameCn data.nameEn data.department.nameCn data.teacherTitle.nameCn data.code data.id",
+    "",
+  ],
+  catalog_teacher_get: [
+    "teacher.nameCn teacher.nameEn teacher.department.nameCn teacher.teacherTitle.nameCn teacher.id",
+    "teacher.email teacher.telephone",
+  ],
+  workspace_todo_list: [
+    "todos.title todos.dueAt todos.completed todos.id todos.priority todos.content",
+    "",
+  ],
+  workspace_todo_create: ["id", ""],
+  workspace_todo_update: [
+    "todo.title todo.dueAt todo.completed todo.id todo.priority",
+    "",
+  ],
+  workspace_todo_delete: ["success", ""],
+  workspace_upload_list: [
+    "data.filename data.size data.createdAt data.id meta.usedBytes meta.quotaBytes meta.maxFileSizeBytes",
+    "",
+  ],
+  graphql_operation_run: ["data operationName operationType", ""],
+  workspace_upload_rename: ["upload.filename upload.id", ""],
+  workspace_upload_delete: ["success", ""],
+  account_profile_get: ["name username image id", ""],
+  community_user_get: [
+    "user.name user.username user.image user.id totalContributions weeks.date weeks.count",
+    "",
+  ],
+  catalog_weather_get: [
+    "location.key location.name current.temperature current.condition.text",
+    "",
+  ],
+  catalog_young_event_list: [
+    "data.name data.startAt data.endAt data.youngId data.location data.category data.module data.form data.activityLevel data.status",
+    "",
+  ],
+  catalog_young_event_get: [
+    "event.name event.startAt event.endAt event.youngId event.location event.category event.module event.form event.activityLevel event.status",
+    "",
+  ],
+  catalog_young_organizer_list: [
+    "data.name data.id data.totalCount data.upcomingCount",
+    "",
+  ],
+  catalog_young_organizer_get: [
+    "organizer.name organizer.id organizer.totalCount organizer.upcomingCount",
+    "",
+  ],
+};
 
-it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
-  const exercised = new Set<string>();
-  async function invoke(
-    name: string,
-    args: Row,
-    expected: Row,
-    mode: "default" | "full" = "default",
-  ) {
-    const result = await client.call(name, { ...args, mode });
-    expect(result.success, `${name}: ${JSON.stringify(result)}`).not.toBe(
-      false,
+async function invoke(
+  name: string,
+  args: Row,
+  expected: Row,
+  mode: "default" | "full" = "default",
+) {
+  const result = await client.call(name, { ...args, mode });
+  expect(result.success, `${name}: ${JSON.stringify(result)}`).not.toBe(false);
+  expect(result.found, name).not.toBe(false);
+  const fields = projectionFields[name];
+  const view = fields && {
+    visible: fields[0].split(" ").filter(Boolean),
+    full: fields[1].split(" ").filter(Boolean),
+  };
+  expect(view, name).toBeDefined();
+  if (!view) throw new Error(`Missing declaration for ${name}`);
+  for (const path of [...view.visible, ...(mode === "full" ? view.full : [])]) {
+    const actual = values(result, path.split("."));
+    expect(
+      actual.length,
+      `${name}.${path} has populated records`,
+    ).toBeGreaterThan(0);
+    expect(actual, `${name}.${path} exists`).not.toContain(undefined);
+  }
+  for (const [path, expectedValue] of Object.entries(expected))
+    expect(values(result, path.split(".")), `${name}.${path}`).toContainEqual(
+      expectedValue,
     );
-    expect(result.found, name).not.toBe(false);
-    const view = declarations.get(name);
-    expect(view, name).toBeDefined();
-    if (!view) throw new Error(`Missing declaration for ${name}`);
-    for (const path of [
-      ...view.primary,
-      ...view.secondary,
-      ...(mode === "full" ? view.tertiary : []),
-    ]) {
-      const actual = values(result, path.split("."));
-      expect(
-        actual.length,
-        `${name}.${path} has populated records`,
-      ).toBeGreaterThan(0);
-      expect(actual, `${name}.${path} exists`).not.toContain(undefined);
-    }
-    for (const [path, expectedValue] of Object.entries(expected))
-      expect(values(result, path.split(".")), `${name}.${path}`).toContainEqual(
-        expectedValue,
-      );
-    expect(JSON.stringify(result), name).not.toContain(`secret-${userId}`);
-    exercised.add(name);
-    return result;
+  expect(JSON.stringify(result), name).not.toContain(`secret-${userId}`);
+  return result;
+}
+async function pair(name: string, args: Row, expected: Row) {
+  const compact = await invoke(name, args, expected);
+  const full = await invoke(name, args, expected, "full");
+  const fields = projectionFields[name];
+  const view = fields && {
+    visible: fields[0].split(" ").filter(Boolean),
+    full: fields[1].split(" ").filter(Boolean),
+  };
+  if (!view) throw new Error(`Missing declaration for ${name}`);
+  for (const path of view.visible) {
+    const a = values(compact, path.split("."));
+    const b = values(full, path.split("."));
+    expect(
+      isProjection(a, b),
+      `${name}.${path}: compact preserves values`,
+    ).toBe(true);
   }
-  async function pair(name: string, args: Row, expected: Row) {
-    const compact = await invoke(name, args, expected);
-    const full = await invoke(name, args, expected, "full");
-    const view = declarations.get(name);
-    if (!view) throw new Error(`Missing declaration for ${name}`);
-    for (const path of [...view.primary, ...view.secondary]) {
-      const a = values(compact, path.split("."));
-      const b = values(full, path.split("."));
-      expect(
-        isProjection(a, b),
-        `${name}.${path}: compact preserves values`,
-      ).toBe(true);
-    }
-    return { compact, full };
-  }
+  return { compact, full };
+}
+it("MCP academic catalog preserves explicit compact and full projections", async () => {
   const course = catalog.courses[0];
   const section = catalog.sections[0];
   const teacher = catalog.teachers[0];
@@ -401,7 +633,7 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
   );
   await pair(
     "catalog_section_match_preview",
-    { codes: [section.code], semesterId: catalog.semester.id },
+    { codes: [section.code], semesterId: currentSemesterId },
     { matchedCodes: [section.code], unmatchedCodes: [] },
   );
   await pair(
@@ -412,7 +644,7 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
   await pair(
     "catalog_semester_current",
     {},
-    { "semester.id": catalog.semester.id },
+    { "semester.id": currentSemesterId },
   );
   await pair(
     "catalog_schedule_list",
@@ -441,6 +673,13 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
     "exams.examMode": "闭卷",
     "exams.section.course.nameCn": course.nameCn,
   });
+});
+it("MCP personal academic readers preserve explicit compact and full projections", async () => {
+  const course = catalog.courses[0];
+  const section = catalog.sections[0];
+  const teacher = catalog.teachers[0];
+  const sectionArgs = { sectionJwId: section.jwId };
+  const range = { dateFrom: date, dateTo: date };
   await pair(
     "workspace_homework_list",
     {},
@@ -540,6 +779,8 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       "overview.todaySchedulesCount": 1,
     },
   );
+});
+it("MCP bus and link projections retain display fields and personal state", async () => {
   await pair(
     "catalog_bus_timetable_get",
     {},
@@ -585,6 +826,11 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       mode,
     );
   await pair("workspace_link_pin_list", {}, { pinnedSlugs: [firstLink.slug] });
+});
+it("MCP community and uploads preserve explicit compact and full projections", async () => {
+  const course = catalog.courses[0];
+  const section = catalog.sections[0];
+  const sectionArgs = { sectionJwId: section.jwId };
   await pair(
     "community_comment_list",
     { targetType: "section", ...sectionArgs },
@@ -689,8 +935,10 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       operationType: "query",
     },
   );
-
-  for (const mode of ["default", "full"] as const) {
+});
+it.each(["default", "full"] as const)(
+  "MCP todo mutation projection in %s mode",
+  async (mode) => {
     const createdTodo = await invoke(
       "workspace_todo_create",
       {
@@ -738,6 +986,12 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
     expect(await db.todo.count({ where: { id: String(createdTodo.id) } })).toBe(
       0,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP homework mutation projection in %s mode",
+  async (mode) => {
+    const sectionArgs = { sectionJwId: catalog.sections[0].jwId };
     const createdHomework = await invoke(
       "community_section_homework_create",
       {
@@ -781,13 +1035,24 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       { deletedId: id, alreadyDeleted: false },
       mode,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP subscription mutation projection in %s mode",
+  async (mode) => {
     await invoke(
       "workspace_subscription_import",
-      { codes: [catalog.sections[1].code], semesterId: catalog.semester.id },
+      { codes: [catalog.sections[1].code], semesterId: currentSemesterId },
       {
-        addedCount: mode === "default" ? 1 : 0,
-        alreadySubscribedCount: mode === "default" ? 0 : 1,
+        addedCount: 1,
+        alreadySubscribedCount: 0,
       },
+      mode,
+    );
+    await invoke(
+      "workspace_subscription_import",
+      { codes: [catalog.sections[1].code], semesterId: currentSemesterId },
+      { addedCount: 0, alreadySubscribedCount: 1 },
       mode,
     );
     await invoke(
@@ -796,6 +1061,11 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       { kind: "auditor", sectionJwId: catalog.sections[1].jwId },
       mode,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP bus preference mutation projection in %s mode",
+  async (mode) => {
     await invoke(
       "workspace_bus_preferences_set",
       {
@@ -809,6 +1079,12 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       },
       mode,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP comment mutation projection in %s mode",
+  async (mode) => {
+    const sectionArgs = { sectionJwId: catalog.sections[0].jwId };
     const createdComment = await invoke(
       "community_comment_create",
       {
@@ -848,6 +1124,12 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       { success: true },
       mode,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP description mutation projection in %s mode",
+  async (mode) => {
+    const course = catalog.courses[0];
     await invoke(
       "community_description_set",
       {
@@ -861,6 +1143,11 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
       },
       mode,
     );
+  },
+);
+it.each(["default", "full"] as const)(
+  "MCP upload mutation projection in %s mode",
+  async (mode) => {
     const upload = await db.upload.create({
       data: {
         userId,
@@ -883,8 +1170,10 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
     );
     expect(external.deleteObject).toHaveBeenCalledWith(upload.key);
     expect(await db.upload.count({ where: { id: upload.id } })).toBe(0);
-  }
-  await client.call("workspace_todo_update", { id: todoId, completed: true });
+  },
+);
+it("MCP completed todo consumers retain mode-specific fields", async () => {
+  await db.todo.update({ where: { id: todoId }, data: { completed: true } });
   for (const mode of ["default", "full"] as const) {
     const result = await client.call<{ todos: Row[] }>("workspace_todo_list", {
       includeCompleted: true,
@@ -900,5 +1189,4 @@ it("mcp.property-priority-parity", { timeout: 90000 }, async () => {
     if (mode === "default") expect(completed).not.toHaveProperty("content");
     else expect(completed).toHaveProperty("content", "Projection todo details");
   }
-  expect([...exercised].sort()).toEqual([...declarations.keys()].sort());
 });

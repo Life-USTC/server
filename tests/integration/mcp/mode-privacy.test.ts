@@ -56,7 +56,7 @@ describe("MCP domain projections through the SDK and production database role", 
           "community_comment_list",
           {
             targetType: "section",
-            sectionJwId: fixtures.DEV_SEED.section.jwId,
+            sectionJwId: owner.sectionJwId,
           },
         ],
       ];
@@ -103,7 +103,7 @@ describe("MCP domain projections through the SDK and production database role", 
       "community_comment_create",
       {
         targetType: "section",
-        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        sectionJwId: owner.sectionJwId,
         body: "[integration-test] anonymous mode comment",
         visibility: "public",
         isAnonymous: true,

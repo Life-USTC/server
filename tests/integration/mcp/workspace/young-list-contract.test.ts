@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { signResourceBoundOAuthAccessToken } from "@/features/oauth/server/device-token-issuer.server";
 import { youngEventState } from "@/features/young/server/young-notification-state";
 import { getYoungWorkspaceRoute } from "@/lib/api/routes/young-workspace-routes";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/mcp/urls";
 import type { PaginatedResponse } from "@/lib/pagination";
 import { createFixturePrisma } from "../../../shared/prisma";
+import { cleanupMcpResources } from "../_harness/cleanup";
 import { createMcpHarness, type McpHarness } from "../_harness/client";
 
 const db = createFixturePrisma();
@@ -33,7 +34,7 @@ const created = [0, 1, 1, 2, 3, 0, 0].map(
 let grantId: string;
 let client: McpHarness;
 
-beforeAll(async () => {
+beforeEach(async () => {
   await db.user.createMany({
     data: users.map((id) => ({
       id,
@@ -130,17 +131,35 @@ beforeAll(async () => {
     })),
   });
 });
-afterAll(async () => {
-  await client?.close();
-  await db.oAuthConsent.deleteMany({ where: { clientId } });
-  await db.oAuthClient.deleteMany({ where: { clientId } });
-  await db.user.deleteMany({ where: { id: { in: users } } });
-  await db.youngEvent.deleteMany({ where: { youngId: { in: eventIds } } });
-  await db.youngOrganizer.deleteMany({ where: { id: { in: organizerIds } } });
-  await Promise.all([
-    db.$disconnect(),
-    prisma.$disconnect(),
-    authPrisma.$disconnect(),
+afterEach(async () => {
+  await cleanupMcpResources([
+    async () => {
+      await client?.close();
+    },
+    async () => {
+      await db.oAuthConsent.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.oAuthClient.deleteMany({ where: { clientId } });
+    },
+    async () => {
+      await db.user.deleteMany({ where: { id: { in: users } } });
+    },
+    async () => {
+      await db.youngEvent.deleteMany({ where: { youngId: { in: eventIds } } });
+    },
+    async () => {
+      await db.youngOrganizer.deleteMany({
+        where: { id: { in: organizerIds } },
+      });
+    },
+    async () => {
+      await Promise.all([
+        db.$disconnect(),
+        prisma.$disconnect(),
+        authPrisma.$disconnect(),
+      ]);
+    },
   ]);
 });
 

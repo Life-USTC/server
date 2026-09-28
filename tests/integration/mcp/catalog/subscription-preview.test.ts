@@ -18,7 +18,9 @@ const context = createIsolatedMcpToolTestContext({
       where: { semesterId: { in: semesterIds } },
     });
     await prisma.semester.deleteMany({ where: { id: { in: semesterIds } } });
-    if (courseId) await prisma.course.delete({ where: { id: courseId } });
+    if (courseId) await prisma.course.deleteMany({ where: { id: courseId } });
+    semesterIds.length = 0;
+    courseId = 0;
   },
 });
 

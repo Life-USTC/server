@@ -12,8 +12,6 @@ export const SEED_PLUS_SIX_DAYS = seedDatePlusDays(6);
 export const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
 export const SEED_PLUS_ELEVEN_DAYS = seedDatePlusDays(11);
 export const SEED_PLUS_TWELVE_DAYS = seedDatePlusDays(12);
-export const PAST_SAME_DAY_EXAM_JW_ID = 88_051_002;
-export const UNKNOWN_DATE_EXAM_JW_ID = 88_051_003;
 
 export function seedDatePlusDays(days: number) {
   const date = new Date(`${SEED_DATE}T00:00:00.000Z`);

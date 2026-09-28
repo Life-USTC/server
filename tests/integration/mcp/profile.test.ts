@@ -15,10 +15,10 @@ describe("account_profile_get", () => {
       updatedAt?: string;
     }>("account_profile_get");
 
-    expect(profile.id).toBe(context.devUserId);
+    expect(profile.id).toBe(context.userId);
     expect(profile.email).toBeNull();
-    expect(profile.name).toBe(fixtures.DEV_SEED.debugName);
-    expect(profile.username).toBe(fixtures.DEV_SEED.debugUsername);
+    expect(profile.name).toBe(context.name);
+    expect(profile.username).toBe(context.username);
     expect(profile.isAdmin).toBeNull();
     // Dates are serialized in Asia/Shanghai (+08:00)
     expect(profile.createdAt).toMatch(/\+08:00$/);
@@ -32,8 +32,8 @@ describe("account_client_activity_list", () => {
       data: {
         action: "comment_create",
         channel: "mcp",
-        subjectUserId: context.devUserId,
-        userId: context.devUserId,
+        subjectUserId: context.userId,
+        userId: context.userId,
         oauthClientId: "integration-test-client",
         oauthGrantId: "integration-test-grant",
         sessionId: "private-session",
@@ -48,8 +48,8 @@ describe("account_client_activity_list", () => {
       data: {
         action: "comment_create",
         channel: "mcp",
-        subjectUserId: context.devUserId,
-        userId: context.devUserId,
+        subjectUserId: context.userId,
+        userId: context.userId,
         oauthClientId: "other-client",
       },
       select: { id: true },
@@ -58,8 +58,8 @@ describe("account_client_activity_list", () => {
       data: {
         action: "comment_create",
         channel: "mcp",
-        subjectUserId: context.devUserId,
-        userId: context.devUserId,
+        subjectUserId: context.userId,
+        userId: context.userId,
         oauthClientId: "integration-test-client",
         oauthGrantId: "other-grant",
       },
@@ -113,14 +113,14 @@ describe("community_user_get", () => {
       totalContributions?: number;
       weeks?: Array<Array<{ date?: string; count?: number }>>;
     }>("community_user_get", {
-      identifier: fixtures.DEV_SEED.debugUsername,
+      identifier: context.username,
       mode: "full",
     });
 
     expect(profile.found).toBe(true);
-    expect(profile.user?.id).toBe(context.devUserId);
-    expect(profile.user?.name).toBe(fixtures.DEV_SEED.debugName);
-    expect(profile.user?.username).toBe(fixtures.DEV_SEED.debugUsername);
+    expect(profile.user?.id).toBe(context.userId);
+    expect(profile.user?.name).toBe(context.name);
+    expect(profile.user?.username).toBe(context.username);
     expect(profile).not.toHaveProperty("sectionCount");
     expect(typeof profile.totalContributions).toBe("number");
     expect((profile.weeks?.length ?? 0) > 0).toBe(true);
