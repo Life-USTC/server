@@ -67,7 +67,9 @@ lowest layer that actually observes the entire requirement. A mocked permission
 helper does not prove HTTP authentication, database isolation, or rendered UI.
 Source assertions establish architecture constraints, not user-visible behavior.
 
-Typed requirements additionally declare `applies_to` capabilities and bind
+Typed feature requirements declare `applies_to` capability IDs; policy requirements
+declare their own topic IDs and use the policy's `refs` for feature/capability links.
+They bind
 transport expectations to an actual REST method/path, GraphQL field/mutation, or
 MCP tool. Read the expected values from YAML and observe the real implementation;
 never compare two values both generated from the specification. Preserve intended

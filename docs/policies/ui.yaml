@@ -882,14 +882,14 @@ requirements:
     surface: web
     target:
       by: css
-      value: '[data-shell-topbar] button, [data-shell-navigation="mobile-primary"] a'
+      value: '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible'
     viewport:
       width: 390
       height: 844
     min_width: 44
     min_height: 44
   applies_to:
-  - shell
+  - shell-layout
   acceptance:
     given: A signed-in administrator opens workspace todos at the viewport declared by the target-size expectation.
     when: The browser measures the mobile primary links and menu, language, and theme controls, then opens the

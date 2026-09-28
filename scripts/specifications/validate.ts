@@ -3,7 +3,10 @@ import { join } from "node:path";
 import type { AnySchema, ValidateFunction } from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
 import ts from "typescript";
-import { validateDomainExpectation } from "./domain-semantics";
+import {
+  isDomainExpectationKind,
+  validateDomainExpectation,
+} from "./domain-semantics";
 import {
   type Requirement,
   readSpecifications,
@@ -442,6 +445,14 @@ export async function validateSpecificationReferences(
             );
         }
       }
+      if (data.kind === "policy") {
+        for (const topic of requirement.applies_to ?? []) {
+          if (!topicIds.has(topic))
+            errors.push(
+              `${path}: ${requirement.id} applies to unknown policy topic ${topic}`,
+            );
+        }
+      }
       const acceptance = requirement.acceptance;
       if (!acceptance) continue;
       const test = acceptance.test;
@@ -613,16 +624,16 @@ export async function checkSpecifications(
         expectation: NonNullable<Requirement["expectation"]>;
       } => Boolean(r.expectation),
     );
-  const domainKinds = new Set([
-    "reminder_window",
-    "transaction_effects",
-    "unchanged_write",
-    "delete_replay",
-    "public_projection",
-    "ordered_page",
-  ]);
   const domainRequirements = typed.filter((r) =>
-    domainKinds.has(r.expectation.kind),
+    isDomainExpectationKind(r.expectation.kind),
+  );
+  const requirementCapabilities = new Map(
+    files.flatMap(({ data }) =>
+      collectRequirements(data).map(
+        (r) =>
+          [r.id, record(data.capabilities) ? data.capabilities : {}] as const,
+      ),
+    ),
   );
   const domainReferences: {
     requirement: string;
@@ -631,8 +642,10 @@ export async function checkSpecifications(
   }[] = [];
   const domainErrors: string[] = [];
   if (domainRequirements.length) {
-    const needsWire = domainRequirements.some(
-      (r) => r.expectation.kind === "public_projection",
+    const needsWire = domainRequirements.some((r) =>
+      ["public_projection", "attachment_download_authority"].includes(
+        r.expectation.kind,
+      ),
     );
     const needsModel = domainRequirements.some(
       (r) => r.expectation.kind === "ordered_page",
@@ -657,6 +670,8 @@ export async function checkSpecifications(
         root,
         openapi,
         models,
+        capabilities: requirementCapabilities.get(requirement.id),
+        appliesTo: requirement.applies_to,
       });
       domainErrors.push(
         ...result.errors.map((error) => `${requirement.id}: ${error}`),

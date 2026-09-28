@@ -534,7 +534,7 @@ test("ui.shell-layout-8", async ({ page }, testInfo) => {
   }
 
   const selector =
-    '[data-shell-topbar] button, [data-shell-navigation="mobile-primary"] a';
+    '[data-shell-topbar] button:visible, [data-shell-navigation="mobile-primary"] a:visible';
   contract.equal("/target", { by: "css", value: selector });
   contract.equal("/viewport", page.viewportSize());
   const controls = page.locator(selector);
