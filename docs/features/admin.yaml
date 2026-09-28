@@ -276,7 +276,7 @@ requirements:
       boundaries match recorded durations.
     test:
       file: tests/integration/admin-prometheus-contracts.test.ts
-      name: admin.prometheus-collection
+      name: ignores retained observations that predate the counter epoch
 - id: admin.prometheus-gauge-cache
   category: behavior
   rule: Expensive Prometheus activity/current-state gauges are cached sixty seconds and may remain at
