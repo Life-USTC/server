@@ -1,212 +1,109 @@
-/**
- * E2E tests for GET /api/workspace/uploads/[id]/download.
- *
- * ## GET /api/workspace/uploads/[id]/download
- * - Response: 200 streamed from R2
- * - Auth required (401 if unauthenticated)
- * - Ownership check: returns 404 if upload belongs to another user
- * - Sets Content-Disposition header with filename
- *
- * ## Edge cases
- * - Non-owner gets 404 (not 403, to avoid leaking upload existence)
- * - Non-existent upload id → 404
- * - Unauthenticated → 401
- */
-import { expect, test } from "@playwright/test";
-import { resolveSeedSectionId } from "../../../../../e2e/utils/seed-lookups";
-import { createUploadedFileViaApi } from "../../../../../e2e/utils/uploads";
-import {
-  signInAsDebugUserApi,
-  signInAsDevAdminApi,
-} from "../../../_harness/auth";
-import { assertApiContract } from "../../../_shared/api-contract";
+import { expect } from "@playwright/test";
+import { DEV_SEED } from "../../../../../fixtures/dev-seed";
+import { base, test as uploadTest } from "../../_fixture";
 
-test("/api/workspace/uploads/[id]/download", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/workspace/uploads/[id]/download",
-  });
+const test = uploadTest.extend<{ attachmentTarget: number }>({
+  attachmentTarget: async ({ uploadState }, use) => {
+    const { db } = uploadState;
+    const code = `upload-target-${crypto.randomUUID()}`;
+    try {
+      const source = await db.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
+        select: { courseId: true, semesterId: true },
+      });
+      const section = await db.section.create({
+        data: {
+          ...source,
+          code,
+          jwId: 1_800_000_000 + Math.floor(Math.random() * 100_000_000),
+        },
+      });
+      await use(section.id);
+    } finally {
+      await db.section.deleteMany({ where: { code } });
+    }
+  },
 });
+const path = (id: string) => `${base}/${id}/download`;
 
-test("/api/workspace/uploads/[id]/download GET 未登录返回 401", async ({
+test("anonymous download returns JSON 401", async ({
   request,
+  uploadState,
 }) => {
-  const response = await request.get(
-    "/api/workspace/uploads/invalid-e2e/download",
-  );
+  const upload = await uploadState.knownUpload();
+  const response = await request.get(path(upload.id));
   expect(response.status()).toBe(401);
+  expect((await response.json()).error).toEqual(expect.any(String));
 });
 
-test("/api/workspace/uploads/[id]/download GET 可下载自己的文件", async ({
-  request,
+test("known owned upload streams exact bytes with content type and filename", async ({
+  uploadState,
 }) => {
-  test.setTimeout(60_000);
-  await signInAsDebugUserApi(request, "/");
-
-  const filename = `e2e-download-${Date.now()}.txt`;
-  const uploaded = await createUploadedFileViaApi(request, {
-    filename,
+  const { owner, knownUpload } = uploadState;
+  const upload = await knownUpload({
+    filename: "download.txt",
     contents: "download test content",
   });
-
-  try {
-    const downloadResponse = await request.get(
-      `/api/workspace/uploads/${uploaded.uploadId}/download`,
-    );
-    expect(downloadResponse.status()).toBe(200);
-    expect(downloadResponse.headers()["content-disposition"]).toContain(
-      filename,
-    );
-  } finally {
-    await request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
-  }
+  const response = await owner.request.get(path(upload.id));
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-disposition"]).toContain("download.txt");
+  expect(response.headers()["content-type"]).toContain("text/plain");
+  expect(await response.text()).toBe("download test content");
 });
 
-test("/api/workspace/uploads/[id]/download GET 非本人返回 404", async ({
-  playwright,
-}) => {
-  const userContext = await playwright.request.newContext();
-  try {
-    await signInAsDebugUserApi(userContext, "/");
+for (const isAdmin of [false, true]) {
+  test(`non-owner ${isAdmin ? "admin" : "user"} cannot download an unattached upload`, async ({
+    createActor,
+    uploadState,
+  }) => {
+    const actor = await createActor({ isAdmin });
+    const upload = await uploadState.knownUpload();
+    expect((await actor.request.get(path(upload.id))).status()).toBe(404);
+  });
+}
 
-    // Create a file as debug user
-    const filename = `e2e-download-nonowner-${Date.now()}.txt`;
-    const uploaded = await createUploadedFileViaApi(userContext, {
-      filename,
-      contents: "non-owner download test",
-    });
-
-    try {
-      // Try to download as admin user
-      const adminContext = await playwright.request.newContext();
-      try {
-        await signInAsDevAdminApi(adminContext, "/");
-        const downloadResponse = await adminContext.get(
-          `/api/workspace/uploads/${uploaded.uploadId}/download`,
-          { maxRedirects: 0 },
-        );
-        expect(downloadResponse.status()).toBe(404);
-      } finally {
-        await adminContext.dispose();
-      }
-    } finally {
-      await userContext.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
-    }
-  } finally {
-    await userContext.dispose();
-  }
-});
-
-test("/api/workspace/uploads/[id]/download GET 允许下载可见评论附件", async ({
-  playwright,
-}) => {
-  const userContext = await playwright.request.newContext();
-  try {
-    await signInAsDebugUserApi(userContext, "/");
-    const sectionId = await resolveSeedSectionId(userContext);
-    const uploaded = await createUploadedFileViaApi(userContext, {
-      filename: `e2e-comment-attachment-${Date.now()}.txt`,
-      contents: "visible comment attachment",
-    });
-
-    const createCommentResponse = await userContext.post(
-      "/api/community/comments",
-      {
+for (const deleted of [false, true]) {
+  for (const isAdmin of [false, true]) {
+    test(`${isAdmin ? "admin" : "user"} ${deleted ? "cannot download deleted" : "can download public"} comment attachment`, async ({
+      createActor,
+      uploadState,
+      attachmentTarget,
+    }) => {
+      const { db, owner, knownUpload, bucket } = uploadState;
+      const actor = await createActor({ isAdmin });
+      const upload = await knownUpload({ contents: "comment attachment" });
+      await db.comment.create({
         data: {
-          attachmentIds: [uploaded.uploadId],
-          body: `e2e comment attachment ${Date.now()}`,
-          targetId: String(sectionId),
-          targetType: "section",
+          userId: owner.id,
+          body: "attachment comment",
+          sectionId: attachmentTarget,
           visibility: "public",
+          status: deleted ? "deleted" : "active",
+          ...(deleted ? { deletedAt: new Date() } : {}),
+          attachments: { create: { uploadId: upload.id } },
         },
-      },
-    );
-    expect(createCommentResponse.status()).toBe(201);
-    const commentId = ((await createCommentResponse.json()) as { id?: string })
-      .id;
-    expect(commentId).toBeTruthy();
-
-    try {
-      const adminContext = await playwright.request.newContext();
-      try {
-        await signInAsDevAdminApi(adminContext, "/");
-        const downloadResponse = await adminContext.get(
-          `/api/workspace/uploads/${uploaded.uploadId}/download`,
-        );
-        expect(downloadResponse.status()).toBe(200);
-        await expect(downloadResponse.text()).resolves.toBe(
-          "visible comment attachment",
-        );
-      } finally {
-        await adminContext.dispose();
-      }
-    } finally {
-      if (commentId) {
-        await userContext.delete(`/api/community/comments/${commentId}`);
-      }
-      await userContext.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
-    }
-  } finally {
-    await userContext.dispose();
-  }
-});
-
-test("/api/workspace/uploads/[id]/download GET 拒绝下载已删除评论附件", async ({
-  playwright,
-}) => {
-  const userContext = await playwright.request.newContext();
-  try {
-    await signInAsDebugUserApi(userContext, "/");
-    const sectionId = await resolveSeedSectionId(userContext);
-    const uploaded = await createUploadedFileViaApi(userContext, {
-      filename: `e2e-deleted-comment-attachment-${Date.now()}.txt`,
-      contents: "deleted comment attachment",
+      });
+      const response = await actor.request.get(path(upload.id));
+      expect(response.status()).toBe(deleted ? 404 : 200);
+      if (!deleted) expect(await response.text()).toBe("comment attachment");
+      expect(
+        await db.upload.findUniqueOrThrow({ where: { id: upload.id } }),
+      ).toMatchObject({ userId: owner.id });
+      expect(
+        await new Response((await bucket.get(upload.key))?.body).text(),
+      ).toBe("comment attachment");
     });
-
-    const createCommentResponse = await userContext.post(
-      "/api/community/comments",
-      {
-        data: {
-          attachmentIds: [uploaded.uploadId],
-          body: `e2e deleted comment attachment ${Date.now()}`,
-          targetId: String(sectionId),
-          targetType: "section",
-          visibility: "public",
-        },
-      },
-    );
-    expect(createCommentResponse.status()).toBe(201);
-    const commentId = ((await createCommentResponse.json()) as { id?: string })
-      .id;
-    expect(commentId).toBeTruthy();
-
-    try {
-      await userContext.delete(`/api/community/comments/${commentId}`);
-      const adminContext = await playwright.request.newContext();
-      try {
-        await signInAsDevAdminApi(adminContext, "/");
-        const downloadResponse = await adminContext.get(
-          `/api/workspace/uploads/${uploaded.uploadId}/download`,
-          { maxRedirects: 0 },
-        );
-        expect(downloadResponse.status()).toBe(404);
-      } finally {
-        await adminContext.dispose();
-      }
-    } finally {
-      await userContext.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
-    }
-  } finally {
-    await userContext.dispose();
   }
-});
+}
 
-test("/api/workspace/uploads/[id]/download GET 不存在的 id 返回 404", async ({
-  request,
+test("download returns 404 for unknown metadata or a missing storage object", async ({
+  uploadState,
 }) => {
-  await signInAsDebugUserApi(request, "/");
-  const response = await request.get(
-    "/api/workspace/uploads/00000000-0000-0000-0000-000000000000/download",
-    { maxRedirects: 0 },
+  const { owner, bucket, knownUpload } = uploadState;
+  expect((await owner.request.get(path(crypto.randomUUID()))).status()).toBe(
+    404,
   );
-  expect(response.status()).toBe(404);
+  const upload = await knownUpload();
+  await bucket.delete(upload.key);
+  expect((await owner.request.get(path(upload.id))).status()).toBe(404);
 });
