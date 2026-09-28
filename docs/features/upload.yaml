@@ -314,7 +314,7 @@ requirements:
     then:
     - Completion cannot create upload metadata.
     test:
-      file: tests/integration/upload-finalization.test.ts
+      file: tests/integration/upload-cleanup-fence.test.ts
       name: upload.completion-cleanup-fence
 - id: upload.completion-quota-rejection
   category: consistency
@@ -367,7 +367,7 @@ requirements:
     - The persisted lease lasts exactly 30 seconds and can only be reclaimed at expiry.
     - The stale attempt cannot release the successor; only release by the current attempt permits completion.
     test:
-      file: tests/integration/upload-finalization.test.ts
+      file: tests/integration/upload-completion-clock.test.ts
       name: upload.completion-lease-duration
 - id: upload.download-filename-header
   category: privacy
