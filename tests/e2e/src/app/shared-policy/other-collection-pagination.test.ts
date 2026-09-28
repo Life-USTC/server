@@ -1,22 +1,9 @@
-import { expect, type Locator, test } from "@playwright/test";
-import {
-  cleanupOtherCollectionPolicyFixture,
-  createOtherCollectionPolicyFixture,
-  type OtherCollectionPolicyFixture,
-} from "../../../utils/other-collection-policy-fixture";
+import { expect, type Locator } from "@playwright/test";
+import { test } from "../../../utils/other-collection-policy-fixture";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
-import { createSignedSessionCookie } from "../../../utils/workspace-task-filters";
-
-let fixture: OtherCollectionPolicyFixture;
-test.beforeAll(async () => {
-  fixture = await createOtherCollectionPolicyFixture();
-});
-test.afterAll(async () => {
-  if (fixture) await cleanupOtherCollectionPolicyFixture(fixture);
-});
 
 function queryState(value: string, base: string, pageKey: string) {
   const url = new URL(value, base);
@@ -37,12 +24,17 @@ async function identities(rows: Locator, text: boolean) {
   );
 }
 
-test("ui.list-pagination-filter-state", async ({ page, baseURL }) => {
+test("ui.list-pagination-filter-state", async ({
+  page,
+  baseURL,
+  isolatedWorker,
+  collection: fixture,
+}) => {
   if (!baseURL) throw new Error("Missing Playwright baseURL");
   await page
     .context()
     .addCookies([
-      await createSignedSessionCookie(fixture.admin.id),
+      (await isolatedWorker.createSession(fixture.admin.id)).cookie,
       { name: "NEXT_LOCALE", value: "en-us", url: baseURL },
     ]);
   await page.setViewportSize({ width: 1280, height: 900 });
