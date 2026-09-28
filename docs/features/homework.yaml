@@ -42,7 +42,7 @@ requirements:
     - The first request stores deletedAt and deletedById and exactly one audit event.
     - A replay succeeds, preserves the exact committed row and audit count, and reports alreadyDeleted where that field is part of the transport.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: "homework delete replay through graphql preserves the committed state"
 - id: homework.no-subscription-required
   category: authorization

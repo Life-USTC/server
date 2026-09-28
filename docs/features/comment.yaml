@@ -53,7 +53,7 @@ requirements:
     - The first request succeeds with status=deleted and a deletion timestamp stored alongside exactly one audit event.
     - Retries report the locked outcome, preserving the complete tombstone and the single audit event.
     test:
-      file: tests/integration/mutation-error-parity.test.ts
+      file: tests/integration/rest/protocol-contracts/mutation-error.test.ts
       name: "comment delete replay through mcp preserves the committed state"
 - id: comment.attached-to-object
   category: behavior
