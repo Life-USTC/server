@@ -39,7 +39,7 @@ requirements:
     - Retries return 404/NOT_FOUND/not_found and never recreate the row.
     test:
       file: tests/integration/mutation-error-parity.test.ts
-      name: todo.single-delete-replay
+      name: "todo delete replay through rest preserves the committed state"
 - id: todo.personal-ownership
   category: authorization
   surfaces:
@@ -199,7 +199,7 @@ requirements:
     - The declared default reaches the read model and invalid limits are rejected before reading.
     test:
       file: tests/unit/features/todos/todo-specification-inputs.test.ts
-      name: todo.rest-list-limit
+      name: "REST todo list limit > accepts limit undefined and reads 100 rows"
 - id: todo.mcp-list-limit
   category: validation
   applies_to:
@@ -220,7 +220,7 @@ requirements:
     - The declared default reaches the read model and invalid limits are rejected before reading.
     test:
       file: tests/unit/features/todos/todo-specification-inputs.test.ts
-      name: todo.mcp-list-limit
+      name: "MCP todo list limit > accepts limit undefined and reads 50 rows"
   rationale: The smaller default bounds assistant context; REST permits a larger initial list for general
     HTTP clients. Both retain the same maximum.
 - id: todo.rest-batch-patch-bounds
@@ -242,7 +242,7 @@ requirements:
     - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
     test:
       file: tests/unit/features/todos/todo-batch-route.test.ts
-      name: todo.rest-batch-patch-bounds
+      name: "patchTodoBatchRoute > accepts 100 unique items"
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-batch-delete-bounds
   category: validation
@@ -263,7 +263,7 @@ requirements:
     - Accepted requests reach the service for every item; invalid sizes or repeated normalized targets produce no service calls.
     test:
       file: tests/unit/features/todos/todo-batch-route.test.ts
-      name: todo.rest-batch-delete-bounds
+      name: "deleteTodoBatchRoute > accepts 100 unique items"
   rationale: Normalized duplicate targets are rejected before any write, matching GraphQL and avoiding conflicting repeated state changes in one batch.
 - id: todo.rest-patch-ownership
   category: authorization
@@ -313,7 +313,7 @@ requirements:
     - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
     test:
       file: tests/integration/rest/todos/[id]/test.ts
-      name: todo.rest-patch-ownership
+      name: "todo REST PATCH ownership > other admin"
 - id: todo.rest-delete-ownership
   category: authorization
   applies_to:
@@ -362,7 +362,7 @@ requirements:
     - Observed HTTP outcomes match each case and denied writes leave the database row unchanged.
     test:
       file: tests/integration/rest/todos/[id]/test.ts
-      name: todo.rest-delete-ownership
+      name: "todo REST DELETE ownership > other admin"
 - id: todo.web-detail-actions
   category: presentation
   applies_to:

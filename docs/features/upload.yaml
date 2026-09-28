@@ -67,7 +67,7 @@ requirements:
     - Replays return not_found without another storage delete or audit event; declared deletedSize matches the removed content.
     test:
       file: tests/integration/mutation-error-parity.test.ts
-      name: upload.storage-delete-retry
+      name: "upload storage deletion failure and retry through rest"
 - id: upload.comment-attachments-only
   category: behavior
   rule: This upload capability manages comment attachment drafts and their completed attachments. It is

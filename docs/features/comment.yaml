@@ -54,7 +54,7 @@ requirements:
     - Retries report the locked outcome, preserving the complete tombstone and the single audit event.
     test:
       file: tests/integration/mutation-error-parity.test.ts
-      name: comment.single-delete-replay
+      name: "comment delete replay through mcp preserves the committed state"
 - id: comment.attached-to-object
   category: behavior
   rule: Comments must be attached to a specific object; no decontextualized public feed entry is provided.

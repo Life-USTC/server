@@ -13,8 +13,11 @@ bun run build && bun run rest:test
 
 ## REST (`tests/integration/rest/`)
 
-REST-only Playwright (`playwright.api.config.ts`) with `_harness/auth.ts`
-request-based debug sign-in.
+Playwright request tests (`playwright.api.config.ts`) use the real Worker.
+`_harness/actor.ts` supplies `createActor()` with a test-owned user, session and
+request context. Use it for ordinary domain cases; keep `_harness/auth.ts` debug
+provider sign-in for tests of that login flow. Public domain records require their
+own fixture because deleting their author does not necessarily delete the record.
 
 ## MCP layout
 
@@ -28,18 +31,21 @@ tests/integration/mcp/
 ## Harness (`_harness/`)
 
 - `createMcpHarness` / `createAnonymousMcpHarness` — `client.ts`
-- `createMcpToolTestContext()` — shared seed user, read-mostly
-- `createIsolatedMcpToolTestContext()` — throwaway user for mutations; read
-  `context.client` / `context.userId` at call time (don't destructure early)
-- `createSubscribedIsolatedMcpToolTestContext()` — isolated + seed section
+- `mcpTest` — native Vitest fixtures with file-owned database connections
+- `readerFixture()` — a fresh reader identity for each test
+- `actorFixture()` — throwaway user and client injected into each mutation test
+- `academicActorFixture()` — isolated user + private academic fixture
+  (`sectionId`, `sectionJwId`, `sectionCode`); shared metadata stays read-only
 - `createEphemeralMcpUser()` — single-`it` user; call `close()` after cleanup
 - App queries: `createTestPrisma()` from `tests/shared/prisma.ts` (restricted role).
 - Fixture setup, cleanup, and authoritative DB assertions: `createFixturePrisma()`.
   Never pass that owner client into application services or add user context around
   a service call to compensate for missing context inside the application.
 
-`fileParallelism` is off — auth row-count tests flake under concurrent session
-writes. Prefer file-level isolation for mutating suites.
+The MCP in-memory client verifies tool behavior and serialization; real Worker
+HTTP authentication is a separate layer. `fileParallelism` remains off for the
+overall integration suite because global maintenance and metric assertions still
+share a database. Per-test identities do not isolate those global operations.
 
 Run isolated local shards with `bun run integration:test:parallel`. It creates
 four disposable PostgreSQL containers, applies the production role bootstrap to

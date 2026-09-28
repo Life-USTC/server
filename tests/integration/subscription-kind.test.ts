@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import {
   getSectionForCalendar,
   getUserCalendarRecord,
@@ -14,11 +22,9 @@ import {
 } from "@/features/subscriptions/server/subscription-write-model";
 import { assertSubscriptionKindTransportAuthority } from "../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../shared/prisma";
-import { bindDomainOperation } from "../shared/specifications/domain-contracts";
-import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
-const userIds = [crypto.randomUUID(), crypto.randomUUID()];
+let userIds: string[] = [];
 let sectionId: number;
 let sectionJwId: number;
 let sectionCode: string;
@@ -37,6 +43,9 @@ beforeAll(async () => {
   sectionJwId = section.jwId;
   sectionCode = section.code;
   semesterId = section.semesterId as number;
+});
+beforeEach(async () => {
+  userIds = [crypto.randomUUID(), crypto.randomUUID()];
   await db.user.createMany({
     data: userIds.map((id) => ({
       id,
@@ -45,15 +54,10 @@ beforeAll(async () => {
     })),
   });
 });
-beforeEach(async () => {
-  await db.userSectionSubscription.deleteMany({
-    where: { userId: { in: userIds } },
-  });
-});
-afterAll(async () => {
+afterEach(async () => {
   await db.user.deleteMany({ where: { id: { in: userIds } } });
-  await db.$disconnect();
 });
+afterAll(() => db.$disconnect());
 
 describe("personal subscription kinds", () => {
   it("subscription.kind-owner-existing-only", async () => {
@@ -149,21 +153,12 @@ describe("personal subscription kinds", () => {
   });
 });
 
-it("subscription.personal-kind", async (context) => {
-  const contract = await semanticContract(
-    "subscription.personal-kind",
-    "membership_kind_transition",
-  );
-  const add = bindDomainOperation(
-    contract,
-    "src/features/subscriptions/server/subscription-write-model.ts",
-    appendUserSectionSubscriptions,
-  );
+it("subscription.personal-kind", async () => {
   const before = await db.userSectionSubscription.findUnique({
     where: { userId_sectionId: { userId: userIds[0], sectionId } },
   });
-  contract.equal("/cases/0/before", before?.kind ?? "absent");
-  await add({
+  expect(before).toBeNull();
+  await appendUserSectionSubscriptions({
     userId: userIds[0],
     sectionIds: [sectionId],
   });
@@ -176,9 +171,8 @@ it("subscription.personal-kind", async (context) => {
   const rows = await db.userSectionSubscription.findMany({
     where: { userId: userIds[0], sectionId },
   });
-  contract.equal("/cases/0/after", rows[0]?.kind);
-  contract.equal("/cases/0/rows", rows.length);
-  contract.recordVitest(context);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].kind).toBe("regular");
   expect(
     (await getUserCalendarSubscription(userIds[0]))?.sections.map(
       (section) => section.kind,
@@ -186,75 +180,39 @@ it("subscription.personal-kind", async (context) => {
   ).toEqual(["regular"]);
 });
 
-it("subscription.import-preserves-kind", async (context) => {
-  const contract = await semanticContract(
-    "subscription.import-preserves-kind",
-    "membership_kind_transition",
-  );
-  const add = bindDomainOperation(
-    contract,
-    "src/features/subscriptions/server/subscription-write-model.ts",
-    appendUserSectionSubscriptions,
-  );
-  const batch = bindDomainOperation(
-    contract,
-    "src/features/subscriptions/server/subscription-write-model.ts",
-    batchUpdateUserSectionSubscriptions,
-    "/additional_operations/0",
-  );
-  const importCodes = bindDomainOperation(
-    contract,
-    "src/features/subscriptions/server/subscription-write-model.ts",
-    importUserSectionSubscriptionsByCodes,
-    "/additional_operations/1",
-  );
-  await add({
-    userId: userIds[0],
-    sectionIds: [sectionId],
-  });
-  for (const [index, kind] of (
-    ["regular", "auditor", "teaching_assistant"] as const
-  ).entries()) {
-    await updateSubscriptionKind({ userId: userIds[0], sectionJwId, kind });
-    const before = await db.userSectionSubscription.findUniqueOrThrow({
-      where: { userId_sectionId: { userId: userIds[0], sectionId } },
-    });
-    contract.equal(`/cases/${index}/before`, before.kind);
-    const observe = async () => {
-      const rows = await db.userSectionSubscription.findMany({
-        where: { userId: userIds[0], sectionId },
-      });
-      contract.equal(`/cases/${index}/after`, rows[0]?.kind);
-      contract.equal(`/cases/${index}/rows`, rows.length);
-    };
-    await add({
-      userId: userIds[0],
-      sectionIds: [sectionId, sectionId],
-    });
-    await observe();
-    await batch({
-      userId: userIds[0],
-      sectionIds: [sectionId],
-      action: "add",
-    });
-    await observe();
-    await importCodes({
-      userId: userIds[0],
-      semesterId,
-      codes: [sectionCode],
-    });
-    await observe();
-    expect(
-      await db.userSectionSubscription.findUnique({
-        where: { userId_sectionId: { userId: userIds[0], sectionId } },
-        select: { kind: true },
-      }),
-    ).toEqual({ kind });
-    expect(
-      await db.userSectionSubscription.count({
-        where: { userId: userIds[0], sectionId },
-      }),
-    ).toBe(1);
-  }
-  contract.recordVitest(context);
-});
+describe.each(["regular", "auditor", "teaching_assistant"] as const)(
+  "existing %s subscription",
+  (kind) => {
+    it.each(["append", "batch add", "code import"] as const)(
+      "%s preserves the existing kind and creation timestamp",
+      async (operation) => {
+        const before = await db.userSectionSubscription.create({
+          data: { userId: userIds[0], sectionId, kind },
+        });
+        if (operation === "append") {
+          await appendUserSectionSubscriptions({
+            userId: userIds[0],
+            sectionIds: [sectionId, sectionId],
+          });
+        } else if (operation === "batch add") {
+          await batchUpdateUserSectionSubscriptions({
+            userId: userIds[0],
+            sectionIds: [sectionId],
+            action: "add",
+          });
+        } else {
+          await importUserSectionSubscriptionsByCodes({
+            userId: userIds[0],
+            semesterId,
+            codes: [sectionCode],
+          });
+        }
+        expect(
+          await db.userSectionSubscription.findMany({
+            where: { userId: userIds[0], sectionId },
+          }),
+        ).toEqual([before]);
+      },
+    );
+  },
+);

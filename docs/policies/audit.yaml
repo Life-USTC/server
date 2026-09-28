@@ -68,7 +68,7 @@ requirements:
       and safe metadata survive until event expiry.
     test:
       file: tests/integration/audit-policy-retention.test.ts
-      name: audit.writer-4
+      name: "audit retention clears network data at 30 days, attribution at 90, and events at 400 inclusively"
   applies_to:
   - writer
 - id: audit.auth-hook-failure-isolation

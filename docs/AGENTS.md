@@ -76,11 +76,10 @@ mapping, or establish acceptance completeness. Ordinary runner results decide
 whether tests pass; reviewers decide whether their observations cover the intended
 requirements.
 
-New tests keep their expected outcomes independent of runtime specification
-loading. Existing assertion helpers used by other features remain ordinary test
-utilities; their comparison records do not prove coverage or observation quality
-and are not CI gates. Do not extend this into a receipt or specification-consumption
-system. Never compare expectations with themselves or derive both expected and
+Tests keep their expected outcomes independent of runtime specification
+loading. Shared assertion utilities observe actual behavior and take explicit
+expected values from the test. Do not add a receipt, test-owner registry or
+specification-consumption system. Never compare expectations with themselves or derive both expected and
 observed results from the same production operation.
 
 CI must run the unit, integration, REST, role-isolation and browser partitions,

@@ -48,7 +48,7 @@ requirements:
     - Changing the search clears earlier manual selection.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/sections/test.ts
-      name: subscription.web-quick-add-selection
+      name: subscription.web-quick-add-selection (390px)
 - id: subscription.user-scoped
   category: authorization
   rule: Only the authenticated owner may read or change their section subscriptions. Personal academic
@@ -153,7 +153,7 @@ requirements:
     - GraphQL rejects duplicates without a membership change and accepts unique add and remove requests.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
-      name: subscription.duplicate-input-semantics
+      name: subscription.duplicate-input-semantics REST batch
 - id: subscription.membership-atomicity
   category: consistency
   rule: Each subscription membership mutation commits all of its matched additions or removals in one
@@ -171,7 +171,7 @@ requirements:
     - Retrying reports zero additions and preserves existing membership rows and timestamps.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/mutation-contract.test.ts
-      name: subscription.membership-atomicity
+      name: subscription.membership-atomicity append
 - id: subscription.personal-kind
   category: behavior
   applies_to:
@@ -272,7 +272,7 @@ requirements:
     - Every path preserves the existing kind and avoids duplicate memberships.
     test:
       file: tests/integration/subscription-kind.test.ts
-      name: subscription.import-preserves-kind
+      name: "existing teaching_assistant subscription > code import preserves the existing kind and creation timestamp"
 - id: subscription.kind-web-editor-location
   category: behavior
   rule: Web subscription-kind editing is available in workspace subscriptions.

@@ -18,6 +18,20 @@ vi.mock("@/lib/db/auth-prisma", () => ({
 
 describe("debug 认证配置", () => {
   beforeEach(() => {
+    vi.stubEnv("NODE_ENV", "test");
+    for (const name of [
+      "E2E_DEBUG_AUTH",
+      "DEV_DEBUG_USERNAME",
+      "DEV_DEBUG_NAME",
+      "DEV_DEBUG_EMAIL",
+      "DEV_DEBUG_PASSWORD",
+      "DEV_ADMIN_USERNAME",
+      "DEV_ADMIN_NAME",
+      "DEV_ADMIN_EMAIL",
+      "DEV_ADMIN_PASSWORD",
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
     prismaMock.user.findUnique.mockResolvedValue({
       id: "seeded-user",
       username: "dev-user",

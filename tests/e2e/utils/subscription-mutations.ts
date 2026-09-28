@@ -1,7 +1,11 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
-import { issueAccessToken, parseTextContent } from "../src/app/api/mcp/helpers";
+import {
+  issueAccessTokenForClient,
+  parseTextContent,
+  registerPublicClient,
+} from "../src/app/api/mcp/helpers";
 import { createCalendarContractFixture } from "./calendar-contract";
 import { PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 import { withE2ePrisma } from "./e2e-db/prisma";
@@ -25,47 +29,71 @@ export async function createSubscriptionMutationFixture(
   role: "regular" | "suspended admin" = "regular",
 ) {
   const own = await createCalendarContractFixture();
-  const foreign = await createCalendarContractFixture();
-  if (role === "suspended admin") {
-    await withE2ePrisma(async (db) => {
-      await db.user.update({
-        where: { id: own.users[0].id },
-        data: { isAdmin: true },
-      });
-      await db.userSuspension.create({
-        data: {
-          userId: own.users[0].id,
-          reason: "Personal subscriptions remain available during suspension",
-        },
-      });
-    });
-  }
-  const stableRows = await withE2ePrisma((db) =>
-    db.userSectionSubscription.findMany({
-      where: {
-        userId: { in: [...own.users, ...foreign.users].map(({ id }) => id) },
-      },
-      orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
-    }),
-  );
-  return {
-    own,
-    foreign,
-    stableRows,
-    userIds: [...own.users, ...foreign.users].map(({ id }) => id),
-    initial: [
-      { userId: own.users[0].id, sectionId: own.section.id, kind: "regular" },
-      {
-        userId: foreign.users[0].id,
-        sectionId: foreign.section.id,
-        kind: "regular",
-      },
-    ] satisfies SubscriptionRelation[],
-    cleanup: async () => {
-      await foreign.cleanup();
-      await own.cleanup();
-    },
+  let foreign:
+    | Awaited<ReturnType<typeof createCalendarContractFixture>>
+    | undefined;
+  const cleanup = async () => {
+    const results = await Promise.allSettled([
+      own.cleanup(),
+      foreign?.cleanup(),
+    ]);
+    const errors = results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (errors.length)
+      throw new AggregateError(errors, "Subscription fixture cleanup failed");
   };
+  try {
+    foreign = await createCalendarContractFixture();
+    if (role === "suspended admin") {
+      await withE2ePrisma(async (db) => {
+        await db.user.update({
+          where: { id: own.users[0].id },
+          data: { isAdmin: true },
+        });
+        await db.userSuspension.create({
+          data: {
+            userId: own.users[0].id,
+            reason: "Personal subscriptions remain available during suspension",
+          },
+        });
+      });
+    }
+    const userIds = [...own.users, ...foreign.users].map(({ id }) => id);
+    const stableRows = await withE2ePrisma((db) =>
+      db.userSectionSubscription.findMany({
+        where: {
+          userId: { in: userIds },
+        },
+        orderBy: [{ userId: "asc" }, { sectionId: "asc" }],
+      }),
+    );
+    return {
+      own,
+      foreign,
+      stableRows,
+      userIds,
+      initial: [
+        { userId: own.users[0].id, sectionId: own.section.id, kind: "regular" },
+        {
+          userId: foreign.users[0].id,
+          sectionId: foreign.section.id,
+          kind: "regular",
+        },
+      ] satisfies SubscriptionRelation[],
+      cleanup,
+    };
+  } catch (error) {
+    try {
+      await cleanup();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Subscription fixture setup and cleanup failed",
+      );
+    }
+    throw error;
+  }
 }
 export type SubscriptionMutationFixture = Awaited<
   ReturnType<typeof createSubscriptionMutationFixture>
@@ -138,40 +166,62 @@ export async function openSubscriptionTransport(
   let clientId: string | undefined;
   let client: Client | undefined;
   const headers: Record<string, string> = {};
-  if (transport.endsWith("bearer")) {
-    const token = await issueAccessToken(page, anonymousRequest, {
-      scope,
-      clientScopes: scope.split(" "),
-      resource,
-    });
-    clientId = token.clientId;
-    headers.Authorization = `Bearer ${token.accessToken}`;
-  }
-  const request = transport.endsWith("session")
-    ? page.request
-    : anonymousRequest;
-  if (transport === "MCP bearer") {
-    client = new Client({ name: "subscription-state-test", version: "1" });
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(resource), {
-        requestInit: { headers },
-      }),
-    );
-  }
-  return {
-    transport,
-    request,
-    headers,
-    client,
-    close: async () => {
+  const close = async () => {
+    try {
       await client?.close();
+    } finally {
       if (clientId) {
         await withE2ePrisma((db) =>
           db.oAuthClient.deleteMany({ where: { clientId } }),
         );
       }
-    },
+    }
   };
+  try {
+    if (transport.endsWith("bearer")) {
+      clientId = await registerPublicClient(anonymousRequest, scope);
+      const { response, tokenBody } = await issueAccessTokenForClient(
+        page,
+        anonymousRequest,
+        {
+          clientId,
+          scope,
+          resource,
+        },
+      );
+      expect(response.status()).toBe(200);
+      expect(typeof tokenBody.access_token).toBe("string");
+      headers.Authorization = `Bearer ${tokenBody.access_token}`;
+    }
+    const request = transport.endsWith("session")
+      ? page.request
+      : anonymousRequest;
+    if (transport === "MCP bearer") {
+      client = new Client({ name: "subscription-state-test", version: "1" });
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(resource), {
+          requestInit: { headers },
+        }),
+      );
+    }
+    return {
+      transport,
+      request,
+      headers,
+      client,
+      close,
+    };
+  } catch (error) {
+    try {
+      await close();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Subscription transport setup and cleanup failed",
+      );
+    }
+    throw error;
+  }
 }
 export type SubscriptionConnection = Awaited<
   ReturnType<typeof openSubscriptionTransport>

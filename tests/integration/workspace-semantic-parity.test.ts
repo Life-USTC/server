@@ -333,6 +333,7 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
         nameCn: "2030春",
       },
     });
+    fixture.cleanupIds.semesters.push(newer.id);
     await db.section.update({
       where: { id: fixture.sections[1].id },
       data: { semesterId: newer.id },
@@ -345,6 +346,7 @@ it("interface-hierarchy.workspace-explicit-read-parity", async () => {
         semesterId: newer.id,
       },
     });
+    fixture.cleanupIds.sections.push(otherSection.id);
     const sections = [...fixture.sections, otherSection];
     await db.userSectionSubscription.createMany({
       data: [
