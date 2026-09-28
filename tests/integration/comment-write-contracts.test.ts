@@ -327,6 +327,9 @@ it("comment.interaction-gate", async ({ comment }) => {
   const { db, owner, other, admin, suspended, request, createInput, seed } =
     comment;
   await comment.runtime(async () => {
+    expect(
+      await db.user.findUniqueOrThrow({ where: { id: suspended } }),
+    ).toMatchObject({ isAdmin: true });
     await assertCommentWriteTransportAuthorization();
     const active = await seed();
     for (const viewer of [null, suspended]) {
