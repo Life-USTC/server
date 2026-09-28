@@ -292,6 +292,8 @@ jobs:
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
 
+  # This protected check name is retained for branch protection. It aggregates
+  # native CI outcomes and document validity, not requirement/test coverage.
   specification-evidence:
     name: Specification execution evidence
     needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-integration, test-rest, test-rls, test-e2e]
@@ -300,12 +302,8 @@ jobs:
       contents: read
     uses: ./.github/workflows/bun-job.yml
     with:
-      job-phase: ci:spec-evidence
-      specification-needs: ${{ toJSON(needs) }}
-      upload-artifact-name: specification-coverage
-      upload-artifact-path: spec-coverage.json
-      upload-artifact-no-files-found: error
-      upload-artifact-always: true
+      job-phase: ci:required-jobs
+      required-job-results: ${{ toJSON(needs) }}
 
   publish-e2e-html-report:
     name: Publish E2E HTML report

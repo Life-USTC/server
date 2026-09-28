@@ -51,7 +51,7 @@ change scenarios.
 
 ```text
 tests/e2e/fixtures/             scenario.json
-tests/e2e/src/app/**/test.ts    Route tests (browser UI)
+tests/e2e/src/app/**/test.ts    Browser scenarios (may span routes)
 tests/e2e/src/app/workspace/**  Covers /workspace/* UI
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
 tests/integration/rest/         REST contracts — not browser E2E
@@ -79,8 +79,9 @@ Helpers: `signInAsDebugUser`, `gotoAndWaitForReady`, `DEV_SEED` under `utils/`.
   gate fails when a route is orphaned. Every rendered page also owns exactly
   one mobile contract: inventory-driven public/authed/admin coverage, or a
   dedicated scenario with a spec, test name, and non-empty reason.
-- **L1 — rendered page baseline:** every page calls `assertPageContract` and is
-  exercised on desktop and mobile. Require a successful document response,
+- **L1 — rendered page baseline:** rendered pages use `assertPageContract` within their
+  scenarios and are exercised on desktop and mobile. A dedicated test per page
+  is not required. Require a successful document response,
   final URL/title/language, one visible main content target, a visible level-one
   heading, meaningful settled content, no runtime/console error or error
   overlay, and no document-level horizontal overflow.
@@ -108,3 +109,23 @@ destructive, OAuth, download, upload, clipboard, and external-navigation flows
 need capability-specific assertions or an explicit inventory exemption. Never
 soft-pass an expected control with `if (count() === 0) return`; deterministic
 fixtures and `expect(...).toBeVisible()` must make missing UI fail loudly.
+
+
+## State and journey scenarios
+
+Apply the mutation/consumer/connection split in `tests/AGENTS.md`. Group checks by
+business state or journey when they share a meaningful scenario; visiting multiple
+pages is useful when checking their projections of the same state. Keep independent
+permission and failure branches separate instead of building one enormous journey.
+
+A Web mutation test must perform the target operation through the UI. Preparing
+unrelated prerequisites through an isolated fixture adapter is allowed. Consumer
+tests prepare state independently and verify actual rendered results. Include
+explicit visibility, text, typography and relative layout assertions where the
+requirement calls for them; a screenshot or a successful navigation alone is not
+proof. A fresh-load consumer does not replace checks of an already-open page after
+mutation. Restore owned fixtures and keep tests independent across runner projects.
+
+Generated Playwright tests are ordinary reviewed repository code. Do not derive
+business expectations from the current page, runtime YAML or an agent's success
+report; retain independently specified expected state and meaningful failure checks.

@@ -7,7 +7,7 @@ export type AcceptanceTest = {
   given: string;
   when: string;
   then: string[];
-  test: TestReference;
+  test?: TestReference;
 };
 export type Requirement = {
   id: string;

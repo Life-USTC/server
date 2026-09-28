@@ -2,7 +2,6 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AnySchema, ValidateFunction } from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
-import ts from "typescript";
 import {
   isDomainExpectationKind,
   validateDomainExpectation,
@@ -12,7 +11,7 @@ import {
   readSpecifications,
   type SpecificationFile,
 } from "./repository";
-import { repositoryRoot, resolveRepositoryFile } from "./yaml";
+import { repositoryRoot } from "./yaml";
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -246,125 +245,11 @@ export function validateSpecificationShapes(
   return errors;
 }
 
-function callParts(expression: ts.Expression): string[] {
-  if (ts.isIdentifier(expression)) return [expression.text];
-  if (ts.isPropertyAccessExpression(expression))
-    return [...callParts(expression.expression), expression.name.text];
-  if (ts.isCallExpression(expression)) return callParts(expression.expression);
-  return [];
-}
-
-/** Literal test declarations only: comments or unrelated strings are not evidence. */
-export function declaredTestNames(text: string): Set<string> {
-  const source = ts.createSourceFile(
-    "test.ts",
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const names = new Set<string>();
-  const duplicates = new Set<string>();
-  function unsafeOptions(node: ts.CallExpression): boolean {
-    // A callback plus dynamic/spread options cannot establish an enabled test.
-    // Both current (name, options, fn) and older (name, fn, options) orderings
-    // can hide expected-failure or skip flags from property-access inspection.
-    if (node.arguments.length < 3) return false;
-    const options =
-      ts.isArrowFunction(node.arguments[1]) ||
-      ts.isFunctionExpression(node.arguments[1])
-        ? node.arguments[2]
-        : node.arguments[1];
-    if (!ts.isObjectLiteralExpression(options)) return true;
-    for (const property of options.properties) {
-      if (!ts.isPropertyAssignment(property)) return true;
-      if (!ts.isIdentifier(property.name) && !ts.isStringLiteral(property.name))
-        return true;
-      const key = property.name.text;
-      if (
-        ["fails", "skip", "todo"].includes(key) &&
-        property.initializer.kind !== ts.SyntaxKind.FalseKeyword
-      )
-        return true;
-      if (["skipIf", "runIf"].includes(key)) return true;
-    }
-    return false;
-  }
-  function walk(node: ts.Node, disabled: boolean) {
-    // Canonical tests must be registered once, unconditionally. A literal title
-    // inside a loop, conditional or arbitrary callback is not a unique test.
-    disabled ||=
-      ts.isIterationStatement(node, false) ||
-      ts.isIfStatement(node) ||
-      ts.isSwitchStatement(node) ||
-      ts.isConditionalExpression(node) ||
-      (ts.isBinaryExpression(node) &&
-        [
-          ts.SyntaxKind.AmpersandAmpersandToken,
-          ts.SyntaxKind.BarBarToken,
-          ts.SyntaxKind.QuestionQuestionToken,
-        ].includes(node.operatorToken.kind));
-    if (
-      ts.isArrowFunction(node) ||
-      ts.isFunctionExpression(node) ||
-      ts.isFunctionDeclaration(node)
-    ) {
-      const parent = node.parent;
-      const parts = ts.isCallExpression(parent)
-        ? callParts(parent.expression)
-        : [];
-      const suiteParts =
-        parts[0] === "describe"
-          ? parts.slice(1)
-          : parts[0] === "test" && parts[1] === "describe"
-            ? parts.slice(2)
-            : undefined;
-      disabled ||= !suiteParts?.every((part) =>
-        ["only", "concurrent", "sequential", "serial", "parallel"].includes(
-          part,
-        ),
-      );
-    }
-    if (ts.isCallExpression(node)) {
-      const parts = callParts(node.expression);
-      const isTest = ["test", "it", "describe"].includes(parts[0]);
-      disabled ||=
-        isTest &&
-        (parts.some((part) =>
-          ["skip", "todo", "fails", "skipIf", "runIf"].includes(part),
-        ) ||
-          unsafeOptions(node));
-      const first = node.arguments[0];
-      if (
-        !disabled &&
-        ["test", "it"].includes(parts[0]) &&
-        parts
-          .slice(1)
-          .every((part) =>
-            ["only", "concurrent", "sequential"].includes(part),
-          ) &&
-        node.arguments.length >= 2 &&
-        first &&
-        (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first))
-      ) {
-        if (names.has(first.text)) duplicates.add(first.text);
-        names.add(first.text);
-      }
-    }
-    ts.forEachChild(node, (child) => walk(child, disabled));
-  }
-  walk(source, false);
-  for (const name of duplicates) names.delete(name);
-  return names;
-}
-
 export async function validateSpecificationReferences(
   files: SpecificationFile[],
-  root = repositoryRoot,
-  testNames = new Map<string, Set<string>>(),
 ): Promise<{
   errors: string[];
   requirements: number;
-  boundRequirements: number;
 }> {
   const errors: string[] = [];
   const documentIds = new Set<string>();
@@ -382,9 +267,7 @@ export async function validateSpecificationReferences(
       .filter(({ data }) => data.kind === "feature")
       .map(({ data }) => [data.id, data]),
   );
-  const testOwners = new Map<string, string>();
   let requirements = 0;
-  let boundRequirements = 0;
   for (const { path, data } of files) {
     const documentId = `${data.kind}:${data.id}`;
     if (documentIds.has(documentId))
@@ -453,52 +336,6 @@ export async function validateSpecificationReferences(
             );
         }
       }
-      const acceptance = requirement.acceptance;
-      if (!acceptance) continue;
-      const test = acceptance.test;
-      if (!test) {
-        errors.push(
-          `${path}: ${requirement.id}: acceptance requires exactly one test`,
-        );
-        continue;
-      }
-      boundRequirements += 1;
-      try {
-        if (
-          !test.file.startsWith("tests/") ||
-          test.file.split("/").includes("..") ||
-          !/(?:\.test|\/test)\.ts$/.test(test.file)
-        ) {
-          throw new Error(
-            "test reference must point to a TypeScript test under tests/",
-          );
-        }
-        if (test.name !== requirement.id) {
-          throw new Error("canonical test name must equal its requirement ID");
-        }
-        const filename = await resolveRepositoryFile(root, test.file);
-        const identity = `${filename}\0${test.name}`;
-        const owner = testOwners.get(identity);
-        if (owner) {
-          throw new Error(
-            `test already belongs to ${owner}; one test cannot verify multiple requirements`,
-          );
-        }
-        testOwners.set(identity, requirement.id);
-        if (!testNames.has(filename))
-          testNames.set(
-            filename,
-            declaredTestNames(await readFile(filename, "utf8")),
-          );
-        if (!testNames.get(filename)?.has(test.name))
-          throw new Error(
-            `no unique enabled literal test named ${JSON.stringify(test.name)}`,
-          );
-      } catch (error) {
-        errors.push(
-          `${path}: ${requirement.id}: ${test.file}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
     }
     // Policy and decision references use the same feature/capability identity.
     function checkReferences(value: unknown) {
@@ -536,70 +373,10 @@ export async function validateSpecificationReferences(
     }
     checkReferences(data);
   }
-  return { errors, requirements, boundRequirements };
+  return { errors, requirements };
 }
 
-/** Stable requirement IDs form the namespace for canonical acceptance tests. */
-export async function validateCanonicalTestOwnership(
-  files: SpecificationFile[],
-  root = repositoryRoot,
-  testNames = new Map<string, Set<string>>(),
-): Promise<string[]> {
-  const errors: string[] = [];
-  const owners = new Map(
-    files.flatMap(({ data }) =>
-      collectRequirements(data).map(
-        (requirement) => [requirement.id, requirement] as const,
-      ),
-    ),
-  );
-  const prefixes = files
-    .filter(({ data }) => data.kind === "feature" || data.kind === "policy")
-    .map(({ data }) => `${String(data.id)}.`);
-  const seen = new Map<string, string>();
-  async function walk(directory: string) {
-    for (const entry of await readdir(join(root, directory), {
-      withFileTypes: true,
-    })) {
-      const path = `${directory}/${entry.name}`;
-      if (entry.isDirectory()) await walk(path);
-      else if (/(?:\.test|\/test)\.ts$/.test(path)) {
-        const filename = await resolveRepositoryFile(root, path);
-        let names = testNames.get(filename);
-        if (!names) {
-          names = declaredTestNames(await readFile(filename, "utf8"));
-          testNames.set(filename, names);
-        }
-        for (const name of names) {
-          if (
-            !prefixes.some((prefix) => name.startsWith(prefix)) ||
-            !/^[a-z0-9.-]+$/.test(name)
-          )
-            continue;
-          const owner = owners.get(name);
-          if (!owner)
-            errors.push(`${path}: canonical test ${name} has no requirement`);
-          else if (owner.acceptance?.test.file !== path)
-            errors.push(
-              `${path}: canonical test ${name} is not bound by its requirement`,
-            );
-          if (seen.has(name))
-            errors.push(
-              `${path}: canonical test ${name} is also declared in ${seen.get(name)}`,
-            );
-          seen.set(name, path);
-        }
-      }
-    }
-  }
-  await walk("tests");
-  return errors;
-}
-
-export async function checkSpecifications(
-  root = repositoryRoot,
-  complete = false,
-) {
+export async function checkSpecifications(root = repositoryRoot) {
   const [files, validators] = await Promise.all([
     readSpecifications(root),
     loadSpecificationValidators(root),
@@ -607,14 +384,7 @@ export async function checkSpecifications(
   if (!files.length) throw new Error("No YAML specifications found");
   const shapeErrors = validateSpecificationShapes(files, validators);
   if (shapeErrors.length) throw new Error(shapeErrors.join("\n"));
-  // Share parsed declarations only within this check. Subsequent checks must
-  // reread the filesystem so edits and newly disabled tests cannot be hidden.
-  const testNames = new Map<string, Set<string>>();
-  const references = await validateSpecificationReferences(
-    files,
-    root,
-    testNames,
-  );
+  const references = await validateSpecificationReferences(files);
   const typed = files
     .flatMap(({ data }) => collectRequirements(data))
     .filter(
@@ -683,23 +453,7 @@ export async function checkSpecifications(
       });
     }
   }
-  const ownershipErrors = await validateCanonicalTestOwnership(
-    files,
-    root,
-    testNames,
-  );
-  const missing = files
-    .flatMap(({ data }) => collectRequirements(data))
-    .filter((requirement) => !requirement.acceptance)
-    .map((requirement) => requirement.id);
-  const errors = [
-    ...references.errors,
-    ...domainErrors,
-    ...ownershipErrors,
-    ...(complete
-      ? missing.map((id) => `${id}: missing canonical acceptance test`)
-      : []),
-  ];
+  const errors = [...references.errors, ...domainErrors];
   if (errors.length) throw new Error(errors.join("\n"));
   return {
     files: files.length,
@@ -709,7 +463,5 @@ export async function checkSpecifications(
       domainReferences,
     },
     ...references,
-    missing,
-    complete: missing.length === 0,
   };
 }

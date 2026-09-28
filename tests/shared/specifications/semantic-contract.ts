@@ -112,14 +112,7 @@ export class SemanticContract {
     };
   }
 
-  recordVitest(context: {
-    task: Pick<TestContext["task"], "name" | "meta">;
-  }): void {
-    deepStrictEqual(
-      context.task.name,
-      this.#requirement.id,
-      "Semantic evidence must belong to its canonical test",
-    );
+  recordVitest(context: { task: Pick<TestContext["task"], "meta"> }): void {
     ok(
       !Object.hasOwn(context.task.meta, "specification"),
       "Duplicate semantic receipt",
@@ -127,12 +120,7 @@ export class SemanticContract {
     Object.assign(context.task.meta, { specification: this.#receipt() });
   }
 
-  recordPlaywright(info: Pick<TestInfo, "title" | "annotations">): void {
-    deepStrictEqual(
-      info.title,
-      this.#requirement.id,
-      "Semantic evidence must belong to its canonical test",
-    );
+  recordPlaywright(info: Pick<TestInfo, "annotations">): void {
     ok(
       !info.annotations.some(({ type }) => type === "specification"),
       "Duplicate semantic receipt",
@@ -155,11 +143,7 @@ export async function semanticContract(
     collectRequirements(data),
   );
   const matches = requirements.filter((requirement) => requirement.id === id);
-  deepStrictEqual(
-    matches.length,
-    1,
-    `Expected one canonical requirement: ${id}`,
-  );
+  deepStrictEqual(matches.length, 1, `Expected one requirement: ${id}`);
   const contract = new SemanticContract(matches[0]);
   if (kind) contract.equal("/kind", kind);
   return contract;

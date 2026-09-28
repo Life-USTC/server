@@ -8,7 +8,7 @@
 
 ## Evidence
 
-<!-- Link the successful full CI run for this branch's current commit before opening the PR; local check alone is insufficient. Identify changed requirement IDs, their behavioral tests, and specification execution evidence. -->
+<!-- Link the successful full CI run for this branch's current commit before opening the PR; local check alone is insufficient. Identify changed requirements and explain how the behavioral tests observe their expected results; maintain this correspondence by review. -->
 
 <!-- Visual changes: upload matched before/after screenshots to GitHub user-attachments, then use a table with <img src="uploaded URL" width="420"> in each cell. Verify links while signed in. Never use a public asset repository or Contents API. If upload is unavailable, state that evidence upload is pending; omit this section for nonvisual changes. -->
 

@@ -10,8 +10,8 @@ on:
       job-phase:
         required: true
         type: string
-      specification-needs:
-        description: JSON needs results from the specification evidence caller.
+      required-job-results:
+        description: Native mandatory CI job results for the aggregate gate.
         required: false
         type: string
         default: ""
@@ -75,9 +75,6 @@ jobs:
             # Static checks and the production build need a Prisma datasource
             # during preparation, but they never connect to this address.
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_ci"
-            if [ "$JOB_PHASE" = "ci:unit" ]; then
-              echo "SPEC_EVIDENCE_DIR=spec-evidence"
-            fi
             if [ "$JOB_PHASE" = "ci:verify" ] || [ "$JOB_PHASE" = "ci:unit" ]; then
               echo "GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY=true"
             fi
@@ -93,19 +90,12 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
-      - name: Download this workflow execution's specification evidence
-        if: ${{ inputs.job-phase == 'ci:spec-evidence' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: spec-evidence-*
-          path: downloaded-spec-evidence
-
       - name: Run job phase
         id: run-phase
         shell: bash
         env:
           JOB_PHASE: ${{ inputs.job-phase }}
-          SPEC_EVIDENCE_NEEDS: ${{ inputs.specification-needs }}
+          REQUIRED_JOB_RESULTS: ${{ inputs.required-job-results }}
         run: |
           case "$JOB_PHASE" in
             ci:verify)
@@ -126,8 +116,9 @@ jobs:
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json
               bunx tsc --noEmit -p tsconfig.typecheck.operational.json
               ;;
-            ci:spec-evidence)
-              bun run scripts/specifications/evidence.ts coverage --results downloaded-spec-evidence --output spec-coverage.json --enforce
+            ci:required-jobs)
+              bun run specs:check
+              bun run tests/ci/required-jobs.ts
               ;;
             ci:unit)
               bun run app:prepare
@@ -156,29 +147,12 @@ jobs:
           GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
         run: bunx vitest run tests/unit/lib/graphql/graphql-schema-snapshot.test.ts
 
-      - name: Stamp unit execution evidence
-        if: ${{ always() && inputs.job-phase == 'ci:unit' }}
-        env:
-          SPEC_EVIDENCE_OUTCOME: ${{ steps.run-phase.outcome }}
-        run: bun run scripts/specifications/evidence.ts capture spec-evidence
-
-      - name: Upload unit execution evidence
-        if: ${{ always() && inputs.job-phase == 'ci:unit' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: spec-evidence-unit
-          path: spec-evidence/
-          overwrite: true
-          retention-days: 14
-          if-no-files-found: error
-
       - name: Upload artifact
         id: upload-artifact
         if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.upload-artifact-name }}
-          overwrite: ${{ inputs.job-phase == 'ci:spec-evidence' }}
           path: ${{ inputs.upload-artifact-path }}
           if-no-files-found: ${{ inputs.upload-artifact-no-files-found }}
           retention-days: ${{ inputs.upload-artifact-retention-days }}

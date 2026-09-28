@@ -6,17 +6,6 @@ export default defineConfig({
     // Type-graph and compiler audits share the coverage runner with ordinary
     // unit tests; bound CI concurrency to avoid CPU/heap contention.
     maxWorkers: process.env.CI ? 2 : undefined,
-    reporters: process.env.SPEC_EVIDENCE_DIR
-      ? [
-          "default",
-          [
-            "json",
-            {
-              outputFile: `${process.env.SPEC_EVIDENCE_DIR}/vitest-${process.pid}.json`,
-            },
-          ],
-        ]
-      : ["default"],
     environment: "node",
     include: ["tests/unit/**/*.test.ts"],
     globals: true,

@@ -176,7 +176,7 @@ rationale:
 - The former security.upload-download-both-checked umbrella is owned by upload.permission-and-quota,
   upload.write-auth-unsuspended, upload.r2-backend, and cases.content-security.upload-attachment-download-1.
   Upload authorization, ownership, and quota do not confer download authority; each request independently
-  checks current owner or attachment visibility. Each owner retains its independent canonical acceptance test.
+  checks current owner or attachment visibility. The related acceptance scenarios are maintained and reviewed alongside these requirements.
 - Account confirmation-word validation remains owned by cases.account.account-deletion-1. Shared warning,
   confirmation, and cancellation behavior is retained in cases.content-security.deletion-confirmation;
   removing the former security grouping does not waive the declared upload-management web confirmation flow.

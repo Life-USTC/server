@@ -19,19 +19,7 @@ export default defineConfig({
   // individual deterministic API assertion.
   retries: 0,
   workers: 1,
-  reporter: [
-    ["list"],
-    ...(process.env.SPEC_EVIDENCE_DIR
-      ? [
-          [
-            "json",
-            {
-              outputFile: `${process.env.SPEC_EVIDENCE_DIR}/playwright-${process.pid}.json`,
-            },
-          ] as const,
-        ]
-      : []),
-  ],
+  reporter: [["list"]],
   use: {
     baseURL,
     trace: "retain-on-failure",

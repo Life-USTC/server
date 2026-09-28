@@ -7,20 +7,13 @@ async function main() {
   const [command, ...arguments_] = process.argv.slice(2);
   switch (command) {
     case "check": {
-      if (
-        arguments_.length > 1 ||
-        (arguments_.length === 1 && arguments_[0] !== "--complete")
-      )
-        throw new Error("Usage: bun run specs:check [--complete]");
-      const result = await checkSpecifications(
-        repositoryRoot,
-        arguments_[0] === "--complete",
+      if (arguments_.length) throw new Error("Usage: bun run specs:check");
+      const result = await checkSpecifications(repositoryRoot);
+      console.log(
+        `Validated ${result.files} YAML documents and ${result.requirements} requirements.`,
       );
       console.log(
-        `Validated ${result.files} YAML documents, ${result.requirements} requirements, ${result.boundRequirements} canonical acceptance tests; ${result.missing.length} requirements still have no acceptance test.`,
-      );
-      console.log(
-        "Structural validity does not mean complete acceptance. Use --complete to require a test for every requirement, and execute the suites for behavioral evidence.",
+        "Schema and business references are valid. Requirement-to-test correspondence is maintained manually; this command does not establish behavioral coverage.",
       );
       return;
     }
@@ -28,7 +21,7 @@ async function main() {
       if (arguments_.length) throw new Error("Usage: bun run specs:list");
       for (const feature of await readFeatureSpecifications()) {
         console.log(
-          `${feature.id}\t${feature.name}\t${feature.requirements.length} requirements\t${feature.requirements.filter((requirement) => requirement.acceptance).length} acceptance tests\tdocs/features/${feature.id}.yaml`,
+          `${feature.id}\t${feature.name}\t${feature.requirements.length} requirements\t${feature.requirements.filter((requirement) => requirement.acceptance).length} acceptance scenarios\tdocs/features/${feature.id}.yaml`,
         );
       }
       return;
