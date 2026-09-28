@@ -159,9 +159,10 @@ function eventMeta(event: YoungEventSummary) {
                   <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 py-2 text-sm hover:bg-muted/60" href={eventHref(event)}>
                     <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
                     <span class="min-w-0">
-                      <span class="block truncate font-medium">{event.name}</span>
-                      {#if event.location || event.sourceMissing}
-                        <span class="block truncate text-muted-foreground text-xs">{[event.location, event.sourceMissing ? labels.sourceMissing : null].filter(Boolean).join(" · ")}</span>
+                      <span class="block truncate font-medium" data-slot="item-title">{event.name}</span>
+                      <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{eventMeta(event)}</span>
+                      {#if event.sourceMissing}
+                        <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{labels.sourceMissing}</span>
                       {/if}
                     </span>
                   </a>
@@ -215,12 +216,10 @@ function eventMeta(event: YoungEventSummary) {
             }).format(day.date)}
           </div>
           {#each day.events as event (event.youngId)}
-            <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
-              <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
-              <span class="min-w-0">
-                <span class="block font-medium">{event.name}</span>
-                <span class="block truncate text-muted-foreground text-xs">{[eventMeta(event), event.sourceMissing ? labels.sourceMissing : null].filter(Boolean).join(" · ")}</span>
-              </span>
+            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
+              <div class="font-medium">{event.name}</div>
+              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
             </a>
           {/each}
         </div>

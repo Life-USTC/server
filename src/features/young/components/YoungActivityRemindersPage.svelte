@@ -59,6 +59,7 @@ async function markRead(id: string) {
       { method: "POST" },
     );
     if (!response.ok) throw new Error();
+    await response.json();
     await invalidateAll();
   } catch {
     toast.error(copy.failed);

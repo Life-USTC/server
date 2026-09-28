@@ -7,12 +7,14 @@ import type {
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
@@ -57,6 +59,104 @@ function hideBrokenImage(event: Event) {
 }
 
 const youngCopy = $derived(copy.youngEvents);
+type Field = { label: string; value: string | null | undefined };
+
+function fieldList(fields: Field[]) {
+  return fields.filter(
+    (field) => field.value != null && field.value !== "",
+  ) as Array<{ label: string; value: string }>;
+}
+
+function numberValue(value: number | null) {
+  return value == null ? null : String(value);
+}
+
+function fullRange(start: string | null, end: string | null) {
+  const from = youngDateTime(start);
+  const to = youngDateTime(end);
+  if (from && to) return `${from} – ${to}`;
+  return youngDateRange(start, end, youngCopy);
+}
+
+const timeFields = $derived(
+  fieldList([
+    {
+      label: youngCopy.eventTime,
+      value: fullRange(event.startAt, event.endAt),
+    },
+    {
+      label: youngCopy.signupWindow,
+      value: fullRange(event.applyStartAt, event.applyEndAt),
+    },
+  ]),
+);
+const recordFields = $derived(
+  fieldList([
+    {
+      label: youngCopy.createdAtUpstream,
+      value: youngDateTime(event.createdAtUpstream),
+    },
+    { label: youngCopy.auditedAt, value: youngDateTime(event.auditedAt) },
+    {
+      label: youngCopy.updatedAtUpstream,
+      value: youngDateTime(event.updatedAtUpstream),
+    },
+  ]),
+);
+const registrationFields = $derived(
+  fieldList([
+    {
+      label: youngCopy.signupRequirement,
+      value:
+        event.requiresSignup === true
+          ? youngCopy.signupRequired
+          : event.requiresSignup === false
+            ? youngCopy.signupNotRequired
+            : null,
+    },
+    { label: youngCopy.appliedCount, value: numberValue(event.appliedCount) },
+    { label: youngCopy.capacity, value: numberValue(event.capacity) },
+    { label: youngCopy.grades, value: event.grades },
+    {
+      label: youngCopy.allowedAttachmentTypes,
+      value: event.allowedAttachmentTypes.join(", ").toUpperCase(),
+    },
+    {
+      label: youngCopy.onlineMeetingInfo,
+      value: event.isOnline === false ? null : event.onlineMeetingInfo,
+    },
+  ]),
+);
+const peopleFields = $derived(
+  fieldList([
+    { label: youngCopy.limitNum, value: numberValue(event.limitNum) },
+    { label: youngCopy.partakeNum, value: numberValue(event.partakeNum) },
+    { label: youngCopy.sumPersons, value: numberValue(event.sumPersons) },
+    { label: youngCopy.hours, value: numberValue(event.hours) },
+    { label: youngCopy.sumHours, value: numberValue(event.sumHours) },
+    { label: youngCopy.serviceHour, value: numberValue(event.serviceHour) },
+    {
+      label: youngCopy.duration,
+      value:
+        event.duration == null
+          ? null
+          : youngCopy.durationHours.replace("{value}", String(event.duration)),
+    },
+    { label: youngCopy.favCount, value: numberValue(event.favCount) },
+  ]),
+);
+const organizationFields = $derived(
+  fieldList([
+    { label: youngCopy.category, value: event.category },
+    { label: youngCopy.sponsor, value: event.sponsor },
+    { label: youngCopy.externalSponsor, value: event.externalSponsor },
+    { label: youngCopy.organizer, value: event.organizer },
+    { label: youngCopy.department, value: event.department },
+    { label: youngCopy.contactName, value: event.contactName },
+    { label: youngCopy.contactTel, value: event.contactTel },
+    { label: youngCopy.location, value: event.location },
+  ]),
+);
 const badges = $derived(
   [
     ...new Set([
@@ -73,7 +173,7 @@ const badges = $derived(
   <header class="relative isolate overflow-hidden bg-muted" data-testid="young-event-banner">
     {#if event.imageUrl}
       <a class="absolute inset-0" href={event.imageUrl} rel="noreferrer noopener" target="_blank" aria-label={youngCopy.poster}>
-        <img alt="" class="h-full w-full object-cover" onerror={hideBrokenImage} src={event.imageUrl} />
+        <img alt={event.name} class="h-full w-full object-cover" onerror={hideBrokenImage} src={event.imageUrl} />
       </a>
     {/if}
     <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,white_0%,white_28%,transparent_72%)] dark:bg-[linear-gradient(to_top,black_0%,black_28%,transparent_72%)]"></div>
@@ -114,7 +214,33 @@ const badges = $derived(
   {#if event.sourceMissing}
     <Alert.Root><Alert.Description>{youngCopy.sourceMissing}</Alert.Description></Alert.Root>
   {/if}
-  <YoungSourceNote labels={youngCopy} {source} />
+  {#snippet facts(title: string, items: { label: string; value: string }[])}
+    {#if items.length > 0}
+      <section class="grid gap-3">
+        <h2 class="text-sm font-semibold tracking-tight">{title}</h2>
+        <DetailDefinitionList {items} />
+      </section>
+    {/if}
+  {/snippet}
+  {@render facts(youngCopy.sectionTime, timeFields)}
+  {@render facts(youngCopy.sectionRegistration, registrationFields)}
+  {@render facts(youngCopy.sectionPeople, peopleFields)}
+  {@render facts(youngCopy.sectionOrganization, organizationFields)}
+  {@render facts(youngCopy.sectionRecord, recordFields)}
+  {#if event.places && event.places.length > 0}
+    <section class="grid gap-3">
+      <h2 class="text-sm font-semibold tracking-tight">{youngCopy.sectionPlaces}</h2>
+      <ul class="grid gap-2">
+        {#each event.places as place, index (index)}
+          {#if place.placeInfo}<li class="text-sm">{place.placeInfo}</li>{/if}
+        {/each}
+      </ul>
+    </section>
+  {/if}
+  {#if event.requiresSignupInfo != null}
+    <p class="text-sm text-muted-foreground">{event.requiresSignupInfo ? youngCopy.signupInfoRequired : youngCopy.signupInfoNotRequired}</p>
+  {/if}
+  <YoungSourceNote labels={youngCopy} missing={event.sourceMissing ? youngCopy.sourceMissing : null} {source} />
   <section id="comments" class="scroll-mt-4">
     {#key `comments:young-event:${event.youngId}`}
       {#if CommentsPanel}

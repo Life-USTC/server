@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
   YoungOrganizerSummary,
@@ -9,13 +10,17 @@ import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/stores";
 import CollectionPage from "$lib/components/CollectionPage.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
+import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import {
   groupYoungEventsByStartDate,
-  youngClockTime,
+  youngCapacity,
+  youngDateTime,
   youngListDayLabel,
-  youngMonthDay,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
 import YoungEventFilters from "./YoungEventFilters.svelte";
@@ -53,24 +58,19 @@ const descriptionParts = $derived(
 );
 const locale = $derived($appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
 const groups = $derived(groupYoungEventsByStartDate(data));
+const summary = $derived(
+  catalogShowingSummary(
+    pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing,
+    data.length,
+    pagination.total,
+  ),
+);
 
-function rowMeta(event: (typeof data)[number]) {
-  const deadline =
-    event.requiresSignup === false
-      ? youngCopy.signupNotRequired
-      : event.applyEndAt
-        ? `${youngCopy.signupDeadline} ${[youngMonthDay(event.applyEndAt), youngClockTime(event.applyEndAt)].filter(Boolean).join(" ")}`
-        : null;
-  return [
-    event.location,
-    event.isOnline === true ? youngCopy.online : null,
-    event.module,
-    event.activityLevel,
-    event.hours != null ? `${event.hours} ${youngCopy.hours}` : null,
-    deadline,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+function listDateTime(value: string | null | undefined) {
+  const formatted = youngDateTime(value);
+  if (!formatted) return null;
+  const [date, time] = formatted.split(" ");
+  return time ? `${date} ${time.slice(0, 5)}` : formatted;
 }
 </script>
 
@@ -109,40 +109,79 @@ function rowMeta(event: (typeof data)[number]) {
       <YoungEventFilters {copy} {filters} {organizers} {categories} />
   {/snippet}
     <section class="grid min-w-0 gap-3">
+      <ResultsSummary {summary} page={pagination.page} totalPages={pagination.totalPages} />
       {#if data.length > 0}
-        <div class="grid gap-6">
-          {#each groups as group (group.key || "unknown")}
-            <section class="grid gap-1">
-              <h2 class="text-sm font-medium text-muted-foreground">
-                {youngListDayLabel(group.key, locale, youngCopy.unknownTime)}
-              </h2>
-              <ul class="divide-y">
-                {#each group.events as event (event.youngId)}
-                  <li>
-                    <a
-                      class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 py-3 hover:bg-muted/40 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto]"
-                      href={youngDetailHref(event.youngId, $appPage.url)}
-                    >
-                      <time class="pt-0.5 text-sm tabular-nums text-muted-foreground">
-                        {youngClockTime(event.startAt) ?? "–"}
-                      </time>
-                      <span class="min-w-0">
-                        <span class="block font-medium [overflow-wrap:anywhere]">{event.name}</span>
-                        <span class="mt-0.5 block truncate text-sm text-muted-foreground">{rowMeta(event)}</span>
-                        {#if event.sourceMissing}
-                          <span class="mt-0.5 block text-xs text-muted-foreground">{youngCopy.sourceMissing}</span>
-                        {/if}
-                      </span>
-                      <Badge class="col-start-2 w-fit sm:col-start-auto sm:justify-self-end" variant={event.isActive ? "default" : "outline"}>
-                        {event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
-                      </Badge>
-                    </a>
-                  </li>
+        <ResponsiveCollection>
+          {#snippet mobile()}
+            <div class="grid gap-6">
+              {#each groups as group (group.key || "unknown")}
+                <section class="grid gap-1">
+                  <h2 class="text-sm font-medium text-muted-foreground">
+                    {youngListDayLabel(group.key, locale, youngCopy.unknownTime)}
+                  </h2>
+                  <Item.Group class="gap-0" role="list">
+                    {#each group.events as event (event.youngId)}
+                      <div role="listitem">
+                        <Item.Root size="sm">
+                          {#snippet child({ props })}
+                            <a href={youngDetailHref(event.youngId, $appPage.url)} {...props}>
+                              <Item.Content>
+                                <Item.Title>{event.name}</Item.Title>
+                                <p class="text-sm leading-normal text-muted-foreground">
+                                  <span>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</span>
+                                  {#if event.location}<span> · {event.location}</span>{/if}
+                                  {#if event.category}<span> · {event.category}</span>{/if}
+                                  {#if event.module}<span> · {event.module}</span>{/if}
+                                  {#if event.organizer}<span> · {event.organizer}</span>{/if}
+                                </p>
+                              </Item.Content>
+                              <Item.Actions>
+                                <Badge variant={event.isActive ? "default" : "outline"}>
+                                  {event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}
+                                </Badge>
+                              </Item.Actions>
+                            </a>
+                          {/snippet}
+                        </Item.Root>
+                      </div>
+                    {/each}
+                  </Item.Group>
+                </section>
+              {/each}
+            </div>
+          {/snippet}
+          {#snippet desktop()}
+            <Table.Root>
+              <Table.Header>
+                <Table.Row>
+                  <Table.Head>{youngCopy.eventName}</Table.Head>
+                  <Table.Head>{youngCopy.eventTime}</Table.Head>
+                  <Table.Head>{youngCopy.location}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
+                  <Table.Head>{youngCopy.status}</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {#each data as event (event.youngId)}
+                  <Table.Row>
+                    <Table.Cell>
+                      <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId, $appPage.url)}>
+                        <span>{event.name}</span>
+                      </a>
+                      {#if event.category}<span class="mt-0.5 block text-xs text-muted-foreground">{event.category}</span>{/if}
+                      {#if event.module}<span class="block text-xs text-muted-foreground">{event.module}</span>{/if}
+                      {#if event.organizer}<span class="block text-xs text-muted-foreground">{event.organizer}</span>{/if}
+                    </Table.Cell>
+                    <Table.Cell>{listDateTime(event.startAt) ?? youngCopy.unknownTime}</Table.Cell>
+                    <Table.Cell><span>{event.location ?? youngCopy.unknownValue}</span></Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue)}</Table.Cell>
+                    <Table.Cell>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Table.Cell>
+                  </Table.Row>
                 {/each}
-              </ul>
-            </section>
-          {/each}
-        </div>
+              </Table.Body>
+            </Table.Root>
+          {/snippet}
+        </ResponsiveCollection>
       {:else}
         <div class="py-10">
           <ResultsEmpty

@@ -3,6 +3,7 @@ import type { YoungSourceFreshness } from "@/features/young/server/young-event-s
 import { youngDateTime } from "../lib/young-event-display";
 
 type Props = {
+  missing?: string | null;
   source: YoungSourceFreshness;
   labels: {
     sourceFresh: string;
@@ -11,7 +12,7 @@ type Props = {
   };
 };
 
-let { source, labels }: Props = $props();
+let { labels, missing = null, source }: Props = $props();
 
 const syncedAt = $derived(youngDateTime(source.lastSyncedAt));
 </script>
@@ -25,4 +26,5 @@ const syncedAt = $derived(youngDateTime(source.lastSyncedAt));
     {labels.sourceUnknown}
   {/if}
   {#if syncedAt} · {syncedAt}{/if}
+  {#if missing}<span> · {missing}</span>{/if}
 </p>

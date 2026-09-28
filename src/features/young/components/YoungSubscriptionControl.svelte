@@ -163,6 +163,7 @@ async function save(next: boolean) {
       }),
     });
     if (!response.ok) throw new Error(copy.failed);
+    await response.json();
     subscribed = next;
     toast.success(copy.saved);
     await invalidateAll();

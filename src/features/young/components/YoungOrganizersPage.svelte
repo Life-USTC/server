@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
@@ -11,6 +12,7 @@ import FilterToolbar from "$lib/components/FilterToolbar.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import ResponsiveCollection from "$lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import SearchField from "$lib/components/SearchField.svelte";
 import { toolbarControlClass } from "$lib/components/toolbar-control";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -50,6 +52,16 @@ function organizerHref(id: string) {
 function eventsHref(id: string) {
   return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
+
+const summary = $derived(
+  catalogShowingSummary(
+    pagination.total === 1
+      ? youngCopy.organizersShowingOne
+      : youngCopy.organizersShowing,
+    data.length,
+    pagination.total,
+  ),
+);
 </script>
 
 {#snippet paginationFooter()}
@@ -86,6 +98,7 @@ function eventsHref(id: string) {
     {/snippet}
 
     <section class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3">
+      <ResultsSummary {summary} page={pagination.page} totalPages={pagination.totalPages} />
       {#if data.length > 0}
         <ResponsiveCollection>
           {#snippet mobile()}
@@ -121,9 +134,9 @@ function eventsHref(id: string) {
               <Table.Header>
                 <Table.Row>
                   <Table.Head>{youngCopy.organizer}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.activeEvents}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.upcomingEvents}</Table.Head>
-                  <Table.Head class="text-right">{youngCopy.historyEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.activeEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.upcomingEvents}</Table.Head>
+                  <Table.Head class="text-right" style="text-align: right">{youngCopy.historyEvents}</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -134,11 +147,11 @@ function eventsHref(id: string) {
                         {organizer.name}
                       </a>
                     </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">
                       <a class="underline underline-offset-4" href={eventsHref(organizer.id)}>{organizer.activeCount}</a>
                     </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{organizer.upcomingCount}</Table.Cell>
-                    <Table.Cell class="text-right tabular-nums">{organizer.historyCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.upcomingCount}</Table.Cell>
+                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.historyCount}</Table.Cell>
                   </Table.Row>
                 {/each}
               </Table.Body>

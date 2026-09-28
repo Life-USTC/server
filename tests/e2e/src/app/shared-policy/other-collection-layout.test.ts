@@ -172,7 +172,9 @@ async function precedes(first: Locator, second: Locator) {
 }
 function summary(page: Page, name: string) {
   if (name === "uploads")
-    return page.locator('main [data-slot="card-content"] > div[aria-label]');
+    return page.locator(
+      'main [data-slot="page-section-body"] > div[aria-label]',
+    );
   if (["users", "descriptions", "oauth"].includes(name))
     return page.locator('main section > div > [data-slot="badge"]').first();
   return page.locator('main [data-slot="results-summary"]').first();

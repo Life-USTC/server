@@ -1,4 +1,5 @@
 <script lang="ts">
+import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventPage,
   YoungEventSummary,
@@ -12,6 +13,7 @@ import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
 import ListPagination from "$lib/components/ListPagination.svelte";
 import Panel from "$lib/components/Panel.svelte";
 import ResultsEmpty from "$lib/components/ResultsEmpty.svelte";
+import ResultsSummary from "$lib/components/ResultsSummary.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { youngDateRange } from "../lib/young-event-display";
@@ -29,6 +31,13 @@ type Props = {
 let { copy, organizer, source, events }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
+const summary = $derived(
+  catalogShowingSummary(
+    events.pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing,
+    events.data.length,
+    events.pagination.total,
+  ),
+);
 
 function formatRange(event: YoungEventSummary) {
   return (
@@ -61,6 +70,7 @@ function pageHref(page: number) {
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
+        <ResultsSummary {summary} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}

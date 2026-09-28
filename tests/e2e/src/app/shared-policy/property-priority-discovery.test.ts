@@ -688,12 +688,6 @@ test("ui.model-property-priority-discovery-views", async ({
             page,
             `/catalog/young-events/${f.young.youngId}`,
           );
-          await main
-            .getByRole("button", { name: y.poster, exact: true })
-            .click();
-          await main
-            .getByRole("button", { name: y.moreDetails, exact: true })
-            .click();
           const dd = (label: string) =>
             main
               .locator("dt")

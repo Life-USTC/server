@@ -706,16 +706,16 @@ requirements:
 - id: ui.context-tabs-3
   category: presentation
   topic: context-tabs
-  rule: Contextual section navigation, currently used by account settings, uses a scrollable horizontal row
-    on mobile and a vertical rail on desktop. The active destination has aria-current=page and is scrolled
-    into view; keyboard-focused destinations remain fully visible and reachable through overflow.
+  rule: Account settings uses the level-2 sidebar as its section navigation. The rail is vertical on desktop
+    and inside the mobile shell menu. The active destination has aria-current=page and stays inside the
+    navigation viewport; keyboard Tab and Enter reach every settings section.
   rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:
     given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.
     when: The actual navigation reveals the active destination and the user visits every settings section with Tab and Enter.
     then:
-    - Desktop links form a vertical rail; mobile links occupy one horizontally scrollable row without document overflow.
+    - Settings links form a vertical rail on desktop and in the opened mobile menu, without document overflow.
     - The directly opened active link and every keyboard-focused destination are fully inside the navigation viewport.
     - Each activated route renders its panel and has exactly one aria-current=page link.
     test:
