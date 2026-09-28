@@ -52,10 +52,14 @@ requirements:
   acceptance:
     given: A signed-in user subscribes only to a previous-semester section that has historical homework and
       schedule rows.
-    when: At a 390-pixel viewport, the user reloads the workspace overview and requests the historical homework
-      and date-bounded schedule endpoints.
+    when: At a 390-pixel viewport, the user opens the workspace overview, requests the historical homework
+      and date-bounded schedule endpoints, and follows the homework and schedule recovery links.
     then:
-    - Must keep past-term homework, schedules, and subscribed sections reachable from the empty state.
+    - The overview has no horizontal overflow and exposes past homework, schedule, and section links.
+    - The homework response contains the subscribed section’s historical homework; the schedule response contains
+      its date-bounded schedule rows.
+    - The homework link reaches the historical item, and the schedule link selects the previous semester and
+      displays the subscribed course.
     test:
       file: tests/e2e/src/app/test.ts
       name: cases.semester.only-non-current-semester-subscriptions-3

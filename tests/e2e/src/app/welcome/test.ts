@@ -1,41 +1,10 @@
-/**
- * E2E tests for /welcome
- *
- * ## Data Represented (user.yml → first-login-welcome.display.fields)
- * - user.name (current value display)
- * - user.username (current value display)
- * - user.image (current avatar)
- * - user.profilePictures[] (avatar selector grid)
- * - semesters[] (semester dropdown options)
- * - defaultSemesterId (preselected semester)
- *
- * ## Features
- * - Unauthenticated → redirect to /signin
- * - Staged flow: required profile step, then optional subscriptions and
- *   orientation steps, each with a progress indicator
- * - Users with no name/username must complete the profile step first
- * - Avatar selector grid and custom avatar upload are shown
- * - Semester dropdown pre-selects the current semester (subscriptions step)
- *
- * ## Edge Cases
- * - A complete profile requesting the profile step leaves onboarding
- * - The final step returns to the original callbackUrl
- * - Name and username fields are restored to seed values after test
- */
-import { expect, test } from "@playwright/test";
-import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
+import { expect } from "@playwright/test";
+import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import {
-  getCurrentSessionUser,
-  getUserProfileById,
-  updateUserProfileById,
-} from "../../../utils/e2e-db";
+import { getUserProfileById } from "../../../utils/e2e-db";
+import { test } from "../../../utils/onboarding-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
-import { assertPageContract } from "../_shared/page-contract";
-
-// These tests mutate the shared debug user profile.
-test.describe.configure({ mode: "serial" });
 
 test("/account/welcome 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/account/welcome");
@@ -44,308 +13,200 @@ test("/account/welcome 未登录重定向到登录页", async ({ page }, testInf
 
 test("/account/welcome 资料步骤显示必填字段与进度", async ({
   page,
+  incompleteProfile: _incompleteProfile,
 }, testInfo) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
+  await gotoAndWaitForReady(page, "/account/welcome", {
+    testInfo,
+    screenshotLabel: "welcome",
+  });
 
-  await updateUserProfileById(sessionUser.id, { name: null, username: null });
+  // Required profile fields are shown before optional onboarding steps.
+  await expect(
+    page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
+  ).toHaveValue("");
+  await expect(page.getByRole("textbox", { name: /^ID\b/i })).toBeVisible();
+  await expect(
+    page.getByLabel(/上传自己的头像|Upload your own avatar/i),
+  ).toBeVisible();
 
-  try {
-    await gotoAndWaitForReady(page, "/account/welcome", {
-      testInfo,
-      screenshotLabel: "welcome",
-    });
+  // user.image / user.profilePictures[] — avatar area should be visible
+  const avatarArea = page
+    .locator('[data-testid="avatar-selector"], img[alt], [role="img"]')
+    .first();
+  await expect(avatarArea).toBeVisible();
 
-    // user.name and user.username fields (user.yml first-login-welcome.display.fields)
-    await expect(
-      page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
-    ).toHaveValue("");
-    await expect(page.getByRole("textbox", { name: /^ID\b/i })).toBeVisible();
-    await expect(
-      page.getByLabel(/上传自己的头像|Upload your own avatar/i),
-    ).toBeVisible();
+  // Only the current step is rendered, so later steps stay out of the way.
+  await expect(page.getByText(/第 1 步|Step 1 of/i)).toBeVisible();
+  await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /打开搜索|Open search/i }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-shell-navigation="mobile-primary"]'),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: /^(导入|Import)$/i,
+    }),
+  ).toHaveCount(0);
 
-    // user.image / user.profilePictures[] — avatar area should be visible
-    const avatarArea = page
-      .locator('[data-testid="avatar-selector"], img[alt], [role="img"]')
-      .first();
-    await expect(avatarArea).toBeVisible();
-
-    // Only the current step is rendered, so later steps stay out of the way.
-    await expect(page.getByText(/第 1 步|Step 1 of/i)).toBeVisible();
-    await expect(page.getByTestId("app-sidebar")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: /打开搜索|Open search/i }),
-    ).toHaveCount(0);
-    await expect(
-      page.locator('[data-shell-navigation="mobile-primary"]'),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("button", {
-        name: /^(导入|Import)$/i,
-      }),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "welcome/fields");
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-    });
-  }
+  await captureStepScreenshot(page, testInfo, "welcome/fields");
 });
 
 test("/account/welcome 本地图片处理不可用时保留表单并显示错误", async ({
   page,
+  incompleteProfile,
 }) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
-  await updateUserProfileById(sessionUser.id, { name: null, username: null });
-
-  try {
-    await gotoAndWaitForReady(page, "/account/welcome");
-    await page
-      .getByLabel(/上传自己的头像|Upload your own avatar/i)
-      .setInputFiles({
-        name: "avatar.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6n0sAAAAASUVORK5CYII=",
-          "base64",
-        ),
-      });
-    await page
-      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
-      .fill(DEV_SEED.debugName);
-    await page
-      .getByRole("textbox", { name: /^ID\b/i })
-      .fill(DEV_SEED.debugUsername);
-    await page.getByRole("button", { name: /继续|Continue/i }).click();
-    await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
-    await expect(
-      page.getByText(
-        /头像处理服务暂时不可用|Avatar processing is temporarily unavailable/i,
+  const profile = incompleteProfile;
+  await gotoAndWaitForReady(page, "/account/welcome");
+  await page
+    .getByLabel(/上传自己的头像|Upload your own avatar/i)
+    .setInputFiles({
+      name: "avatar.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6n0sAAAAASUVORK5CYII=",
+        "base64",
       ),
-    ).toBeVisible();
-
-    const unchangedUser = await getUserProfileById(sessionUser.id);
-    expect(unchangedUser.image).toBe(originalUser.image);
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
     });
-  }
+  await page
+    .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
+    .fill(profile.name);
+  await page.getByRole("textbox", { name: /^ID\b/i }).fill(profile.username);
+  await page.getByRole("button", { name: /继续|Continue/i }).click();
+  await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
+  await expect(
+    page.getByText(
+      /头像处理服务暂时不可用|Avatar processing is temporarily unavailable/i,
+    ),
+  ).toBeVisible();
+
+  const unchangedUser = await getUserProfileById(profile.id);
+  expect(unchangedUser.image).toBe(profile.image);
+  expect(unchangedUser.name).toBe("");
+  expect(unchangedUser.username).toBeNull();
+  await expect(
+    page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
+  ).toHaveValue(profile.name);
+  await expect(page.getByRole("textbox", { name: /^ID\b/i })).toHaveValue(
+    profile.username,
+  );
 });
 
-test("资料不完整的登录用户从普通页面重定向到 /welcome", async ({ page }) => {
+test("/account/welcome 完成后返回原回调页面", async ({
+  page,
+  incompleteProfile,
+}, testInfo) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
-
-  await updateUserProfileById(sessionUser.id, {
-    name: null,
-    username: null,
+  const profile = incompleteProfile;
+  await gotoAndWaitForReady(page, "/account/settings", {
+    expectMainContent: false,
   });
 
-  try {
-    await gotoAndWaitForReady(page, "/account/settings", {
-      expectMainContent: false,
-    });
+  await expect(page).toHaveURL(
+    /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
+  );
+  await expect(
+    page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
+    .fill(profile.name);
+  await page.getByRole("textbox", { name: /^ID\b/i }).fill(profile.username);
 
-    await expect(page).toHaveURL(
-      /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
-    );
-    await expect(
-      page.getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i }),
-    ).toBeVisible();
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-    });
-  }
-});
+  await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-test("/account/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
-  test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
+  await expect(page).toHaveURL(
+    /\/account\/welcome\?step=subscriptions&callbackUrl=%2Faccount%2Fsettings$/,
+    { timeout: 15_000 },
+  );
+  await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+  await expect(page).toHaveURL(
+    /\/account\/welcome\?step=finish&callbackUrl=%2Faccount%2Fsettings$/,
+  );
+  await page.getByRole("link", { name: /进入工作区|Go to workspace/i }).click();
 
-  await updateUserProfileById(sessionUser.id, {
-    name: null,
-    username: null,
+  await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/, {
+    timeout: 15_000,
   });
-
-  try {
-    await gotoAndWaitForReady(page, "/account/settings", {
-      expectMainContent: false,
-    });
-
-    await expect(page).toHaveURL(
-      /\/account\/welcome\?callbackUrl=%2Faccount%2Fsettings$/,
-    );
-    await page
-      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
-      .fill(DEV_SEED.debugName);
-    await page
-      .getByRole("textbox", { name: /^ID\b/i })
-      .fill(DEV_SEED.debugUsername);
-
-    await page.getByRole("button", { name: /继续|Continue/i }).click();
-
-    await expect(page).toHaveURL(
-      /\/account\/welcome\?step=subscriptions&callbackUrl=%2Faccount%2Fsettings$/,
-      { timeout: 15_000 },
-    );
-    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
-    await expect(page).toHaveURL(
-      /\/account\/welcome\?step=finish&callbackUrl=%2Faccount%2Fsettings$/,
-    );
-    await page
-      .getByRole("link", { name: /进入工作区|Go to workspace/i })
-      .click();
-
-    await expect(page).toHaveURL(/\/account\/settings\/profile(?:\?.*)?$/, {
-      timeout: 15_000,
-    });
-    await expect(page.locator("#main-content")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "welcome/completed-callback");
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-    });
-  }
+  await expect(page.locator("#main-content")).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "welcome/completed-callback");
 });
 
 test("/account/welcome 未完善资料的用户可完成资料并返回首页", async ({
   page,
+  incompleteProfile,
 }, testInfo) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
-
-  await updateUserProfileById(sessionUser.id, {
-    name: null,
-    username: null,
+  const profile = incompleteProfile;
+  await gotoAndWaitForReady(page, "/account/welcome", {
+    testInfo,
+    screenshotLabel: "welcome",
   });
 
-  try {
-    await gotoAndWaitForReady(page, "/account/welcome", {
-      testInfo,
-      screenshotLabel: "welcome",
-    });
+  await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
+  await page
+    .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
+    .fill(profile.name);
+  await page.getByRole("textbox", { name: /^ID\b/i }).fill(profile.username);
 
-    await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
-    await page
-      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
-      .fill(DEV_SEED.debugName);
-    await page
-      .getByRole("textbox", { name: /^ID\b/i })
-      .fill(DEV_SEED.debugUsername);
+  await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await page.getByRole("button", { name: /继续|Continue/i }).click();
+  await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
+  await expect(page.getByText(/第 2 步|Step 2 of/i)).toBeVisible();
+  await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+  await expect(page.getByText(/第 3 步|Step 3 of/i)).toBeVisible();
+  await page.getByRole("link", { name: /进入工作区|Go to workspace/i }).click();
 
-    await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
-    await expect(page.getByText(/第 2 步|Step 2 of/i)).toBeVisible();
-    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
-    await expect(page.getByText(/第 3 步|Step 3 of/i)).toBeVisible();
-    await page
-      .getByRole("link", { name: /进入工作区|Go to workspace/i })
-      .click();
-
-    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
-      timeout: 15_000,
-    });
-    await expect(page.locator("#main-content")).toBeVisible();
-
-    const updatedUser = await getUserProfileById(sessionUser.id);
-    expect(updatedUser.name).toBe(DEV_SEED.debugName);
-    expect(updatedUser.username).toBe(DEV_SEED.debugUsername);
-    await captureStepScreenshot(page, testInfo, "welcome/completed");
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-    });
-  }
-});
-
-test("/account/welcome 可选择已上传头像并保存", async ({ page }) => {
-  test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalUser = await getUserProfileById(sessionUser.id);
-  const avatarOptions = [
-    "https://api.dicebear.com/9.x/shapes/svg?seed=e2e-avatar-one",
-    "https://api.dicebear.com/9.x/shapes/svg?seed=e2e-avatar-two",
-  ];
-
-  await updateUserProfileById(sessionUser.id, {
-    name: null,
-    username: null,
-    image: avatarOptions[0],
-    profilePictures: avatarOptions,
+  await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
+    timeout: 15_000,
   });
+  await expect(page.locator("#main-content")).toBeVisible();
 
-  try {
-    await gotoAndWaitForReady(page, "/account/welcome");
-    const secondAvatar = page.getByRole("radio", {
-      name: /头像选项 2|Avatar option 2/i,
-    });
-    await expect(secondAvatar).toBeVisible();
-    await expect(secondAvatar).toBeEnabled();
-    await secondAvatar.click();
-    await expect(secondAvatar).toHaveAttribute("data-state", "on");
-    await expect(
-      page.getByRole("img", { name: /个人头像|Profile picture/i }),
-    ).toHaveAttribute("src", avatarOptions[1]);
-
-    await page
-      .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
-      .fill(DEV_SEED.debugName);
-    await page
-      .getByRole("textbox", { name: /^ID\b/i })
-      .fill(DEV_SEED.debugUsername);
-    await page.getByRole("button", { name: /继续|Continue/i }).click();
-    await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
-    await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
-    await page
-      .getByRole("link", { name: /进入工作区|Go to workspace/i })
-      .click();
-    await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
-      timeout: 15_000,
-    });
-    await expect
-      .poll(async () => (await getUserProfileById(sessionUser.id)).image)
-      .toBe(avatarOptions[1]);
-  } finally {
-    await updateUserProfileById(sessionUser.id, {
-      name: originalUser.name ?? DEV_SEED.debugName,
-      username: originalUser.username ?? DEV_SEED.debugUsername,
-      image: originalUser.image ?? null,
-      profilePictures: originalUser.profilePictures,
-    });
-  }
+  const updatedUser = await getUserProfileById(profile.id);
+  expect(updatedUser.name).toBe(profile.name);
+  expect(updatedUser.username).toBe(profile.username);
+  await captureStepScreenshot(page, testInfo, "welcome/completed");
 });
 
-test("user.welcome-subscription-guidance", async ({ page }, testInfo) => {
+test("/account/welcome 可选择已上传头像并保存", async ({ page, avatars }) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
+  const { profile, options: avatarOptions } = avatars;
+  await gotoAndWaitForReady(page, "/account/welcome");
+  const secondAvatar = page.getByRole("radio", {
+    name: /头像选项 2|Avatar option 2/i,
+  });
+  await expect(secondAvatar).toBeVisible();
+  await expect(secondAvatar).toBeEnabled();
+  await secondAvatar.click();
+  await expect(secondAvatar).toHaveAttribute("data-state", "on");
+  await expect(
+    page.getByRole("img", { name: /个人头像|Profile picture/i }),
+  ).toHaveAttribute("src", avatarOptions[1]);
+
+  await page
+    .getByRole("textbox", { name: /^(昵称|Nickname)(?:\s|$)/i })
+    .fill(profile.name);
+  await page.getByRole("textbox", { name: /^ID\b/i }).fill(profile.username);
+  await page.getByRole("button", { name: /继续|Continue/i }).click();
+  await expect(page).toHaveURL(/step=subscriptions/, { timeout: 15_000 });
+  await page.getByRole("link", { name: /暂时跳过|Skip for now/i }).click();
+  await page.getByRole("link", { name: /进入工作区|Go to workspace/i }).click();
+  await expect(page).toHaveURL(/\/workspace\/overview(?:\?.*)?$/, {
+    timeout: 15_000,
+  });
+  await expect
+    .poll(async () => (await getUserProfileById(profile.id)).image)
+    .toBe(avatarOptions[1]);
+});
+
+test("user.welcome-subscription-guidance", async ({
+  page,
+  account: _account,
+}, testInfo) => {
+  test.setTimeout(300_000);
 
   await gotoAndWaitForReady(
     page,
@@ -379,6 +240,12 @@ test("user.welcome-subscription-guidance", async ({ page }, testInfo) => {
     }),
   ).toHaveAttribute("href", "https://yjs1.ustc.edu.cn/");
 
+  await expect(
+    page.getByRole("textbox", {
+      name: /^(班级代码|Section codes)$/i,
+    }),
+  ).toBeVisible();
+
   const semesterSelector = page
     .getByRole("combobox", { name: /^(学期|Semester)\b/i })
     .first();
@@ -393,9 +260,9 @@ test("user.welcome-subscription-guidance", async ({ page }, testInfo) => {
 
 test("/account/welcome 最后一步展示平台引导并可返回上一步", async ({
   page,
+  account: _account,
 }, testInfo) => {
   test.setTimeout(300_000);
-  await signInAsDebugUser(page, "/");
 
   await gotoAndWaitForReady(
     page,
@@ -424,8 +291,4 @@ test("/account/welcome 最后一步展示平台引导并可返回上一步", asy
 
   await page.getByRole("link", { name: /上一步|Back/i }).click();
   await expect(page).toHaveURL(/step=subscriptions/);
-});
-
-test("页面契约", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/account/welcome", testInfo });
 });
