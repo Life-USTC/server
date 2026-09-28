@@ -55,20 +55,55 @@ requirements:
     homework, exam and schedule scope is derived from those subscriptions; personal todos and independently
     subscribed activities do not require section subscriptions.
   acceptance:
-    given: Isolated regular and administrator owners have distinct Sections, schedules, exams, homeworks,
-      personal todos and independently subscribed activities.
-    when: Anonymous requests and both owners exercise real Web, session and OAuth REST/GraphQL, and
-      OAuth HTTP MCP reads and writes, then unsubscribe and resubscribe through the Section page.
+    given: Independently prepared regular and suspended-administrator owners have distinct subscriptions,
+      schedules, exams, homework, personal todos and independently subscribed activities.
+    when: Each real read entrypoint consumes that known state with its own session or OAuth identity.
     then:
-    - Anonymous personal reads and writes require authentication; desktop and mobile lists contain only
-      the authenticated owner’s subscriptions.
-    - Supplied foreign user IDs cannot redirect a read or write; absent own memberships cannot change
-      another owner’s kind and all foreign membership rows remain unchanged.
-    - Unsubscribing removes the owner’s schedules, exams and homeworks from personal lists and calendar;
-      personal todos and independent activities remain, and resubscribing restores academic entries.
+    - Web, REST, GraphQL and HTTP MCP expose only the authenticated owner's subscription projection;
+      a supplied foreign user ID and an unrelated browser cookie cannot select another owner.
+    - Personal schedules, exams and homework derive from section membership, while personal todos and
+      independently subscribed activities remain available without it.
+    - Anonymous personal reads require authentication. Administrator status does not confer another
+      user's private subscription authority.
     test:
-      file: tests/e2e/src/app/workspace/subscriptions/ownership-contract.test.ts
-      name: subscription.user-scoped
+      file: tests/e2e/src/app/workspace/subscriptions/consumer-state.test.ts
+      name: subscription.consume-protocols-known-state
+- id: subscription.mutation-state-isolation
+  category: consistency
+  rule: Every supported subscription mutation entrypoint changes only the authenticated owner's
+    membership. Adding a membership, changing its personal kind and removing it preserve unrelated
+    members and the other owner's complete membership records. A rejected write makes no changes.
+  rationale: Independent database observations verify committed effects; reading the mutation response
+    alone cannot establish that the state was persisted. Native protocol responses remain separately checked.
+  acceptance:
+    given: Two isolated owners have distinct memberships; one is a regular user and the other is a
+      suspended administrator managing their own private subscriptions.
+    when: REST and GraphQL session and OAuth clients and an HTTP MCP client independently add,
+      update and remove memberships; anonymous and read-only clients attempt writes.
+    then:
+    - Each successful transition produces the explicitly expected persisted membership and personal kind.
+    - The other owner's complete membership records and unrelated own membership remain unchanged.
+    - Anonymous, insufficient-scope and missing-membership writes return their native rejection and
+      preserve state.
+- id: subscription.cross-surface-refresh
+  category: consistency
+  rule: A successful subscription change is visible after the consumer's supported navigation or
+    explicit refresh. Unsubscribing removes academic projections without deleting personal todos or
+    independent activity subscriptions; subscribing restores the corresponding academic projections.
+  rationale: Known-state consumer tests do not exercise stale page state or cache invalidation. A small
+    set of cross-entrypoint journeys verifies these connections without repeating every writer-reader pair.
+  acceptance:
+    given: An isolated owner uses a teaching section with a deterministic schedule, homework and exam,
+      and also has an unrelated personal todo and activity subscription.
+    when: The owner subscribes and unsubscribes through the section page, navigates and reloads personal
+      pages, or refreshes an already open subscription page after an HTTP MCP mutation.
+    then:
+    - The subscription list, calendar and time-appropriate overview agree with the committed membership.
+    - Reload preserves a completed subscription change and removes cancelled academic entries.
+    - The owner's personal todo and independently subscribed activity remain available.
+    test:
+      file: tests/e2e/src/app/workspace/subscriptions/subscription-journeys.test.ts
+      name: subscription.journey-web-projections-and-cancellation
 - id: subscription.bounded-batch-input
   category: validation
   rule: Subscription query and mutation requests accept at most 500 section ID entries and at most 500
