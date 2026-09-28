@@ -1,21 +1,8 @@
-import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
+import { expect } from "vitest";
 import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
-import { createFixturePrisma } from "../shared/prisma";
-import { createMcpHarness, type McpHarness } from "./mcp/_harness/client";
+import { isolatedGraphqlTest } from "../shared/isolated-graphql-fixture";
+import { type McpHarness, ownMcpHarness } from "./mcp/_harness/client";
 
-const db = createFixturePrisma();
-const marker = crypto.randomUUID();
-const userId = `graphql-domain-${marker}`;
-const otherId = `graphql-domain-other-${marker}`;
-const youngId = `graphql-event-${marker}`;
-const organizerId = `graphql-organizer-${marker}`;
-let owner: McpHarness;
-let other: McpHarness;
-let section: { id: number; jwId: number };
-const homeworkIds = Array.from({ length: 4 }, () => crypto.randomUUID());
-const now = new Date(Math.floor(Date.now() / 1000) * 1000);
-const future = new Date(now.getTime() + 30 * 60_000);
-const past = new Date(now.getTime() - 24 * 60 * 60_000);
 type HomeworkState = {
   id: string;
   completed: boolean;
@@ -27,105 +14,155 @@ type Result = {
   data: Record<string, unknown>;
   errors?: Array<{ extensions?: { code?: string } }>;
 };
-const run = (
-  client: McpHarness,
-  document: string,
-  variables: Record<string, unknown> = {},
-) =>
-  client.call<Result>("graphql_operation_run", {
-    document,
-    variables,
-    confirmed: true,
-    locale: "en-us",
-  });
-const registered = (
-  client: McpHarness,
-  operationId: string,
-  variables: Record<string, unknown> = {},
-) =>
-  client.call<Result>("graphql_operation_run", {
-    operationId,
-    variables,
-    confirmed: true,
-    locale: "en-us",
-  });
 
-beforeAll(async () => {
-  const source = await db.section.findFirstOrThrow({
-    where: { retiredAt: null },
-    select: { courseId: true, semesterId: true },
-  });
-  section = await db.section.create({
-    data: {
-      ...source,
-      jwId: Math.floor(Math.random() * 1_000_000_000) + 1_000_000_000,
-      code: `[integration-test] graphql-${marker}`,
-    },
-    select: { id: true, jwId: true },
-  });
-  await db.user.createMany({
-    data: [userId, otherId].map((id) => ({ id, email: `${id}@example.test` })),
-  });
-  await db.youngOrganizer.create({
-    data: {
-      id: organizerId,
-      name: "GraphQL organizer",
-      normalizedName: organizerId,
-    },
-  });
-  await db.youngEvent.create({
-    data: {
-      youngId,
-      name: "[integration-test] GraphQL event",
-      organizerId,
-      rawJson: {},
-      isActive: true,
-      startAt: future,
-      endAt: new Date(future.getTime() + 60 * 60_000),
-      applyEndAt: future,
-      location: "East",
-    },
-  });
-  await db.homework.createMany({
-    data: homeworkIds.map((id, index) => ({
-      id,
-      sectionId: section.id,
-      createdById: userId,
-      title: `[integration-test] GraphQL completion ${index}`,
-      submissionDueAt: index === 0 ? past : index === 2 ? null : future,
-    })),
-  });
-  owner = await createMcpHarness(userId);
-  other = await createMcpHarness(otherId);
-});
-beforeEach(async () => {
-  await db.youngNotification.deleteMany({
-    where: { userId: { in: [userId, otherId] } },
-  });
-  await db.userYoungEventSubscription.deleteMany({
-    where: { userId: { in: [userId, otherId] } },
-  });
-  await db.userYoungOrganizerSubscription.deleteMany({
-    where: { userId: { in: [userId, otherId] } },
-  });
-  await db.userSectionSubscription.deleteMany({
-    where: { userId: { in: [userId, otherId] } },
-  });
-});
-afterAll(async () => {
-  await owner?.close();
-  await other?.close();
-  await db.auditLog.deleteMany({
-    where: { userId: { in: [userId, otherId] } },
-  });
-  await db.section.delete({ where: { id: section.id } });
-  await db.user.deleteMany({ where: { id: { in: [userId, otherId] } } });
-  await db.youngEvent.delete({ where: { youngId } });
-  await db.youngOrganizer.delete({ where: { id: organizerId } });
-  await db.$disconnect();
-});
+const it = isolatedGraphqlTest
+  .extend("mcpOwners", async ({ graphqlRuntime: _runtime }, { onCleanup }) => {
+    const userId = "graphql-domain-owner";
+    const otherId = "graphql-domain-other";
+    const resources: ReturnType<typeof ownMcpHarness>[] = [];
+    onCleanup(async () => {
+      const results = await Promise.allSettled(
+        resources.map((resource) => resource.client.close()),
+      );
+      const failures = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (failures.length)
+        throw new AggregateError(
+          failures,
+          "GraphQL MCP fixture cleanup failed",
+        );
+    });
+    const owner = ownMcpHarness(userId);
+    resources.push(owner);
+    const other = ownMcpHarness(otherId);
+    resources.push(other);
+    return { userId, otherId, owner, other };
+  })
+  .extend(
+    "workspace",
+    async ({ isolatedDatabase, graphqlRuntime, mcpOwners }) => {
+      const db = isolatedDatabase.owner;
+      const { userId, otherId } = mcpOwners;
+      const marker = crypto.randomUUID();
+      const youngId = `graphql-event-${marker}`;
+      const organizerId = `graphql-organizer-${marker}`;
+      const homeworkIds = Array.from({ length: 4 }, () => crypto.randomUUID());
+      const now = new Date(Math.floor(Date.now() / 1000) * 1000);
+      const future = new Date(now.getTime() + 30 * 60_000);
+      const past = new Date(now.getTime() - 24 * 60 * 60_000);
+      const semester = await db.semester.create({
+        data: {
+          jwId: 1,
+          nameCn: "GraphQL workspace semester",
+          code: "GRAPHQL-WORKSPACE",
+        },
+      });
+      const course = await db.course.create({
+        data: {
+          jwId: 1,
+          nameCn: "GraphQL workspace course",
+          code: "GRAPHQL-WORKSPACE",
+        },
+      });
+      const section = await db.section.create({
+        data: {
+          jwId: 1,
+          code: "GRAPHQL-WORKSPACE.01",
+          courseId: course.id,
+          semesterId: semester.id,
+        },
+      });
+      await db.user.createMany({
+        data: [userId, otherId].map((id) => ({
+          id,
+          email: `${id}@example.test`,
+        })),
+      });
+      await db.youngOrganizer.create({
+        data: {
+          id: organizerId,
+          name: "GraphQL organizer",
+          normalizedName: organizerId,
+        },
+      });
+      await db.youngEvent.create({
+        data: {
+          youngId,
+          name: "[integration-test] GraphQL event",
+          organizerId,
+          rawJson: {},
+          isActive: true,
+          startAt: future,
+          endAt: new Date(future.getTime() + 60 * 60_000),
+          applyEndAt: future,
+          location: "East",
+        },
+      });
+      await db.homework.createMany({
+        data: homeworkIds.map((id, index) => ({
+          id,
+          sectionId: section.id,
+          createdById: userId,
+          title: `[integration-test] GraphQL completion ${index}`,
+          submissionDueAt: index === 0 ? past : index === 2 ? null : future,
+        })),
+      });
+      await graphqlRuntime.run(() => mcpOwners.owner.initialize());
+      await graphqlRuntime.run(() => mcpOwners.other.initialize());
+      const owner = mcpOwners.owner.client;
+      const other = mcpOwners.other.client;
+      const run = (
+        client: McpHarness,
+        document: string,
+        variables: Record<string, unknown> = {},
+      ) =>
+        graphqlRuntime.run(() =>
+          client.call<Result>("graphql_operation_run", {
+            document,
+            variables,
+            confirmed: true,
+            locale: "en-us",
+          }),
+        );
+      const registered = (
+        client: McpHarness,
+        operationId: string,
+        variables: Record<string, unknown> = {},
+      ) =>
+        graphqlRuntime.run(() =>
+          client.call<Result>("graphql_operation_run", {
+            operationId,
+            variables,
+            confirmed: true,
+            locale: "en-us",
+          }),
+        );
 
-it("graphql.subscription-kind", async () => {
+      return {
+        db,
+        marker,
+        userId,
+        otherId,
+        youngId,
+        organizerId,
+        owner,
+        other,
+        section,
+        homeworkIds,
+        now,
+        future,
+        past,
+        run,
+        registered,
+        graphqlRuntime,
+      };
+    },
+  );
+
+it("graphql.subscription-kind", async ({ workspace }) => {
+  const { db, userId, owner, other, section, registered, graphqlRuntime } =
+    workspace;
   await db.userSectionSubscription.create({
     data: { userId, sectionId: section.id, kind: "regular" },
   });
@@ -151,11 +188,13 @@ it("graphql.subscription-kind", async () => {
         },
       },
     });
-    const denied = await other.callToolResult("graphql_operation_run", {
-      operationId: "workspace.subscription.kind.update.v1",
-      variables: { jwId: section.jwId, kind },
-      confirmed: true,
-    });
+    const denied = await graphqlRuntime.run(() =>
+      other.callToolResult("graphql_operation_run", {
+        operationId: "workspace.subscription.kind.update.v1",
+        variables: { jwId: section.jwId, kind },
+        confirmed: true,
+      }),
+    );
     expect(denied.isError).toBe(true);
     expect(denied.structuredContent).toMatchObject({
       errors: [{ extensions: { code: "NOT_FOUND" } }],
@@ -169,7 +208,18 @@ it("graphql.subscription-kind", async () => {
   }
 });
 
-it("graphql.homework-completion-requirement", async () => {
+it("graphql.homework-completion-requirement", async ({ workspace }) => {
+  const {
+    db,
+    userId,
+    otherId,
+    owner,
+    other,
+    section,
+    homeworkIds,
+    past,
+    registered,
+  } = workspace;
   await db.userSectionSubscription.createMany({
     data: [
       { userId, sectionId: section.id, kind: "teaching_assistant" },
@@ -262,7 +312,8 @@ it("graphql.homework-completion-requirement", async () => {
   ).toEqual([{ homeworkId: homeworkIds[3], completedAt: past }]);
 });
 
-it("graphql.young-event-subscriptions", async () => {
+it("graphql.young-event-subscriptions", async ({ workspace }) => {
+  const { db, userId, youngId, owner, other, run } = workspace;
   const set = `mutation SetEvent($youngId: String!, $subscribed: Boolean!) { youngEventSubscriptionSet(youngId: $youngId, input: { subscribed: $subscribed, remindStart: false }) { youngId subscribed remindStart } }`;
   expect(await run(owner, set, { youngId, subscribed: true })).toMatchObject({
     success: true,
@@ -306,7 +357,8 @@ it("graphql.young-event-subscriptions", async () => {
   ).toBe(0);
 });
 
-it("graphql.young-organizer-subscriptions", async () => {
+it("graphql.young-organizer-subscriptions", async ({ workspace }) => {
+  const { db, userId, organizerId, owner, other, run } = workspace;
   const set = `mutation SetOrganizer($organizerId: ID!, $subscribed: Boolean!) { youngOrganizerSubscriptionSet(organizerId: $organizerId, subscribed: $subscribed) { organizerId subscribed } }`;
   expect(
     await run(owner, set, { organizerId, subscribed: true }),
@@ -353,7 +405,8 @@ it("graphql.young-organizer-subscriptions", async () => {
   ).toBe(0);
 });
 
-it("graphql.young-reminders", async () => {
+it("graphql.young-reminders", async ({ workspace }) => {
+  const { db, youngId, owner, other, run } = workspace;
   await run(
     owner,
     `mutation Subscribe($youngId: String!) { youngEventSubscriptionSet(youngId: $youngId, input: {subscribed: true}) { subscribed } }`,
@@ -402,7 +455,9 @@ it("graphql.young-reminders", async () => {
   });
 });
 
-it("graphql.young-daily-digests", async () => {
+it("graphql.young-daily-digests", async ({ workspace }) => {
+  const { db, userId, youngId, organizerId, owner, other, now, run } =
+    workspace;
   const day = startOfShanghaiDay(now);
   await run(
     owner,
@@ -439,7 +494,8 @@ it("graphql.young-daily-digests", async () => {
   );
 });
 
-it("graphql.young-calendar", async () => {
+it("graphql.young-calendar", async ({ workspace }) => {
+  const { db, youngId, owner, other, run } = workspace;
   const eventStart = new Date("2026-09-27T23:30:00+08:00");
   const eventEnd = new Date("2026-09-28T00:30:00+08:00");
   await db.youngEvent.update({
