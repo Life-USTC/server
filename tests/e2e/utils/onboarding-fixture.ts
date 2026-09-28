@@ -2,7 +2,7 @@ import type { User } from "../../../src/generated/prisma-node/client";
 import { withE2ePrisma } from "./e2e-db/prisma";
 import { test as accountTest } from "./isolated-account";
 import { absoluteTestUrl } from "./request-url";
-import { withSettledPagePosts } from "./settled-page-posts";
+import { withSettledPageWrites } from "./settled-page-writes";
 
 type Profile = User & { username: string };
 
@@ -14,7 +14,7 @@ export const test = accountTest.extend<{
     if (!account.username)
       throw new Error("Private onboarding account requires a username");
     const profile = { ...account, username: account.username };
-    await withSettledPagePosts(
+    await withSettledPageWrites(
       page,
       /\/account\/welcome\?\/complete(?:&|$)/,
       async () => {

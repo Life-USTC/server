@@ -3,7 +3,7 @@ import { DEV_SEED } from "./dev-seed";
 import { setBusPreferenceFixture } from "./e2e-db/bus";
 import { withE2ePrisma } from "./e2e-db/prisma";
 import { test as accountTest } from "./isolated-account";
-import { withSettledPagePosts } from "./settled-page-posts";
+import { withSettledPageWrites } from "./settled-page-writes";
 
 export const test = accountTest.extend<{
   linkAccount: User;
@@ -12,7 +12,7 @@ export const test = accountTest.extend<{
   busPreferences: User;
 }>({
   linkAccount: async ({ account, page }, use) => {
-    await withSettledPagePosts(
+    await withSettledPageWrites(
       page,
       (url) => url.pathname === "/api/workspace/link-pins",
       () => use(account),
@@ -30,7 +30,7 @@ export const test = accountTest.extend<{
     await use(linkAccount);
   },
   busAccount: async ({ account, page }, use) => {
-    await withSettledPagePosts(
+    await withSettledPageWrites(
       page,
       (url) => url.pathname === "/api/workspace/bus-preferences",
       () => use(account),
