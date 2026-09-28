@@ -27,7 +27,25 @@ requirements:
       name: comment.public-permission-recovery
 - id: comment.single-delete-replay
   category: consistency
-  rule: Ordinary single-comment deletion retains a deleted tombstone and writes one deletion audit event. Repeating the delete returns locked, preserving the original tombstone and audit event. REST and GraphQL use 403/FORBIDDEN; MCP retains locked.
+  applies_to:
+  - object-comment-section
+  expectation:
+    kind: delete_replay
+    operation:
+      module: src/lib/api/routes/comments-delete-route.ts
+      export: deleteCommentRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    committed_state: tombstone
+    replay: locked
+    preserves_committed_state: true
+    audit_events: 1
+    protocol:
+      rest_status: 403
+      graphql_status: 403
+      graphql_code: FORBIDDEN
   acceptance:
     given: An isolated unsuspended owner has a fresh comment for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
     when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.

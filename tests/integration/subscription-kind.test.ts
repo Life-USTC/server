@@ -14,6 +14,8 @@ import {
 } from "@/features/subscriptions/server/subscription-write-model";
 import { assertSubscriptionKindTransportAuthority } from "../shared/personal-state-write-parity";
 import { createFixturePrisma } from "../shared/prisma";
+import { bindDomainOperation } from "../shared/specifications/domain-contracts";
+import { semanticContract } from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
 const userIds = [crypto.randomUUID(), crypto.randomUUID()];
@@ -147,8 +149,21 @@ describe("personal subscription kinds", () => {
   });
 });
 
-it("subscription.personal-kind", async () => {
-  await appendUserSectionSubscriptions({
+it("subscription.personal-kind", async (context) => {
+  const contract = await semanticContract(
+    "subscription.personal-kind",
+    "membership_kind_transition",
+  );
+  const add = bindDomainOperation(
+    contract,
+    "src/features/subscriptions/server/subscription-write-model.ts",
+    appendUserSectionSubscriptions,
+  );
+  const before = await db.userSectionSubscription.findUnique({
+    where: { userId_sectionId: { userId: userIds[0], sectionId } },
+  });
+  contract.equal("/cases/0/before", before?.kind ?? "absent");
+  await add({
     userId: userIds[0],
     sectionIds: [sectionId],
   });
@@ -158,6 +173,12 @@ it("subscription.personal-kind", async () => {
       select: { kind: true },
     }),
   ).toEqual({ kind: "regular" });
+  const rows = await db.userSectionSubscription.findMany({
+    where: { userId: userIds[0], sectionId },
+  });
+  contract.equal("/cases/0/after", rows[0]?.kind);
+  contract.equal("/cases/0/rows", rows.length);
+  contract.recordVitest(context);
   expect(
     (await getUserCalendarSubscription(userIds[0]))?.sections.map(
       (section) => section.kind,
@@ -165,27 +186,64 @@ it("subscription.personal-kind", async () => {
   ).toEqual(["regular"]);
 });
 
-it("subscription.import-preserves-kind", async () => {
-  await appendUserSectionSubscriptions({
+it("subscription.import-preserves-kind", async (context) => {
+  const contract = await semanticContract(
+    "subscription.import-preserves-kind",
+    "membership_kind_transition",
+  );
+  const add = bindDomainOperation(
+    contract,
+    "src/features/subscriptions/server/subscription-write-model.ts",
+    appendUserSectionSubscriptions,
+  );
+  const batch = bindDomainOperation(
+    contract,
+    "src/features/subscriptions/server/subscription-write-model.ts",
+    batchUpdateUserSectionSubscriptions,
+    "/additional_operations/0",
+  );
+  const importCodes = bindDomainOperation(
+    contract,
+    "src/features/subscriptions/server/subscription-write-model.ts",
+    importUserSectionSubscriptionsByCodes,
+    "/additional_operations/1",
+  );
+  await add({
     userId: userIds[0],
     sectionIds: [sectionId],
   });
-  for (const kind of ["auditor", "teaching_assistant"] as const) {
+  for (const [index, kind] of (
+    ["auditor", "teaching_assistant"] as const
+  ).entries()) {
     await updateSubscriptionKind({ userId: userIds[0], sectionJwId, kind });
-    await appendUserSectionSubscriptions({
+    const before = await db.userSectionSubscription.findUniqueOrThrow({
+      where: { userId_sectionId: { userId: userIds[0], sectionId } },
+    });
+    contract.equal(`/cases/${index}/before`, before.kind);
+    const observe = async () => {
+      const rows = await db.userSectionSubscription.findMany({
+        where: { userId: userIds[0], sectionId },
+      });
+      contract.equal(`/cases/${index}/after`, rows[0]?.kind);
+      contract.equal(`/cases/${index}/rows`, rows.length);
+    };
+    await add({
       userId: userIds[0],
       sectionIds: [sectionId, sectionId],
     });
-    await batchUpdateUserSectionSubscriptions({
+    await observe();
+    await batch({
       userId: userIds[0],
       sectionIds: [sectionId],
       action: "add",
     });
-    await importUserSectionSubscriptionsByCodes({
+    await observe();
+    await importCodes({
       userId: userIds[0],
       semesterId,
       codes: [sectionCode],
     });
+    await observe();
     expect(
       await db.userSectionSubscription.findUnique({
         where: { userId_sectionId: { userId: userIds[0], sectionId } },
@@ -198,4 +256,5 @@ it("subscription.import-preserves-kind", async () => {
       }),
     ).toBe(1);
   }
+  contract.recordVitest(context);
 });

@@ -5,8 +5,9 @@ export function bindDomainOperation<T extends (...args: never[]) => unknown>(
   contract: SemanticContract,
   module: string,
   execute: T,
+  path = "/operation",
 ): T {
-  contract.equal("/operation", { module, export: execute.name });
+  contract.equal(path, { module, export: execute.name });
   return execute;
 }
 

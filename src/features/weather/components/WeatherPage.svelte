@@ -59,7 +59,7 @@ function formatTemperature(value: number | null) {
   {#each locations as { locationKey, snapshot } (locationKey)}
     <Panel>
       {#snippet header()}
-        <h2 class="text-lg font-semibold">
+        <h2 class="text-lg font-semibold" data-weather-location={locationKey}>
           {weatherCopy.locationNames[locationKey]}
         </h2>
       {/snippet}

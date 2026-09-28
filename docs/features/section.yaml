@@ -150,8 +150,39 @@ requirements:
       name: section.detail-canonical-url
 - id: section.public-teacher-reference
   category: privacy
-  rule: Embedded Section teachers expose only public identity and localized names, plus department/title
-    where needed. Contact and source-private columns never appear in nested references.
+  applies_to:
+  - section-detail
+  expectation:
+    kind: public_projection
+    operation:
+      module: src/features/catalog/server/course-section-read-queries.ts
+      export: findSectionDetailByJwId
+    response:
+      schema: sectionDetailSchema
+      path: teachers/items
+    fields:
+    - id
+    - jwId
+    - personId
+    - code
+    - nameCn
+    - nameEn
+    - namePrimary
+    - nameSecondary
+    - department
+    - teacherTitle
+    preserves:
+      id: true
+      jwId: true
+      personId: true
+      code: true
+      nameCn: true
+      nameEn: true
+      namePrimary: true
+      nameSecondary: true
+      department/id: true
+      teacherTitle/id: true
+    concealed_source_values: true
   acceptance:
     given: A Section references a Teacher with department/title context, contact and source-private sentinels.
     when: The restricted-role public Section detail reader serializes its nested teachers.
@@ -353,7 +384,42 @@ requirements:
       name: section.mobile-sticky-actions
 - id: section.teacher-assignment-reference
   category: privacy
-  rule: TeacherAssignment output links to teacherId without duplicating the nested Teacher payload.
+  applies_to:
+  - section-detail
+  expectation:
+    kind: public_projection
+    operation:
+      module: src/features/catalog/server/course-section-read-queries.ts
+      export: findSectionDetailByJwId
+    response:
+      schema: sectionDetailSchema
+      path: teacherAssignments/items
+    fields:
+    - id
+    - teacherId
+    - sectionId
+    - role
+    - period
+    - weekIndices
+    - weekIndicesMsg
+    - teacherLessonTypeId
+    - teacherTitleId
+    - teacherLessonType
+    - teacherTitle
+    preserves:
+      id: true
+      sectionId: true
+      teacherId: true
+      period: true
+      role: true
+      weekIndices: true
+      weekIndicesMsg: true
+      teacherLessonTypeId: true
+      teacherTitleId: true
+      teacherLessonType: true
+      teacherTitle: true
+    concealed_source_values: true
+    reference_resolved: true
   acceptance:
     given: A persisted Section has a teacher assignment and a related Teacher with private contact sentinels.
     when: The actual restricted-role public detail service reads both locales.

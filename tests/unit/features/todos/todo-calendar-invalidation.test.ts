@@ -35,6 +35,13 @@ function observeCalendar(
     export: "scheduleInvalidateUserCalendarExportCache",
   });
   contract.equal(`/${phase}/0/calls`, count);
+  if (phase === "after_completion" && count > 0)
+    contract.equal(
+      `/${phase}/0/recipient`,
+      invalidateMock.mock.calls.every((args) => args[0] === "user-1")
+        ? "owner"
+        : "other",
+    );
 }
 
 describe("todo calendar export invalidation", () => {

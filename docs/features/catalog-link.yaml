@@ -18,9 +18,21 @@ access:
 requirements:
 - id: catalog-link.pin-owner-state
   category: authorization
-  rule: Link pins belong to the authenticated owner. REST, GraphQL and native MCP require the declared
-    write authority and reject unknown slugs without changing persisted pins. Suspended owners may
-    continue managing these private preferences; successful responses contain the final ordered pin set.
+  applies_to:
+  - link-pin-and-visit
+  expectation:
+    kind: private_setting_authority
+    operations:
+      rest: POST /api/workspace/link-pins
+      graphql: linkPinSet
+      mcp: workspace_link_pin_set
+    owner_changes_only: true
+    suspended_owner_allowed: true
+    anonymous_rejected: true
+    read_scope_rejected: true
+    invalid_target_rejected: true
+    denied_state_unchanged: true
+    response_matches_state: true
   acceptance:
     given: Two isolated owners have independent pins and resource-bound OAuth credentials; the real
       services use the restricted application database role.

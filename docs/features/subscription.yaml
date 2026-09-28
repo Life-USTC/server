@@ -135,7 +135,17 @@ requirements:
       name: subscription.membership-atomicity
 - id: subscription.personal-kind
   category: behavior
-  rule: New section subscriptions default to regular.
+  applies_to:
+  - subscribe-from-section
+  expectation:
+    kind: membership_kind_transition
+    operation:
+      module: src/features/subscriptions/server/subscription-write-model.ts
+      export: appendUserSectionSubscriptions
+    cases:
+    - before: absent
+      after: regular
+      rows: 1
   acceptance:
     given: A user has no subscription to an active Section.
     when: The actual add service persists the membership and the public-to-owner subscription serializer
@@ -193,7 +203,26 @@ requirements:
       name: subscription.kind-owner-existing-only
 - id: subscription.import-preserves-kind
   category: behavior
-  rule: Adding or importing an already-subscribed section preserves its existing kind.
+  applies_to:
+  - subscribe-from-section
+  - batch-subscribe-by-codes
+  expectation:
+    kind: membership_kind_transition
+    operation:
+      module: src/features/subscriptions/server/subscription-write-model.ts
+      export: appendUserSectionSubscriptions
+    additional_operations:
+    - module: src/features/subscriptions/server/subscription-write-model.ts
+      export: batchUpdateUserSectionSubscriptions
+    - module: src/features/subscriptions/server/subscription-write-model.ts
+      export: importUserSectionSubscriptionsByCodes
+    cases:
+    - before: auditor
+      after: auditor
+      rows: 1
+    - before: teaching_assistant
+      after: teaching_assistant
+      rows: 1
   acceptance:
     given: An existing subscription has auditor or teaching_assistant kind.
     when: The actual add, batch add and code-import services repeatedly target it.

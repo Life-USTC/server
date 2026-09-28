@@ -6,6 +6,8 @@ export type DomainExpectationContext = {
   root: string;
   openapi?: Record<string, unknown>;
   models?: ReadonlyMap<string, ReadonlySet<string>>;
+  capabilities?: Record<string, unknown>;
+  appliesTo?: readonly string[];
 };
 
 const kinds = new Set([
@@ -15,7 +17,14 @@ const kinds = new Set([
   "delete_replay",
   "public_projection",
   "ordered_page",
+  "private_setting_authority",
+  "localized_regions",
+  "membership_kind_transition",
 ]);
+export function isDomainExpectationKind(kind: unknown): boolean {
+  return typeof kind === "string" && kinds.has(kind);
+}
+
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const pointer = (value: string) =>
@@ -29,7 +38,7 @@ export function validateDomainExpectation(
   const errors: string[] = [];
   const validatedPaths: string[] = [];
   const bindingPaths: string[] = [];
-  if (!kinds.has(String(expectation.kind)))
+  if (!isDomainExpectationKind(expectation.kind))
     return { errors, validatedPaths, bindingPaths };
   function source(value: unknown, path: string) {
     if (
@@ -80,7 +89,68 @@ export function validateDomainExpectation(
       errors.push(`${path}: ${String(error)}`);
     }
   }
-  source(expectation.operation, "/operation");
+  if (
+    expectation.kind !== "private_setting_authority" &&
+    expectation.kind !== "localized_regions"
+  )
+    source(expectation.operation, "/operation");
+  if (expectation.kind === "private_setting_authority") {
+    if (!context.capabilities || !context.appliesTo?.length)
+      errors.push("private_setting_authority requires capability bindings");
+    if (object(expectation.operations))
+      for (const [surface, name] of Object.entries(expectation.operations)) {
+        const operations = new Set<string>();
+        for (const id of context.appliesTo ?? []) {
+          const capability = context.capabilities?.[id];
+          const binding = object(capability) ? capability[surface] : undefined;
+          if (!object(binding)) continue;
+          const rows =
+            surface === "rest"
+              ? binding.routes
+              : surface === "mcp"
+                ? binding.tools
+                : [
+                    ...(Array.isArray(binding.queries) ? binding.queries : []),
+                    ...(Array.isArray(binding.mutations)
+                      ? binding.mutations
+                      : []),
+                  ];
+          if (!Array.isArray(rows)) continue;
+          for (const row of rows)
+            if (object(row))
+              operations.add(
+                surface === "rest"
+                  ? `${row.method ?? "GET"} ${row.path}`
+                  : String(row.name),
+              );
+        }
+        if (typeof name !== "string" || !operations.has(name))
+          errors.push(
+            `operations/${surface}: operation is not bound to an applicable capability`,
+          );
+        else bindingPaths.push(`/operations/${surface}`);
+      }
+  }
+  if (expectation.kind === "localized_regions") {
+    try {
+      const root = realpathSync(context.root);
+      const page = realpathSync(
+        resolve(root, `src/routes${expectation.route}/+page.svelte`),
+      );
+      if (!page.startsWith(`${root}/src/routes/`))
+        throw new Error("route escapes source root");
+      bindingPaths.push("/route");
+    } catch {
+      errors.push("route: missing page component");
+    }
+  }
+  if (
+    expectation.kind === "membership_kind_transition" &&
+    Array.isArray(expectation.additional_operations)
+  )
+    expectation.additional_operations.forEach((operation, index) => {
+      source(operation, `/additional_operations/${index}`);
+    });
   if (expectation.kind === "transaction_effects") {
     for (const phase of ["before_commit", "after_completion"]) {
       const effects = expectation[phase];

@@ -258,6 +258,11 @@ export async function createWriteTransportHarness(features: string[]) {
     }
     actors.push({ id, cookie, tokens, readTokens });
   }
+  const responses: {
+    transport: Transport;
+    operation: Operation;
+    allowed: boolean;
+  }[] = [];
   async function call(
     transport: Transport,
     operation: Operation,
@@ -328,6 +333,23 @@ export async function createWriteTransportHarness(features: string[]) {
       : text;
     if (!encoded) throw new Error("Missing transport response");
     const payload = JSON.parse(encoded);
+    const mcpContent =
+      transport === "mcp" && payload.result?.content
+        ? JSON.parse(
+            payload.result.content.find(
+              (part: { type: string }) => part.type === "text",
+            ).text,
+          )
+        : undefined;
+    responses.push({
+      transport,
+      operation,
+      allowed:
+        response.ok &&
+        !payload.errors &&
+        !payload.error &&
+        mcpContent?.success !== false,
+    });
     if (expected === "anonymous" || expected === "read_scope") {
       expect(response.status, text).toBe(
         expected === "anonymous" || transport === "rest" ? 401 : 403,
@@ -451,6 +473,7 @@ export async function createWriteTransportHarness(features: string[]) {
     fixture,
     section,
     actors,
+    responses,
     call,
     snapshot,
     async cleanup() {

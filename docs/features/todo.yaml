@@ -12,7 +12,25 @@ policy_refs:
 requirements:
 - id: todo.single-delete-replay
   category: consistency
-  rule: Ordinary single-todo deletion commits permanent removal. Retrying the deleted ID preserves absence but returns not_found through REST, GraphQL and MCP; successful deletion does not require a client confirmation flag.
+  applies_to:
+  - todo-edit
+  expectation:
+    kind: delete_replay
+    operation:
+      module: src/lib/api/routes/todos.ts
+      export: deleteTodoRoute
+    surfaces:
+    - rest
+    - graphql
+    - mcp
+    committed_state: absent
+    replay: not_found
+    preserves_committed_state: true
+    confirmation_required: false
+    protocol:
+      rest_status: 404
+      graphql_status: 404
+      graphql_code: NOT_FOUND
   acceptance:
     given: An isolated unsuspended owner has a fresh todo for each transport and valid resource-bound OAuth write credentials; the rate-limit boundary admits requests.
     when: Actual REST, GraphQL and MCP requests delete the owned record without a confirmation flag and then repeat the deletion.
@@ -432,6 +450,7 @@ requirements:
         module: src/features/calendar/server/calendar-export-invalidation.ts
         export: scheduleInvalidateUserCalendarExportCache
       calls: 1
+      recipient: owner
   acceptance:
     given: A todo update has finished its transaction callback while commit is pending.
     when: The commit succeeds.

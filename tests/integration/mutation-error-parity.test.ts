@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import { isDeepStrictEqual } from "node:util";
 import type { RequestEvent } from "@sveltejs/kit";
 import { getRequest, setResponse } from "@sveltejs/kit/node";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -15,12 +16,17 @@ import { deleteUploadRoute } from "@/lib/api/routes/upload-management-routes";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { getOAuthRestAudienceUrls } from "@/lib/oauth/resource-urls";
 import { createFixturePrisma } from "../shared/prisma";
+import {
+  type SemanticContract,
+  semanticContract,
+} from "../shared/specifications/semantic-contract";
 
 const db = createFixturePrisma();
 const graphql = createGraphqlRequestHandler(false);
 let server: Server | undefined;
 let origin = "";
 let storage: CloudflareR2Bucket | undefined;
+const deleteRequests: { url: string; body: string }[] = [];
 const routes = [
   { path: "/api/workspace/todos", handler: deleteTodoRoute },
   { path: "/api/workspace/uploads", handler: deleteUploadRoute },
@@ -73,6 +79,10 @@ async function startHttpServer() {
   server = createServer(async (incoming, outgoing) => {
     try {
       const request = await getRequest({ request: incoming, base: origin });
+      deleteRequests.push({
+        url: request.url,
+        body: await request.clone().text(),
+      });
       const response = await runtime(async () => {
         const path = new URL(request.url).pathname;
         if (path === "/api/auth/jwks") {
@@ -271,6 +281,11 @@ async function rejectDelete(
   );
   expect(mcpBody).toMatchObject({ success: false, error: meaning });
   return {
+    protocol: {
+      rest_status: rest.status,
+      graphql_status: graph.status,
+      graphql_code: graphBody.errors[0].extensions.code,
+    },
     rest: restBody,
     graphql: graphBody.errors.map(
       (error: { message: string; extensions: { code: string } }) => ({
@@ -495,7 +510,22 @@ async function successfulDelete(
   return body;
 }
 
-async function verifyDeleteReplay(domain: "todo" | "comment" | "homework") {
+async function verifyDeleteReplay(
+  domain: "todo" | "comment" | "homework",
+  contract: SemanticContract,
+) {
+  const route = routes.find((route) => route.path === domains[domain].path);
+  if (!route) throw new Error("Missing bound delete route");
+  const modules = {
+    todo: "todos",
+    comment: "comments-delete-route",
+    homework: "homework-mutation-routes",
+  };
+  contract.equal("/operation", {
+    module: `src/lib/api/routes/${modules[domain]}.ts`,
+    export: route.handler.name,
+  });
+  const observedSurfaces: string[] = [];
   const f = await fixture();
   try {
     const section = await db.section.findFirstOrThrow({
@@ -528,8 +558,25 @@ async function verifyDeleteReplay(domain: "todo" | "comment" | "homework") {
           : domain === "comment"
             ? db.comment.findUnique({ where: { id: row.id } })
             : db.homework.findUnique({ where: { id: row.id } });
+      deleteRequests.length = 0;
       const first = await successfulDelete(domain, row.id, f.tokens, surface);
+      observedSurfaces.push(surface);
+      if (domain === "todo")
+        contract.equal(
+          "/confirmation_required",
+          deleteRequests.some((request) =>
+            /confirm/i.test(request.url + request.body),
+          ),
+        );
       const committed = await read();
+      contract.equal(
+        "/committed_state",
+        committed === null
+          ? "absent"
+          : "deletedAt" in committed && committed.deletedAt
+            ? "tombstone"
+            : "active",
+      );
       if (domain === "todo") expect(committed).toBeNull();
       else {
         expect(committed).toMatchObject({
@@ -553,35 +600,75 @@ async function verifyDeleteReplay(domain: "todo" | "comment" | "homework") {
           f.tokens,
           surface,
         );
-        if (surface !== "rest") expect(replay.alreadyDeleted).toBe(true);
-      } else
-        await rejectDelete(
+        if (surface !== "rest") {
+          expect(replay.alreadyDeleted).toBe(true);
+          contract.equal(
+            `/replay_already_deleted/${surface}`,
+            replay.alreadyDeleted,
+          );
+        }
+        contract.equal(
+          "/deleted_by",
+          committed &&
+            "deletedById" in committed &&
+            "createdById" in committed &&
+            committed.deletedById === committed.createdById
+            ? "creator"
+            : "other",
+        );
+        contract.equal("/replay", replay.success ? "success" : "failure");
+      } else {
+        const rejected = await rejectDelete(
           domain,
           row.id,
           f.tokens,
           domain === "todo" ? "not_found" : "locked",
         );
+        contract.equal("/replay", rejected.mcp.error);
+        contract.equal("/protocol", rejected.protocol);
+      }
+      contract.equal(
+        "/preserves_committed_state",
+        isDeepStrictEqual(await read(), committed),
+      );
       expect(await read()).toEqual(committed);
       if (domain !== "todo")
-        expect(
+        contract.equal(
+          "/audit_events",
           await db.auditLog.count({
             where: { action: `${domain}_delete`, targetId: row.id },
           }),
-        ).toBe(1);
+        );
     }
+    contract.set("/surfaces", observedSurfaces);
   } finally {
     await f.cleanup();
   }
 }
 
-it("todo.single-delete-replay", async () => {
-  await verifyDeleteReplay("todo");
+it("todo.single-delete-replay", async (context) => {
+  const contract = await semanticContract(
+    "todo.single-delete-replay",
+    "delete_replay",
+  );
+  await verifyDeleteReplay("todo", contract);
+  contract.recordVitest(context);
 });
-it("comment.single-delete-replay", async () => {
-  await verifyDeleteReplay("comment");
+it("comment.single-delete-replay", async (context) => {
+  const contract = await semanticContract(
+    "comment.single-delete-replay",
+    "delete_replay",
+  );
+  await verifyDeleteReplay("comment", contract);
+  contract.recordVitest(context);
 });
-it("homework.single-delete-replay", async () => {
-  await verifyDeleteReplay("homework");
+it("homework.single-delete-replay", async (context) => {
+  const contract = await semanticContract(
+    "homework.single-delete-replay",
+    "delete_replay",
+  );
+  await verifyDeleteReplay("homework", contract);
+  contract.recordVitest(context);
 });
 
 it("upload.storage-delete-retry", async () => {

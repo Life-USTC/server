@@ -28,8 +28,30 @@ requirements:
       name: weather.public-no-signin
 - id: weather.two-locations-only
   category: presentation
-  rule: The weather page displays exactly two campus panels in order, ustc-main for the main campuses
-    followed by ustc-gaoxin for Gaoxin, with localized campus headings on desktop and mobile.
+  applies_to:
+  - weather
+  expectation:
+    kind: localized_regions
+    route: /catalog/weather
+    selector: '#main-content h2'
+    labels:
+      zh-cn:
+      - 本部
+      - 高新校区
+      en-us:
+      - Main campus
+      - Gaoxin campus
+    location_keys:
+    - ustc-main
+    - ustc-gaoxin
+    viewports:
+    - width: 1280
+      height: 900
+    - width: 390
+      height: 900
+    regions: 2
+    charts: 2
+    horizontal_scroll_regions: 0
   rationale: Accepted API location keys and provider mapping are independently owned by weather.location-key-boundary
     and weather.location-provider-mapping.
   acceptance:
