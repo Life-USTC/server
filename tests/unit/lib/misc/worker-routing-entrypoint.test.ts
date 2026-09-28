@@ -73,6 +73,7 @@ vi.mock("@/features/calendar/server/calendar-export-rebuild", () => ({
 vi.mock("@/lib/adapters/cloudflare-runtime", () => ({
   getCloudflareAnalyticsEngineDataset: () => undefined,
   getCloudflareRuntimeEnvInput: () => ({}),
+  getCloudflareRuntimeTaskScheduler: () => backgroundTasks.waitUntil,
   runWithCloudflareRuntimeEnv: runWithCloudflareRuntimeEnvMock,
   setCloudflareRequestContext: setCloudflareRequestContextMock,
 }));
