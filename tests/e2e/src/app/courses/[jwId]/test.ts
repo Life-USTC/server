@@ -27,14 +27,11 @@ import { expect, test } from "@playwright/test";
 import scenarioData from "../../../../fixtures/scenario.json" with {
   type: "json",
 };
-import { signInAsDebugUser } from "../../../../utils/auth";
-import {
-  cleanupCommentsForE2e,
-  openCommentComposer,
-} from "../../../../utils/comments";
+import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
   test as communityTest,
+  storedComment,
   storedDescription,
   storedDescriptionAudits,
   supplement,
@@ -363,15 +360,14 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 
-  test("登录用户可以发布、编辑和删除评论", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
-    await signInAsDebugUser(page, COURSE_URL);
-    let commentId: string | undefined;
-
-    try {
-      await jumpToCourseSection(page, /评论|Comments/i, "#comments");
+  communityTest(
+    "登录用户可以发布、编辑和删除评论",
+    async ({ page, account, community }, testInfo) => {
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/courses/${community.course.jwId}#comments`,
+      );
       await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
-
       const body = `e2e-course-comment-${Date.now()}`;
       const composer = await openCommentComposer(page);
       await composer.fill(body);
@@ -387,10 +383,17 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         .click();
       const createdCommentResponse = await createResponse;
       const createResponseBody = (await createdCommentResponse.json()) as {
-        id?: string;
+        id: string;
       };
       expect(createResponseBody.id).toBeTruthy();
-      commentId = createResponseBody.id;
+      const commentId = createResponseBody.id;
+      expect(await storedComment(commentId)).toMatchObject({
+        userId: account.id,
+        courseId: community.course.id,
+        body,
+        isAnonymous: false,
+        status: "active",
+      });
 
       const commentCard = page
         .locator('[id^="comment-"]')
@@ -403,9 +406,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           .filter({ hasText: /评论已发布|Comment posted/i }),
       ).toBeVisible();
       // comment.author.name visible
-      await expect(
-        commentCard.getByText(DEV_SEED.debugName).first(),
-      ).toBeVisible();
+      await expect(commentCard.getByText(account.name).first()).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/comment-posted");
 
       // Edit
@@ -426,6 +427,11 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       );
       await editCard.getByRole("button", { name: /保存|Save/i }).click();
       await editResponse;
+      expect(await storedComment(commentId)).toMatchObject({
+        body: editedBody,
+        userId: account.id,
+        status: "active",
+      });
       await expect(page.getByText(editedBody).first()).toBeVisible();
       const editedCommentCard = page
         .locator('[id^="comment-"]')
@@ -437,6 +443,12 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已更新|Comment updated/i }),
       ).toBeVisible();
+
+      // The share route and a reload consume the persisted edit.
+      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
+      await expect(editedCommentCard).toContainText(editedBody);
+      await page.reload();
+      await expect(editedCommentCard).toContainText(editedBody);
 
       // Delete
       await editedCommentCard.hover();
@@ -457,16 +469,19 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
+      expect(await storedComment(commentId)).toMatchObject({
+        status: "deleted",
+        deletedAt: expect.any(Date),
+      });
       await expect(
         page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /评论已删除|Comment deleted/i }),
       ).toBeVisible();
+      await expect(page.locator(`#comment-${commentId}`)).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "course/comment-deleted");
-    } finally {
-      await cleanupCommentsForE2e([commentId]);
-    }
-  });
+    },
+  );
 });
 
 test.describe("/catalog/courses/[jwId]/introduction 无 JavaScript", () => {
