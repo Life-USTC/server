@@ -8,8 +8,8 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page } from "$app/stores";
-import CollectionPage from "$lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "$lib/components/DetailDefinitionList.svelte";
+import { detailColumnsClass } from "$lib/components/detail-layout";
 import Panel from "$lib/components/Panel.svelte";
 import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -18,6 +18,7 @@ import { buttonVariants } from "$lib/components/ui/button";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible";
 import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+import { cn } from "$lib/utils.js";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import { youngReturnHref } from "../lib/young-navigation";
 import YoungSourceNote from "./YoungSourceNote.svelte";
@@ -197,27 +198,29 @@ const extraPlaces = $derived.by(() => {
   {/if}
 {/snippet}
 
-<CollectionPage
-  description={event.category ?? youngCopy.description}
-  layout="detail"
-  title={event.name}
->
-  {#snippet actions()}
-        <Button href={returnHref} variant="outline">{returnLabel}</Button>
-  {/snippet}
-  {#snippet belowTitle()}
-        <div class="mt-3 flex flex-wrap gap-2" data-testid="young-event-badges">
+<div>
+  <header class="relative isolate overflow-hidden bg-muted" data-testid="young-event-banner">
+    {#if event.imageUrl}
+      <a class="absolute inset-0" href={event.imageUrl} rel="noreferrer noopener" target="_blank" aria-label={youngCopy.poster}>
+        <img alt="" class="h-full w-full object-cover" src={event.imageUrl} />
+      </a>
+    {/if}
+    <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,white_0%,white_28%,transparent_72%)] dark:bg-[linear-gradient(to_top,black_0%,black_28%,transparent_72%)]"></div>
+    <div class="relative flex h-64 items-end px-4 pb-6 sm:h-80 sm:px-5 lg:h-96 lg:px-6">
+      <h1 class="max-w-4xl text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">{event.name}</h1>
+    </div>
+  </header>
+  <div class={cn("page-frame page-frame-content px-4 py-6 sm:px-5 lg:px-6", detailColumnsClass)}>
+    <div class="grid min-w-0 gap-10">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-wrap gap-2" data-testid="young-event-badges">
           <Badge variant={event.isActive ? "default" : "outline"}>{event.status ?? (event.isActive ? youngCopy.statusActive : youngCopy.statusEnded)}</Badge>
           {#each badges as badge (badge)}
             <Badge variant="secondary">{badge}</Badge>
           {/each}
         </div>
-        {#if event.imageUrl}
-          <a class="mt-4 inline-flex max-w-full" href={event.imageUrl} rel="noreferrer noopener" target="_blank">
-            <img alt={event.name} class="max-h-72 w-auto max-w-full rounded-lg bg-muted object-contain" src={event.imageUrl} />
-          </a>
-        {/if}
-  {/snippet}
+        <Button href={returnHref} variant="outline">{returnLabel}</Button>
+      </div>
 
   {#if event.description}
     <Panel>
@@ -278,8 +281,8 @@ const extraPlaces = $derived.by(() => {
       {/if}
     {/key}
   </section>
-
-  {#snippet aside()}
+    </div>
+    <aside class="grid min-w-0 content-start gap-6 lg:sticky lg:top-4">
     <Panel>
       {#snippet header()}<h2 class="text-lg font-semibold tracking-tight">{youngCopy.activitySummary}</h2>{/snippet}
       <div data-testid="young-event-overview">
@@ -308,8 +311,9 @@ const extraPlaces = $derived.by(() => {
       </div>
     </Panel>
     <YoungSourceNote labels={youngCopy} {source} />
-  {/snippet}
-</CollectionPage>
+    </aside>
+  </div>
+</div>
 
 <style>
   .young-event-copy :global(img) {

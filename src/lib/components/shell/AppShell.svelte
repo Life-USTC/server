@@ -51,6 +51,7 @@ import {
   applyShellTheme,
   buildFooterLinks,
   isDetailWorkspacePath,
+  isYoungEventDetailPath,
   resolveAvatarFallback,
   resolveProfileHref,
   shouldShowAppFooter,
@@ -212,6 +213,7 @@ $: mobileSecondaryHasActive =
     group.links.some((link) => linkHasActiveDestination(link)),
   );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
+$: youngEventBanner = isYoungEventDetailPath($page.url.pathname);
 $: focusedShell = shouldUseFocusedShell($page.url.pathname);
 $: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(viewerUser));
 $: mainContentLabel = resolveMainContentLabel($page.data);
@@ -1180,9 +1182,11 @@ afterNavigate(({ from, to }) => {
           <div
             class={cn(
               "w-full flex-1",
-              detailWorkspace
-                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-                : "px-4 py-4 sm:px-5 lg:px-6",
+              youngEventBanner
+                ? "p-0"
+                : detailWorkspace
+                  ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+                  : "px-4 py-4 sm:px-5 lg:px-6",
             )}
           >
             <slot />

@@ -64,10 +64,9 @@ function addDays(key: string, amount: number) {
   return dayKey(dayStart(key).add(amount, "day").toDate());
 }
 
-function mondayOf(key: string) {
+function sundayOf(key: string) {
   const date = dayStart(key);
-  const offset = (date.day() + 6) % 7;
-  return dayKey(date.subtract(offset, "day").toDate());
+  return dayKey(date.subtract(date.day(), "day").toDate());
 }
 
 export function normalizeYoungCalendarDate(value: string | null | undefined) {
@@ -85,15 +84,15 @@ export function youngCalendarRange(
   const anchor = normalizeYoungCalendarDate(anchorDate);
   if (view === "day") return { start: anchor, end: anchor };
   if (view === "week") {
-    const start = mondayOf(anchor);
+    const start = sundayOf(anchor);
     return { start, end: addDays(start, 6) };
   }
 
   const month = dayStart(anchor).startOf("month");
   const first = dayKey(month.toDate());
-  const gridStart = mondayOf(first);
+  const gridStart = sundayOf(first);
   const last = dayKey(month.endOf("month").toDate());
-  const gridEnd = addDays(mondayOf(last), 6);
+  const gridEnd = addDays(sundayOf(last), 6);
   return { start: gridStart, end: gridEnd };
 }
 

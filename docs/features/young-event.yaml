@@ -110,18 +110,20 @@ requirements:
   category: presentation
   rule: Detail pages prioritize time, venue, hours and signup deadline. A same-day activity shows one date
     and two times on one line. A venue already named in that summary is not repeated in a second venue
-    block. Official signup remains external. The poster is shown under the title inside a bounded frame
-    and its link opens the full picture. The signup window, registration requirements, and organization
+    block. Official signup remains external. The poster is a full-width banner at the top of the page.
+    A fade from white, or black in dark mode, up to transparent covers the image, and the title sits on
+    that lower edge. The image link opens the full picture. The signup window, registration requirements, and organization
     contacts stay off the default page. Statistics and record metadata stay expandable. Description images
     stay inside a bounded frame.
 - id: young-event.web-list-scan
   category: presentation
   rule: The activity list is a date-grouped agenda. Each row shows the start time, name, one line of
     place, module, level, hours and signup deadline, and the signup status. It does not repeat the full
-    signup window or occupancy on every row.
+    signup window or occupancy on every row. The platform name in the description links to the official site.
 - id: young-event.web-calendar-density
   category: presentation
-  rule: Month and week grids show a few single-line entries for events that start that day. Events that
+  rule: Month and week grids start on Sunday and show a few single-line entries for events that start
+    that day. Day cells show the date number; weekday names stay in the column header. Events that
     only continue into the day stay in the day view, which lists events that start that day first.
     Further events open the day view.
 - id: young-event.web-mobile-calendar

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
   isOnboardingPath,
+  isYoungEventDetailPath,
   resolveShellTheme,
   shouldShowAppFooter,
   shouldUseFocusedShell,
@@ -17,6 +18,16 @@ describe("application shell footer policy", () => {
     ["/catalog/courses", false],
   ])("identifies detail workspace path %s", (pathname, expected) => {
     expect(isDetailWorkspacePath(pathname)).toBe(expected);
+  });
+
+  it.each([
+    ["/catalog/young-events/82b85f9952501a0c0303ac31652f19e9", true],
+    ["/catalog/young-events", false],
+    ["/catalog/young-events/calendar", false],
+    ["/catalog/young-events/organizers", false],
+    ["/catalog/young-events/organizers/dev-scenario-young-organizer", false],
+  ])("identifies young event banner path %s", (pathname, expected) => {
+    expect(isYoungEventDetailPath(pathname)).toBe(expected);
   });
 
   it.each([

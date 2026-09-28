@@ -72,10 +72,6 @@ $: weeks = youngCalendarWeeks(
       timeZone: "Asia/Shanghai",
       day: "numeric",
     }).format(day.date),
-    sublabel: new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Shanghai",
-      weekday: "short",
-    }).format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
     events: (view === "day"
@@ -238,7 +234,12 @@ function eventMeta(event: YoungEventSummary) {
         minWidth="760px"
         {weeks}
         variant={view === "week" ? "week" : "month"}
-        weekdays={weeks[0]?.days.map((day) => day.sublabel ?? "") ?? []}
+        weekdays={weeks[0]?.days.map((day) =>
+          new Intl.DateTimeFormat(locale, {
+            timeZone: "Asia/Shanghai",
+            weekday: "short",
+          }).format(new Date(`${day.key}T12:00:00+08:00`)),
+        ) ?? []}
       />
     {/if}
   </div>

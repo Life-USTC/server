@@ -47,7 +47,7 @@ requirements:
     grid views.
 - id: calendar.week-starts-sunday
   category: presentation
-  rule: Existing academic grids start on Sunday; activity calendars use Monday-start weeks.
+  rule: Academic grids and the second-classroom activity calendar start on Sunday.
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal calendar course cards show the viewer's teaching-assistant or auditor subscription as

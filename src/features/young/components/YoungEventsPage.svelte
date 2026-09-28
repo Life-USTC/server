@@ -48,8 +48,9 @@ function pageHref(targetPage: number) {
   return `${$appPage.url.pathname}?${params}`;
 }
 
-const sourceHost = "young.ustc.edu.cn";
-const descriptionParts = $derived(youngCopy.description.split(sourceHost));
+const descriptionParts = $derived(
+  youngCopy.description.split(youngCopy.platformName),
+);
 const locale = $derived($appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
 const groups = $derived(groupYoungEventsByStartDate(data));
 
@@ -95,7 +96,7 @@ function rowMeta(event: (typeof data)[number]) {
 {#snippet description()}
   <p class="mt-1 max-w-2xl text-muted-foreground [overflow-wrap:anywhere]">
     {#each descriptionParts as part, index (index)}
-      {part}{#if index < descriptionParts.length - 1}<a class="underline underline-offset-4" href="https://{sourceHost}" rel="noreferrer noopener" target="_blank">{sourceHost}</a>{/if}
+      {part}{#if index < descriptionParts.length - 1}<a class="underline underline-offset-4" href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{youngCopy.platformName}</a>{/if}
     {/each}
   </p>
 {/snippet}

@@ -77,14 +77,14 @@ function event(
 }
 
 describe("Young calendar", () => {
-  it("builds Shanghai Monday based ranges and preserves day deep links", () => {
+  it("builds Shanghai Sunday based ranges and preserves day deep links", () => {
     expect(youngCalendarRange("week", "2026-09-16")).toEqual({
-      start: "2026-09-14",
-      end: "2026-09-20",
+      start: "2026-09-13",
+      end: "2026-09-19",
     });
     expect(youngCalendarRange("month", "2026-09-16")).toEqual({
-      start: "2026-08-31",
-      end: "2026-10-04",
+      start: "2026-08-30",
+      end: "2026-10-03",
     });
     expect(youngCalendarPreviousDate("week", "2026-09-16")).toBe("2026-09-09");
     expect(youngCalendarNextDate("month", "2026-09-16")).toBe("2026-10-16");
@@ -167,9 +167,9 @@ describe("Young calendar", () => {
       "activity",
       "2026-09-16",
     );
-    expect(days.find((day) => day.key === "2026-08-31")?.isMuted).toBe(true);
+    expect(days.find((day) => day.key === "2026-08-30")?.isMuted).toBe(true);
     expect(days.find((day) => day.key === "2026-09-01")?.isMuted).toBe(false);
-    expect(days.find((day) => day.key === "2026-10-04")?.isMuted).toBe(true);
+    expect(days.find((day) => day.key === "2026-10-03")?.isMuted).toBe(true);
   });
 
   it("places events by registration dates when requested", () => {
@@ -198,8 +198,8 @@ describe("calendar browsing hierarchy", () => {
       "Friday, September 25, 2026",
     );
     const week = youngCalendarHeading("week", "2026-09-25", "en-us");
-    expect(week).toContain("21");
-    expect(week).toContain("27");
+    expect(week).toContain("20");
+    expect(week).toContain("26");
     expect(week).toContain("2026");
   });
   it("starts the mobile month agenda at the selected day and retains all earlier month dates", () => {
