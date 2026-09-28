@@ -12,11 +12,21 @@ export const rlsTest = isolatedDatabaseTest.extend<{
   };
   rlsSections: { sectionId: number; writeProbeSectionId: number };
   rlsCampuses: { id: number }[];
+  rlsComments: {
+    deleted: string;
+    loggedIn: string;
+    public: string;
+    softbanned: string;
+  };
+  rlsReactions: { commentId: string };
+  rlsHomework: { homeworkId: string };
 }>({
   rlsRuntime: async ({ isolatedDatabase }, use) => {
     const runtime = createNodeRuntime({
       HYPERDRIVE: { connectionString: isolatedDatabase.connections.app },
       HYPERDRIVE_AUTH: { connectionString: isolatedDatabase.connections.auth },
+      // RLS service calls enqueue invalidation; queue delivery has Worker tests.
+      CALENDAR_EXPORT_REBUILD: { send: async () => {} },
     });
     try {
       await use(runtime);
@@ -75,5 +85,54 @@ export const rlsTest = isolatedDatabaseTest.extend<{
     ];
     await isolatedDatabase.owner.busCampus.createMany({ data: campuses });
     await use(campuses);
+  },
+  rlsComments: async ({ isolatedDatabase, rlsActors, rlsSections }, use) => {
+    const ids = {
+      deleted: "rls-test-comment-deleted",
+      loggedIn: "rls-test-comment-logged-in",
+      public: "rls-test-comment-public",
+      softbanned: "rls-test-comment-softbanned",
+    };
+    await isolatedDatabase.owner.comment.createMany({
+      data: (
+        [
+          { id: ids.public, status: "active", visibility: "public" },
+          { id: ids.loggedIn, status: "active", visibility: "logged_in_only" },
+          { id: ids.softbanned, status: "softbanned", visibility: "public" },
+          { id: ids.deleted, status: "deleted", visibility: "public" },
+        ] as const
+      ).map((comment) => ({
+        ...comment,
+        body: "RLS comment visibility fixture",
+        sectionId: rlsSections.sectionId,
+        userId: rlsActors.firstUserId,
+      })),
+    });
+    await use(ids);
+  },
+  rlsReactions: async ({ isolatedDatabase, rlsActors, rlsComments }, use) => {
+    await isolatedDatabase.owner.commentReaction.createMany({
+      data: [
+        rlsComments.loggedIn,
+        rlsComments.softbanned,
+        rlsComments.deleted,
+      ].map((commentId) => ({
+        commentId,
+        userId: rlsActors.secondUserId,
+        type: "heart",
+      })),
+    });
+    await use({ commentId: rlsComments.public });
+  },
+  rlsHomework: async ({ isolatedDatabase, rlsActors, rlsSections }, use) => {
+    const homework = await isolatedDatabase.owner.homework.create({
+      data: {
+        id: "rls-homework",
+        title: "RLS homework completion fixture",
+        sectionId: rlsSections.sectionId,
+        createdById: rlsActors.firstUserId,
+      },
+    });
+    await use({ homeworkId: homework.id });
   },
 });
