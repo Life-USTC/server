@@ -44,8 +44,9 @@ tests/integration/mcp/
 
 The MCP in-memory client verifies tool behavior and serialization; real Worker
 HTTP authentication is a separate layer. `fileParallelism` remains off for the
-overall integration suite because global maintenance and metric assertions still
-share a database. Per-test identities do not isolate those global operations.
+overall integration suite while remaining shared actors and global operations are
+migrated. Maintenance and Prometheus scenarios now use per-test databases;
+per-test identities alone do not isolate database-wide operations.
 
 Run isolated local shards with `bun run integration:test:parallel`. It creates
 four disposable PostgreSQL containers, applies the production role bootstrap to

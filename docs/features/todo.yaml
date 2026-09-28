@@ -57,8 +57,10 @@ requirements:
   acceptance:
     given: An isolated regular user and actively suspended administrator each own one private todo, and
       independent OAuth clients receive todo read/write grants.
-    when: Anonymous, signed Web, REST, GraphQL and real HTTP MCP callers read lists, create/edit/delete
-      owned todos, and attempt individual or batch writes to the other owner’s todo.
+    when: Independently prepared anonymous, Web, cookie and OAuth cases exercise list consumers,
+      owned mutations, foreign write rejection and mixed-owner batches through REST, GraphQL and
+      real HTTP MCP. OAuth cases use client registration, browser consent and PKCE code exchange;
+      separate Web journeys create, edit and delete an owned todo.
     then:
     - Anonymous reads and writes never reveal or modify private todos.
     - Each owner, including the suspended administrator and OAuth clients, sees only their own list and
@@ -68,7 +70,7 @@ requirements:
     - The other owner’s complete stored record remains unchanged after every transport.
     test:
       file: tests/e2e/src/app/workspace/todos/ownership-contract.test.ts
-      name: todo.personal-ownership
+      name: consumer hides foreign rows at 390px
 - id: todo.web-list-state
   category: presentation
   rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
