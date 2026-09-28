@@ -398,6 +398,9 @@ describe("GraphQL MCP operations", () => {
       } finally {
         await readOnly.close();
         await foreignActor.close();
+        await fixtures.prisma.featureOperationEvent.deleteMany({
+          where: { userId: other.id },
+        });
         await fixtures.prisma.user.delete({ where: { id: other.id } });
       }
     },

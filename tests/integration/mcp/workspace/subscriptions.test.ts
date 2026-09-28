@@ -121,6 +121,9 @@ describe("workspace subscriptions through the restricted MCP runtime", () => {
           },
           async () => {
             await rlsFixturePrisma.$transaction(async (tx) => {
+              await tx.featureOperationEvent.deleteMany({
+                where: { userId: { in: [userId, otherUserId] } },
+              });
               await tx.user.deleteMany({
                 where: { id: { in: [userId, otherUserId] } },
               });

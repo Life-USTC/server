@@ -36,9 +36,29 @@ mcpTest(
 mcpTest(
   "MCP teardown failures still close the transport and delete actor state",
   async ({ expect }) => {
+    const eventId = crypto.randomUUID();
     const fixture = await createEphemeralMcpUser({
       emailPrefix: "failed-mcp-cleanup",
       name: "Failed MCP cleanup",
+      setup: async (userId) => {
+        await db.todo.create({
+          data: { userId, title: "Must be removed" },
+        });
+        await db.featureOperationEvent.create({
+          data: {
+            id: eventId,
+            userId,
+            feature: "workspace.subscription",
+            operation: "create",
+            protocol: "mcp",
+            surface: "mcp",
+            authMode: "oauth",
+            outcome: "success",
+            errorClass: "none",
+            durationMs: 1,
+          },
+        });
+      },
       cleanup: async () => {
         throw new Error("custom cleanup failure");
       },
@@ -48,9 +68,6 @@ mcpTest(
       await originalClose();
       throw new Error("transport cleanup failure");
     };
-    await db.todo.create({
-      data: { userId: fixture.userId, title: "Must be removed" },
-    });
     await expect(fixture.close()).rejects.toMatchObject({
       errors: [
         new Error("transport cleanup failure"),
@@ -61,6 +78,13 @@ mcpTest(
       await db.user.findUnique({ where: { id: fixture.userId } }),
     ).toBeNull();
     expect(await db.todo.count({ where: { userId: fixture.userId } })).toBe(0);
+    try {
+      expect(
+        await db.featureOperationEvent.findUnique({ where: { id: eventId } }),
+      ).toBeNull();
+    } finally {
+      await db.featureOperationEvent.deleteMany({ where: { id: eventId } });
+    }
   },
 );
 

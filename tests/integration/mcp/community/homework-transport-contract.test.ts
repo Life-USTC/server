@@ -194,6 +194,9 @@ const contractTest = mcpTest
           await db.oAuthClient.deleteMany({ where: { clientId } });
         },
         async () => {
+          await db.featureOperationEvent.deleteMany({
+            where: { userId: { in: users } },
+          });
           await db.user.deleteMany({ where: { id: { in: users } } });
         },
       ]);

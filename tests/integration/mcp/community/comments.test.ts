@@ -920,6 +920,9 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         await fixtures.prisma.upload.deleteMany({
           where: { id: { in: [upload.id, otherUpload.id] } },
         });
+        await fixtures.prisma.featureOperationEvent.deleteMany({
+          where: { userId: otherUser.id },
+        });
         await fixtures.prisma.user.deleteMany({ where: { id: otherUser.id } });
       }
     },
@@ -965,6 +968,9 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         await suspendedMcp.close();
         await fixtures.prisma.userSuspension.deleteMany({
           where: { id: suspension.id },
+        });
+        await fixtures.prisma.featureOperationEvent.deleteMany({
+          where: { userId: suspendedUser.id },
         });
         await fixtures.prisma.user.deleteMany({
           where: { id: suspendedUser.id },
